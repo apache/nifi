@@ -83,21 +83,16 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private final String dateFormat;
     private final String timeFormat;
     private final String timestampFormat;
+    private final String nestedFieldName;
 
-    private boolean firstObjectConsumed = false;
-    private JsonParser jsonParser;
-    private JsonNode firstJsonNode;
-    private StartingFieldStrategy strategy;
-    private Map<String, String> capturedFields;
-    private BiPredicate<String, String> captureFieldPredicate;
+    private final JsonParser jsonParser;
+    private final StartingFieldStrategy strategy;
+    private final Map<String, String> capturedFields;
+    private final BiPredicate<String, String> captureFieldPredicate;
 
-    private AbstractJsonRowRecordReader(final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat) {
-        this.logger = logger;
+    // Keeps track of whether or not we've skipped to the starting field for the current object when using the NESTED_FIELD strategy
+    private boolean skippedToStartField = false;
 
-        this.dateFormat = dateFormat;
-        this.timeFormat = timeFormat;
-        this.timestampFormat = timestampFormat;
-    }
 
     /**
      * Constructor with initial logic for JSON to NiFi record parsing.
@@ -130,7 +125,12 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                                           final TokenParserFactory tokenParserFactory)
             throws IOException, MalformedRecordException {
 
-        this(logger, dateFormat, timeFormat, timestampFormat);
+        this.logger = logger;
+
+        this.dateFormat = dateFormat;
+        this.timeFormat = timeFormat;
+        this.timestampFormat = timestampFormat;
+        this.nestedFieldName = nestedFieldName;
 
         this.strategy = strategy;
         this.captureFieldPredicate = captureFieldPredicate;
@@ -141,28 +141,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             jsonParser = tokenParserFactory.getJsonParser(in, configuredStreamReadConstraints, allowComments);
             jsonParser.enable(Feature.USE_FAST_DOUBLE_PARSER);
             jsonParser.enable(Feature.USE_FAST_BIG_NUMBER_PARSER);
-
-            if (strategy == StartingFieldStrategy.NESTED_FIELD) {
-                while (jsonParser.nextToken() != null) {
-                    if (nestedFieldName.equals(jsonParser.currentName())) {
-                        logger.debug("Parsing starting at nested field [{}]", nestedFieldName);
-                        break;
-                    }
-                    if (captureFieldPredicate != null) {
-                        captureCurrentField(captureFieldPredicate);
-                    }
-                }
-            }
-
-            JsonToken token = jsonParser.nextToken();
-            if (token == JsonToken.START_ARRAY) {
-                token = jsonParser.nextToken(); // advance to START_OBJECT token
-            }
-            if (token == JsonToken.START_OBJECT) { // could be END_ARRAY also
-                firstJsonNode = jsonParser.readValueAsTree();
-            } else {
-                firstJsonNode = null;
-            }
         } catch (final JsonParseException e) {
             throw new MalformedRecordException("Could not parse data as JSON", e);
         }
@@ -190,6 +168,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                     captureCurrentField(captureFieldPredicate);
                 }
             }
+
             return null;
         }
 
@@ -302,7 +281,11 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         return null;
     }
 
-    private void captureCurrentField(BiPredicate<String, String> captureFieldPredicate) throws IOException {
+    private void captureCurrentField(final BiPredicate<String, String> captureFieldPredicate) throws IOException {
+        if (captureFieldPredicate == null) {
+            return;
+        }
+
         if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME) {
             jsonParser.nextToken();
 
@@ -402,57 +385,79 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         return new MapRecord(childSchema, childValues, serializedForm);
     }
 
-    protected JsonNode getNextJsonNode() throws IOException, MalformedRecordException {
-        if (!firstObjectConsumed) {
-            firstObjectConsumed = true;
-            return firstJsonNode;
-        }
-        if (strategy == StartingFieldStrategy.NESTED_FIELD) {
-            return getJsonNodeWithNestedNodeStrategy();
-        } else {
-            return getJsonNode();
-        }
 
-    }
-
-    private JsonNode getJsonNodeWithNestedNodeStrategy() throws IOException, MalformedRecordException {
-        while (true) {
-            final JsonToken token = jsonParser.nextToken();
-            if (token == null) {
-                return null;
-            }
-
-            switch (token) {
-                case START_ARRAY:
-                    break;
-                case END_ARRAY:
-                case END_OBJECT:
-                case FIELD_NAME:
+    private JsonNode getNextJsonNode() throws IOException, MalformedRecordException {
+        try {
+            while (true) {
+                final JsonToken token = jsonParser.nextToken();
+                if (token == null) {
                     return null;
+                }
+
+                switch (token) {
+                    case START_ARRAY:
+                        break;
+                    case END_ARRAY:
+                    case END_OBJECT:
+                        skippedToStartField = false;
+                        break;
+                    case START_OBJECT:
+                        if (strategy == StartingFieldStrategy.NESTED_FIELD) {
+                            if (!skippedToStartField) {
+                                skipToStartingField();
+                                skippedToStartField = true;
+                                break;
+                            }
+                        }
+
+                        return jsonParser.readValueAsTree();
+                    default:
+                        // We got a token that isn't expected. This can happen when using the Nested Field Strategy.
+                        // For example, the field given has a String as a value instead of a Record. In this case, we want to skip to the next field.
+                        // Read to the end of the object/array
+                        skipToEndOfObject();
+                        break;
+                }
+            }
+        } catch (final JsonParseException e) {
+            throw new MalformedRecordException("Failed to parse JSON", e);
+        }
+    }
+
+    private void skipToEndOfObject() throws IOException {
+        int depth = 0;
+        JsonToken token;
+        while ((token = jsonParser.nextToken()) != null) {
+            captureCurrentField(captureFieldPredicate);
+
+            switch (token) {
                 case START_OBJECT:
-                    return jsonParser.readValueAsTree();
+                    depth++;
+                    break;
+                case END_OBJECT:
+                    depth--;
+                    if (depth == 0) {
+                        return;
+                    }
+                    break;
                 default:
-                    throw new MalformedRecordException("Expected to get a JSON Object but got a token of type " + token.name());
+                    break;
             }
         }
     }
 
-    private JsonNode getJsonNode() throws IOException, MalformedRecordException {
-        while (true) {
-            final JsonToken token = jsonParser.nextToken();
-            if (token == null) {
-                return null;
-            }
+    private void skipToStartingField() throws IOException {
+        if (strategy != StartingFieldStrategy.NESTED_FIELD) {
+            return;
+        }
 
-            switch (token) {
-                case START_ARRAY:
-                case END_ARRAY:
-                case END_OBJECT:
-                    break;
-                case START_OBJECT:
-                    return jsonParser.readValueAsTree();
-                default:
-                    throw new MalformedRecordException("Expected to get a JSON Object but got a token of type " + token.name());
+        while (jsonParser.nextToken() != null) {
+            if (nestedFieldName.equals(jsonParser.currentName())) {
+                logger.debug("Parsing starting at nested field [{}]", nestedFieldName);
+                break;
+            }
+            if (captureFieldPredicate != null) {
+                captureCurrentField(captureFieldPredicate);
             }
         }
     }
