@@ -48,7 +48,7 @@ public class NettyTransportTest {
     }
 
     @Test
-    public void getDefaultTransport() {
+    public void testGetDefaultTransport() {
         NettyTransport transport = NettyTransport.getDefault();
         assertTrue(transport.isAvailable());
         if (SystemUtils.IS_OS_MAC_OSX) {
