@@ -48,7 +48,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
         @WritesAttribute(attribute = "s3.statusCode", description = "The HTTP error code (if available) from the failed operation"),
         @WritesAttribute(attribute = "s3.errorCode", description = "The S3 moniker of the failed operation"),
         @WritesAttribute(attribute = "s3.errorMessage", description = "The S3 exception message from the failed operation")})
-@SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class})
+@SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class, CopyS3Object.class, ExistsS3Object.class, TagS3Object.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Delete"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Deletes a file from an Amazon S3 Bucket. If attempting to delete a file that does not exist, FlowFile is routed to success.")
