@@ -47,6 +47,7 @@ import org.apache.nifi.util.StringUtils;
 
 import org.bouncycastle.bcpg.BCPGInputStream;
 import org.bouncycastle.bcpg.Packet;
+import org.bouncycastle.bcpg.PacketTags;
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKey;
@@ -321,6 +322,13 @@ public class EncryptContentPGP extends AbstractProcessor {
     }
 
     private static class EncryptStreamCallback extends EncodingStreamCallback {
+        // Set of OpenPGP Packet Tags indicating signed or packaged messages
+        private static final Set<Integer> PACKAGED_PACKET_TAGS = Set.of(
+                PacketTags.ONE_PASS_SIGNATURE,
+                PacketTags.COMPRESSED_DATA,
+                PacketTags.LITERAL_DATA
+        );
+
         private final PGPEncryptedDataGenerator encryptedDataGenerator;
 
         private final ComponentLog logger;
@@ -373,7 +381,9 @@ public class EncryptContentPGP extends AbstractProcessor {
                 if (packet == null) {
                     logger.debug("PGP Packet not found");
                 } else {
-                    packetFound = true;
+                    final int packetTag = packet.getPacketTag();
+                    logger.debug("PGP Packet Tag [{}] read", packetTag);
+                    packetFound = PACKAGED_PACKET_TAGS.contains(packetTag);
                 }
             } catch (final Exception e) {
                 logger.debug("PGP Packet read failed", e);
