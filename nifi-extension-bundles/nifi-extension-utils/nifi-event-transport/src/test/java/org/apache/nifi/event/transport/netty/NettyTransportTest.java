@@ -37,7 +37,6 @@ public class NettyTransportTest {
     @EnabledOnOs(value = OS.LINUX)
     public void epollIsAvailableOnLinux() {
         Epoll.ensureAvailability();
-        assertTrue(Epoll.isAvailable());
         assertTrue(NettyTransport.EPOLL.isAvailable());
     }
 
@@ -45,7 +44,6 @@ public class NettyTransportTest {
     @EnabledOnOs(value = OS.MAC)
     public void kqueueIsAvailableOnMac() {
         KQueue.ensureAvailability();
-        assertTrue(KQueue.isAvailable());
         assertTrue(NettyTransport.KQUEUE.isAvailable());
     }
 
