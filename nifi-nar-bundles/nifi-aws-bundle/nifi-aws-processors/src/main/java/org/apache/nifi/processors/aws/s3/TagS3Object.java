@@ -59,7 +59,7 @@ import java.util.stream.Collectors;
         @WritesAttribute(attribute = "s3.statusCode", description = "The HTTP error code (if available) from the failed operation"),
         @WritesAttribute(attribute = "s3.errorCode", description = "The S3 moniker of the failed operation"),
         @WritesAttribute(attribute = "s3.errorMessage", description = "The S3 exception message from the failed operation")})
-@SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class})
+@SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class, CopyS3Object.class, GetS3ObjectMetadata.class, DeleteS3Object.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Tag"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sets tags on a FlowFile within an Amazon S3 Bucket. " +
