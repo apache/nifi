@@ -27,41 +27,41 @@
      private PCAP root;
      private byte[] rawBody;
      private String invalidityReason;
- 
+
      public Packet(ByteBufferReader io, PCAP root) {
          this.root = root;
          this.io = io;
          read();
      }
- 
+
      public Packet(byte[] headerArray, PCAP root) {
          this.root = root;
          this.io = new ByteBufferReader(headerArray);
          read();
      }
- 
+
      public Packet(long tSSec, long tSUsec, long inclLen, long origLen, byte[] rawBody) {
          // packet header properties
          this.tsSec = tSSec;
          this.tsUsec = tSUsec;
          this.inclLen = inclLen;
          this.origLen = origLen;
- 
+
          // packet calculated properties
          this.expectedLength = inclLen;
          this.totalLength = PACKET_HEADER_LENGTH + rawBody.length;
          this.rawBody = rawBody;
          this.setValidity();
      }
- 
+
      private void read() {
          this.tsSec = this.io.readU4();
          this.tsUsec = this.io.readU4();
          this.inclLen = this.io.readU4();
          this.origLen = this.io.readU4();
- 
+
          this.expectedLength = Math.min(inclLen(), root().getHeader().snaplen());
- 
+
          if (!this.io.isEof() && this.io.bytesLeft() >= expectedLength) {
              this.rawBody = this.io.readBytes(expectedLength);
          } else {
@@ -70,7 +70,7 @@
          this.setValidity();
          this.totalLength = PACKET_HEADER_LENGTH + this.rawBody.length;
      }
- 
+
      private void setValidity() {
          this.invalidityReason = null;
          if (this.rawBody.length == 0) {
@@ -84,33 +84,33 @@
              this.invalidityReason = "The reported length of this packet is 0.";
          }
      }
- 
+
      public boolean isInvalid() {
          return this.invalidityReason != null;
      }
- 
+
      public long tsSec() {
          return tsSec;
      }
- 
+
      public long tsUsec() {
          return tsUsec;
      }
- 
+
      /**
       * Number of bytes of packet data actually captured and saved in the file.
       */
      public long inclLen() {
          return inclLen;
      }
- 
+
      /**
       * Length of the packet as it appeared on the network when it was captured.
       */
      public long origLen() {
          return origLen;
      }
- 
+
      /**
       * @see <a href=
       *      "https://wiki.wireshark.org/Development/LibpcapFileFormat#Packet_Data">Source</a>
@@ -118,23 +118,23 @@
      public PCAP root() {
          return root;
      }
- 
+
      public byte[] rawBody() {
          return rawBody;
      }
- 
+
      public long expectedLength() {
          return expectedLength;
      }
- 
+
      public int totalLength() {
          return totalLength;
      }
- 
+
      public String invalidityReason() {
          return invalidityReason;
      }
- 
+
      public void setBody(byte[] newBody) {
          this.rawBody = newBody;
          this.setValidity();

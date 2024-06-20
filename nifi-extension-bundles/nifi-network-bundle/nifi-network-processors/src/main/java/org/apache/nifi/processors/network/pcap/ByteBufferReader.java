@@ -17,41 +17,41 @@
 
  import java.nio.ByteBuffer;
  import java.nio.ByteOrder;
- 
+
  public class ByteBufferReader {
     final private ByteBuffer buffer;
- 
+
      public ByteBufferReader(byte[] byteArray) {
          this.buffer = ByteBuffer.wrap(byteArray);
          buffer.order(ByteOrder.LITTLE_ENDIAN);
      }
- 
+
      public int readU2() {
          return (buffer.getShort() & 0xffff);
      }
- 
+
      public long readU4() {
          return ((long) buffer.getInt() & 0xffffffffL);
      }
- 
+
      public int readS4() {
          return buffer.getInt();
      }
- 
+
      public byte[] readBytes(int n) {
          byte[] output = new byte[n];
          buffer.get(output);
          return output;
      }
- 
+
      public byte[] readBytes(long n) {
          return readBytes((int) n);
      }
- 
+
      public int bytesLeft() {
          return buffer.remaining();
      }
- 
+
      public boolean isEof() {
          return !buffer.hasRemaining();
      }

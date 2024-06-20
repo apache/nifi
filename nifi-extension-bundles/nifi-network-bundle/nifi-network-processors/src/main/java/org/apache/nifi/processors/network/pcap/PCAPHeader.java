@@ -24,7 +24,7 @@
      private final long sigfigs;
      private final long snaplen;
      private final long network;
- 
+
      public PCAPHeader(ByteBufferReader io) {
          this.magicNumber = io.readBytes(4);
          this.versionMajor = io.readU2();
@@ -34,19 +34,19 @@
          this.snaplen = io.readU4();
          this.network = io.readU4();
      }
- 
+
      public byte[] magicNumber() {
          return magicNumber;
      }
- 
+
      public int versionMajor() {
          return versionMajor;
      }
- 
+
      public int versionMinor() {
          return versionMinor;
      }
- 
+
      /**
       * Correction time in seconds between UTC and the local
       * timezone of the following packet header timestamps.
@@ -54,7 +54,7 @@
      public int thiszone() {
          return thiszone;
      }
- 
+
      /**
       * In theory, the accuracy of time stamps in the capture; in
       * practice, all tools set it to 0.
@@ -62,7 +62,7 @@
      public long sigfigs() {
          return sigfigs;
      }
- 
+
      /**
       * The "snapshot length" for the capture (typically 65535 or
       * even more, but might be limited by the user), see: incl_len
@@ -71,7 +71,7 @@
      public long snaplen() {
          return snaplen;
      }
- 
+
      /**
       * Link-layer header type, specifying the type of headers at
       * the beginning of the packet.

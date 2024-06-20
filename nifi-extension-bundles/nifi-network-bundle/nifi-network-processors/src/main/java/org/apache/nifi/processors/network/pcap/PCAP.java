@@ -17,10 +17,10 @@
 
  import java.nio.ByteBuffer;
  import java.nio.ByteOrder;
- 
+
  import java.util.ArrayList;
  import java.util.List;
- 
+
  /**
   * PCAP (named after libpcap / winpcap) is a popular format for saving
   * network traffic grabbed by network sniffers. It is typically
@@ -33,7 +33,7 @@
  public class PCAP {
      private final PCAPHeader hdr;
      private final List<Packet> packets;
- 
+
      public PCAP(ByteBufferReader io) {
          this.hdr = new PCAPHeader(io);
          this.packets = new ArrayList<>();
@@ -41,17 +41,17 @@
              this.packets.add(new Packet(io, this));
          }
      }
- 
+
      public PCAP(PCAPHeader hdr, List<Packet> packets) {
          this.hdr = hdr;
          this.packets = packets;
      }
- 
+
      public byte[] toByteArray() {
          int headerBufferSize = PCAPHeader.PCAP_HEADER_LENGTH;
          ByteBuffer headerBuffer = ByteBuffer.allocate(headerBufferSize);
          headerBuffer.order(ByteOrder.LITTLE_ENDIAN);
- 
+
          headerBuffer.put(this.hdr.magicNumber());
          headerBuffer.put(readIntToNBytes(this.hdr.versionMajor(), 2, false));
          headerBuffer.put(readIntToNBytes(this.hdr.versionMinor(), 2, false));
@@ -59,41 +59,41 @@
          headerBuffer.put(readLongToNBytes(this.hdr.sigfigs(), 4, true));
          headerBuffer.put(readLongToNBytes(this.hdr.snaplen(), 4, true));
          headerBuffer.put(readLongToNBytes(this.hdr.network(), 4, true));
- 
+
          List<byte[]> packetByteArrays = new ArrayList<>();
- 
+
          int packetBufferSize = 0;
- 
+
          for (Packet currentPacket : packets) {
              int currentPacketTotalLength = Packet.PACKET_HEADER_LENGTH + currentPacket.rawBody().length;
- 
+
              ByteBuffer currentPacketBytes = ByteBuffer.allocate(currentPacketTotalLength);
              currentPacketBytes.put(readLongToNBytes(currentPacket.tsSec(), 4, false));
              currentPacketBytes.put(readLongToNBytes(currentPacket.tsUsec(), 4, false));
              currentPacketBytes.put(readLongToNBytes(currentPacket.inclLen(), 4, false));
              currentPacketBytes.put(readLongToNBytes(currentPacket.origLen(), 4, false));
              currentPacketBytes.put(currentPacket.rawBody());
- 
+
              packetByteArrays.add(currentPacketBytes.array());
              packetBufferSize += currentPacketTotalLength;
          }
- 
+
          ByteBuffer packetBuffer = ByteBuffer.allocate(packetBufferSize);
          packetBuffer.order(ByteOrder.LITTLE_ENDIAN);
- 
+
          for (byte[] packetByteArray : packetByteArrays) {
              packetBuffer.put(packetByteArray);
          }
- 
+
          ByteBuffer allBytes = ByteBuffer.allocate(headerBufferSize + packetBufferSize);
          allBytes.order(ByteOrder.LITTLE_ENDIAN);
- 
+
          allBytes.put(headerBuffer.array());
          allBytes.put(packetBuffer.array());
- 
+
          return allBytes.array();
      }
- 
+
      protected static byte[] readIntToNBytes(int input, int numberOfBytes, boolean isSigned) {
          byte[] output = new byte[numberOfBytes];
          output[0] = (byte) (input & 0xff);
@@ -106,7 +106,7 @@
          }
          return output;
      }
- 
+
      private byte[] readLongToNBytes(long input, int numberOfBytes, boolean isSigned) {
          byte[] output = new byte[numberOfBytes];
          output[0] = (byte) (input & 0xff);
@@ -119,11 +119,11 @@
          }
          return output;
      }
- 
+
      public PCAPHeader getHeader() {
          return hdr;
      }
- 
+
      public List<Packet> getPackets() {
          return packets;
      }

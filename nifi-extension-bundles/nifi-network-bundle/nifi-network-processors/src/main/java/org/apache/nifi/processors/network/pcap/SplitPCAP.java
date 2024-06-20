@@ -36,7 +36,7 @@
  import org.apache.nifi.flowfile.attributes.FragmentAttributes;
  import org.apache.nifi.flowfile.attributes.CoreAttributes;
  import org.apache.nifi.processor.io.InputStreamCallback;
- 
+
  import java.io.BufferedInputStream;
  import java.io.IOException;
  import java.io.InputStream;
@@ -48,7 +48,7 @@
  import java.util.HashMap;
  import java.util.Map;
  import java.util.stream.IntStream;
- 
+
  @SideEffectFree
  @InputRequirement(Requirement.INPUT_REQUIRED)
  @Tags({"PCAP", "Splitter", "Network", "Packet", "Capture", "Wireshark", "TShark", "TcpDump", "WinDump", "sniffers"})
@@ -75,15 +75,15 @@
          description = "The filename of the parent PCAP FlowFile"
      )
  })
- 
+
  public class SplitPCAP extends AbstractProcessor {
- 
+
      protected static final String ERROR_REASON_LABEL = "ERROR_REASON";
      public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
      public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
      public static final String FRAGMENT_COUNT = FragmentAttributes.FRAGMENT_COUNT.key();
      public static final String SEGMENT_ORIGINAL_FILENAME = FragmentAttributes.SEGMENT_ORIGINAL_FILENAME.key();
- 
+
      public static final PropertyDescriptor PCAP_MAX_SIZE = new PropertyDescriptor
              .Builder().name("PCAP Max Size")
              .displayName("PCAP Max Size")
@@ -92,7 +92,7 @@
              .defaultValue("1 MB")
              .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
              .build();
- 
+
      public static final Relationship REL_ORIGINAL = new Relationship.Builder()
              .name("original")
              .description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to "
@@ -107,20 +107,20 @@
              .name("split")
              .description("The individual PCAP 'segments' of the original PCAP FlowFile will be routed to this relationship.")
              .build();
- 
+
      private static final List<PropertyDescriptor> DESCRIPTORS = List.of(PCAP_MAX_SIZE);
      private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_SPLIT);
- 
+
      @Override
      public Set<Relationship> getRelationships() {
          return RELATIONSHIPS;
      }
- 
+
      @Override
      public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
          return DESCRIPTORS;
      }
- 
+
      /**
       * This method is called when a trigger event occurs in the processor.
       * It processes the incoming flow file, splits it into smaller pcap files based on the PCAP Max Size,
@@ -132,14 +132,14 @@
       */
      @Override
      public void onTrigger(final ProcessContext context, final ProcessSession session) {
- 
+
          FlowFile originalFlowFile = session.get();
          if (originalFlowFile == null) {
              return;
          }
          final int pcapMaxSize = context.getProperty(PCAP_MAX_SIZE.getName()).asDataSize(DataUnit.B).intValue();
          final PCAPStreamSplitterCallback callback = new PCAPStreamSplitterCallback(session, originalFlowFile, pcapMaxSize);
- 
+
          try {
              session.read(originalFlowFile, callback);
          } catch (ProcessException e) {
@@ -149,17 +149,17 @@
              session.transfer(originalFlowFile, REL_FAILURE);
              return;
          }
- 
+
          final String fragmentId = UUID.randomUUID().toString();
          final String originalFileName = originalFlowFile.getAttribute(CoreAttributes.FILENAME.key());
          final String originalFileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf("."));
- 
+
          final List<FlowFile> splitFiles = callback.getSplitFiles();
          final Map<String, String> attributes = new HashMap<>();
          attributes.put(FRAGMENT_COUNT, String.valueOf(splitFiles.size()));
          attributes.put(FRAGMENT_ID, fragmentId);
          attributes.put(SEGMENT_ORIGINAL_FILENAME, originalFileName);
- 
+
          IntStream.range(0, splitFiles.size()).forEach(index -> {
              FlowFile split = splitFiles.get(index);
              attributes.put(CoreAttributes.FILENAME.key(), "%s-%d.pcap".formatted(originalFileNameWithoutExtension, index));
@@ -168,83 +168,83 @@
          });
          session.transfer(originalFlowFile, REL_ORIGINAL);
      }
- 
+
      protected class PCAPStreamSplitterCallback implements InputStreamCallback {
          private final ProcessSession session;
          private final FlowFile originalFlowFile;
          private final int pcapMaxSize;
          private final List<FlowFile> splitFiles = new ArrayList<>();
- 
+
          public List<FlowFile> getSplitFiles() {
              return splitFiles;
          }
- 
+
          public PCAPStreamSplitterCallback(ProcessSession session, FlowFile flowFile, int pcapMaxSize) {
              this.session = session;
              this.originalFlowFile = flowFile;
              this.pcapMaxSize = pcapMaxSize;
          }
- 
+
          private Packet getNextPacket(BufferedInputStream bufferedStream, PCAP templatePcap, int totalPackets) throws IOException {
              byte[] packetHeader = new byte[Packet.PACKET_HEADER_LENGTH];
              bufferedStream.read(packetHeader, 0, Packet.PACKET_HEADER_LENGTH);
              Packet currentPacket = new Packet(packetHeader, templatePcap);
- 
+
              if (currentPacket.totalLength() > this.pcapMaxSize) {
                  throw new ProcessException("PCAP Packet length [%d] larger then configured maximum [%d]".formatted(currentPacket.totalLength(), pcapMaxSize));
              }
- 
+
              byte[] packetbody = new byte[(int) currentPacket.expectedLength()];
- 
+
              bufferedStream.read(packetbody, 0, (int) currentPacket.expectedLength());
              currentPacket.setBody(packetbody);
- 
+
              if (currentPacket.isInvalid()) {
                  throw new ProcessException("PCAP contains an invalid packet. Packet number [%d] is invalid - [%s]".formatted(totalPackets, currentPacket.invalidityReason()));
              }
- 
+
              return currentPacket;
          }
- 
+
          @Override
          public void process(InputStream inStream) throws IOException {
              final List<Packet> loadedPackets = new ArrayList<>();
              final BufferedInputStream bufferedStream = new BufferedInputStream(inStream);
              int totalPackets = 1;
- 
+
              if (bufferedStream.available() == 0) {
                  throw new ProcessException("Input PCAP file empty");
              }
- 
+
              final byte[] pcapHeader = new byte[PCAPHeader.PCAP_HEADER_LENGTH];
              bufferedStream.read(pcapHeader, 0, PCAPHeader.PCAP_HEADER_LENGTH);
              int currentPcapTotalLength = PCAPHeader.PCAP_HEADER_LENGTH;
- 
+
              final PCAP templatePcap = new PCAP(new ByteBufferReader(pcapHeader));
- 
+
              while (bufferedStream.available() > 0) {
- 
+
                  Packet currentPacket = getNextPacket(bufferedStream, templatePcap, totalPackets);
- 
+
                  if (currentPcapTotalLength + currentPacket.totalLength() > this.pcapMaxSize) {
- 
+
                      templatePcap.getPackets().addAll(loadedPackets);
                      FlowFile newFlowFile = session.create(originalFlowFile);
                      try (final OutputStream out = session.write(newFlowFile)) {
                          out.write(templatePcap.toByteArray());
                          this.splitFiles.add(newFlowFile);
                      }
- 
+
                      loadedPackets.clear();
                      currentPcapTotalLength = PCAPHeader.PCAP_HEADER_LENGTH;
                      templatePcap.getPackets().clear();
                  }
- 
+
                  loadedPackets.add(currentPacket);
                  totalPackets++;
                  currentPcapTotalLength += currentPacket.totalLength();
              }
- 
+
              // If there are any packets left over, create a new flowfile.
              if (!loadedPackets.isEmpty()) {
                  templatePcap.getPackets().addAll(loadedPackets);
