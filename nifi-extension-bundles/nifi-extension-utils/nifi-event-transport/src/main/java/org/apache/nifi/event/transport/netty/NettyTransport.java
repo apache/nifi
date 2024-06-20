@@ -36,19 +36,13 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import java.lang.reflect.Constructor;
-import java.util.Arrays;
 import java.util.concurrent.ThreadFactory;
-import java.util.stream.Stream;
-
 
 public enum NettyTransport {
-    NIO("nio", true, NioEventLoopGroup.class, NioSocketChannel.class, NioServerSocketChannel.class, NioDatagramChannel.class),
-    EPOLL("epoll", Epoll.isAvailable(), EpollEventLoopGroup.class, EpollSocketChannel.class, EpollServerSocketChannel.class, EpollDatagramChannel.class),
-    KQUEUE("kqueue", KQueue.isAvailable(), KQueueEventLoopGroup.class, KQueueSocketChannel.class, KQueueServerSocketChannel.class, KQueueDatagramChannel.class);
+    NIO(true, NioEventLoopGroup.class, NioSocketChannel.class, NioServerSocketChannel.class, NioDatagramChannel.class),
+    EPOLL(Epoll.isAvailable(), EpollEventLoopGroup.class, EpollSocketChannel.class, EpollServerSocketChannel.class, EpollDatagramChannel.class),
+    KQUEUE(KQueue.isAvailable(), KQueueEventLoopGroup.class, KQueueSocketChannel.class, KQueueServerSocketChannel.class, KQueueDatagramChannel.class);
 
-    private static final NettyTransport[] ALL_VALUES = values();
-
-    private final String nettyName;
     private final boolean available;
     private final Class<? extends EventLoopGroup> eventLoopGroupClass;
     private final Class<? extends ServerSocketChannel> serverSocketChannelClass;
@@ -56,22 +50,17 @@ public enum NettyTransport {
     private final Class<? extends DatagramChannel> datagramChannelClass;
 
     NettyTransport(
-        String nettyName,
         boolean available,
         Class<? extends EventLoopGroup> eventLoopGroupClass,
         Class<? extends SocketChannel> socketChannelClass,
         Class<? extends ServerSocketChannel> serverSocketClass,
-        Class<? extends DatagramChannel> datagramChannelClass) {
-        this.nettyName = nettyName;
+        Class<? extends DatagramChannel> datagramChannelClass
+    ) {
         this.available = available;
         this.eventLoopGroupClass = eventLoopGroupClass;
         this.socketChannelClass = socketChannelClass;
         this.serverSocketChannelClass = serverSocketClass;
         this.datagramChannelClass = datagramChannelClass;
-    }
-
-    public String getNettyName() {
-        return this.nettyName;
     }
 
     public boolean isAvailable() {
@@ -102,11 +91,6 @@ public enum NettyTransport {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static Stream<NettyTransport> availableTransports() {
-        return Arrays.stream(ALL_VALUES)
-                .filter(NettyTransport::isAvailable);
     }
 
     public static NettyTransport getDefault() {
