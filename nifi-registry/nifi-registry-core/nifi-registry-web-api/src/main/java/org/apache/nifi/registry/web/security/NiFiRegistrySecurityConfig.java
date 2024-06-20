@@ -185,7 +185,7 @@ public class NiFiRegistrySecurityConfig {
             if (accessDeniedException instanceof CsrfException) {
                 status = HttpServletResponse.SC_FORBIDDEN;
                 message = "Access Denied: CSRF Header and Cookie not matched";
-                logger.info("Access Denied: CSRF Header [{}] not matched", CsrfCookieName.REQUEST_TOKEN.getCookieName(), accessDeniedException);
+                logger.info("Access Denied: CSRF Header [{}] not matched: {}", CsrfCookieName.REQUEST_TOKEN.getCookieName(), accessDeniedException.toString());
             } else {
                 status = HttpServletResponse.SC_UNAUTHORIZED;
                 message = "Access Denied";
