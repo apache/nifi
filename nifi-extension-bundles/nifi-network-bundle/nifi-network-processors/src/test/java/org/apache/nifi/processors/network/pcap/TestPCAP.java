@@ -15,78 +15,92 @@
  * limitations under the License.
  */
 
+ package org.apache.nifi.processors.network.pcap;
 
-package org.apache.nifi.processors.network.pcap;
-
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-public class TestPCAP {
-    @Test
-    public void testReadBytesFull() {
-
-        // Create a header for the test PCAP
-        Header hdr = new Header(
-            new byte[]{(byte) 0xa1, (byte) 0xb2, (byte) 0xc3, (byte) 0xd4},
-            2,
-            4,
-            0,
-            (long) 0,
-            (long) 40,
-            (long) 1 // ETHERNET
-        );
-
-        // Create a sample packet
-        List<Packet> packets = new ArrayList<>();
-        packets.add(new Packet(
-            (long) 1713184965,
-            (long) 1000,
-            (long) 30,
-            (long) 30,
-            new byte[]{
-                0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
-                10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-                20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-            }));
-
-        // create test PCAP
-
-        PCAP testPcap = new PCAP(hdr, packets);
-
-        // Call the readBytesFull method
-        byte[] result = testPcap.readBytesFull();
-
-        // Assert the expected byte array length
-        assertEquals(70, result.length);
-
-        // Assert the expected byte array values
-        ByteBuffer buffer = ByteBuffer.wrap(result);
-        assertEquals(0xa1b2c3d4, buffer.getInt());
-        ByteBuffer LEBuffer = ByteBuffer.wrap(result).order(ByteOrder.LITTLE_ENDIAN);
-        LEBuffer.position(4);
-        assertEquals(2, LEBuffer.getShort());
-        assertEquals(4, LEBuffer.getShort());
-        assertEquals(0, LEBuffer.getInt());
-        assertEquals(0, LEBuffer.getInt());
-        assertEquals(40, LEBuffer.getInt());
-        assertEquals(1, LEBuffer.getInt());
-        assertEquals(1713184965, LEBuffer.getInt());
-        assertEquals(1000, LEBuffer.getInt());
-        assertEquals(30, LEBuffer.getInt());
-        assertEquals(30, LEBuffer.getInt());
-        byte[] body = new byte[30];
-        LEBuffer.get(40, body, 0, 30).array();
-        assertArrayEquals(new byte[]{
-            0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
-            10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-            20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-        }, body);
-    }
-}
+ import java.nio.ByteBuffer;
+ import java.nio.ByteOrder;
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Map;
+ 
+ import org.junit.jupiter.api.Test;
+ 
+ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ 
+ public class TestPCAP {
+     private static final byte[] PACKET_DATA = new byte[]{
+         0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
+         10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+         20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+     };
+ 
+     private static final int[][] PCAP_HEADER_VALUES = new int[][]{
+         new int[] {2, 2},
+         new int[] {4, 2},
+         new int[] {0, 4},
+         new int[] {0, 4},
+         new int[] {40, 4},
+         new int[] {1, 4}
+     };
+ 
+     private static final Map<String, Long> packetHeaderValues = Map.of(
+         "tsSec", 1713184965L,
+         "tsUsec", 1000L,
+         "inclLen", 30L,
+         "origLen", 30L
+     );
+ 
+     @Test
+     void testReadBytesFull() {
+ 
+         // Create a header for the test PCAP
+         ByteBuffer headerBuffer = ByteBuffer.allocate(PCAPHeader.PCAP_HEADER_LENGTH);
+         headerBuffer.put(new byte[]{(byte) 0xa1, (byte) 0xb2, (byte) 0xc3, (byte) 0xd4});
+         for (int[] value : PCAP_HEADER_VALUES) {
+             headerBuffer.put(PCAP.readIntToNBytes(value[0], value[1], false));
+         }
+         PCAPHeader hdr = new PCAPHeader(new ByteBufferReader(headerBuffer.array()));
+         // Create a sample packet
+         List<Packet> packets = new ArrayList<>();
+         packets.add(new Packet(
+             packetHeaderValues.get("tsSec"),
+             packetHeaderValues.get("tsUsec"),
+             packetHeaderValues.get("inclLen"),
+             packetHeaderValues.get("origLen"),
+             PACKET_DATA
+         ));
+ 
+         // create test PCAP
+         PCAP testPcap = new PCAP(hdr, packets);
+ 
+         // Call the readBytesFull method
+         byte[] result = testPcap.toByteArray();
+ 
+         // Assert the expected byte array length
+         assertEquals(70, result.length);
+ 
+         // Assert the expected byte array values
+         ByteBuffer buffer = ByteBuffer.wrap(result);
+         assertEquals(0xa1b2c3d4, buffer.getInt());
+         ByteBuffer litteEndianBuffer = ByteBuffer.wrap(result).order(ByteOrder.LITTLE_ENDIAN);
+         litteEndianBuffer.position(4);
+ 
+         for (int[] value : PCAP_HEADER_VALUES) {
+             if (value[1] == 2) {
+                 assertEquals(value[0], litteEndianBuffer.getShort());
+             } else {
+                 assertEquals(value[0], litteEndianBuffer.getInt());
+             }
+         }
+ 
+         // Using getInt and then casting to long because we're reading 4 bytes, which is an 'int' in java.nio
+         assertEquals(packetHeaderValues.get("tsSec"), (long) litteEndianBuffer.getInt());
+         assertEquals(packetHeaderValues.get("tsUsec"), (long) litteEndianBuffer.getInt());
+         assertEquals(packetHeaderValues.get("inclLen"), (long) litteEndianBuffer.getInt());
+         assertEquals(packetHeaderValues.get("origLen"), (long) litteEndianBuffer.getInt());
+         byte[] body = new byte[30];
+         litteEndianBuffer.get(40, body, 0, 30).array();
+         assertArrayEquals(body, PACKET_DATA);
+     }
+ }
