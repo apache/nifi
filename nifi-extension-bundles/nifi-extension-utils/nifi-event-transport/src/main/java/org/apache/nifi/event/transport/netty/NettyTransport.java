@@ -49,7 +49,7 @@ public enum NettyTransport {
     private static final NettyTransport[] ALL_VALUES = values();
 
     private final String nettyName;
-    private final boolean isAvailable;
+    private final boolean available;
     private final Class<? extends EventLoopGroup> eventLoopGroupClass;
     private final Class<? extends ServerSocketChannel> serverSocketChannelClass;
     private final Class<? extends SocketChannel> socketChannelClass;
@@ -57,13 +57,13 @@ public enum NettyTransport {
 
     NettyTransport(
         String nettyName,
-        boolean isAvailable,
+        boolean available,
         Class<? extends EventLoopGroup> eventLoopGroupClass,
         Class<? extends SocketChannel> socketChannelClass,
         Class<? extends ServerSocketChannel> serverSocketClass,
         Class<? extends DatagramChannel> datagramChannelClass) {
         this.nettyName = nettyName;
-        this.isAvailable = isAvailable;
+        this.available = available;
         this.eventLoopGroupClass = eventLoopGroupClass;
         this.socketChannelClass = socketChannelClass;
         this.serverSocketChannelClass = serverSocketClass;
@@ -75,7 +75,7 @@ public enum NettyTransport {
     }
 
     public boolean isAvailable() {
-        return this.isAvailable;
+        return this.available;
     }
 
     public Class<? extends ServerSocketChannel> getServerSocketChannelClass() {
