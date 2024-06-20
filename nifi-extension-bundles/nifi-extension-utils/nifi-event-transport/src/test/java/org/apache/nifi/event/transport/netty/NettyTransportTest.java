@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
-public class NettyTransportsTest {
+public class NettyTransportTest {
     @Test
     public void nioIsAvailable() {
         assertTrue(NettyTransport.NIO.isAvailable());
