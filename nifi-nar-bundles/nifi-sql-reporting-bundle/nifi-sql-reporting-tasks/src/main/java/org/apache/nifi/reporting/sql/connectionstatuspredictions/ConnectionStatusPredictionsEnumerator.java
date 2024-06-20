@@ -48,7 +48,7 @@ public class ConnectionStatusPredictionsEnumerator implements Enumerator<Object>
 
     @Override
     public boolean moveNext() {
-        //currentRow = null;
+        currentRow = null;
         final ConnectionStatus connectionStatus = connectionStatusIterator.next();
         if (connectionStatus == null) {
             // If we are out of data, close the InputStream. We do this because
