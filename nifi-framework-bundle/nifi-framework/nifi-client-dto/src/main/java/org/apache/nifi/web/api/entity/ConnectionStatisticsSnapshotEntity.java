@@ -67,6 +67,7 @@ public class ConnectionStatisticsSnapshotEntity extends Entity implements Readab
     @Override
     public ConnectionStatisticsSnapshotEntity clone() {
         final ConnectionStatisticsSnapshotEntity other = new ConnectionStatisticsSnapshotEntity();
+        other.setId(this.getId());
         other.setCanRead(this.getCanRead());
         other.setConnectionStatisticsSnapshot(this.getConnectionStatisticsSnapshot().clone());
 

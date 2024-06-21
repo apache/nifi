@@ -566,9 +566,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         if (connectionStatusSnapshots != null) {
             final List<ConnectionStatusSnapshotEntity> collectionStatusSnapshotEntities = new ArrayList<>();
             for (final ConnectionStatusSnapshotEntity connectionStatusSnapshotEntity : connectionStatusSnapshots) {
-                ConnectionStatusSnapshotEntity clone = connectionStatusSnapshotEntity.clone();
-                clone.setId(connectionStatusSnapshotEntity.getId());
-                collectionStatusSnapshotEntities.add(clone);
+                collectionStatusSnapshotEntities.add(connectionStatusSnapshotEntity.clone());
             }
             other.setConnectionStatusSnapshots(collectionStatusSnapshotEntities);
         }
@@ -576,9 +574,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         if (processorStatusSnapshots != null) {
             final List<ProcessorStatusSnapshotEntity> processorStatusSnapshotEntities = new ArrayList<>();
             for (final ProcessorStatusSnapshotEntity processorStatusSnapshotEntity : processorStatusSnapshots) {
-                ProcessorStatusSnapshotEntity clone = processorStatusSnapshotEntity.clone();
-                clone.setId(processorStatusSnapshotEntity.getId());
-                processorStatusSnapshotEntities.add(clone);
+                processorStatusSnapshotEntities.add(processorStatusSnapshotEntity.clone());
             }
             other.setProcessorStatusSnapshots(processorStatusSnapshotEntities);
         }
@@ -586,9 +582,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         if (remoteProcessGroupStatusSnapshots != null) {
             final List<RemoteProcessGroupStatusSnapshotEntity> remoteProcessGroupStatusSnapshotEntities = new ArrayList<>();
             for (final RemoteProcessGroupStatusSnapshotEntity remoteProcessGroupStatusSnapshotEntity : remoteProcessGroupStatusSnapshots) {
-                RemoteProcessGroupStatusSnapshotEntity clone = remoteProcessGroupStatusSnapshotEntity.clone();
-                clone.setId(remoteProcessGroupStatusSnapshotEntity.getId());
-                remoteProcessGroupStatusSnapshotEntities.add(clone);
+                remoteProcessGroupStatusSnapshotEntities.add(remoteProcessGroupStatusSnapshotEntity.clone());
             }
             other.setRemoteProcessGroupStatusSnapshots(remoteProcessGroupStatusSnapshotEntities);
         }
@@ -599,9 +593,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         if (processGroupStatusSnapshots != null) {
             final List<ProcessGroupStatusSnapshotEntity> childGroups = new ArrayList<>();
             for (final ProcessGroupStatusSnapshotEntity procGroupStatus : processGroupStatusSnapshots) {
-                ProcessGroupStatusSnapshotEntity clone = procGroupStatus.clone();
-                clone.setId(procGroupStatus.getId());
-                childGroups.add(clone);
+                childGroups.add(procGroupStatus.clone());
             }
             other.setProcessGroupStatusSnapshots(childGroups);
         }
@@ -613,9 +605,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         if (portStatusSnapshots != null) {
             final List<PortStatusSnapshotEntity> portStatusSnapshotEntities = new ArrayList<>();
             for (final PortStatusSnapshotEntity portStatusSnapshotEntity : portStatusSnapshots) {
-               PortStatusSnapshotEntity clone = portStatusSnapshotEntity.clone();
-               clone.setId(portStatusSnapshotEntity.getId());
-               portStatusSnapshotEntities.add(clone);
+               portStatusSnapshotEntities.add(portStatusSnapshotEntity.clone());
             }
             return portStatusSnapshotEntities;
         }
