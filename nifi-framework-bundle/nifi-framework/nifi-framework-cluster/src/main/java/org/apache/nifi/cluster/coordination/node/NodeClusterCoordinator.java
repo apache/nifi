@@ -1389,7 +1389,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             // disconnect problematic nodes
             if (!problematicNodeResponses.isEmpty() && problematicNodeResponses.size() < nodeResponses.size()) {
                 final Set<NodeIdentifier> failedNodeIds = problematicNodeResponses.stream().map(response -> response.getNodeId()).collect(Collectors.toSet());
-                logger.warn(String.format("The following nodes failed to process URI %s '%s'.  Requesting each node reconnect to cluster.", uriPath, failedNodeIds));
+                logger.warn("The following nodes failed to process URI {} '{}'.  Requesting each node reconnect to cluster.", uriPath, failedNodeIds);
                 for (final NodeIdentifier nodeId : failedNodeIds) {
                     // Update the node to 'CONNECTING' status and request that the node connect
                     final NodeConnectionStatus reconnectionStatus = new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING);

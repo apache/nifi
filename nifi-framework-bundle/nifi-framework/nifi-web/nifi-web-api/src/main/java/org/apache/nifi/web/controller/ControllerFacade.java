@@ -1350,7 +1350,7 @@ public class ControllerFacade implements Authorizable {
         } catch (final ContentNotFoundException cnfe) {
             throw new ResourceNotFoundException("Unable to find the specified content.");
         } catch (final IOException ioe) {
-            logger.error(String.format("Unable to get the content for event (%s) at this time.", eventId), ioe);
+            logger.error("Unable to get the content for event ({}) at this time.", eventId, ioe);
             throw new IllegalStateException("Unable to get the content at this time.");
         }
     }

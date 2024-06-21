@@ -152,7 +152,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
         try {
             webThreads = Integer.parseInt(getProperty(WEB_THREADS));
         } catch (final NumberFormatException nfe) {
-            logger.warn(String.format("%s must be an integer value. Defaulting to %s", WEB_THREADS, webThreads));
+            logger.warn("{} must be an integer value. Defaulting to {}", WEB_THREADS, webThreads);
         }
         return webThreads;
     }

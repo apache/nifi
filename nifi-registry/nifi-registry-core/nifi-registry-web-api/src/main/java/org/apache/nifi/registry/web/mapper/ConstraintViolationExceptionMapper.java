@@ -56,7 +56,7 @@ public class ConstraintViolationExceptionMapper implements ExceptionMapper<Const
             errorMessage.append(lastNode.getName()).append(" ").append(violation.getMessage());
         }
 
-        logger.info(String.format("%s. Returning %s response.", errorMessage, Response.Status.BAD_REQUEST));
+        logger.info("{}. Returning {} response.", errorMessage, Response.Status.BAD_REQUEST);
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);
         }

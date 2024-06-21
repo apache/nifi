@@ -386,7 +386,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 initializer.initialize(configurableComponent);
             }
         } catch (final InitializationException e) {
-            logger.warn(String.format("Unable to initialize component %s due to %s", configurableComponent.getClass().getName(), e.getMessage()));
+            logger.warn("Unable to initialize component {} due to {}", configurableComponent.getClass().getName(), e.getMessage());
         }
     }
 

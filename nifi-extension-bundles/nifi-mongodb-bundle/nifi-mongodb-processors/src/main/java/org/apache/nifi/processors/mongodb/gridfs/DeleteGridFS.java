@@ -159,13 +159,13 @@ public class DeleteGridFS extends AbstractGridFSProcessor {
 
                 session.transfer(input, REL_SUCCESS);
             } else {
-                getLogger().error(String.format("Query %s did not delete anything in %s", deleteQuery, bucket.getBucketName()));
+                getLogger().error("Query {} did not delete anything in {}", deleteQuery, bucket.getBucketName());
                 session.transfer(input, REL_FAILURE);
             }
 
             cursor.close();
         } catch (Exception ex) {
-            getLogger().error(String.format("Error deleting using query: %s", deleteQuery), ex);
+            getLogger().error("Error deleting using query: {}", deleteQuery, ex);
             session.transfer(input, REL_FAILURE);
         }
     }

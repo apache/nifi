@@ -263,7 +263,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             } else if (kv.length == 1) {
                 headers.put(kv[0].trim(), null);
             } else {
-                getLogger().warn(String.format("Malformed key value pair in AMQP header property (%s): %s", amqpPropValue, strEntry));
+                getLogger().warn("Malformed key value pair in AMQP header property ({}): {}", amqpPropValue, strEntry);
             }
         }
         return headers;

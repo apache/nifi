@@ -131,7 +131,7 @@ public class DeleteMongo extends AbstractMongoProcessor {
 
         if (deleteMode.equals(DELETE_ATTR.getValue())
                 && (StringUtils.isEmpty(deleteAttr) || !ALLOWED_DELETE_VALUES.contains(deleteAttr.toLowerCase()) )) {
-            getLogger().error(String.format("%s is not an allowed value for mongodb.delete.mode", deleteAttr));
+            getLogger().error("{} is not an allowed value for mongodb.delete.mode", deleteAttr);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

@@ -49,8 +49,8 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
 
     private static final int DEFAULT_HAZELCAST_PORT = 5701;
     private static final String PORT_SEPARATOR = ":";
-    private static final String INSTANCE_CREATION_LOG = "Embedded Hazelcast server instance with instance name %s has been created successfully";
-    private static final String MEMBER_LIST_LOG = "Hazelcast cluster will be created based on the NiFi cluster with the following members: %s";
+    private static final String INSTANCE_CREATION_LOG = "Embedded Hazelcast server instance with instance name {} has been created successfully";
+    private static final String MEMBER_LIST_LOG = "Hazelcast cluster will be created based on the NiFi cluster with the following members: {}";
 
     private static final AllowableValue CLUSTER_NONE = new AllowableValue("none", "None", "No high availability or data replication is provided," +
             " every node has access only to the data stored locally.");
@@ -140,10 +140,10 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
                     .map(m -> m + PORT_SEPARATOR + port)
                     .collect(Collectors.toList());
 
-            getLogger().info(String.format(MEMBER_LIST_LOG, hazelcastMembers.stream().collect(Collectors.joining(", "))));
+            getLogger().info(MEMBER_LIST_LOG, String.join(", ", hazelcastMembers));
             tcpIpConfig.setMembers(hazelcastMembers);
             result = Hazelcast.newHazelcastInstance(config);
-            getLogger().info(String.format(INSTANCE_CREATION_LOG, instanceName));
+            getLogger().info(INSTANCE_CREATION_LOG, instanceName);
 
         } else if (clusteringStrategy.equals(CLUSTER_EXPLICIT.getValue())) {
             final List<String> hazelcastMembers = getHazelcastMemberHosts(context);
@@ -151,7 +151,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             if (hazelcastMembers.contains(getNodeTypeProvider().getCurrentNode().get())) {
                 tcpIpConfig.setMembers(hazelcastMembers.stream().map(m -> m + PORT_SEPARATOR + port).collect(Collectors.toList()));
                 result = Hazelcast.newHazelcastInstance(config);
-                getLogger().info(String.format(INSTANCE_CREATION_LOG, instanceName));
+                getLogger().info(INSTANCE_CREATION_LOG, instanceName);
             } else {
                 result = getClientInstance(
                         clusterName,
@@ -164,7 +164,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             }
         } else if (clusteringStrategy.equals(CLUSTER_NONE.getValue())) {
             result = Hazelcast.newHazelcastInstance(config);
-            getLogger().info(String.format(INSTANCE_CREATION_LOG, instanceName));
+            getLogger().info(INSTANCE_CREATION_LOG, instanceName);
         } else {
             throw new ProcessException("Unknown Hazelcast Clustering Strategy!");
         }

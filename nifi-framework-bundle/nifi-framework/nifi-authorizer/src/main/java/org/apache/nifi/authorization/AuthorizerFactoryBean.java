@@ -346,7 +346,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
 
         // if additional classpath resources were specified, replace with a new ClassLoader that wraps the original one
         if (StringUtils.isNotEmpty(classpathResources)) {
-            logger.info(String.format("Replacing Authorizer ClassLoader for '%s' to include additional resources: %s", identifier, classpathResources));
+            logger.info("Replacing Authorizer ClassLoader for '{}' to include additional resources: {}", identifier, classpathResources);
             URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
             authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
         }

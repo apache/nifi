@@ -35,7 +35,7 @@ public class IllegalClusterResourceRequestExceptionMapper implements ExceptionMa
     @Override
     public Response toResponse(IllegalClusterResourceRequestException exception) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.NOT_FOUND));
+        logger.info("{}. Returning {} response.", exception, Response.Status.NOT_FOUND);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);

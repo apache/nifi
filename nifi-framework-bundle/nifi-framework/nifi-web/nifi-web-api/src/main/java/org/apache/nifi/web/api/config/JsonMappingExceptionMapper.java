@@ -36,7 +36,7 @@ public class JsonMappingExceptionMapper implements ExceptionMapper<JsonMappingEx
     @Override
     public Response toResponse(JsonMappingException ex) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", ex, Response.Status.BAD_REQUEST));
+        logger.info("{}. Returning {} response.", ex, Response.Status.BAD_REQUEST);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, ex);

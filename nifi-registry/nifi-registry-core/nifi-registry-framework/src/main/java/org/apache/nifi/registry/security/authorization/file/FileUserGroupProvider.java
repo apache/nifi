@@ -140,7 +140,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
             load();
 
-            logger.info(String.format("Users/Groups file loaded at %s", new Date().toString()));
+            logger.info("Users/Groups file loaded at {}", new Date());
         } catch (SecurityProviderCreationException | JAXBException | IllegalStateException | SAXException e) {
             throw new SecurityProviderCreationException(e);
         }

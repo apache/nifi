@@ -37,7 +37,7 @@ public class NotFoundExceptionMapper implements ExceptionMapper<NotFoundExceptio
     @Override
     public Response toResponse(NotFoundException exception) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", exception, Status.NOT_FOUND));
+        logger.info("{}. Returning {} response.", exception, Status.NOT_FOUND);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);
