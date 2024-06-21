@@ -27,6 +27,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.jwt.converter.StandardIssuerJwtDecoder;
 import org.apache.nifi.web.security.jwt.jws.StandardJWSKeySelector;
+import org.apache.nifi.web.security.jwt.key.Ed25519VerifierFactory;
 import org.apache.nifi.web.security.jwt.key.StandardVerificationKeySelector;
 import org.apache.nifi.web.security.jwt.key.service.StandardVerificationKeyService;
 import org.apache.nifi.web.security.jwt.key.service.VerificationKeyService;
@@ -124,6 +125,8 @@ public class JwtDecoderConfiguration {
 
         final JWTClaimsSetVerifier<SecurityContext> claimsSetVerifier = new DefaultJWTClaimsVerifier<>(null, REQUIRED_CLAIMS);
         jwtProcessor.setJWTClaimsSetVerifier(claimsSetVerifier);
+
+        jwtProcessor.setJWSVerifierFactory(new Ed25519VerifierFactory());
         return jwtProcessor;
     }
 

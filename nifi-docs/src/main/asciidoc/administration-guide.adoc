@@ -641,8 +641,8 @@ SAML authentication enables the following REST API resources for integration wit
 NiFi uses JSON Web Tokens to provide authenticated access after the initial login process. Generated JSON Web Tokens include the authenticated user identity
 as well as the issuer and expiration from the configured Login Identity Provider.
 
-NiFi uses generated RSA Key Pairs with a key size of 4096 bits to support the `PS512` algorithm for JSON Web Signatures. The system stores RSA
-Public Keys using the configured local State Provider and retains the RSA Private Key in memory. This approach supports signature verification
+NiFi uses generated Ed25519 Key Pairs to support the `EdDSA` algorithm for JSON Web Signatures. The system stores Ed25519
+Public Keys using the configured local State Provider and retains the Private Key in memory. This approach supports signature verification
 for the expiration configured in the Login Identity Provider without persisting the private key.
 
 JSON Web Token support includes revocation on logout using JSON Web Token Identifiers. The system denies access for expired tokens based on the

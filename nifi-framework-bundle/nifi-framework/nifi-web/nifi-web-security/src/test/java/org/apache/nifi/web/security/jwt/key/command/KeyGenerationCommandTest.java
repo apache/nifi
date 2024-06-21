@@ -35,9 +35,9 @@ import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class KeyGenerationCommandTest {
-    private static final String KEY_ALGORITHM = "RSA";
+    private static final String KEY_ALGORITHM = "EdDSA";
 
-    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.PS512;
+    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.EdDSA;
 
     @Mock
     private SignerListener signerListener;
