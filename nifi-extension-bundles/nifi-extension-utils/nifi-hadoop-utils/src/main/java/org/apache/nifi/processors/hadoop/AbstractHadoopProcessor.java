@@ -212,9 +212,33 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
     @Override
     public String getClassloaderIsolationKey(final PropertyContext context) {
+        class ClassloaderIsolationKeyBuilder {
+            private static final String SEPARATOR = "__";
+
+            private final StringBuilder sb = new StringBuilder();
+
+            void add(final String value) {
+                if (value != null) {
+                    if (sb.length() > 0) {
+                        sb.append(SEPARATOR);
+                    }
+                    sb.append(value);
+                }
+            }
+
+            String build() {
+                return sb.length() > 0 ? sb.toString() : null;
+            }
+        }
+
+        final ClassloaderIsolationKeyBuilder builder = new ClassloaderIsolationKeyBuilder();
+
+        builder.add(context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue());
+        builder.add(context.getProperty(ADDITIONAL_CLASSPATH_RESOURCES).getValue());
+
         final String explicitKerberosPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
         if (explicitKerberosPrincipal != null) {
-            return explicitKerberosPrincipal;
+            builder.add(explicitKerberosPrincipal);
         }
 
         try {
@@ -222,20 +246,20 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             if (credentialsService != null) {
                 final String credentialsServicePrincipal = credentialsService.getPrincipal();
                 if (credentialsServicePrincipal != null) {
-                    return credentialsServicePrincipal;
+                    builder.add(credentialsServicePrincipal);
                 }
             }
 
             final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
             if (kerberosUserService != null) {
                 final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
-                return kerberosUser.getPrincipal();
+                builder.add(kerberosUser.getPrincipal());
             }
         } catch (IllegalStateException e) {
-            return null;
+            // the Kerberos controller service is disabled, therefore this part of the isolation key cannot be determined yet
         }
 
-        return null;
+        return builder.build();
     }
 
     @Override
