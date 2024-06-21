@@ -54,6 +54,7 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
+import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.BufferedInputStream;
@@ -64,6 +65,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ProcessBuilder.Redirect;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -506,24 +508,20 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
             Map<String, String> attributes = new HashMap<>();
 
-            final StringBuilder strBldr = new StringBuilder();
-            try (final InputStream is = new FileInputStream(errorOut)) {
-                int c;
-                while ((c = is.read()) != -1) {
-                    strBldr.append((char) c);
-                }
-            } catch (IOException e) {
-                strBldr.append("Unknown...could not read Process's Std Error");
+            String stdErr = "";
+            try (final InputStream in = new BufferedInputStream(new LimitingInputStream(new FileInputStream(errorOut), 4000))) {
+                stdErr = IOUtils.toString(in, Charset.defaultCharset());
+            } catch (final Exception e) {
+                stdErr = "Unknown...could not read Process's Std Error due to " + e.getClass().getName() + ": " + e.getMessage();
             }
-            int length = Math.min(strBldr.length(), 4000);
-            attributes.put("execution.error", strBldr.substring(0, length));
+            attributes.put("execution.error", stdErr);
 
             final Relationship outputFlowFileRelationship = putToAttribute ? ORIGINAL_RELATIONSHIP : (exitCode != 0) ? NONZERO_STATUS_RELATIONSHIP : OUTPUT_STREAM_RELATIONSHIP;
             if (exitCode == 0) {
                 logger.info("Transferring {} to {}", outputFlowFile, outputFlowFileRelationship.getName());
             } else {
-                logger.error("Transferring {} to {}. Executable command {} ended in an error: {}",
-                        outputFlowFile, outputFlowFileRelationship.getName(), executeCommand, strBldr.toString());
+                logger.error("Transferring {} to {}. Executable command {} returned exitCode {} and error message: {}",
+                        outputFlowFile, outputFlowFileRelationship.getName(), executeCommand, exitCode, stdErr);
             }
 
             attributes.put("execution.status", Integer.toString(exitCode));
