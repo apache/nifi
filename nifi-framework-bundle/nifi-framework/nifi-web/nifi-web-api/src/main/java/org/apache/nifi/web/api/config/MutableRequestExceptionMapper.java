@@ -35,7 +35,7 @@ public class MutableRequestExceptionMapper implements ExceptionMapper<MutableReq
     @Override
     public Response toResponse(MutableRequestException ex) {
         // log the error
-        logger.info(String.format("Cluster is unable to service request to change flow: %s. Returning %s response.", ex, Response.Status.CONFLICT));
+        logger.info("Cluster is unable to service request to change flow: {}. Returning {} response.", ex, Response.Status.CONFLICT);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, ex);

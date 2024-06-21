@@ -1306,7 +1306,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 }
 
             } catch (final Exception e) {
-                logger.warn(String.format("Unable to connect to %s due to %s", StandardRemoteProcessGroup.this, e));
+                logger.warn("Unable to connect to {} due to {}",  StandardRemoteProcessGroup.this, e.toString());
                 getEventReporter().reportEvent(Severity.WARNING, "Site to Site", String.format("Unable to connect to %s due to %s",
                         StandardRemoteProcessGroup.this.getTargetUris(), e));
             }

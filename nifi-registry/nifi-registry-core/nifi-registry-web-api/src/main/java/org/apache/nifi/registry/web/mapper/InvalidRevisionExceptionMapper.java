@@ -36,7 +36,7 @@ public class InvalidRevisionExceptionMapper implements ExceptionMapper<InvalidRe
     @Override
     public Response toResponse(final InvalidRevisionException exception) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.BAD_REQUEST));
+        logger.info("{}. Returning {} response.", exception, Response.Status.BAD_REQUEST);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);

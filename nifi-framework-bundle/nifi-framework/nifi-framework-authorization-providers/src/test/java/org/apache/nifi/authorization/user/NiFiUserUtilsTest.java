@@ -41,7 +41,7 @@ public class NiFiUserUtilsTest {
         final NiFiUser mockJohn = createMockNiFiUser(SAFE_USER_NAME_JOHN, mockProxy1, false);
 
         final List<String> proxiedEntitiesChain = NiFiUserUtils.buildProxiedEntitiesChain(mockJohn);
-        logger.info(String.format("Proxied entities chain: %s", proxiedEntitiesChain));
+        logger.info("Proxied entities chain: {}", proxiedEntitiesChain);
 
         assertEquals(proxiedEntitiesChain, Arrays.asList(SAFE_USER_NAME_JOHN, SAFE_USER_NAME_PROXY_1));
     }
@@ -61,7 +61,7 @@ public class NiFiUserUtilsTest {
         final NiFiUser mockAnonymous = createMockNiFiUser("anonymous", mockProxy1, true);
 
         final List<String> proxiedEntitiesChain = NiFiUserUtils.buildProxiedEntitiesChain(mockAnonymous);
-        logger.info(String.format("Proxied entities chain: %s", proxiedEntitiesChain));
+        logger.info("Proxied entities chain: {}", proxiedEntitiesChain);
 
         assertEquals(proxiedEntitiesChain, Arrays.asList("", SAFE_USER_NAME_PROXY_1));
     }
@@ -69,7 +69,7 @@ public class NiFiUserUtilsTest {
     @Test
     public void testBuildProxyChainFromNullUserShouldBeEmpty() {
         final List<String> proxiedEntitiesChain = NiFiUserUtils.buildProxiedEntitiesChain(null);
-        logger.info(String.format("Proxied entities chain: %s", proxiedEntitiesChain));
+        logger.info("Proxied entities chain: {}", proxiedEntitiesChain);
 
         assertEquals(proxiedEntitiesChain, Collections.EMPTY_LIST);
     }

@@ -572,8 +572,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         // ensure the processor did not fail to reload at some point
         final Collection<ValidationResult> results = validationResults.get();
         if (!results.isEmpty()) {
-            log.error(String.format("Unable to run because the Processor is not valid: [%s]",
-                    StringUtils.join(results, ", ")));
+            log.error("Unable to run because the Processor is not valid: [{}]", StringUtils.join(results, ", "));
             context.yield();
             return;
         }

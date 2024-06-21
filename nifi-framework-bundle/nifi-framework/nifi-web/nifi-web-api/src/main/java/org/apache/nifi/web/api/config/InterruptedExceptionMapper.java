@@ -31,7 +31,7 @@ public class InterruptedExceptionMapper implements ExceptionMapper<InterruptedEx
     @Override
     public Response toResponse(InterruptedException exception) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.INTERNAL_SERVER_ERROR));
+        logger.info("{}. Returning {} response.", exception, Response.Status.INTERNAL_SERVER_ERROR);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);

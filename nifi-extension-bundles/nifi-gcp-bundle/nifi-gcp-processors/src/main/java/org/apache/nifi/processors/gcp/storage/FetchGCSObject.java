@@ -262,7 +262,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
                     .explanation(String.format("Successfully fetched [%s] from Bucket [%s], totaling %s bytes", key, bucketName, byteCount))
                     .build());
         } catch (final StorageException | IOException e) {
-            getLogger().error(String.format("Failed to fetch [%s] from Bucket [%s]", key, bucketName), e);
+            getLogger().error("Failed to fetch [{}] from Bucket [{}]", key, bucketName, e);
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Fetch GCS Blob")
                     .outcome(Outcome.FAILED)

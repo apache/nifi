@@ -64,7 +64,7 @@ public abstract class AbstractShellCommand implements PlatformShellCommand {
             final Process process = processBuilder.start();
             return result.createResult(process.getInputStream());
         } catch (UnsupportedOperationException e) {
-            logger.warn(String.format("Operating system is not supported, failed to execute command: %s, ", name));
+            logger.warn("Operating system is not supported, failed to execute command: {}, ", name);
             return Collections.EMPTY_LIST;
         } catch (Exception e) {
             throw new RuntimeException(String.format("Failed to execute command: %s", name), e);

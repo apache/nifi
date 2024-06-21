@@ -413,7 +413,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             try {
                 performMethodInjection(provider, mgrClass);
             } catch (InvocationTargetException e) {
-                logger.error(String.format("Failed to inject nifi.properties to the '%s' state provider.", type), e);
+                logger.error("Failed to inject nifi.properties to the '{}' state provider.", type, e);
             }
             return withNarClassLoader(provider);
         } finally {

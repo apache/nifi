@@ -680,7 +680,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             parseResponseWarningHeaders(response);
 
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug(String.format("Response was: %s", rawResponse));
+                getLogger().debug("Response was: {}", rawResponse);
             }
 
             return IndexOperationResponse.fromJsonResponse(rawResponse);
@@ -717,8 +717,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             watch.stop();
 
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug(String.format("Response for bulk delete: %s",
-                        IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8)));
+                getLogger().debug("Response for bulk delete: {}", IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8));
             }
 
             parseResponseWarningHeaders(response);
@@ -880,7 +879,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             parseResponseWarningHeaders(response);
 
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug(String.format("Response for initialising Point in Time: %s", body));
+                getLogger().debug("Response for initialising Point in Time: {}", body);
             }
 
             return (String) mapper.readValue(body, Map.class).get("id");
@@ -899,9 +898,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             watch.stop();
 
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug(String.format("Response for deleting Point in Time: %s",
-                        IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8))
-                );
+                getLogger().debug("Response for deleting Point in Time: {}", IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8));
             }
 
             parseResponseWarningHeaders(response);
@@ -927,9 +924,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             watch.stop();
 
             if (getLogger().isDebugEnabled()) {
-                getLogger().debug(String.format("Response for deleting Scroll: %s",
-                        IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8))
-                );
+                getLogger().debug("Response for deleting Scroll: {}", IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8));
             }
 
             parseResponseWarningHeaders(response);

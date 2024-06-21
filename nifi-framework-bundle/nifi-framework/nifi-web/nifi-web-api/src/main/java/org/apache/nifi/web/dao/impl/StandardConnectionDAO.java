@@ -144,7 +144,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
             return flowFile;
         } catch (final IOException ioe) {
-            logger.error(String.format("Unable to get the flowfile (%s) at this time.", flowFileUuid), ioe);
+            logger.error("Unable to get the flowfile ({}) at this time.", flowFileUuid, ioe);
             throw new IllegalStateException("Unable to get the FlowFile at this time.");
         }
     }
@@ -677,7 +677,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         } catch (final ContentNotFoundException cnfe) {
             throw new ResourceNotFoundException("Unable to find the specified content.");
         } catch (final IOException ioe) {
-            logger.error(String.format("Unable to get the content for flowfile (%s) at this time.", flowFileUuid), ioe);
+            logger.error("Unable to get the content for flowfile ({}) at this time.", flowFileUuid, ioe);
             throw new IllegalStateException("Unable to get the content at this time.");
         }
     }

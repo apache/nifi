@@ -185,12 +185,10 @@ public class JwtService {
         final long minExpiration = TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
 
         if (proposedTokenExpiration > maxExpiration) {
-            logger.warn(String.format("Max token expiration exceeded. Setting expiration to %s from %s for %s", maxExpiration,
-                    proposedTokenExpiration, identity));
+            logger.warn("Max token expiration exceeded. Setting expiration to {} from {} for {}", maxExpiration, proposedTokenExpiration, identity);
             proposedTokenExpiration = maxExpiration;
         } else if (proposedTokenExpiration < minExpiration) {
-            logger.warn(String.format("Min token expiration not met. Setting expiration to %s from %s for %s", minExpiration,
-                    proposedTokenExpiration, identity));
+            logger.warn("Min token expiration not met. Setting expiration to {} from {} for {}", minExpiration, proposedTokenExpiration, identity);
             proposedTokenExpiration = minExpiration;
         }
 

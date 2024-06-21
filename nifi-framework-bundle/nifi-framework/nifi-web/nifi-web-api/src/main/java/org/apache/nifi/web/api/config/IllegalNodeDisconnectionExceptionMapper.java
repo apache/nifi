@@ -35,7 +35,7 @@ public class IllegalNodeDisconnectionExceptionMapper implements ExceptionMapper<
     @Override
     public Response toResponse(IllegalNodeDisconnectionException exception) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.CONFLICT));
+        logger.info("{}. Returning {} response.", exception, Response.Status.CONFLICT);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);

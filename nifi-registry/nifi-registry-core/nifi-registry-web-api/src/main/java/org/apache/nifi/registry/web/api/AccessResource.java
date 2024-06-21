@@ -991,7 +991,7 @@ public class AccessResource extends ApplicationResource {
             oidcResponse = AuthenticationResponseParser.parse(requestUri);
         } catch (final ParseException e) {
             final String loginOrLogoutString = isLogin ? "login" : "logout";
-            logger.error(String.format("Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue %s process.", loginOrLogoutString));
+            logger.error("Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue {} process.", loginOrLogoutString);
 
             // remove the oidc request cookie
             removeOidcRequestCookie(httpServletResponse);
@@ -1009,7 +1009,7 @@ public class AccessResource extends ApplicationResource {
         final State state = successfulOidcResponse.getState();
         if (state == null || !oidcService.isStateValid(oidcRequestIdentifier, state)) {
             final String loginOrLogoutMessage = isLogin ? "login" : "logout";
-            logger.error(String.format("The state value returned by the OpenId Connect Provider does not match the stored state. Unable to continue %s process.", loginOrLogoutMessage));
+            logger.error("The state value returned by the OpenId Connect Provider does not match the stored state. Unable to continue {} process.", loginOrLogoutMessage);
 
             // remove the oidc request cookie
             removeOidcRequestCookie(httpServletResponse);

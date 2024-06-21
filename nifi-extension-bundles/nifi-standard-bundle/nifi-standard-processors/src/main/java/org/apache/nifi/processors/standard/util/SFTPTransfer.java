@@ -558,7 +558,7 @@ public class SFTPTransfer implements FileTransfer {
             } catch (SFTPException e) {
                 if (e.getStatusCode() == Response.StatusCode.NO_SUCH_FILE) {
                     // No Such File. This happens when parent directory was not found.
-                    logger.debug(String.format("Could not create %s due to 'No such file'. Will try to create the parent dir.", remoteDirectory));
+                    logger.debug("Could not create {} due to 'No such file'. Will try to create the parent dir.", remoteDirectory);
                 } else if (e.getStatusCode() == Response.StatusCode.FAILURE) {
                     // Swallow '4: Failure' including the remote directory already exists.
                     logger.debug("Could not blindly create remote directory", e);

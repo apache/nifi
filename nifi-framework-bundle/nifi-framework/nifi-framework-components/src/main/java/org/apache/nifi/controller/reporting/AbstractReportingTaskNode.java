@@ -117,13 +117,13 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
             try {
                 this.setSchedulingStrategy(dsc.strategy());
             } catch (Throwable ex) {
-                LOG.error(String.format("Error while setting scheduling strategy from DefaultSchedule annotation: %s", ex.getMessage()), ex);
+                LOG.error("Error while setting scheduling strategy from DefaultSchedule annotation", ex);
             }
             try {
                 this.setSchedulingPeriod(dsc.period());
             } catch (Throwable ex) {
                 this.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
-                LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s", ex.getMessage()), ex);
+                LOG.error("Error while setting scheduling period from DefaultSchedule annotation", ex);
             }
         }
     }

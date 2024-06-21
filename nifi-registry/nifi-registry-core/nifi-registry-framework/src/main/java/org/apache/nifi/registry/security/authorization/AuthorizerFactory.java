@@ -386,7 +386,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         // if additional classpath resources were specified, replace with a new ClassLoader that contains
         // the combined resources of the original ClassLoader + the additional resources
         if (StringUtils.isNotEmpty(classpathResources)) {
-            logger.info(String.format("Replacing Authorizer ClassLoader for '%s' to include additional resources: %s", identifier, classpathResources));
+            logger.info("Replacing Authorizer ClassLoader for '{}' to include additional resources: {}", identifier, classpathResources);
             final URL[] originalUrls = extensionClassLoader.getURLs();
             final URL[] additionalUrls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
 

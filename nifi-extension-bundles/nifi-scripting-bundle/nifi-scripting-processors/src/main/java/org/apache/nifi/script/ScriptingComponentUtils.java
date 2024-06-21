@@ -97,7 +97,7 @@ public class ScriptingComponentUtils {
             try (final InputStream in = scriptFile.read()) {
                 script = IOUtils.toString(in, StandardCharsets.UTF_8);
             } catch (Exception e) {
-                logger.error(String.format("Could not read from path %s", scriptFile), e);
+                logger.error("Could not read from path {}", scriptFile, e);
                 return results;
             }
         }

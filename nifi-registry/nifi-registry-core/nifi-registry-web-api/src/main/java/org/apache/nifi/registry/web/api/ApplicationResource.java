@@ -117,7 +117,7 @@ public class ApplicationResource {
                     try {
                         uriPort = Integer.parseInt(port);
                     } catch (final NumberFormatException nfe) {
-                        logger.warn(String.format("Unable to parse proxy port HTTP header '%s'. Using port from request URI '%s'.", port, uriPort));
+                        logger.warn("Unable to parse proxy port HTTP header '{}'. Using port from request URI '{}'.", port, uriPort);
                     }
                 }
             }
