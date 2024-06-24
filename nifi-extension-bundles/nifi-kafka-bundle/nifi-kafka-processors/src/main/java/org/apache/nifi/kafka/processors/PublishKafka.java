@@ -406,8 +406,8 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
     }
 
     private void routeFailureStrategy(final ProcessContext context, final ProcessSession session, final List<FlowFile> flowFiles) {
-        final String strategy = context.getProperty(FAILURE_STRATEGY).getValue();
-        if (FailureStrategy.ROLLBACK.getValue().equals(strategy)) {
+        final FailureStrategy strategy = context.getProperty(FAILURE_STRATEGY).asAllowableValue(FailureStrategy.class);
+        if (FailureStrategy.ROLLBACK == strategy) {
             session.rollback();
             context.yield();
         } else {
