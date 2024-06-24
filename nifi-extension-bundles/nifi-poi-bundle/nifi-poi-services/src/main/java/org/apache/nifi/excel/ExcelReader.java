@@ -28,6 +28,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
 import org.apache.nifi.schema.inference.RecordSourceFactory;
@@ -76,7 +77,8 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .Builder().name("Starting Row")
             .displayName("Starting Row")
             .description("The row number of the first row to start processing (One based)."
-                    + " Use this to skip over rows of data at the top of a worksheet that are not part of the dataset.")
+                    + " Use this to skip over rows of data at the top of a worksheet that are not part of the dataset."
+                    + " When using the '" + ExcelHeaderSchemaStrategy.HEADER_DERIVED.getValue() + "' strategy this should be the column header row.")
             .required(true)
             .defaultValue("1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -155,7 +157,9 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        if (SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(allowableValue)) {
+        if (allowableValue.equalsIgnoreCase(ExcelHeaderSchemaStrategy.HEADER_DERIVED.getValue())) {
+            return new ExcelHeaderSchemaStrategy(context, getLogger(), new TimeValueInference(dateFormat, timeFormat, timestampFormat), null);
+        } else if (SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(allowableValue)) {
             final RecordSourceFactory<Row> sourceFactory = (variables, in) -> new ExcelRecordSource(in, context, variables, getLogger());
             final SchemaInferenceEngine<Row> inference = new ExcelSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
             return new InferSchemaAccessStrategy<>(sourceFactory, inference, getLogger());
@@ -167,6 +171,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
+        allowableValues.add(ExcelHeaderSchemaStrategy.HEADER_DERIVED);
         allowableValues.add(SchemaInferenceUtil.INFER_SCHEMA);
         return allowableValues;
     }
@@ -178,6 +183,11 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     private int getStartingRow(final Map<String, String> variables) {
         int rawStartingRow = configurationContext.getProperty(STARTING_ROW).evaluateAttributeExpressions(variables).asInteger();
+        String schemaAccessStrategy = configurationContext.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue();
+
+        if (ExcelHeaderSchemaStrategy.HEADER_DERIVED.getValue().equals(schemaAccessStrategy)) {
+            rawStartingRow++;
+        }
         return getZeroBasedIndex(rawStartingRow);
     }
 
