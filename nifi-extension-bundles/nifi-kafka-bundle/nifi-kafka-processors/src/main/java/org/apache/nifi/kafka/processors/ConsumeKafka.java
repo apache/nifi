@@ -101,7 +101,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 public class ConsumeKafka extends AbstractProcessor implements VerifiableProcessor {
 
     static final AllowableValue TOPIC_NAME = new AllowableValue("names", "names", "Topic is a full topic name or comma separated list of names");
-    static final AllowableValue TOPIC_PATTERN = new AllowableValue("pattern", "pattern", "Topic is a regex using the Java Pattern syntax");
+    static final AllowableValue TOPIC_PATTERN = new AllowableValue("pattern", "pattern", "Topic is a regular expression according to the Java Pattern syntax");
 
     static final PropertyDescriptor CONNECTION_SERVICE = new PropertyDescriptor.Builder()
             .name("Kafka Connection Service")
@@ -119,35 +119,20 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .expressionLanguageSupported(NONE)
             .build();
 
-    static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
-            .name("topic")
-            .displayName("Topic Names")
-            .description("The name of the Kafka Topics from which the Processor consumes Kafka Records. More than one can be supplied if comma separated.")
-            .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .build();
-
-    static final PropertyDescriptor TOPIC_TYPE = new PropertyDescriptor.Builder()
-            .name("Topic Name Format")
+    static final PropertyDescriptor TOPIC_FORMAT = new PropertyDescriptor.Builder()
+            .name("Topic Format")
             .description("Specifies whether the Topics provided are a comma separated list of names or a single regular expression")
             .required(true)
             .allowableValues(TOPIC_NAME, TOPIC_PATTERN)
             .defaultValue(TOPIC_NAME)
             .build();
 
-    static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("Record Reader")
-            .description("The Record Reader to use for incoming Kafka messages")
-            .identifiesControllerService(RecordReaderFactory.class)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
-
-    static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("Record Writer")
-            .description("The Record Writer to use in order to serialize the outgoing FlowFiles")
-            .identifiesControllerService(RecordSetWriterFactory.class)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+    static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
+            .name("Topics")
+            .description("The name or pattern of the Kafka Topics from which the Processor consumes Kafka Records. More than one can be supplied if comma separated.")
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
@@ -160,34 +145,28 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .expressionLanguageSupported(NONE)
             .build();
 
-    static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
-            .name("Message Demarcator")
-            .required(false)
-            .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .description("Since KafkaConsumer receives messages in batches, you have an option to output FlowFiles which contains "
-                    + "all Kafka messages in a single batch for a given topic and partition and this property allows you to provide a string (interpreted as UTF-8) to use "
-                    + "for demarcating apart multiple Kafka messages. This is an optional property and if not provided each Kafka message received "
-                    + "will result in a single FlowFile which  "
-                    + "time it is triggered. To enter special character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS")
-            .build();
-
-    static final PropertyDescriptor SEPARATE_BY_KEY = new PropertyDescriptor.Builder()
-            .name("Separate By Key")
-            .description("If true, and the [Message Demarcator] property is set, two messages will only be added to the same FlowFile if both of the Kafka Messages have identical keys.")
-            .required(false)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .build();
-
-
-    static final PropertyDescriptor PROCESSING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Processing Strategy")
-            .description("Strategy for processing Kafka Records and writing serialized output to FlowFiles")
+    static final PropertyDescriptor COMMIT_OFFSETS = new PropertyDescriptor.Builder()
+            .name("Commit Offsets")
+            .description("Specifies whether this Processor should commit the offsets to Kafka after receiving messages. Typically, this value should be set to true " +
+                    "so that messages that are received are not duplicated. However, in certain scenarios, we may want to avoid committing the offsets, that the data can be " +
+                    "processed and later acknowledged by PublishKafka in order to provide Exactly Once semantics.")
             .required(true)
-            .allowableValues(ProcessingStrategy.class)
-            .defaultValue(ProcessingStrategy.FLOW_FILE.getValue())
-            .expressionLanguageSupported(NONE)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+
+    static final PropertyDescriptor MAX_UNCOMMITTED_TIME = new PropertyDescriptor.Builder()
+            .name("Max Uncommitted Time")
+            .description("Specifies the maximum amount of time allowed to pass before offsets must be committed. "
+                    + "This value impacts how often offsets will be committed. Committing offsets less often increases "
+                    + "throughput but also increases the window of potential data duplication in the event of a rebalance "
+                    + "or JVM restart between commits. This value is also related to maximum poll records and the use "
+                    + "of a message demarcator. When using a message demarcator we can have far more uncommitted messages "
+                    + "than when we're not as there is much less for us to keep track of in memory.")
+            .required(true)
+            .defaultValue("1 s")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .dependsOn(COMMIT_OFFSETS, "true")
             .build();
 
     static final PropertyDescriptor HEADER_ENCODING = new PropertyDescriptor.Builder()
@@ -198,17 +177,59 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .required(true)
             .build();
 
+    static final PropertyDescriptor HEADER_NAME_PATTERN = new PropertyDescriptor.Builder()
+            .name("Header Name Pattern")
+            .description("Regular Expression Pattern applied to Kafka Record Header Names for selecting Header Values to be written as FlowFile attributes")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .required(false)
+            .build();
+
+    static final PropertyDescriptor PROCESSING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Processing Strategy")
+            .description("Strategy for processing Kafka Records and writing serialized output to FlowFiles")
+            .required(true)
+            .allowableValues(ProcessingStrategy.class)
+            .defaultValue(ProcessingStrategy.FLOW_FILE.getValue())
+            .expressionLanguageSupported(NONE)
+            .build();
+
+    static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("Record Reader")
+            .description("The Record Reader to use for incoming Kafka messages")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .required(true)
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
+            .build();
+
+    static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("Record Writer")
+            .description("The Record Writer to use in order to serialize the outgoing FlowFiles")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .required(true)
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
+            .build();
+
     static final PropertyDescriptor OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
             .name("Output Strategy")
-            .description("The format used to output the Kafka record into a FlowFile record.")
+            .description("The format used to output the Kafka Record into a FlowFile Record.")
             .required(true)
             .defaultValue(OutputStrategy.USE_VALUE)
             .allowableValues(OutputStrategy.class)
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
+            .build();
+
+    static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
+            .name("Key Attribute Encoding")
+            .description("Encoding for value of configured FlowFile attribute containing Kafka Record Key.")
+            .required(true)
+            .defaultValue(KeyEncoding.UTF8)
+            .allowableValues(KeyEncoding.class)
+            .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_VALUE)
             .build();
 
     static final PropertyDescriptor KEY_FORMAT = new PropertyDescriptor.Builder()
             .name("Key Format")
-            .description("Specifies how to represent the Kafka Record's Key in the output")
+            .description("Specifies how to represent the Kafka Record Key in the output FlowFile")
             .required(true)
             .defaultValue(KeyFormat.BYTE_ARRAY)
             .allowableValues(KeyFormat.class)
@@ -217,49 +238,32 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     static final PropertyDescriptor KEY_RECORD_READER = new PropertyDescriptor.Builder()
             .name("Key Record Reader")
-            .description("The Record Reader to use for parsing the Kafka Record's key into a Record")
+            .description("The Record Reader to use for parsing the Kafka Record Key into a Record")
             .identifiesControllerService(RecordReaderFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
             .dependsOn(KEY_FORMAT, KeyFormat.RECORD)
             .build();
 
-    static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
-            .name("Key Attribute Encoding")
-            .description("FlowFiles that are emitted have an attribute named '" + KafkaFlowFileAttribute.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
+    static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
+            .name("Message Demarcator")
             .required(true)
-            .defaultValue(KeyEncoding.UTF8)
-            .allowableValues(KeyEncoding.class)
-            .dependsOn(OUTPUT_STRATEGY, OutputStrategy.USE_VALUE)
+            .addValidator(Validator.VALID)
+            .description("Since KafkaConsumer receives messages in batches, this Processor has an option to output FlowFiles which contains "
+                    + "all Kafka messages in a single batch for a given topic and partition and this property allows you to provide a string (interpreted as UTF-8) to use "
+                    + "for demarcating apart multiple Kafka messages. This is an optional property and if not provided each Kafka message received "
+                    + "will result in a single FlowFile which  "
+                    + "time it is triggered. To enter special character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS")
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.DEMARCATOR)
             .build();
 
-    static final PropertyDescriptor HEADER_NAME_PATTERN = new PropertyDescriptor.Builder()
-            .name("Header Name Pattern")
-            .description("Regular Expression Pattern applied to Kafka Record Header Names for selecting Header Values to be written as FlowFile attributes")
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .required(false)
-            .build();
-
-    static final PropertyDescriptor COMMIT_OFFSETS = new PropertyDescriptor.Builder()
-            .name("Commit Offsets")
-            .description("Specifies whether or not this Processor should commit the offsets to Kafka after receiving messages. Typically, we want this value set to true " +
-                    "so that messages that are received are not duplicated. However, in certain scenarios, we may want to avoid committing the offsets, that the data can be " +
-                    "processed and later acknowledged by PublishKafkaRecord in order to provide Exactly Once semantics. See Processor's Usage / Additional Details for more information.")
+    static final PropertyDescriptor SEPARATE_BY_KEY = new PropertyDescriptor.Builder()
+            .name("Separate By Key")
+            .description("When this property is enabled, two messages will only be added to the same FlowFile if both of the Kafka Messages have identical keys.")
+            .required(true)
             .allowableValues("true", "false")
-            .defaultValue("true")
-            .build();
-
-    static final PropertyDescriptor MAX_UNCOMMITTED_TIME = new PropertyDescriptor.Builder()
-            .name("Max Uncommitted Time")
-            .description("Specifies the maximum amount of time allowed to pass before offsets must be committed. "
-                    + "This value impacts how often offsets will be committed.  Committing offsets less often increases "
-                    + "throughput but also increases the window of potential data duplication in the event of a rebalance "
-                    + "or JVM restart between commits.  This value is also related to maximum poll records and the use "
-                    + "of a message demarcator.  When using a message demarcator we can have far more uncommitted messages "
-                    + "than when we're not as there is much less for us to keep track of in memory.")
-            .required(false)
-            .defaultValue("1 secs")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .dependsOn(COMMIT_OFFSETS, "true")
+            .defaultValue("false")
+            .dependsOn(MESSAGE_DEMARCATOR)
             .build();
 
     public static final Relationship SUCCESS = new Relationship.Builder()
@@ -270,22 +274,22 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             CONNECTION_SERVICE,
             GROUP_ID,
+            TOPIC_FORMAT,
             TOPICS,
-            TOPIC_TYPE,
-            MESSAGE_DEMARCATOR,
-            SEPARATE_BY_KEY,
-            RECORD_READER,
-            RECORD_WRITER,
             AUTO_OFFSET_RESET,
-            PROCESSING_STRATEGY,
-            HEADER_ENCODING,
-            HEADER_NAME_PATTERN,
-            KEY_ATTRIBUTE_ENCODING,
             COMMIT_OFFSETS,
             MAX_UNCOMMITTED_TIME,
+            HEADER_NAME_PATTERN,
+            HEADER_ENCODING,
+            PROCESSING_STRATEGY,
+            RECORD_READER,
+            RECORD_WRITER,
+            OUTPUT_STRATEGY,
+            KEY_ATTRIBUTE_ENCODING,
             KEY_FORMAT,
             KEY_RECORD_READER,
-            OUTPUT_STRATEGY
+            MESSAGE_DEMARCATOR,
+            SEPARATE_BY_KEY
     );
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(SUCCESS);
@@ -397,7 +401,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private Iterator<ByteRecord> transformDemarcator(final ProcessContext context, final Iterator<ByteRecord> consumerRecords) {
         final PropertyValue propertyValueDemarcator = context.getProperty(ConsumeKafka.MESSAGE_DEMARCATOR);
         if (propertyValueDemarcator.isSet()) {
-            final byte[] demarcator = propertyValueDemarcator.evaluateAttributeExpressions().getValue().getBytes(StandardCharsets.UTF_8);
+            final byte[] demarcator = propertyValueDemarcator.getValue().getBytes(StandardCharsets.UTF_8);
             final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
             return new ByteRecordBundler(demarcator, separateByKey, keyEncoding, headerNamePattern, headerEncoding, commitOffsets).bundle(consumerRecords);
         } else {
@@ -455,18 +459,18 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final String offsetReset = context.getProperty(AUTO_OFFSET_RESET).getValue();
         final AutoOffsetReset autoOffsetReset = AutoOffsetReset.valueOf(offsetReset.toUpperCase());
         final String topics = context.getProperty(TOPICS).evaluateAttributeExpressions().getValue();
-        final String topicType = context.getProperty(TOPIC_TYPE).getValue();
+        final String topicFormat = context.getProperty(TOPIC_FORMAT).getValue();
         final Duration maxUncommittedTime = context.getProperty(MAX_UNCOMMITTED_TIME).asDuration();
 
         final PollingContext pollingContext;
-        if (topicType.equals(TOPIC_PATTERN.getValue())) {
+        if (topicFormat.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topics.trim());
             pollingContext = new PollingContext(groupId, topicPattern, autoOffsetReset, maxUncommittedTime);
-        } else if (topicType.equals(TOPIC_NAME.getValue())) {
+        } else if (topicFormat.equals(TOPIC_NAME.getValue())) {
             final Collection<String> topicList = KafkaUtils.toTopicList(topics);
             pollingContext = new PollingContext(groupId, topicList, autoOffsetReset, maxUncommittedTime);
         } else {
-            throw new ProcessException(String.format("Subscription type has an unknown value %s", topicType));
+            throw new ProcessException(String.format("Topic Format [%s] not supported", topicFormat));
         }
         return pollingContext;
     }

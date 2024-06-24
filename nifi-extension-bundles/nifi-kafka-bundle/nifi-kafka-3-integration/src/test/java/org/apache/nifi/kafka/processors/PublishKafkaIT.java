@@ -47,7 +47,7 @@ public class PublishKafkaIT extends AbstractPublishKafkaIT {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.ATTRIBUTE_NAME_REGEX, "a.*");
+        runner.setProperty(PublishKafka.ATTRIBUTE_HEADER_PATTERN, "a.*");
         //runner.setProperty(PublishKafka.USE_TRANSACTIONS, Boolean.FALSE.toString());
 
         final Map<String, String> attributes = new HashMap<>();

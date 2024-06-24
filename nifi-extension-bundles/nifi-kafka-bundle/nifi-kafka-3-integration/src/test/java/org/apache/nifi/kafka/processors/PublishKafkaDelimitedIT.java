@@ -50,7 +50,7 @@ public class PublishKafkaDelimitedIT extends AbstractPublishKafkaIT {
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
         runner.setProperty(PublishKafka.MESSAGE_DEMARCATOR, "xx");
-        runner.setProperty(PublishKafka.ATTRIBUTE_NAME_REGEX, "a.*");
+        runner.setProperty(PublishKafka.ATTRIBUTE_HEADER_PATTERN, "a.*");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("a1", "valueA1");

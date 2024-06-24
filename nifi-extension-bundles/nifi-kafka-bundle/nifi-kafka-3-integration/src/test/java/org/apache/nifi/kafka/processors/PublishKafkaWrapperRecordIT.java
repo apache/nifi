@@ -63,9 +63,9 @@ public class PublishKafkaWrapperRecordIT extends AbstractPublishKafkaIT {
         addRecordKeyWriterService(runner);
 
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.KEY, KEY_ATTRIBUTE_KEY);
+        runner.setProperty(PublishKafka.KAFKA_KEY, KEY_ATTRIBUTE_KEY);
         runner.setProperty(PublishKafka.MESSAGE_KEY_FIELD, "address");
-        runner.setProperty(PublishKafka.ATTRIBUTE_NAME_REGEX, "a.*");
+        runner.setProperty(PublishKafka.ATTRIBUTE_HEADER_PATTERN, "a.*");
         runner.setProperty(PublishKafka.PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER.name());
 
         final Map<String, String> attributes = new HashMap<>();

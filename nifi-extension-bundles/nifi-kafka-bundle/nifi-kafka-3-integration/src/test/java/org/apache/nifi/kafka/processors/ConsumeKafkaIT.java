@@ -126,7 +126,7 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
 
         runner.setProperty(ConsumeKafka.GROUP_ID, groupId);
         runner.setProperty(ConsumeKafka.TOPICS, topicPattern);
-        runner.setProperty(ConsumeKafka.TOPIC_TYPE, ConsumeKafka.TOPIC_PATTERN);
+        runner.setProperty(ConsumeKafka.TOPIC_FORMAT, ConsumeKafka.TOPIC_PATTERN);
         runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE.getValue());
         runner.run(1, false, true);
 
@@ -151,7 +151,7 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
 
         runner.setProperty(ConsumeKafka.GROUP_ID, groupId);
         runner.setProperty(ConsumeKafka.TOPICS, topicNames);
-        runner.setProperty(ConsumeKafka.TOPIC_TYPE, ConsumeKafka.TOPIC_NAME);
+        runner.setProperty(ConsumeKafka.TOPIC_FORMAT, ConsumeKafka.TOPIC_NAME);
         runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE.getValue());
         runner.run(1, false, true);
 

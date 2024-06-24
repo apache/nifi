@@ -62,7 +62,7 @@ public class PublishKafkaContentX1IT extends AbstractPublishKafkaIT {
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
         runner.setProperty(PublishKafka.PUBLISH_STRATEGY, PublishStrategy.USE_VALUE.name());
         runner.setProperty(PublishKafka.MESSAGE_KEY_FIELD, "account");
-        runner.setProperty(PublishKafka.ATTRIBUTE_NAME_REGEX, "attribute.*");
+        runner.setProperty(PublishKafka.ATTRIBUTE_HEADER_PATTERN, "attribute.*");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attributeA", "valueA");

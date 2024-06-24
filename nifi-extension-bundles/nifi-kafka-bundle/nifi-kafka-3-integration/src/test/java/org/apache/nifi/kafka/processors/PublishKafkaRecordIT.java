@@ -59,8 +59,8 @@ public class PublishKafkaRecordIT extends AbstractPublishKafkaIT {
         addRecordWriterService(runner);
 
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.KEY, KEY_ATTRIBUTE_KEY);
-        runner.setProperty(PublishKafka.ATTRIBUTE_NAME_REGEX, "a.*");
+        runner.setProperty(PublishKafka.KAFKA_KEY, KEY_ATTRIBUTE_KEY);
+        runner.setProperty(PublishKafka.ATTRIBUTE_HEADER_PATTERN, "a.*");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(KEY_ATTRIBUTE_KEY, KEY_ATTRIBUTE_VALUE);

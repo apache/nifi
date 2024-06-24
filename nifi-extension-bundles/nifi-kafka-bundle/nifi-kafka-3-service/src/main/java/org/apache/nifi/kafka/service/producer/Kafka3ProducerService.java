@@ -31,8 +31,6 @@ import org.apache.nifi.kafka.service.api.record.KafkaRecord;
 import org.apache.nifi.kafka.service.producer.transaction.KafkaNonTransactionalProducerWrapper;
 import org.apache.nifi.kafka.service.producer.transaction.KafkaProducerWrapper;
 import org.apache.nifi.kafka.service.producer.transaction.KafkaTransactionalProducerWrapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -43,9 +41,8 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 public class Kafka3ProducerService implements KafkaProducerService {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
     private final Producer<byte[], byte[]> producer;
+
     private final List<ProducerCallback> callbacks;
 
     private final ServiceConfiguration serviceConfiguration;
