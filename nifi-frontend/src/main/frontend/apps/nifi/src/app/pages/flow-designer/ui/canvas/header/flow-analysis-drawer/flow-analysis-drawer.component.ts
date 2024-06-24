@@ -28,6 +28,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FormsModule } from '@angular/forms';
 import { selectFlowAnalysisState } from '../../../../state/flow-analysis/flow-analysis.selectors';
 import { startPollingFlowAnalysis } from '../../../../state/flow-analysis/flow-analysis.actions';
+import { FlowAnalysisRule, FlowAnalysisRuleViolation } from '../../../../state/flow-analysis';
 
 @Component({
     selector: 'flow-analysis-drawer',
@@ -39,11 +40,11 @@ import { startPollingFlowAnalysis } from '../../../../state/flow-analysis/flow-a
 export class FlowAnalysisDrawerComponent {
     accordion = viewChild.required(MatAccordion);
     violationsMap = new Map();
-    warningRules: any = [];
-    enforcedRules: any = [];
-    warningViolations: any = [];
-    enforcedViolations: any = [];
-    rules: any = [];
+    warningRules: FlowAnalysisRule[] = [];
+    enforcedRules: FlowAnalysisRule[] = [];
+    warningViolations: FlowAnalysisRuleViolation[] = [];
+    enforcedViolations: FlowAnalysisRuleViolation[] = [];
+    rules: FlowAnalysisRule[] = [];
     readonly showEnforcedViolations = model(false);
     readonly showWarningViolations = model(false);
     flowAnalysisState$ = this.store.select(selectFlowAnalysisState);
@@ -54,30 +55,30 @@ export class FlowAnalysisDrawerComponent {
             this.clearRulesTracking();
             this.rules = res.rules;
 
-            res.rules.forEach((rule: any) => {
+            res.rules.forEach((rule: FlowAnalysisRule) => {
                 if (rule.enforcementPolicy === 'WARN') {
                     this.warningRules.push(rule);
                 } else {
                     this.enforcedRules.push(rule);
                 }
             });
-            res.ruleViolations.forEach((violation: any) => {
+            res.ruleViolations.forEach((violation: FlowAnalysisRuleViolation) => {
                 if (this.violationsMap.has(violation.ruleId)) {
                     this.violationsMap.get(violation.ruleId).push(violation);
                 } else {
                     this.violationsMap.set(violation.ruleId, [violation]);
                 }
             });
-            this.enforcedViolations = res.ruleViolations.filter(function (violation: any) {
+            this.enforcedViolations = res.ruleViolations.filter(function (violation: FlowAnalysisRuleViolation) {
                 return violation.enforcementPolicy === 'ENFORCE';
             });
-            this.warningViolations = res.ruleViolations.filter(function (violation: any) {
+            this.warningViolations = res.ruleViolations.filter(function (violation: FlowAnalysisRuleViolation) {
                 return violation.enforcementPolicy === 'WARN';
             });
         });
     }
 
-    openRule(rule: any) {
+    openRule(rule: FlowAnalysisRule) {
         this.store.dispatch(
             navigateToEditFlowAnalysisRule({
                 id: rule.id
@@ -91,7 +92,7 @@ export class FlowAnalysisDrawerComponent {
         this.violationsMap.clear();
     }
 
-    openDocumentation(rule: any) {
+    openDocumentation(rule: FlowAnalysisRule) {
         this.store.dispatch(
             navigateToComponentDocumentation({
                 request: {
@@ -122,10 +123,10 @@ export class FlowAnalysisDrawerComponent {
     }
 
     getRuleName(id: string) {
-        const rule = this.rules.find(function (rule: any) {
+        const rule = this.rules.find(function (rule: FlowAnalysisRule) {
             return rule.id === id;
         });
 
-        return rule.name;
+        return rule ? rule.name : '';
     }
 }
