@@ -91,10 +91,12 @@ public class DeleteFile extends AbstractProcessor {
             .name("success")
             .description("All FlowFiles, for which an existing file has been deleted, are routed to this relationship")
             .build();
+
     public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
             .name("not found")
             .description("All FlowFiles, for which the file to delete did not exist, are routed to this relationship")
             .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("All FlowFiles, for which an existing file could not be deleted, are routed to this relationship")
@@ -104,16 +106,15 @@ public class DeleteFile extends AbstractProcessor {
 
     public static final PropertyDescriptor DIRECTORY_PATH = new PropertyDescriptor.Builder()
             .name("Directory Path")
-            .displayName("Directory Path")
             .description("The path to the directory the file to delete is located in.")
             .required(true)
             .defaultValue("${" + CoreAttributes.ABSOLUTE_PATH.key() + "}")
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
+
     public static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
             .name("Filename")
-            .displayName("Filename")
             .description("The name of the file to delete.")
             .required(true)
             .defaultValue("${" + CoreAttributes.FILENAME.key() + "}")
@@ -163,9 +164,9 @@ public class DeleteFile extends AbstractProcessor {
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             getLogger().debug("Successfully deleted file at path {} in {} millis; routing to success", flowFile, transferMillis);
             session.getProvenanceReporter().invokeRemoteProcess(flowFile, transitUri, "Object deleted");
-        } catch (NoSuchFileException noSuchFileException) {
+        } catch (final NoSuchFileException noSuchFileException) {
             session.transfer(flowFile, REL_NOT_FOUND);
-        } catch (IOException ioException) {
+        } catch (final IOException ioException) {
             final String errorMessage = "Failed to delete file '%s' in directory '%s'"
                     .formatted(filename, directoryPathProperty);
 
