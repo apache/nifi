@@ -91,12 +91,12 @@
                                                     <mat-menu #violationMenu="matMenu" class="rule-menu" id="rule-menu">
                                                         <ul>
                                                             <li class="rule-menu-option" id="rule-menu-view-documentation">
-                                                                <button mat-menu-item (click)="viewViolationDetails(rule)" class="">
+                                                                <button mat-menu-item (click)="viewViolationDetails(rule.id)" class="">
                                                                     <i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Violation details</span>
                                                                 </button>
                                                             </li>
                                                             <li class="rule-menu-option" id="rule-menu-edit-rule">
-                                                                <button mat-menu-item (click)="goToComponent(rule)">
+                                                                <button mat-menu-item (click)="goToComponent(rule.id)">
                                                                     <i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Go to component</span>
                                                                 </button>
                                                             </li>
@@ -162,12 +162,12 @@
                                                     <mat-menu #violationMenu="matMenu" class="rule-menu" id="rule-menu">
                                                         <ul>
                                                             <li class="rule-menu-option" id="rule-menu-view-documentation">
-                                                                <button mat-menu-item (click)="viewViolationDetails(rule)" class="">
+                                                                <button mat-menu-item (click)="viewViolationDetails(rule.id)" class="">
                                                                     <i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Violation details</span>
                                                                 </button>
                                                             </li>
                                                             <li class="rule-menu-option" id="rule-menu-edit-rule">
-                                                                <button mat-menu-item (click)="goToComponent(rule)">
+                                                                <button mat-menu-item (click)="goToComponent(rule.id)">
                                                                     <i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Go to component</span>
                                                                 </button>
                                                             </li>
@@ -196,7 +196,7 @@
         </div>
 
         <ul class="rule-violations-list">
-            @for (violation of enforcedViolations; track violation.id) {
+            @for (violation of enforcedViolations; track violation.scope) {
                 <li>
                     <div class="rule-violations-list-item-name">{{ getRuleName(violation.ruleId) }}</div>
                     <div class="violation-list-item">
@@ -222,7 +222,7 @@
         </div>
 
         <ul class="rule-warnings-list">
-            @for (violation of warningViolations; track violation.id) {
+            @for (violation of warningViolations; track violation.scope) {
                 <li>
                     <div class="rule-warnings-list-item-name">{{ getRuleName(violation.ruleId) }}</div>
                     <div class="warning-list-item">
