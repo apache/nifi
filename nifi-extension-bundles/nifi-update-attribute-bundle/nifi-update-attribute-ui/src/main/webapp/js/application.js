@@ -193,6 +193,9 @@ var ua = {
                     text: 'by name',
                     value: 'name'
                 }, {
+                    text: 'by comments',
+                    value" 'comments"
+                }, {
                     text: 'by condition',
                     value: 'condition'
                 }, {
@@ -1473,6 +1476,8 @@ var ua = {
         // determine the filter type (name, condition, action)
         if (filterType.value === 'name') {
             return [rule.name];
+        } else if (filterType.value === 'comments') {
+            return [rule.comments];
         } else if (filterType.value === 'condition') {
             var conditions = [];
             $.each(rule.conditions, function (_, condition) {
