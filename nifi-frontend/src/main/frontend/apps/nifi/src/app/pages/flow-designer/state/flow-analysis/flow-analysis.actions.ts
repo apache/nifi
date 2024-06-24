@@ -15,19 +15,20 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { createAction, props } from '@ngrx/store';
+import { FlowAnalysisRequestResponse } from '.';
 
-import { FlowAnalysisService } from './flow-analysis.service';
+export const startPollingFlowAnalysis = createAction('[Flow Analysis] Start Polling Flow Analysis');
 
-describe('FlowAnalysisService', () => {
-    let service: FlowAnalysisService;
+export const stopPollingFlowAnalysis = createAction('[Flow Analysis] Stop Polling Flow Analysis');
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({});
-        service = TestBed.inject(FlowAnalysisService);
-    });
+export const pollFlowAnalysis = createAction(`[Flow Analysis] Poll Flow Analysis`);
 
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+export const pollFlowAnalysisSuccess = createAction(
+    `[Flow Analysis] Poll Flow Analysis Success`,
+    props<{ response: FlowAnalysisRequestResponse }>()
+);
+
+export const flowAnalysisApiError = createAction('[Flow Analysis] API Error', props<{ error: string }>());
+
+export const resetPollingFlowAnalysis = createAction(`[Flow Analysis] Reset Polling Flow Analysis`);
