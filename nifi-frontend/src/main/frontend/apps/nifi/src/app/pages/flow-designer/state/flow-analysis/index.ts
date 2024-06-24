@@ -19,7 +19,7 @@ import { PropertyDescriptor, Bundle, Permissions } from '../../../../state/share
 
 export const flowAnalysisFeatureKey = 'flowAnalysis';
 
-interface FlowAnalysisRule {
+export interface FlowAnalysisRule {
     id: string;
     name: string;
     type: string;
@@ -40,7 +40,7 @@ interface FlowAnalysisRule {
     validationStatus: 'VALID' | 'INVALID' | 'VALIDATING';
 }
 
-interface FlowAnalysisRuleViolation {
+export interface FlowAnalysisRuleViolation {
     enforcementPolicy: string;
     scope: string;
     subjectId: string;
