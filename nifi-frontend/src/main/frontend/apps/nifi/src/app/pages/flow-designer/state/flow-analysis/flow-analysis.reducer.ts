@@ -15,19 +15,28 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { createReducer, on } from '@ngrx/store';
+import { FlowAnalysisState } from './index';
+import { pollFlowAnalysis, pollFlowAnalysisSuccess } from './flow-analysis.actions';
 
-import { FlowAnalysisService } from './flow-analysis.service';
+export const initialState: FlowAnalysisState = {
+    rules: [],
+    ruleViolations: [],
+    flowAnalysisPending: null,
+    status: 'pending'
+};
 
-describe('FlowAnalysisService', () => {
-    let service: FlowAnalysisService;
-
-    beforeEach(() => {
-        TestBed.configureTestingModule({});
-        service = TestBed.inject(FlowAnalysisService);
-    });
-
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+export const flowAnalysisReducer = createReducer(
+    initialState,
+    on(pollFlowAnalysis, (state) => ({
+        ...state,
+        status: 'loading' as const
+    })),
+    on(pollFlowAnalysisSuccess, (state, { response }) => ({
+        ...state,
+        rules: response.rules,
+        ruleViolations: response.ruleViolations,
+        flowAnalysisPending: response.flowAnalysisPending,
+        status: 'success' as const
+    }))
+);

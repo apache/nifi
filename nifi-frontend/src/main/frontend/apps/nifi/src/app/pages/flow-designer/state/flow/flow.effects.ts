@@ -153,6 +153,7 @@ import {
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
 import { Storage, NiFiCommon } from '@nifi/shared';
+import { resetPollingFlowAnalysis } from '../flow-analysis/flow-analysis.actions';
 
 @Injectable()
 export class FlowEffects {
@@ -212,6 +213,7 @@ export class FlowEffects {
                     this.flowService.getControllerBulletins()
                 ]).pipe(
                     map(([flow, flowStatus, controllerBulletins]) => {
+                        this.store.dispatch(resetPollingFlowAnalysis());
                         return FlowActions.loadProcessGroupSuccess({
                             response: {
                                 id: request.id,

@@ -30,6 +30,7 @@ import { ControllerServicesEffects } from '../state/controller-services/controll
 import { ParameterEffects } from '../state/parameter/parameter.effects';
 import { QueueEffects } from '../state/queue/queue.effects';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { FlowAnalysisEffects } from '../state/flow-analysis/flow-analysis.effects';
 
 @NgModule({
     declarations: [FlowDesigner, VersionControlTip],
@@ -43,7 +44,8 @@ import { BannerText } from '../../../ui/common/banner-text/banner-text.component
             TransformEffects,
             ControllerServicesEffects,
             ParameterEffects,
-            QueueEffects
+            QueueEffects,
+            FlowAnalysisEffects
         ),
         NgOptimizedImage,
         MatDialogModule,

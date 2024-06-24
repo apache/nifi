@@ -15,19 +15,11 @@
  * limitations under the License.
  */
 
-import { TestBed } from '@angular/core/testing';
+import { createSelector } from '@ngrx/store';
+import { flowAnalysisFeatureKey } from './index';
+import { CanvasState, selectCanvasState } from '../index';
 
-import { FlowAnalysisService } from './flow-analysis.service';
-
-describe('FlowAnalysisService', () => {
-    let service: FlowAnalysisService;
-
-    beforeEach(() => {
-        TestBed.configureTestingModule({});
-        service = TestBed.inject(FlowAnalysisService);
-    });
-
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
-});
+export const selectFlowAnalysisState = createSelector(
+    selectCanvasState,
+    (state: CanvasState) => state[flowAnalysisFeatureKey]
+);
