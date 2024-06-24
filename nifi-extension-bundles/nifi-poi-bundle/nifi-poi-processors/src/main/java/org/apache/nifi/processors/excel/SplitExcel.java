@@ -29,7 +29,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.excel.ProtectionType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -51,6 +50,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
+
 @SideEffectFree
 @SupportsBatching
 @Tags({"split", "text"})
@@ -67,39 +71,24 @@ import java.util.UUID;
         @WritesAttribute(attribute = SplitExcel.SHEET_NAME, description = "The name of the Excel sheet from the original spreadsheet."),
         @WritesAttribute(attribute = SplitExcel.TOTAL_ROWS, description = "The number of rows in the Excel sheet from the original spreadsheet.")})
 public class SplitExcel extends AbstractProcessor {
-    public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
-    public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
-    public static final String FRAGMENT_COUNT = FragmentAttributes.FRAGMENT_COUNT.key();
-    public static final String SEGMENT_ORIGINAL_FILENAME = FragmentAttributes.SEGMENT_ORIGINAL_FILENAME.key();
     public static final String SHEET_NAME = "sheetname";
     public static final String TOTAL_ROWS = "total.rows";
 
-    public static final PropertyDescriptor PROTECTION_TYPE = new PropertyDescriptor
-            .Builder().name("Protection Type")
-            .displayName("Protection Type")
+    public static final PropertyDescriptor PROTECTION_TYPE = new PropertyDescriptor.Builder()
+            .name("Protection Type")
             .description("Specifies whether an Excel spreadsheet is protected by a password or not.")
             .required(true)
             .allowableValues(ProtectionType.class)
             .defaultValue(ProtectionType.UNPROTECTED)
             .build();
 
-    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor
-            .Builder().name("Password")
-            .displayName("Password")
+    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+            .name("Password")
             .description("The password for a password protected Excel spreadsheet")
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(PROTECTION_TYPE, ProtectionType.PASSWORD)
-            .build();
-
-    public static final PropertyDescriptor AVOID_TEMP_FILES = new PropertyDescriptor
-            .Builder().name("Avoid Temp Files")
-            .displayName("Avoid Temp Files")
-            .description("Enables a mode where the code tries to avoid creating temp files. By default, temp files are used to avoid holding onto too much data in memory.")
-            .required(true)
-            .defaultValue(Boolean.FALSE.toString())
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
@@ -117,7 +106,7 @@ public class SplitExcel extends AbstractProcessor {
             .description("The individual Excel 'segments' of the original Excel FlowFile will be routed to this relationship.")
             .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(PROTECTION_TYPE, PASSWORD, AVOID_TEMP_FILES);
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(PROTECTION_TYPE, PASSWORD);
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_SPLIT);
     private static final CellCopyPolicy CELL_COPY_POLICY = new CellCopyPolicy.Builder()
             .cellFormula(CellCopyPolicy.DEFAULT_COPY_CELL_FORMULA_POLICY)
@@ -148,7 +137,6 @@ public class SplitExcel extends AbstractProcessor {
         }
 
         final String password = context.getProperty(PASSWORD).getValue();
-        final boolean avoidTempFiles = context.getProperty(AVOID_TEMP_FILES).asBoolean();
         final List<WorkbookSplit> workbookSplits = new ArrayList<>();
 
         try {
@@ -158,13 +146,12 @@ public class SplitExcel extends AbstractProcessor {
                         .rowCacheSize(100)
                         .bufferSize(4096)
                         .password(password)
-                        .setAvoidTempFiles(avoidTempFiles)
                         .setReadHyperlinks(true) // NOTE: Needed for copying rows.
                         .setReadSharedFormulas(true) // NOTE: If not set to true, then data with shared formulas fail.
                         .open(in);
 
                 int index = 0;
-                for (Sheet originalSheet : originalWorkbook) {
+                for (final Sheet originalSheet : originalWorkbook) {
                     final String originalSheetName = originalSheet.getSheetName();
                     try (XSSFWorkbook newWorkbook = new XSSFWorkbook()) {
                         XSSFSheet newSheet = newWorkbook.createSheet(originalSheetName);
@@ -209,13 +196,13 @@ public class SplitExcel extends AbstractProcessor {
         }
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(FRAGMENT_COUNT, String.valueOf(workbookSplits.size()));
-        attributes.put(FRAGMENT_ID, fragmentId);
-        attributes.put(SEGMENT_ORIGINAL_FILENAME, originalFileName);
+        attributes.put(FRAGMENT_COUNT.key(), String.valueOf(workbookSplits.size()));
+        attributes.put(FRAGMENT_ID.key(), fragmentId);
+        attributes.put(SEGMENT_ORIGINAL_FILENAME.key(), originalFileName);
 
         for (WorkbookSplit split : workbookSplits) {
-            attributes.put(CoreAttributes.FILENAME.key(), originalFileNameWithoutExtension + "-" + split.index() + originalFileNameExtension);
-            attributes.put(FRAGMENT_INDEX, Integer.toString(split.index()));
+            attributes.put(CoreAttributes.FILENAME.key(), String.format("%s-%s%s", originalFileNameWithoutExtension, split.index(), originalFileNameExtension));
+            attributes.put(FRAGMENT_INDEX.key(), Integer.toString(split.index()));
             attributes.put(SHEET_NAME, split.sheetName());
             attributes.put(TOTAL_ROWS, Integer.toString(split.numRows()));
             session.putAllAttributes(split.content(), attributes);
@@ -226,12 +213,7 @@ public class SplitExcel extends AbstractProcessor {
                 .map(WorkbookSplit::content)
                 .toList();
 
-        if (flowFileSplits.size() > 1) {
-            session.transfer(flowFileSplits, REL_SPLIT);
-        } else {
-            getLogger().warn("Original file {} did not have more than one sheet, nothing to split", originalFlowFile);
-            session.remove(flowFileSplits);
-        }
+        session.transfer(flowFileSplits, REL_SPLIT);
     }
 
     private record WorkbookSplit(int index, FlowFile content, String sheetName, int numRows) {

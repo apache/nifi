@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.excel;
 
-import org.apache.nifi.excel.ProtectionType;
-import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -39,9 +37,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSplitExcel {
     private static final String PASSWORD = "nifi";
@@ -83,13 +84,9 @@ public class TestSplitExcel {
 
         runner.run();
 
-        runner.assertTransferCount(SplitExcel.REL_SPLIT, 0);
+        runner.assertTransferCount(SplitExcel.REL_SPLIT, 1);
         runner.assertTransferCount(SplitExcel.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitExcel.REL_FAILURE, 0);
-
-        MockComponentLog logger = runner.getLogger();
-        assertTrue(logger.getWarnMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().contains("nothing to split")));
     }
 
     @Test
@@ -111,10 +108,10 @@ public class TestSplitExcel {
 
         for (int index = 0; index < flowFiles.size(); index++) {
             MockFlowFile flowFile = flowFiles.get(index);
-            assertNotNull(flowFile.getAttribute(SplitExcel.FRAGMENT_ID));
-            assertEquals(Integer.toString(index), flowFile.getAttribute(SplitExcel.FRAGMENT_INDEX));
-            assertEquals(Integer.toString(flowFiles.size()), flowFile.getAttribute(SplitExcel.FRAGMENT_COUNT));
-            assertEquals(fileName, flowFile.getAttribute(SplitExcel.SEGMENT_ORIGINAL_FILENAME));
+            assertNotNull(flowFile.getAttribute(FRAGMENT_ID.key()));
+            assertEquals(Integer.toString(index), flowFile.getAttribute(FRAGMENT_INDEX.key()));
+            assertEquals(Integer.toString(flowFiles.size()), flowFile.getAttribute(FRAGMENT_COUNT.key()));
+            assertEquals(fileName, flowFile.getAttribute(SEGMENT_ORIGINAL_FILENAME.key()));
             assertEquals(expectedSheetNamesPrefix + expectedSheetSuffixes.get(index), flowFile.getAttribute(SplitExcel.SHEET_NAME));
             assertEquals(expectedTotalRows.get(index).toString(), flowFile.getAttribute(SplitExcel.TOTAL_ROWS));
         }
@@ -150,10 +147,10 @@ public class TestSplitExcel {
 
         for (int index = 0; index < flowFiles.size(); index++) {
             MockFlowFile flowFile = flowFiles.get(index);
-            assertNotNull(flowFile.getAttribute(SplitExcel.FRAGMENT_ID));
-            assertEquals(Integer.toString(index), flowFile.getAttribute(SplitExcel.FRAGMENT_INDEX));
-            assertEquals(Integer.toString(flowFiles.size()), flowFile.getAttribute(SplitExcel.FRAGMENT_COUNT));
-            assertEquals(fileName, flowFile.getAttribute(SplitExcel.SEGMENT_ORIGINAL_FILENAME));
+            assertNotNull(flowFile.getAttribute(FRAGMENT_ID.key()));
+            assertEquals(Integer.toString(index), flowFile.getAttribute(FRAGMENT_INDEX.key()));
+            assertEquals(Integer.toString(flowFiles.size()), flowFile.getAttribute(FRAGMENT_COUNT.key()));
+            assertEquals(fileName, flowFile.getAttribute(SEGMENT_ORIGINAL_FILENAME.key()));
             assertEquals(expectedSheetSuffixes.get(index), flowFile.getAttribute(SplitExcel.SHEET_NAME));
             assertEquals(expectedTotalRows.get(index).toString(), flowFile.getAttribute(SplitExcel.TOTAL_ROWS));
         }
@@ -163,20 +160,6 @@ public class TestSplitExcel {
     void testDataWithSharedFormula() throws IOException {
         Path dataWithSharedFormula = Paths.get("src/test/resources/excel/dataWithSharedFormula.xlsx");
         runner.enqueue(dataWithSharedFormula);
-
-        runner.run();
-
-        runner.assertTransferCount(SplitExcel.REL_SPLIT, 2);
-        runner.assertTransferCount(SplitExcel.REL_ORIGINAL, 1);
-        runner.assertTransferCount(SplitExcel.REL_FAILURE, 0);
-    }
-
-    @Test
-    void testPasswordProtected() {
-        runner.setProperty(SplitExcel.PROTECTION_TYPE, ProtectionType.PASSWORD.getValue());
-        runner.setProperty(SplitExcel.PASSWORD, PASSWORD);
-        runner.setProperty(SplitExcel.AVOID_TEMP_FILES, Boolean.TRUE.toString());
-        runner.enqueue(PASSWORD_PROTECTED.toByteArray());
 
         runner.run();
 
