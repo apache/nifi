@@ -19,20 +19,13 @@ package org.apache.nifi.processors.excel;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.poifs.crypt.EncryptionInfo;
-import org.apache.poi.poifs.crypt.EncryptionMode;
-import org.apache.poi.poifs.crypt.Encryptor;
-import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -45,8 +38,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestSplitExcel {
-    private static final String PASSWORD = "nifi";
-    private static final ByteArrayOutputStream PASSWORD_PROTECTED = new ByteArrayOutputStream();
     private TestRunner runner;
 
     @BeforeAll
@@ -56,19 +47,6 @@ public class TestSplitExcel {
             workbook.createSheet("User Info");
             workbook.createSheet("Vehicle Info");
             workbook.write(outputStream);
-        }
-
-        //Protect the Excel file with a password
-        try (POIFSFileSystem poifsFileSystem = new POIFSFileSystem()) {
-            EncryptionInfo encryptionInfo = new EncryptionInfo(EncryptionMode.agile);
-            Encryptor encryptor = encryptionInfo.getEncryptor();
-            encryptor.confirmPassword(PASSWORD);
-
-            try (OPCPackage opc = OPCPackage.open(new ByteArrayInputStream(outputStream.toByteArray()));
-                 OutputStream os = encryptor.getDataStream(poifsFileSystem)) {
-                opc.save(os);
-            }
-            poifsFileSystem.writeFilesystem(PASSWORD_PROTECTED);
         }
     }
 
