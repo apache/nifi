@@ -62,7 +62,7 @@ export class JoltTransformJsonUi implements OnDestroy {
 
     editJoltTransformJSONProcessorForm: FormGroup;
     step = 0;
-    joltState$ = this.store.selectSignal(selectJoltTransformJsonUiState);
+    joltState = this.store.selectSignal(selectJoltTransformJsonUiState);
     processorDetails$ = this.store.select(selectProcessorDetails);
     editable: boolean = false;
 
