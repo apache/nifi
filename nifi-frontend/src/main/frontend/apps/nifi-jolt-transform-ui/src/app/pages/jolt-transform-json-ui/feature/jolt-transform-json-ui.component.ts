@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-// @ts-ignore
-import js_beautify from 'js-beautify';
+import { js_beautify } from 'js-beautify';
 import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiJoltTransformJsonUiState } from '../../../state';
@@ -44,8 +43,8 @@ import { SavePropertiesRequest, ValidateJoltSpecRequest } from '../state/jolt-tr
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 
 const JS_BEAUTIFY_OPTIONS = {
-    indent_size: 1,
-    indent_char: '\t'
+    indent_size: 2,
+    indent_char: ' '
 };
 
 @Component({
@@ -63,11 +62,9 @@ export class JoltTransformJsonUi implements OnDestroy {
 
     editJoltTransformJSONProcessorForm: FormGroup;
     step = 0;
-    joltTransformJsonUiState$ = this.store.select(selectJoltTransformJsonUiState);
+    joltState$ = this.store.selectSignal(selectJoltTransformJsonUiState);
     processorDetails$ = this.store.select(selectProcessorDetails);
     editable: boolean = false;
-    // @ts-ignore
-    JSON = JSON;
 
     constructor(
         private formBuilder: FormBuilder,

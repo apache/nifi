@@ -94,7 +94,7 @@
                                         (mousedown)="preventDrag($event)"></ngx-codemirror>
                                 </div>
                                 <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                    @if ((joltTransformJsonUiState$ | async)?.validatingJoltSpec) {
+                                    @if (joltState$().validatingJoltSpec) {
                                         <i
                                             class="fa fa-refresh fa-spin mr-2"
                                             nifiTooltip
@@ -102,7 +102,7 @@
                                             tooltipInputData="Validating..."></i
                                         ><mat-hint>Validating...</mat-hint>
                                     } @else {
-                                        @if ((joltTransformJsonUiState$ | async)?.validationResponse?.valid) {
+                                        @if (joltState$().validationResponse?.valid) {
                                             <i
                                                 class="fa fa-check success-color mr-2"
                                                 nifiTooltip
@@ -110,34 +110,25 @@
                                                 tooltipInputData="The specification is valid."></i
                                             ><mat-hint>The specification is valid.</mat-hint>
                                         } @else if (
-                                            (joltTransformJsonUiState$ | async)?.validationResponse?.valid === false &&
-                                            (joltTransformJsonUiState$ | async)?.validationResponse?.message !== null
+                                            joltState$().validationResponse?.valid === false &&
+                                            joltState$().validationResponse?.message !== null
                                         ) {
                                             <i
                                                 class="fa fa-warning caution-color mr-2"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
-                                                [tooltipInputData]="
-                                                    (joltTransformJsonUiState$ | async)?.validationResponse?.message
-                                                "></i
-                                            ><mat-hint>{{
-                                                (joltTransformJsonUiState$ | async)?.validationResponse?.message
-                                            }}</mat-hint>
-                                        } @else if ((joltTransformJsonUiState$ | async)?.validationFailureResponse) {
+                                                [tooltipInputData]="joltState$().validationResponse?.message"></i
+                                            ><mat-hint>{{ joltState$().validationResponse?.message }}</mat-hint>
+                                        } @else if (joltState$().validationFailureResponse) {
                                             <i
                                                 class="fa fa-warning caution-color mr-2"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
-                                                [tooltipInputData]="
-                                                    (joltTransformJsonUiState$ | async)?.validationFailureResponse
-                                                        ?.message
-                                                "></i
-                                            ><mat-hint>{{
-                                                (joltTransformJsonUiState$ | async)?.validationFailureResponse?.message
-                                            }}</mat-hint>
+                                                [tooltipInputData]="joltState$().validationFailureResponse?.message"></i
+                                            ><mat-hint>{{ joltState$().validationFailureResponse?.message }}</mat-hint>
                                         }
                                     }
-                                    @if ((joltTransformJsonUiState$ | async)?.savingProperties) {
+                                    @if (joltState$().savingProperties) {
                                         <i
                                             class="fa fa-refresh fa-spin text-shadow mr-2"
                                             nifiTooltip
@@ -145,35 +136,31 @@
                                             tooltipInputData="Saving Properties..."></i
                                         ><mat-hint>Saving...</mat-hint>
                                     } @else {
-                                        @if ((joltTransformJsonUiState$ | async)?.savePropertiesResponse) {
+                                        @if (joltState$().savePropertiesResponse) {
                                             <i
                                                 class="fa fa-check success-color text-shadow mr-2"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 tooltipInputData="Properties successfully saved!"></i
                                             ><mat-hint>Properties successfully saved!</mat-hint>
-                                        } @else if (
-                                            (joltTransformJsonUiState$ | async)?.savePropertiesFailureResponse
-                                        ) {
+                                        } @else if (joltState$().savePropertiesFailureResponse) {
                                             <i
                                                 class="fa fa-warning caution-color text-shadow mr-2"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 [tooltipInputData]="
-                                                    (joltTransformJsonUiState$ | async)?.savePropertiesFailureResponse
-                                                        ?.message
+                                                    joltState$().savePropertiesFailureResponse?.message
                                                 "></i
                                             ><mat-hint>{{
-                                                (joltTransformJsonUiState$ | async)?.savePropertiesFailureResponse
-                                                    ?.message
+                                                joltState$().savePropertiesFailureResponse?.message
                                             }}</mat-hint>
                                         }
                                     }
                                     @if (
-                                        (joltTransformJsonUiState$ | async)?.savePropertiesResponse === null &&
-                                        (joltTransformJsonUiState$ | async)?.savePropertiesFailureResponse === null &&
-                                        (joltTransformJsonUiState$ | async)?.validationResponse === null &&
-                                        (joltTransformJsonUiState$ | async)?.validationFailureResponse === null
+                                        joltState$().savePropertiesResponse === null &&
+                                        joltState$().savePropertiesFailureResponse === null &&
+                                        joltState$().validationResponse === null &&
+                                        joltState$().validationFailureResponse === null
                                     ) {
                                         <i
                                             class="fa fa-info-circle primary-color mr-2"
@@ -280,7 +267,7 @@
                                 </mat-accordion>
                                 <div class="flex flex-1 mt-2 justify-start">
                                     <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        @if ((joltTransformJsonUiState$ | async)?.transformingJoltSpec) {
+                                        @if (joltState$().transformingJoltSpec) {
                                             <i
                                                 class="fa fa-refresh fa-spin mr-2"
                                                 nifiTooltip
@@ -288,27 +275,23 @@
                                                 tooltipInputData="Transforming..."></i
                                             ><mat-hint>Transforming...</mat-hint>
                                         } @else {
-                                            @if ((joltTransformJsonUiState$ | async)?.transformationResponse) {
+                                            @if (joltState$().transformationResponse) {
                                                 <i
                                                     class="fa fa-check success-color mr-2"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     tooltipInputData="The transform was successful."></i
                                                 ><mat-hint>The transform was successful.</mat-hint>
-                                            } @else if (
-                                                (joltTransformJsonUiState$ | async)?.transformationFailureResponse
-                                            ) {
+                                            } @else if (joltState$().transformationFailureResponse) {
                                                 <i
                                                     class="fa fa-warning caution-color mr-2"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     [tooltipInputData]="
-                                                        (joltTransformJsonUiState$ | async)
-                                                            ?.transformationFailureResponse?.message
+                                                        joltState$()?.transformationFailureResponse?.message
                                                     "></i
                                                 ><mat-hint>{{
-                                                    (joltTransformJsonUiState$ | async)?.transformationFailureResponse
-                                                        ?.message
+                                                    joltState$().transformationFailureResponse?.message
                                                 }}</mat-hint>
                                             } @else {
                                                 <i
@@ -358,10 +341,8 @@
                                 <div class="output-editor mt-4 mb-4 flex-1">
                                     <ngx-codemirror
                                         [ngModel]="
-                                            (joltTransformJsonUiState$ | async)?.transformationResponse
-                                                ? JSON.stringify(
-                                                      (joltTransformJsonUiState$ | async)?.transformationResponse
-                                                  )
+                                            joltState$().transformationResponse
+                                                ? (joltState$().transformationResponse | json)
                                                 : ''
                                         "
                                         [ngModelOptions]="{ standalone: true }"

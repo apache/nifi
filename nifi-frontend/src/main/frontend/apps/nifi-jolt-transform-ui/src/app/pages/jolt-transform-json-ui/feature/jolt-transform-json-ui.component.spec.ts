@@ -18,8 +18,6 @@
 import { JoltTransformJsonUi } from './jolt-transform-json-ui.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideMockStore } from '@ngrx/store/testing';
-import { RouterModule } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
 import { initialState } from '../state/jolt-transform-json-ui/jolt-transform-json-ui.reducer';
 import { joltTransformJsonUiFeatureKey } from '../state';
 
@@ -30,7 +28,6 @@ describe('jolt-transform-json-ui', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [JoltTransformJsonUi],
-            imports: [RouterModule, RouterTestingModule],
             providers: [
                 provideMockStore({
                     initialState: {
@@ -44,8 +41,6 @@ describe('jolt-transform-json-ui', () => {
         fixture = TestBed.createComponent(JoltTransformJsonUi);
         component = fixture.componentInstance;
         fixture.detectChanges();
-        // @ts-ignore
-        window.js_beautify = () => '';
     });
 
     it('should create', () => {
