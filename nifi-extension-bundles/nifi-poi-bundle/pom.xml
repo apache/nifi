@@ -27,9 +27,9 @@
         <poi.version>5.2.5</poi.version>
     </properties>
     <modules>
+        <module>nifi-poi-nar</module>
         <module>nifi-poi-services</module>
         <module>nifi-poi-utils</module>
-        <module>nifi-poi-nar</module>
     </modules>
     <dependencyManagement>
         <dependencies>
