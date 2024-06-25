@@ -194,7 +194,7 @@ var ua = {
                     value: 'name'
                 }, {
                     text: 'by comments',
-                    value" 'comments"
+                    value: 'comments'
                 }, {
                     text: 'by condition',
                     value: 'condition'
