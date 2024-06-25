@@ -20,7 +20,7 @@ import { MatCell, MatHeaderCell, MatTableModule } from '@angular/material/table'
 import { ClusterNode } from '../../../state/cluster-listing';
 import { MatSortHeader, MatSortModule, Sort } from '@angular/material/sort';
 import { NgClass } from '@angular/common';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { ClusterTable } from '../../common/cluster-table/cluster-table.component';
 import {
     ClusterTableFilter,

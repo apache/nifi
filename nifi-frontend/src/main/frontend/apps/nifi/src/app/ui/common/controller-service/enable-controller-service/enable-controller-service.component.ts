@@ -20,8 +20,7 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
     ControllerServiceReferencingComponent,
-    SetEnableControllerServiceDialogRequest,
-    SelectOption
+    SetEnableControllerServiceDialogRequest
 } from '../../../../state/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -33,8 +32,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
-import { TextTip } from '../../tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import {
     controllerServiceActionScopes,
     ControllerServiceState,
@@ -53,6 +52,7 @@ import {
     selectControllerServiceSetEnableRequest
 } from '../../../../state/contoller-service-state/controller-service-state.selectors';
 import { CloseOnEscapeDialog } from '../../close-on-escape-dialog/close-on-escape-dialog.component';
+import { SelectOption } from 'libs/shared/src';
 
 @Component({
     selector: 'enable-controller-service',

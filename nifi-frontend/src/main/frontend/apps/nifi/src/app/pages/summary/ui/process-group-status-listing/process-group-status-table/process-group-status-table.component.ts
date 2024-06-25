@@ -21,7 +21,7 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
 import { SummaryTableFilterColumn } from '../../common/summary-table-filter/summary-table-filter.component';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { RouterLink } from '@angular/router';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { ProcessGroupStatusSnapshot, ProcessGroupStatusSnapshotEntity } from '../../../state';

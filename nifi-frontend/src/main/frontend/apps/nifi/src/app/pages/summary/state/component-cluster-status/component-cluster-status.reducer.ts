@@ -18,7 +18,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { ComponentClusterStatusState } from './index';
 import * as ClusterStatusActions from './component-cluster-status.actions';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 
 export const initialComponentClusterStatusState: ComponentClusterStatusState = {
     clusterStatus: null,

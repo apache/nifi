@@ -29,7 +29,7 @@ import { reloadSystemDiagnostics } from '../../../../state/system-diagnostics/sy
 import { ClusterService } from '../../service/cluster.service';
 import { MatDialog } from '@angular/material/dialog';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
-import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { ClusterNodeDetailDialog } from '../../ui/cluster-node-listing/cluster-node-detail-dialog/cluster-node-detail-dialog.component';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { SelectClusterNodeRequest } from './index';

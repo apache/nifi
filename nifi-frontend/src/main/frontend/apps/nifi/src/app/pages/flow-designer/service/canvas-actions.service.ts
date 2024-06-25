@@ -55,7 +55,7 @@ import { CanvasState } from '../state';
 import * as d3 from 'd3';
 import { MatDialog } from '@angular/material/dialog';
 import { CanvasView } from './canvas-view.service';
-import { ComponentType } from '../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { Client } from '../../../service/client.service';
 
 export type CanvasConditionFunction = (selection: d3.Selection<any, any, any, any>) => boolean;

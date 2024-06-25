@@ -31,8 +31,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
-import { TextTip } from '../../tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { ControllerServiceState, SetEnableRequest, SetEnableStep } from '../../../../state/contoller-service-state';
 import { Store } from '@ngrx/store';
 import {

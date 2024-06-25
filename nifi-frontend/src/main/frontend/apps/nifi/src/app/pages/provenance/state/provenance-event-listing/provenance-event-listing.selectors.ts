@@ -24,7 +24,7 @@ import {
     ProvenanceQueryParams,
     ProvenanceResults
 } from './index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from 'libs/shared/src/state/router/router.selectors';
 
 export const selectProvenanceEventListingState = createSelector(
     selectProvenanceState,

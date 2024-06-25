@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ComponentType } from '../shared';
+import { ComponentType } from 'libs/shared/src';
 
 export const statusHistoryFeatureKey = 'status-history';
 

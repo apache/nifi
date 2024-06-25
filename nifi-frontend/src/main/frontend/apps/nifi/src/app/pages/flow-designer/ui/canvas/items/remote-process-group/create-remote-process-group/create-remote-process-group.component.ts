@@ -32,8 +32,8 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { CreateComponentRequest } from '../../../../../state/flow';
-import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({

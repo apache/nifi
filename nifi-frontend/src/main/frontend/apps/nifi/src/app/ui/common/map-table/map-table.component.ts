@@ -49,13 +49,13 @@ import {
     OriginConnectionPosition,
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { ComboEditor } from '../property-table/editors/combo-editor/combo-editor.component';
 import { MatIconButton } from '@angular/material/button';
-import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
-import { TextTip } from '../tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { NfEditor } from '../property-table/editors/nf-editor/nf-editor.component';
 import { TextEditor } from './editors/text-editor/text-editor.component';

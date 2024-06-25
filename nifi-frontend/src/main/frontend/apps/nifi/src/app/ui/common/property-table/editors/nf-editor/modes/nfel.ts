@@ -23,7 +23,7 @@ import { ParameterTip } from '../../../../tooltips/parameter-tip/parameter-tip.c
 import { ElService } from './el.service';
 import { take } from 'rxjs';
 import { ElFunctionTip } from '../../../../tooltips/el-function-tip/el-function-tip.component';
-import { NiFiCommon } from '../../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 
 export interface NfElHint extends Hint {
     parameterDetails?: Parameter;

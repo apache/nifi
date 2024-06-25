@@ -23,7 +23,7 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { VersionedFlowSnapshotMetadata } from '../../../../../../../state/shared';
 import { ChangeVersionDialogRequest, VersionControlInformation } from '../../../../../state/flow';
-import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';

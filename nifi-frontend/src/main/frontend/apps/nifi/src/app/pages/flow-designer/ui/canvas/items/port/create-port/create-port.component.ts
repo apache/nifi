@@ -24,7 +24,7 @@ import { selectParentProcessGroupId, selectSaving } from '../../../../../state/f
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { createPort } from '../../../../../state/flow/flow.actions';
 import { CreateComponentRequest } from '../../../../../state/flow';
-import { ComponentType, SelectOption } from '../../../../../../../state/shared';
+import { ComponentType, SelectOption } from 'libs/shared/src';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -32,8 +32,8 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({

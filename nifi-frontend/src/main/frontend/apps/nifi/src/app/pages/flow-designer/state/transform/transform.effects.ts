@@ -20,7 +20,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as TransformActions from './transform.actions';
 import { map, tap } from 'rxjs';
-import { Storage } from '../../../../service/storage.service';
+import { Storage } from 'libs/shared/src/services/storage.service';
 import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../index';

@@ -32,6 +32,6 @@
 
     .logout-background {
         background: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter)
-            url(../../../../assets/icons/bg-error.png) left top no-repeat;
+            url(../../../../../../../libs/shared/src/assets/icons/bg-error.png) left top no-repeat;
     }
 }

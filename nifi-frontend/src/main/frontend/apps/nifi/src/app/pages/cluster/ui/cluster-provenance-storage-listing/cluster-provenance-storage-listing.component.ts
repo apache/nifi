@@ -23,7 +23,7 @@ import {
     selectClusterStorageRepositoryIdFromRoute
 } from '../../state/cluster-listing/cluster-listing.selectors';
 import { selectSystemNodeSnapshots } from '../../../../state/system-diagnostics/system-diagnostics.selectors';
-import { isDefinedAndNotNull } from '../../../../state/shared';
+import { isDefinedAndNotNull } from 'libs/shared/src';
 import { map } from 'rxjs';
 import { ClusterNodeRepositoryStorageUsage } from '../../../../state/system-diagnostics';
 import { Store } from '@ngrx/store';

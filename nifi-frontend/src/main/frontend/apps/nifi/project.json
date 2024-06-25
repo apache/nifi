@@ -12,6 +12,7 @@
     "targets": {
         "build": {
             "executor": "@nx/angular:application",
+            "outputs": ["{options.outputPath}"],
             "options": {
                 "outputPath": "dist/nifi",
                 "index": "apps/nifi/src/index.html",
@@ -19,10 +20,20 @@
                 "polyfills": ["zone.js"],
                 "tsConfig": "apps/nifi/tsconfig.app.json",
                 "inlineStyleLanguage": "scss",
-                "assets": ["apps/nifi/src/favicon.ico", "apps/nifi/src/assets"],
+                "assets": [
+                    {
+                        "glob": "**/*.svg",
+                        "input": "libs/shared/src/assets/",
+                        "output": "./assets"
+                    }
+                ],
                 "styles": ["apps/nifi/src/styles.scss"],
+                "stylePreprocessorOptions": {
+                    "includePaths": [""]
+                },
                 "scripts": [],
-                "allowedCommonJsDependencies": ["codemirror"]
+                "allowedCommonJsDependencies": ["codemirror"],
+                "preserveSymlinks": true
             },
             "configurations": {
                 "production": {
@@ -40,8 +51,16 @@
                     "optimization": false,
                     "extractLicenses": false,
                     "sourceMap": true,
+                    "preserveSymlinks": true,
                     "namedChunks": true,
                     "outputHashing": "none",
+                    "assets": [
+                        {
+                            "glob": "**/*.svg",
+                            "input": "libs/shared/src/assets/",
+                            "output": "./assets"
+                        }
+                    ],
                     "fileReplacements": [
                         {
                             "replace": "apps/nifi/src/environments/environment.ts",
@@ -80,6 +99,12 @@
             "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
             "options": {
                 "jestConfig": "apps/nifi/jest.config.ts"
+            },
+            "configurations": {
+                "ci": {
+                    "ci": true,
+                    "codeCoverage": true
+                }
             }
         },
         "lint": {

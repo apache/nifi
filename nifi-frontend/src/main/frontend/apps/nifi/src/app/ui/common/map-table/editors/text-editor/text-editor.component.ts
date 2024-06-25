@@ -25,7 +25,7 @@ import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { MatButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
-import { NifiTooltipDirective } from '../../../tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { Resizable } from '../../../resizable/resizable.component';
 
 @Component({

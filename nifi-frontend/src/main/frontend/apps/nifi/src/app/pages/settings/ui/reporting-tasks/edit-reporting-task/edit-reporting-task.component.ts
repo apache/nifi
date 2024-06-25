@@ -32,10 +32,9 @@ import {
     ControllerServiceReferencingComponent,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
-    Property,
-    SelectOption
+    Property
 } from '../../../../../state/shared';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import {
@@ -44,8 +43,8 @@ import {
     UpdateReportingTaskRequest
 } from '../../../state/reporting-tasks';
 import { ControllerServiceApi } from '../../../../../ui/common/controller-service/controller-service-api/controller-service-api.component';
-import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import {
@@ -55,6 +54,7 @@ import {
 } from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { SelectOption } from 'libs/shared/src';
 
 @Component({
     selector: 'edit-reporting-task',

@@ -29,7 +29,7 @@ import { selectParameterSaving, selectParameterState } from '../state/parameter/
 import { ParameterState } from '../state/parameter';
 import * as ErrorActions from '../../../state/error/error.actions';
 import * as ParameterActions from '../state/parameter/parameter.actions';
-import { MEDIUM_DIALOG } from '../../../index';
+import { MEDIUM_DIALOG } from 'libs/shared/src';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { ErrorHelper } from '../../../service/error-helper.service';
 

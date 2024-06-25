@@ -24,7 +24,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective } from '../../../tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hint-tip.component';
 import { Parameter, PropertyHintTipInput } from '../../../../../state/shared';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -118,14 +118,6 @@ export class NfEditor implements OnDestroy {
 
     codeMirrorLoaded(codeEditor: any): void {
         this.editor = codeEditor.codeMirror;
-        // The `.property-editor` minimum height is set to 240px. This is the height of the `.nf-editor` overlay. The
-        // height of the codemirror needs to be set in order to handle large amounts of text in the codemirror editor.
-        // The height of the codemirror should be the height of the `.nf-editor` overlay minus the 132px of spacing
-        // needed to display the EL and Param tooltips, the 'Set Empty String' checkbox, the action buttons,
-        // and the resize handle so the initial height of the codemirror when opening should be 108px for a 240px tall
-        // `.nf-editor` overlay. If the initial height of that overlay changes then this initial height should also be
-        // updated.
-        this.editor.setSize('100%', 108);
 
         if (!this.readonly) {
             this.editor.focus();

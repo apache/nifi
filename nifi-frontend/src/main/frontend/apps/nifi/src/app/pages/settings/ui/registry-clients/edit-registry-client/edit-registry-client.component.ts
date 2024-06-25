@@ -33,9 +33,9 @@ import { EditRegistryClientDialogRequest, EditRegistryClientRequest } from '../.
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { MatSelectModule } from '@angular/material/select';
-import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';

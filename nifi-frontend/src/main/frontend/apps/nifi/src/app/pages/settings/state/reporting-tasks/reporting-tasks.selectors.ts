@@ -18,7 +18,7 @@
 import { createSelector } from '@ngrx/store';
 import { selectSettingsState, SettingsState } from '../index';
 import { ReportingTaskEntity, reportingTasksFeatureKey, ReportingTasksState } from './index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from 'libs/shared/src/state/router/router.selectors';
 
 export const selectReportingTasksState = createSelector(
     selectSettingsState,

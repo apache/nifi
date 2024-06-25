@@ -19,7 +19,7 @@ import { Component, Input } from '@angular/core';
 import { ClusterTable } from '../cluster-table/cluster-table.component';
 import { ClusterNodeRepositoryStorageUsage } from '../../../../../state/system-diagnostics';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { ClusterTableFilter, ClusterTableFilterColumn } from '../cluster-table-filter/cluster-table-filter.component';
 import { MatTableModule } from '@angular/material/table';
 

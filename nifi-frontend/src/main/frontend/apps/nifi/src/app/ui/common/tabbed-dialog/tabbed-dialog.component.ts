@@ -17,7 +17,7 @@
 
 import { Component, Inject, inject } from '@angular/core';
 import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
-import { Storage } from '../../../service/storage.service';
+import { Storage } from 'libs/shared/src/services/storage.service';
 
 @Component({
     selector: 'tabbed-dialog',

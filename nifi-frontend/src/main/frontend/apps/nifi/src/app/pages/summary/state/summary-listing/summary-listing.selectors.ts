@@ -25,7 +25,7 @@ import {
     SummaryState
 } from '../index';
 import { summaryListingFeatureKey, SummaryListingState } from './index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from 'libs/shared/src/state/router/router.selectors';
 
 export const selectSummaryListing = createSelector(
     selectSummaryState,

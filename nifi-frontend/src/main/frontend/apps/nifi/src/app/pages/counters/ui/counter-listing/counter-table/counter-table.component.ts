@@ -21,7 +21,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Sort } from '@angular/material/sort';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { debounceTime } from 'rxjs';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({

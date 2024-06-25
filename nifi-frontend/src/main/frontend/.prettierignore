@@ -34,3 +34,5 @@ src/styles.scss
 # System files
 .DS_Store
 Thumbs.db
+
+.angular

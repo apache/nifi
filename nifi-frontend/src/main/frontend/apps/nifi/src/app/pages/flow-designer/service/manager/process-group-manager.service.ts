@@ -31,12 +31,12 @@ import {
 import { CanvasUtils } from '../canvas-utils.service';
 import { enterProcessGroup } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import { VersionControlTip } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import { Dimension } from '../../state/shared';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { filter, switchMap } from 'rxjs';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 
 @Injectable({
     providedIn: 'root'

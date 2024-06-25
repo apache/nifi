@@ -32,7 +32,7 @@ import { LabelManager } from './manager/label-manager.service';
 import { selectNavigationCollapsed } from '../state/flow/flow.selectors';
 import { initialState } from '../state/flow/flow.reducer';
 import { CanvasUtils } from './canvas-utils.service';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { ComponentEntityWithDimensions } from '../state/flow';
 
 @Injectable({

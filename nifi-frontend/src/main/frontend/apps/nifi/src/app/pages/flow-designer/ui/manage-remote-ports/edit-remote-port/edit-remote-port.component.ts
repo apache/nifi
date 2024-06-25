@@ -28,12 +28,12 @@ import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spin
 import { selectSaving } from '../../../state/manage-remote-ports/manage-remote-ports.selectors';
 import { EditRemotePortDialogRequest } from '../../../state/flow';
 import { Client } from '../../../../../service/client.service';
-import { ComponentType } from '../../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { PortSummary } from '../../../state/manage-remote-ports';
 import { configureRemotePort } from '../../../state/manage-remote-ports/manage-remote-ports.actions';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 import { CanvasState } from '../../../state';
 

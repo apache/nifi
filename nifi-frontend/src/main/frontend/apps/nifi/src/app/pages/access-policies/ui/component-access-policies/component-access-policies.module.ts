@@ -25,11 +25,11 @@ import { MatInputModule } from '@angular/material/input';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { ComponentAccessPoliciesRoutingModule } from './component-access-policies-routing.module';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { PolicyTable } from '../common/policy-table/policy-table.component';
 import { MatButtonModule } from '@angular/material/button';
 import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.component';
-import { ComponentContext } from '../../../../ui/common/component-context/component-context.component';
+import { ComponentContext } from 'libs/shared/src/components/component-context/component-context.component';
 
 @NgModule({
     declarations: [ComponentAccessPolicies],

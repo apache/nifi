@@ -30,12 +30,12 @@ import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spin
 import { ChangeColorRequest } from '../../../state/flow';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
-import { ComponentContext } from '../../../../../ui/common/component-context/component-context.component';
-import { ComponentType } from '../../../../../state/shared';
+import { ComponentContext } from 'libs/shared/src/components/component-context/component-context.component';
+import { ComponentType } from 'libs/shared/src';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
-import { ComponentTypeNamePipe } from '../../../../../pipes/component-type-name.pipe';
+import { ComponentTypeNamePipe } from 'libs/shared/src/pipes/component-type-name.pipe';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { MatCheckbox } from '@angular/material/checkbox';
 
 @Component({

@@ -24,15 +24,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective } from '../../../tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { AllowableValue, Parameter, PropertyDescriptor } from '../../../../../state/shared';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TextTip } from '../../../tooltips/text-tip/text-tip.component';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import { A11yModule } from '@angular/cdk/a11y';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 
 export interface AllowableValueItem extends AllowableValue {
     id: number;

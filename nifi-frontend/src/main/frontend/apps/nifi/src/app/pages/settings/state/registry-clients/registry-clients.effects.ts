@@ -36,7 +36,7 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { BackNavigation } from '../../../../state/navigation';
 
 @Injectable()

@@ -23,7 +23,7 @@ import {
     DeleteControllerServiceRequest
 } from '../state/management-controller-services';
 import { Client } from '../../../service/client.service';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import {
     ControllerServiceCreator,
     ControllerServiceEntity,

@@ -22,12 +22,12 @@ import {
     ControllerServiceReferencingComponentEntity,
     ValidationErrorsTipInput
 } from '../../../../state/shared';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { MatTreeModule } from '@angular/material/tree';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective } from '../../tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { ValidationErrorsTip } from '../../tooltips/validation-errors-tip/validation-errors-tip.component';
 import { BulletinsTip } from '../../tooltips/bulletins-tip/bulletins-tip.component';
 import { RouterLink } from '@angular/router';

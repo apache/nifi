@@ -29,9 +29,9 @@ import { selectCurrentUser } from '../../../state/current-user/current-user.sele
 import { MatButtonModule } from '@angular/material/button';
 import { NiFiState } from '../../../state';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
-import { Storage } from '../../../service/storage.service';
+import { Storage } from 'libs/shared/src/services/storage.service';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { DARK_THEME, LIGHT_THEME, OS_SETTING, ThemingService } from '../../../service/theming.service';
+import { DARK_THEME, LIGHT_THEME, OS_SETTING, ThemingService } from 'libs/shared/src/services/theming.service';
 import { loadFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.actions';
 import {
     logout,

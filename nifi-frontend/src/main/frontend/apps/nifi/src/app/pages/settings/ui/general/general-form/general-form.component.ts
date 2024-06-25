@@ -24,7 +24,7 @@ import { Client } from '../../../../../service/client.service';
 import { selectCurrentUser } from '../../../../../state/current-user/current-user.selectors';
 import { selectSaving } from '../../../state/general/general.selectors';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 
 @Component({
     selector: 'general-form',

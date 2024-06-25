@@ -39,13 +39,13 @@ import {
     stopRemotePortTransmission
 } from '../../state/manage-remote-ports/manage-remote-ports.actions';
 import { initialState } from '../../state/manage-remote-ports/manage-remote-ports.reducer';
-import { isDefinedAndNotNull } from '../../../../state/shared';
+import { isDefinedAndNotNull } from 'libs/shared/src';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { MatTableDataSource } from '@angular/material/table';
 import { Sort } from '@angular/material/sort';
-import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import { concatLatestFrom } from '@ngrx/operators';
 import {
     selectFlowConfiguration,

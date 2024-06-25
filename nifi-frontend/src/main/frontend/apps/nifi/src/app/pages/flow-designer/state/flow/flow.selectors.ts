@@ -18,8 +18,8 @@
 import { flowFeatureKey, FlowState, SelectedComponent } from './index';
 import { createSelector } from '@ngrx/store';
 import { CanvasState, selectCanvasState } from '../index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
-import { ComponentType } from '../../../../state/shared';
+import { selectCurrentRoute } from 'libs/shared/src/state/router/router.selectors';
+import { ComponentType } from 'libs/shared/src';
 
 export const selectFlowState = createSelector(selectCanvasState, (state: CanvasState) => state[flowFeatureKey]);
 

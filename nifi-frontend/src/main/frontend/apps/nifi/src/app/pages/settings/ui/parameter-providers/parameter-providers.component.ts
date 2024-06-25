@@ -32,7 +32,7 @@ import * as ParameterProviderActions from '../../state/parameter-providers/param
 import { initialParameterProvidersState } from '../../state/parameter-providers/parameter-providers.reducer';
 import { switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { isDefinedAndNotNull } from '../../../../state/shared';
+import { isDefinedAndNotNull } from 'libs/shared/src';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
 
 @Component({

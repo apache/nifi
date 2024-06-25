@@ -22,7 +22,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import {
     FetchedParameterMapping,
     FetchParameterProviderDialogRequest,
@@ -35,8 +35,8 @@ import {
     ParameterStatusEntity
 } from '../../../state/parameter-providers';
 import { debounceTime, Observable, Subject } from 'rxjs';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { ParameterGroupsTable } from './parameter-groups-table/parameter-groups-table.component';
@@ -47,7 +47,7 @@ import { AffectedComponentEntity } from '../../../../../state/shared';
 import * as ParameterProviderActions from '../../../state/parameter-providers/parameter-providers.actions';
 import { Store } from '@ngrx/store';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { PipesModule } from '../../../../../pipes/pipes.module';
+import { PipesModule } from 'libs/shared/src/pipes/pipes.module';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 

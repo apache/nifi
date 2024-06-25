@@ -20,7 +20,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { ParameterGroupConfiguration } from '../../../../state/parameter-providers';
-import { NiFiCommon } from '../../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 
 @Component({
     selector: 'parameter-groups-table',

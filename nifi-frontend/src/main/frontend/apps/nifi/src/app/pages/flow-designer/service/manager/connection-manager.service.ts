@@ -41,11 +41,11 @@ import {
 } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UnorderedListTip } from '../../../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
+import { ComponentType, SelectOption } from 'libs/shared/src';
 import { Dimension, Position } from '../../state/shared';
-import { ComponentType, SelectOption } from '../../../../state/shared';
 import { loadBalanceStrategies, UpdateComponentRequest } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 

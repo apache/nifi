@@ -16,7 +16,7 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from 'libs/shared/src/state/router/router.selectors';
 import { remotePortsFeatureKey, RemotePortsState } from './index';
 
 export const selectRemotePortsState = createFeatureSelector<RemotePortsState>(remotePortsFeatureKey);

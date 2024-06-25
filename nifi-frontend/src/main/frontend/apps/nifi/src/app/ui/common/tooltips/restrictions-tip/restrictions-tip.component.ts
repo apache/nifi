@@ -18,7 +18,7 @@
 import { Component, Input } from '@angular/core';
 import { RestrictionsTipInput } from '../../../../state/shared';
 
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 
 @Component({
     selector: 'restrictions-tip',

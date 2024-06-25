@@ -56,7 +56,7 @@ import { FetchParameterProviderParameters } from '../../ui/parameter-providers/f
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from 'libs/shared/src';
 import {
     resetPropertyVerificationState,
     verifyProperties

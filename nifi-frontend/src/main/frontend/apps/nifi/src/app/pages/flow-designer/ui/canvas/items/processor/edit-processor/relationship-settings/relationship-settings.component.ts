@@ -23,9 +23,9 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
-import { NiFiCommon } from '../../../../../../../../service/nifi-common.service';
-import { NifiTooltipDirective } from '../../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { TextTip } from '../../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import { MatIconModule } from '@angular/material/icon';
 import { Relationship } from '../../../../../../state/flow';
 

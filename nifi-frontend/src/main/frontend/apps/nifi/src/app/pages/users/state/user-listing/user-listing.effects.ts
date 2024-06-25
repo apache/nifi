@@ -31,12 +31,12 @@ import { EditTenantDialog } from '../../../../ui/common/edit-tenant/edit-tenant-
 import { selectSaving, selectStatus, selectUserGroups, selectUsers } from './user-listing.selectors';
 import { EditTenantRequest, UserGroupEntity } from '../../../../state/shared';
 import { Client } from '../../../../service/client.service';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { UserAccessPolicies } from '../../ui/user-listing/user-access-policies/user-access-policies.component';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from '../../../../index';
+import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 
 @Injectable()
 export class UserListingEffects {

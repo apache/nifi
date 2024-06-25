@@ -27,10 +27,10 @@ import { ComponentClusterStatusService } from '../../service/component-cluster-s
 import { MatDialog } from '@angular/material/dialog';
 import { ClusterSummaryDialog } from '../../ui/common/cluster-summary-dialog/cluster-summary-dialog.component';
 import { selectComponentClusterStatusLatestRequest } from './component-cluster-status.selectors';
-import { isDefinedAndNotNull } from '../../../../state/shared';
+import { isDefinedAndNotNull } from 'libs/shared/src';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../../../../state/error/error.actions';
-import { XL_DIALOG } from '../../../../index';
+import { XL_DIALOG } from 'libs/shared/src';
 
 @Injectable()
 export class ComponentClusterStatusEffects {

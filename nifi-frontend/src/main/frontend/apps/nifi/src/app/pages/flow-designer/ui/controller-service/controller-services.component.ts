@@ -43,7 +43,8 @@ import {
     selectControllerService
 } from '../../state/controller-services/controller-services.actions';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
-import { ControllerServiceEntity, isDefinedAndNotNull } from '../../../../state/shared';
+import { isDefinedAndNotNull } from 'libs/shared/src';
+import { ControllerServiceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';

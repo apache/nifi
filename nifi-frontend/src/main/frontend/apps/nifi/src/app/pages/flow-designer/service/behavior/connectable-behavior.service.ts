@@ -24,7 +24,7 @@ import { openNewConnectionDialog, selectComponents } from '../../state/flow/flow
 import { ConnectionManager } from '../manager/connection-manager.service';
 import { Position } from '../../state/shared';
 import { CreateConnectionRequest } from '../../state/flow';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 
 @Injectable({
     providedIn: 'root'

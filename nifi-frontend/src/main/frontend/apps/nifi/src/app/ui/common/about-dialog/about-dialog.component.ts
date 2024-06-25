@@ -21,7 +21,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
-import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { Store } from '@ngrx/store';
 import { ReactiveFormsModule } from '@angular/forms';

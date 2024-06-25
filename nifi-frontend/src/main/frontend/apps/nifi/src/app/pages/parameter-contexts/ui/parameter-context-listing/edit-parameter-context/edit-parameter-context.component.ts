@@ -43,10 +43,10 @@ import { ParameterReferences } from '../../../../../ui/common/parameter-referenc
 import { RouterLink } from '@angular/router';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 
 @Component({
     selector: 'edit-parameter-context',
