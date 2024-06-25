@@ -22,7 +22,7 @@ import { BulletinsTip } from '../../../../../../ui/common/tooltips/bulletins-tip
 import { BulletinEntity, BulletinsTipInput } from '../../../../../../state/shared';
 
 import { Search } from '../search/search.component';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '@nifi/shared';
 import { ClusterSummary } from '../../../../../../state/cluster-summary';
 import { ConnectedPosition } from '@angular/cdk/overlay';
 

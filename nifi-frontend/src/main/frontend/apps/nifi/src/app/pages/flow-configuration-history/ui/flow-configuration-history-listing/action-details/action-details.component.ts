@@ -28,7 +28,7 @@ import {
     PurgeActionDetails,
     RemoteProcessGroupDetails
 } from '../../../state/flow-configuration-history-listing';
-import { PipesModule } from 'libs/shared/src/pipes/pipes.module';
+import { PipesModule } from '@nifi/shared';
 import { MatButtonModule } from '@angular/material/button';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 

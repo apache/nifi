@@ -39,9 +39,8 @@ import {
 import { distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon, TextTip } from '@nifi/shared';
 import { ComponentType, isDefinedAndNotNull, SelectOption } from 'libs/shared/src';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import { AccessPolicyEntity, Action, PolicyStatus, ResourceAction } from '../../state/shared';
 import { selectFlowConfiguration } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.actions';

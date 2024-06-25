@@ -24,7 +24,7 @@ import {
     FlowConfigurationHistoryListingState,
     PurgeHistoryRequest
 } from '../../../state/flow-configuration-history-listing';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { selectAbout } from '../../../../../state/about/about.selectors';

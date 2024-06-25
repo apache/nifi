@@ -25,7 +25,7 @@ import {
 } from '@angular/material/dialog';
 import { MatButton, MatButtonModule } from '@angular/material/button';
 import { ComponentType, isDefinedAndNotNull } from 'libs/shared/src';
-import { ComponentContext } from 'libs/shared/src/components/component-context/component-context.component';
+import { ComponentContext } from '@nifi/shared';
 import {
     ClusterStatusEntity,
     ComponentClusterStatusRequest,

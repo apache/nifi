@@ -20,7 +20,7 @@ import js_beautify from 'js-beautify';
 import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiJoltTransformJsonUiState } from '../../../state';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { TextTip, isDefinedAndNotNull } from '@nifi/shared';
 import {
     selectClientIdFromRoute,
     selectDisconnectedNodeAcknowledgedFromRoute,
@@ -42,7 +42,6 @@ import {
 } from '../state/jolt-transform-json-ui/jolt-transform-json-ui.actions';
 import { SavePropertiesRequest, ValidateJoltSpecRequest } from '../state/jolt-transform-json-ui';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { isDefinedAndNotNull } from 'libs/shared/src';
 
 const JS_BEAUTIFY_OPTIONS = {
     indent_size: 1,

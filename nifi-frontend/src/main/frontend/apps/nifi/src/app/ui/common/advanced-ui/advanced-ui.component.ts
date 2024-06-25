@@ -22,7 +22,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpParams } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Navigation } from '../navigation/navigation.component';
-import { selectRouteData } from 'libs/shared/src/state/router/router.selectors';
+import { selectRouteData } from '@nifi/shared';
 import { isDefinedAndNotNull } from 'libs/shared/src';
 import { AdvancedUiParams } from '../../../state/shared';
 import { selectDisconnectionAcknowledged } from '../../../state/cluster-summary/cluster-summary.selectors';

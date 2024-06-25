@@ -22,7 +22,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatDialogModule } from '@angular/material/dialog';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '@nifi/shared';
 import { BoundProcessGroup } from '../../../../../state/shared';
 
 @Component({

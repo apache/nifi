@@ -45,7 +45,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { selectAbout } from '../../../../state/about/about.selectors';
 import { debounceTime } from 'rxjs';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { MatButtonModule } from '@angular/material/button';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 

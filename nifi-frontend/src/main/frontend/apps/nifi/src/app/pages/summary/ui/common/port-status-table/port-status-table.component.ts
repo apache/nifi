@@ -23,7 +23,7 @@ import { SummaryTableFilterModule } from '../summary-table-filter/summary-table-
 import { SummaryTableFilterColumn } from '../summary-table-filter/summary-table-filter.component';
 import { ComponentType } from 'libs/shared/src';
 import { RouterLink } from '@angular/router';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { PortStatusSnapshot, PortStatusSnapshotEntity } from '../../../state';
 import { ComponentStatusTable } from '../component-status-table/component-status-table.component';

@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { ConfigureRemotePortRequest, ToggleRemotePortTransmissionRequest } from '../state/manage-remote-ports';
 import { Client } from '../../../service/client.service';
 import { ComponentType } from 'libs/shared/src';

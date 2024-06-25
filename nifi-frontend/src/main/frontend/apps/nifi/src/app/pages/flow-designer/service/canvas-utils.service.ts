@@ -35,7 +35,7 @@ import { BulletinsTip } from '../../../ui/common/tooltips/bulletins-tip/bulletin
 import { BreadcrumbEntity, Position } from '../state/shared';
 import { ComponentType } from 'libs/shared/src';
 import { ParameterContextReferenceEntity, Permissions } from '../../../state/shared';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { CurrentUser } from '../../../state/current-user';
 import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';

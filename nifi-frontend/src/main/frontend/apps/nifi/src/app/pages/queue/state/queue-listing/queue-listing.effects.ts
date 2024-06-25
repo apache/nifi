@@ -29,7 +29,7 @@ import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.
 import { MatDialog } from '@angular/material/dialog';
 import { selectAbout } from '../../../../state/about/about.selectors';
 import { FlowFileDialog } from '../../ui/queue-listing/flowfile-dialog/flowfile-dialog.component';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { isDefinedAndNotNull } from 'libs/shared/src';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../../../../state/error/error.actions';

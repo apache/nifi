@@ -36,7 +36,7 @@ import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ComponentType } from 'libs/shared/src';
 import { UpdateComponentRequest } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable({

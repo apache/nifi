@@ -32,10 +32,8 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { MatIconModule } from '@angular/material/icon';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
 import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({

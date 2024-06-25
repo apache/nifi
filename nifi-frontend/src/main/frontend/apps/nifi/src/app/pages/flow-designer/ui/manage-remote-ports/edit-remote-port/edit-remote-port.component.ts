@@ -32,8 +32,7 @@ import { ComponentType } from 'libs/shared/src';
 import { PortSummary } from '../../../state/manage-remote-ports';
 import { configureRemotePort } from '../../../state/manage-remote-ports/manage-remote-ports.actions';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 import { CanvasState } from '../../../state';
 

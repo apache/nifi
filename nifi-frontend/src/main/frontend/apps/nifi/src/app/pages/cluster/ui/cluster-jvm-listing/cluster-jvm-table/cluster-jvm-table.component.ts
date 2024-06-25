@@ -22,10 +22,9 @@ import {
     ClusterTableFilter,
     ClusterTableFilterColumn
 } from '../../common/cluster-table-filter/cluster-table-filter.component';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { NifiTooltipDirective, NiFiCommon } from '@nifi/shared';
 import { GarbageCollectionTipInput } from '../../../../../state/shared';
 import { GarbageCollectionTip } from '../../../../../ui/common/tooltips/garbage-collection-tip/garbage-collection-tip.component';
 import { ConnectedPosition } from '@angular/cdk/overlay';

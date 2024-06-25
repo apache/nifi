@@ -33,9 +33,8 @@ import { CdkDrag } from '@angular/cdk/drag-drop';
 import { MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { NifiTooltipDirective, ComponentContext } from '@nifi/shared';
 import { MatInput } from '@angular/material/input';
-import { ComponentContext } from 'libs/shared/src/components/component-context/component-context.component';
 import { MatExpansionModule } from '@angular/material/expansion';
 
 @NgModule({

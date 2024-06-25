@@ -21,7 +21,7 @@ import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
 import { CanvasUtils } from '../../../../service/canvas-utils.service';
 import { initialState } from '../../../../state/flow/flow.reducer';
-import { Storage } from 'libs/shared/src/services/storage.service';
+import { Storage, ComponentContext } from '@nifi/shared';
 
 import { BreadcrumbEntity } from '../../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
@@ -29,7 +29,6 @@ import * as d3 from 'd3';
 import { CanvasView } from '../../../../service/canvas-view.service';
 import { Client } from '../../../../../../service/client.service';
 import { CanvasActionsService } from '../../../../service/canvas-actions.service';
-import { ComponentContext } from 'libs/shared/src/components/component-context/component-context.component';
 import { ComponentType } from 'libs/shared/src';
 
 @Component({

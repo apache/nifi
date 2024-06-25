@@ -152,8 +152,7 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
-import { Storage } from 'libs/shared/src/services/storage.service';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { Storage, NiFiCommon } from '@nifi/shared';
 
 @Injectable()
 export class FlowEffects {

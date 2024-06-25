@@ -23,10 +23,8 @@ import { MatTableModule } from '@angular/material/table';
 import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { DocumentedType } from '../../../../../../../state/shared';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
 import {
     CdkDrag,
     CdkDragDrop,

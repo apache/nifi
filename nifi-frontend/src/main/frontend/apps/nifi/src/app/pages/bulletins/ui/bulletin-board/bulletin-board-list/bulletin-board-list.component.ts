@@ -32,7 +32,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { BulletinBoardEvent, BulletinBoardFilterArgs, BulletinBoardItem } from '../../../state/bulletin-board';
 import { ComponentType } from 'libs/shared/src';
 import { BulletinEntity } from '../../../../../state/shared';

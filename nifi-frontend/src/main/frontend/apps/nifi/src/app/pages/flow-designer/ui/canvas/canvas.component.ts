@@ -59,13 +59,11 @@ import {
 } from '../../state/flow/flow.selectors';
 import { filter, map, switchMap, take } from 'rxjs';
 import { restoreViewport } from '../../state/transform/transform.actions';
-import { ComponentType, isDefinedAndNotNull } from 'libs/shared/src';
 import { initialState } from '../../state/flow/flow.reducer';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 import { concatLatestFrom } from '@ngrx/operators';
-import { selectUrl } from 'libs/shared/src/state/router/router.selectors';
-import { Storage } from 'libs/shared/src/services/storage.service';
+import { selectUrl, ComponentType, isDefinedAndNotNull, Storage } from '@nifi/shared';
 import { CanvasUtils } from '../../service/canvas-utils.service';
 import { CanvasActionsService } from '../../service/canvas-actions.service';
 import { MatDialog } from '@angular/material/dialog';

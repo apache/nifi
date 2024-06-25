@@ -15,25 +15,4 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
-import { Bundle } from '../../../../state/shared';
-import { NiFiCommon } from '@nifi/shared';
-
-@Component({
-    selector: 'controller-service-api',
-    standalone: true,
-    templateUrl: './controller-service-api.component.html',
-    styleUrls: ['./controller-service-api.component.scss']
-})
-export class ControllerServiceApi {
-    @Input() type!: string;
-    @Input() bundle!: Bundle;
-
-    constructor(private nifiCommon: NiFiCommon) {}
-
-    formatControllerService(type: string, bundle: Bundle) {
-        const formattedType: string = this.nifiCommon.formatType({ type, bundle });
-        const formattedBundle: string = this.nifiCommon.formatBundle(bundle);
-        return `${formattedType} from ${formattedBundle}`;
-    }
-}
+export * from './nifi-tooltip.directive';

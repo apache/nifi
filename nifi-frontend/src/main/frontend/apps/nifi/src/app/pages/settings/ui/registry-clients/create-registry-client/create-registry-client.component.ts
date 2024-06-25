@@ -28,9 +28,7 @@ import { CreateRegistryClientDialogRequest, CreateRegistryClientRequest } from '
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { MatSelectModule } from '@angular/material/select';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 

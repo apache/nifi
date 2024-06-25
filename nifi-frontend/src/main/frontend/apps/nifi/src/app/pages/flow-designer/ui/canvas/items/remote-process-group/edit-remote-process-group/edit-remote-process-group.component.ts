@@ -27,11 +27,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
 import { Client } from '../../../../../../../service/client.service';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({

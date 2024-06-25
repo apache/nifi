@@ -18,7 +18,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { TenantEntity } from '../../../../../state/shared';
 
 import { AccessPolicyEntity } from '../../../state/shared';

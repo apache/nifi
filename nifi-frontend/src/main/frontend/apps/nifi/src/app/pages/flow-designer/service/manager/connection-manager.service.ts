@@ -45,7 +45,7 @@ import { ComponentType, SelectOption } from 'libs/shared/src';
 import { Dimension, Position } from '../../state/shared';
 import { loadBalanceStrategies, UpdateComponentRequest } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 

@@ -28,12 +28,10 @@ import {
     SearchableField
 } from '../../../state/provenance-event-listing';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
 import { SelectOption } from 'libs/shared/src';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({

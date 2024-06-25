@@ -25,7 +25,7 @@ import {
     Router
 } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Storage, ThemingService } from 'libs/shared/src/services';
+import { Storage, ThemingService } from '@nifi/shared';
 import { MatDialog } from '@angular/material/dialog';
 import { NiFiState } from './state';
 import { Store } from '@ngrx/store';

@@ -28,11 +28,9 @@ import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModu
 import { Observable, of } from 'rxjs';
 import { Client } from '../../../../../service/client.service';
 import { InlineServiceCreationRequest, InlineServiceCreationResponse, Property } from '../../../../../state/shared';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import {
     EditFlowAnalysisRuleDialogRequest,
     FlowAnalysisRuleEntity,

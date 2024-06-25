@@ -19,10 +19,9 @@ import { AfterViewInit, Component, DestroyRef, inject, Input, OnDestroy } from '
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { AsyncPipe } from '@angular/common';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { NifiTooltipDirective, NiFiCommon } from '@nifi/shared';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { ComponentStateState, StateEntry, StateItem, StateMap } from '../../../state/component-state';
 import { Store } from '@ngrx/store';

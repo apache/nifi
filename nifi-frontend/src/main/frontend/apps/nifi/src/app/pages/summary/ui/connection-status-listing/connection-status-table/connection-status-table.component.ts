@@ -19,7 +19,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SummaryTableFilterModule } from '../../common/summary-table-filter/summary-table-filter.module';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { SummaryTableFilterColumn } from '../../common/summary-table-filter/summary-table-filter.component';
 import { MatTableModule } from '@angular/material/table';
 import { ComponentType } from 'libs/shared/src';

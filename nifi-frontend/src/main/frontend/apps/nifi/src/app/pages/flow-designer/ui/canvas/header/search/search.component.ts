@@ -36,9 +36,8 @@ import { MatInputModule } from '@angular/material/input';
 import { CanvasState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { centerSelectedComponents, setAllowTransition } from '../../../../state/flow/flow.actions';
-import { selectCurrentRoute } from 'libs/shared/src/state/router/router.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { NifiTooltipDirective, selectCurrentRoute } from '@nifi/shared';
 import { SearchMatchTip } from '../../../../../../ui/common/tooltips/search-match-tip/search-match-tip.component';
 
 @Component({

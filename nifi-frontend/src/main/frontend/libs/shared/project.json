@@ -2,7 +2,7 @@
     "name": "shared",
     "$schema": "../../node_modules/nx/schemas/project-schema.json",
     "sourceRoot": "libs/shared/src",
-    "prefix": "nifi-fds",
+    "prefix": "nifi",
     "tags": [],
     "projectType": "library",
     "targets": {

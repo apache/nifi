@@ -19,11 +19,10 @@ import { Component, forwardRef, Input } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { TextTip, NifiTooltipDirective } from '@nifi/shared';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
 import { SelectOption } from 'libs/shared/src';
 
 @Component({

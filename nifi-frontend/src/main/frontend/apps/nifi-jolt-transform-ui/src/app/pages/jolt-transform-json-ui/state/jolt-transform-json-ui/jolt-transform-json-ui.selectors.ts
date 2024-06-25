@@ -18,7 +18,7 @@
 import { createSelector } from '@ngrx/store';
 import { selectJoltTransformState, JoltTransformState, joltTransformJsonUiFeatureKey } from '../index';
 import { JoltTransformJsonUiState } from './index';
-import { selectCurrentRoute } from 'libs/shared/src/state/router/router.selectors';
+import { selectCurrentRoute } from '@nifi/shared';
 
 export const selectJoltTransformJsonUiState = createSelector(
     selectJoltTransformState,

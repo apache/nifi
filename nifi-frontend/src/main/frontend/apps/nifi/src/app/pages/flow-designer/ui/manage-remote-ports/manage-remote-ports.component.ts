@@ -42,10 +42,9 @@ import { initialState } from '../../state/manage-remote-ports/manage-remote-port
 import { isDefinedAndNotNull } from 'libs/shared/src';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NiFiState } from '../../../../state';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
+import { NiFiCommon, TextTip } from '@nifi/shared';
 import { MatTableDataSource } from '@angular/material/table';
 import { Sort } from '@angular/material/sort';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
 import { concatLatestFrom } from '@ngrx/operators';
 import {
     selectFlowConfiguration,

@@ -42,12 +42,10 @@ import {
     Property
 } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
-import { NiFiCommon } from 'libs/shared/src/services/nifi-common.service';
 import { EditComponentDialogRequest, UpdateProcessorRequest } from '../../../../../state/flow';
 import { PropertyTable } from '../../../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
-import { TextTip } from 'libs/shared/src/components/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
 import { RunDurationSlider } from './run-duration-slider/run-duration-slider.component';
 import {
     RelationshipConfiguration,

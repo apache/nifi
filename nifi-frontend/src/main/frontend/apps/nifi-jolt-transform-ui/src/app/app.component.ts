@@ -16,7 +16,7 @@
  */
 
 import { Component } from '@angular/core';
-import { Storage, ThemingService } from 'libs/shared/src/services';
+import { Storage, ThemingService } from '@nifi/shared';
 
 @Component({
     selector: 'nifi-jolt-transform-json-ui',

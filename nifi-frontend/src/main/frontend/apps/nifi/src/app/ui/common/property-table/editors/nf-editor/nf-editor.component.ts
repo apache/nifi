@@ -24,7 +24,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective } from 'libs/shared/src/directives/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '@nifi/shared';
 import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hint-tip.component';
 import { Parameter, PropertyHintTipInput } from '../../../../../state/shared';
 import { A11yModule } from '@angular/cdk/a11y';
