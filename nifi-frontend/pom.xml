@@ -260,11 +260,10 @@
                     <excludes combine.children="append">
                         <exclude>src/main/frontend/coverage/**/*</exclude>
                         <exclude>src/main/frontend/node_modules/**/*</exclude>
-                        <exclude>src/main/frontend/apps/nifi/src/assets/fonts/**/*</exclude>
+                        <exclude>src/main/frontend/libs/shared/src/assets/fonts/**/*</exclude>
                         <exclude>src/main/frontend/.editorconfig</exclude>
                         <exclude>src/main/frontend/.build.env</exclude>
                         <exclude>src/main/frontend/README.md</exclude>
-                        <exclude>src/main/frontend/apps/nifi/proxy.config.mjs</exclude>
                         <exclude>src/main/frontend/.prettierrc</exclude>
                         <exclude>src/main/frontend/.prettierignore</exclude>
                         <exclude>src/main/frontend/dist/**/*</exclude>
