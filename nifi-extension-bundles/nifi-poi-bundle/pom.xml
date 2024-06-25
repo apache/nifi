@@ -28,10 +28,8 @@
     </properties>
     <modules>
         <module>nifi-poi-services</module>
-        <module>nifi-poi-services-nar</module>
-        <module>nifi-poi-processors</module>
-        <module>nifi-poi-processors-nar</module>
         <module>nifi-poi-utils</module>
+        <module>nifi-poi-nar</module>
     </modules>
     <dependencyManagement>
         <dependencies>
