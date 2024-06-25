@@ -238,17 +238,17 @@ export class ControllerServices implements OnDestroy {
         );
     }
 
-     moveControllerService(entity: ControllerServiceEntity): void {
-            this.store.dispatch(
-                openMoveControllerServiceDialog({
-                    request: {
-                        id: entity.id,
-                        controllerService: entity,
-                        processGroupFlow: null
-                    }
-                })
-            );
-        }
+    moveControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openMoveControllerServiceDialog({
+                request: {
+                    id: entity.id,
+                    controllerService: entity,
+                    parentControllerServices: []
+                }
+            })
+        );
+    }
 
     disableControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
@@ -331,6 +331,10 @@ export class ControllerServices implements OnDestroy {
                 }
             })
         );
+    }
+
+    isManagementControllerService(): boolean {
+        return false;
     }
 
     ngOnDestroy(): void {
