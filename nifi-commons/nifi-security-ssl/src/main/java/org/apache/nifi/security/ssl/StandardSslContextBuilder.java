@@ -35,9 +35,13 @@ public class StandardSslContextBuilder implements SslContextBuilder {
 
     private String protocol = DEFAULT_PROTOCOL;
 
+    private KeyManager keyManager;
+
     private KeyStore keyStore;
 
     private char[] keyPassword;
+
+    private TrustManager trustManager;
 
     private KeyStore trustStore;
 
@@ -74,6 +78,17 @@ public class StandardSslContextBuilder implements SslContextBuilder {
     }
 
     /**
+     * Set Kay Manager takes precedence over Key Store
+     *
+     * @param keyManager Key Manager
+     * @return Builder
+     */
+    public StandardSslContextBuilder keyManager(final KeyManager keyManager) {
+        this.keyManager = Objects.requireNonNull(keyManager, "Key Manager required");
+        return this;
+    }
+
+    /**
      * Set Key Store with Private Key and Certificate Entry
      *
      * @param keyStore Key Store
@@ -96,6 +111,17 @@ public class StandardSslContextBuilder implements SslContextBuilder {
     }
 
     /**
+     * Set Trust Manager takes precedence over Trust Store
+     *
+     * @param trustManager Trust Manager
+     * @return Builder
+     */
+    public StandardSslContextBuilder trustManager(final TrustManager trustManager) {
+        this.trustManager = Objects.requireNonNull(trustManager, "Trust Manager required");
+        return this;
+    }
+
+    /**
      * Set Trust Store with Certificate Entries
      *
      * @param trustStore Trust Store
@@ -109,10 +135,14 @@ public class StandardSslContextBuilder implements SslContextBuilder {
     private KeyManager[] getKeyManagers() {
         final KeyManager[] keyManagers;
         if (keyStore == null) {
-            keyManagers = null;
+            if (keyManager == null) {
+                keyManagers = null;
+            } else {
+                keyManagers = new KeyManager[]{keyManager};
+            }
         } else {
-            final X509ExtendedKeyManager keyManager = new StandardKeyManagerBuilder().keyStore(keyStore).keyPassword(keyPassword).build();
-            keyManagers = new KeyManager[]{keyManager};
+            final X509ExtendedKeyManager configuredKeyManager = new StandardKeyManagerBuilder().keyStore(keyStore).keyPassword(keyPassword).build();
+            keyManagers = new KeyManager[]{configuredKeyManager};
         }
         return keyManagers;
     }
@@ -120,10 +150,14 @@ public class StandardSslContextBuilder implements SslContextBuilder {
     private TrustManager[] getTrustManagers() {
         final TrustManager[] trustManagers;
         if (trustStore == null) {
-            trustManagers = null;
+            if (trustManager == null) {
+                trustManagers = null;
+            } else {
+                trustManagers = new TrustManager[]{trustManager};
+            }
         } else {
-            final X509TrustManager trustManager = new StandardTrustManagerBuilder().trustStore(trustStore).build();
-            trustManagers = new TrustManager[]{trustManager};
+            final X509TrustManager configuredTrustManager = new StandardTrustManagerBuilder().trustStore(trustStore).build();
+            trustManagers = new TrustManager[]{configuredTrustManager};
         }
         return trustManagers;
     }

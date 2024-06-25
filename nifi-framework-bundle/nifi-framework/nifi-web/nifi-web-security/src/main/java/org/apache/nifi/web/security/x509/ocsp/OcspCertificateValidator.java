@@ -41,9 +41,6 @@ import jakarta.ws.rs.core.Response;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.x509.ocsp.OcspStatus.ValidationStatus;
@@ -78,7 +75,6 @@ public class OcspCertificateValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(OcspCertificateValidator.class);
 
-    private static final String HTTPS = "https";
     private static final String OCSP_REQUEST_CONTENT_TYPE = "application/ocsp-request";
 
     private static final int CONNECT_TIMEOUT = 10000;
@@ -105,12 +101,7 @@ public class OcspCertificateValidator {
                 clientConfig.property(ClientProperties.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
 
                 // initialize the client
-                if (HTTPS.equalsIgnoreCase(validationAuthorityURI.getScheme())) {
-                    TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-                    client = WebUtils.createClient(clientConfig, SslContextFactory.createSslContext(tlsConfiguration));
-                } else {
-                    client = WebUtils.createClient(clientConfig);
-                }
+                client = WebUtils.createClient(clientConfig);
 
                 // get the trusted CAs
                 trustedCAs = getTrustedCAs(properties);
@@ -397,7 +388,7 @@ public class OcspCertificateValidator {
         } catch (final OCSPException | IOException | ProcessingException | OperatorCreationException e) {
             logger.error(e.getMessage(), e);
         } catch (CertificateException e) {
-            e.printStackTrace();
+            logger.error("Certificate processing failed", e);
         }
 
         return ocspStatus;

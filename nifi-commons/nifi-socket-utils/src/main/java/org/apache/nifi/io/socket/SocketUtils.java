@@ -51,13 +51,7 @@ public final class SocketUtils {
 
         final Socket socket;
 
-        final SSLContext sslContext;
-        try {
-            sslContext = config.createSSLContext();
-        } catch (final Exception e) {
-            throw new IOException("Could not create SSLContext", e);
-        }
-
+        final SSLContext sslContext = config.getSslContext();
         if (sslContext == null) {
             socket = new Socket(address.getHostName(), address.getPort());
         } else {
@@ -121,7 +115,7 @@ public final class SocketUtils {
             throw new NullPointerException("Configuration may not be null.");
         }
 
-        final SSLContext sslContext = config.createSSLContext();
+        final SSLContext sslContext = config.getSslContext();
         final ServerSocket serverSocket;
         if (sslContext == null) {
             serverSocket = new ServerSocket(port);

@@ -27,9 +27,6 @@
     <bean id="reportingTaskProvider" class="org.apache.nifi.web.spring.ReportingTaskProviderFactoryBean" depends-on="flowController" />
     <bean id="flowAnalysisRuleProvider" class="org.apache.nifi.web.spring.FlowAnalysisRuleProviderFactoryBean" depends-on="flowController" />
 
-    <!-- component state -->
-    <bean id="stateManagerProvider" class="org.apache.nifi.web.spring.StateManagerProviderFactoryBean" depends-on="flowController" />
-
     <!-- revision manager -->
     <bean id="revisionManager" class="org.apache.nifi.web.revision.NaiveRevisionManager">
     </bean>

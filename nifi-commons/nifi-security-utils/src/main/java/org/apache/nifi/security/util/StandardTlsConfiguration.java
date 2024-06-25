@@ -17,14 +17,12 @@
 package org.apache.nifi.security.util;
 
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
-import org.apache.nifi.util.NiFiProperties;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Properties;
 
 /**
  * This class serves as a concrete immutable domain object (acting as an internal DTO)
@@ -166,61 +164,6 @@ public class StandardTlsConfiguration implements TlsConfiguration {
         this.truststorePassword = other.getTruststorePassword();
         this.truststoreType = other.getTruststoreType();
         this.protocol = other.getProtocol();
-    }
-
-    // Static factory method from NiFiProperties
-
-    /**
-     * Returns a {@link org.apache.nifi.security.util.TlsConfiguration} instantiated from the relevant NiFi properties.
-     *
-     * @param niFiProperties the NiFi properties
-     * @return a populated TlsConfiguration container object
-     */
-    public static TlsConfiguration fromNiFiProperties(final NiFiProperties niFiProperties) {
-        final Properties properties = new Properties();
-        niFiProperties.getPropertyKeys().forEach(key -> properties.setProperty(key, niFiProperties.getProperty(key)));
-        return fromNiFiProperties(properties);
-    }
-
-    /**
-     * Returns a {@link org.apache.nifi.security.util.TlsConfiguration} instantiated from the relevant NiFi properties.
-     *
-     * @param niFiProperties the NiFi properties, as a simple java.util.Properties object
-     * @return a populated TlsConfiguration container object
-     */
-    public static TlsConfiguration fromNiFiProperties(final Properties niFiProperties) {
-        Objects.requireNonNull(niFiProperties, "Properties required");
-        return new StandardTlsConfiguration(
-                niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE),
-                niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD),
-                niFiProperties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD),
-                niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE),
-                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
-                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD),
-                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
-                TLS_PROTOCOL_VERSION
-        );
-    }
-
-    /**
-     * Returns a {@link org.apache.nifi.security.util.TlsConfiguration} instantiated
-     * from the relevant {@link NiFiProperties} properties for the truststore
-     * <em>only</em>. No keystore properties are read or used.
-     *
-     * @param niFiProperties the NiFi properties
-     * @return a populated TlsConfiguration container object
-     */
-    public static StandardTlsConfiguration fromNiFiPropertiesTruststoreOnly(final NiFiProperties niFiProperties) {
-        Objects.requireNonNull(niFiProperties, "Properties required");
-        return new StandardTlsConfiguration(
-                null,
-                null,
-                null,
-                null,
-                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
-                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD),
-                niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
-                TLS_PROTOCOL_VERSION);
     }
 
     @Override

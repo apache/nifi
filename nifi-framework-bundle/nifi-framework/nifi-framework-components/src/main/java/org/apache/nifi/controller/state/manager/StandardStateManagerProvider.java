@@ -67,10 +67,6 @@ import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContext;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,15 +102,17 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         return clusterStateProvider;
     }
 
-    public static synchronized StateManagerProvider create(final NiFiProperties properties, final ExtensionManager extensionManager,
-                                                           final ParameterLookup parameterLookup) throws ConfigParseException, IOException {
+    public static synchronized StateManagerProvider create(
+            final NiFiProperties properties,
+            final SSLContext sslContext,
+            final ExtensionManager extensionManager,
+            final ParameterLookup parameterLookup
+    ) throws ConfigParseException, IOException {
         nifiProperties = properties;
 
         if (provider != null) {
             return provider;
         }
-
-        final SSLContext sslContext = createSslContext(properties);
 
         final StateProvider localProvider = createLocalStateProvider(properties, sslContext, extensionManager, parameterLookup);
 
@@ -134,15 +132,6 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
     public static synchronized void resetProvider() {
         provider = null;
-    }
-
-    private static SSLContext createSslContext(final NiFiProperties properties) {
-        final TlsConfiguration standardTlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-        try {
-            return SslContextFactory.createSslContext(standardTlsConfiguration);
-        } catch (final TlsException e) {
-            throw new IllegalStateException("TLS Security Properties not valid for State Manager configuration", e);
-        }
     }
 
     private static StateProvider createLocalStateProvider(

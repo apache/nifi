@@ -16,13 +16,8 @@
  */
 package org.apache.nifi.web.security.configuration;
 
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.oidc.OidcConfigurationException;
 import org.apache.nifi.web.security.oidc.registration.ClientRegistrationProvider;
 import org.apache.nifi.web.security.oidc.registration.DisabledClientRegistrationRepository;
 import org.apache.nifi.web.security.oidc.registration.StandardClientRegistrationProvider;
@@ -61,9 +56,14 @@ public class ClientRegistrationConfiguration {
 
     private final NiFiProperties properties;
 
-    @Autowired
-    public ClientRegistrationConfiguration(final NiFiProperties properties) {
+    private final SSLContext sslContext;
+
+    public ClientRegistrationConfiguration(
+            @Autowired final NiFiProperties properties,
+            @Autowired(required = false) final SSLContext sslContext
+    ) {
         this.properties = Objects.requireNonNull(properties, "Application properties required");
+        this.sslContext = sslContext;
     }
 
     /**
@@ -124,7 +124,7 @@ public class ClientRegistrationConfiguration {
         final HttpClient.Builder builder = HttpClient.newBuilder().connectTimeout(connectTimeout);
 
         if (NIFI_TRUSTSTORE_STRATEGY.equals(properties.getOidcClientTruststoreStrategy())) {
-            setSslSocketFactory(builder);
+            builder.sslContext(sslContext);
         }
 
         return builder.build();
@@ -137,17 +137,6 @@ public class ClientRegistrationConfiguration {
             return Duration.ofMillis(rounded);
         } catch (final RuntimeException e) {
             return DEFAULT_SOCKET_TIMEOUT;
-        }
-    }
-
-    private void setSslSocketFactory(final HttpClient.Builder builder) {
-        final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-
-        try {
-            final SSLContext sslContext = Objects.requireNonNull(SslContextFactory.createSslContext(tlsConfiguration), "SSLContext required");
-            builder.sslContext(sslContext);
-        } catch (final TlsException e) {
-            throw new OidcConfigurationException("OpenID Connect HTTP TLS configuration failed", e);
         }
     }
 }
