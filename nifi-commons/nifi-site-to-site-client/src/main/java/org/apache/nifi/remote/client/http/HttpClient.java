@@ -181,7 +181,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
                 commSession.setUserDn(apiClient.getTrustedPeerDn());
             } catch (final Exception e) {
                 apiClient.close();
-                logger.warn("Penalizing peer {}", peer, e);
+                logger.warn("Penalizing a peer {} due to {}", peer, e.toString());
                 peerSelector.penalize(peer, penaltyMillis);
 
                 // Following exceptions will be thrown even if we tried other peers, so throw it.
