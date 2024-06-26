@@ -75,7 +75,7 @@ class QueryChroma(FlowFileTransform):
     include_embeddings = None
     results_field = None
 
-    property_descriptors = [prop for prop in ChromaUtils.PROPERTIES] + [prop for prop in EmbeddingUtils.PROPERTIES] + [
+    property_descriptors = [prop for prop in ChromaUtils.PROPERTIES] + [prop for prop in EmbeddingUtils.PROPERTIES if prop != EmbeddingUtils.EMBEDDING_MODEL] + [
         QUERY,
         NUMBER_OF_RESULTS,
         QueryUtils.OUTPUT_STRATEGY,
