@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { DropRequest, SubmitEmptyQueueRequest, SubmitEmptyQueuesRequest } from '../state/queue';
 
 @Injectable({ providedIn: 'root' })

@@ -22,7 +22,7 @@ import { FlowAnalysisRuleTable } from './flow-analysis-rule-table/flow-analysis-
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '@nifi/shared';
 import { PropertyTable } from '../../../../ui/common/property-table/property-table.component';
 import { MatButtonModule } from '@angular/material/button';
 

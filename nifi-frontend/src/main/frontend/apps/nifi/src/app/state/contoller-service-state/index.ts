@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity, SelectOption } from '../shared';
+import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity } from '../shared';
+import { SelectOption } from 'libs/shared/src';
 
 export const controllerServiceStateFeatureKey = 'enableControllerService';
 

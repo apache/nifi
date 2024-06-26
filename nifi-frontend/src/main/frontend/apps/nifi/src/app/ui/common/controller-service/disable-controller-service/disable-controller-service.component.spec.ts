@@ -21,7 +21,8 @@ import { DisableControllerService } from './disable-controller-service.component
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/contoller-service-state/controller-service-state.reducer';
-import { ComponentType, SetEnableControllerServiceDialogRequest } from '../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
+import { SetEnableControllerServiceDialogRequest } from '../../../../state/shared';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 describe('EnableControllerService', () => {

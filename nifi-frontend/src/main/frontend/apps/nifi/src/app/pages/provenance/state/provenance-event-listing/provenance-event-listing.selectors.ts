@@ -24,7 +24,7 @@ import {
     ProvenanceQueryParams,
     ProvenanceResults
 } from './index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from '@nifi/shared';
 
 export const selectProvenanceEventListingState = createSelector(
     selectProvenanceState,

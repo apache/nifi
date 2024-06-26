@@ -18,7 +18,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ParameterContextReferenceEntity } from '../../../../../state/shared';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { RouterLink } from '@angular/router';
 
 @Component({

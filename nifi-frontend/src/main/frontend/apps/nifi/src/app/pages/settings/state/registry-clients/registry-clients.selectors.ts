@@ -17,7 +17,7 @@
 
 import { createSelector } from '@ngrx/store';
 import { selectSettingsState, SettingsState } from '../index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from '@nifi/shared';
 import { registryClientsFeatureKey, RegistryClientsState } from './index';
 import { RegistryClientEntity } from '../../../../state/shared';
 

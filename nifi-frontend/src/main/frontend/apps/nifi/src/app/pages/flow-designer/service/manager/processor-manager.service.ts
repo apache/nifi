@@ -32,11 +32,10 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
-import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { TextTip, NiFiCommon } from '@nifi/shared';
 import { Dimension } from '../../state/shared';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { filter, switchMap } from 'rxjs';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
 
 @Injectable({
     providedIn: 'root'

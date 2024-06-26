@@ -20,7 +20,7 @@ import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Snippet, SnippetComponentRequest } from '../state/flow';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
-import { ComponentType } from '../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { Client } from '../../../service/client.service';
 import { Position } from '../state/shared';
 

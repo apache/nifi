@@ -25,7 +25,7 @@ import {
     SummaryState
 } from '../index';
 import { summaryListingFeatureKey, SummaryListingState } from './index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from '@nifi/shared';
 
 export const selectSummaryListing = createSelector(
     selectSummaryState,

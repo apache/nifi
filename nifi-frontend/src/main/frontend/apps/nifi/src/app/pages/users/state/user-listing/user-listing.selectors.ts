@@ -18,7 +18,7 @@
 import { createSelector } from '@ngrx/store';
 import { usersFeatureKey, UsersState, selectUserState } from '../index';
 import { SelectedTenant, UserListingState } from './index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from '@nifi/shared';
 
 export const selectUserListingState = createSelector(selectUserState, (state: UsersState) => state[usersFeatureKey]);
 

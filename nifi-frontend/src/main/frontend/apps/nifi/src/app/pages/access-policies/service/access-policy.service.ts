@@ -20,7 +20,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { Observable } from 'rxjs';
 import { AccessPolicyEntity, ComponentResourceAction, ResourceAction } from '../state/shared';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { TenantEntity } from '../../../state/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 

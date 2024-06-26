@@ -19,7 +19,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import {
     CreateRegistryClientRequest,
     DeleteRegistryClientRequest,

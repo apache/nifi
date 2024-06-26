@@ -27,14 +27,14 @@ import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap,
 import { PropertyVerificationService } from '../../service/property-verification.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { concatLatestFrom } from '@ngrx/operators';
-import { isDefinedAndNotNull, MapTableEntry } from '../shared';
+import { MapTableEntry } from '../shared';
 import {
     selectActivePropertyVerificationRequest,
     selectPropertyVerificationAttributes,
     selectPropertyVerificationRequestContext
 } from './property-verification.selectors';
 import { PropertyVerificationProgress } from '../../ui/common/property-verification/common/property-verification-progress/property-verification-progress.component';
-import { MEDIUM_DIALOG, SMALL_DIALOG } from '../../index';
+import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { ReferencedAttributesDialog } from '../../ui/common/property-verification/common/referenced-attributes-dialog/referenced-attributes-dialog.component';
 import { PropertyTableHelperService } from '../../service/property-table-helper.service';
 import { MapTableHelperService } from '../../service/map-table-helper.service';

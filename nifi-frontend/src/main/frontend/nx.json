@@ -7,14 +7,6 @@
             "dependsOn": ["^build"],
             "inputs": ["production", "^production"]
         },
-        "test": {
-            "cache": true,
-            "inputs": ["default", "^production"]
-        },
-        "lint": {
-            "cache": true,
-            "inputs": ["default", "{workspaceRoot}/.eslintrc.json"]
-        },
         "@nx/jest:jest": {
             "cache": true,
             "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
@@ -27,6 +19,20 @@
                     "codeCoverage": true
                 }
             }
+        },
+        "@nx/eslint:lint": {
+            "cache": true,
+            "inputs": [
+                "default",
+                "{workspaceRoot}/.eslintrc.json",
+                "{workspaceRoot}/.eslintignore",
+                "{workspaceRoot}/eslint.config.js"
+            ]
+        },
+        "@nx/js:tsc": {
+            "cache": true,
+            "dependsOn": ["^build"],
+            "inputs": ["production", "^production"]
         }
     },
     "defaultBase": "dev",
@@ -50,14 +56,19 @@
             "options": {
                 "targetName": "test"
             }
+        },
+        {
+            "plugin": "@nx/eslint/plugin",
+            "options": {
+                "targetName": "lint"
+            }
         }
     ],
     "generators": {
         "@nx/angular:application": {
-            "style": "scss",
             "linter": "eslint",
-            "unitTestRunner": "jest",
-            "e2eTestRunner": "cypress"
+            "style": "scss",
+            "unitTestRunner": "jest"
         },
         "@nx/angular:library": {
             "linter": "eslint",

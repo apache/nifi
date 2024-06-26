@@ -27,7 +27,8 @@ import {
     OriginConnectionPosition,
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
-import { ComponentType, SearchMatchTipInput } from '../../../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
+import { SearchMatchTipInput } from '../../../../../../state/shared';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -35,9 +36,8 @@ import { MatInputModule } from '@angular/material/input';
 import { CanvasState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { centerSelectedComponents, setAllowTransition } from '../../../../state/flow/flow.actions';
-import { selectCurrentRoute } from '../../../../../../state/router/router.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NifiTooltipDirective } from '../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective, selectCurrentRoute } from '@nifi/shared';
 import { SearchMatchTip } from '../../../../../../ui/common/tooltips/search-match-tip/search-match-tip.component';
 
 @Component({

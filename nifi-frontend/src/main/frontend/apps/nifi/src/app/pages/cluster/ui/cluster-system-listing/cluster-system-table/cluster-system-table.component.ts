@@ -20,7 +20,7 @@ import {
     ClusterTableFilter,
     ClusterTableFilterColumn
 } from '../../common/cluster-table-filter/cluster-table-filter.component';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { ClusterTable } from '../../common/cluster-table/cluster-table.component';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { NodeSnapshot } from '../../../../../state/system-diagnostics';

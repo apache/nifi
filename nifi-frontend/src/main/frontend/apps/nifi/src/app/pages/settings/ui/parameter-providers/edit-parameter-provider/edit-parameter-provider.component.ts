@@ -35,7 +35,6 @@ import {
 } from '../../../state/parameter-providers';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Client } from '../../../../../service/client.service';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { ControllerServiceReferences } from '../../../../../ui/common/controller-service/controller-service-references/controller-service-references.component';
@@ -44,8 +43,7 @@ import { PropertyTable } from '../../../../../ui/common/property-table/property-
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { CommonModule } from '@angular/common';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { TextTip, NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
 import {
     ConfigVerificationResult,
     ModifiedProperties,

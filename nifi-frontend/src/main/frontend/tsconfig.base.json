@@ -1,14 +1,22 @@
 {
     "compileOnSave": false,
     "compilerOptions": {
+        "rootDir": ".",
         "sourceMap": true,
         "declaration": false,
         "moduleResolution": "node",
+        "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "importHelpers": true,
         "target": "ES2022",
         "module": "ES2022",
         "lib": ["ES2022", "dom"],
-        "baseUrl": "./"
-    }
+        "skipLibCheck": true,
+        "skipDefaultLibCheck": true,
+        "baseUrl": ".",
+        "paths": {
+            "@nifi/shared": ["libs/shared/src/index.ts"]
+        }
+    },
+    "exclude": ["node_modules", "tmp"]
 }

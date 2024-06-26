@@ -22,7 +22,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { EditComponentDialogRequest } from '../../../state/flow';
-import { ComponentType } from '../../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { initialState } from '../../../state/manage-remote-ports/manage-remote-ports.reducer';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 

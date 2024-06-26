@@ -17,7 +17,7 @@
 
 import { Component, Input } from '@angular/core';
 import { Bundle } from '../../../../state/shared';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 
 @Component({
     selector: 'controller-service-api',

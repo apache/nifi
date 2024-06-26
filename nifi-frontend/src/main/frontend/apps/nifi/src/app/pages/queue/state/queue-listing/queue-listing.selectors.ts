@@ -18,7 +18,7 @@
 import { createSelector } from '@ngrx/store';
 import { queueListingFeatureKey, QueueListingState } from './index';
 import { QueueState, selectQueueState } from '../index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from '@nifi/shared';
 
 export const selectQueueListingState = createSelector(
     selectQueueState,

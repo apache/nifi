@@ -25,7 +25,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { NifiSpinnerDirective } from '../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '@nifi/shared';
 
 @NgModule({
     declarations: [General, GeneralForm],

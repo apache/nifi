@@ -19,7 +19,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 import { FieldDescriptor } from '../../../../state/status-history';
 import * as d3 from 'd3';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { Instance, NIFI_NODE_CONFIG, Stats, VisibleInstances } from '../index';
 import { debounceTime, Subject } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';

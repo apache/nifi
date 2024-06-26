@@ -20,7 +20,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
 import { MatCheckboxModule } from '@angular/material/checkbox';
 
 import { Relationship } from '../../../../../../state/flow';
-import { NiFiCommon } from '../../../../../../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 
 export interface RelationshipItem {
     relationshipName: string;

@@ -19,7 +19,7 @@ import { Injectable } from '@angular/core';
 import { MapTableEntry } from '../state/shared';
 import { Observable, of, switchMap, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
-import { SMALL_DIALOG } from '../index';
+import { SMALL_DIALOG } from 'libs/shared/src';
 import {
     MapTableEntryData,
     NewMapTableEntryDialog

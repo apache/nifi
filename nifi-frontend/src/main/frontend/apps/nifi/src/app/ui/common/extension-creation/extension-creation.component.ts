@@ -19,11 +19,10 @@ import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { NiFiCommon } from '../../../service/nifi-common.service';
 import { MatSortModule, Sort } from '@angular/material/sort';
 
 import { ControllerServiceApiTipInput, DocumentedType, RestrictionsTipInput } from '../../../state/shared';
-import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective, NiFiCommon } from '@nifi/shared';
 import { RestrictionsTip } from '../tooltips/restrictions-tip/restrictions-tip.component';
 import { ControllerServiceApiTip } from '../tooltips/controller-service-api-tip/controller-service-api-tip.component';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';

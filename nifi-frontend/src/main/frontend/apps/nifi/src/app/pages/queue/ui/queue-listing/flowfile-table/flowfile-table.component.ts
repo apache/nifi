@@ -17,10 +17,9 @@
 
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { NiFiCommon, TextTip } from '@nifi/shared';
 
 import { RouterLink } from '@angular/router';
 import { FlowFileSummary, ListingRequest, SelectedConnection } from '../../../state/queue-listing';

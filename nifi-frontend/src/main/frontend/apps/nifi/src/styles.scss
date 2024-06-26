@@ -19,9 +19,9 @@
 // For more information: https://v16.material.angular.io/guide/theming-your-components
 @use '@angular/material' as mat;
 @use 'sass:map';
-@use 'assets/styles/app' as app;
-@use 'assets/styles/codemirror-theme' as codemirror-theme;
-@use 'assets/styles/listing-table' as listing-table;
+@use 'libs/shared/src/assets/styles/app' as app;
+@use 'libs/shared/src/assets/styles/codemirror-theme' as codemirror-theme;
+@use 'libs/shared/src/assets/styles/listing-table' as listing-table;
 @use 'app/app.component-theme' as app-component;
 @use 'app/pages/flow-designer/ui/canvas/canvas.component-theme' as canvas;
 @use 'app/pages/flow-designer/ui/canvas/footer/footer.component-theme' as footer;
@@ -53,15 +53,15 @@
 @use 'app/ui/common/map-table/editors/text-editor/text-editor.component-theme' as text-editor;
 
 // Plus imports for other components in your app.
-@use 'assets/fonts/flowfont/flowfont.css';
+@use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
 @use 'font-awesome/css/font-awesome.min.css';
 @use 'codemirror/lib/codemirror.css';
 @use 'codemirror/addon/fold/foldgutter.css';
 @use 'codemirror/addon/hint/show-hint.css';
 
-@import 'assets/themes/supplemental';
+@import 'libs/shared/src/assets/themes/supplemental';
 // To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
-@import 'assets/themes/material';
+@import 'libs/shared/src/assets/themes/material';
 
 // Include the common styles for Angular Material. We include this here so that you only
 // have to load a single css file for Angular Material in your app.

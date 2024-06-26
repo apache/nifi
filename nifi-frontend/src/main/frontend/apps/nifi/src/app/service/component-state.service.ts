@@ -19,7 +19,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ClearComponentStateRequest, LoadComponentStateRequest } from '../state/component-state';
 import { Observable } from 'rxjs';
-import { NiFiCommon } from './nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ComponentStateService {

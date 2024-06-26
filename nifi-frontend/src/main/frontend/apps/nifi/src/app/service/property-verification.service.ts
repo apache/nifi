@@ -25,7 +25,7 @@ import {
     VerifyPropertiesRequestContext
 } from '../state/property-verification';
 import { Observable } from 'rxjs';
-import { NiFiCommon } from './nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class PropertyVerificationService {

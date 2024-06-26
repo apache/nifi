@@ -24,7 +24,7 @@ import {
     ControllerServiceReferencingComponentEntity
 } from '../state/shared';
 import { Client } from './client.service';
-import { NiFiCommon } from './nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from './cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })

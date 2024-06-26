@@ -30,7 +30,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import {
     AllowableValueEntity,
@@ -44,8 +44,6 @@ import {
     PropertyDescriptor,
     PropertyTipInput
 } from '../../../state/shared';
-import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
-import { TextTip } from '../tooltips/text-tip/text-tip.component';
 import { PropertyTip } from '../tooltips/property-tip/property-tip.component';
 import { NfEditor } from './editors/nf-editor/nf-editor.component';
 import {

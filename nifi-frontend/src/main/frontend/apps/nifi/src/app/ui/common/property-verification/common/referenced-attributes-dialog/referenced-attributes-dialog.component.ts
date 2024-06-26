@@ -30,8 +30,7 @@ import { MapTableEntry } from '../../../../../state/shared';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../spinner/nifi-spinner.directive';
 import { MapTable } from '../../../map-table/map-table.component';
-import { NifiTooltipDirective } from '../../../tooltips/nifi-tooltip.directive';
-import { TextTip } from '../../../tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { CloseOnEscapeDialog } from '../../../close-on-escape-dialog/close-on-escape-dialog.component';
 
 export interface ReferencedAttributesDialogData {

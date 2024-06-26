@@ -22,7 +22,8 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/contoller-service-state/controller-service-state.reducer';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { ComponentType, SetEnableControllerServiceDialogRequest } from '../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
+import { SetEnableControllerServiceDialogRequest } from '../../../../state/shared';
 
 describe('EnableControllerService', () => {
     let component: EnableControllerService;

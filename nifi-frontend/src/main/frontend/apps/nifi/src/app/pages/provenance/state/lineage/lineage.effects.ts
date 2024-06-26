@@ -29,7 +29,7 @@ import { selectActiveLineageId, selectClusterNodeIdFromActiveLineage } from './l
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { isDefinedAndNotNull } from '../../../../state/shared';
+import { isDefinedAndNotNull } from 'libs/shared/src';
 
 @Injectable()
 export class LineageEffects {
