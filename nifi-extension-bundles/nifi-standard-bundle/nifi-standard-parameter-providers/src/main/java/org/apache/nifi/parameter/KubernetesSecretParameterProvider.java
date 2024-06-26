@@ -34,7 +34,6 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.LimitingInputStream;
 
-import java.beans.ParameterDescriptor;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
