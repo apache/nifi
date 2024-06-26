@@ -19,12 +19,9 @@ package org.apache.nifi.processors.excel;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,16 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestSplitExcel {
     private TestRunner runner;
-
-    @BeforeAll
-    static void setUpBeforeAll() throws Exception {
-        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            workbook.createSheet("User Info");
-            workbook.createSheet("Vehicle Info");
-            workbook.write(outputStream);
-        }
-    }
 
     @BeforeEach
     void setUp() {
