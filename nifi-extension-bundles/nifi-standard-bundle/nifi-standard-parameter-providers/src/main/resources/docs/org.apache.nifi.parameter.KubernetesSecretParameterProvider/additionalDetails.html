@@ -16,23 +16,24 @@
 -->
 <head>
     <meta charset="utf-8" />
-    <title>FileParameterProvider</title>
+    <title>KubernetesSecretParameterProvider</title>
 
     <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
 </head>
 <body>
-    <h3>Deriving Parameters from Files</h3>
+    <h3>Deriving Parameters from mounted Kubernetes Secret files</h3>
 
     <p>
-        The FileParameterProvider maps a directory to a parameter group named after the directory, and the files
+        The KubernetesSecretParameterProvider maps a directory to a parameter group named after the directory, and the files
         within the directory to parameters.  Each file's name is mapped to a parameter, and the content of the file
         becomes the value.  Hidden files and nested directories are ignored.
     </p>
 
     <p>
-        While this provider can be useful in a range of cases, it particularly matches the mounted volume secret
-        structure in Kubernetes.  A full discussion of Kubernetes secrets is beyond the scope of this document,
-        but a brief overview can illustrate how these secrets can be mapped to parameter groups.
+        While this provider can be useful in a range of cases since it simply reads parameter values from local files, it
+        particularly matches the mounted volume secret structure in Kubernetes.  A full discussion of Kubernetes secrets
+        is beyond the scope of this document, but a brief overview can illustrate how these secrets can be mapped to
+        parameter groups.
     </p>
 
     <h3>Kubernetes Mounted Secrets Example</h3>
@@ -82,7 +83,7 @@ sys.access.key  sys.admin.password sys.admin.username
 
     <p>
         Therefore, to map this secret to a parameter group that will populate a Parameter Context named 'system-credentials',
-        you should simply provide the following configuration to the FileParameterProvider:
+        you should simply provide the following configuration to the KubernetesSecretParameterProvider:
 
         <ul>
             <li><b>Parameter Group Directories</b> - /etc/secrets/system-credentials</li>

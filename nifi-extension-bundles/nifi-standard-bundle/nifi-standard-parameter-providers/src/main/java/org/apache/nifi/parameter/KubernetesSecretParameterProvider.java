@@ -34,6 +34,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.LimitingInputStream;
 
+import java.beans.ParameterDescriptor;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -53,8 +54,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Tags({"file"})
-@CapabilityDescription("Fetches parameters from files.  Parameter groups are indicated by a set of directories, and files within the directories map to parameter names. " +
-        "The content of the file becomes the parameter value.")
+@CapabilityDescription("Fetches parameters from files, in the format provided by Kubernetes mounted secrets.  " +
+        "Parameter groups are indicated by a set of directories, and files within the directories map to parameter names. " +
+        "The content of the file becomes the parameter value.  Since Kubernetes mounted Secrets are base64-encoded, the " +
+        "parameter provider defaults to Base64-decoding the value of the parameter from the file.")
 
 @Restricted(
         restrictions = {
@@ -63,7 +66,7 @@ import java.util.stream.Collectors;
                         explanation = "Provides operator the ability to read from any file that NiFi has access to.")
         }
 )
-public class FileParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider  {
+public class KubernetesSecretParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider  {
     private static final int MAX_SIZE_LIMIT = 8096;
     private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
