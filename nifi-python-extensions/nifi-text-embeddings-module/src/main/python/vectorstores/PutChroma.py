@@ -62,7 +62,7 @@ class PutChroma(FlowFileTransform):
     embedding_function = None
 
     def __init__(self, **kwargs):
-        self.property_descriptors = [prop for prop in ChromaUtils.PROPERTIES] + [prop for prop in EmbeddingUtils.PROPERTIES]
+        self.property_descriptors = [prop for prop in ChromaUtils.PROPERTIES] + [prop for prop in EmbeddingUtils.PROPERTIES if prop != EmbeddingUtils.EMBEDDING_MODEL]
         self.property_descriptors.append(self.STORE_TEXT)
         self.property_descriptors.append(self.DISTANCE_METHOD)
         self.property_descriptors.append(self.DOC_ID_FIELD_NAME)
@@ -103,7 +103,14 @@ class PutChroma(FlowFileTransform):
             filtered_metadata = {}
             for key, value in metadata.items():
                 if value is not None:
-                    filtered_metadata[key] = value
+                    if isinstance(value, list):
+                        element_count = 0
+                        for element in value:
+                            element_count += 1
+                            indexed_key = f"{key}_{element_count}"
+                            filtered_metadata[indexed_key] = element
+                    else:
+                        filtered_metadata[key] = value
 
             metadatas.append(filtered_metadata)
 
