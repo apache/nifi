@@ -174,7 +174,7 @@ public class C2NifiClientService {
         this.c2OperationManager = new C2OperationManager(
             client, c2OperationHandlerProvider, heartbeatLock, operationQueueDAO, c2OperationRestartHandler);
         this.c2HeartbeatManager = new C2HeartbeatManager(
-            client, heartbeatFactory, heartbeatLock, generateRuntimeInfo(), c2OperationManager);
+            client, heartbeatFactory, heartbeatLock, this::generateRuntimeInfo, c2OperationManager);
     }
 
     private C2ClientConfig generateClientConfig(NiFiProperties properties) {
