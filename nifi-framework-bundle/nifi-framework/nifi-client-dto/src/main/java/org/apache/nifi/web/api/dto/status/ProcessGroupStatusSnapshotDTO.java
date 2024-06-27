@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto.status;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.apache.nifi.controller.status.PerformanceMetrics;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
@@ -80,6 +81,8 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     private Integer activeThreadCount = 0;
     private Integer terminatedThreadCount = 0;
     private Long processingNanos = 0L;
+
+    private PerformanceMetrics performanceMetrics;
 
     /**
      * The id for the process group.
@@ -520,6 +523,14 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.processingNanos = processingNanos;
     }
 
+    public PerformanceMetrics getPerformanceMetrics() {
+        return performanceMetrics;
+    }
+
+    public void setPerformanceMetrics(PerformanceMetrics performanceMetrics) {
+        this.performanceMetrics = performanceMetrics;
+    }
+
     @Override
     public ProcessGroupStatusSnapshotDTO clone() {
         final ProcessGroupStatusSnapshotDTO other = new ProcessGroupStatusSnapshotDTO();
@@ -597,6 +608,8 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
             }
             other.setProcessGroupStatusSnapshots(childGroups);
         }
+
+        other.setPerformanceMetrics(getPerformanceMetrics());
 
         return other;
     }

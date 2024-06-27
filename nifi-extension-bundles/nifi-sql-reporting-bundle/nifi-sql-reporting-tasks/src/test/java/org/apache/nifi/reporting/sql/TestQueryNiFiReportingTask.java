@@ -502,7 +502,7 @@ class TestQueryNiFiReportingTask {
         assertEquals(4, rows.size());
         // Validate the first row
         Map<String, Object> row = rows.get(0);
-        assertEquals(21, row.size());
+        assertEquals(33, row.size());
         assertEquals(1L, row.get("bytesRead"));
         // Validate the second row
         row = rows.get(1);
