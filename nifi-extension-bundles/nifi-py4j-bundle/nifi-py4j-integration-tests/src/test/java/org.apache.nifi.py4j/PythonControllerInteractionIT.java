@@ -571,21 +571,21 @@ public class PythonControllerInteractionIT {
     public void testCreateFlowFile() throws IOException {
         final String processorName = "CreateFlowFile";
         final String propertyName = "FlowFile Contents";
-        final String relationship1 = "success";
-        final String relationship2 = "multiline";
+        final String relationshipSuccess = "success";
+        final String relationshipMultiline = "multiline";
 
         final String singleLineContent = "Hello World!";
         testSourceProcessor(processorName,
                 Map.of(propertyName, singleLineContent),
-                Map.of(relationship1, 1, relationship2, 0),
-                relationship1,
+                Map.of(relationshipSuccess, 1, relationshipMultiline, 0),
+                relationshipSuccess,
                 singleLineContent.getBytes(StandardCharsets.UTF_8));
 
         final String multiLineContent = "Hello\nWorld!";
         testSourceProcessor(processorName,
                 Map.of(propertyName, multiLineContent),
-                Map.of(relationship1, 0, relationship2, 1),
-                relationship2,
+                Map.of(relationshipSuccess, 0, relationshipMultiline, 1),
+                relationshipMultiline,
                 multiLineContent.getBytes(StandardCharsets.UTF_8));
     }
 
