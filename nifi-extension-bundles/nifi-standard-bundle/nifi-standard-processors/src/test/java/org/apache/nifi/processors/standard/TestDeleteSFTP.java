@@ -175,7 +175,7 @@ class TestDeleteSFTP {
 
     private MockFlowFile enqueue(String directoryPath, String filename) {
         final Map<String, String> attributes = Map.of(
-                CoreAttributes.ABSOLUTE_PATH.key(), directoryPath,
+                CoreAttributes.PATH.key(), directoryPath,
                 CoreAttributes.FILENAME.key(), filename
         );
 
