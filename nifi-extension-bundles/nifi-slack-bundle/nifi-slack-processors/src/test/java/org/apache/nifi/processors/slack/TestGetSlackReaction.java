@@ -37,12 +37,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
-import static org.apache.nifi.processors.slack.GetSlackReaction.ATTR_ERROR_MESSAGE;
-import static org.apache.nifi.processors.slack.GetSlackReaction.ATTR_WAIT_TIME;
-import static org.apache.nifi.processors.slack.GetSlackReaction.REL_FAILURE;
-import static org.apache.nifi.processors.slack.GetSlackReaction.REL_NO_REACTION;
-import static org.apache.nifi.processors.slack.GetSlackReaction.REL_SUCCESS;
-import static org.apache.nifi.processors.slack.GetSlackReaction.REL_WAIT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -76,8 +70,8 @@ public class TestGetSlackReaction {
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
-        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        testRunner.assertAllFlowFilesTransferred(GetSlackReaction.REL_SUCCESS, 1);
+        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(GetSlackReaction.REL_SUCCESS).get(0);
         assertEquals("1", ff0.getAttribute("slack.reaction.thumbs_up"));
         testRunner.clearTransferState();
     }
@@ -91,16 +85,16 @@ public class TestGetSlackReaction {
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
-        testRunner.assertAllFlowFilesTransferred(REL_WAIT, 1);
-        MockFlowFile waitingFF = testRunner.getFlowFilesForRelationship(REL_WAIT).get(0);
-        assertEquals("5", waitingFF.getAttribute(ATTR_WAIT_TIME));
+        testRunner.assertAllFlowFilesTransferred(GetSlackReaction.REL_WAIT, 1);
+        MockFlowFile waitingFF = testRunner.getFlowFilesForRelationship(GetSlackReaction.REL_WAIT).get(0);
+        assertEquals("5", waitingFF.getAttribute(GetSlackReaction.ATTR_WAIT_TIME));
         assertEquals(1, testRunner.getPenalizedFlowFiles().size());
 
         testRunner.clearTransferState();
         testRunner.enqueue(waitingFF);
         testRunner.run();
-        testRunner.assertAllFlowFilesTransferred(REL_WAIT, 1);
-        waitingFF = testRunner.getFlowFilesForRelationship(REL_WAIT).get(0);
+        testRunner.assertAllFlowFilesTransferred(GetSlackReaction.REL_WAIT, 1);
+        waitingFF = testRunner.getFlowFilesForRelationship(GetSlackReaction.REL_WAIT).get(0);
         testRunner.clearTransferState();
 
         final Reaction thumbsUp = getReaction("thumbs_up", 3);
@@ -108,11 +102,11 @@ public class TestGetSlackReaction {
         when(clientMock.reactionsGet(any(ReactionsGetRequest.class))).thenReturn(fetchReactions(Arrays.asList(thumbsUp, coolDoge)));
         testRunner.enqueue(waitingFF);
         testRunner.run();
-        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        testRunner.assertAllFlowFilesTransferred(GetSlackReaction.REL_SUCCESS, 1);
+        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(GetSlackReaction.REL_SUCCESS).get(0);
         assertEquals("3", ff0.getAttribute("slack.reaction.thumbs_up"));
         assertEquals("1", ff0.getAttribute("slack.reaction.cool_doge"));
-        assertEquals("10", waitingFF.getAttribute(ATTR_WAIT_TIME));
+        assertEquals("10", waitingFF.getAttribute(GetSlackReaction.ATTR_WAIT_TIME));
         testRunner.clearTransferState();
     }
 
@@ -122,7 +116,7 @@ public class TestGetSlackReaction {
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
-        testRunner.assertAllFlowFilesTransferred(REL_WAIT, 1);
+        testRunner.assertAllFlowFilesTransferred(GetSlackReaction.REL_WAIT, 1);
         testRunner.clearTransferState();
     }
 
@@ -133,8 +127,8 @@ public class TestGetSlackReaction {
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
-        testRunner.assertAllFlowFilesTransferred(REL_NO_REACTION, 1);
-        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(REL_NO_REACTION).get(0);
+        testRunner.assertAllFlowFilesTransferred(GetSlackReaction.REL_NO_REACTION, 1);
+        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(GetSlackReaction.REL_NO_REACTION).get(0);
         ff0.assertAttributeEquals(GetSlackReaction.ATTR_CHANNEL_ID, TEST_CHANNEL_ID);
         ff0.assertAttributeEquals(GetSlackReaction.ATTR_MESSAGE_TIMESTAMP, TEST_MESSAGE_TS);
         testRunner.clearTransferState();
@@ -163,9 +157,9 @@ public class TestGetSlackReaction {
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
-        testRunner.assertAllFlowFilesTransferred(REL_FAILURE, 1);
-        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(REL_FAILURE).get(0);
-        ff0.assertAttributeExists(ATTR_ERROR_MESSAGE);
+        testRunner.assertAllFlowFilesTransferred(GetSlackReaction.REL_FAILURE, 1);
+        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(GetSlackReaction.REL_FAILURE).get(0);
+        ff0.assertAttributeExists(GetSlackReaction.ATTR_ERROR_MESSAGE);
         ff0.assertAttributeEquals(GetSlackReaction.ATTR_CHANNEL_ID, TEST_CHANNEL_ID);
         ff0.assertAttributeEquals(GetSlackReaction.ATTR_MESSAGE_TIMESTAMP, TEST_MESSAGE_TS);
         testRunner.clearTransferState();

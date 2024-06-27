@@ -47,7 +47,6 @@ import org.apache.nifi.processors.slack.util.SlackResponseUtil;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,17 +57,22 @@ import java.util.concurrent.TimeUnit;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttributes({
-        @WritesAttribute(attribute = "slack.channel.id", description = "The ID of the Slack Channel from which the messages were retrieved"),
-        @WritesAttribute(attribute = "slack.message.timestamp", description = "The timestamp of the Slack message the reactions are fetched for."),
+        @WritesAttribute(attribute = GetSlackReaction.ATTR_CHANNEL_ID, description = "The ID of the Slack Channel from which the messages were retrieved"),
+        @WritesAttribute(attribute = GetSlackReaction.ATTR_MESSAGE_TIMESTAMP, description = "The timestamp of the Slack message the reactions are fetched for."),
         @WritesAttribute(attribute = "slack.reaction.<emoji name>", description = "The name of the emoji and the reaction count that was provided for the message."),
-        @WritesAttribute(attribute = "minutes.waited", description = "The total number of minutes waited while the reactions were captured."),
-        @WritesAttribute(attribute = "error.message", description = "The error message on fetching reactions.")
+        @WritesAttribute(attribute = GetSlackReaction.ATTR_WAIT_TIME, description = "The total number of minutes waited while the reactions were captured."),
+        @WritesAttribute(attribute = GetSlackReaction.ATTR_ERROR_MESSAGE, description = "The error message on fetching reactions.")
 })
 @SeeAlso({ListenSlack.class, ConsumeSlack.class, PublishSlack.class})
 @Tags({"slack", "conversation", "reactions.get", "social media", "emoji"})
 @CapabilityDescription("Retrieves reactions for a given message. The reactions are written as attributes.")
 @DefaultSettings(penaltyDuration = "5 min")
 public class GetSlackReaction extends AbstractProcessor {
+    public static final String ATTR_WAIT_TIME = "minutes.waited";
+    public static final String ATTR_ERROR_MESSAGE = "error.message";
+    public static final String ATTR_MESSAGE_TIMESTAMP = "slack.message.timestamp";
+    public static final String ATTR_CHANNEL_ID = "slack.channel.id";
+    public static final int PENALTY_MINUTES = 5;
 
     static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
             .name("Access Token")
@@ -133,32 +137,24 @@ public class GetSlackReaction extends AbstractProcessor {
             .description("FlowFiles are routed to this relationship if no reaction arrived for the message in the given timeframe")
             .build();
 
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(CHANNEL_ID,
+            THREAD_TIMESTAMP,
+            ACCESS_TOKEN,
+            WAIT_MONITOR_WINDOW,
+            RELEASE_IF_ONE_REACTION);
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS,
+            REL_WAIT,
+            REL_NO_REACTION,
+            REL_FAILURE);
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Arrays.asList(CHANNEL_ID,
-                             ACCESS_TOKEN,
-                             THREAD_TIMESTAMP,
-                             WAIT_MONITOR_WINDOW,
-                             RELEASE_IF_ONE_REACTION);
+        return DESCRIPTORS;
     }
-
     @Override
     public Set<Relationship> getRelationships() {
-        return Set.of(REL_SUCCESS,
-                REL_WAIT,
-                REL_NO_REACTION,
-                REL_FAILURE);
-    }
-
-    public static final String ATTR_WAIT_TIME = "minutes.waited";
-    public static final String ATTR_ERROR_MESSAGE = "error.message";
-    public static final String ATTR_MESSAGE_TIMESTAMP = "slack.message.timestamp";
-    public static final String ATTR_CHANNEL_ID = "slack.channel.id";
-    public static final int PENALTY_MINUTES = 5;
-
-    @Override
-    public boolean isStateful(final ProcessContext context) {
-        return true;
+        return RELATIONSHIPS;
     }
 
     private RateLimit rateLimit;
@@ -208,6 +204,10 @@ public class GetSlackReaction extends AbstractProcessor {
         }
 
         FlowFile flowFile = session.get();
+
+        if (flowFile == null) {
+            return;
+        }
 
         final String botToken = context.getProperty(ACCESS_TOKEN).getValue();
         final String channelId = context.getProperty(CHANNEL_ID).evaluateAttributeExpressions(flowFile).getValue();
