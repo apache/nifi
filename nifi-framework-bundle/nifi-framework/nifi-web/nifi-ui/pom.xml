@@ -20,12 +20,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-server-nar-bom</artifactId>
-        <version>2.0.0-M4</version>
+        <version>2.0.0-SNAPSHOT</version>
         <relativePath>../../../nifi-server-nar-bom</relativePath>
     </parent>
 
     <artifactId>nifi-ui</artifactId>
-    <version>2.0.0-M4</version>
+    <version>2.0.0-SNAPSHOT</version>
     <packaging>war</packaging>
     <properties>
         <nifi.ui.working.dir>${project.build.directory}/nifi-ui-working-directory</nifi.ui.working.dir>
@@ -35,7 +35,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-frontend</artifactId>
-            <version>2.0.0-M4</version>
+            <version>2.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
