@@ -53,7 +53,12 @@ public class ProcessorStatusDataSource implements ResettableDataSource {
         new ColumnSchema("invocations", int.class, false),
         new ColumnSchema("processingNanos", long.class, false),
         new ColumnSchema("runStatus", String.class, false),
-        new ColumnSchema("executionNode", String.class, false)
+        new ColumnSchema("executionNode", String.class, false),
+        new ColumnSchema("cpuDuration", long.class, false),
+        new ColumnSchema("contentReadDuration", long.class, false),
+        new ColumnSchema("contentWriteDuration", long.class, false),
+        new ColumnSchema("sessionCommitDuration", long.class, false),
+        new ColumnSchema("garbageCollectionDuration", long.class, false)
     ));
 
 
@@ -123,7 +128,12 @@ public class ProcessorStatusDataSource implements ResettableDataSource {
             status.getInvocations(),
             status.getProcessingNanos(),
             status.getRunStatus().name(),
-            status.getExecutionNode() == null ? null : status.getExecutionNode().name()
+            status.getExecutionNode() == null ? null : status.getExecutionNode().name(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getCpuDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getContentReadDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getContentWriteDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getSessionCommitDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getGarbageCollectionDuration()
         };
     }
 }

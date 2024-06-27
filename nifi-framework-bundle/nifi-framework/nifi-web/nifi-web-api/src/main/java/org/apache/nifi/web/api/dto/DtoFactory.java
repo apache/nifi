@@ -107,6 +107,7 @@ import org.apache.nifi.controller.state.SortedStateUtils;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.ProcessingPerformanceStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
@@ -222,6 +223,7 @@ import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ProcessingPerformanceStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
@@ -1051,6 +1053,11 @@ public final class DtoFactory {
        snapshot.setActiveThreadCount(processGroupStatus.getActiveThreadCount());
        snapshot.setTerminatedThreadCount(processGroupStatus.getTerminatedThreadCount());
 
+       final ProcessingPerformanceStatus performanceStatus = processGroupStatus.getProcessingPerformanceStatus();
+       if (performanceStatus != null) {
+           snapshot.setProcessingPerformanceStatus(createProcessingPerformanceStatusDTO(performanceStatus));
+       }
+
        StatusMerger.updatePrettyPrintedFields(snapshot);
        return processGroupStatusDto;
    }
@@ -1267,6 +1274,11 @@ public final class DtoFactory {
        snapshot.setActiveThreadCount(procStatus.getActiveThreadCount());
        snapshot.setTerminatedThreadCount(procStatus.getTerminatedThreadCount());
        snapshot.setType(procStatus.getType());
+
+       final ProcessingPerformanceStatus performanceStatus = procStatus.getProcessingPerformanceStatus();
+       if (performanceStatus != null) {
+           snapshot.setProcessingPerformanceStatus(createProcessingPerformanceStatusDTO(procStatus.getProcessingPerformanceStatus()));
+       }
 
        StatusMerger.updatePrettyPrintedFields(snapshot);
        return dto;
@@ -5101,5 +5113,19 @@ public final class DtoFactory {
 
     public void setExtensionManager(ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
+    }
+
+    private ProcessingPerformanceStatusDTO createProcessingPerformanceStatusDTO(final ProcessingPerformanceStatus performanceStatus) {
+
+       final ProcessingPerformanceStatusDTO performanceStatusDTO = new ProcessingPerformanceStatusDTO();
+
+        performanceStatusDTO.setIdentifier(performanceStatus.getIdentifier());
+        performanceStatusDTO.setCpuDuration(performanceStatus.getCpuDuration());
+        performanceStatusDTO.setContentReadDuration(performanceStatusDTO.getContentReadDuration());
+        performanceStatusDTO.setContentWriteDuration(performanceStatus.getContentWriteDuration());
+        performanceStatusDTO.setSessionCommitDuration(performanceStatus.getSessionCommitDuration());
+        performanceStatusDTO.setGarbageCollectionDuration(performanceStatus.getGarbageCollectionDuration());
+
+        return performanceStatusDTO;
     }
 }
