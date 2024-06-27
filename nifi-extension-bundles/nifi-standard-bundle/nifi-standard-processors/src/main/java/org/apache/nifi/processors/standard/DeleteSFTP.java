@@ -102,7 +102,7 @@ public class DeleteSFTP extends AbstractProcessor {
             .displayName("Directory Path")
             .description("The path to the directory the file to delete is located in.")
             .required(true)
-            .defaultValue("${" + CoreAttributes.ABSOLUTE_PATH.key() + "}")
+            .defaultValue("${" + CoreAttributes.PATH.key() + "}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
