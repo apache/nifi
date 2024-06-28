@@ -148,12 +148,11 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         final NiFiTable connectionStatusTable = new NiFiTable("CONNECTION_STATUS", connectionStatusDataSource, getLogger());
         database.addTable(connectionStatusTable);
 
-        if (context.isAnalyticsEnabled()) {
-            final ResettableDataSource predictionDataSource = new ConnectionStatusPredictionDataSource(context, groupStatusCache);
-            final NiFiTable connectionStatusPredictionsTable = new NiFiTable("CONNECTION_STATUS_PREDICTIONS", predictionDataSource, getLogger());
-            database.addTable(connectionStatusPredictionsTable);
-        } else {
-            getLogger().debug("Analytics is not enabled, CONNECTION_STATUS_PREDICTIONS table is not available for querying");
+        final ResettableDataSource predictionDataSource = new ConnectionStatusPredictionDataSource(context, groupStatusCache);
+        final NiFiTable connectionStatusPredictionsTable = new NiFiTable("CONNECTION_STATUS_PREDICTIONS", predictionDataSource, getLogger());
+        database.addTable(connectionStatusPredictionsTable);
+        if (!context.isAnalyticsEnabled()) {
+            getLogger().info("Analytics is not enabled, CONNECTION_STATUS_PREDICTIONS table will not contain any rows");
         }
 
         final ResettableDataSource processorStatusDataSource = new ProcessorStatusDataSource(context, groupStatusCache);
