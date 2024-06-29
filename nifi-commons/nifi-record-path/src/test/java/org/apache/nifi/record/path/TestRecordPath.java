@@ -32,6 +32,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.uuid5.Uuid5Util;
 import org.junit.jupiter.api.AfterAll;
@@ -1412,6 +1413,66 @@ public class TestRecordPath {
         assertThrows(RecordPathException.class, () -> RecordPath.compile("mapOf('firstName', /firstName, 'lastName')").evaluate(record));
     }
 
+    @Test
+    public void testRecordOf() {
+        final Map<String, String> embeddedMap = Map.of(
+                "aKey", "aValue",
+                "anotherKey", "anotherValue"
+        );
+
+        final RecordSchema embeddedRecordSchema = new SimpleRecordSchema(List.of(
+                recordFieldOf("aField", RecordFieldType.INT),
+                recordFieldOf("anotherField", RecordFieldType.STRING)
+        ));
+        final Record embeddedRecord = new MapRecord(embeddedRecordSchema, Map.of(
+                "aField", 2,
+                "anotherField", "aRecordValue"
+        ));
+
+        final RecordSchema schema = new SimpleRecordSchema(List.of(
+                recordFieldOf("aLong", RecordFieldType.LONG),
+                recordFieldOf("aDouble", RecordFieldType.DOUBLE),
+                recordFieldOf("aString", RecordFieldType.STRING),
+                recordFieldOf("anArray", arrayDataTypeFor(RecordFieldType.STRING)),
+                recordFieldOf("aMap", mapDataTypeFor(RecordFieldType.STRING)),
+                recordFieldOf("aRecord", recordDataTypeFor(embeddedRecordSchema))
+        ));
+        final MapRecord record = new MapRecord(schema, Map.of(
+                "aLong", 9876543210L,
+                "aDouble", 2.5d,
+                "aString", "texty",
+                "anArray", new String[]{"a", "b", "c"},
+                "aMap", embeddedMap,
+                "aRecord", embeddedRecord
+        ));
+
+        final FieldValue result = evaluateSingleFieldValue(
+                "recordOf('mappedLong', /aLong, 'mappedDouble', /aDouble, 'mappedString', /aString, 'mappedArray', /anArray, 'mappedMap', /aMap, 'mappedRecord', /aRecord, /aString, 2012)",
+                record
+        );
+
+        final RecordDataType recordDataType = (RecordDataType) result.getField().getDataType();
+        RecordSchema resultSchema = recordDataType.getChildSchema();
+        assertEquals(Arrays.asList("mappedLong", "mappedDouble", "mappedString", "mappedArray", "mappedMap", "mappedRecord", "texty"), resultSchema.getFieldNames());
+        assertDataTypesEqual(resultSchema, "mappedLong", schema, "aLong");
+        assertDataTypesEqual(resultSchema, "mappedDouble", schema, "aDouble");
+        assertDataTypesEqual(resultSchema, "mappedString", schema, "aString");
+        assertDataTypesEqual(resultSchema, "mappedArray", schema, "anArray");
+        assertDataTypesEqual(resultSchema, "mappedMap", schema, "aMap");
+        assertDataTypesEqual(resultSchema, "mappedRecord", schema, "aRecord");
+        assertEquals(RecordFieldType.INT.getDataType(), resultSchema.getDataType("texty").get());
+
+        final MapRecord resultValueRecord = (MapRecord) result.getValue();
+        assertValuesEqual(resultValueRecord, "mappedLong", record, "aLong");
+        assertValuesEqual(resultValueRecord, "mappedDouble", record, "aDouble");
+        assertValuesEqual(resultValueRecord, "mappedString", record, "aString");
+        assertArrayValuesEqual(resultValueRecord, "mappedArray", record, "anArray");
+        assertValuesEqual(resultValueRecord, "mappedMap", record, "aMap");
+        assertValuesEqual(resultValueRecord, "mappedRecord", record, "aRecord");
+        assertEquals(2012, resultValueRecord.getValue("texty"));
+
+        assertThrows(RecordPathException.class, () -> RecordPath.compile("recordOf('mappedRecord', /aRecord, 'dangling')").evaluate(record));
+    }
 
     @Test
     public void testCoalesce() {
@@ -2356,5 +2417,36 @@ public class TestRecordPath {
 
     private static FieldValue evaluateSingleFieldValue(String path, Record record) {
         return evaluateSingleFieldValue(RecordPath.compile(path), record);
+    }
+
+    private static RecordField recordFieldOf(final String fieldName, final RecordFieldType fieldType) {
+        return recordFieldOf(fieldName, fieldType.getDataType());
+    }
+    private static RecordField recordFieldOf(final String fieldName, final DataType fieldType) {
+        return new RecordField(fieldName, fieldType);
+    }
+
+    private static DataType arrayDataTypeFor(final RecordFieldType itemType) {
+        return RecordFieldType.ARRAY.getArrayDataType(itemType.getDataType());
+    }
+
+    private static DataType mapDataTypeFor(final RecordFieldType itemType) {
+        return RecordFieldType.MAP.getMapDataType(itemType.getDataType());
+    }
+
+    private static DataType recordDataTypeFor(final RecordSchema childSchmea) {
+        return RecordFieldType.RECORD.getRecordDataType(childSchmea);
+    }
+
+    private static void assertDataTypesEqual(RecordSchema actualSchema, String actualFieldName, RecordSchema expectedSchema, String expectedFieldName) {
+        assertEquals(expectedSchema.getDataType(expectedFieldName).get(), actualSchema.getDataType(actualFieldName).get());
+    }
+
+    private static void assertValuesEqual(MapRecord actualRecord, String actualFieldName, MapRecord expectedRecord, String expectedFieldName) {
+        assertEquals(expectedRecord.getValue(expectedFieldName), actualRecord.getValue(actualFieldName));
+    }
+
+    private static void assertArrayValuesEqual(MapRecord actualRecord, String actualFieldName, MapRecord expectedRecord, String expectedFieldName) {
+        assertArrayEquals(expectedRecord.getAsArray(expectedFieldName), actualRecord.getAsArray(actualFieldName));
     }
 }
