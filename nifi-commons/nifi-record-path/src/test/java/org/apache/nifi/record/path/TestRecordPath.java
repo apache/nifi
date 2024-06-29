@@ -1418,6 +1418,144 @@ public class TestRecordPath {
         }
 
         @Nested
+        class RecordOf {
+            @Test
+            public void createsRecordFromReferencedFields() {
+                assertRecordOf(
+                        "recordOf('mappedLong', /id, 'mappedString', /name)",
+                        Map.of("id", "mappedLong", "name", "mappedString")
+                );
+            }
+
+            @Test
+            public void throwsRecordPathExceptionWhenPassedAnOddAmountOfArguments() {
+                assertThrows(RecordPathException.class, () -> RecordPath.compile("recordOf('firstName', /firstName, 'lastName')").evaluate(record));
+            }
+
+            @Test
+            public void supportsReferencesToFieldsOfTypeMap() {
+                assertRecordOf(
+                        "recordOf('mappedMap', /attributes)",
+                        Map.of("attributes", "mappedMap")
+                );
+            }
+
+            @Test
+            public void supportsReferencesToFieldsOfTypeArray() {
+                assertRecordOf(
+                        "recordOf('mappedArray', /bytes)",
+                        Map.of("bytes", "mappedArray")
+                );
+            }
+
+            @Test
+            public void supportsReferencesToFieldsOfTypeRecord() {
+                assertRecordOf(
+                        "recordOf('mappedRecord', /mainAccount)",
+                        Map.of("mainAccount", "mappedRecord")
+                );
+            }
+
+            @Test
+            public void supportsPathReferenceToMissingValue() {
+                final Map<String, DataType> expectedFieldTypes = Map.of(
+                        "missingValue", record.getSchema().getDataType("missing").orElseThrow(),
+                        "nonExisting", choiceTypeOf(RecordFieldType.STRING, RecordFieldType.RECORD) // fallback used when field is not defined in source
+                );
+                final Map<String, Object> expectedFieldValues = new HashMap<>();
+                expectedFieldValues.put("nonExisting", null);
+
+                assertRecordOf(
+                        "recordOf('missingValue', /missing, 'nonExisting', /nonExistingField)",
+                        expectedFieldTypes,
+                        expectedFieldValues
+                );
+            }
+
+            @Test
+            public void supportsCreatingRecordWithFieldNameFromPathReference() {
+                final Map<String, DataType> expectedFieldTypes = Map.of(
+                        "John", RecordFieldType.STRING.getDataType()
+                );
+                final Map<String, Object> expectedFieldValues = Map.of(
+                        "John", "Doe"
+                );
+
+                assertRecordOf(
+                        "recordOf(/firstName, /lastName)",
+                        expectedFieldTypes,
+                        expectedFieldValues
+                );
+            }
+
+            @Test
+            public void supportsCreatingRecordFromLiteralValue() {
+                final Map<String, DataType> expectedFieldTypes = Map.of(
+                        "aNumber", RecordFieldType.INT.getDataType(),
+                        "aString", RecordFieldType.STRING.getDataType()
+                );
+                final Map<String, Object> expectedFieldValues = Map.of(
+                        "aNumber", 2012,
+                        "aString", "aValue"
+                );
+
+                assertRecordOf(
+                        "recordOf('aNumber', 2012, 'aString', 'aValue')",
+                        expectedFieldTypes,
+                        expectedFieldValues
+                );
+            }
+
+            private void assertRecordOf(final String path, final Map<String, String> originalToMappedFieldNames) {
+                final Map<String, DataType> expectedFieldTypes = originalToMappedFieldNames.entrySet().stream()
+                        .collect(Collectors.toMap(
+                                Map.Entry::getValue,
+                                originalToMappedFieldName -> {
+                                    final String originalFieldName = originalToMappedFieldName.getKey();
+                                    return record.getSchema().getDataType(originalFieldName).orElseThrow();
+                                }
+                        ));
+                final Map<String, Object> expectedFieldValues = originalToMappedFieldNames.entrySet().stream()
+                        .collect(Collectors.toMap(
+                                Map.Entry::getValue,
+                                originalToMappedFieldName -> {
+                                    final String originalFieldName = originalToMappedFieldName.getKey();
+                                    return record.getValue(originalFieldName);
+                                }
+                        ));
+
+                assertRecordOf(path, expectedFieldTypes, expectedFieldValues);
+            }
+
+            private void assertRecordOf(
+                    final String path,
+                    final Map<String, DataType> expectedFieldTypes,
+                    final Map<String, Object> expectedFieldValues
+            ) {
+                final FieldValue result = evaluateSingleFieldValue(path, record);
+
+                assertEquals(RecordFieldType.RECORD, result.getField().getDataType().getFieldType());
+
+                final Object fieldValue = result.getValue();
+                assertInstanceOf(Record.class, fieldValue);
+                final Record recordValue = (Record) fieldValue;
+
+                assertAll(Stream.concat(
+                        expectedFieldTypes.entrySet().stream().map(expectation -> () -> {
+                            final DataType expectedFieldType = expectation.getValue();
+                            final RecordField actualRecordField =
+                                    recordValue.getSchema().getField(expectation.getKey()).orElseThrow();
+
+                            assertEquals(expectedFieldType, actualRecordField.getDataType());
+                        }),
+                        expectedFieldValues.entrySet().stream().map(expectation ->
+                                () -> assertEquals(expectation.getValue(), recordValue.getValue(expectation.getKey()))
+                        )
+                ));
+            }
+        }
+
+        @Nested
         class Replace {
             @Test
             public void replacesSearchTermInsideStringWithReplacementValue() {
@@ -2911,7 +3049,7 @@ public class TestRecordPath {
                 entry("firstName", "John"),
                 entry("lastName", "Doe"),
                 entry("name", "John Doe"),
-                // field "missing" is missing purposel)y
+                // field "missing" is missing purposely
                 entry("date", "2017-10-20T11:00:00Z"),
                 entry("attributes", new HashMap<>(Map.of(
                         "city", "New York",
