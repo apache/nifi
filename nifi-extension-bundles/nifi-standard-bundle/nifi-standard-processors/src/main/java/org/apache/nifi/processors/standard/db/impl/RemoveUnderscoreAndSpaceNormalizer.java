@@ -14,21 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.db;
+package org.apache.nifi.processors.standard.db.impl;
 
-import org.apache.nifi.processors.standard.db.impl.*;
+import org.apache.nifi.processors.standard.db.NameNormalizer;
 
-import java.util.regex.Pattern;
+public class RemoveUnderscoreAndSpaceNormalizer implements NameNormalizer {
 
-public class NameNormalizerFactory {
-    public static NameNormalizer getNormalizer(TranslationStrategy strategy, Pattern regex) {
 
-        return switch (strategy) {
-            case REMOVE_UNDERSCORE -> new RemoveUnderscoreNormalizer();
-            case REMOVE_SPACE -> new RemoveSpaceNormalizer();
-            case REMOVE_UNDERSCORE_AND_SPACE -> new RemoveUnderscoreAndSpaceNormalizer();
-            case REMOVE_ALL_SPECIAL_CHAR -> new RemoveAllSpecialCharNormalizer();
-            case PATTERN -> new PatternNormalizer(regex);
-        };
+    @Override
+    public String getNormalizedName(String colName) {
+        return colName.replace("_", "").replace(" ", "");
     }
 }
