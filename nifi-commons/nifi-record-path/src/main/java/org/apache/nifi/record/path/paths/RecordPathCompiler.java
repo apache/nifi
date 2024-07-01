@@ -50,6 +50,7 @@ import org.apache.nifi.record.path.functions.Join;
 import org.apache.nifi.record.path.functions.MapOf;
 import org.apache.nifi.record.path.functions.PadLeft;
 import org.apache.nifi.record.path.functions.PadRight;
+import org.apache.nifi.record.path.functions.RecordOf;
 import org.apache.nifi.record.path.functions.Replace;
 import org.apache.nifi.record.path.functions.ReplaceNull;
 import org.apache.nifi.record.path.functions.ReplaceRegex;
@@ -294,6 +295,20 @@ public class RecordPathCompiler {
                         }
 
                         return new MapOf(argPaths, absolute);
+                    }
+                    case "recordOf": {
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        if (numArgs % 2 != 0) {
+                            throw new RecordPathException("The recordOf function requires an even number of arguments");
+                        }
+
+                        final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];
+                        for (int i = 0; i < numArgs; i++) {
+                            argPaths[i] = buildPath(argumentListTree.getChild(i), null, absolute);
+                        }
+
+                        return new RecordOf(argPaths, absolute);
                     }
                     case "toLowerCase": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
