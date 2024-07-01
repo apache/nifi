@@ -269,6 +269,7 @@ public class TestConsumeKinesisStream {
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.REGION, Regions.EU_WEST_2.getName());
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.TIMEOUT, "5 secs");
+        mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.INITIAL_STREAM_POSITION, "TRIM_HORIZON");
 
         final AWSCredentialsProviderService awsCredentialsProviderService = new AWSCredentialsProviderControllerService();
         mockConsumeKinesisStreamRunner.addControllerService("aws-credentials", awsCredentialsProviderService);
@@ -326,7 +327,8 @@ public class TestConsumeKinesisStream {
         assertTrue(scheduler.leaseManagementConfig().workerIdentifier().startsWith(hostname));
         assertEquals(scheduler.coordinatorConfig().applicationName(), "test-application");
         assertEquals(scheduler.leaseManagementConfig().streamName(), "test-stream");
-        assertEquals(scheduler.leaseManagementConfig().initialPositionInStream().getInitialPositionInStream(), InitialPositionInStream.LATEST);
+        assertEquals(scheduler.retrievalConfig().streamTracker().streamConfigList().get(0).initialPositionInStreamExtended().getInitialPositionInStream(),
+                InitialPositionInStream.TRIM_HORIZON );
         assertEquals(scheduler.coordinatorConfig().parentShardPollIntervalMillis(), 1);
     }
 
