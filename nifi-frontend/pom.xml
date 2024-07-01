@@ -33,10 +33,9 @@
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
         <copy-rename-maven-plugin.version>1.0.1</copy-rename-maven-plugin.version>
         <!--
-            String name of the theme file to be used.
-            Ex: 'purple' // will overwrite the 'material' theme file with the 'purple' theme.
+            Path to the theme file to be used.
         -->
-        <frontend.theme>material</frontend.theme>
+        <frontend.theme>${frontend.working.dir}/libs/shared/src/assets/themes/material.scss</frontend.theme>
         <frontend.skipTests>true</frontend.skipTests>
     </properties>
 
@@ -166,7 +165,7 @@
                             <goal>copy</goal>
                         </goals>
                         <configuration>
-                            <sourceFile>${frontend.working.dir}/libs/shared/src/assets/themes/${frontend.theme}.scss</sourceFile>
+                            <sourceFile>${frontend.theme}</sourceFile>
                             <destinationFile>${frontend.working.dir}/libs/shared/src/assets/themes/material.scss</destinationFile>
                         </configuration>
                     </execution>
