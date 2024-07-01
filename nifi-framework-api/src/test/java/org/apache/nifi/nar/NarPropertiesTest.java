@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class NarPropertiesTest {
 
@@ -51,6 +52,67 @@ public class NarPropertiesTest {
 
         final NarProperties parsedProperties = readProperties(tempFile);
         assertEqual(narProperties, parsedProperties);
+    }
+
+    @Test
+    public void testNarPropertiesWithDependencies(@TempDir final Path tempDir) throws IOException {
+        final NarProperties narProperties = NarProperties.builder()
+                .sourceType(NarSource.UPLOAD.name())
+                .narGroup("org.apache.nifi")
+                .narId("nifi-standard-nar")
+                .narVersion("2.0.0")
+                .narDependencyGroup("dependency-group")
+                .narDependencyId("dependency-id")
+                .narDependencyVersion("dependency-version")
+                .installed(Instant.now())
+                .build();
+
+        final Path tempFile = createTempFile(tempDir);
+        writeProperties(narProperties, tempFile);
+
+        final NarProperties parsedProperties = readProperties(tempFile);
+        assertEqual(narProperties, parsedProperties);
+    }
+
+    @Test
+    public void testInvalidDependencyValues() {
+        assertThrows(IllegalArgumentException.class, () -> NarProperties.builder()
+                .sourceType(NarSource.UPLOAD.name())
+                .narGroup("org.apache.nifi")
+                .narId("nifi-standard-nar")
+                .narVersion("2.0.0")
+                .narDependencyGroup("dependency-group")
+                .installed(Instant.now())
+                .build());
+
+        assertThrows(IllegalArgumentException.class, () -> NarProperties.builder()
+                .sourceType(NarSource.UPLOAD.name())
+                .narGroup("org.apache.nifi")
+                .narId("nifi-standard-nar")
+                .narVersion("2.0.0")
+                .narDependencyGroup("dependency-group")
+                .narDependencyId("dependency-id")
+                .installed(Instant.now())
+                .build());
+
+        assertThrows(IllegalArgumentException.class, () -> NarProperties.builder()
+                .sourceType(NarSource.UPLOAD.name())
+                .narGroup("org.apache.nifi")
+                .narId("nifi-standard-nar")
+                .narVersion("2.0.0")
+                .narDependencyId("dependency-id")
+                .installed(Instant.now())
+                .build());
+
+        assertThrows(IllegalArgumentException.class, () -> NarProperties.builder()
+                .sourceType(NarSource.UPLOAD.name())
+                .narGroup("org.apache.nifi")
+                .narId("nifi-standard-nar")
+                .narVersion("2.0.0")
+                .narDependencyVersion("dependency-version")
+                .installed(Instant.now())
+                .build());
+
     }
 
     private void assertEqual(final NarProperties narProperties1, final NarProperties narProperties2) {

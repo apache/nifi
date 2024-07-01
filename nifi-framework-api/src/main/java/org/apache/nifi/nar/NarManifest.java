@@ -132,27 +132,47 @@ public class NarManifest {
         return new BundleCoordinate(dependencyGroup, dependencyId, dependencyVersion);
     }
 
-    public static NarManifest fromFile(final File narFile) throws IOException {
+    /**
+     * Creates a NarManifest from reading a File containing the contents of a NAR with a META-INF/MANIFEST entry.
+     *
+     * @param narFile the NAR file
+     * @return the manifest instance
+     * @throws IOException if unable to read the NAR file
+     */
+    public static NarManifest fromNarFile(final File narFile) throws IOException {
         try (final InputStream inputStream = new FileInputStream(narFile)) {
             return fromInputStream(inputStream);
         }
     }
 
-    public static NarManifest fromInputStream(final InputStream narInputStream) throws IOException {
+    /**
+     * Creates a NarManifest from reading an InputStream containing the contents of a NAR with a META-INF/MANIFEST entry.
+     *
+     * @param narInputStream the input stream containing the NAR contents
+     * @return the manifest instance
+     * @throws IOException if unable to read the NAR file
+     */
+    static NarManifest fromInputStream(final InputStream narInputStream) throws IOException {
         try (final JarInputStream jarInputStream = new JarInputStream(narInputStream)) {
             final Manifest manifest = jarInputStream.getManifest();
             return fromManifest(manifest);
         }
     }
 
-    public static NarManifest fromManifest(final Manifest manifest) {
+    /**
+     * Creates a NarManifest from a Manifest instance that was extracted from a NAR File or InputStream.
+     *
+     * @param manifest the manifest from the NAR
+     * @return the manifest instance
+     */
+    static NarManifest fromManifest(final Manifest manifest) {
         if (manifest == null) {
             throw new IllegalArgumentException("NAR content is missing required META-INF/MANIFEST entry");
         }
 
         final Attributes attributes = manifest.getMainAttributes();
 
-        return NarManifest.builder()
+        return org.apache.nifi.nar.NarManifest.builder()
                 .group(attributes.getValue(NarManifestEntry.NAR_GROUP.getManifestName()))
                 .id(attributes.getValue(NarManifestEntry.NAR_ID.getManifestName()))
                 .version(attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName()))

@@ -2438,7 +2438,7 @@ public class ControllerResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("nar-manager/upload")
     @Operation(
-            summary = "Uploads a NAR and request for it to be installed",
+            summary = "Uploads a NAR and requests for it to be installed",
             responses = @ApiResponse(content = @Content(schema = @Schema(implementation = NarSummaryEntity.class))),
             security = {
                     @SecurityRequirement(name = "Write - /controller")

@@ -96,7 +96,7 @@ public interface NarManager {
     InputStream readNar(String identifier);
 
     /**
-     * Instructs the NAR Manager to sync it's NARs with the NARs from the cluster coordinator.
+     * Instructs the NAR Manager to sync its NARs with the NARs from the cluster coordinator.
      */
     void syncWithClusterCoordinator();
 

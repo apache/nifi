@@ -39,7 +39,6 @@ public interface NarPersistenceProvider {
 
     /**
      * Creates a temporary file containing the contents of the given input stream.
-     * If the resulting file contains a valid NAR, it will be passed to the save method in order to move to its final destination.
      *
      * @param inputStream the input stream
      * @return the file containing the contents of the input stream
@@ -49,7 +48,7 @@ public interface NarPersistenceProvider {
     File createTempFile(InputStream inputStream) throws IOException;
 
     /**
-     * Saves the temporary NAR file to its final destination. This method will only be called for valid NAR files.
+     * Saves the temporary NAR file to its final destination.
      *
      * @param persistenceContext the context information
      * @param tempNarFile the temporary file created from calling createTempFile
@@ -102,7 +101,8 @@ public interface NarPersistenceProvider {
     Set<NarPersistenceInfo> getAllNarInfo() throws IOException;
 
     /**
-     * Called prior to NiFi shutting down.
+     * Shuts down the provider and cleans up any resources held by it. Once this method has returned, the
+     * provider may be initialized once again via the {@link #initialize(NarPersistenceProviderInitializationContext)} method.
      */
     void shutdown();
 

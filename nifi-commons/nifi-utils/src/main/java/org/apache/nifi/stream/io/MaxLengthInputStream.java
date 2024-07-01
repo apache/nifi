@@ -17,17 +17,20 @@
 
 package org.apache.nifi.stream.io;
 
+import org.apache.nifi.processor.DataUnit;
+
 import java.io.IOException;
 import java.io.InputStream;
 
 public class MaxLengthInputStream extends InputStream {
 
-    private static final String ERROR_MESSAGE_FORMAT = "Unable to read past maximum allowed length of %s bytes";
+    private static final String ERROR_MESSAGE_FORMAT = "Unable to read past maximum allowed length of %s %s";
 
     private final InputStream in;
     private final long limit;
     private long bytesRead = 0;
     private long markOffset = -1L;
+    private final String errorMessage;
 
     /**
      * Constructs an input stream that will throw an exception if reading past a maximum length of bytes.
@@ -38,12 +41,17 @@ public class MaxLengthInputStream extends InputStream {
     public MaxLengthInputStream(final InputStream in, final long limit) {
         this.in = in;
         this.limit = (limit + 1);
+        if (limit >= DataUnit.MB.toB(1)) {
+            this.errorMessage = ERROR_MESSAGE_FORMAT.formatted(DataUnit.B.toMB(limit), "MB");
+        } else {
+            this.errorMessage = ERROR_MESSAGE_FORMAT.formatted(limit, "B");
+        }
     }
 
     @Override
     public int read() throws IOException {
         if (bytesRead >= limit) {
-            throw new IOException(ERROR_MESSAGE_FORMAT.formatted(limit));
+            throw new IOException(errorMessage);
         }
 
         final int val = in.read();
@@ -55,23 +63,13 @@ public class MaxLengthInputStream extends InputStream {
 
     @Override
     public int read(final byte[] b) throws IOException {
-        if (bytesRead >= limit) {
-            throw new IOException(ERROR_MESSAGE_FORMAT.formatted(limit));
-        }
-
-        final int maxToRead = (int) Math.min(b.length, limit - bytesRead);
-
-        final int val = in.read(b, 0, maxToRead);
-        if (val > 0) {
-            bytesRead += val;
-        }
-        return val;
+        return read(b, 0, b.length);
     }
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         if (bytesRead >= limit) {
-            throw new IOException(ERROR_MESSAGE_FORMAT.formatted(limit));
+            throw new IOException(errorMessage);
         }
 
         final int maxToRead = (int) Math.min(len, limit - bytesRead);
