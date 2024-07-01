@@ -346,6 +346,11 @@
         width: 100%;
     }
 
+    // center input text in form fields
+    .mdc-text-field--outlined .mat-mdc-form-field-infix {
+        line-height: 24px;
+    }
+
     .cdk-drop-list {
         color: $material-theme-primary-palette-default;
     }
