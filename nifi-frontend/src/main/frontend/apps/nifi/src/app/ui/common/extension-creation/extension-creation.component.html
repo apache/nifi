@@ -104,11 +104,17 @@
             </div>
             <div class="flex flex-col pt-3">
                 @if (selectedType) {
-                    <div class="flex items-center">
-                        <div class="selected-type-name font-medium accent-color">
+                    <div class="flex items-center mb-1">
+                        <div
+                            class="selected-type-name font-medium accent-color overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            [title]="formatType(selectedType)">
                             {{ formatType(selectedType) }}
                         </div>
-                        <div class="selected-type-bundle surface-color">{{ formatBundle(selectedType) }}</div>
+                        <div
+                            class="selected-type-bundle surface-color ml-4 tracking-wide overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            [title]="formatBundle(selectedType)">
+                            {{ formatBundle(selectedType) }}
+                        </div>
                     </div>
                     <div class="selected-type-description" [title]="formatDescription(selectedType)">
                         {{ formatDescription(selectedType) }}

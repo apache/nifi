@@ -30,21 +30,6 @@
         }
     }
 
-    .selected-type-name {
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        height: 24px;
-    }
-
-    .selected-type-bundle {
-        margin-left: 15px;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        letter-spacing: 0.25px;
-    }
-
     .selected-type-description {
         overflow: hidden;
         display: -webkit-box;
