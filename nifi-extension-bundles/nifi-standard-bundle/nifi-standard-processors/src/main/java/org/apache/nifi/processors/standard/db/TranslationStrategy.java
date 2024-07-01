@@ -26,8 +26,12 @@ public enum TranslationStrategy implements DescribedValue {
             "Underscores '_' will be removed from column names Ex: 'Pics_1_23' becomes 'PICS123'"),
     REMOVE_SPACE("Remove Space",
             "Spaces will be removed from column names Ex. 'User Name' becomes 'USERNAME'"),
-    REMOVE_ALL_SPECIAL_CHAR("Remove Regular Expression Characters",  "Remove Regular Expression Characters"),
-    PATTERN("Regular Expression", "Remove characters matching this Regular Expression from the column names");
+    REMOVE_UNDERSCORE_AND_SPACE("Remove Underscores and Spaces",
+            "Spaces and Underscores will be removed from column names Ex. 'User_1 Name' becomes 'USER1NAME'"),
+    REMOVE_ALL_SPECIAL_CHAR("Remove Regular Expression Characters",
+            "Remove Regular Expression Characters"),
+    PATTERN("Regular Expression",
+            "Remove characters matching this Regular Expression from the column names");
     private final String displayName;
     private final String description;
 
