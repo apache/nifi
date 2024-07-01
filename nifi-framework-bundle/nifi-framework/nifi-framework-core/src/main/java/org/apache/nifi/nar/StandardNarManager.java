@@ -111,7 +111,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
         for (final NarPersistenceInfo narInfo : narInfos) {
             final File narFile = narInfo.getNarFile();
             try {
-                final NarManifest manifest = NarManifest.fromFile(narFile);
+                final NarManifest manifest = NarManifest.fromNarFile(narFile);
                 final BundleCoordinate coordinate = manifest.getCoordinate();
                 final String identifier = createIdentifier(coordinate);
                 final NarState state = determineNarState(manifest);
@@ -258,7 +258,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
             return;
         }
 
-        final BundleCoordinate coordinate = narNode.getManifest().getCoordinate();;
+        final BundleCoordinate coordinate = narNode.getManifest().getCoordinate();
         final Set<Bundle> bundlesWithMatchingDependency = extensionManager.getDependentBundles(coordinate);
         if (!bundlesWithMatchingDependency.isEmpty()) {
             throw new IllegalStateException("Unable to delete NAR because it is a dependency of other NARs");
@@ -449,7 +449,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
 
     private NarManifest getNarManifest(final File tempNarFile) throws IOException {
         try {
-            return NarManifest.fromFile(tempNarFile);
+            return NarManifest.fromNarFile(tempNarFile);
         } catch (final RuntimeException | IOException e) {
             deleteFileQuietly(tempNarFile);
             throw e;

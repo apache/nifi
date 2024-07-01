@@ -20,7 +20,7 @@ package org.apache.nifi.nar;
 import java.util.Objects;
 
 /**
- * Contextual information give to a {@link NarPersistenceProvider} when saving a NAR.
+ * Contextual information given to a {@link NarPersistenceProvider} when saving a NAR.
  */
 public class NarPersistenceContext {
 

@@ -141,6 +141,11 @@ The following are available commands:
  nifi get-controller-configuration
  nifi update-controller-configuration
  nifi change-version-processor
+ nifi upload-nar
+ nifi download-nar
+ nifi delete-nar
+ nifi list-nars
+ nifi list-nar-component-types
  registry current-user
  registry list-buckets
  registry create-bucket

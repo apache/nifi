@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class MaxLengthInputStreamTest {
 
     @Test
-    public void testReadingLessThanMaxLength() throws IOException {
+    public void testReadAllBytesReadingLessThanMaxLength() throws IOException {
         final String content = "12345";
         try (final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
             final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, Integer.MAX_VALUE)) {
@@ -40,7 +40,7 @@ public class MaxLengthInputStreamTest {
     }
 
     @Test
-    public void testReadingMoreThanMaxLength() throws IOException {
+    public void testReadAllBytesReadingMoreThanMaxLength() throws IOException {
         final String content = "12345";
         try (final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
              final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, 1)) {
@@ -49,7 +49,7 @@ public class MaxLengthInputStreamTest {
     }
 
     @Test
-    public void testReadingEqualToMaxLength() throws IOException {
+    public void testReadAllBytesReadingEqualToMaxLength() throws IOException {
         final String content = "12345";
         try (final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
              final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, 5)) {

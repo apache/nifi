@@ -56,6 +56,11 @@ public class NarProperties {
         this.narDependencyId = builder.narDependencyId;
         this.narDependencyVersion = builder.narDependencyVersion;
 
+        if (!((narDependencyGroup == null && narDependencyId == null && narDependencyVersion == null)
+                || (narDependencyGroup != null && narDependencyId != null && narDependencyVersion != null))) {
+            throw new IllegalArgumentException("Must provided all NAR dependency values, or no dependency values");
+        }
+
         this.installed = Objects.requireNonNull(builder.installed);
     }
 
@@ -106,6 +111,9 @@ public class NarProperties {
         return Optional.of(new BundleCoordinate(narDependencyGroup, narDependencyId, narDependencyVersion));
     }
 
+    /**
+     * @return a Properties instance containing the key/value pairs of the NarProperties
+     */
     public Properties toProperties() {
         final Properties properties = new Properties();
         properties.put(NarProperty.SOURCE_TYPE.getKey(), sourceType);
@@ -127,6 +135,13 @@ public class NarProperties {
         return properties;
     }
 
+    /**
+     * Reads an InputStream containing the Properties representation of the NAR Properties and returns the NarProperties instance.
+     *
+     * @param inputStream the input stream
+     * @return the NAR properties instance
+     * @throws IOException if unable to read the input stream
+     */
     public static NarProperties parse(final InputStream inputStream) throws IOException {
         final Properties properties = new Properties();
         properties.load(inputStream);
