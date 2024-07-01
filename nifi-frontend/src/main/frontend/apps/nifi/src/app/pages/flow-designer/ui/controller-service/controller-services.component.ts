@@ -37,6 +37,7 @@ import {
     openConfigureControllerServiceDialog,
     openDisableControllerServiceDialog,
     openEnableControllerServiceDialog,
+    openMoveControllerServiceDialog,
     openNewControllerServiceDialog,
     promptControllerServiceDeletion,
     resetControllerServicesState,
@@ -238,6 +239,18 @@ export class ControllerServices implements OnDestroy {
         );
     }
 
+    moveControllerService(entity: ControllerServiceEntity): void {
+        this.store.dispatch(
+            openMoveControllerServiceDialog({
+                request: {
+                    id: entity.id,
+                    controllerService: entity,
+                    parentControllerServices: []
+                }
+            })
+        );
+    }
+
     disableControllerService(entity: ControllerServiceEntity): void {
         this.store.dispatch(
             openDisableControllerServiceDialog({
@@ -319,6 +332,10 @@ export class ControllerServices implements OnDestroy {
                 }
             })
         );
+    }
+
+    isManagementControllerService(): boolean {
+        return false;
     }
 
     ngOnDestroy(): void {
