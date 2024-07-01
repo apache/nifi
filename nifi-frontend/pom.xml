@@ -35,7 +35,11 @@
         <!--
             Path to the theme file to be used.
         -->
-        <frontend.theme>${frontend.working.dir}/libs/shared/src/assets/themes/material.scss</frontend.theme>
+        <frontend.theme.dir>${frontend.working.dir}/libs/shared/src/assets/themes</frontend.theme.dir>
+        <!--
+            Name of the theme file to be used.
+        -->
+        <frontend.theme.name>material</frontend.theme.name>
         <frontend.skipTests>true</frontend.skipTests>
     </properties>
 
@@ -165,7 +169,7 @@
                             <goal>copy</goal>
                         </goals>
                         <configuration>
-                            <sourceFile>${frontend.theme}</sourceFile>
+                            <sourceFile>${frontend.theme.dir}/${frontend.theme.name}.scss</sourceFile>
                             <destinationFile>${frontend.working.dir}/libs/shared/src/assets/themes/material.scss</destinationFile>
                         </configuration>
                     </execution>
