@@ -374,9 +374,7 @@ limitations under the License.
         <profile>
             <id>windows-service-assembly</id>
             <activation>
-                <os>
-                    <family>windows</family>
-                </os>
+                <os><family>windows</family></os>
             </activation>
             <build>
                 <plugins>
