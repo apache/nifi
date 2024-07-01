@@ -75,6 +75,7 @@ import software.amazon.kinesis.metrics.MetricsConfig;
 import software.amazon.kinesis.metrics.NullMetricsFactory;
 import software.amazon.kinesis.processor.ProcessorConfig;
 import software.amazon.kinesis.processor.ShardRecordProcessorFactory;
+import software.amazon.kinesis.processor.SingleStreamTracker;
 import software.amazon.kinesis.retrieval.RetrievalConfig;
 import software.amazon.kinesis.retrieval.polling.PollingConfig;
 
@@ -611,7 +612,6 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     synchronized Scheduler prepareScheduler(final ProcessContext context, final ProcessSessionFactory sessionFactory, final String schedulerId) {
         final KinesisAsyncClient kinesisClient = getClient(context);
         final ConfigsBuilder configsBuilder = prepareConfigsBuilder(context, schedulerId, sessionFactory);
-
         final MetricsConfig metricsConfig = configsBuilder.metricsConfig();
         if (!isReportCloudWatchMetrics(context)) {
             metricsConfig.metricsFactory(new NullMetricsFactory());
@@ -623,17 +623,12 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                 .streamName(streamName);
         final CoordinatorConfig coordinatorConfig = configsBuilder.coordinatorConfig().workerStateChangeListener(workerState::set);
 
-        final InitialPositionInStream initialPositionInStream = getInitialPositionInStream(context);
-        final InitialPositionInStreamExtended initialPositionInStreamValue = (InitialPositionInStream.AT_TIMESTAMP == initialPositionInStream)
-                ? InitialPositionInStreamExtended.newInitialPositionAtTimestamp(getStartStreamTimestamp(context))
-                : InitialPositionInStreamExtended.newInitialPosition(initialPositionInStream);
-        leaseManagementConfig.initialPositionInStream(initialPositionInStreamValue);
-
         final List<PropertyDescriptor> dynamicProperties = context.getProperties()
                 .keySet()
                 .stream()
                 .filter(PropertyDescriptor::isDynamic)
                 .collect(Collectors.toList());
+
 
         final RetrievalConfig retrievalConfig = configsBuilder.retrievalConfig()
                 .retrievalSpecificConfig(new PollingConfig(streamName, kinesisClient));
@@ -715,8 +710,13 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
      */
     @VisibleForTesting
     ConfigsBuilder prepareConfigsBuilder(final ProcessContext context, final String workerId, final ProcessSessionFactory sessionFactory) {
+        final InitialPositionInStream initialPositionInStream = getInitialPositionInStream(context);
+        final InitialPositionInStreamExtended initialPositionInStreamValue = (InitialPositionInStream.AT_TIMESTAMP == initialPositionInStream)
+                ? InitialPositionInStreamExtended.newInitialPositionAtTimestamp(getStartStreamTimestamp(context))
+                : InitialPositionInStreamExtended.newInitialPosition(initialPositionInStream);
+
         return new ConfigsBuilder(
-                getStreamName(context),
+                new SingleStreamTracker(getStreamName(context), initialPositionInStreamValue),
                 getApplicationName(context),
                 getClient(context),
                 getDynamoClient(context),
