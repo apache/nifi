@@ -164,12 +164,6 @@
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-properties-loader</artifactId>
         </dependency>
-        <!-- Dependency for logging deprecated features -->
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-deprecation-log</artifactId>
-            <version>1.27.0-SNAPSHOT</version>
-        </dependency>
     </dependencies>
 
     <properties>
