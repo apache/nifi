@@ -20,11 +20,14 @@ import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
@@ -159,4 +162,25 @@ public interface FlowClient {
      * @return the status for the process group
      */
     ProcessGroupStatusEntity getProcessGroupStatus(String groupId, boolean recursive) throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the available processor types.
+     *
+     * @return the processor types
+     */
+    ProcessorTypesEntity getProcessorTypes() throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the available controller service types.
+     *
+     * @return the controller service types
+     */
+    ControllerServiceTypesEntity getControllerServiceTypes() throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the available reporting task types.
+     *
+     * @return the reporting task types
+     */
+    ReportingTaskTypesEntity getReportingTaskTypes() throws NiFiClientException, IOException;
 }

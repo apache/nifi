@@ -21,6 +21,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.nar.NarManifest;
+import org.apache.nifi.nar.NarNode;
+import org.apache.nifi.nar.NarSource;
+import org.apache.nifi.nar.NarState;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
@@ -28,14 +32,19 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -108,5 +117,96 @@ public class DtoFactoryTest {
                 .map(v -> v.getAllowableValue().getDisplayName()).collect(Collectors.toList());
         logger.trace("{}", namesActual);
         assertEquals(Arrays.asList("Default Signature", "Signature v4", "Signature v2"), namesActual);
+    }
+
+    @Test
+    public void testCreateNarSummaryDtoWhenInstalled() {
+        final NarManifest narManifest = NarManifest.builder()
+                .group("com.foo")
+                .id("my-processor")
+                .version("1.0.0")
+                .buildTimestamp("2024-01-26T00:11:29Z")
+                .createdBy("Maven NAR Plugin")
+                .build();
+
+        final NarNode narNode = NarNode.builder()
+                .identifier(UUID.randomUUID().toString())
+                .narFile(new File("does-not-ext"))
+                .narFileHexDigest("nar-digest")
+                .manifest(narManifest)
+                .source(NarSource.UPLOAD)
+                .sourceIdentifier("1234")
+                .state(NarState.INSTALLED)
+                .build();
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        final NarSummaryDTO summaryDTO = dtoFactory.createNarSummaryDto(narNode);
+        assertEquals(narNode.getIdentifier(), summaryDTO.getIdentifier());
+        assertEquals(narManifest.getBuildTimestamp(), summaryDTO.getBuildTime());
+        assertEquals(narManifest.getCreatedBy(), summaryDTO.getCreatedBy());
+        assertEquals(narNode.getNarFileHexDigest(), summaryDTO.getDigest());
+        assertEquals(narNode.getState().getValue(), summaryDTO.getState());
+        assertEquals(narNode.getSource().name(), summaryDTO.getSourceType());
+        assertEquals(narNode.getSourceIdentifier(), summaryDTO.getSourceIdentifier());
+        assertTrue(summaryDTO.isInstallComplete());
+        assertNull(summaryDTO.getFailureMessage());
+        assertNull(summaryDTO.getDependencyCoordinate());
+
+        final NarCoordinateDTO coordinateDTO = summaryDTO.getCoordinate();
+        verifyCoordinateDTO(narManifest, coordinateDTO);
+    }
+
+    @Test
+    public void testCreateNarSummaryDtoWhenInstalling() {
+        final NarManifest narManifest = NarManifest.builder()
+                .group("com.foo")
+                .id("my-processor")
+                .version("1.0.0")
+                .dependencyGroup("com.dependency")
+                .dependencyId("my-dependency")
+                .dependencyVersion("2.0.0")
+                .buildTimestamp("2024-01-26T00:11:29Z")
+                .createdBy("Maven NAR Plugin")
+                .build();
+
+        final NarNode narNode = NarNode.builder()
+                .identifier(UUID.randomUUID().toString())
+                .narFile(new File("does-not-ext"))
+                .narFileHexDigest("nar-digest")
+                .manifest(narManifest)
+                .source(NarSource.UPLOAD)
+                .sourceIdentifier("1234")
+                .state(NarState.INSTALLING)
+                .build();
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        final NarSummaryDTO summaryDTO = dtoFactory.createNarSummaryDto(narNode);
+        assertEquals(narNode.getIdentifier(), summaryDTO.getIdentifier());
+        assertEquals(narManifest.getBuildTimestamp(), summaryDTO.getBuildTime());
+        assertEquals(narManifest.getCreatedBy(), summaryDTO.getCreatedBy());
+        assertEquals(narNode.getNarFileHexDigest(), summaryDTO.getDigest());
+        assertEquals(narNode.getState().getValue(), summaryDTO.getState());
+        assertEquals(narNode.getSource().name(), summaryDTO.getSourceType());
+        assertEquals(narNode.getSourceIdentifier(), summaryDTO.getSourceIdentifier());
+        assertFalse(summaryDTO.isInstallComplete());
+        assertNull(summaryDTO.getFailureMessage());
+
+        final NarCoordinateDTO coordinateDTO = summaryDTO.getCoordinate();
+        verifyCoordinateDTO(narManifest, coordinateDTO);
+
+        final NarCoordinateDTO dependencyCoordinateDTO = summaryDTO.getDependencyCoordinate();
+        verifyDependencyCoordinateDTO(narManifest, dependencyCoordinateDTO);
+    }
+
+    private void verifyCoordinateDTO(final NarManifest narManifest, final NarCoordinateDTO coordinateDTO) {
+        assertEquals(narManifest.getGroup(), coordinateDTO.getGroup());
+        assertEquals(narManifest.getId(), coordinateDTO.getArtifact());
+        assertEquals(narManifest.getVersion(), coordinateDTO.getVersion());
+    }
+
+    private void verifyDependencyCoordinateDTO(final NarManifest narManifest, final NarCoordinateDTO coordinateDTO) {
+        assertEquals(narManifest.getDependencyGroup(), coordinateDTO.getGroup());
+        assertEquals(narManifest.getDependencyId(), coordinateDTO.getArtifact());
+        assertEquals(narManifest.getDependencyVersion(), coordinateDTO.getVersion());
     }
 }

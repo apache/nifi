@@ -24,6 +24,9 @@ import org.apache.nifi.web.api.entity.FlowAnalysisRuleRunStatusEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRulesEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
+import org.apache.nifi.web.api.entity.NarDetailsEntity;
+import org.apache.nifi.web.api.entity.NarSummariesEntity;
+import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
@@ -32,7 +35,9 @@ import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportRequestEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Client for interacting with NiFi's Controller Resource.
@@ -91,5 +96,17 @@ public interface ControllerClient {
     ControllerConfigurationEntity getControllerConfiguration() throws NiFiClientException, IOException;
 
     ControllerConfigurationEntity updateControllerConfiguration(ControllerConfigurationEntity controllerConfiguration) throws NiFiClientException, IOException;
+
+    NarSummaryEntity uploadNar(String filename, InputStream narContentStream) throws NiFiClientException, IOException;
+
+    NarSummariesEntity getNarSummaries() throws NiFiClientException, IOException;
+
+    NarSummaryEntity getNarSummary(String identifier) throws NiFiClientException, IOException;
+
+    NarSummaryEntity deleteNar(String identifier, boolean forceDelete) throws NiFiClientException, IOException;
+
+    NarDetailsEntity getNarDetails(String identifier) throws NiFiClientException, IOException;
+
+    File downloadNar(String identifier, File outputDir) throws NiFiClientException, IOException;
 
 }

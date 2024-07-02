@@ -510,6 +510,19 @@ public final class NarClassLoaders {
     }
 
     /**
+     * Removes the given bundle from the init context.
+     *
+     * @param bundle the bundle to remove
+     */
+    public void removeBundle(final Bundle bundle) {
+        try {
+            initContext.bundles.remove(bundle.getBundleDetails().getWorkingDirectory().getCanonicalPath());
+        } catch (final Exception e) {
+            logger.warn("Failed to remove bundle [{}]", bundle.getBundleDetails().getCoordinate(), e);
+        }
+    }
+
+    /**
      * @return the framework class Bundle
      *
      * @throws IllegalStateException if the frame Bundle has not been loaded

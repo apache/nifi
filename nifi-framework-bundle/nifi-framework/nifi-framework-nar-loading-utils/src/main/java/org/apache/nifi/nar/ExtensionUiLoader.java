@@ -30,4 +30,8 @@ public interface ExtensionUiLoader {
      */
     void loadExtensionUis(Set<Bundle> bundles);
 
+    /**
+     * @param bundles the set of bundles to unload WARs for
+     */
+    void unloadExtensionUis(Set<Bundle> bundles);
 }

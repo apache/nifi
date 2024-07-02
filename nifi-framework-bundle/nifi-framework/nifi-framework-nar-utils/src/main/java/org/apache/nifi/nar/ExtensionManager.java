@@ -111,6 +111,22 @@ public interface ExtensionManager {
     Bundle getBundle(BundleCoordinate bundleCoordinate);
 
     /**
+     * Removes the bundle with the given coordinate from the extension manager.
+     *
+     * @param bundleCoordinate the coordinate
+     * @return the removed bundle, or null if none exists
+     */
+    Bundle removeBundle(BundleCoordinate bundleCoordinate);
+
+    /**
+     * Retrieves the bundles that have a dependency on the bundle with the given coordinate.
+     *
+     * @param bundleCoordinate the coordinate
+     * @return the bundles with a dependency on the coordinate
+     */
+    Set<Bundle> getDependentBundles(BundleCoordinate bundleCoordinate);
+
+    /**
      * Retrieves the extension classes that were loaded from the bundle with the given coordinate.
      *
      * @param bundleCoordinate the coordinate
