@@ -183,6 +183,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
         _propertyDescriptors.add(CHARSET);
         _propertyDescriptors.add(ALLOW_ILLEGAL_HEADER_CHARS);
         _propertyDescriptors.add(ATTRIBUTES_AS_HEADERS_REGEX);
+        _propertyDescriptors.add(MAX_BATCH_SIZE);
 
         _propertyDescriptors.add(RECORD_READER);
         _propertyDescriptors.add(RECORD_WRITER);
@@ -211,8 +212,12 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
      */
     @Override
     protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSPublisher publisher) throws ProcessException {
-        FlowFile flowFile = processSession.get();
-        if (flowFile != null) {
+        final List<FlowFile> flowFiles = processSession.get(context.getProperty(MAX_BATCH_SIZE).asInteger());
+        if (flowFiles.isEmpty()) {
+            return;
+        }
+
+        flowFiles.forEach(flowFile -> {
             try {
                 final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions(flowFile).getValue();
                 final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue();
@@ -278,7 +283,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
             } catch (Exception e) {
                 handleException(context, processSession, publisher, flowFile, e);
             }
-        }
+        });
     }
 
     private void handleException(ProcessContext context, ProcessSession processSession, JMSPublisher publisher, FlowFile flowFile, Exception e) {
