@@ -30,6 +30,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.MockProvenanceEvent;
@@ -128,11 +129,29 @@ class TestQueryNiFiReportingTask {
         root1ConnectionStatus.setId("root1");
         root1ConnectionStatus.setQueuedCount(1000);
         root1ConnectionStatus.setBackPressureObjectThreshold(1000);
+        // Set backpressure predictions
+        ConnectionStatusPredictions connectionStatusPredictions1 = new ConnectionStatusPredictions();
+        connectionStatusPredictions1.setPredictedTimeToCountBackpressureMillis(2000);
+        connectionStatusPredictions1.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions1.setNextPredictedQueuedBytes(1024);
+        connectionStatusPredictions1.setNextPredictedQueuedCount(1);
+        connectionStatusPredictions1.setPredictedPercentBytes(55);
+        connectionStatusPredictions1.setPredictedPercentCount(30);
+        root1ConnectionStatus.setPredictions(connectionStatusPredictions1);
 
         ConnectionStatus root2ConnectionStatus = new ConnectionStatus();
         root2ConnectionStatus.setId("root2");
         root2ConnectionStatus.setQueuedCount(500);
         root2ConnectionStatus.setBackPressureObjectThreshold(1000);
+        // Set backpressure predictions
+        ConnectionStatusPredictions connectionStatusPredictions2 = new ConnectionStatusPredictions();
+        connectionStatusPredictions2.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions2.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions2.setNextPredictedQueuedBytes(1024);
+        connectionStatusPredictions2.setNextPredictedQueuedCount(1);
+        connectionStatusPredictions2.setPredictedPercentBytes(55);
+        connectionStatusPredictions2.setPredictedPercentCount(30);
+        root2ConnectionStatus.setPredictions(connectionStatusPredictions2);
 
         Collection<ConnectionStatus> rootConnectionStatuses = new ArrayList<>();
         rootConnectionStatuses.add(root1ConnectionStatus);
@@ -151,6 +170,15 @@ class TestQueryNiFiReportingTask {
         ConnectionStatus nestedConnectionStatus = new ConnectionStatus();
         nestedConnectionStatus.setId("nested");
         nestedConnectionStatus.setQueuedCount(1001);
+        // Set backpressure predictions
+        ConnectionStatusPredictions connectionStatusPredictions3 = new ConnectionStatusPredictions();
+        connectionStatusPredictions3.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions3.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions3.setNextPredictedQueuedBytes(1024);
+        connectionStatusPredictions3.setNextPredictedQueuedCount(1);
+        connectionStatusPredictions3.setPredictedPercentBytes(55);
+        connectionStatusPredictions3.setPredictedPercentCount(30);
+        nestedConnectionStatus.setPredictions(connectionStatusPredictions3);
         Collection<ConnectionStatus> nestedConnectionStatuses = new ArrayList<>();
         nestedConnectionStatuses.add(nestedConnectionStatus);
         groupStatus2.setConnectionStatus(nestedConnectionStatuses);
@@ -163,6 +191,15 @@ class TestQueryNiFiReportingTask {
         ConnectionStatus nestedConnectionStatus2 = new ConnectionStatus();
         nestedConnectionStatus2.setId("nested2");
         nestedConnectionStatus2.setQueuedCount(3);
+        // Set backpressure predictions
+        ConnectionStatusPredictions connectionStatusPredictions4 = new ConnectionStatusPredictions();
+        connectionStatusPredictions4.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions4.setPredictedTimeToBytesBackpressureMillis(2000);
+        connectionStatusPredictions4.setNextPredictedQueuedBytes(1024);
+        connectionStatusPredictions4.setNextPredictedQueuedCount(1);
+        connectionStatusPredictions4.setPredictedPercentBytes(55);
+        connectionStatusPredictions4.setPredictedPercentCount(30);
+        nestedConnectionStatus2.setPredictions(connectionStatusPredictions4);
         Collection<ConnectionStatus> nestedConnectionStatuses2 = new ArrayList<>();
         nestedConnectionStatuses2.add(nestedConnectionStatus2);
         groupStatus3.setConnectionStatus(nestedConnectionStatuses2);
@@ -224,6 +261,20 @@ class TestQueryNiFiReportingTask {
         id = row.get("id");
         assertEquals("nested2", id);
         assertEquals(3, row.get("queuedCount"));
+    }
+
+    @Test
+    void testConnectionStatusTableJoin() throws InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
+        properties.put(QueryMetricsUtil.QUERY, "SELECT id "
+                + "FROM CONNECTION_STATUS "
+                + "JOIN CONNECTION_STATUS_PREDICTIONS ON CONNECTION_STATUS_PREDICTIONS.connectionId = CONNECTION_STATUS.id");
+        reportingTask = initTask(properties);
+        reportingTask.onTrigger(context);
+
+        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        assertEquals(4, rows.size());
     }
 
     @Test

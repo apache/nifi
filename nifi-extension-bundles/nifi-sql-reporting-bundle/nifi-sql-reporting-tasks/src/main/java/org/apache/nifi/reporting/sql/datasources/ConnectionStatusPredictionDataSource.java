@@ -88,6 +88,10 @@ public class ConnectionStatusPredictionDataSource implements ResettableDataSourc
     private Object[] toArray(final ConnectionStatus status) {
         final ConnectionStatusPredictions predictions = status.getPredictions();
 
+        if (predictions == null) {
+            return new Object[8];
+        }
+
         return new Object[] {
             status.getId(),
             predictions.getNextPredictedQueuedBytes(),
