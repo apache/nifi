@@ -100,6 +100,11 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
     // 2. NarLoader keeps track of NARs that were missing dependencies to consider them on future loads, so this restores state that may have been lost on a restart
     @Override
     public void afterPropertiesSet() throws IOException {
+        final Collection<NarPersistenceInfo> narInfos = loadExistingNars();
+        restoreState(narInfos);
+    }
+
+    private Collection<NarPersistenceInfo> loadExistingNars() throws IOException {
         final Collection<NarPersistenceInfo> narInfos = persistenceProvider.getAllNarInfo();
         LOGGER.info("Initializing NAR Manager, loading {} previously stored NARs", narInfos.size());
 
@@ -107,32 +112,39 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
                 .map(NarPersistenceInfo::getNarFile)
                 .collect(Collectors.toSet());
         narLoader.load(narFiles);
+        return narInfos;
+    }
 
+    private void restoreState(final Collection<NarPersistenceInfo> narInfos) {
         for (final NarPersistenceInfo narInfo : narInfos) {
-            final File narFile = narInfo.getNarFile();
             try {
-                final NarManifest manifest = NarManifest.fromNarFile(narFile);
-                final BundleCoordinate coordinate = manifest.getCoordinate();
-                final String identifier = createIdentifier(coordinate);
-                final NarState state = determineNarState(manifest);
-                final String narDigest = computeNarDigest(narFile);
-
-                final NarNode narNode = NarNode.builder()
-                        .identifier(identifier)
-                        .narFile(narFile)
-                        .narFileHexDigest(narDigest)
-                        .manifest(manifest)
-                        .source(NarSource.valueOf(narInfo.getNarProperties().getSourceType()))
-                        .sourceIdentifier(narInfo.getNarProperties().getSourceId())
-                        .state(state)
-                        .build();
-
-                narNodesById.put(identifier, narNode);
-                LOGGER.debug("Loaded NAR [{}] with state [{}] and identifier [{}]", coordinate, state, identifier);
+                final NarNode narNode = restoreNarNode(narInfo);
+                narNodesById.put(narNode.getIdentifier(), narNode);
+                LOGGER.debug("Restored NAR [{}] with state [{}] and identifier [{}]",
+                        narNode.getManifest().getCoordinate(), narNode.getState(), narNode.getIdentifier());
             } catch (final Exception e) {
-                LOGGER.warn("Failed to load NAR Manifest for [{}]", narFile.getAbsolutePath(), e);
+                LOGGER.warn("Failed to restore NAR for [{}]", narInfo.getNarFile().getAbsolutePath(), e);
             }
         }
+    }
+
+    private NarNode restoreNarNode(final NarPersistenceInfo narInfo) throws IOException {
+        final File narFile = narInfo.getNarFile();
+        final NarManifest manifest = NarManifest.fromNarFile(narFile);
+        final BundleCoordinate coordinate = manifest.getCoordinate();
+        final String identifier = createIdentifier(coordinate);
+        final NarState state = determineNarState(manifest);
+        final String narDigest = computeNarDigest(narFile);
+
+        return NarNode.builder()
+                .identifier(identifier)
+                .narFile(narFile)
+                .narFileHexDigest(narDigest)
+                .manifest(manifest)
+                .source(NarSource.valueOf(narInfo.getNarProperties().getSourceType()))
+                .sourceIdentifier(narInfo.getNarProperties().getSourceId())
+                .state(state)
+                .build();
     }
 
     @Override
