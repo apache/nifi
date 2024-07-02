@@ -127,6 +127,9 @@
         </div>
         <div class="flex">
             <search [currentProcessGroupId]="currentProcessGroupId"></search>
+            <button id="flow-analysis" class="flow-analysis" (click)="openFlowAnalysisMenu()">
+                <i class="fa fa-lightbulb-o flow-analysis-notification-icon w-8"></i>
+            </button>
             @if (hasBulletins()) {
                 <button
                     nifiTooltip

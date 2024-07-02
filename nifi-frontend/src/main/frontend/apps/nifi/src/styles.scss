@@ -34,6 +34,7 @@
 @use 'app/pages/flow-designer/ui/canvas/header/flow-status/flow-status.component-theme' as flow-status;
 @use 'app/pages/flow-designer/ui/canvas/header/new-canvas-item/new-canvas-item.component-theme' as new-canvas-item;
 @use 'app/pages/flow-designer/ui/canvas/header/search/search.component-theme' as search;
+@use 'app/pages/flow-designer/ui/canvas/header/flow-analysis-drawer/flow-analysis-drawer.component' as flow-analysis-drawer;
 @use 'app/pages/login/feature/login.component-theme' as login;
 @use 'app/pages/logout/feature/logout.component-theme' as logout;
 @use 'app/pages/provenance/feature/provenance.component-theme' as provenance;
@@ -107,6 +108,7 @@
 @include processor-status-table.generate-theme($supplemental-theme-light);
 @include change-color-dialog.generate-theme($supplemental-theme-light);
 @include text-editor.generate-theme($material-theme-light, $supplemental-theme-light);
+@include flow-analysis-drawer.generate-theme($material-theme-light, $supplemental-theme-light);
 
 .dark-theme {
     // Include the dark theme color styles.
@@ -140,4 +142,5 @@
     @include processor-status-table.generate-theme($supplemental-theme-dark);
     @include change-color-dialog.generate-theme($supplemental-theme-dark);
     @include text-editor.generate-theme($material-theme-dark, $supplemental-theme-dark);
+    @include flow-analysis-drawer.generate-theme($material-theme-dark, $supplemental-theme-dark);
 }

@@ -25,6 +25,7 @@ import { Search } from '../search/search.component';
 import { NifiTooltipDirective } from '@nifi/shared';
 import { ClusterSummary } from '../../../../../../state/cluster-summary';
 import { ConnectedPosition } from '@angular/cdk/overlay';
+import { CanvasActionsService } from '../../../../service/canvas-actions.service';
 
 @Component({
     selector: 'flow-status',
@@ -51,6 +52,10 @@ export class FlowStatus {
     private filteredBulletins: BulletinEntity[] = initialState.controllerBulletins.bulletins;
 
     protected readonly BulletinsTip = BulletinsTip;
+
+    constructor(private canvasActionsService: CanvasActionsService) {
+
+    }
 
     hasTerminatedThreads(): boolean {
         return this.controllerStatus.terminatedThreadCount > 0;
@@ -140,5 +145,9 @@ export class FlowStatus {
             offsetX: -8,
             offsetY: 8
         };
+    }
+
+    openFlowAnalysisMenu() {
+        this.canvasActionsService.toggleFlowAnalysisDrawer();
     }
 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, signal } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Position } from '../../state/shared';
 import { Store } from '@ngrx/store';
@@ -79,6 +79,7 @@ export class Canvas implements OnInit, OnDestroy {
 
     private scale: number = INITIAL_SCALE;
     private canvasClicked = false;
+    isFlowAnalysisDrawerOpened = signal(false);
 
     constructor(
         private store: Store<CanvasState>,
@@ -289,6 +290,9 @@ export class Canvas implements OnInit, OnDestroy {
         this.canvasView.init(this.svg, this.canvas);
 
         this.store.dispatch(startProcessGroupPolling());
+        this.canvasActionsService.flowAnalaysisDrawerOpen$.subscribe((val) => {
+            this.isFlowAnalysisDrawerOpened.set(val);
+        });
     }
 
     private createSvg(): void {
