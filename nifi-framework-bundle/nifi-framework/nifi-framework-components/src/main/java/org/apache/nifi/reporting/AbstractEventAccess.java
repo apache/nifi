@@ -40,6 +40,7 @@ import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.LoadBalanceStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.PerformanceMetrics;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
@@ -162,6 +163,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         int flowFilesTransferred = 0;
         long bytesTransferred = 0;
         long processingNanos = 0;
+        final PerformanceMetrics metrics = new PerformanceMetrics();
 
         final boolean populateChildStatuses = currentDepth <= recursiveStatusDepth;
 
@@ -192,6 +194,8 @@ public abstract class AbstractEventAccess implements EventAccess {
             bytesSent += procStat.getBytesSent();
 
             processingNanos += procStat.getProcessingNanos();
+
+            PerformanceMetrics.merge(metrics, procStat.getPerformanceMetrics());
         }
 
         // set status for local child groups
@@ -226,6 +230,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             bytesTransferred += childGroupStatus.getBytesTransferred();
 
             processingNanos += childGroupStatus.getProcessingNanos();
+            PerformanceMetrics.merge(metrics, childGroupStatus.getPerformanceMetrics());
         }
 
         // set status for remote child groups
@@ -513,6 +518,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         status.setFlowFilesTransferred(flowFilesTransferred);
         status.setBytesTransferred(bytesTransferred);
         status.setProcessingNanos(processingNanos);
+        status.setPerformanceMetrics(metrics);
 
         final VersionControlInformation vci = group.getVersionControlInformation();
         if (vci != null) {
@@ -660,6 +666,9 @@ public abstract class AbstractEventAccess implements EventAccess {
             if (isProcessorAuthorized) {
                 status.setCounters(flowFileEvent.getCounters());
             }
+
+            final PerformanceMetrics metrics = PerformanceMetricsUtil.getPerformanceMetrics(flowFileEventRepository.reportAggregateEvent(), flowFileEvent, procNode);
+            status.setPerformanceMetrics(metrics);
         }
 
         // Determine the run status and get any validation error... only validating while STOPPED
