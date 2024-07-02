@@ -20,19 +20,18 @@ import {
     BulletinEntity,
     Bundle,
     ComponentHistory,
-    ComponentType,
     DocumentedType,
     ParameterContextEntity,
     ParameterContextReferenceEntity,
     Permissions,
     RegistryClientEntity,
     Revision,
-    SelectOption,
     SparseVersionedFlow,
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BackNavigation } from '../../../../state/navigation';
+import { ComponentType, SelectOption } from 'libs/shared/src';
 
 export const flowFeatureKey = 'flowState';
 

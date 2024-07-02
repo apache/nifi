@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CreatePort } from './create-port.component';
 import { CreateComponentRequest } from '../../../../../state/flow';
-import { ComponentType } from '../../../../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';

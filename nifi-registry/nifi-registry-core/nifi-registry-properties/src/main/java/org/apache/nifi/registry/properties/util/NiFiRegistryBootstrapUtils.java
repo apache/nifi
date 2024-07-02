@@ -28,17 +28,6 @@ public class NiFiRegistryBootstrapUtils {
     private static final AbstractBootstrapPropertiesLoader BOOTSTRAP_PROPERTIES_LOADER = new NiFiRegistryBootstrapPropertiesLoader();
 
     /**
-     * Returns the key (if any) used to encrypt sensitive properties, extracted from
-     * {@code $NIFI_REGISTRY_HOME/conf/bootstrap.conf}.
-     *
-     * @return the key in hexadecimal format
-     * @throws IOException if the file is not readable
-     */
-    public static String extractKeyFromBootstrapFile() throws IOException {
-        return BOOTSTRAP_PROPERTIES_LOADER.extractKeyFromBootstrapFile();
-    }
-
-    /**
      * Loads the default bootstrap.conf file into a BootstrapProperties object.
      * @return The default bootstrap.conf as a BootstrapProperties object
      * @throws IOException If the file is not readable
@@ -55,19 +44,6 @@ public class NiFiRegistryBootstrapUtils {
      */
     public static BootstrapProperties loadBootstrapProperties(final String bootstrapPath) throws IOException {
         return BOOTSTRAP_PROPERTIES_LOADER.loadBootstrapProperties(bootstrapPath);
-    }
-
-    /**
-     * Returns the key (if any) used to encrypt sensitive properties, extracted from
-     * {@code $NIFI_REGISTRY_HOME/conf/bootstrap.conf}.
-     *
-     * @param bootstrapPath the path to the bootstrap file (if null, returns the sensitive key
-     *                      found in $NIFI_REGISTRY_HOME/conf/bootstrap.conf)
-     * @return the key in hexadecimal format
-     * @throws IOException if the file is not readable
-     */
-    public static String extractKeyFromBootstrapFile(final String bootstrapPath) throws IOException {
-        return BOOTSTRAP_PROPERTIES_LOADER.extractKeyFromBootstrapFile(bootstrapPath);
     }
 
     /**

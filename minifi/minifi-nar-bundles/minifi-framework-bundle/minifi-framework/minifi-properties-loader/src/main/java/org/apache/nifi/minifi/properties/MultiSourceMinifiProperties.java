@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.minifi.properties;
 
-import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -29,7 +29,7 @@ import org.apache.nifi.util.NiFiProperties;
  */
 public class MultiSourceMinifiProperties extends NiFiProperties {
 
-    public MultiSourceMinifiProperties(Map<String, String> props) {
+    public MultiSourceMinifiProperties(Properties props) {
         super(props);
     }
 

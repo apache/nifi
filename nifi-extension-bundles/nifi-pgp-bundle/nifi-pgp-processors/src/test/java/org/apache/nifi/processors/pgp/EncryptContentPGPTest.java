@@ -80,6 +80,8 @@ public class EncryptContentPGPTest {
 
     private static final byte[] DATA_BINARY = DATA.getBytes(StandardCharsets.UTF_8);
 
+    private static final byte EXPERIMENTAL_PACKET_INDICATOR = -1;
+
     private static final SymmetricKeyAlgorithm DEFAULT_SYMMETRIC_KEY_ALGORITHM = SymmetricKeyAlgorithm.valueOf(EncryptContentPGP.SYMMETRIC_KEY_ALGORITHM.getDefaultValue());
 
     private static final String SERVICE_ID = PGPPublicKeyService.class.getName();
@@ -195,6 +197,22 @@ public class EncryptContentPGPTest {
         runner.enqueue(signedData);
         runner.run();
         assertSuccess(rsaPrivateKey, DecryptionStrategy.PACKAGED, signedData);
+    }
+
+    @Test
+    public void testSuccessPublicKeyEncryptionExperimentalPacketTag() throws IOException, PGPException, InitializationException {
+        final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
+        setPublicKeyService(publicKey);
+        final String publicKeyIdSearch = KeyIdentifierConverter.format(publicKey.getKeyID());
+        when(publicKeyService.findPublicKey(eq(publicKeyIdSearch))).thenReturn(Optional.of(publicKey));
+
+        final byte[] bytes = DATA.getBytes(StandardCharsets.UTF_8);
+        bytes[0] = EXPERIMENTAL_PACKET_INDICATOR;
+
+        runner.enqueue(bytes);
+        runner.run();
+
+        assertSuccess(rsaPrivateKey, DecryptionStrategy.DECRYPTED, bytes);
     }
 
     @Test

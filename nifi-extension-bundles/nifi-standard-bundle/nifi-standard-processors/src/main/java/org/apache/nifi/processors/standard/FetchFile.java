@@ -314,7 +314,7 @@ public class FetchFile extends AbstractProcessor {
         try (final FileInputStream fis = new FileInputStream(file)) {
             flowFile = session.importFrom(fis, flowFile);
         } catch (final IOException | FlowFileAccessException ioe) {
-            getLogger().error("Could not fetch file {} from file system for {} due to {}; routing to failure", file, flowFile, ioe.toString(), ioe);
+            getLogger().error("Could not fetch file {} from file system for {}", file, flowFile, ioe);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }

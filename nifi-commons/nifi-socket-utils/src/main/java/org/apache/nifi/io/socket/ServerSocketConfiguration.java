@@ -17,9 +17,6 @@
 package org.apache.nifi.io.socket;
 
 import javax.net.ssl.SSLContext;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 
 public final class ServerSocketConfiguration {
 
@@ -27,17 +24,17 @@ public final class ServerSocketConfiguration {
     private Integer socketTimeout;
     private Boolean reuseAddress;
     private Integer receiveBufferSize;
-    private TlsConfiguration tlsConfiguration;
+    private SSLContext sslContext;
+
+    public SSLContext getSslContext() {
+        return sslContext;
+    }
+
+    public void setSslContext(final SSLContext sslContext) {
+        this.sslContext = sslContext;
+    }
 
     public ServerSocketConfiguration() {
-    }
-
-    public SSLContext createSSLContext() throws TlsException {
-        return SslContextFactory.createSslContext(tlsConfiguration);
-    }
-
-    public void setTlsConfiguration(final TlsConfiguration tlsConfiguration) {
-        this.tlsConfiguration = tlsConfiguration;
     }
 
     public Integer getSocketTimeout() {

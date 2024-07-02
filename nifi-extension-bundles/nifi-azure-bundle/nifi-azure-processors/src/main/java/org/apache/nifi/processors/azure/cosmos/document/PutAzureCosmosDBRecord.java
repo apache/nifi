@@ -168,7 +168,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                     contentMap.put("id", UUID.randomUUID().toString());
                 }
                 if (!contentMap.containsKey(partitionKeyField)) {
-                    logger.error(String.format("PutAzureCosmoDBRecord failed with missing partitionKeyField (%s)", partitionKeyField));
+                    logger.error("PutAzureCosmoDBRecord failed with missing partitionKeyField ({})", partitionKeyField);
                     error = true;
                     break;
                 }

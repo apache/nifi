@@ -96,7 +96,7 @@ public class RunStatelessFlow {
 
         final StatelessDataflowValidation validation = dataflow.performValidation();
         if (!validation.isValid()) {
-            logger.error(validation.toString());
+            logger.error("{}", validation);
             throw new IllegalStateException("Dataflow is not valid");
         }
 

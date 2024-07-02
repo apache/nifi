@@ -18,7 +18,7 @@
 import { createSelector } from '@ngrx/store';
 import { ClusterState, selectClusterState } from '../index';
 import { clusterListingFeatureKey, ClusterListingState } from './index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from '@nifi/shared';
 
 export const selectClusterListing = createSelector(
     selectClusterState,

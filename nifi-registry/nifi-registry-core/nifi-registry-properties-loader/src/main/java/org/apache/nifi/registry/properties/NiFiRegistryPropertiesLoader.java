@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.registry.properties;
 
-import org.apache.nifi.properties.BootstrapProperties;
-import org.apache.nifi.properties.SensitivePropertyProvider;
-import org.apache.nifi.properties.SensitivePropertyProviderFactory;
-import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
-import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,70 +28,15 @@ public class NiFiRegistryPropertiesLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryPropertiesLoader.class);
 
-    private String keyHex;
-
-    // Future enhancement: allow for external registration of new providers
-    private SensitivePropertyProviderFactory sensitivePropertyProviderFactory;
-
     /**
-     * Returns an instance of the loader configured with the key.
-     * <p>
-     * <p>
-     * NOTE: This method is used reflectively by the process which starts NiFi
-     * so changes to it must be made in conjunction with that mechanism.</p>
+     * Returns an instance of {@link NiFiRegistryProperties} loaded from the provided
+     * {@link File}.
      *
-     * @param keyHex the key used to encrypt any sensitive properties
-     * @return the configured loader
+     * @param file the File containing the serialized properties
+     * @return the NiFiProperties instance
      */
-    public static NiFiRegistryPropertiesLoader withKey(final String keyHex) {
-        NiFiRegistryPropertiesLoader loader = new NiFiRegistryPropertiesLoader();
-        loader.setKeyHex(keyHex);
-        return loader;
-    }
-
-    /**
-     * Sets the hexadecimal key used to unprotect properties encrypted with
-     * {@link SensitivePropertyProvider}. If the key has already been set,
-     * calling this method will throw a {@link RuntimeException}.
-     *
-     * @param keyHex the key in hexadecimal format
-     */
-    public void setKeyHex(final String keyHex) {
-        if (this.keyHex == null || this.keyHex.trim().isEmpty()) {
-            this.keyHex = keyHex;
-        } else {
-            throw new RuntimeException("Cannot overwrite an existing key");
-        }
-    }
-
-    private SensitivePropertyProviderFactory getSensitivePropertyProviderFactory() {
-        if (sensitivePropertyProviderFactory == null) {
-            sensitivePropertyProviderFactory = StandardSensitivePropertyProviderFactory
-                    .withKeyAndBootstrapSupplier(keyHex, () -> {
-                        try {
-                            return NiFiRegistryBootstrapUtils.loadBootstrapProperties();
-                        } catch (IOException e) {
-                            logger.debug("Cannot read bootstrap.conf -- file is missing or not readable.  Defaulting to empty bootstrap.conf");
-                            return BootstrapProperties.EMPTY;
-                        }
-                    });
-        }
-        return sensitivePropertyProviderFactory;
-    }
-
-    /**
-     * Returns a {@link ProtectedNiFiRegistryProperties} instance loaded from the
-     * serialized form in the file. Responsible for actually reading from disk
-     * and deserializing the properties. Returns a protected instance to allow
-     * for decryption operations.
-     *
-     * @param file the file containing serialized properties
-     * @return the ProtectedNiFiProperties instance
-     */
-    ProtectedNiFiRegistryProperties readProtectedPropertiesFromDisk(File file) {
+    public NiFiRegistryProperties load(final File file) {
         if (file == null || !file.exists() || !file.canRead()) {
-            String path = (file == null ? "missing file" : file.getAbsolutePath());
-            logger.error("Cannot read from '{}' -- file is missing or not readable", path);
             throw new IllegalArgumentException("NiFi Registry properties file missing or unreadable");
         }
 
@@ -105,30 +45,10 @@ public class NiFiRegistryPropertiesLoader {
             rawProperties.load(reader);
             final NiFiRegistryProperties innerProperties = new NiFiRegistryProperties(rawProperties);
             logger.info("Loaded {} properties from {}", rawProperties.size(), file.getAbsolutePath());
-            return new ProtectedNiFiRegistryProperties(innerProperties);
+            return innerProperties;
         } catch (final IOException ioe) {
-            logger.error("Cannot load properties file", ioe);
-            throw new RuntimeException("Cannot load properties file due to " + ioe.getLocalizedMessage(), ioe);
+            throw new RuntimeException("Failed to load Application Properties", ioe);
         }
-    }
-
-    /**
-     * Returns an instance of {@link NiFiRegistryProperties} loaded from the provided
-     * {@link File}. If any properties are protected, will attempt to use the appropriate
-     * {@link SensitivePropertyProvider} to unprotect them transparently.
-     *
-     * @param file the File containing the serialized properties
-     * @return the NiFiProperties instance
-     */
-    public NiFiRegistryProperties load(final File file) {
-        final ProtectedNiFiRegistryProperties protectedNiFiProperties = readProtectedPropertiesFromDisk(file);
-        if (protectedNiFiProperties.hasProtectedKeys()) {
-            getSensitivePropertyProviderFactory()
-                    .getSupportedProviders()
-                    .forEach(protectedNiFiProperties::addSensitivePropertyProvider);
-        }
-
-        return protectedNiFiProperties.getUnprotectedProperties();
     }
 
     /**

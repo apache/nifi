@@ -41,9 +41,6 @@ import jakarta.ws.rs.core.Response;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.x509.ocsp.OcspStatus.ValidationStatus;
@@ -78,7 +75,6 @@ public class OcspCertificateValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(OcspCertificateValidator.class);
 
-    private static final String HTTPS = "https";
     private static final String OCSP_REQUEST_CONTENT_TYPE = "application/ocsp-request";
 
     private static final int CONNECT_TIMEOUT = 10000;
@@ -105,12 +101,7 @@ public class OcspCertificateValidator {
                 clientConfig.property(ClientProperties.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
 
                 // initialize the client
-                if (HTTPS.equalsIgnoreCase(validationAuthorityURI.getScheme())) {
-                    TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-                    client = WebUtils.createClient(clientConfig, SslContextFactory.createSslContext(tlsConfiguration));
-                } else {
-                    client = WebUtils.createClient(clientConfig);
-                }
+                client = WebUtils.createClient(clientConfig);
 
                 // get the trusted CAs
                 trustedCAs = getTrustedCAs(properties);
@@ -128,9 +119,9 @@ public class OcspCertificateValidator {
                 ocspCache = Caffeine.newBuilder().expireAfterWrite(cacheDurationMillis, TimeUnit.MILLISECONDS).build(ocspRequest -> {
                     final String subjectDn = ocspRequest.getSubjectCertificate().getSubjectX500Principal().getName();
 
-                    logger.info(String.format("Validating client certificate via OCSP: <%s>", subjectDn));
+                    logger.info("Validating client certificate via OCSP: <{}>", subjectDn);
                     final OcspStatus ocspStatus = getOcspStatus(ocspRequest);
-                    logger.info(String.format("Client certificate status for <%s>: %s", subjectDn, ocspStatus.toString()));
+                    logger.info("Client certificate status for <{}>: {}", subjectDn, ocspStatus);
 
                     return ocspStatus;
                 });
@@ -307,7 +298,7 @@ public class OcspCertificateValidator {
 
             // ensure the request was completed successfully
             if (Response.Status.OK.getStatusCode() != response.getStatusInfo().getStatusCode()) {
-                logger.warn(String.format("OCSP request was unsuccessful (%s).", response.getStatus()));
+                logger.warn("OCSP request was unsuccessful ({}).", response.getStatus());
                 return ocspStatus;
             }
 
@@ -341,14 +332,14 @@ public class OcspCertificateValidator {
 
             // only proceed if the response was successful
             if (ocspResponse.getStatus() != OCSPRespBuilder.SUCCESSFUL) {
-                logger.warn(String.format("OCSP request was unsuccessful (%s).", ocspStatus.getResponseStatus().toString()));
+                logger.warn("OCSP request was unsuccessful ({}).", ocspStatus.getResponseStatus());
                 return ocspStatus;
             }
 
             // ensure the appropriate response object
             final Object ocspResponseObject = ocspResponse.getResponseObject();
             if (!(ocspResponseObject instanceof BasicOCSPResp)) {
-                logger.warn(String.format("Unexpected OCSP response object: %s", ocspResponseObject));
+                logger.warn("Unexpected OCSP response object: {}", ocspResponseObject);
                 return ocspStatus;
             }
 
@@ -358,7 +349,7 @@ public class OcspCertificateValidator {
             // attempt to locate the responder certificate
             final X509CertificateHolder[] responderCertificates = basicOcspResponse.getCerts();
             if (responderCertificates.length != 1) {
-                logger.warn(String.format("Unexpected number of OCSP responder certificates: %s", responderCertificates.length));
+                logger.warn("Unexpected number of OCSP responder certificates: {}", responderCertificates.length);
                 return ocspStatus;
             }
 
@@ -397,7 +388,7 @@ public class OcspCertificateValidator {
         } catch (final OCSPException | IOException | ProcessingException | OperatorCreationException e) {
             logger.error(e.getMessage(), e);
         } catch (CertificateException e) {
-            e.printStackTrace();
+            logger.error("Certificate processing failed", e);
         }
 
         return ocspStatus;

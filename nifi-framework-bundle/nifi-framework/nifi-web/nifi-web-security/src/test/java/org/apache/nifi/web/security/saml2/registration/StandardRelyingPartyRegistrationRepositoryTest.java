@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.web.security.saml2.registration;
 
+import org.apache.nifi.security.ssl.StandardKeyManagerBuilder;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
+import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
@@ -24,8 +28,15 @@ import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 import javax.security.auth.x500.X500Principal;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
+import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 import java.util.Objects;
@@ -48,7 +59,7 @@ class StandardRelyingPartyRegistrationRepositoryTest {
     @Test
     void testFindByRegistrationId() {
         final NiFiProperties properties = getProperties();
-        final StandardRelyingPartyRegistrationRepository repository = new StandardRelyingPartyRegistrationRepository(properties);
+        final StandardRelyingPartyRegistrationRepository repository = new StandardRelyingPartyRegistrationRepository(properties, null, null, null);
 
         final RelyingPartyRegistration registration = repository.findByRegistrationId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());
 
@@ -66,11 +77,14 @@ class StandardRelyingPartyRegistrationRepositoryTest {
     }
 
     @Test
-    void testFindByRegistrationIdSingleLogoutEnabled() {
+    void testFindByRegistrationIdSingleLogoutEnabled() throws IOException {
         final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+        final X509ExtendedKeyManager keyManager = getKeyManager(tlsConfiguration);
+        final X509ExtendedTrustManager trustManager = getTrustManager(tlsConfiguration);
+        final SSLContext sslContext = new StandardSslContextBuilder().keyManager(keyManager).trustManager(trustManager).build();
 
         final NiFiProperties properties = getSingleLogoutProperties(tlsConfiguration);
-        final StandardRelyingPartyRegistrationRepository repository = new StandardRelyingPartyRegistrationRepository(properties);
+        final StandardRelyingPartyRegistrationRepository repository = new StandardRelyingPartyRegistrationRepository(properties, sslContext, keyManager, trustManager);
 
         final RelyingPartyRegistration registration = repository.findByRegistrationId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());
 
@@ -144,5 +158,32 @@ class StandardRelyingPartyRegistrationRepositoryTest {
     private String getFileMetadataUrl() {
         final URL resource = Objects.requireNonNull(getClass().getResource(METADATA_PATH));
         return resource.toString();
+    }
+
+    private X509ExtendedKeyManager getKeyManager(final TlsConfiguration tlsConfiguration) throws IOException {
+        try (InputStream inputStream = new FileInputStream(tlsConfiguration.getKeystorePath())) {
+            final KeyStore keyStore = new StandardKeyStoreBuilder()
+                    .inputStream(inputStream)
+                    .password(tlsConfiguration.getKeystorePassword().toCharArray())
+                    .type(tlsConfiguration.getKeystoreType().getType())
+                    .build();
+
+            return new StandardKeyManagerBuilder()
+                    .keyStore(keyStore)
+                    .keyPassword(tlsConfiguration.getFunctionalKeyPassword().toCharArray())
+                    .build();
+        }
+    }
+
+    private X509ExtendedTrustManager getTrustManager(final TlsConfiguration tlsConfiguration) throws IOException {
+        try (InputStream inputStream = new FileInputStream(tlsConfiguration.getTruststorePath())) {
+            final KeyStore trustStore = new StandardKeyStoreBuilder()
+                    .inputStream(inputStream)
+                    .password(tlsConfiguration.getTruststorePassword().toCharArray())
+                    .type(tlsConfiguration.getTruststoreType().getType())
+                    .build();
+
+            return new StandardTrustManagerBuilder().trustStore(trustStore).build();
+        }
     }
 }

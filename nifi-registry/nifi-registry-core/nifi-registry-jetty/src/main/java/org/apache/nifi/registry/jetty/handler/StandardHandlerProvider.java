@@ -18,7 +18,6 @@ package org.apache.nifi.registry.jetty.handler;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
 import org.eclipse.jetty.ee10.webapp.MetaInfConfiguration;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
@@ -71,8 +70,6 @@ public class StandardHandlerProvider implements HandlerProvider {
 
     private static final String PROPERTIES_PARAMETER = "nifi-registry.properties";
 
-    private static final String KEY_PROVIDER_PARAMETER = "nifi-registry.key";
-
     private static final String RESOURCE_BASE_PARAMETER = "baseResource";
 
     private static final String DIR_ALLOWED_PARAMETER = "dirAllowed";
@@ -83,12 +80,9 @@ public class StandardHandlerProvider implements HandlerProvider {
 
     private static final String CONTAINER_JAR_PATTERN = ".*/jetty-jakarta-servlet-api-[^/]*\\.jar$|.*jakarta.servlet.jsp.jstl-[^/]*\\.jar";
 
-    private final CryptoKeyProvider cryptoKeyProvider;
-
     private final String docsDirectory;
 
-    public StandardHandlerProvider(final CryptoKeyProvider cryptoKeyProvider, final String docsDirectory) {
-        this.cryptoKeyProvider = Objects.requireNonNull(cryptoKeyProvider, "Key Provider required");
+    public StandardHandlerProvider(final String docsDirectory) {
         this.docsDirectory = docsDirectory;
     }
 
@@ -116,7 +110,6 @@ public class StandardHandlerProvider implements HandlerProvider {
         final ClassLoader apiClassLoader = getApiClassLoader(properties.getDatabaseDriverDirectory());
         final WebAppContext apiContext = getWebAppContext(libDirectory, workDirectory, apiClassLoader, API_FILE_PATTERN, API_CONTEXT_PATH);
         apiContext.setAttribute(PROPERTIES_PARAMETER, properties);
-        apiContext.setAttribute(KEY_PROVIDER_PARAMETER, cryptoKeyProvider);
         handlers.addHandler(apiContext);
 
         final WebAppContext docsContext = getWebAppContext(libDirectory, workDirectory, ClassLoader.getSystemClassLoader(), DOCS_FILE_PATTERN, DOCS_CONTEXT_PATH);

@@ -318,7 +318,6 @@ class TestJsonTreeRowRecordReader {
     void testReadJSONDisallowComments() {
         final MalformedRecordException mre = assertThrows(MalformedRecordException.class, () ->
             testReadAccountJson("src/test/resources/json/bank-account-comments.jsonc", false, StreamReadConstraints.builder().maxStringLength(20_000).build()));
-        assertTrue(mre.getMessage().contains("not parse"));
     }
 
     private void testReadAccountJson(final String inputFile, final boolean allowComments, final StreamReadConstraints streamReadConstraints) throws IOException, MalformedRecordException {
@@ -713,6 +712,77 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
+    @Test
+    public void testMultipleInputRecordsWithStartingFieldArray() throws IOException, MalformedRecordException {
+        final String inputJson = """
+            [{
+              "books": [{
+                "id": 1,
+                "title": "Book 1"
+              }, {
+                "id": 2,
+                "title": "Book 2"
+              }]
+            }, {
+              "books": [{
+                  "id": 3,
+                  "title": "Book 3"
+              }, {
+                "id": 4,
+                "title": "Book 4"
+              }]
+            }]""";
+
+        final RecordSchema bookSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("title", RecordFieldType.STRING.getDataType())
+        ));
+
+        final List<String> ids = new ArrayList<>();
+        try (final InputStream in = new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8));
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), bookSchema, dateFormat, timeFormat, timestampFormat,
+                 StartingFieldStrategy.NESTED_FIELD, "books", SchemaApplicationStrategy.SELECTED_PART, null)) {
+
+            Record record;
+            while ((record = reader.nextRecord()) != null) {
+                final String id = record.getAsString("id");
+                ids.add(id);
+            }
+        }
+
+        assertEquals(List.of("1", "2", "3", "4"), ids);
+    }
+
+    @Test
+    public void testMultipleInputRecordsWithStartingFieldSingleObject() throws IOException, MalformedRecordException {
+        final String inputJson = """
+            {"book": {"id": 1,"title": "Book 1"}}
+            {"book": {"id": 2,"title": "Book 2"}}
+            {"book": {"id": 3,"title": "Book 3"}}
+            {"book": {"id": 4,"title": "Book 4"}}
+            """;
+
+        final RecordSchema bookSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("id", RecordFieldType.INT.getDataType()),
+            new RecordField("title", RecordFieldType.STRING.getDataType())
+        ));
+
+        final List<String> ids = new ArrayList<>();
+        try (final InputStream in = new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8));
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), bookSchema, dateFormat, timeFormat, timestampFormat,
+                 StartingFieldStrategy.NESTED_FIELD, "book", SchemaApplicationStrategy.SELECTED_PART, null)) {
+
+            Record record;
+            while ((record = reader.nextRecord()) != null) {
+                final String id = record.getAsString("id");
+                ids.add(id);
+            }
+        }
+
+        assertEquals(List.of("1", "2", "3", "4"), ids);
+    }
+
+
 
     @Test
     void testReadUnicodeCharacters() throws IOException, MalformedRecordException {
@@ -884,35 +954,35 @@ class TestJsonTreeRowRecordReader {
         //  so we take the first one (INT, BOOLEAN) - as best effort - for both cases
         SimpleRecordSchema expectedSelectedRecordSchemaForRecordsInBothArrays = expectedChildSchema1;
 
-        List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>() {{
-                put("record", new Object[]{
-                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
-                        put("integer", 11);
-                        put("boolean", true);
-                        put("extraString", "extraStringValue11");
-                    }}),
-                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
-                        put("integer", 12);
-                        put("boolean", false);
-                        put("extraString", "extraStringValue12");
-                    }})
-                });
-            }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>() {{
-                put("record", new Object[]{
-                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
-                        put("integer", 21);
-                        put("extraString", "extraStringValue21");
-                        put("string", "stringValue21");
-                    }}),
-                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
-                        put("integer", 22);
-                        put("extraString", "extraStringValue22");
-                        put("string", "stringValue22");
-                    }})
-                });
-            }})
+        List<Object> expected = List.of(
+            new MapRecord(expectedRecordChoiceSchema, Map.of(
+                "record", new Object[] {
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, Map.of(
+                        "integer", 11,
+                        "boolean", true,
+                        "extraString", "extraStringValue11"
+                    )),
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, Map.of(
+                        "integer", 12,
+                        "boolean", false,
+                        "extraString", "extraStringValue12"
+                    ))
+                }
+            )),
+            new MapRecord(expectedRecordChoiceSchema, Map.of(
+                "record", new Object[] {
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, Map.of(
+                        "integer", 21,
+                        "extraString", "extraStringValue21",
+                        "string", "stringValue21"
+                    )),
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, Map.of(
+                        "integer", 22,
+                        "extraString", "extraStringValue22",
+                        "string", "stringValue22"
+                    ))
+                }
+            ))
         );
 
         testReadRecords(jsonPath, schema, expected);
@@ -927,15 +997,9 @@ class TestJsonTreeRowRecordReader {
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        List<Object> expected = Arrays.asList(
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }}),
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                    put("id", 43);
-                    put("balance", 48212.38);
-                }})
+        List<Object> expected = List.of(
+            new MapRecord(expectedRecordSchema, Map.of("id", 42, "balance", 4750.89)),
+            new MapRecord(expectedRecordSchema, Map.of("id", 43, "balance", 48212.38))
         );
 
         testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "accounts");
@@ -950,12 +1014,7 @@ class TestJsonTreeRowRecordReader {
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        List<Object> expected = Collections.singletonList(
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }})
-        );
+        List<Object> expected = List.of(new MapRecord(expectedRecordSchema, Map.of("id", 42, "balance", 4750.89)));
 
         testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "account");
     }
@@ -969,15 +1028,9 @@ class TestJsonTreeRowRecordReader {
                 new RecordField("type", RecordFieldType.STRING.getDataType())
         ));
 
-        List<Object> expected = Arrays.asList(
-                    new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                        put("id", "n312kj3");
-                        put("type", "employee");
-                    }}),
-                    new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                        put("id", "dl2kdff");
-                        put("type", "security");
-                    }})
+        List<Object> expected = List.of(
+            new MapRecord(expectedRecordSchema, Map.of("id", "n312kj3", "type", "employee")),
+            new MapRecord(expectedRecordSchema, Map.of("id", "dl2kdff", "type", "security"))
         );
 
         testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "accountIds");
@@ -1005,20 +1058,14 @@ class TestJsonTreeRowRecordReader {
     void testStartFromNestedFieldThenStartObject() throws IOException, MalformedRecordException {
         String jsonPath = "src/test/resources/json/nested-array-then-start-object.json";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        List<Object> expected = Arrays.asList(
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }}),
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                    put("id", 43);
-                    put("balance", 48212.38);
-                }})
+        final List<Object> expected = List.of(
+            new MapRecord(expectedRecordSchema, Map.of("id", 42, "balance", 4750.89)),
+            new MapRecord(expectedRecordSchema, Map.of("id", 43, "balance", 48212.38))
         );
 
         testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
@@ -1029,22 +1076,19 @@ class TestJsonTreeRowRecordReader {
     void testStartFromNestedObjectWithWholeJsonSchemaScope() throws IOException, MalformedRecordException {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
-        RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("account", RecordFieldType.RECORD.getRecordDataType(accountSchema))
         ));
 
-        RecordSchema expectedRecordSchema = accountSchema;
+        final RecordSchema expectedRecordSchema = accountSchema;
 
-        List<Object> expected = Collections.singletonList(
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }})
+        final List<Object> expected = List.of(
+            new MapRecord(expectedRecordSchema, Map.of("id", 42, "balance", 4750.89))
         );
 
         testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
@@ -1067,14 +1111,8 @@ class TestJsonTreeRowRecordReader {
         RecordSchema expectedRecordSchema = accountSchema;
 
         List<Object> expected = Arrays.asList(
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }}),
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                    put("id", 43);
-                    put("balance", 48212.38);
-                }})
+            new MapRecord(expectedRecordSchema, Map.of("id", 42, "balance", 4750.89)),
+            new MapRecord(expectedRecordSchema, Map.of("id", 43, "balance", 48212.38))
         );
 
         testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
@@ -1264,7 +1302,7 @@ class TestJsonTreeRowRecordReader {
             List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
             List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
 
-            assertEquals(wrappedExpected, wrappedActual);
+            assertEquals(wrappedExpected, wrappedActual, "Expected: " + expected + ", Actual: " + actual);
         }
     }
 

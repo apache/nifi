@@ -145,7 +145,6 @@
             <scope>runtime</scope>
             <type>zip</type>
         </dependency>
-        <!-- Dependencies for sensitive properties providers that will be written out to lib/spp and excluded from lib -->
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-properties-loader</artifactId>

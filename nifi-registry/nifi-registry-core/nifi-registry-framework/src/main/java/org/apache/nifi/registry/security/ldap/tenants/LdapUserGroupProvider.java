@@ -586,9 +586,9 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                                 if (user != null) {
                                                     groupToUserIdentifierMappings.computeIfAbsent(referencedGroupValue, g -> new HashSet<>()).add(user.getIdentifier());
                                                 } else {
-                                                    logger.debug(String.format("%s contains member %s but that user was not found while searching users. " +
+                                                    logger.debug("{} contains member {} but that user was not found while searching users. " +
                                                             "This may be due to misconfiguration or because that user is not a NiFi Registry user as defined by the User Search Base and Filter. " +
-                                                            "Ignoring group membership.", name, userValue));
+                                                            "Ignoring group membership.", name, userValue);
                                                 }
                                             } else {
                                                 // since performUserSearch is false, then the referenced group attribute must be blank... the user value must be the dn.
@@ -634,10 +634,10 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 } while (hasMorePages(groupProcessor));
 
                 // any remaining groupDn's were referenced by a user but not found while searching groups
-                groupToUserIdentifierMappings.forEach((referencedGroupValue, userIdentifiers) -> logger.debug(String.format(
-                                "[%s] are members of %s but that group was not found while searching groups. " +
+                groupToUserIdentifierMappings.forEach((referencedGroupValue, userIdentifiers) -> logger.debug(
+                                "[{}] are members of {} but that group was not found while searching groups. " +
                                 "This may be due to misconfiguration or because that group is not a NiFi Registry group as defined by the Group Search Base and Filter. " +
-                                "Ignoring group membership.", StringUtils.join(userIdentifiers, ", "), referencedGroupValue)));
+                                "Ignoring group membership.", StringUtils.join(userIdentifiers, ", "), referencedGroupValue));
             } else {
                 // since performGroupSearch is false, then the referenced user attribute must be blank... the group value must be the dn
 

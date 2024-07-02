@@ -21,9 +21,7 @@ import { MatButton } from '@angular/material/button';
 import { Bundle, DocumentedType, OpenChangeComponentVersionDialogRequest } from '../../../state/shared';
 import { MatFormField, MatLabel, MatOption, MatSelect } from '@angular/material/select';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TextTip } from '../tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { TextTip, NifiTooltipDirective, NiFiCommon } from '@nifi/shared';
 import { ControllerServiceApi } from '../controller-service/controller-service-api/controller-service-api.component';
 import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 

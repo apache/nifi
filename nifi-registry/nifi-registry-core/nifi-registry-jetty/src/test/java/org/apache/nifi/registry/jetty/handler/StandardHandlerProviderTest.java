@@ -17,12 +17,10 @@
 package org.apache.nifi.registry.jetty.handler;
 
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
@@ -31,15 +29,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 class StandardHandlerProviderTest {
-    @Mock
-    private CryptoKeyProvider cryptoKeyProvider;
 
     private StandardHandlerProvider provider;
 
     @BeforeEach
     void setProvider(@TempDir final File tempDir) {
         final String docsDirectory = tempDir.getAbsolutePath();
-        provider = new StandardHandlerProvider(cryptoKeyProvider, docsDirectory);
+        provider = new StandardHandlerProvider(docsDirectory);
     }
 
     @Test

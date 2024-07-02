@@ -83,9 +83,6 @@ import org.apache.nifi.remote.StandardRemoteProcessGroup;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
@@ -395,14 +392,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
-        final SSLContext systemSslContext;
-
-        try {
-            systemSslContext = SslContextFactory.createSslContext(StandardTlsConfiguration.fromNiFiProperties(nifiProperties));
-        } catch (final TlsException e) {
-            throw new IllegalStateException("Could not instantiate flow registry client because of TLS issues", e);
-        }
-
         final FlowRegistryClientNode clientNode = new ExtensionBuilder()
                 .identifier(id)
                 .type(type)
@@ -415,7 +404,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 .reloadComponent(flowController.getReloadComponent())
                 .addClasspathUrls(additionalUrls)
                 .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
-                .systemSslContext(systemSslContext)
+                .systemSslContext(sslContext)
                 .extensionManager(extensionManager)
                 .classloaderIsolationKey(classloaderIsolationKey)
                 .flowAnalysisAtRegistryCommit(nifiProperties.flowRegistryCheckForRuleViolationsBeforeCommit())

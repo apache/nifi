@@ -37,7 +37,7 @@ public class AuthorizationAccessExceptionMapper implements ExceptionMapper<Autho
     @Override
     public Response toResponse(AuthorizationAccessException e) {
         // log the error
-        logger.error(String.format("%s. Returning %s response.", e, Response.Status.INTERNAL_SERVER_ERROR), e);
+        logger.error("{}. Returning {} response.", e, Response.Status.INTERNAL_SERVER_ERROR, e);
 
         // generate the response
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).type("text/plain").build();

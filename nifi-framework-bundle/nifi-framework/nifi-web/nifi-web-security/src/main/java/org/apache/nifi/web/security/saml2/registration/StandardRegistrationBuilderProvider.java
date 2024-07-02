@@ -21,10 +21,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.saml2.SamlConfigurationException;
@@ -35,7 +31,6 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,8 +50,18 @@ class StandardRegistrationBuilderProvider implements RegistrationBuilderProvider
 
     private final NiFiProperties properties;
 
-    public StandardRegistrationBuilderProvider(final NiFiProperties properties) {
+    private final SSLContext sslContext;
+
+    private final X509TrustManager trustManager;
+
+    public StandardRegistrationBuilderProvider(
+            final NiFiProperties properties,
+            final SSLContext sslContext,
+            final X509TrustManager trustManager
+    ) {
         this.properties = Objects.requireNonNull(properties, "Properties required");
+        this.sslContext = sslContext;
+        this.trustManager = trustManager;
     }
 
     /**
@@ -117,23 +122,10 @@ class StandardRegistrationBuilderProvider implements RegistrationBuilderProvider
                 .readTimeout(readTimeout);
 
         if (NIFI_TRUST_STORE_STRATEGY.equals(properties.getSamlHttpClientTruststoreStrategy())) {
-            setSslSocketFactory(builder);
+            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+            builder.sslSocketFactory(sslSocketFactory, trustManager);
         }
 
         return builder.build();
-    }
-
-    private void setSslSocketFactory(final OkHttpClient.Builder builder) {
-        final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-
-        try {
-            final X509TrustManager trustManager = Objects.requireNonNull(SslContextFactory.getX509TrustManager(tlsConfiguration), "TrustManager required");
-            final TrustManager[] trustManagers = new TrustManager[] {trustManager};
-            final SSLContext sslContext = Objects.requireNonNull(SslContextFactory.createSslContext(tlsConfiguration, trustManagers), "SSLContext required");
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-            builder.sslSocketFactory(sslSocketFactory, trustManager);
-        } catch (final TlsException e) {
-            throw new SamlConfigurationException("SAML Metadata HTTP TLS configuration failed", e);
-        }
     }
 }

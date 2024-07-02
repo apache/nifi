@@ -15,17 +15,8 @@
  * limitations under the License.
  */
 
-import { filter, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { GarbageCollection } from '../system-diagnostics';
-
-export function isDefinedAndNotNull<T>() {
-    return (source$: Observable<null | undefined | T>) =>
-        source$.pipe(
-            filter((input: null | undefined | T): input is T => {
-                return input !== null && typeof input !== 'undefined';
-            })
-        );
-}
 
 export interface OkDialogRequest {
     title: string;
@@ -435,23 +426,6 @@ export interface ProcessGroupName {
     name: string;
 }
 
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection',
-    ControllerService = 'ControllerService',
-    ReportingTask = 'ReportingTask',
-    FlowAnalysisRule = 'FlowAnalysisRule',
-    ParameterProvider = 'ParameterProvider',
-    FlowRegistryClient = 'FlowRegistryClient',
-    Flow = 'Flow'
-}
-
 export interface ControllerServiceReferencingComponent {
     groupId: string;
     id: string;
@@ -616,13 +590,6 @@ export interface VersionedFlowSnapshotMetadata {
     author: string;
     comments: string;
     branch?: string;
-}
-
-export interface SelectOption {
-    text: string;
-    value: string | null;
-    description?: string;
-    disabled?: boolean;
 }
 
 export interface PropertyDependency {

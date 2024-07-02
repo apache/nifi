@@ -18,8 +18,8 @@ package org.apache.nifi.web.server.connector;
 
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.server.util.StoreScanner;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -30,7 +30,7 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
+import javax.net.ssl.SSLContext;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -114,7 +114,6 @@ class FrameworkServerConnectorFactoryTest {
         assertFalse(sslContextFactory.getWantClientAuth());
 
         assertCipherSuitesConfigured(sslContextFactory);
-        assertAutoReloadEnabled(serverConnector);
 
         final HTTP2ServerConnectionFactory http2ServerConnectionFactory = serverConnector.getConnectionFactory(HTTP2ServerConnectionFactory.class);
         assertNotNull(http2ServerConnectionFactory);
@@ -154,7 +153,14 @@ class FrameworkServerConnectorFactoryTest {
     private FrameworkServerConnectorFactory getHttpsConnectorFactory(final Properties serverProperties) {
         final NiFiProperties properties = getProperties(serverProperties);
         final Server server = new Server();
-        return new FrameworkServerConnectorFactory(server, properties);
+        final FrameworkServerConnectorFactory factory = new FrameworkServerConnectorFactory(server, properties);
+        try {
+            final SSLContext sslContext = org.apache.nifi.security.util.SslContextFactory.createSslContext(tlsConfiguration);
+            factory.setSslContext(sslContext);
+        } catch (final TlsException e) {
+            throw new IllegalStateException("Failed to create SSL Context", e);
+        }
+        return factory;
     }
 
     private SslConnectionFactory assertSslConnectionFactoryFound(final ServerConnector serverConnector) {
@@ -177,12 +183,6 @@ class FrameworkServerConnectorFactoryTest {
         final String[] includedCipherSuites = sslContextFactory.getIncludeCipherSuites();
         assertEquals(1, includedCipherSuites.length);
         assertEquals(INCLUDED_CIPHER_SUITE_PATTERN, includedCipherSuites[0]);
-    }
-
-    private void assertAutoReloadEnabled(final ServerConnector serverConnector) {
-        final Server server = serverConnector.getServer();
-        final Collection<StoreScanner> scanners = server.getBeans(StoreScanner.class);
-        assertEquals(2, scanners.size());
     }
 
     private NiFiProperties getProperties(final Properties serverProperties) {

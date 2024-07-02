@@ -32,7 +32,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -70,7 +72,7 @@ class StandardRegistrationBuilderProviderTest {
     void testGetRegistrationBuilderFileUrl() {
         final NiFiProperties properties = getProperties(getFileMetadataUrl());
 
-        assertRegistrationFound(properties);
+        assertRegistrationFound(properties, null, null);
     }
 
     @Test
@@ -82,7 +84,7 @@ class StandardRegistrationBuilderProviderTest {
 
         final NiFiProperties properties = getProperties(metadataUrl);
 
-        assertRegistrationFound(properties);
+        assertRegistrationFound(properties, null, null);
     }
 
     @Test
@@ -93,7 +95,7 @@ class StandardRegistrationBuilderProviderTest {
 
         final NiFiProperties properties = getProperties(metadataUrl);
 
-        final StandardRegistrationBuilderProvider provider = new StandardRegistrationBuilderProvider(properties);
+        final StandardRegistrationBuilderProvider provider = new StandardRegistrationBuilderProvider(properties, null, null);
 
         final SamlConfigurationException exception = assertThrows(SamlConfigurationException.class, provider::getRegistrationBuilder);
         assertTrue(exception.getMessage().contains(Integer.toString(HTTP_NOT_FOUND)));
@@ -102,7 +104,10 @@ class StandardRegistrationBuilderProviderTest {
     @Test
     void testGetRegistrationBuilderHttpsUrl() throws IOException, TlsException {
         final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
-        final SSLSocketFactory sslSocketFactory = Objects.requireNonNull(SslContextFactory.createSSLSocketFactory(tlsConfiguration));
+        final SSLContext sslContext = Objects.requireNonNull(SslContextFactory.createSslContext(tlsConfiguration));
+        final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
+
+        final SSLSocketFactory sslSocketFactory = Objects.requireNonNull(sslContext.getSocketFactory());
         mockWebServer.useHttps(sslSocketFactory, PROXY_DISABLED);
 
         final String metadata = getMetadata();
@@ -112,7 +117,7 @@ class StandardRegistrationBuilderProviderTest {
 
         final NiFiProperties properties = getProperties(metadataUrl, tlsConfiguration);
 
-        assertRegistrationFound(properties);
+        assertRegistrationFound(properties, sslContext, trustManager);
     }
 
     private String getMetadataUrl() {
@@ -120,8 +125,8 @@ class StandardRegistrationBuilderProviderTest {
         return url.toString();
     }
 
-    private void assertRegistrationFound(final NiFiProperties properties) {
-        final StandardRegistrationBuilderProvider provider = new StandardRegistrationBuilderProvider(properties);
+    private void assertRegistrationFound(final NiFiProperties properties, final SSLContext sslContext, final X509TrustManager trustManager) {
+        final StandardRegistrationBuilderProvider provider = new StandardRegistrationBuilderProvider(properties, sslContext, trustManager);
         final RelyingPartyRegistration.Builder builder = provider.getRegistrationBuilder();
 
         final RelyingPartyRegistration registration = builder.build();

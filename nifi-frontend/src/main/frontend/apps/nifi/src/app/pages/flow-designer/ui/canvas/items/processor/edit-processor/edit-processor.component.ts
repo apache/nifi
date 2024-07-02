@@ -36,20 +36,16 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable, of } from 'rxjs';
 import {
-    ComponentType,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterContextEntity,
-    Property,
-    SelectOption
+    Property
 } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
-import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
 import { EditComponentDialogRequest, UpdateProcessorRequest } from '../../../../../state/flow';
 import { PropertyTable } from '../../../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
 import { RunDurationSlider } from './run-duration-slider/run-duration-slider.component';
 import {
     RelationshipConfiguration,
@@ -66,6 +62,7 @@ import {
     VerifyPropertiesRequestContext
 } from '../../../../../../../state/property-verification';
 import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { ComponentType, SelectOption } from 'libs/shared/src';
 
 @Component({
     selector: 'edit-processor',

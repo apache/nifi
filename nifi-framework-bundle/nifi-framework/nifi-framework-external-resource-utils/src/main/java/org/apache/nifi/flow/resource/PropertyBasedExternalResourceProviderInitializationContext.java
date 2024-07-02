@@ -16,35 +16,30 @@
  */
 package org.apache.nifi.flow.resource;
 
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 
 import javax.net.ssl.SSLContext;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
 public final class PropertyBasedExternalResourceProviderInitializationContext implements ExternalResourceProviderInitializationContext {
-    private static Set<String> GUARDED_PROPERTIES = new HashSet<>(Arrays.asList("implementation"));
+    private static Set<String> GUARDED_PROPERTIES = Set.of("implementation");
 
     private final Map<String, String> properties;
     private final Predicate<ExternalResourceDescriptor> filter;
     private final SSLContext sslContext;
 
     public PropertyBasedExternalResourceProviderInitializationContext(
-        final NiFiProperties properties,
-        final String prefix,
-        final Predicate<ExternalResourceDescriptor> filter
-    ) throws TlsException {
+            final SSLContext sslContext,
+            final NiFiProperties properties,
+            final String prefix,
+            final Predicate<ExternalResourceDescriptor> filter
+    ) {
         this.properties = extractProperties(properties, prefix);
         this.filter = filter;
-        this.sslContext = createNiFiSSLContext(properties);
+        this.sslContext = sslContext;
     }
 
     @Override
@@ -60,11 +55,6 @@ public final class PropertyBasedExternalResourceProviderInitializationContext im
     @Override
     public SSLContext getSSLContext() {
         return sslContext;
-    }
-
-    private SSLContext createNiFiSSLContext(final NiFiProperties properties) throws TlsException {
-        final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-        return SslContextFactory.createSslContext(tlsConfiguration);
     }
 
     private Map<String, String> extractProperties(final NiFiProperties properties, final String prefix) {

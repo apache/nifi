@@ -18,9 +18,9 @@ package org.apache.nifi.web.security.jwt.key.command;
 
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSSigner;
-import com.nimbusds.jose.crypto.RSASSASigner;
 import org.apache.nifi.web.security.jwt.jws.JwsSignerContainer;
 import org.apache.nifi.web.security.jwt.jws.SignerListener;
+import org.apache.nifi.web.security.jwt.key.Ed25519Signer;
 import org.apache.nifi.web.security.jwt.key.VerificationKeyListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -38,11 +37,9 @@ import java.util.UUID;
 public class KeyGenerationCommand implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(KeyGenerationCommand.class);
 
-    private static final String KEY_ALGORITHM = "RSA";
+    private static final String KEY_ALGORITHM = "Ed25519";
 
-    private static final int KEY_SIZE = 4096;
-
-    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.PS512;
+    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.EdDSA;
 
     private final KeyPairGenerator keyPairGenerator;
 
@@ -55,7 +52,6 @@ public class KeyGenerationCommand implements Runnable {
         this.verificationKeyListener = Objects.requireNonNull(verificationKeyListener, "Verification Key Listener required");
         try {
             keyPairGenerator = KeyPairGenerator.getInstance(KEY_ALGORITHM);
-            keyPairGenerator.initialize(KEY_SIZE, new SecureRandom());
         } catch (final NoSuchAlgorithmException e) {
             throw new IllegalArgumentException(e);
         }
@@ -72,7 +68,7 @@ public class KeyGenerationCommand implements Runnable {
 
         verificationKeyListener.onVerificationKeyGenerated(keyIdentifier, keyPair.getPublic());
 
-        final JWSSigner jwsSigner = new RSASSASigner(keyPair.getPrivate());
+        final JWSSigner jwsSigner = new Ed25519Signer(keyPair.getPrivate());
         signerListener.onSignerUpdated(new JwsSignerContainer(keyIdentifier, JWS_ALGORITHM, jwsSigner));
     }
 }

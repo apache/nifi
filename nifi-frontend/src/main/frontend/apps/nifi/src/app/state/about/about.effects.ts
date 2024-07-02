@@ -24,7 +24,7 @@ import { AboutService } from '../../service/about.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { AboutDialog } from '../../ui/common/about-dialog/about-dialog.component';
-import { MEDIUM_DIALOG } from '../../index';
+import { MEDIUM_DIALOG } from 'libs/shared/src';
 import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()

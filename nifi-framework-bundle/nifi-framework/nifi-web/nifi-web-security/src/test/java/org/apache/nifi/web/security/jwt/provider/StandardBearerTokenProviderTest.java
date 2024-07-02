@@ -20,12 +20,12 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.RSASSASigner;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.apache.nifi.web.security.jwt.jws.JwsSignerContainer;
 import org.apache.nifi.web.security.jwt.jws.JwsSignerProvider;
+import org.apache.nifi.web.security.jwt.key.Ed25519Signer;
+import org.apache.nifi.web.security.jwt.key.Ed25519Verifier;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +40,6 @@ import java.net.URI;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
@@ -70,11 +69,9 @@ public class StandardBearerTokenProviderTest {
 
     private static final URI ISSUER = URI.create("https://localhost:8443");
 
-    private static final String KEY_ALGORITHM = "RSA";
+    private static final String KEY_ALGORITHM = "Ed25519";
 
-    private static final int KEY_SIZE = 4096;
-
-    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.PS512;
+    private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.EdDSA;
 
     private static final String GROUP = "ProviderGroup";
 
@@ -93,7 +90,6 @@ public class StandardBearerTokenProviderTest {
     @BeforeAll
     public static void setKeyPair() throws NoSuchAlgorithmException {
         final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEY_ALGORITHM);
-        keyPairGenerator.initialize(KEY_SIZE);
         keyPair = keyPairGenerator.generateKeyPair();
     }
 
@@ -101,8 +97,8 @@ public class StandardBearerTokenProviderTest {
     public void setProvider() {
         provider = new StandardBearerTokenProvider(jwsSignerProvider, issuerProvider);
 
-        jwsVerifier = new RSASSAVerifier((RSAPublicKey) keyPair.getPublic());
-        final JWSSigner jwsSigner = new RSASSASigner(keyPair.getPrivate());
+        jwsVerifier = new Ed25519Verifier(keyPair.getPublic());
+        final JWSSigner jwsSigner = new Ed25519Signer(keyPair.getPrivate());
 
         final String keyIdentifier = UUID.randomUUID().toString();
         final JwsSignerContainer jwsSignerContainer = new JwsSignerContainer(keyIdentifier, JWS_ALGORITHM, jwsSigner);

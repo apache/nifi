@@ -58,7 +58,7 @@ public class AccessDeniedExceptionMapper implements ExceptionMapper<AccessDenied
             identity = user.toString();
         }
 
-        logger.info(String.format("%s does not have permission to access the requested resource. %s Returning %s response.", identity, exception.getMessage(), status));
+        logger.info("{} does not have permission to access the requested resource. {} Returning {} response.", identity, exception.getMessage(), status);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);

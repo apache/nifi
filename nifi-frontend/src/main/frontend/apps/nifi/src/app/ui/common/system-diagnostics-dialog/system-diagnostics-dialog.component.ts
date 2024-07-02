@@ -28,10 +28,8 @@ import {
 } from '../../../state/system-diagnostics/system-diagnostics.selectors';
 import { MatButtonModule } from '@angular/material/button';
 import { reloadSystemDiagnostics } from '../../../state/system-diagnostics/system-diagnostics.actions';
-import { NiFiCommon } from '../../../service/nifi-common.service';
-import { TextTip } from '../tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../tooltips/nifi-tooltip.directive';
-import { isDefinedAndNotNull } from '../../../state/shared';
+import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
+import { isDefinedAndNotNull } from 'libs/shared/src';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ErrorBanner } from '../error-banner/error-banner.component';
 import { clearBannerErrors } from '../../../state/error/error.actions';

@@ -42,7 +42,7 @@ final class TableWriterBasedInsertRowContext implements InsertRowContext {
         actualRow = null;
 
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("Appending new row to the table writer: {}", actualRow.toString());
+            LOGGER.trace("Appending new row to the table writer: {}", actualRow);
         }
     }
 

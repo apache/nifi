@@ -1,0 +1,72 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Custom Theming for Angular Material
+// For more information: https://v16.material.angular.io/guide/theming-your-components
+@use '@angular/material' as mat;
+@use 'sass:map';
+@use 'libs/shared/src/assets/styles/app' as app;
+@use 'libs/shared/src/assets/styles/codemirror-theme' as codemirror-theme;
+@use 'libs/shared/src/assets/styles/listing-table' as listing-table;
+@use 'app/pages/jolt-transform-json-ui/feature/jolt-transform-json-ui.component-theme' as jolt-transform-json-ui;
+
+// Plus imports for other components in your app.
+@use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
+@use 'font-awesome/css/font-awesome.min.css';
+@use 'codemirror/lib/codemirror.css';
+@use 'codemirror/addon/fold/foldgutter.css';
+@use 'codemirror/addon/hint/show-hint.css';
+@use 'codemirror/addon/lint/lint.css';
+
+@import 'libs/shared/src/assets/themes/supplemental';
+// To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
+@import 'libs/shared/src/assets/themes/material';
+
+// Include the common styles for Angular Material. We include this here so that you only
+// have to load a single css file for Angular Material in your app.
+// Be sure that you only ever include this mixin once!
+@include mat.core();
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// only include these once (not needed for dark mode)
+@include app.styles();
+@include listing-table.styles();
+
+// Include the light theme color styles.
+@include mat.all-component-themes($material-theme-light);
+
+// generate light mode stylesheets
+@include app.generate-material-theme($material-theme-light);
+@include app.generate-supplemental-theme($supplemental-theme-light);
+@include codemirror-theme.generate-codemirror-theme($material-theme-light, $supplemental-theme-light);
+@include listing-table.generate-theme($material-theme-light, $supplemental-theme-light);
+@include jolt-transform-json-ui.generate-theme($material-theme-light, $supplemental-theme-light);
+
+.dark-theme {
+    // Include the dark theme color styles.
+    @include mat.all-component-colors($material-theme-dark);
+
+    // generate dark mode stylesheets
+    @include app.generate-material-theme($material-theme-dark);
+    @include app.generate-supplemental-theme($supplemental-theme-dark);
+    @include codemirror-theme.generate-codemirror-theme($material-theme-dark, $supplemental-theme-dark);
+    @include listing-table.generate-theme($material-theme-dark, $supplemental-theme-dark);
+    @include jolt-transform-json-ui.generate-theme($material-theme-dark, $supplemental-theme-dark);
+}

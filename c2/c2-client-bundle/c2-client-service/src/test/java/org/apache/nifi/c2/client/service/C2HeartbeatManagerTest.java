@@ -29,6 +29,8 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
+
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
@@ -53,6 +55,9 @@ public class C2HeartbeatManagerTest {
     private ReentrantLock mockHeartbeatLock;
 
     @Mock
+    private Supplier<RuntimeInfoWrapper> mockRuntimeInfoWrapperSupplier;
+
+    @Mock
     private RuntimeInfoWrapper mockRuntimeInfoWrapper;
 
     @Mock
@@ -75,6 +80,7 @@ public class C2HeartbeatManagerTest {
 
     @Test
     void shouldSendHeartbeatAndProcessEmptyResponse() {
+        when(mockRuntimeInfoWrapperSupplier.get()).thenReturn(mockRuntimeInfoWrapper);
         when(mockHeartbeatLock.tryLock()).thenReturn(true);
         C2Heartbeat mockC2Heartbeat = mock(C2Heartbeat.class);
         when(mockC2HeartbeatFactory.create(mockRuntimeInfoWrapper)).thenReturn(mockC2Heartbeat);
@@ -91,6 +97,7 @@ public class C2HeartbeatManagerTest {
 
     @Test
     void shouldSendHeartbeatAndProcessResponseWithNoOperation() {
+        when(mockRuntimeInfoWrapperSupplier.get()).thenReturn(mockRuntimeInfoWrapper);
         when(mockHeartbeatLock.tryLock()).thenReturn(true);
         C2Heartbeat mockC2Heartbeat = mock(C2Heartbeat.class);
         when(mockC2HeartbeatFactory.create(mockRuntimeInfoWrapper)).thenReturn(mockC2Heartbeat);
@@ -108,6 +115,7 @@ public class C2HeartbeatManagerTest {
 
     @Test
     void shouldSendHeartbeatAndProcessResponseWithMultipleOperation() {
+        when(mockRuntimeInfoWrapperSupplier.get()).thenReturn(mockRuntimeInfoWrapper);
         when(mockHeartbeatLock.tryLock()).thenReturn(true);
         C2Heartbeat mockC2Heartbeat = mock(C2Heartbeat.class);
         when(mockC2HeartbeatFactory.create(mockRuntimeInfoWrapper)).thenReturn(mockC2Heartbeat);
@@ -128,6 +136,7 @@ public class C2HeartbeatManagerTest {
 
     @Test
     void shouldReleaseHeartbeatLockWhenExceptionOccurs() {
+        when(mockRuntimeInfoWrapperSupplier.get()).thenReturn(mockRuntimeInfoWrapper);
         when(mockHeartbeatLock.tryLock()).thenReturn(true);
         when(mockC2HeartbeatFactory.create(mockRuntimeInfoWrapper)).thenThrow(new RuntimeException());
 

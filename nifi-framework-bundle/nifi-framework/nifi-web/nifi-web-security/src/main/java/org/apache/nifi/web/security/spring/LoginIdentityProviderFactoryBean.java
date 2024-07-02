@@ -49,14 +49,6 @@ import org.apache.nifi.authentication.generated.Provider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.properties.ProtectedPropertyContext;
-import org.apache.nifi.properties.SensitivePropertyProvider;
-import org.apache.nifi.properties.SensitivePropertyProviderFactory;
-import org.apache.nifi.properties.scheme.ProtectionScheme;
-import org.apache.nifi.properties.scheme.ProtectionSchemeResolver;
-import org.apache.nifi.property.protection.loader.PropertyProtectionURLClassLoader;
-import org.apache.nifi.property.protection.loader.PropertyProviderFactoryLoader;
-import org.apache.nifi.property.protection.loader.ProtectionSchemeResolverLoader;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
 import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
@@ -209,62 +201,22 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, Di
     }
 
     private void loadProviderProperties(final LoginIdentityProviders loginIdentityProviderConfiguration) {
-        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-
-        try {
-            final PropertyProtectionURLClassLoader protectionClassLoader = new PropertyProtectionURLClassLoader(contextClassLoader);
-            Thread.currentThread().setContextClassLoader(protectionClassLoader);
-
-            final ProtectionSchemeResolverLoader resolverLoader = new ProtectionSchemeResolverLoader();
-            final ProtectionSchemeResolver protectionSchemeResolver = resolverLoader.getProtectionSchemeResolver();
-
-            final PropertyProviderFactoryLoader factoryLoader = new PropertyProviderFactoryLoader();
-            final SensitivePropertyProviderFactory sensitivePropertyProviderFactory = factoryLoader.getPropertyProviderFactory();
-
-            for (final Provider provider : loginIdentityProviderConfiguration.getProvider()) {
-                final LoginIdentityProvider instance = loginIdentityProviders.get(provider.getIdentifier());
-                final LoginIdentityProviderConfigurationContext configurationContext = getConfigurationContext(provider, sensitivePropertyProviderFactory, protectionSchemeResolver);
-                instance.onConfigured(configurationContext);
-            }
-        } finally {
-            Thread.currentThread().setContextClassLoader(contextClassLoader);
+        for (final Provider provider : loginIdentityProviderConfiguration.getProvider()) {
+            final LoginIdentityProvider instance = loginIdentityProviders.get(provider.getIdentifier());
+            final LoginIdentityProviderConfigurationContext configurationContext = getConfigurationContext(provider);
+            instance.onConfigured(configurationContext);
         }
     }
 
-    private LoginIdentityProviderConfigurationContext getConfigurationContext(
-            final Provider provider,
-            final SensitivePropertyProviderFactory sensitivePropertyProviderFactory,
-            final ProtectionSchemeResolver protectionSchemeResolver
-    ) {
+    private LoginIdentityProviderConfigurationContext getConfigurationContext(final Provider provider) {
         final String providerIdentifier = provider.getIdentifier();
         final Map<String, String> providerProperties = new HashMap<>();
 
         for (final Property property : provider.getProperty()) {
-            final String encryption = property.getEncryption();
-
-            if (StringUtils.isBlank(encryption)) {
-                providerProperties.put(property.getName(), property.getValue());
-            } else {
-                final String propertyDecrypted = getPropertyDecrypted(providerIdentifier, property, sensitivePropertyProviderFactory, protectionSchemeResolver);
-                providerProperties.put(property.getName(), propertyDecrypted);
-            }
+            providerProperties.put(property.getName(), property.getValue());
         }
 
         return new StandardLoginIdentityProviderConfigurationContext(providerIdentifier, providerProperties);
-    }
-
-    private String getPropertyDecrypted(
-            final String providerIdentifier,
-            final Property property,
-            final SensitivePropertyProviderFactory sensitivePropertyProviderFactory,
-            final ProtectionSchemeResolver protectionSchemeResolver
-    ) {
-        final String scheme = property.getEncryption();
-        final ProtectionScheme protectionScheme = protectionSchemeResolver.getProtectionScheme(scheme);
-        final SensitivePropertyProvider propertyProvider = sensitivePropertyProviderFactory.getProvider(protectionScheme);
-        final ProtectedPropertyContext protectedPropertyContext = sensitivePropertyProviderFactory.getPropertyContext(providerIdentifier, property.getName());
-        final String protectedProperty = property.getValue();
-        return propertyProvider.unprotect(protectedProperty, protectedPropertyContext);
     }
 
     private void performMethodInjection(final LoginIdentityProvider instance, final Class<?> loginIdentityProviderClass)

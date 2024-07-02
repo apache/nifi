@@ -30,11 +30,10 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { Observable, of, take } from 'rxjs';
-import { BranchEntity, BucketEntity, RegistryClientEntity, SelectOption } from '../../../../../../../state/shared';
-import { NiFiCommon } from '../../../../../../../service/nifi-common.service';
+import { SelectOption } from 'libs/shared/src';
+import { BranchEntity, BucketEntity, RegistryClientEntity } from '../../../../../../../state/shared';
 import { SaveVersionDialogRequest, SaveVersionRequest, VersionControlInformation } from '../../../../../state/flow';
-import { TextTip } from '../../../../../../../ui/common/tooltips/text-tip/text-tip.component';
-import { NifiTooltipDirective } from '../../../../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { TextTip, NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
 import { NgForOf, NgIf } from '@angular/common';
 import { MatInput } from '@angular/material/input';
 import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';

@@ -58,6 +58,8 @@ import org.slf4j.LoggerFactory;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -89,7 +91,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class ThreadPoolRequestReplicator implements RequestReplicator {
+public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(ThreadPoolRequestReplicator.class);
     private static final Pattern SNIPPET_URI_PATTERN = Pattern.compile("/nifi-api/snippets/[a-f0-9\\-]{36}");
@@ -163,6 +165,11 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         });
 
         maintenanceExecutor.scheduleWithFixedDelay(this::purgeExpiredRequests, 1, 1, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void close() {
+        shutdown();
     }
 
     @Override
@@ -795,7 +802,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         logger.debug("For {} {} (Request ID {}), minimum response time = {}, max = {}, average = {} ms",
                 response.getMethod(), response.getURIPath(), response.getRequestIdentifier(), stats.getMin(), stats.getMax(), stats.getAverage());
-        logger.debug(sb.toString());
+        logger.debug("{}", sb);
     }
 
 
@@ -865,8 +872,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                 nodeResponse = replicateRequest(request, nodeId, uri, requestId, clusterResponse);
             } catch (final Throwable t) {
                 nodeResponse = new NodeResponse(nodeId, method, uri, t);
-                logger.warn("Failed to replicate request {} {} to {} due to {}", method, uri.getPath(), nodeId, t.toString());
-                logger.warn("", t);
+                logger.warn("Failed to replicate request {} {} to {}", method, uri.getPath(), nodeId, t);
             }
 
             if (callback != null) {

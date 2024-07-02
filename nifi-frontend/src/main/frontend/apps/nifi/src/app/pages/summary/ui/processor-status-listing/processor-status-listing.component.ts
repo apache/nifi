@@ -30,7 +30,7 @@ import { SummaryListingState } from '../../state/summary-listing';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { initialState } from '../../state/summary-listing/summary-listing.reducer';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
-import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
+import { ComponentType, isDefinedAndNotNull } from 'libs/shared/src';
 import { combineLatest, delay, filter, map, Subject, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as SummaryListingActions from '../../state/summary-listing/summary-listing.actions';

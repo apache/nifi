@@ -19,10 +19,9 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { Sort } from '@angular/material/sort';
 import { ReportingTaskEntity } from '../../../state/reporting-tasks';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { TextTip, NiFiCommon } from '@nifi/shared';
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { BulletinsTipInput, RegistryClientEntity, ValidationErrorsTipInput } from '../../../../../state/shared';
 
 @Component({

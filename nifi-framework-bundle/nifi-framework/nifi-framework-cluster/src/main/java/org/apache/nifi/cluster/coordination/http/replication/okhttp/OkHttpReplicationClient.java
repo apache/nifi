@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.core.MultivaluedHashMap;
@@ -56,9 +56,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClient;
 import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -75,15 +72,22 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
     private final ObjectMapper jsonCodec = new ObjectMapper();
     private final OkHttpClient okHttpClient;
-    private boolean tlsConfigured = false;
+    private final SSLContext sslContext;
+    private final X509TrustManager trustManager;
 
-    public OkHttpReplicationClient(final NiFiProperties properties) {
+    public OkHttpReplicationClient(
+            final NiFiProperties properties,
+            final SSLContext sslContext,
+            final X509TrustManager trustManager
+    ) {
         jsonCodec.setDefaultPropertyInclusion(Value.construct(Include.NON_NULL, Include.ALWAYS));
         jsonCodec.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(jsonCodec.getTypeFactory()));
 
         jsonSerializer = new JsonEntitySerializer(jsonCodec);
         xmlSerializer = new XmlEntitySerializer();
 
+        this.sslContext = sslContext;
+        this.trustManager = trustManager;
         okHttpClient = createOkHttpClient(properties);
     }
 
@@ -140,16 +144,6 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
         final Response response = new JacksonResponse(jsonCodec, responseBytes, responseHeaders, URI.create(uri), callResponse.code(), callResponse::close);
         return response;
-    }
-
-    /**
-     * Returns {@code true} if the client has TLS enabled and configured. Even clients created without explicit
-     * keystore and truststore values have a default cipher suite list available, but no keys to use.
-     *
-     * @return true if this client can present keys
-     */
-    public boolean isTLSConfigured() {
-        return tlsConfigured;
     }
 
     private MultivaluedMap<String, String> getHeaders(final okhttp3.Response callResponse) {
@@ -323,17 +317,9 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         okHttpClientBuilder.connectionPool(new ConnectionPool(connectionPoolSize, 5, TimeUnit.MINUTES));
         okHttpClientBuilder.eventListener(new RequestReplicationEventListener());
 
-        // Apply the TLS configuration, if present
-        try {
-            final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
-            final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, new TrustManager[]{trustManager});
-            okHttpClientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
-            tlsConfigured = true;
-        } catch (Exception e) {
-            // Legacy expectations around this client are that it does not throw an exception on invalid TLS configuration
-            // TODO: The only current use of this class is ThreadPoolRequestReplicatorFactoryBean#getObject() which should be evaluated to see if that can change
-            tlsConfigured = false;
+        if (sslContext != null) {
+            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+            okHttpClientBuilder.sslSocketFactory(sslSocketFactory, trustManager);
         }
 
         return okHttpClientBuilder.build();

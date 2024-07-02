@@ -34,7 +34,7 @@ public class QueryParamExceptionMapper implements ExceptionMapper<ParamException
 
     @Override
     public Response toResponse(ParamException.QueryParamException exception) {
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.BAD_REQUEST));
+        logger.info("{}. Returning {} response.", exception, Response.Status.BAD_REQUEST);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);

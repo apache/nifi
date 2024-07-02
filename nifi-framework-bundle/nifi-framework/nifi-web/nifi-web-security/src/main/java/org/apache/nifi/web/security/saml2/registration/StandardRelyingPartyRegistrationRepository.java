@@ -16,26 +16,24 @@
  */
 package org.apache.nifi.web.security.saml2.registration;
 
-import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.saml2.SamlUrlPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.KeyStore;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509ExtendedTrustManager;
+import java.security.Principal;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
 /**
  * Standard implementation of Relying Party Registration Repository based on NiFi Properties
  */
@@ -46,23 +44,40 @@ public class StandardRelyingPartyRegistrationRepository implements RelyingPartyR
 
     static final String SINGLE_LOGOUT_RESPONSE_SERVICE_LOCATION = String.format(BASE_URL_FORMAT, SamlUrlPath.SINGLE_LOGOUT_RESPONSE.getPath());
 
-    private static final char[] BLANK_PASSWORD = new char[0];
+    private static final String RSA_PUBLIC_KEY_ALGORITHM = "RSA";
+
+    private static final Principal[] UNFILTERED_ISSUERS = {};
 
     private static final Logger logger = LoggerFactory.getLogger(StandardRelyingPartyRegistrationRepository.class);
 
-    private final Saml2CredentialProvider saml2CredentialProvider = new StandardSaml2CredentialProvider();
-
     private final NiFiProperties properties;
+
+    private final SSLContext sslContext;
+
+    private final X509ExtendedTrustManager trustManager;
+
+    private final X509ExtendedKeyManager keyManager;
 
     private final RelyingPartyRegistration relyingPartyRegistration;
 
     /**
      * Standard implementation builds a Registration based on NiFi Properties and returns the same instance for all queries
      *
+     * @param sslContext SSL Context loaded from properties
+     * @param keyManager Key Manager loaded from properties
+     * @param trustManager Trust manager loaded from properties
      * @param properties NiFi Application Properties
      */
-    public StandardRelyingPartyRegistrationRepository(final NiFiProperties properties) {
+    public StandardRelyingPartyRegistrationRepository(
+            final NiFiProperties properties,
+            final SSLContext sslContext,
+            final X509ExtendedKeyManager keyManager,
+            final X509ExtendedTrustManager trustManager
+    ) {
         this.properties = properties;
+        this.sslContext = sslContext;
+        this.keyManager = keyManager;
+        this.trustManager = trustManager;
         this.relyingPartyRegistration = getRelyingPartyRegistration();
     }
 
@@ -72,7 +87,7 @@ public class StandardRelyingPartyRegistrationRepository implements RelyingPartyR
     }
 
     private RelyingPartyRegistration getRelyingPartyRegistration() {
-        final RegistrationBuilderProvider registrationBuilderProvider = new StandardRegistrationBuilderProvider(properties);
+        final RegistrationBuilderProvider registrationBuilderProvider = new StandardRegistrationBuilderProvider(properties, sslContext, trustManager);
         final RelyingPartyRegistration.Builder builder = registrationBuilderProvider.getRegistrationBuilder();
 
         builder.registrationId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());
@@ -111,50 +126,46 @@ public class StandardRelyingPartyRegistrationRepository implements RelyingPartyR
     }
 
     private Collection<Saml2X509Credential> getCredentials() {
-        final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-
         final List<Saml2X509Credential> credentials = new ArrayList<>();
 
-        if (tlsConfiguration.isKeystorePopulated()) {
-            final KeyStore keyStore = getKeyStore(tlsConfiguration);
-            final char[] keyPassword = tlsConfiguration.getKeyPassword() == null
-                    ? tlsConfiguration.getKeystorePassword().toCharArray()
-                    : tlsConfiguration.getKeyPassword().toCharArray();
-            final Collection<Saml2X509Credential> keyStoreCredentials = saml2CredentialProvider.getCredentials(keyStore, keyPassword);
-
-            credentials.addAll(keyStoreCredentials);
+        if (keyManager != null) {
+            final List<String> keyAliases = getKeyAliases();
+            for (final String alias : keyAliases) {
+                final PrivateKey privateKey = keyManager.getPrivateKey(alias);
+                final X509Certificate[] certificateChain = keyManager.getCertificateChain(alias);
+                final X509Certificate certificate = certificateChain[0];
+                final Saml2X509Credential credential = new Saml2X509Credential(
+                        privateKey,
+                        certificate,
+                        Saml2X509Credential.Saml2X509CredentialType.SIGNING,
+                        Saml2X509Credential.Saml2X509CredentialType.DECRYPTION
+                );
+                credentials.add(credential);
+            }
         }
 
-        if (tlsConfiguration.isTruststorePopulated()) {
-            final KeyStore trustStore = getTrustStore(tlsConfiguration);
-            final Collection<Saml2X509Credential> trustStoreCredentials = saml2CredentialProvider.getCredentials(trustStore, BLANK_PASSWORD);
-            credentials.addAll(trustStoreCredentials);
+        if (trustManager != null) {
+            for (final X509Certificate certificate : trustManager.getAcceptedIssuers()) {
+                final Saml2X509Credential credential = new Saml2X509Credential(
+                        certificate,
+                        Saml2X509Credential.Saml2X509CredentialType.ENCRYPTION,
+                        Saml2X509Credential.Saml2X509CredentialType.VERIFICATION
+                );
+                credentials.add(credential);
+            }
         }
 
         return credentials;
     }
 
-    private KeyStore getTrustStore(final TlsConfiguration tlsConfiguration) {
-        try (InputStream inputStream = new FileInputStream(tlsConfiguration.getTruststorePath())) {
-            return new StandardKeyStoreBuilder()
-                    .inputStream(inputStream)
-                    .type(tlsConfiguration.getTruststoreType().getType())
-                    .password(tlsConfiguration.getTruststorePassword().toCharArray())
-                    .build();
-        } catch (final IOException e) {
-            throw new Saml2Exception("Trust Store loading failed", e);
-        }
-    }
+    private List<String> getKeyAliases() {
+        final List<String> keyAliases = new ArrayList<>();
 
-    private KeyStore getKeyStore(final TlsConfiguration tlsConfiguration) {
-        try (InputStream inputStream = new FileInputStream(tlsConfiguration.getKeystorePath())) {
-            return new StandardKeyStoreBuilder()
-                    .inputStream(inputStream)
-                    .type(tlsConfiguration.getKeystoreType().getType())
-                    .password(tlsConfiguration.getKeystorePassword().toCharArray())
-                    .build();
-        } catch (final IOException e) {
-            throw new Saml2Exception("Key Store loading failed", e);
+        final String[] serverAliases = keyManager.getServerAliases(RSA_PUBLIC_KEY_ALGORITHM, UNFILTERED_ISSUERS);
+        if (serverAliases != null) {
+            keyAliases.addAll(Arrays.asList(serverAliases));
         }
+
+        return keyAliases;
     }
 }

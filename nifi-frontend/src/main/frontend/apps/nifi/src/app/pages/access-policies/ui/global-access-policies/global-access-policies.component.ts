@@ -38,9 +38,9 @@ import {
 import { distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
-import { ComponentType, isDefinedAndNotNull, RequiredPermission, SelectOption } from '../../../../state/shared';
-import { TextTip } from '../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NiFiCommon, TextTip } from '@nifi/shared';
+import { ComponentType, isDefinedAndNotNull, SelectOption } from 'libs/shared/src';
+import { RequiredPermission } from '../../../../state/shared';
 import { AccessPolicyEntity, Action, PolicyStatus } from '../../state/shared';
 import { loadExtensionTypesForPolicies } from '../../../../state/extension-types/extension-types.actions';
 import { selectRequiredPermissions } from '../../../../state/extension-types/extension-types.selectors';

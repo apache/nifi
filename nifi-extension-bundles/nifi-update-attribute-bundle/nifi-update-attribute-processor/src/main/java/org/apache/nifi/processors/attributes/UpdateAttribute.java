@@ -645,7 +645,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             // evaluate the expression for the given flow file
             return getPropertyValue(condition.getExpression(), context).evaluateAttributeExpressions(flowfile, null, null, statefulAttributes).asBoolean();
         } catch (final Exception e) {
-            getLogger().error(String.format("Could not evaluate the condition '%s' while processing Flowfile '%s'", condition.getExpression(), flowfile));
+            getLogger().error("Could not evaluate the condition '{}' while processing Flowfile '{}'", condition.getExpression(), flowfile);
             throw new ProcessException(String.format("Unable to evaluate condition '%s': %s.", condition.getExpression(), e), e);
         }
     }
@@ -700,7 +700,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
                                 // log if appropriate
                                 if (debugEnabled) {
-                                    logger.debug(String.format("%s deleting attribute '%s' for %s per regex '%s'.", this, key, flowfile, regex));
+                                    logger.debug("{} deleting attribute '{}' for {} per regex '{}'.", this, key, flowfile, regex);
                                 }
 
                                 attributesToDelete.add(key);
@@ -710,7 +710,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         attributesToUpdate.keySet().removeAll(attributesToDelete);
                     }
                 } catch (final Exception e) {
-                    logger.error(String.format("Unable to delete attribute '%s' while processing FlowFile '%s' .", attribute, flowfile));
+                    logger.error("Unable to delete attribute '{}' while processing FlowFile '{}' .", attribute, flowfile);
                     throw new ProcessException(String.format("Unable to delete attribute '%s': %s.", attribute, e), e);
                 }
             } else {
@@ -724,7 +724,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
                         // log if appropriate
                         if (debugEnabled) {
-                            logger.debug(String.format("%s setting attribute '%s' = '%s' for %s per rule '%s'.", this, attribute, newAttributeValue, flowfile, ruleName));
+                            logger.debug("{} setting attribute '{}' = '{}' for {} per rule '{}'.", this, attribute, newAttributeValue, flowfile, ruleName);
                         }
 
                         if (setStatefulAttribute) {

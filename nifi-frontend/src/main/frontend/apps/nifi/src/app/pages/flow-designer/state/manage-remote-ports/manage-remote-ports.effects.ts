@@ -32,10 +32,10 @@ import { ManageRemotePortService } from '../../service/manage-remote-port.servic
 import { PortSummary } from './index';
 import { EditRemotePortComponent } from '../../ui/manage-remote-ports/edit-remote-port/edit-remote-port.component';
 import { EditRemotePortDialogRequest } from '../flow';
-import { ComponentType, isDefinedAndNotNull } from '../../../../state/shared';
+import { ComponentType, isDefinedAndNotNull } from 'libs/shared/src';
 import { selectTimeOffset } from '../../../../state/flow-configuration/flow-configuration.selectors';
 import { selectAbout } from '../../../../state/about/about.selectors';
-import { MEDIUM_DIALOG } from '../../../../index';
+import { MEDIUM_DIALOG } from 'libs/shared/src';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable()

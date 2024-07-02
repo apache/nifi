@@ -603,7 +603,7 @@ public class ExtensionBuilder {
                processorNode.setBulletinLevel(ds.bulletinLevel());
            }
        } catch (final Exception ex) {
-           logger.error("Error while setting default settings from DefaultSettings annotation: {}", ex.toString(), ex);
+           logger.error("Error while setting default settings from DefaultSettings annotation", ex);
        }
    }
 

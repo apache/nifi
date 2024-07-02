@@ -45,8 +45,8 @@ describe('FetchParameterProviderParameters', () => {
             bulletins: [],
             component: {
                 id: '369487d7-018d-1000-817a-1d8d9a8f4a91',
-                name: 'Group 1 - FileParameterProvider',
-                type: 'org.apache.nifi.parameter.FileParameterProvider',
+                name: 'Group 1 - KubernetesSecretParameterProvider',
+                type: 'org.apache.nifi.parameter.KubernetesSecretParameterProvider',
                 bundle: {
                     group: 'org.apache.nifi',
                     artifact: 'nifi-standard-nar',

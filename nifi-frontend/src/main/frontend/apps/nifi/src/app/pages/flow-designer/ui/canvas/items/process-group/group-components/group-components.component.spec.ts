@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { GroupComponents } from './group-components.component';
 import { GroupComponentsDialogRequest } from '../../../../../state/flow';
-import { ComponentType } from '../../../../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';

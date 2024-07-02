@@ -334,7 +334,7 @@ public class FetchS3Object extends AbstractS3Processor {
                     .explanation(String.format("Successfully performed HEAD on [%s] (%s bytes) from Bucket [%s]", key, byteCount, bucket))
                     .build());
         } catch (final Exception e) {
-            getLogger().error(String.format("Failed to fetch [%s] from Bucket [%s]", key, bucket), e);
+            getLogger().error("Failed to fetch [{}] from Bucket [{}]", key, bucket, e);
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("HEAD S3 Object")
                     .outcome(Outcome.FAILED)

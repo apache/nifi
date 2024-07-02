@@ -121,7 +121,7 @@ public class LogComponentStatuses implements Runnable {
         }
 
         builder.append(processorBorderLine);
-        logger.info(builder.toString());
+        logger.info("{}", builder);
     }
 
     private void addStatus(final ProcessorAndEvent processorAndEvent, final StringBuilder builder, final int secondsInEvent, final long totalNanos) {
@@ -182,7 +182,7 @@ public class LogComponentStatuses implements Runnable {
         }
 
         builder.append(counterBorderLine);
-        logger.info(builder.toString());
+        logger.info("{}", builder);
     }
 
     private static class ProcessorAndEvent {

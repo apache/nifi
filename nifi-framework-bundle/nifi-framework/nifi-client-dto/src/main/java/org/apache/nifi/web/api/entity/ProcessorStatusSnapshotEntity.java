@@ -66,6 +66,7 @@ public class ProcessorStatusSnapshotEntity extends Entity implements ReadablePer
     @Override
     public ProcessorStatusSnapshotEntity clone() {
         final ProcessorStatusSnapshotEntity other = new ProcessorStatusSnapshotEntity();
+        other.setId(this.getId());
         other.setCanRead(this.getCanRead());
         other.setProcessorStatusSnapshot(this.getProcessorStatusSnapshot().clone());
 

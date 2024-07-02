@@ -925,7 +925,7 @@ public final class SnippetUtils {
                     try {
                         accessPolicyDAO.deleteAccessPolicy(accessPolicy.getIdentifier());
                     } catch (final Exception e) {
-                        logger.warn(String.format("Unable to clean up cloned access policy for %s %s after failed copy/paste action.", action, componentResource.getIdentifier()), e);
+                        logger.warn("Unable to clean up cloned access policy for {} {} after failed copy/paste action.", action, componentResource.getIdentifier(), e);
                     }
                 }
             }

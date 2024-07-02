@@ -25,7 +25,7 @@
     <description>NiFi: Framework Bundle</description>
     <properties>
         <curator.version>5.7.0</curator.version>
-        <guava.version>33.2.0-jre</guava.version>
+        <guava.version>33.2.1-jre</guava.version>
         <tika.version>2.9.2</tika.version>
         <org.opensaml.version>4.3.2</org.opensaml.version>
     </properties>

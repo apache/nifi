@@ -21,7 +21,7 @@ import { ProvenanceEventListing } from './provenance-event-listing.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '@nifi/shared';
 import { ProvenanceEventListingRoutingModule } from './provenance-event-listing-routing.module';
 import { ProvenanceEventTable } from './provenance-event-table/provenance-event-table.component';
 

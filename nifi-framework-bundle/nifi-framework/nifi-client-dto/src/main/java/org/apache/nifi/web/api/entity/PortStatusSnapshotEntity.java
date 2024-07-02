@@ -67,6 +67,7 @@ public class PortStatusSnapshotEntity extends Entity implements ReadablePermissi
     @Override
     public PortStatusSnapshotEntity clone() {
         final PortStatusSnapshotEntity other = new PortStatusSnapshotEntity();
+        other.setId(this.getId());
         other.setCanRead(this.getCanRead());
         other.setPortStatusSnapshot(this.getPortStatusSnapshot().clone());
 

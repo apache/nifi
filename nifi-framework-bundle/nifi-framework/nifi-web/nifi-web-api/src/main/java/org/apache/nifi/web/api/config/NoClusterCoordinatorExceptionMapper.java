@@ -32,7 +32,7 @@ public class NoClusterCoordinatorExceptionMapper implements ExceptionMapper<NoCl
     @Override
     public Response toResponse(final NoClusterCoordinatorException ex) {
         // log the error
-        logger.info(String.format("Cluster failed processing request: %s. Returning %s response.", ex, Response.Status.SERVICE_UNAVAILABLE));
+        logger.info("Cluster failed processing request: {}. Returning {} response.", ex, Response.Status.SERVICE_UNAVAILABLE);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, ex);

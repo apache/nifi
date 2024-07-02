@@ -20,7 +20,7 @@ import { Editor, Hint, Hints, StringStream } from 'codemirror';
 import * as CodeMirror from 'codemirror';
 import { Parameter } from '../../../../../../state/shared';
 import { ParameterTip } from '../../../../tooltips/parameter-tip/parameter-tip.component';
-import { NiFiCommon } from '../../../../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class NfPr {

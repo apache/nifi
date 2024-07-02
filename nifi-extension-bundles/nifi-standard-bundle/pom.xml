@@ -34,7 +34,7 @@
     </modules>
     <properties>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
-        <org.apache.sshd.version>2.12.1</org.apache.sshd.version>
+        <org.apache.sshd.version>2.13.1</org.apache.sshd.version>
         <tika.version>2.9.2</tika.version>
     </properties>
     <dependencyManagement>
@@ -232,12 +232,12 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.2.0-jre</version>
+                <version>33.2.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-                <version>1.4.0</version>
+                <version>1.4.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

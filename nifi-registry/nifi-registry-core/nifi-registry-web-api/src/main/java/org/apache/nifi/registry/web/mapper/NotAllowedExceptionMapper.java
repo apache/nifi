@@ -38,7 +38,7 @@ public class NotAllowedExceptionMapper implements ExceptionMapper<NotAllowedExce
 
     @Override
     public Response toResponse(NotAllowedException exception) {
-        logger.info(String.format("%s. Returning %s response.", exception, Status.METHOD_NOT_ALLOWED));
+        logger.info("{}. Returning {} response.", exception, Status.METHOD_NOT_ALLOWED);
         logger.debug(StringUtils.EMPTY, exception);
         return Response.status(Status.METHOD_NOT_ALLOWED).entity(exception.getMessage()).type("text/plain").build();
     }

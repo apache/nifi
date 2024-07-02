@@ -23,10 +23,8 @@ import { MatTableModule } from '@angular/material/table';
 import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { ParameterContextEntity, ParameterContextReferenceEntity } from '../../../../../state/shared';
-import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 import {
     DragDropModule,

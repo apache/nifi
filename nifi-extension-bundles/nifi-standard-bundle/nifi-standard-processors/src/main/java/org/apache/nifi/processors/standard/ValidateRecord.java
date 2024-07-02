@@ -522,7 +522,7 @@ public class ValidateRecord extends AbstractProcessor {
                 sb.append(error).append("\n");
             }
 
-            getLogger().debug(sb.toString());
+            getLogger().debug("{}", sb);
         }
     }
 

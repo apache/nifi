@@ -33,10 +33,10 @@ import { Client } from '../../../../service/client.service';
 import { updateComponent } from '../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { UpdateComponentRequest } from '../../state/flow';
 import { filter, switchMap } from 'rxjs';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable({

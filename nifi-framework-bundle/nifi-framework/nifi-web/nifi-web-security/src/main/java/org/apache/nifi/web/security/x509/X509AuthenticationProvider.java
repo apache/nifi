@@ -157,7 +157,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
             user = user.getChain();
         }
         builder.append("\n============");
-        LOGGER.trace(builder.toString());
+        LOGGER.trace("{}", builder);
     }
 
     /**

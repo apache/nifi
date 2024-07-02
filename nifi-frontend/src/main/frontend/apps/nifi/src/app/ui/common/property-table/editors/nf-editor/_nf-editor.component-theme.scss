@@ -27,6 +27,10 @@
                 border-color: var(--mdc-outlined-text-field-disabled-label-text-color);
                 cursor: not-allowed !important;
             }
+
+            .CodeMirror.cm-s-nifi {
+                height: 108px;
+            }
         }
     }
 }

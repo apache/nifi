@@ -39,7 +39,7 @@ public class FlowStatusRunner implements CommandRunner {
     @Override
     public int runCommand(String[] args) {
         if (args.length == 2) {
-            CMD_LOGGER.info(periodicStatusReporterManager.statusReport(args[1]).toString());
+            CMD_LOGGER.info("{}", periodicStatusReporterManager.statusReport(args[1]));
             return OK.getStatusCode();
         } else {
             CMD_LOGGER.error("The 'flowStatus' command requires an input query. See the System Admin Guide 'FlowStatus Script Query' section for complete details.");

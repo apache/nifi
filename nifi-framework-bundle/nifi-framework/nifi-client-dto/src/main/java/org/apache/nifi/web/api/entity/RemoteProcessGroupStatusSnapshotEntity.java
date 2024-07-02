@@ -67,6 +67,7 @@ public class RemoteProcessGroupStatusSnapshotEntity extends Entity implements Re
     @Override
     public RemoteProcessGroupStatusSnapshotEntity clone() {
         final RemoteProcessGroupStatusSnapshotEntity other = new RemoteProcessGroupStatusSnapshotEntity();
+        other.setId(this.getId());
         other.setCanRead(this.getCanRead());
         other.setRemoteProcessGroupStatusSnapshot(this.getRemoteProcessGroupStatusSnapshot().clone());
 

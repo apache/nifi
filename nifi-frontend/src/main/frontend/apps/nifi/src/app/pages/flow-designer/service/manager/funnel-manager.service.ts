@@ -30,7 +30,7 @@ import {
 } from '../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Dimension } from '../../state/shared';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { filter, switchMap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })

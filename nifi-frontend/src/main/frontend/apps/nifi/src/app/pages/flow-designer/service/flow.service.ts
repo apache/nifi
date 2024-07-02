@@ -50,10 +50,11 @@ import {
     UploadProcessGroupRequest,
     VersionControlInformationEntity
 } from '../state/flow';
-import { ComponentType, PropertyDescriptorRetriever } from '../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import { Client } from '../../../service/client.service';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
+import { PropertyDescriptorRetriever } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class FlowService implements PropertyDescriptorRetriever {

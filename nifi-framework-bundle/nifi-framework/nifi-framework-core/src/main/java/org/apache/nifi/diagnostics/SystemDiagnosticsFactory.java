@@ -93,10 +93,7 @@ public class SystemDiagnosticsFactory {
             flowFileRepoStorageUsage.setFreeSpace(0L);
             flowFileRepoStorageUsage.setTotalSpace(-1L);
 
-            logger.warn("Unable to determine FlowFile Repository usage due to {}", ioe.toString());
-            if (logger.isDebugEnabled()) {
-                logger.warn("", ioe);
-            }
+            logger.warn("Unable to determine FlowFile Repository usage", ioe);
         }
         systemDiagnostics.setFlowFileRepositoryStorageUsage(flowFileRepoStorageUsage);
 
@@ -111,10 +108,7 @@ public class SystemDiagnosticsFactory {
                 containerFree = contentRepo.getContainerUsableSpace(containerName);
                 containerCapacity = contentRepo.getContainerCapacity(containerName);
             } catch (final IOException ioe) {
-                logger.warn("Unable to determine Content Repository usage for container {} due to {}", containerName, ioe.toString());
-                if (logger.isDebugEnabled()) {
-                    logger.warn("", ioe);
-                }
+                logger.warn("Unable to determine Content Repository usage for container {}", containerName, ioe);
             }
 
             final StorageUsage storageUsage = new StorageUsage();
@@ -136,10 +130,7 @@ public class SystemDiagnosticsFactory {
                 containerFree = provenanceRepository.getContainerUsableSpace(containerName);
                 containerCapacity = provenanceRepository.getContainerCapacity(containerName);
             } catch (final IOException ioe) {
-                logger.warn("Unable to determine Provenance Repository usage for container {} due to {}", containerName, ioe.toString());
-                if (logger.isDebugEnabled()) {
-                    logger.warn("", ioe);
-                }
+                logger.warn("Unable to determine Provenance Repository usage for container {}", containerName, ioe);
             }
 
             final StorageUsage storageUsage = new StorageUsage();

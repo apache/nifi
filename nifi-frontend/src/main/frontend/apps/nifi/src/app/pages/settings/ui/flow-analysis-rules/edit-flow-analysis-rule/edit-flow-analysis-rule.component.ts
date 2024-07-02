@@ -27,17 +27,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, of } from 'rxjs';
 import { Client } from '../../../../../service/client.service';
-import {
-    InlineServiceCreationRequest,
-    InlineServiceCreationResponse,
-    Property,
-    SelectOption
-} from '../../../../../state/shared';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
+import { InlineServiceCreationRequest, InlineServiceCreationResponse, Property } from '../../../../../state/shared';
+import { NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
 import {
     EditFlowAnalysisRuleDialogRequest,
     FlowAnalysisRuleEntity,
@@ -53,6 +46,7 @@ import {
 } from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { SelectOption } from 'libs/shared/src';
 
 @Component({
     selector: 'edit-flow-analysis-rule',

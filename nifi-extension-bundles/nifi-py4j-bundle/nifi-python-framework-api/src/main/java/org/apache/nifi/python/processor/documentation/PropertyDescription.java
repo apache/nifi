@@ -17,6 +17,7 @@
 
 package org.apache.nifi.python.processor.documentation;
 
+import java.util.List;
 import org.apache.nifi.python.PythonObjectProxy;
 
 public interface PropertyDescription extends PythonObjectProxy {
@@ -35,4 +36,6 @@ public interface PropertyDescription extends PythonObjectProxy {
     String getExpressionLanguageScope();
 
     String getControllerServiceDefinition();
+
+    List<String> getAllowableValues();
 }

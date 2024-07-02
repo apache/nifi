@@ -23,6 +23,7 @@ import org.apache.nifi.web.configuration.AuthenticationConfiguration;
 import org.apache.nifi.web.security.configuration.WebSecurityConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportResource;
@@ -36,14 +37,13 @@ import java.net.URISyntaxException;
  * Web Application Spring Configuration
  */
 @Configuration
+@ComponentScan(basePackages = "org.apache.nifi.framework.configuration")
 @Import({
         WebSecurityConfiguration.class
 })
-@ImportResource({"classpath:nifi-context.xml",
-    "classpath:nifi-authorizer-context.xml",
-    "classpath:nifi-cluster-manager-context.xml",
-    "classpath:nifi-cluster-protocol-context.xml",
-    "classpath:nifi-web-api-context.xml"})
+@ImportResource({
+    "classpath:nifi-web-api-context.xml"
+})
 public class NiFiWebApiConfiguration {
     private static final URI OAUTH2_AUTHORIZATION_URI = getPathUri("/nifi-api/oauth2/authorization/consumer");
 

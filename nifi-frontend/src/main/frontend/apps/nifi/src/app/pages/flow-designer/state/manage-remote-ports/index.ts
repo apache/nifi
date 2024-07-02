@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 
 export const remotePortsFeatureKey = 'remotePortListing';
 

@@ -21,7 +21,7 @@ import { ReportingTasks } from './reporting-tasks.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { MatSortModule } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '@nifi/shared';
 import { ReportingTaskTable } from './reporting-task-table/reporting-task-table.component';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { RouterLink } from '@angular/router';

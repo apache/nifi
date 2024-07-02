@@ -201,7 +201,7 @@ public class PeerSelector {
                         .append(" will").append(direction == TransferDirection.RECEIVE ? " send " : " receive ")
                         .append(df.format(percentage)).append("% of data");
             }
-            logger.debug(distributionDescription.toString());
+            logger.debug("{}", distributionDescription);
         }
     }
 

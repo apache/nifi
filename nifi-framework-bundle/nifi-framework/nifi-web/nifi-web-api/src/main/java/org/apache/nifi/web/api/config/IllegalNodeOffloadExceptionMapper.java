@@ -35,7 +35,7 @@ public class IllegalNodeOffloadExceptionMapper implements ExceptionMapper<Illega
 
     @Override
     public Response toResponse(IllegalNodeOffloadException exception) {
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.CONFLICT));
+        logger.info("{}. Returning {} response.", exception, Response.Status.CONFLICT);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);

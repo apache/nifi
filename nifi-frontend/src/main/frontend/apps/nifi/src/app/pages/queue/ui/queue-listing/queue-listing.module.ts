@@ -19,7 +19,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { QueueListing } from './queue-listing.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '@nifi/shared';
 import { QueueListingRoutingModule } from './queue-listing-routing.module';
 import { FlowFileTable } from './flowfile-table/flowfile-table.component';
 import { StoreModule } from '@ngrx/store';

@@ -619,7 +619,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     connection.setAutoCommit(originalAutoCommit);
                 }
             } catch (final Exception autoCommitException) {
-                getLogger().warn(String.format("Failed to set auto-commit back to %s on connection", originalAutoCommit), autoCommitException);
+                getLogger().warn("Failed to set auto-commit back to {} on connection", originalAutoCommit, autoCommitException);
             }
 
             try {
@@ -1599,8 +1599,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         try {
             return connection.getMetaData().supportsBatchUpdates();
         } catch (Exception ex) {
-            getLogger().debug(String.format("Exception while testing if connection supportsBatchUpdates due to %s - %s",
-                    ex.getClass().getName(), ex.getMessage()));
+            getLogger().debug("Exception while testing if connection supportsBatchUpdates", ex);
             return false;
         }
     }

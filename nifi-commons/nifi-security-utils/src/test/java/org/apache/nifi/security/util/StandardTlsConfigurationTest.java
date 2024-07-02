@@ -16,19 +16,14 @@
  */
 package org.apache.nifi.security.util;
 
-import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StandardTlsConfigurationTest {
@@ -75,55 +70,6 @@ public class StandardTlsConfigurationTest {
     public void testHashCodeNullProperties() {
         final StandardTlsConfiguration configuration = new StandardTlsConfiguration();
         assertEquals(new StandardTlsConfiguration().hashCode(), configuration.hashCode());
-    }
-
-    @Test
-    public void testFromNiFiPropertiesEmptyProperties() {
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null);
-        final TlsConfiguration configuration = StandardTlsConfiguration.fromNiFiProperties(niFiProperties);
-        assertNotNull(configuration);
-        assertEquals(PROTOCOL, configuration.getProtocol());
-    }
-
-    @Test
-    public void testFromNiFiProperties() {
-        final Map<String, String> properties = new HashMap<>();
-        properties.put(NiFiProperties.SECURITY_KEYSTORE, KEY_STORE_PATH);
-        properties.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, KEY_STORE_PASSWORD);
-        properties.put(NiFiProperties.SECURITY_KEY_PASSWD, KEY_PASSWORD);
-        properties.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, KEY_STORE_TYPE);
-        properties.put(NiFiProperties.SECURITY_TRUSTSTORE, TRUST_STORE_PATH);
-        properties.put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, TRUST_STORE_PASSWORD);
-        properties.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, TRUST_STORE_TYPE);
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
-
-        final TlsConfiguration configuration = StandardTlsConfiguration.fromNiFiProperties(niFiProperties);
-        assertNotNull(configuration);
-        assertEquals(PROTOCOL, configuration.getProtocol());
-        assertEquals(KEY_STORE_PATH, configuration.getKeystorePath());
-        assertEquals(KEY_STORE_PASSWORD, configuration.getKeystorePassword());
-        assertEquals(KEY_PASSWORD, configuration.getKeyPassword());
-        assertEquals(KEY_STORE_TYPE, configuration.getKeystoreType().getType());
-        assertEquals(TRUST_STORE_PATH, configuration.getTruststorePath());
-        assertEquals(TRUST_STORE_PASSWORD, configuration.getTruststorePassword());
-        assertEquals(TRUST_STORE_TYPE, configuration.getTruststoreType().getType());
-    }
-
-    @Test
-    public void testFromNiFiPropertiesTrustStoreProperties() {
-        final Map<String, String> properties = new HashMap<>();
-        properties.put(NiFiProperties.SECURITY_TRUSTSTORE, TRUST_STORE_PATH);
-        properties.put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, TRUST_STORE_PASSWORD);
-        properties.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, TRUST_STORE_TYPE);
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
-
-        final TlsConfiguration configuration = StandardTlsConfiguration.fromNiFiPropertiesTruststoreOnly(niFiProperties);
-        assertNotNull(configuration);
-        assertNull(configuration.getKeystorePath());
-        assertEquals(PROTOCOL, configuration.getProtocol());
-        assertEquals(TRUST_STORE_PATH, configuration.getTruststorePath());
-        assertEquals(TRUST_STORE_PASSWORD, configuration.getTruststorePassword());
-        assertEquals(TRUST_STORE_TYPE, configuration.getTruststoreType().getType());
     }
 
     @Test

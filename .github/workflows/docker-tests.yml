@@ -27,7 +27,6 @@ on:
       - 'nifi-registry/nifi-registry-docker-maven/**'
       - 'nifi-toolkit/nifi-toolkit-assembly/**'
       - 'nifi-toolkit/nifi-toolkit-cli/**'
-      - 'nifi-toolkit/nifi-toolkit-encrypt-config/**'
       - 'minifi/minifi-assembly/**'
       - 'minifi/minifi-docker/**'
   pull_request:
@@ -39,7 +38,6 @@ on:
       - 'nifi-registry/nifi-registry-docker-maven/**'
       - 'nifi-toolkit/nifi-toolkit-assembly/**'
       - 'nifi-toolkit/nifi-toolkit-cli/**'
-      - 'nifi-toolkit/nifi-toolkit-encrypt-config/**'
       - 'minifi/minifi-assembly/**'
       - 'minifi/minifi-docker/**'
 
@@ -77,7 +75,6 @@ env:
     -pl -nifi-registry/nifi-registry-assembly
     -pl -nifi-toolkit/nifi-toolkit-assembly
     -pl -nifi-toolkit/nifi-toolkit-cli
-    -pl -nifi-toolkit/nifi-toolkit-encrypt-config
     -pl -minifi/minifi-assembly
 
   MAVEN_DOCKER_ARGUMENTS: >-

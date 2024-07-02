@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { NiFiCommon } from '../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { ParameterContextUpdateRequest, SubmitParameterContextUpdate } from '../../../state/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 

@@ -18,7 +18,7 @@
 import { createSelector } from '@ngrx/store';
 import { AccessPoliciesState, selectAccessPoliciesState } from '../index';
 import { accessPolicyFeatureKey, AccessPolicyState } from './index';
-import { selectCurrentRoute } from '../../../../state/router/router.selectors';
+import { selectCurrentRoute } from '@nifi/shared';
 import { ComponentResourceAction, ResourceAction } from '../shared';
 
 export const selectAccessPolicyState = createSelector(

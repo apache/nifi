@@ -601,8 +601,8 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                                 if (user != null) {
                                                     groupToUserIdentifierMappings.computeIfAbsent(referencedGroupValue, g -> new HashSet<>()).add(user.getIdentifier());
                                                 } else {
-                                                    logger.debug(String.format("%s contains member %s but that user was not found while searching users. This may be due "
-                                                                    + "to a misconfiguration or it's possible the user is not a NiFi user. Ignoring group membership.", name, userValue));
+                                                    logger.debug("{} contains member {} but that user was not found while searching users. This may be due "
+                                                                    + "to a misconfiguration or it's possible the user is not a NiFi user. Ignoring group membership.", name, userValue);
                                                 }
                                             } else {
                                                 // since performUserSearch is false, then the referenced group attribute must be blank... the user value must be the dn.

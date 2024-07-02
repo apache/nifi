@@ -24,8 +24,8 @@
     <description>Tooling to make tls configuration easier</description>
 
     <properties>
-        <guava.version>33.2.0-jre</guava.version>
-        <jline.version>3.26.1</jline.version>
+        <guava.version>33.2.1-jre</guava.version>
+        <jline.version>3.26.2</jline.version>
     </properties>
 
     <build>

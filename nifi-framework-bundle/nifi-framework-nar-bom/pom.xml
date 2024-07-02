@@ -155,18 +155,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-property-protection-api</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-property-protection-loader</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties-loader</artifactId>
                 <version>2.0.0-SNAPSHOT</version>
                 <scope>provided</scope>
@@ -319,14 +307,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-encryptor</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-property-protection-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-property-protection-loader</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

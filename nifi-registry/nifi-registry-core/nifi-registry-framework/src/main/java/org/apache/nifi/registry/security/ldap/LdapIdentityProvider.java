@@ -195,7 +195,7 @@ public class LdapIdentityProvider extends BasicAuthIdentityProvider implements I
         final String rawIdentityStrategy = configurationContext.getProperty("Identity Strategy");
 
         if (StringUtils.isBlank(rawIdentityStrategy)) {
-            logger.info(String.format("Identity Strategy is not configured, defaulting strategy to %s.", IdentityStrategy.USE_DN));
+            logger.info("Identity Strategy is not configured, defaulting strategy to {}.", IdentityStrategy.USE_DN);
 
             // if this value is not configured, default to use dn which was the previous implementation
             identityStrategy = IdentityStrategy.USE_DN;
@@ -254,7 +254,7 @@ public class LdapIdentityProvider extends BasicAuthIdentityProvider implements I
                     final LdapUserDetails userDetails = (LdapUserDetails) authentication.getPrincipal();
                     return new AuthenticationResponse(userDetails.getDn(), username, expiration, issuer);
                 } else {
-                    logger.warn(String.format("Unable to determine user DN for %s, using username.", authentication.getName()));
+                    logger.warn("Unable to determine user DN for {}, using username.", authentication.getName());
                     return new AuthenticationResponse(authentication.getName(), username, expiration, issuer);
                 }
             } else {

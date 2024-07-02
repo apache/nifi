@@ -264,7 +264,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 try {
                     success = loadBalanceSession.communicate();
                 } catch (final Exception e) {
-                    logger.error("Failed to communicate with Peer {}", nodeIdentifier.toString(), e);
+                    logger.error("Failed to communicate with Peer {}", nodeIdentifier, e);
                     eventReporter.reportEvent(Severity.ERROR, "Load Balanced Connection", "Failed to communicate with Peer " + nodeIdentifier + " when load balancing data for Connection with ID " +
                         loadBalanceSession.getPartition().getConnectionId() + " due to " + e);
 

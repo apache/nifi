@@ -50,7 +50,7 @@ import {
     terminateThreads,
     updatePositions
 } from '../state/flow/flow.actions';
-import { ComponentType } from '../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 import {
     ConfirmStopVersionControlRequest,
     MoveComponentRequest,

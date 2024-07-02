@@ -21,7 +21,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -61,34 +60,6 @@ import java.util.Map;
         + "This reader is currently only capable of processing .xlsx "
         + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.")
 public class ExcelReader extends SchemaRegistryService implements RecordReaderFactory {
-
-    public enum ProtectionType implements DescribedValue {
-        UNPROTECTED("Unprotected", "An Excel spreadsheet not protected by a password"),
-        PASSWORD("Password Protected", "An Excel spreadsheet protected by a password");
-
-        ProtectionType(String displayName, String description) {
-            this.displayName = displayName;
-            this.description = description;
-        }
-
-        private final String displayName;
-        private final String description;
-
-        @Override
-        public String getValue() {
-            return name();
-        }
-
-        @Override
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        @Override
-        public String getDescription() {
-            return description;
-        }
-    }
 
     public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor
             .Builder().name("Required Sheets")

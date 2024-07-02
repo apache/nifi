@@ -53,7 +53,7 @@ public class LoggingEventHookProvider
 
         builder.append("] ");
 
-        LOGGER.info(builder.toString());
+        LOGGER.info("{}", builder);
     }
 
 }

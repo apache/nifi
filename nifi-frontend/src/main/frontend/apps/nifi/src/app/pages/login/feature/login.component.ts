@@ -22,7 +22,7 @@ import { selectCurrentUserState } from '../../../state/current-user/current-user
 import { take } from 'rxjs';
 import { selectLoginConfiguration } from '../../../state/login-configuration/login-configuration.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { isDefinedAndNotNull } from '../../../state/shared';
+import { isDefinedAndNotNull } from 'libs/shared/src';
 
 @Component({
     selector: 'login',

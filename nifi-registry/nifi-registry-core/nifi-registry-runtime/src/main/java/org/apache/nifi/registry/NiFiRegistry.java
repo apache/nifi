@@ -20,9 +20,6 @@ import org.apache.nifi.registry.jetty.JettyServer;
 import org.apache.nifi.registry.jetty.handler.HandlerProvider;
 import org.apache.nifi.registry.jetty.handler.StandardHandlerProvider;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.apache.nifi.registry.security.crypto.BootstrapFileCryptoKeyProvider;
-import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
-import org.apache.nifi.registry.security.crypto.MissingCryptoKeyException;
 import org.apache.nifi.registry.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,16 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 /**
  * Main entry point for NiFiRegistry.
@@ -57,7 +45,7 @@ public class NiFiRegistry {
     private final BootstrapListener bootstrapListener;
     private volatile boolean shutdown = false;
 
-    public NiFiRegistry(final NiFiRegistryProperties properties, CryptoKeyProvider masterKeyProvider) throws IOException, IllegalArgumentException {
+    public NiFiRegistry(final NiFiRegistryProperties properties) throws IOException, IllegalArgumentException {
 
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> LOGGER.error("An Unknown Error Occurred in Thread {}", t, e));
 
@@ -101,7 +89,7 @@ public class NiFiRegistry {
 
         final String docsDirectory = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_BOOTSTRAP_DOCS_DIR_PROPERTY,
                 NiFiRegistryProperties.RELATIVE_DOCS_LOCATION);
-        final HandlerProvider handlerProvider = new StandardHandlerProvider(masterKeyProvider, docsDirectory);
+        final HandlerProvider handlerProvider = new StandardHandlerProvider(docsDirectory);
         server = new JettyServer(properties, handlerProvider);
 
         if (shutdown) {
@@ -144,83 +132,33 @@ public class NiFiRegistry {
     public static void main(String[] args) {
         LOGGER.info("Launching NiFi Registry...");
 
-        final CryptoKeyProvider masterKeyProvider;
-        final NiFiRegistryProperties properties;
-        final ClassLoader sensitivePropProviderClassLoader;
         try {
-            masterKeyProvider = getMasterKeyProvider();
-            sensitivePropProviderClassLoader = createSensitivePropertiesProviderClassLoader();
-            properties = initializeProperties(masterKeyProvider, sensitivePropProviderClassLoader);
-        } catch (final IllegalArgumentException iae) {
-            throw new RuntimeException("Unable to load properties: " + iae, iae);
-        }
-
-        try {
-            new NiFiRegistry(properties, masterKeyProvider);
+            new NiFiRegistry(initializeProperties());
         } catch (final Throwable t) {
             LOGGER.error("Failure to launch NiFi Registry", t);
         }
     }
 
-    public static CryptoKeyProvider getMasterKeyProvider() {
-        final String bootstrapConfigFilePath = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_BOOTSTRAP_FILE_PATH_PROPERTY,
-                NiFiRegistryProperties.RELATIVE_BOOTSTRAP_FILE_LOCATION);
-        CryptoKeyProvider masterKeyProvider = new BootstrapFileCryptoKeyProvider(bootstrapConfigFilePath);
-        LOGGER.info("Read property protection key from {}", bootstrapConfigFilePath);
-        return masterKeyProvider;
-    }
-
-    public static NiFiRegistryProperties initializeProperties(CryptoKeyProvider masterKeyProvider, final ClassLoader sensitivePropertyProviderClassLoader) {
-        String key = CryptoKeyProvider.EMPTY_KEY;
-        try {
-            key = masterKeyProvider.getKey();
-        } catch (MissingCryptoKeyException e) {
-            LOGGER.debug("CryptoKeyProvider provided to initializeProperties method was empty - did not contain a key.");
-            // Do nothing. The key can be empty when it is passed to the loader as the loader will only use it if any properties are protected.
-        }
-
+    public static NiFiRegistryProperties initializeProperties() {
         final String nifiRegistryPropertiesFilePath = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_PROPERTIES_FILE_PATH_PROPERTY,
                 NiFiRegistryProperties.RELATIVE_PROPERTIES_FILE_LOCATION);
 
-        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(sensitivePropertyProviderClassLoader);
-
         try {
-            final Class<?> propsLoaderClass = Class.forName("org.apache.nifi.registry.properties.NiFiRegistryPropertiesLoader", true, sensitivePropertyProviderClassLoader);
-            final Method withKeyMethod = propsLoaderClass.getMethod("withKey", String.class);
-            final Object loaderInstance = withKeyMethod.invoke(null, key);
+            final Class<?> propsLoaderClass = Class.forName("org.apache.nifi.registry.properties.NiFiRegistryPropertiesLoader");
+            final Object loaderInstance = propsLoaderClass.getConstructor().newInstance();
             final Method loadMethod = propsLoaderClass.getMethod("load", String.class);
             final NiFiRegistryProperties properties = (NiFiRegistryProperties) loadMethod.invoke(loaderInstance, nifiRegistryPropertiesFilePath);
             LOGGER.info("Application Properties loaded [{}]", properties.size());
             return properties;
-        } catch (InvocationTargetException wrappedException) {
+        } catch (final InstantiationException | InvocationTargetException wrappedException) {
             final String msg = "There was an issue decrypting protected properties";
             throw new IllegalArgumentException(msg, wrappedException.getCause() == null ? wrappedException : wrappedException.getCause());
-        } catch (final IllegalAccessException | NoSuchMethodException | ClassNotFoundException reex) {
+        } catch (final IllegalAccessException | NoSuchMethodException | ClassNotFoundException e) {
             final String msg = "Unable to access properties loader in the expected manner - apparent classpath or build issue";
-            throw new IllegalArgumentException(msg, reex);
+            throw new IllegalArgumentException(msg, e);
         } catch (final RuntimeException e) {
             final String msg = "There was an issue decrypting protected properties";
             throw new IllegalArgumentException(msg, e);
-        } finally {
-            Thread.currentThread().setContextClassLoader(contextClassLoader);
         }
     }
-
-    public static ClassLoader createSensitivePropertiesProviderClassLoader() {
-        final List<URL> urls = new ArrayList<>();
-        try (final Stream<Path> files = Files.list(Paths.get("lib/spp"))) {
-            files.forEach(p -> {
-                try {
-                    urls.add(p.toUri().toURL());
-                } catch (final MalformedURLException mef) {
-                    LOGGER.warn("Unable to load bootstrap library [{}]", p.getFileName(), mef);
-                }
-            });
-        } catch (IOException ioe) {
-            LOGGER.warn("Unable to access lib/spp to create sensitive property provider classloader", ioe);
-        }
-        return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
-    }
-
 }

@@ -28,7 +28,7 @@ import { MatTableModule } from '@angular/material/table';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '@nifi/shared';
 import { SummaryTableFilterModule } from '../common/summary-table-filter/summary-table-filter.module';
 import { ProcessorStatusTable } from './processor-status-table/processor-status-table.component';
 import { MatPaginatorModule } from '@angular/material/paginator';

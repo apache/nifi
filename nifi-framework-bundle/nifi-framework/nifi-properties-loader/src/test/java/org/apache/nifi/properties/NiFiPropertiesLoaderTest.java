@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Test;
 
 import java.net.URL;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,11 +31,7 @@ class NiFiPropertiesLoaderTest {
 
     private static final String EMPTY_PATH = "/properties/conf/empty.nifi.properties";
     private static final String FLOW_PATH = "/properties/conf/flow.nifi.properties";
-    private static final String PROTECTED_PATH = "/properties/conf/protected.nifi.properties";
     private static final String DUPLICATE_PROPERTIES_PATH = "/properties/conf/duplicates.nifi.properties";
-
-    private static final String HEXADECIMAL_KEY = "12345678123456788765432187654321";
-    private static final String EXPECTED_PASSWORD = "propertyValue";
 
     @AfterEach
     void clearSystemProperty() {
@@ -52,10 +47,11 @@ class NiFiPropertiesLoaderTest {
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, path);
 
-        final NiFiPropertiesLoader loader = NiFiPropertiesLoader.withKey(String.class.getSimpleName());
+        final NiFiPropertiesLoader loader = new NiFiPropertiesLoader();
 
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
             final NiFiProperties properties = loader.get();
+            assertNotNull(properties);
         });
 
         String expectedMessage = "Duplicate property keys with different values were detected in the properties file: another.duplicate, nifi.flow.configuration.file";
@@ -89,7 +85,7 @@ class NiFiPropertiesLoaderTest {
     }
 
     @Test
-    void testGetPropertiesWithKeyNoEncryptedProperties() {
+    void testGetPropertiesNoEncryptedProperties() {
         final URL resource = NiFiPropertiesLoaderTest.class.getResource(FLOW_PATH);
         assertNotNull(resource);
 
@@ -97,42 +93,12 @@ class NiFiPropertiesLoaderTest {
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, path);
 
-        final NiFiPropertiesLoader loader = NiFiPropertiesLoader.withKey(String.class.getSimpleName());
+        final NiFiPropertiesLoader loader = new NiFiPropertiesLoader();
 
         final NiFiProperties properties = loader.get();
 
         assertNotNull(properties);
         assertNotNull(properties.getFlowConfigurationFile());
-    }
-
-    @Test
-    void testLoadWithKey() {
-        final NiFiPropertiesLoader loader = NiFiPropertiesLoader.withKey(HEXADECIMAL_KEY);
-
-        final URL resource = NiFiPropertiesLoaderTest.class.getResource(PROTECTED_PATH);
-        assertNotNull(resource);
-        final String path = resource.getPath();
-
-        final NiFiProperties properties = loader.load(path);
-
-        assertNotNull(properties);
-
-        assertNotNull(properties.getFlowConfigurationFile());
-        assertEquals(EXPECTED_PASSWORD, properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD));
-    }
-
-    @Test
-    void testLoadWithDefaultKeyFromBootstrap() {
-        final URL resource = NiFiPropertiesLoaderTest.class.getResource(FLOW_PATH);
-        assertNotNull(resource);
-
-        final String path = resource.getPath();
-
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, path);
-
-        final NiFiProperties properties = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap();
-
-        assertNotNull(properties);
     }
 
     @Test

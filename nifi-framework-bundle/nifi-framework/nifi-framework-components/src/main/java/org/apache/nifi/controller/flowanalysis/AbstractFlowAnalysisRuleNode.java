@@ -287,7 +287,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
 
             componentLog.error("Failed to invoke {} method", cause);
 
-            log.error("Failed to invoke {} method of {} due to {}", annotation.getSimpleName(), getFlowAnalysisRule(), cause.toString());
+            log.error("Failed to invoke {} method of {}", annotation.getSimpleName(), getFlowAnalysisRule(), cause);
         }
     }
 

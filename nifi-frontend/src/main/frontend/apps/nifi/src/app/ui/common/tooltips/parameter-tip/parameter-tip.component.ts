@@ -18,7 +18,7 @@
 import { Component, Input } from '@angular/core';
 
 import { Parameter, ParameterTipInput } from '../../../../state/shared';
-import { NiFiCommon } from '../../../../service/nifi-common.service';
+import { NiFiCommon } from '@nifi/shared';
 import { ControllerServiceApi } from '../../controller-service/controller-service-api/controller-service-api.component';
 
 @Component({

@@ -84,7 +84,6 @@ public class PythonProcessorIT extends NiFiSystemIT {
         assertEquals(messageContents, contents);
     }
 
-
     @Test
     public void testRecordTransform() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
@@ -170,5 +169,40 @@ public class PythonProcessorIT extends NiFiSystemIT {
         assertEquals("3", secondRecordValues.get( headerIndices.get("age") ));
         assertEquals("Ball", secondRecordValues.get( headerIndices.get("sport") ));
         assertEquals("HELLO", secondRecordValues.get( headerIndices.get("greeting") ));
+    }
+
+    @Test
+    public void testFlowFileSource() throws NiFiClientException, IOException, InterruptedException {
+        final String messageContents = "Hello World";
+
+        final ProcessorEntity createFlowFilePython = getClientUtil().createPythonProcessor("CreateFlowFile");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+
+        // Config CreateFlowFile with "Hello World" as the value of "FlowFile Contents" attribute
+        final ProcessorConfigDTO generateConfig = createFlowFilePython.getComponent().getConfig();
+        generateConfig.setProperties(Collections.singletonMap("FlowFile Contents", messageContents));
+        getClientUtil().updateProcessorConfig(createFlowFilePython, generateConfig);
+
+        // Connect the processors
+        final ConnectionEntity outputConnection = getClientUtil().createConnection(createFlowFilePython, terminate, "success");
+        getClientUtil().setAutoTerminatedRelationships(createFlowFilePython, "multiline");
+
+        // Wait for processor validation to complete
+        getClientUtil().waitForValidProcessor(createFlowFilePython.getId());
+
+        // Run the flow
+        runProcessorOnce(createFlowFilePython);
+
+        // Wait for output to be queued up
+        waitForQueueCount(outputConnection.getId(), 1);
+
+        // Validate the output
+        final String contents = getClientUtil().getFlowFileContentAsUtf8(outputConnection.getId(), 0);
+        assertEquals(messageContents, contents);
+    }
+
+    private void runProcessorOnce(final ProcessorEntity processorEntity) throws NiFiClientException, IOException, InterruptedException {
+        getNifiClient().getProcessorClient().runProcessorOnce(processorEntity);
+        getClientUtil().waitForStoppedProcessor(processorEntity.getId());
     }
 }

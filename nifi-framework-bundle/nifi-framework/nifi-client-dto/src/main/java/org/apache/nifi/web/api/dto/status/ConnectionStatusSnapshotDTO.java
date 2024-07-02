@@ -321,6 +321,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         other.setQueuedSize(getQueuedSize());
         other.setPercentUseBytes(getPercentUseBytes());
         other.setPercentUseCount(getPercentUseCount());
+        other.setFlowFileAvailability(getFlowFileAvailability());
 
         return other;
     }

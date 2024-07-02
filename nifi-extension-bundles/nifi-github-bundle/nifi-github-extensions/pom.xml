@@ -22,7 +22,7 @@
     <artifactId>nifi-github-extensions</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <jjwt.version>0.12.5</jjwt.version>
+        <jjwt.version>0.12.6</jjwt.version>
     </properties>
     <dependencies>
         <dependency>

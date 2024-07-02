@@ -204,7 +204,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             logger.info("In order to inherit proposed dataflow, will stop any components that will be affected by the update");
             if (logger.isDebugEnabled()) {
                 logger.debug("Will stop the following components:");
-                logger.debug(activeSet.toString());
+                logger.debug("{}", activeSet);
                 final String differencesToString = flowDifferences.stream()
                         .map(FlowDifference::toString)
                         .collect(Collectors.joining("\n"));

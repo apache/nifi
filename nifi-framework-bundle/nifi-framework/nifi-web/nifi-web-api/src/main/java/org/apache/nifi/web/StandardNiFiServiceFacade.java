@@ -2200,7 +2200,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                             accessPolicyDAO.deleteAccessPolicy(readPolicy.getIdentifier());
                         }
                     } catch (final Exception e) {
-                        logger.warn(String.format("Unable to remove access policy for %s %s after component removal.", action, resource.getIdentifier()), e);
+                        logger.warn("Unable to remove access policy for {} {} after component removal.", action, resource.getIdentifier(), e);
                     }
                 }
             }
@@ -2793,7 +2793,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                             }
                         });
                     } catch (final Exception e) {
-                        logger.warn(String.format("Unable to create ControllerService of type %s to populate default values.", dto.getType()));
+                        logger.warn("Unable to create ControllerService of type {} to populate default values.", dto.getType());
                     }
                 });
             }
@@ -2817,7 +2817,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                             }
                         });
                     } catch (final Exception e) {
-                        logger.warn(String.format("Unable to create Processor of type %s to populate default values.", dto.getType()));
+                        logger.warn("Unable to create Processor of type {} to populate default values.", dto.getType());
                     }
                 });
             }

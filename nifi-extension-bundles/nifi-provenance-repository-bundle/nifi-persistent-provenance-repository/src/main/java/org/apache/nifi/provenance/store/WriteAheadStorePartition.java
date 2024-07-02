@@ -659,7 +659,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
                         }
                     } catch (final EOFException | FileNotFoundException eof) {
                         // Ran out of data. Continue on.
-                        logger.warn("Failed to find event with ID {} in Event File {} due to {}", minEventIdToReindex, eventFile, eof.toString());
+                        logger.warn("Failed to find event with ID {} in Event File {}", minEventIdToReindex, eventFile, eof);
                     } catch (final Exception e) {
                         logger.error("Failed to index Provenance Events found in {}", eventFile, e);
                     }

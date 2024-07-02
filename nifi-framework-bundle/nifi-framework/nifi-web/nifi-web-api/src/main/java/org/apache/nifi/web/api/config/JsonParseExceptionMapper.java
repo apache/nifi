@@ -35,7 +35,7 @@ public class JsonParseExceptionMapper implements ExceptionMapper<JsonParseExcept
     @Override
     public Response toResponse(JsonParseException ex) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", ex, Response.Status.BAD_REQUEST));
+        logger.info("{}. Returning {} response.", ex, Response.Status.BAD_REQUEST);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, ex);

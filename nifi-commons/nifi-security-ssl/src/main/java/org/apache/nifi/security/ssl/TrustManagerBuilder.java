@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.security.ssl;
 
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 
 /**
- * Builder interface for instances of java.security.ssl.X509TrustManager
+ * Builder interface for instances of java.security.ssl.X509ExtendedTrustManager
  */
 public interface TrustManagerBuilder {
     /**
-     * Build X.509 Trust Manager using configured properties
+     * Build X.509 Extended Trust Manager using configured properties
      *
-     * @return X.509 Trust Manager
+     * @return X.509 Extended Trust Manager
      */
-    X509TrustManager build();
+    X509ExtendedTrustManager build();
 }

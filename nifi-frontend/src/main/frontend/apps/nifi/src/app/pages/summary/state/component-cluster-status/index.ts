@@ -16,7 +16,7 @@
  */
 
 import { ConnectionStatus, PortStatus, ProcessGroupStatus, ProcessorStatus, RemoteProcessGroupStatus } from '../index';
-import { ComponentType } from '../../../../state/shared';
+import { ComponentType } from 'libs/shared/src';
 
 export const componentClusterStatusFeatureKey = 'component-cluster-status';
 

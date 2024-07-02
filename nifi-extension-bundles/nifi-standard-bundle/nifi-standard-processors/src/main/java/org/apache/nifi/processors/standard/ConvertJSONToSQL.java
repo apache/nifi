@@ -328,7 +328,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 }
             });
         } catch (ProcessException e) {
-            getLogger().error("Failed to convert {} into a SQL statement due to {}; routing to failure", flowFile, e.toString(), e);
+            getLogger().error("Failed to convert {} into a SQL statement", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -346,7 +346,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 }
             });
         } catch (final ProcessException pe) {
-            getLogger().error("Failed to parse {} as JSON due to {}; routing to failure", flowFile, pe.toString(), pe);
+            getLogger().error("Failed to parse {} as JSON", flowFile, pe);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

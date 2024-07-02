@@ -38,7 +38,7 @@ public class JsonContentConversionExceptionMapper implements ExceptionMapper<Inv
     @Override
     public Response toResponse(InvalidFormatException ex) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", ex, Response.Status.BAD_REQUEST));
+        logger.info("{}. Returning {} response.", ex, Response.Status.BAD_REQUEST);
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, ex);

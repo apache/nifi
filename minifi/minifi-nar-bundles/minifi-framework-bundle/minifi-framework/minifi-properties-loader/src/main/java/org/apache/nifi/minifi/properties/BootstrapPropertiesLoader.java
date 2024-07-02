@@ -17,33 +17,15 @@
 
 package org.apache.nifi.minifi.properties;
 
-import static java.lang.String.format;
-import static org.apache.nifi.minifi.commons.utils.SensitivePropertyUtils.MINIFI_BOOTSTRAP_SENSITIVE_KEY;
-import static org.apache.nifi.minifi.commons.utils.SensitivePropertyUtils.getFormattedKey;
-
 import java.io.File;
-import org.apache.nifi.properties.AesGcmSensitivePropertyProvider;
 
 public class BootstrapPropertiesLoader {
 
     public static BootstrapProperties load(File file) {
-        ProtectedBootstrapProperties protectedProperties = loadProtectedProperties(file);
-        if (protectedProperties.hasProtectedKeys()) {
-            String sensitiveKey = protectedProperties.getApplicationProperties().getProperty(MINIFI_BOOTSTRAP_SENSITIVE_KEY);
-            validateSensitiveKeyProperty(sensitiveKey);
-            String keyHex = getFormattedKey(sensitiveKey);
-            protectedProperties.addSensitivePropertyProvider(new AesGcmSensitivePropertyProvider(keyHex));
-        }
-        return protectedProperties.getUnprotectedProperties();
+        return loadProtectedProperties(file);
     }
 
-    public static ProtectedBootstrapProperties loadProtectedProperties(File file) {
-        return new ProtectedBootstrapProperties(PropertiesLoader.load(file, "Bootstrap"));
-    }
-
-    private static void validateSensitiveKeyProperty(String sensitiveKey) {
-        if (sensitiveKey == null || sensitiveKey.trim().isEmpty()) {
-            throw new IllegalArgumentException(format("bootstrap.conf contains protected properties but %s is not found", MINIFI_BOOTSTRAP_SENSITIVE_KEY));
-        }
+    public static BootstrapProperties loadProtectedProperties(File file) {
+        return new BootstrapProperties(PropertiesLoader.load(file, "Bootstrap"));
     }
 }

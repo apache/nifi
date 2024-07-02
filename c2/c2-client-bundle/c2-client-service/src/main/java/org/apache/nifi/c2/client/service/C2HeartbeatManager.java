@@ -22,6 +22,8 @@ import static java.util.function.Predicate.not;
 
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
+
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
@@ -36,15 +38,15 @@ public class C2HeartbeatManager implements Runnable {
     private final C2Client client;
     private final C2HeartbeatFactory c2HeartbeatFactory;
     private final ReentrantLock heartbeatLock;
-    private final RuntimeInfoWrapper runtimeInfoWrapper;
+    private final Supplier<RuntimeInfoWrapper> runtimeInfoSupplier;
     private final C2OperationManager c2OperationManager;
 
-    public C2HeartbeatManager(C2Client client, C2HeartbeatFactory c2HeartbeatFactory, ReentrantLock heartbeatLock, RuntimeInfoWrapper runtimeInfoWrapper,
+    public C2HeartbeatManager(C2Client client, C2HeartbeatFactory c2HeartbeatFactory, ReentrantLock heartbeatLock, Supplier<RuntimeInfoWrapper> runtimeInfoSupplier,
                               C2OperationManager c2OperationManager) {
         this.client = client;
         this.c2HeartbeatFactory = c2HeartbeatFactory;
         this.heartbeatLock = heartbeatLock;
-        this.runtimeInfoWrapper = runtimeInfoWrapper;
+        this.runtimeInfoSupplier = runtimeInfoSupplier;
         this.c2OperationManager = c2OperationManager;
     }
 
@@ -56,7 +58,7 @@ public class C2HeartbeatManager implements Runnable {
         }
         try {
             LOGGER.debug("Heartbeat lock is acquired, sending heartbeat");
-            C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
+            C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoSupplier.get());
             client.publishHeartbeat(c2Heartbeat).ifPresent(this::processResponse);
         } catch (Exception e) {
             LOGGER.error("Failed to send/process heartbeat", e);

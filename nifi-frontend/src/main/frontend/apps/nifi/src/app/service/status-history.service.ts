@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client } from './client.service';
-import { ComponentType } from '../state/shared';
+import { ComponentType } from 'libs/shared/src';
 
 @Injectable({ providedIn: 'root' })
 export class StatusHistoryService {

@@ -794,8 +794,7 @@ public class SwappablePriorityQueue {
                     droppedSize = dropAction.drop(activeQueueRecords, requestor);
                     logger.debug("For DropFlowFileRequest {}, Dropped {} from active queue", requestIdentifier, droppedSize);
                 } catch (final IOException ioe) {
-                    logger.error("Failed to drop the FlowFiles from queue {} due to {}", getQueueIdentifier(), ioe.toString());
-                    logger.error("", ioe);
+                    logger.error("Failed to drop the FlowFiles from queue {}", getQueueIdentifier(), ioe);
 
                     dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + ioe.toString());
                     return;
@@ -817,8 +816,7 @@ public class SwappablePriorityQueue {
                 try {
                     droppedSize = dropAction.drop(swapQueue, requestor);
                 } catch (final IOException ioe) {
-                    logger.error("Failed to drop the FlowFiles from queue {} due to {}", getQueueIdentifier(), ioe.toString());
-                    logger.error("", ioe);
+                    logger.error("Failed to drop the FlowFiles from queue {}", getQueueIdentifier(), ioe);
 
                     dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + ioe.toString());
                     return;
@@ -886,8 +884,7 @@ public class SwappablePriorityQueue {
                     dropRequest.getDroppedSize().getObjectCount(), dropRequest.getDroppedSize().getByteCount(), getQueueIdentifier(), requestor);
                 dropRequest.setState(DropFlowFileState.COMPLETE);
             } catch (final Exception e) {
-                logger.error("Failed to drop FlowFiles from Connection with ID {} due to {}", getQueueIdentifier(), e.toString());
-                logger.error("", e);
+                logger.error("Failed to drop FlowFiles from Connection with ID {}", getQueueIdentifier(), e);
                 dropRequest.setState(DropFlowFileState.FAILURE, "Failed to drop FlowFiles due to " + e.toString());
             }
         } finally {

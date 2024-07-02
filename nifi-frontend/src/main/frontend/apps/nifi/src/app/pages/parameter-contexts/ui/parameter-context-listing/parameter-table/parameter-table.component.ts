@@ -23,10 +23,8 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
-import { NiFiCommon } from '../../../../../service/nifi-common.service';
 import { Parameter, ParameterEntity } from '../../../../../state/shared';
-import { NifiTooltipDirective } from '../../../../../ui/common/tooltips/nifi-tooltip.directive';
-import { TextTip } from '../../../../../ui/common/tooltips/text-tip/text-tip.component';
+import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
 import { Observable, take } from 'rxjs';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 import { Store } from '@ngrx/store';
@@ -178,6 +176,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         // unmarked for deletion if the user chooses to enter the same name
         const existingParameters: string[] = this.dataSource.data
             .filter((item) => !item.deleted)
+            .filter((item) => !item.entity.parameter.inherited)
             .map((item) => item.entity.parameter.name);
 
         this.createNewParameter(existingParameters)
@@ -208,6 +207,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
 
                     // update the existing item
                     item.deleted = false;
+                    item.dirty = true;
                     item.entity.parameter = {
                         ...parameter
                     };
@@ -253,7 +253,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
 
     canGoToParameter(item: ParameterItem): boolean {
         return (
-            item.entity.parameter.inherited == true &&
+            item.entity.parameter.inherited === true &&
             item.entity.parameter.parameterContext?.permissions.canRead == true
         );
     }
@@ -264,6 +264,28 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
             return ['/parameter-contexts', item.entity.parameter.parameterContext.id, 'edit'];
         }
         return [];
+    }
+
+    canOverride(item: ParameterItem): boolean {
+        return item.entity.parameter.inherited === true;
+    }
+
+    overrideParameter(item: ParameterItem): void {
+        const overriddenParameter: Parameter = {
+            ...item.entity.parameter,
+            value: null
+        };
+
+        this.editParameter(overriddenParameter)
+            .pipe(take(1))
+            .subscribe((parameter) => {
+                item.dirty = true;
+                item.entity.parameter = {
+                    ...parameter
+                };
+
+                this.handleChanged();
+            });
     }
 
     canEdit(item: ParameterItem): boolean {

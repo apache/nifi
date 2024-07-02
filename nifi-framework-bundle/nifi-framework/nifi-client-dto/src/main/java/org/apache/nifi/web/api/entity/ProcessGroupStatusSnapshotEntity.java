@@ -66,6 +66,7 @@ public class ProcessGroupStatusSnapshotEntity extends Entity implements Readable
     @Override
     public ProcessGroupStatusSnapshotEntity clone() {
         final ProcessGroupStatusSnapshotEntity other = new ProcessGroupStatusSnapshotEntity();
+        other.setId(this.getId());
         other.setCanRead(this.getCanRead());
         other.setProcessGroupStatusSnapshot(this.getProcessGroupStatusSnapshot().clone());
 

@@ -69,7 +69,7 @@ final class LockedClient implements Client {
     }
 
     private <R> R lockedOperation(final Callable<R> operation) throws DatabaseException {
-        LOGGER.debug("Start locking client {}", client.toString());
+        LOGGER.debug("Start locking client {}", client);
         try {
             if (!lock.tryLock(lockAttemptDuration.toMillis(), TimeUnit.MILLISECONDS)) {
                 throw new LockUnsuccessfulException("Could not lock read lock on the database");

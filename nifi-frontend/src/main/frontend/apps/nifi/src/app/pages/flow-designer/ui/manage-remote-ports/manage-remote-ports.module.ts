@@ -25,7 +25,7 @@ import { Breadcrumbs } from '../common/breadcrumbs/breadcrumbs.component';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
-import { NifiTooltipDirective } from '../../../../ui/common/tooltips/nifi-tooltip.directive';
+import { NifiTooltipDirective } from '@nifi/shared';
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { ManageRemotePortsEffects } from '../../state/manage-remote-ports/manage-remote-ports.effects';

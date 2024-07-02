@@ -122,7 +122,7 @@ Processors such as ExecuteScript) tend to be around data manipulation and/or com
     - Calls from Python to Java (and vice versa) are far more expensive than native method calls. Having APIs that are more tailored toward
 specific use cases allows for fewer interactions between the two processes, which greatly improves performance.
 
-As a result, the Python API consists of two different Processor classes that can be implemented: `FlowFileTransform` and `RecordTransform`.
+As a result, the Python API consists of three different Processor classes that can be implemented: `FlowFileTransform`, `RecordTransform` and `FlowFileSource`.
 Others may emerge in the future.
 
 
@@ -283,6 +283,48 @@ If the partition has more than one field in the dictionary, all fields in the di
 the Records to be written to the same output FlowFile.
 
 
+[[flowfile-source]]
+=== FlowFileSource
+
+The `FlowFileSource` API provides a mechanism for creating a FlowFile and routing it based on its textual or binary contents.
+
+In order to implement the `FlowFileSource` API, a Python class must extend from the `nifiapi.FlowFileSource` class
+and implement the `create(ProcessContext)` method, which returns a `FlowFileSourceResult`. Notice, that the difference between
+`FlowFileSource's create(ProcessContext)` and `FlowFileTransform's transform(ProcessContext, InputFlowFile)` methods is
+that the former does not expect an InputFlowFile object. That is because processors based on the `FlowFileSource` API
+are "source" processors that do not accept incoming connections but are capable of creating FlowFiles themselves.
+
+Implementing a Processor based on `FlowFileSource` is very similar to implementing one based on `FlowFileTransform`.
+A simple implementation looks like this:
+
+----
+from nifiapi.flowfilesource import FlowFileSource, FlowFileSourceResult
+
+class CreateFlowFile(FlowFileSource):
+    class Java:
+        implements = ['org.apache.nifi.python.processor.FlowFileSource']
+
+    class ProcessorDetails:
+        version = '0.0.1-SNAPSHOT'
+        description = '''A Python processor that creates FlowFiles.'''
+
+    def __init__(self, **kwargs):
+        pass
+
+    def create(self, context):
+        return FlowFileSourceResult(relationship = 'success', attributes = {'greeting': 'hello'}, contents = 'Hello World!')
+----
+
+As mentioned above, the `create` method only takes one argument: the context (of type `nifiapi.properties.ProcessContext`).
+
+The return type is a `FlowFileSourceResult` that indicates which Relationship the FlowFile should be transferred to,
+any attributes that should be added to the FlowFile and the contents of the FlowFile. The `relationship` is a required argument.
+Each processor based on the `FlowFileSource` API has a `success` relationship and additional relationships can be
+created in the Processor's Python code. `attributes` and `contents` are both optional. If `attributes` is not provided,
+the FlowFile will still have the usual `filename`, `path` and `uuid` attributes, but no additional ones.
+If `contents` is not provided, a FlowFile with no contents (only attributes) will be created.
+
+
 
 [[property-descriptors]]
 === PropertyDescriptors
@@ -295,7 +337,7 @@ A `PropertyDescriptor` is created using the `nifiapi.properties.PropertyDescript
 arguments: `name` and `description`. All other arguments are optional.
 
 Typically, a Processor will have multiple Property Descriptors. These descriptors are then returned to the NiFi framework by implementing the following
-method in the Processor (regardless of whether it is a `FlowFileTransform` or a `RecordTransform`):
+method in the Processor (regardless of whether it is a `FlowFileTransform`, a `RecordTransform` or a `FlowFileSource`):
 ----
 def getPropertyDescriptors(self)
 ----
@@ -351,7 +393,7 @@ invalid. Of course, we might also specify explicit validators that can be used, 
 Each Processor in NiFi must route its outgoing data to some destination. In NiFi, those destinations are called "Relationships."
 Each Processor is responsible for declaring its Relationships.
 
-Both the FlowFileTransform an RecordTransform Processors already have a Relationship named `original` and one named `failure.`
+Both the FlowFileTransform and RecordTransform Processors already have a Relationship named `original` and one named `failure.`
 The `original` relationship should not be used by implementations. This is used only by the framework and allows the input FlowFile
 to be passed on without modification. If the Processor cannot transform its input (because the data is not valid, for example),
 the Processor may route the data to the `failure` relationship.
@@ -364,6 +406,11 @@ def getRelationships(self)
 This method returns a list or a set of `nifiapi.relationship.Relationship` objects. If this method is implemented, the `success`
 Relationship will not automatically be made available. It will need to be created and returned within this list, if it is to be used.
 Regardless of which Relationships are exposed by the implementation, the `failure` and `original` will always be made available.
+
+Unlike FlowFileTransform and RecordTransform Processors, FlowFileSource Processors only have a `success` relationship by default.
+Implementations can use this relationship to route the created FlowFiles. Additional relationships can be exposed by implementing
+the `getRelationships` method. In the case of FlowFileSource implementing `getRelationships` does not remove the `success` relationship.
+Any relationship returned by `getRelationships` appears besides the `success` relationship.
 
 
 [[inner-classes]]
@@ -630,8 +677,9 @@ For example, by default, `nifi.python.extensions.source.directory.default` is se
 in the property name with some other value.
 
 Any `.py` file found in the directory will be parsed and examined in order to determine whether or not it is a valid NiFi Processor.
-In order to be found, the Processor must have a valid parent (`FlowFileTransform` or `RecordTransform`) and must have an inner class named `Java`
-with a `implements = ['org.apache.nifi.python.processor.FlowFileTransform']` or `implements = ['org.apache.nifi.python.processor.RecordFileTransform']`.
+In order to be found, the Processor must have a valid parent (`FlowFileTransform`, `RecordTransform` or `FlowFileSource`) and must have an inner class named `Java`
+with a `implements = ['org.apache.nifi.python.processor.FlowFileTransform']` or `implements = ['org.apache.nifi.python.processor.RecordFileTransform']`
+or `implements = ['org.apache.nifi.python.processor.FlowFileSource']`.
 This will allow NiFi to automatically discover the Processor.
 
 Note, however, that if the Processor implementation is broken into multiple Python modules, those modules will not be made available by default. In order
