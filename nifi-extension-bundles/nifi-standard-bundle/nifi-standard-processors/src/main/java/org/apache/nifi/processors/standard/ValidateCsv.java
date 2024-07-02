@@ -126,6 +126,15 @@ public class ValidateCsv extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor CSV_SOURCE_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("CSV Source Attribute")
+            .displayName("CSV Source Attribute")
+            .description("The name of the attribute containing CSV data to be validated. If this property is blank, the FlowFile content will be validated.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor HEADER = new PropertyDescriptor.Builder()
             .name("validate-csv-header")
             .displayName("Header")
@@ -172,16 +181,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Strategy to apply when routing input files to output relationships.")
             .required(true)
             .defaultValue(VALIDATE_WHOLE_FLOWFILE.getValue())
-            .allowableValues(VALIDATE_LINES_INDIVIDUALLY, VALIDATE_WHOLE_FLOWFILE, VALIDATE_ATTRIBUTE_AS_CSV)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor VALIDATION_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("validate-csv-attribute")
-            .displayName("Validation attribute")
-            .description("FlowFile attribute to validate. The value of this attribute will be treated as CSV text.")
-            .required(true)
-            .dependsOn(VALIDATION_STRATEGY, VALIDATE_ATTRIBUTE_AS_CSV)
+            .allowableValues(VALIDATE_LINES_INDIVIDUALLY, VALIDATE_WHOLE_FLOWFILE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -216,6 +216,7 @@ public class ValidateCsv extends AbstractProcessor {
             .name("invalid")
             .description("FlowFiles that are not valid according to the specified schema are routed to this relationship")
             .build();
+
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_VALID,
@@ -491,8 +492,8 @@ public class ValidateCsv extends AbstractProcessor {
         }
 
         InputStream stream;
-        if (validationStrategy.equals(VALIDATE_ATTRIBUTE_AS_CSV.getValue())) {
-            stream = new ByteArrayInputStream(flowFile.getAttribute(context.getProperty(VALIDATION_ATTRIBUTE).getValue()).getBytes(StandardCharsets.UTF_8));
+        if (context.getProperty(CSV_SOURCE_ATTRIBUTE).isSet()) {
+            stream = new ByteArrayInputStream(flowFile.getAttribute(context.getProperty(CSV_SOURCE_ATTRIBUTE).getValue()).getBytes(StandardCharsets.UTF_8));
         } else {
             stream = session.read(flowFile);
         }
