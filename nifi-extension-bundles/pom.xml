@@ -104,5 +104,6 @@
         <module>nifi-questdb-bundle</module>
         <module>nifi-protobuf-bundle</module>
         <module>nifi-github-bundle</module>
+        <module>nifi-couchbase-bundle</module>
     </modules>
 </project>
