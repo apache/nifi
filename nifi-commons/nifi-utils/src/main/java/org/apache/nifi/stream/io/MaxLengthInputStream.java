@@ -77,6 +77,9 @@ public class MaxLengthInputStream extends InputStream {
         final int val = in.read(b, off, maxToRead);
         if (val > 0) {
             bytesRead += val;
+            if (bytesRead >= limit) {
+                throw new IOException(errorMessage);
+            }
         }
         return val;
     }

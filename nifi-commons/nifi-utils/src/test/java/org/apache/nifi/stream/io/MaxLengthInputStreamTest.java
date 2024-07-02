@@ -20,6 +20,7 @@ package org.apache.nifi.stream.io;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -55,6 +56,77 @@ public class MaxLengthInputStreamTest {
              final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, 5)) {
             final byte[] allBytes = maxLengthInputStream.readAllBytes();
             assertEquals(5, allBytes.length);
+        }
+    }
+
+    @Test
+    public void testReadBufferReadingLessThanMaxLength() throws IOException {
+        final String content = "12345";
+        try (final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+             final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, Integer.MAX_VALUE)) {
+            final byte[] buf = new byte[5];
+            assertEquals(5, maxLengthInputStream.read(buf));
+            assertEquals(content, new String(buf, StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    public void testReadBufferReadingMoreThanMaxLength() throws IOException {
+        final String content = "12345";
+        try (final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+             final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, 1)) {
+            final byte[] buf = new byte[5];
+            assertThrows(IOException.class, () -> maxLengthInputStream.read(buf));
+        }
+    }
+
+    @Test
+    public void testReadBufferReadingEqualToMaxLength() throws IOException {
+        final String content = "12345";
+        try (final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+             final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, 5)) {
+            final byte[] buf = new byte[5];
+            assertEquals(5, maxLengthInputStream.read(buf));
+            assertEquals(content, new String(buf, StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    public void testTransferToLessThanMaxLength() throws IOException {
+        final String content = "12345";
+        try (final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+             final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, Integer.MAX_VALUE);
+             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            maxLengthInputStream.transferTo(outputStream);
+            assertEquals(content, outputStream.toString(StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    public void testTransferToMoreThanMaxLength() throws IOException {
+        final String content = "12345";
+        try (final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+             final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, 3);
+             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            assertThrows(IOException.class, () -> maxLengthInputStream.transferTo(outputStream));
+        }
+    }
+
+    @Test
+    public void testMarkResetSkipAvailable() throws IOException {
+        final String content = "12345";
+        try (final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+             final InputStream maxLengthInputStream = new MaxLengthInputStream(inputStream, 3)) {
+            maxLengthInputStream.mark(10);
+            assertEquals(5, maxLengthInputStream.available());
+            assertEquals(4, maxLengthInputStream.skip(4));
+            assertEquals(1, maxLengthInputStream.available());
+            assertThrows(IOException.class, maxLengthInputStream::read);
+
+            maxLengthInputStream.reset();
+            final byte[] buf = new byte[3];
+            assertEquals(3, maxLengthInputStream.read(buf));
+            assertEquals(content.substring(0, 3), new String(buf, StandardCharsets.UTF_8));
         }
     }
 }
