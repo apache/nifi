@@ -90,7 +90,7 @@ import static java.lang.String.format;
     @WritesAttribute(attribute = "slack.message.count", description = "The number of slack messages that are included in the FlowFile"),
     @WritesAttribute(attribute = "mime.type", description = "Set to application/json, as the output will always be in JSON format")
 })
-@SeeAlso({ListenSlack.class})
+@SeeAlso({ListenSlack.class, PublishSlack.class, GetSlackReaction.class})
 @Tags({"slack", "conversation", "conversation.history", "social media", "team", "text", "unstructured"})
 @CapabilityDescription("Retrieves messages from one or more configured Slack channels. The messages are written out in JSON format. " +
     "See Usage / Additional Details for more information about how to configure this Processor and enable it to retrieve messages from Slack.")
