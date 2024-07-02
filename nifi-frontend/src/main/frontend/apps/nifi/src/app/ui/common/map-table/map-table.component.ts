@@ -52,10 +52,8 @@ import {
 import { NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { ComboEditor } from '../property-table/editors/combo-editor/combo-editor.component';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
-import { NfEditor } from '../property-table/editors/nf-editor/nf-editor.component';
 import { TextEditor } from './editors/text-editor/text-editor.component';
 
 export interface MapTableItem {
@@ -74,7 +72,6 @@ export interface MapTableItem {
         CommonModule,
         CdkConnectedOverlay,
         CdkOverlayOrigin,
-        ComboEditor,
         MatCell,
         MatCellDef,
         MatColumnDef,
@@ -88,7 +85,6 @@ export interface MapTableItem {
         MatMenuItem,
         MatRow,
         MatHeaderRow,
-        NfEditor,
         MatRowDef,
         MatHeaderRowDef,
         TextEditor
