@@ -1428,6 +1428,17 @@ export class CanvasUtils {
                         return activeThreads;
                     }
                 })
+                .attr('class', function () {
+                    if (
+                        selection.type === ComponentType.Processor ||
+                        selection.type === ComponentType.InputPort ||
+                        selection.type === ComponentType.OutputPort
+                    ) {
+                        return `active-thread-count accent-color`;
+                    }
+
+                    return `active-thread-count`;
+                })
                 .style('display', 'block')
                 .each(function (this: any) {
                     const activeThreadCountText = d3.select(this);
@@ -1452,11 +1463,19 @@ export class CanvasUtils {
                     return d.dimensions.width - bBox.width - 20;
                 })
                 .attr('class', function () {
-                    if (terminatedThreads > 0) {
-                        return `active-thread-count-icon warn-color-darker`;
-                    } else {
-                        return `active-thread-count-icon primary-color`;
+                    if (
+                        selection.type === ComponentType.Processor ||
+                        selection.type === ComponentType.InputPort ||
+                        selection.type === ComponentType.OutputPort
+                    ) {
+                        if (terminatedThreads > 0) {
+                            return `active-thread-count-icon warn-color-darker`;
+                        } else {
+                            return `active-thread-count-icon primary-color`;
+                        }
                     }
+
+                    return `active-thread-count-icon`;
                 })
                 .style('display', 'block')
                 .each(function (this: any) {
