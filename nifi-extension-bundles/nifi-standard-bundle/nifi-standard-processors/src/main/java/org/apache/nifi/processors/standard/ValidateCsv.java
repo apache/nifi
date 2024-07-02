@@ -114,9 +114,6 @@ public class ValidateCsv extends AbstractProcessor {
                     + "the incorrect lines. Take care if choosing this option while using Unique cell processors in schema definition:"
                     + "the first occurrence will be considered valid and the next ones as invalid.");
 
-    public static final AllowableValue VALIDATE_ATTRIBUTE_AS_CSV = new AllowableValue(routeByAttribute, routeByAttribute,
-            "Validation will be done on the specified attribute of the FlowFile. The attribute will be treated as CSV text. ");
-
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .name("validate-csv-schema")
             .displayName("Schema")
@@ -126,6 +123,15 @@ public class ValidateCsv extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor CSV_SOURCE_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("CSV Source Attribute")
+            .displayName("CSV Source Attribute")
+            .description("The name of the attribute containing CSV data to be validated. If this property is blank, the FlowFile content will be validated.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor HEADER = new PropertyDescriptor.Builder()
@@ -174,16 +180,7 @@ public class ValidateCsv extends AbstractProcessor {
             .description("Strategy to apply when routing input files to output relationships.")
             .required(true)
             .defaultValue(VALIDATE_WHOLE_FLOWFILE.getValue())
-            .allowableValues(VALIDATE_LINES_INDIVIDUALLY, VALIDATE_WHOLE_FLOWFILE, VALIDATE_ATTRIBUTE_AS_CSV)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor VALIDATION_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("validate-csv-attribute")
-            .displayName("Validation attribute")
-            .description("FlowFile attribute to validate. The value of this attribute will be treated as CSV text.")
-            .required(true)
-            .dependsOn(VALIDATION_STRATEGY, VALIDATE_ATTRIBUTE_AS_CSV)
+            .allowableValues(VALIDATE_LINES_INDIVIDUALLY, VALIDATE_WHOLE_FLOWFILE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -216,12 +213,12 @@ public class ValidateCsv extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(SCHEMA);
+        properties.add(CSV_SOURCE_ATTRIBUTE);
         properties.add(HEADER);
         properties.add(DELIMITER_CHARACTER);
         properties.add(QUOTE_CHARACTER);
         properties.add(END_OF_LINE_CHARACTER);
         properties.add(VALIDATION_STRATEGY);
-        properties.add(VALIDATION_ATTRIBUTE);
         properties.add(INCLUDE_ALL_VIOLATIONS);
         this.properties = Collections.unmodifiableList(properties);
 
@@ -500,8 +497,8 @@ public class ValidateCsv extends AbstractProcessor {
         }
 
         InputStream stream;
-        if (validationStrategy.equals(VALIDATE_ATTRIBUTE_AS_CSV.getValue())) {
-            stream = new ByteArrayInputStream(flowFile.getAttribute(context.getProperty(VALIDATION_ATTRIBUTE).getValue()).getBytes(StandardCharsets.UTF_8));
+        if (context.getProperty(CSV_SOURCE_ATTRIBUTE).isSet()) {
+            stream = new ByteArrayInputStream(flowFile.getAttribute(context.getProperty(CSV_SOURCE_ATTRIBUTE).getValue()).getBytes(StandardCharsets.UTF_8));
         } else {
             stream = session.read(flowFile);
         }
