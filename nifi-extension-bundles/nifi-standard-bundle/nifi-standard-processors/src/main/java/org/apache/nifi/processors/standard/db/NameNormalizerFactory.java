@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.processors.standard.db;
 
-import org.apache.nifi.processors.standard.db.impl.*;
+import org.apache.nifi.processors.standard.db.impl.PatternNormalizer;
+import org.apache.nifi.processors.standard.db.impl.RemoveAllSpecialCharNormalizer;
+import org.apache.nifi.processors.standard.db.impl.RemoveSpaceNormalizer;
+import org.apache.nifi.processors.standard.db.impl.RemoveUnderscoreAndSpaceNormalizer;
+import org.apache.nifi.processors.standard.db.impl.RemoveUnderscoreNormalizer;
 
 import java.util.regex.Pattern;
 
