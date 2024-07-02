@@ -328,7 +328,14 @@ public class ProtobufDataConverter {
         if (coerceTypes) {
             final Optional<RecordField> recordField = rootRecordSchema.getField(protoField.getFieldName());
             if (recordField.isPresent()) {
-                resultValues = resultValues.stream().map(value -> DataTypeUtils.convertType(value, recordField.get().getDataType(), recordField.get().getFieldName())).toList();
+                final DataType dataType;
+                if (protoField.isRepeatable()) {
+                    final ArrayDataType arrayDataType = (ArrayDataType) recordField.get().getDataType();
+                    dataType = arrayDataType.getElementType();
+                } else {
+                    dataType = recordField.get().getDataType();
+                }
+                resultValues = resultValues.stream().map(value -> DataTypeUtils.convertType(value, dataType, recordField.get().getFieldName())).toList();
             }
         }
 
