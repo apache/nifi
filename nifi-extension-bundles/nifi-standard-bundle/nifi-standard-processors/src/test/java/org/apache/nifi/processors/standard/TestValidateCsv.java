@@ -187,8 +187,8 @@ public class TestValidateCsv {
         runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
         runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
         runner.setProperty(ValidateCsv.HEADER, "true");
-        runner.setProperty(ValidateCsv.VALIDATION_ATTRIBUTE, "CSV_ATTRIBUTE");
-        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_ATTRIBUTE_AS_CSV.getValue());
+        runner.setProperty(ValidateCsv.CSV_SOURCE_ATTRIBUTE, "CSV_ATTRIBUTE");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_WHOLE_FLOWFILE.getValue());
         final Map<String, String> attributeMap = new HashMap<>();
         attributeMap.put("CSV_ATTRIBUTE", "bigdecimal,bool,char,integer,long\r\n10.0001,true,c,1,92147483647");
 
