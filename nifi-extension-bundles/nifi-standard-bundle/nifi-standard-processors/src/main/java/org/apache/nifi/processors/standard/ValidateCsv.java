@@ -493,7 +493,7 @@ public class ValidateCsv extends AbstractProcessor {
 
         InputStream stream;
         if (context.getProperty(CSV_SOURCE_ATTRIBUTE).isSet()) {
-            stream = new ByteArrayInputStream(flowFile.getAttribute(context.getProperty(CSV_SOURCE_ATTRIBUTE).getValue()).getBytes(StandardCharsets.UTF_8));
+            stream = new ByteArrayInputStream(flowFile.getAttribute(context.getProperty(CSV_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue()).getBytes(StandardCharsets.UTF_8));
         } else {
             stream = session.read(flowFile);
         }
