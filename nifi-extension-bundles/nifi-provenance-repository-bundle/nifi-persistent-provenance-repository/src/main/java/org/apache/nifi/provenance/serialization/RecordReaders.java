@@ -18,7 +18,6 @@ package org.apache.nifi.provenance.serialization;
 
 import org.apache.nifi.provenance.ByteArraySchemaRecordReader;
 import org.apache.nifi.provenance.ByteArraySchemaRecordWriter;
-import org.apache.nifi.provenance.EncryptedSchemaRecordReader;
 import org.apache.nifi.provenance.EventIdFirstSchemaRecordReader;
 import org.apache.nifi.provenance.EventIdFirstSchemaRecordWriter;
 import org.apache.nifi.provenance.lucene.LuceneUtil;
@@ -139,15 +138,6 @@ public class RecordReaders {
 
                     final TocReader tocReader = new StandardTocReader(tocFile);
                     return new EventIdFirstSchemaRecordReader(bufferedInStream, filename, tocReader, maxAttributeChars);
-                }
-                case EncryptedSchemaRecordReader.SERIALIZATION_NAME: {
-                    if (!tocFile.exists()) {
-                        throw new FileNotFoundException("Cannot create TOC Reader because the file " + tocFile + " does not exist");
-                    }
-
-                    final TocReader tocReader = new StandardTocReader(tocFile);
-                    // Return a reader with no eventEncryptor because this method contract cannot change, then inject the encryptor from the writer in the calling method
-                    return new EncryptedSchemaRecordReader(bufferedInStream, filename, tocReader, maxAttributeChars, null);
                 }
                 default: {
                     throw new IOException("Unable to read data from file " + file + " because the file was written using an unknown Serializer: " + serializationName);

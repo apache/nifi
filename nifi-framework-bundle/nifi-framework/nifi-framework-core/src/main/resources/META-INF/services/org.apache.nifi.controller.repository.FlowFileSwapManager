@@ -13,4 +13,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.controller.FileSystemSwapManager
-org.apache.nifi.controller.EncryptedFileSystemSwapManager

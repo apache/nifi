@@ -22,11 +22,9 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.repository.encryption.configuration.EncryptionProtocol;
 import org.apache.nifi.repository.schema.FieldCache;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog;
 import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.apache.nifi.wali.SnapshotCapture;
 import org.slf4j.Logger;
@@ -192,16 +190,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     protected RepositoryRecordSerdeFactory createSerdeFactory(final ResourceClaimManager claimManager, final FieldCache fieldCache) {
-        final String version = nifiProperties.getProperty(NiFiProperties.REPOSITORY_ENCRYPTION_PROTOCOL_VERSION);
-        final boolean encryptionConfigured = Integer.toString(EncryptionProtocol.VERSION_1.getVersionNumber()).equals(version);
-        final String implementation = nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION);
-
-        if (EncryptedSequentialAccessWriteAheadLog.class.getName().equals(implementation) || encryptionConfigured) {
-            logger.info("Creating Encrypted FlowFile Repository [{}]", EncryptedSequentialAccessWriteAheadLog.class.getName());
-            return new EncryptedRepositoryRecordSerdeFactory(claimManager, nifiProperties, fieldCache);
-        } else {
-            return new StandardRepositoryRecordSerdeFactory(claimManager, fieldCache);
-        }
+        return new StandardRepositoryRecordSerdeFactory(claimManager, fieldCache);
     }
 
     public void initialize(final ResourceClaimManager claimManager, final RepositoryRecordSerdeFactory serdeFactory, final FieldCache fieldCache) throws IOException {
