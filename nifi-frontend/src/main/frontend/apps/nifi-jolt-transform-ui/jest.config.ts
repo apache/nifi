@@ -18,7 +18,7 @@
 import type { Config } from 'jest';
 
 const config: Config = {
-    displayName: 'NiFi',
+    displayName: 'NiFi Jolt Transform UI',
     clearMocks: true,
     coverageDirectory: '../../coverage/apps/nifi',
     extensionsToTreatAsEsm: ['.ts'],

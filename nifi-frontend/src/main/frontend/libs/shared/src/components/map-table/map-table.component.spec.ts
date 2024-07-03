@@ -18,7 +18,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MapTable } from './map-table.component';
 
-describe('EditableMapTable', () => {
+describe('MapTable', () => {
     let component: MapTable;
     let fixture: ComponentFixture<MapTable>;
 

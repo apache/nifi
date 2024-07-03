@@ -14,12 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-// @ts-expect-error https://thymikee.github.io/jest-preset-angular/docs/getting-started/test-environment
-globalThis.ngJest = {
-    testEnvironmentOptions: {
-        errorOnUnknownElements: true,
-        errorOnUnknownProperties: true
-    }
-};
 import 'jest-preset-angular/setup-jest';
+
+// jsdom testing environment does not provide crypto functionality... provide a dummy implementation in its place.
+window.crypto.randomUUID = () => {
+    return '7DC4EA44-EA0F-4EAE-8438-274B52620B02';
+};

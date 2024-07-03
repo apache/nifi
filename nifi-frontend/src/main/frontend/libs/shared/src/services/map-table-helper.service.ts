@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, switchMap, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
-import { MapTableEntry, MapTableEntryData, NewMapTableEntryDialog, SMALL_DIALOG } from '@nifi/shared';
+import { MapTableEntry, MapTableEntryData, NewMapTableEntryDialog, SMALL_DIALOG } from '../index';
 
 @Injectable({
     providedIn: 'root'

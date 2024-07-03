@@ -19,7 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NewMapTableEntryDialog } from './new-map-table-entry-dialog.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { MapTableEntryData } from '@nifi/shared';
+import { MapTableEntryData } from '../../index';
 
 describe('NewMapTableEntryDialog', () => {
     let component: NewMapTableEntryDialog;

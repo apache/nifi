@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-@use '@angular/material/index' as mat;
+@use '@angular/material' as mat;
 
 .text-editor {
     @include mat.button-density(-1);
