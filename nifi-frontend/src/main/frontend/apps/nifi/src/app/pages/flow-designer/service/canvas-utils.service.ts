@@ -1435,7 +1435,7 @@ export class CanvasUtils {
                         case ComponentType.OutputPort:
                             return `active-thread-count accent-color`;
                         default:
-                            return `active-thread-count`;
+                            return `active-thread-count primary-contrast`;
                     }
                 })
                 .style('display', 'block')
@@ -1472,7 +1472,7 @@ export class CanvasUtils {
                                 return `active-thread-count-icon primary-color`;
                             }
                         default:
-                            return `active-thread-count-icon`;
+                            return `active-thread-count-icon primary-contrast`;
                     }
                 })
                 .style('display', 'block')
