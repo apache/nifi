@@ -310,7 +310,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
         try {
             return narRestApiClient.listNarSummaries();
         } catch (final NarRestApiRetryableException e) {
-            logger.warn("[{}]: retrying", e.getMessage());
+            logger.warn("{}: retrying", e.getMessage());
             return null;
         }
     }
@@ -433,11 +433,11 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
 
         final NarInstallTask installTask = createInstallTask(narNode);
         if (async) {
-            logger.info("Submitting install task for NAR with id [{}] and coordinate [{}]", identifier, coordinate);
+            logger.debug("Submitting install task for NAR with id [{}] and coordinate [{}]", identifier, coordinate);
             final Future<?> installTaskFuture = installExecutorService.submit(installTask);
             installFuturesById.put(identifier, installTaskFuture);
         } else {
-            logger.info("Synchronously installing NAR with id [{}] and coordinate [{}]", identifier, coordinate);
+            logger.debug("Synchronously installing NAR with id [{}] and coordinate [{}]", identifier, coordinate);
             installTask.run();
         }
         return narNode;

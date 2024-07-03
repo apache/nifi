@@ -78,7 +78,7 @@ public class NarRestApiClient {
                 .addPathSegment(NAR_MANAGER_PATH)
                 .addPathSegment(NARS_PATH)
                 .build();
-        LOGGER.info("Requesting NAR summaries from {}", requestUri);
+        LOGGER.debug("Requesting NAR summaries from {}", requestUri);
 
         final HttpRequestBodySpec requestBodySpec = webClientService.get()
                 .uri(requestUri)
@@ -104,7 +104,7 @@ public class NarRestApiClient {
                 .addPathSegment(identifier)
                 .addPathSegment(NAR_CONTENT_PATH)
                 .build();
-        LOGGER.info("Downloading NAR [{}] from {}", identifier, requestUri);
+        LOGGER.debug("Downloading NAR [{}] from {}", identifier, requestUri);
 
         try {
             final HttpResponseEntity response = webClientService.get()
