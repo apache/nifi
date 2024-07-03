@@ -20,6 +20,7 @@ package org.apache.nifi.web.api.entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
+import org.apache.nifi.web.api.dto.NarCoordinateDTO;
 import org.apache.nifi.web.api.dto.NarSummaryDTO;
 
 import java.util.Set;
@@ -28,6 +29,7 @@ import java.util.Set;
 public class NarDetailsEntity extends Entity {
 
     private NarSummaryDTO narSummary;
+    private Set<NarCoordinateDTO> dependentCoordinates;
     private Set<DocumentedTypeDTO> processorTypes;
     private Set<DocumentedTypeDTO> controllerServiceTypes;
     private Set<DocumentedTypeDTO> reportingTaskTypes;
@@ -42,6 +44,15 @@ public class NarDetailsEntity extends Entity {
 
     public void setNarSummary(final NarSummaryDTO narSummary) {
         this.narSummary = narSummary;
+    }
+
+    @Schema(description = "The coordinates of NARs that depend on this NAR")
+    public Set<NarCoordinateDTO> getDependentCoordinates() {
+        return dependentCoordinates;
+    }
+
+    public void setDependentCoordinates(final Set<NarCoordinateDTO> dependentCoordinates) {
+        this.dependentCoordinates = dependentCoordinates;
     }
 
     @Schema(description = "The Processor types contained in the NAR")

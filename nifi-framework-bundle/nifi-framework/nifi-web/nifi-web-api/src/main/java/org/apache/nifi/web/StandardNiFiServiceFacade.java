@@ -46,6 +46,7 @@ import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -240,6 +241,7 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
+import org.apache.nifi.web.api.dto.NarCoordinateDTO;
 import org.apache.nifi.web.api.dto.NarSummaryDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
@@ -6655,8 +6657,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final BundleCoordinate coordinate = narNode.getManifest().getCoordinate();
         final Set<ExtensionDefinition> extensionDefinitions = controllerFacade.getExtensionManager().getTypes(coordinate);
 
+        final Set<NarCoordinateDTO> dependentCoordinates = new HashSet<>();
+        final Set<Bundle> dependentBundles = controllerFacade.getExtensionManager().getDependentBundles(coordinate);
+        if (dependentBundles != null) {
+            for (final Bundle dependentBundle : dependentBundles) {
+                final NarCoordinateDTO dependentCoordinate = dtoFactory.createNarCoordinateDto(dependentBundle.getBundleDetails().getCoordinate());
+                dependentCoordinates.add(dependentCoordinate);
+            }
+        }
+
         final NarDetailsEntity componentTypesEntity = new NarDetailsEntity();
         componentTypesEntity.setNarSummary(dtoFactory.createNarSummaryDto(narNode));
+        componentTypesEntity.setDependentCoordinates(dependentCoordinates);
         componentTypesEntity.setProcessorTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, Processor.class)));
         componentTypesEntity.setControllerServiceTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, ControllerService.class)));
         componentTypesEntity.setReportingTaskTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, ReportingTask.class)));

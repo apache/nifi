@@ -105,12 +105,23 @@ public class NarUploadStandaloneIT extends NiFiSystemIT {
         assertNotNull(controllerServicesFromUploadedNar);
         assertFalse(controllerServicesFromUploadedNar.isEmpty());
 
-        // Verify retrieving NAR details
-        final NarDetailsEntity narDetails = getNifiClient().getControllerClient().getNarDetails(uploadedProcessorsNar.getIdentifier());
-        assertNotNull(narDetails);
-        assertNotNull(narDetails.getNarSummary());
-        assertNotNull(narDetails.getProcessorTypes());
-        assertEquals(1, narDetails.getProcessorTypes().size());
+        // Verify retrieving the processor NAR details
+        final NarDetailsEntity processorNarDetails = getNifiClient().getControllerClient().getNarDetails(uploadedProcessorsNar.getIdentifier());
+        assertNotNull(processorNarDetails);
+        assertNotNull(processorNarDetails.getNarSummary());
+        assertNotNull(processorNarDetails.getProcessorTypes());
+        assertEquals(1, processorNarDetails.getProcessorTypes().size());
+        assertNotNull(processorNarDetails.getDependentCoordinates());
+        assertEquals(0, processorNarDetails.getDependentCoordinates().size());
+
+        // Verify retrieving the service API NAR details
+        final NarDetailsEntity serviceApiNarDetails = getNifiClient().getControllerClient().getNarDetails(uploadedControllerServiceApiNar.getIdentifier());
+        assertNotNull(serviceApiNarDetails);
+        assertNotNull(serviceApiNarDetails.getNarSummary());
+        assertNotNull(serviceApiNarDetails.getProcessorTypes());
+        assertEquals(0, serviceApiNarDetails.getProcessorTypes().size());
+        assertNotNull(serviceApiNarDetails.getDependentCoordinates());
+        assertEquals(2, serviceApiNarDetails.getDependentCoordinates().size());
 
         // Verify service API NAR can't be replaced while other NARs depend on it
         assertThrows(NiFiClientException.class, () -> uploadNar(narsLocation, CONTROLLER_SERVICE_API_NAR_ID));
