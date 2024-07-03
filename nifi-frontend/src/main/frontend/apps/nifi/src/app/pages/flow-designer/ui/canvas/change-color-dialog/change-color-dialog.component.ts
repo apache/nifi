@@ -31,9 +31,8 @@ import { ChangeColorRequest } from '../../../state/flow';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { ComponentType } from 'libs/shared/src';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 import { CanvasUtils } from '../../../service/canvas-utils.service';
-import { NiFiCommon, ComponentTypeNamePipe, ComponentContext } from '@nifi/shared';
+import { NiFiCommon, ComponentTypeNamePipe, ComponentContext, CloseOnEscapeDialog } from '@nifi/shared';
 import { MatCheckbox } from '@angular/material/checkbox';
 
 @Component({

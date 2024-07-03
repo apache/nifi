@@ -21,7 +21,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { AsyncPipe } from '@angular/common';
-import { NifiTooltipDirective, NiFiCommon } from '@nifi/shared';
+import { NifiTooltipDirective, NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { ComponentStateState, StateEntry, StateItem, StateMap } from '../../../state/component-state';
 import { Store } from '@ngrx/store';
@@ -40,7 +40,6 @@ import { MatInputModule } from '@angular/material/input';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import { ErrorBanner } from '../error-banner/error-banner.component';
 import { clearBannerErrors } from '../../../state/error/error.actions';
-import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'component-state',

@@ -16,14 +16,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { MapTableEntry } from '../state/shared';
 import { Observable, of, switchMap, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
-import { SMALL_DIALOG } from 'libs/shared/src';
-import {
-    MapTableEntryData,
-    NewMapTableEntryDialog
-} from '../ui/common/new-map-table-entry-dialog/new-map-table-entry-dialog.component';
+import { MapTableEntry, MapTableEntryData, NewMapTableEntryDialog, SMALL_DIALOG } from '@nifi/shared';
 
 @Injectable({
     providedIn: 'root'

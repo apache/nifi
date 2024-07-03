@@ -19,7 +19,7 @@ import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButton } from '@angular/material/button';
 import { ClusterNode } from '../../../state/cluster-listing';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'cluster-node-detail-dialog',

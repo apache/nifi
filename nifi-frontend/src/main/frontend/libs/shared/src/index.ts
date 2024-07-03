@@ -67,6 +67,25 @@ export interface SelectOption {
     disabled?: boolean;
 }
 
+export interface MapTableEntry {
+    name: string;
+    value: string | null;
+}
+
+export interface MapTableItem {
+    entry: MapTableEntry;
+    id: number;
+    triggerEdit: boolean;
+    deleted: boolean;
+    dirty: boolean;
+    added: boolean;
+}
+
+export interface MapTableEntryData {
+    existingEntries: string[];
+    entryTypeLabel?: string;
+}
+
 export function isDefinedAndNotNull<T>() {
     return (source$: Observable<null | undefined | T>) =>
         source$.pipe(

@@ -24,12 +24,11 @@ import {
     FlowConfigurationHistoryListingState,
     PurgeHistoryRequest
 } from '../../../state/flow-configuration-history-listing';
-import { NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { selectAbout } from '../../../../../state/about/about.selectors';
 import { Store } from '@ngrx/store';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'purge-history',

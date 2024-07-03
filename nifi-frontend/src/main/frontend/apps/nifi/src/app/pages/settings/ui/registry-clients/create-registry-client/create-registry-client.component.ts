@@ -30,7 +30,7 @@ import { Client } from '../../../../../service/client.service';
 import { MatSelectModule } from '@angular/material/select';
 import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'create-registry-client',

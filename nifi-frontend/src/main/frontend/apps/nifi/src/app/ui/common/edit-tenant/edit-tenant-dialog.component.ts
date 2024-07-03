@@ -39,9 +39,8 @@ import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatListModule } from '@angular/material/list';
 import { Client } from '../../../service/client.service';
-import { NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
 import { ErrorBanner } from '../error-banner/error-banner.component';
-import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'edit-tenant-dialog',

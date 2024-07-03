@@ -31,7 +31,7 @@ import { TenantEntity, UserEntity, UserGroupEntity } from '../../../../../state/
 import { AddTenantsToPolicyRequest, AddTenantToPolicyDialogRequest } from '../../../state/access-policy';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'add-tenant-to-policy-dialog',

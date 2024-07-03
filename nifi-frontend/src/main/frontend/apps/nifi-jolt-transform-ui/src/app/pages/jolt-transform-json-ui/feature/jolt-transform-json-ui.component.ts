@@ -19,7 +19,7 @@ import { js_beautify } from 'js-beautify';
 import { Component, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiJoltTransformJsonUiState } from '../../../state';
-import { TextTip, isDefinedAndNotNull } from '@nifi/shared';
+import { TextTip, isDefinedAndNotNull, MapTableHelperService, MapTableEntry } from '@nifi/shared';
 import {
     selectClientIdFromRoute,
     selectDisconnectedNodeAcknowledgedFromRoute,
@@ -29,7 +29,7 @@ import {
     selectProcessorIdFromRoute,
     selectRevisionFromRoute
 } from '../state/jolt-transform-json-ui/jolt-transform-json-ui.selectors';
-import { tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     loadProcessorDetails,
@@ -65,10 +65,13 @@ export class JoltTransformJsonUi implements OnDestroy {
     joltState = this.store.selectSignal(selectJoltTransformJsonUiState);
     processorDetails$ = this.store.select(selectProcessorDetails);
     editable: boolean = false;
+    createNew: (existingEntries: string[]) => Observable<MapTableEntry> =
+        this.mapTableHelperService.createNewEntry('Attribute');
 
     constructor(
         private formBuilder: FormBuilder,
-        private store: Store<NiFiJoltTransformJsonUiState>
+        private store: Store<NiFiJoltTransformJsonUiState>,
+        private mapTableHelperService: MapTableHelperService
     ) {
         // Select the processor id from the query params and GET processor details
         this.store
@@ -105,7 +108,7 @@ export class JoltTransformJsonUi implements OnDestroy {
                     specification: processorDetails.properties['Jolt Specification'],
                     transform: processorDetails.properties['Jolt Transform'],
                     customClass: processorDetails.properties['Custom Transformation Class Name'],
-                    expressionLanguageAttributes: {},
+                    expressionLanguageAttributes: [],
                     modules: processorDetails.properties['Custom Module Directory']
                 });
 
@@ -124,7 +127,7 @@ export class JoltTransformJsonUi implements OnDestroy {
             specification: new FormControl('', Validators.required),
             transform: new FormControl('', Validators.required),
             customClass: new FormControl(''),
-            expressionLanguageAttributes: new FormControl({}), // TODO: Attributes
+            expressionLanguageAttributes: new FormControl([]),
             modules: new FormControl('')
         });
 
@@ -236,7 +239,9 @@ export class JoltTransformJsonUi implements OnDestroy {
     validateJoltSpec() {
         const payload: ValidateJoltSpecRequest = {
             customClass: this.editJoltTransformJSONProcessorForm.get('customClass')?.value,
-            expressionLanguageAttributes: {}, // TODO: Attributes
+            expressionLanguageAttributes: this.mapExpressionLanguageAttributes(
+                this.editJoltTransformJSONProcessorForm.get('expressionLanguageAttributes')?.value
+            ),
             input: this.editJoltTransformJSONProcessorForm.get('input')?.value,
             modules: this.editJoltTransformJSONProcessorForm.get('modules')?.value,
             specification: this.editJoltTransformJSONProcessorForm.get('specification')?.value,
@@ -253,7 +258,9 @@ export class JoltTransformJsonUi implements OnDestroy {
     transformJoltSpec() {
         const payload: ValidateJoltSpecRequest = {
             customClass: this.editJoltTransformJSONProcessorForm.get('customClass')?.value,
-            expressionLanguageAttributes: {}, // TODO: Attributes
+            expressionLanguageAttributes: this.mapExpressionLanguageAttributes(
+                this.editJoltTransformJSONProcessorForm.get('expressionLanguageAttributes')?.value
+            ),
             input: this.editJoltTransformJSONProcessorForm.get('input')?.value,
             modules: this.editJoltTransformJSONProcessorForm.get('modules')?.value,
             specification: this.editJoltTransformJSONProcessorForm.get('specification')?.value,
@@ -275,7 +282,8 @@ export class JoltTransformJsonUi implements OnDestroy {
             );
             this.editJoltTransformJSONProcessorForm.setValue({
                 customClass: this.editJoltTransformJSONProcessorForm.get('customClass')?.value,
-                expressionLanguageAttributes: {},
+                expressionLanguageAttributes:
+                    this.editJoltTransformJSONProcessorForm.get('expressionLanguageAttributes')?.value,
                 input: jsonValue,
                 modules: this.editJoltTransformJSONProcessorForm.get('modules')?.value,
                 specification: this.editJoltTransformJSONProcessorForm.get('specification')?.value,
@@ -292,12 +300,33 @@ export class JoltTransformJsonUi implements OnDestroy {
             );
             this.editJoltTransformJSONProcessorForm.setValue({
                 customClass: this.editJoltTransformJSONProcessorForm.get('customClass')?.value,
-                expressionLanguageAttributes: {},
+                expressionLanguageAttributes:
+                    this.editJoltTransformJSONProcessorForm.get('expressionLanguageAttributes')?.value,
                 input: this.editJoltTransformJSONProcessorForm.get('input')?.value,
                 modules: this.editJoltTransformJSONProcessorForm.get('modules')?.value,
                 specification: jsonValue,
                 transform: this.editJoltTransformJSONProcessorForm.get('transform')?.value
             });
         }
+    }
+
+    isEmpty() {
+        const attributes = this.editJoltTransformJSONProcessorForm.get('expressionLanguageAttributes')?.value || [];
+        return attributes.length === 0;
+    }
+
+    clearAttributesClicked() {
+        this.editJoltTransformJSONProcessorForm.get('expressionLanguageAttributes')?.reset();
+    }
+
+    private mapExpressionLanguageAttributes(attributeArray: { name: string; value: string }[]) {
+        const result = {};
+
+        attributeArray.forEach((item: { name: string; value: string }) => {
+            // @ts-ignore
+            result[item.name] = item.value;
+        });
+
+        return result;
     }
 }

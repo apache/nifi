@@ -39,11 +39,7 @@ import { MatButton } from '@angular/material/button';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatRadioButton, MatRadioGroup } from '@angular/material/radio';
-
-export interface MapTableEntryData {
-    existingEntries: string[];
-    entryTypeLabel?: string;
-}
+import { MapTableEntryData } from '../../index';
 
 @Component({
     selector: 'new-map-table-entry-dialog',

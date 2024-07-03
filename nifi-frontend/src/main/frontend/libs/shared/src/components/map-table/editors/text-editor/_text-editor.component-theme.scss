@@ -16,7 +16,7 @@
  */
 
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use '@angular/material/index' as mat;
 
 @mixin generate-theme($material-theme, $supplemental-theme) {
     .text-editor {

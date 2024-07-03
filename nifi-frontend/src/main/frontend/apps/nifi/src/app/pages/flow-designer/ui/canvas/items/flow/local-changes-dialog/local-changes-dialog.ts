@@ -29,7 +29,7 @@ import { MatInput } from '@angular/material/input';
 import { MatOption } from '@angular/material/autocomplete';
 import { ReactiveFormsModule } from '@angular/forms';
 import { LocalChangesTable } from './local-changes-table/local-changes-table';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'local-changes-dialog',

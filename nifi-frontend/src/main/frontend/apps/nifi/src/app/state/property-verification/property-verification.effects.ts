@@ -27,7 +27,6 @@ import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap,
 import { PropertyVerificationService } from '../../service/property-verification.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { concatLatestFrom } from '@ngrx/operators';
-import { MapTableEntry } from '../shared';
 import {
     selectActivePropertyVerificationRequest,
     selectPropertyVerificationAttributes,
@@ -37,7 +36,7 @@ import { PropertyVerificationProgress } from '../../ui/common/property-verificat
 import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { ReferencedAttributesDialog } from '../../ui/common/property-verification/common/referenced-attributes-dialog/referenced-attributes-dialog.component';
 import { PropertyTableHelperService } from '../../service/property-table-helper.service';
-import { MapTableHelperService } from '../../service/map-table-helper.service';
+import { MapTableHelperService, MapTableEntry } from '@nifi/shared';
 
 @Injectable()
 export class PropertyVerificationEffects {

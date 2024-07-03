@@ -19,7 +19,7 @@ import { Component, EventEmitter, Inject, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { OkDialogRequest } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
-import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'ok-dialog',

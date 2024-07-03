@@ -26,8 +26,7 @@ import { ChangeVersionDialogRequest, VersionControlInformation } from '../../../
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
-import { NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'change-version-dialog',

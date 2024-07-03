@@ -37,8 +37,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
-import { NifiTooltipDirective, TextTip } from '@nifi/shared';
-import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
+import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'edit-parameter-dialog',

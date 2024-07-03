@@ -22,7 +22,7 @@ import { DocumentedType } from '../../../../../state/shared';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { CreateParameterProviderDialogRequest } from '../../../state/parameter-providers';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'create-parameter-provider',

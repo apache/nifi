@@ -44,13 +44,12 @@ import { Observable, of, take } from 'rxjs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
+import { NiFiCommon, TextTip, NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Client } from '../../../../../../../service/client.service';
 import { importFromRegistry } from '../../../../../state/flow/flow.actions';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 import { isDefinedAndNotNull, SelectOption } from 'libs/shared/src';
 
 @Component({

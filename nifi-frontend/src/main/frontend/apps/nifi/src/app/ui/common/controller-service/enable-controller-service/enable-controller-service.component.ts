@@ -32,7 +32,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { ControllerServiceApi } from '../controller-service-api/controller-service-api.component';
 import { ControllerServiceReferences } from '../controller-service-references/controller-service-references.component';
 import { NifiSpinnerDirective } from '../../spinner/nifi-spinner.directive';
-import { TextTip, NifiTooltipDirective } from '@nifi/shared';
+import { TextTip, NifiTooltipDirective, SelectOption, CloseOnEscapeDialog } from '@nifi/shared';
 import {
     controllerServiceActionScopes,
     ControllerServiceState,
@@ -50,8 +50,6 @@ import {
     selectControllerService,
     selectControllerServiceSetEnableRequest
 } from '../../../../state/contoller-service-state/controller-service-state.selectors';
-import { CloseOnEscapeDialog } from '../../close-on-escape-dialog/close-on-escape-dialog.component';
-import { SelectOption } from 'libs/shared/src';
 
 @Component({
     selector: 'enable-controller-service',

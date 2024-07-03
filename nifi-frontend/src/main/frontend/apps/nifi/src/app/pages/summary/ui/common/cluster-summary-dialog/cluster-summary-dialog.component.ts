@@ -47,7 +47,7 @@ import { PortClusterTable } from './port-cluster-table/port-cluster-table.compon
 import { RemoteProcessGroupClusterTable } from './remote-process-group-cluster-table/remote-process-group-cluster-table.component';
 import { ConnectionClusterTable } from './connection-cluster-table/connection-cluster-table.component';
 import { ProcessGroupClusterTable } from './process-group-cluster-table/process-group-cluster-table.component';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 interface Helper {
     getName: () => string;

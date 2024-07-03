@@ -32,8 +32,7 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective, TextTip } from '@nifi/shared';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'create-port',

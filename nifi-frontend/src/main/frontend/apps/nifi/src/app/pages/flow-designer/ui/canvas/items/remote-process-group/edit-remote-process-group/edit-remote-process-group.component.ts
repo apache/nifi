@@ -31,7 +31,7 @@ import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { NifiTooltipDirective, TextTip } from '@nifi/shared';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     standalone: true,
