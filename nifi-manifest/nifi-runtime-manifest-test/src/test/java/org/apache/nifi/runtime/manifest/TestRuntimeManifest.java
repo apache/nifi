@@ -93,21 +93,21 @@ class TestRuntimeManifest {
         assertProcessorDefinitionFound(bundles);
         assertRestrictionsFound(bundles);
 
-        // Verify ConsumeKafka_2_6 definition which has properties with dependencies
-        final ProcessorDefinition consumeKafkaDefinition = getProcessorDefinition(bundles, "nifi-kafka-2-6-nar",
-                "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6");
-        assertTrue(consumeKafkaDefinition.isAdditionalDetails());
+        // Verify TailFile definition which has properties with dependencies
+        final ProcessorDefinition tailFileDefinition = getProcessorDefinition(bundles, "nifi-standard-nar",
+                "org.apache.nifi.processors.standard.TailFile");
+        assertTrue(tailFileDefinition.isAdditionalDetails());
 
-        final PropertyDescriptor maxUncommitProp = getPropertyDescriptor(consumeKafkaDefinition, "max-uncommit-offset-wait");
-        final List<PropertyDependency> propertyDependencies = maxUncommitProp.getDependencies();
+        final PropertyDescriptor lineStartPattern = getPropertyDescriptor(tailFileDefinition, "Line Start Pattern");
+        final List<PropertyDependency> propertyDependencies = lineStartPattern.getDependencies();
         assertNotNull(propertyDependencies);
         assertEquals(1, propertyDependencies.size());
 
-        final PropertyDependency propertyMaxUncommitDependency = propertyDependencies.get(0);
-        assertEquals("Commit Offsets", propertyMaxUncommitDependency.getPropertyName());
-        assertNotNull(propertyMaxUncommitDependency.getDependentValues());
-        assertEquals(1, propertyMaxUncommitDependency.getDependentValues().size());
-        assertEquals("true", propertyMaxUncommitDependency.getDependentValues().get(0));
+        final PropertyDependency lineStartPatternDependency = propertyDependencies.get(0);
+        assertEquals("tail-mode", lineStartPatternDependency.getPropertyName());
+        assertNotNull(lineStartPatternDependency.getDependentValues());
+        assertEquals(1, lineStartPatternDependency.getDependentValues().size());
+        assertEquals("Single file", lineStartPatternDependency.getDependentValues().get(0));
 
         // Verify PrometheusReportingTask definition which also has @DefaultSchedule
         final ReportingTaskDefinition prometheusReportingTaskDef = getReportingTaskDefinition(bundles, "nifi-prometheus-nar",
