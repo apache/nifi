@@ -36,12 +36,13 @@ import {
 } from '../../../../state/shared';
 import { Router } from '@angular/router';
 import {
-    selectProcessGroupFlow,
+    selectChildProcessGroupOptions,
     selectCurrentProcessGroupId,
     selectParameterContext,
     selectSaving,
     selectStatus,
-    selectServices
+    selectServices,
+    selectBreadcrumb
 } from './controller-services.selectors';
 import { ControllerServiceService } from '../../service/controller-service.service';
 import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
@@ -52,7 +53,6 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
-import { ComponentType, LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from 'libs/shared/src';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { FlowService } from '../../service/flow.service';
@@ -66,7 +66,8 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
-import { NiFiCommon, Storage } from '@nifi/shared';
+import { NiFiCommon, Storage, SelectOption, ComponentType, LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from '@nifi/shared';
+import { ComponentEntity } from './../flow/index';
 
 @Injectable()
 export class ControllerServicesEffects {
@@ -95,18 +96,28 @@ export class ControllerServicesEffects {
                     this.controllerServiceService.getControllerServices(request.processGroupId),
                     this.controllerServiceService.getFlow(request.processGroupId)
                 ]).pipe(
-                    map(([controllerServicesResponse, flowResponse]) =>
-                        ControllerServicesActions.loadControllerServicesSuccess({
+                    map(([controllerServicesResponse, flowResponse]) => {
+                        const childProcessGroupOptions: SelectOption[] = [];
+                        flowResponse.processGroupFlow.flow.processGroups.forEach((child: ComponentEntity) => {
+                            if (child.permissions.canRead && child.permissions.canWrite) {
+                                childProcessGroupOptions.push({
+                                    text: child.component.name,
+                                    value: child.component.id
+                                });
+                            }
+                        });
+
+                        return ControllerServicesActions.loadControllerServicesSuccess({
                             response: {
                                 processGroupId: flowResponse.processGroupFlow.id,
                                 controllerServices: controllerServicesResponse.controllerServices,
                                 loadedTimestamp: controllerServicesResponse.currentTime,
                                 breadcrumb: flowResponse.processGroupFlow.breadcrumb,
                                 parameterContext: flowResponse.processGroupFlow.parameterContext ?? null,
-                                processGroupFlow: flowResponse.processGroupFlow
+                                childProcessGroupOptions: childProcessGroupOptions
                             }
-                        })
-                    ),
+                        });
+                    }),
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(this.errorHelper.handleLoadingError(status, errorResponse))
                     )
@@ -644,27 +655,31 @@ export class ControllerServicesEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => [
                     this.store.select(selectCurrentProcessGroupId),
-                    this.store.select(selectProcessGroupFlow),
-                    this.store.select(selectServices)
+                    this.store.select(selectChildProcessGroupOptions),
+                    this.store.select(selectServices),
+                    this.store.select(selectBreadcrumb)
                 ]),
-                concatMap(([request, currentProcessGroupId, processGroupFlow, controllerServices]) =>
-                    combineLatest([this.flowService.getProcessGroupWithContent(currentProcessGroupId)]).pipe(
-                        map(([processGroupEntity]) => {
-                            return {
-                                request,
-                                currentProcessGroupId,
-                                processGroupFlow,
-                                processGroupEntity,
-                                controllerServices
-                            };
-                        })
-                    )
+                concatMap(
+                    ([request, currentProcessGroupId, childProcessGroupOptions, controllerServices, breadcrumb]) =>
+                        combineLatest([this.flowService.getProcessGroupWithContent(currentProcessGroupId)]).pipe(
+                            map(([processGroupEntity]) => {
+                                return {
+                                    request,
+                                    currentProcessGroupId,
+                                    childProcessGroupOptions,
+                                    processGroupEntity,
+                                    controllerServices,
+                                    breadcrumb
+                                };
+                            })
+                        )
                 ),
                 tap((request) => {
                     const clone = Object.assign({}, request.request);
                     clone.processGroupEntity = request.processGroupEntity;
-                    clone.processGroupFlow = request.processGroupFlow;
+                    clone.childProcessGroupOptions = request.childProcessGroupOptions;
                     clone.parentControllerServices = request.controllerServices;
+                    clone.breadcrumb = request.breadcrumb;
                     const serviceId: string = request.request.id;
                     const moveDialogReference = this.dialog.open(MoveControllerService, {
                         ...LARGE_DIALOG,
