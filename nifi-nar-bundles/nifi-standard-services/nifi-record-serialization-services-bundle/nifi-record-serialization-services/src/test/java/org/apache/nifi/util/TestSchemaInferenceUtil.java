@@ -73,7 +73,7 @@ class TestSchemaInferenceUtil {
     private static Stream<Arguments> dataForTimeInference() {
         return Stream.of(
             Arguments.of("2017-03-19", RecordFieldType.DATE.getDataType(DATE_FORMAT)),
-            Arguments.of("2017-3-19", RecordFieldType.STRING.getDataType()),
+            Arguments.of("2017-3-19", RecordFieldType.DATE.getDataType(DATE_FORMAT)),
             Arguments.of("2017-44-55", RecordFieldType.STRING.getDataType()),
             Arguments.of("2017.03.19", RecordFieldType.STRING.getDataType()),
 
