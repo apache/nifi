@@ -21,7 +21,7 @@
             <div class="flex items-center gap-x-1.5">
                 <div>Automatically Terminate/Retry Relationships</div>
                 <i
-                    class="fa fa-info-circle"
+                    class="fa fa-info-circle primary-color"
                     nifiTooltip
                     [tooltipComponentType]="TextTip"
                     tooltipInputData="Will automatically terminate and/or retry FlowFiles sent to a given relationship if it is not defined elsewhere. If both terminate and retry are selected, any retry logic will happen first, then auto-termination."></i>
@@ -88,7 +88,7 @@
                     <div class="flex items-center gap-x-1.5">
                         <div>Retry Back Off Policy</div>
                         <i
-                            class="fa fa-info-circle"
+                            class="fa fa-info-circle primary-color"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
                             tooltipInputData="Penalize: Retry attempts will occur in time, but the processor will continue to process other FlowFiles. Yield: No other FlowFile processing will occur until all retry attempts have been made."></i>
