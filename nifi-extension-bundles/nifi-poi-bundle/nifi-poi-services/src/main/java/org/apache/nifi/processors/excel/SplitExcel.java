@@ -174,7 +174,7 @@ public class SplitExcel extends AbstractProcessor {
                     index++;
                 }
             });
-        } catch (ExcelRuntimeException | ProcessException e) {
+        } catch (ExcelRuntimeException | IllegalStateException | ProcessException e) {
             getLogger().error("Failed to split {}", originalFlowFile, e);
             session.remove(workbookSplits.stream()
                     .map(WorkbookSplit::content)
