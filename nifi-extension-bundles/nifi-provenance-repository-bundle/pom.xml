@@ -27,7 +27,7 @@
         <module>nifi-provenance-repository-nar</module>
     </modules>
     <properties>
-        <lucene.version>9.11.0</lucene.version>
+        <lucene.version>9.11.1</lucene.version>
     </properties>
     <dependencyManagement>
         <dependencies>
