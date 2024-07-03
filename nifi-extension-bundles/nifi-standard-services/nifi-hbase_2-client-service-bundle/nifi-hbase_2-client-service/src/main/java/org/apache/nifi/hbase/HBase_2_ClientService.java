@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -745,7 +746,13 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
             scan = scan.withStartRow(startRow.getBytes(StandardCharsets.UTF_8));
         }
         if (!StringUtils.isBlank(endRow)) {
-            scan = scan.withStopRow(endRow.getBytes(StandardCharsets.UTF_8));
+            byte[] endRowBytes = endRow.getBytes(StandardCharsets.UTF_8);
+
+            if (endRow.equals(startRow)) {
+                scan = scan.withStopRow(endRowBytes, true);
+            } else {
+                scan = scan.withStopRow(endRowBytes, false);
+            }
         }
 
         if (authorizations != null && authorizations.size() > 0) {
@@ -792,7 +799,12 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     protected ResultScanner getResults(final Table table, final byte[] startRow, final byte[] endRow, final Collection<Column> columns, List<String> authorizations) throws IOException {
         Scan scan = new Scan();
         scan = scan.withStartRow(startRow);
-        scan = scan.withStopRow(endRow);
+        if (Arrays.equals(startRow, endRow)) {
+            scan = scan.withStopRow(endRow, true);
+        } else {
+            scan = scan.withStopRow(endRow, false);
+        }
+
 
         if (authorizations != null && authorizations.size() > 0) {
             scan.setAuthorizations(new Authorizations(authorizations));
