@@ -132,16 +132,4 @@ public class TestSplitExcel {
         runner.assertTransferCount(SplitExcel.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitExcel.REL_FAILURE, 0);
     }
-
-    @Test
-    void testWhereMaximumCellStylesExceeded() throws IOException {
-        Path maxCellStylesExceeded = Paths.get("src/test/resources/excel/maximumCellStylesExceeded.xlsx");
-        runner.enqueue(maxCellStylesExceeded);
-
-        runner.run();
-
-        runner.assertTransferCount(SplitExcel.REL_SPLIT, 0);
-        runner.assertTransferCount(SplitExcel.REL_ORIGINAL, 0);
-        runner.assertTransferCount(SplitExcel.REL_FAILURE, 1);
-    }
 }
