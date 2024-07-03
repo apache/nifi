@@ -28,18 +28,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class NarSummaryDtoMergerTest {
 
+    public static final String NIFI_GROUP_ID = "org.apache.nifi";
+    public static final String NIFI_NAR_ID = "nifi-nar-1";
+    public static final String NIFI_NAR_VERSION = "1.0.0";
+
     @Test
     public void testMergeNarSummaryDtosInstallingIntoInstalled() {
         final String narId = UUID.randomUUID().toString();
 
         final NarSummaryDTO summary1 = new NarSummaryDTO();
         summary1.setIdentifier(narId);
-        summary1.setCoordinate(new NarCoordinateDTO("org.apache.nifi", "nifi-nar-1", "1.0.0"));
+        summary1.setCoordinate(new NarCoordinateDTO(NIFI_GROUP_ID, NIFI_NAR_ID, NIFI_NAR_VERSION));
         summary1.setState(NarState.INSTALLED.getValue());
 
         final NarSummaryDTO summary2 = new NarSummaryDTO();
         summary2.setIdentifier(narId);
-        summary2.setCoordinate(new NarCoordinateDTO("org.apache.nifi", "nifi-nar-1", "1.0.0"));
+        summary2.setCoordinate(new NarCoordinateDTO(NIFI_GROUP_ID, NIFI_NAR_ID, NIFI_NAR_VERSION));
         summary2.setState(NarState.INSTALLING.getValue());
 
         NarSummaryDtoMerger.merge(summary1, summary2);
@@ -52,12 +56,12 @@ public class NarSummaryDtoMergerTest {
 
         final NarSummaryDTO summary1 = new NarSummaryDTO();
         summary1.setIdentifier(narId);
-        summary1.setCoordinate(new NarCoordinateDTO("org.apache.nifi", "nifi-nar-1", "1.0.0"));
+        summary1.setCoordinate(new NarCoordinateDTO(NIFI_GROUP_ID, NIFI_NAR_ID, NIFI_NAR_VERSION));
         summary1.setState(NarState.INSTALLING.getValue());
 
         final NarSummaryDTO summary2 = new NarSummaryDTO();
         summary2.setIdentifier(narId);
-        summary2.setCoordinate(new NarCoordinateDTO("org.apache.nifi", "nifi-nar-1", "1.0.0"));
+        summary2.setCoordinate(new NarCoordinateDTO(NIFI_GROUP_ID, NIFI_NAR_ID, NIFI_NAR_VERSION));
         summary2.setState(NarState.INSTALLED.getValue());
 
         NarSummaryDtoMerger.merge(summary1, summary2);

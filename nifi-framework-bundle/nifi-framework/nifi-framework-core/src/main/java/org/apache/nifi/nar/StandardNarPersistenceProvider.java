@@ -48,7 +48,7 @@ import java.util.stream.Stream;
  */
 public class StandardNarPersistenceProvider implements NarPersistenceProvider {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(StandardNarPersistenceProvider.class);
+    private static final Logger logger = LoggerFactory.getLogger(StandardNarPersistenceProvider.class);
 
     private static final String STORAGE_LOCATION_PROPERTY = "directory";
     private static final String TEMP_STORAGE_DIR = "temp";
@@ -87,7 +87,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
         }
 
         final Set<NarPersistenceInfo> narPersistenceInfos = loadNarPersistenceInfo();
-        LOGGER.info("Loaded persistence info for {} NARs", narPersistenceInfos.size());
+        logger.info("Loaded persistence info for {} NARs", narPersistenceInfos.size());
 
         narPersistenceInfoMap.clear();
         narPersistenceInfos.forEach(narPersistenceInfo -> {
@@ -95,7 +95,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
             narPersistenceInfoMap.put(narCoordinate, narPersistenceInfo);
         });
 
-        LOGGER.info("NarManager initialization completed - NARs will be stored at [{}]", storageLocation.getAbsolutePath());
+        logger.info("NarManager initialization completed with storage location [{}]", storageLocation.getAbsolutePath());
     }
 
     @Override
@@ -106,7 +106,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
             return tempFile;
         } catch (final IOException e) {
             if (tempFile.exists() && !tempFile.delete()) {
-                LOGGER.warn("Failed to delete temp NAR file [{}], this file should be cleaned up manually", tempFile.getAbsolutePath());
+                logger.warn("Failed to delete temp NAR file [{}], this file should be cleaned up manually", tempFile.getAbsolutePath());
             }
             throw new IOException("Failed to write NAR to temp file at [" + tempFile.getAbsolutePath() + "]", e);
         }
@@ -125,7 +125,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
         final File narFile = getNarFile(narVersionDirectory, coordinate);
         try {
             Files.move(tempNarFile.toPath(), narFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            LOGGER.info("Saved NAR to [{}]", narFile.getAbsolutePath());
+            logger.debug("Saved NAR to [{}]", narFile.getAbsolutePath());
         } catch (final IOException e) {
             throw new IOException("Failed to move NAR from [" + tempNarFile.getAbsolutePath() + "] to [" + narFile.getAbsolutePath() + "]", e);
         }
@@ -136,7 +136,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
         try (final OutputStream outputStream = new FileOutputStream(narPropertiesFile)) {
             final Properties properties = narProperties.toProperties();
             properties.store(outputStream, null);
-            LOGGER.info("Saved NAR Properties to [{}]", narPropertiesFile.getAbsolutePath());
+            logger.debug("Saved NAR Properties to [{}]", narPropertiesFile.getAbsolutePath());
         } catch (final IOException e) {
             throw new IOException("Failed to create NAR properties file for [" + coordinate + "]", e);
         }
@@ -157,7 +157,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
         if (narPropertiesFile.exists()) {
             try {
                 Files.delete(narPropertiesFile.toPath());
-                LOGGER.info("Deleted NAR Properties [{}]", narPropertiesFile.getAbsolutePath());
+                logger.info("Deleted NAR Properties [{}]", narPropertiesFile.getAbsolutePath());
             } catch (final IOException e) {
                 throw new IOException("Failed to delete NAR Properties [" + narPropertiesFile.getAbsolutePath() + "]", e);
             }
@@ -166,7 +166,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
         if (narFile.exists()) {
             try {
                 Files.delete(narFile.toPath());
-                LOGGER.info("Deleted NAR [{}]", narFile.getAbsolutePath());
+                logger.info("Deleted NAR [{}]", narFile.getAbsolutePath());
             } catch (final IOException e) {
                 throw new IOException("Failed to delete NAR [" + narFile.getAbsolutePath() + "]", e);
             }
@@ -175,7 +175,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
         if (narVersionDirectory.exists()) {
             try {
                 Files.delete(narVersionDirectory.toPath());
-                LOGGER.info("Deleted NAR directory [{}]", narVersionDirectory.getAbsolutePath());
+                logger.info("Deleted NAR directory [{}]", narVersionDirectory.getAbsolutePath());
             } catch (final IOException e) {
                 throw new IOException("Failed to delete NAR directory [" + narVersionDirectory.getAbsolutePath() + "]", e);
             }
@@ -277,7 +277,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
                     final NarPersistenceInfo narPersistenceInfo = loadNarPersistenceInfo(narPropertiesFile);
                     narPersistenceInfos.add(narPersistenceInfo);
                 } catch (final Exception e) {
-                    LOGGER.warn("Failed to load persistence info for NAR Properties [{}]", narPropertiesFile.getAbsolutePath(), e);
+                    logger.warn("Failed to load persistence info for NAR Properties [{}]", narPropertiesFile.getAbsolutePath(), e);
                 }
             }
             return narPersistenceInfos;
@@ -285,11 +285,11 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
     }
 
     private NarPersistenceInfo loadNarPersistenceInfo(final File narPropertiesFile) throws IOException {
-        LOGGER.debug("Loading persistence info from NAR Properties [{}]", narPropertiesFile.getAbsolutePath());
+        logger.debug("Loading persistence info from NAR Properties [{}]", narPropertiesFile.getAbsolutePath());
 
         final NarProperties narProperties = readNarProperties(narPropertiesFile);
         final BundleCoordinate narCoordinate = narProperties.getCoordinate();
-        LOGGER.debug("Loaded NAR Properties for [{}]", narCoordinate);
+        logger.debug("Loaded NAR Properties for [{}]", narCoordinate);
 
         final File narVersionDirectory = getNarVersionDirectory(narCoordinate);
         final File narFile = getNarFile(narVersionDirectory, narCoordinate);

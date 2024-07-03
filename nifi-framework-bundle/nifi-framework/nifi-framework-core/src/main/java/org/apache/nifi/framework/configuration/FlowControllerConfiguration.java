@@ -44,6 +44,8 @@ import org.apache.nifi.nar.NarComponentManager;
 import org.apache.nifi.nar.NarLoader;
 import org.apache.nifi.nar.NarLoaderHolder;
 import org.apache.nifi.nar.NarManager;
+import org.apache.nifi.nar.NarPersistenceProvider;
+import org.apache.nifi.nar.NarPersistenceProviderFactoryBean;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.nar.StandardNarComponentManager;
 import org.apache.nifi.nar.StandardNarManager;
@@ -237,7 +239,7 @@ public class FlowControllerConfiguration {
      * @throws Exception Thrown on failures to create Flow Service
      */
     @Bean
-    public FlowService flowService() throws Exception {
+    public FlowService flowService(@Autowired final NarManager narManager) throws Exception {
         final FlowService flowService;
 
         if (clusterCoordinator == null) {
@@ -245,7 +247,7 @@ public class FlowControllerConfiguration {
                     flowController(),
                     properties,
                     revisionManager,
-                    narManager(),
+                    narManager,
                     authorizer
             );
         } else {
@@ -255,7 +257,7 @@ public class FlowControllerConfiguration {
                     nodeProtocolSenderListener,
                     clusterCoordinator,
                     revisionManager,
-                    narManager(),
+                    narManager,
                     authorizer
             );
         }
@@ -388,6 +390,11 @@ public class FlowControllerConfiguration {
         return webClientService;
     }
 
+    @Bean
+    public NarPersistenceProviderFactoryBean narPersistenceProvider() {
+        return new NarPersistenceProviderFactoryBean(properties, extensionManager);
+    }
+
     /**
      * NAR Loader from the holder that was set by Jetty.
      *
@@ -410,16 +417,17 @@ public class FlowControllerConfiguration {
     }
 
     /**
-     * NAR Manager depends on Flow Controller and optional Cluster Coordinator.
+     * NAR Manager depends on NAR Persistence Provider, Flow Controller, and optional Cluster Coordinator.
      *
      * @return NAR Manager
      * @throws Exception Thrown on failures to create NAR Manager
      */
     @Bean
-    public NarManager narManager() throws Exception {
+    public NarManager narManager(@Autowired final NarPersistenceProvider narPersistenceProvider) throws Exception {
         return new StandardNarManager(
                 flowController(),
                 clusterCoordinator,
+                narPersistenceProvider,
                 narComponentManager(),
                 narLoader(),
                 webClientService(),

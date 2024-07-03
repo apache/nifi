@@ -35,6 +35,7 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
+import java.io.IOException;
 
 /**
  * Framework Cluster Configuration with components supporting request replication and cluster details
@@ -113,10 +114,10 @@ public class FrameworkClusterConfiguration {
     }
 
     @Bean
-    public UploadRequestReplicator uploadRequestReplicator() {
+    public UploadRequestReplicator uploadRequestReplicator() throws IOException {
         if (clusterCoordinator == null) {
             return null;
         }
-        return new StandardUploadRequestReplicator(clusterCoordinator, webClientService);
+        return new StandardUploadRequestReplicator(clusterCoordinator, webClientService, properties);
     }
 }

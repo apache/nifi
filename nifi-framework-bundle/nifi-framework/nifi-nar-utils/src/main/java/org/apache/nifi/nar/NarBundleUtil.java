@@ -48,24 +48,24 @@ public class NarBundleUtil {
             final BundleDetails.Builder builder = new BundleDetails.Builder();
             builder.workingDir(narDirectory);
 
-            final String group = attributes.getValue(NarManifestEntry.NAR_GROUP.getManifestName());
-            final String id = attributes.getValue(NarManifestEntry.NAR_ID.getManifestName());
-            final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
+            final String group = attributes.getValue(NarManifestEntry.NAR_GROUP.getEntryName());
+            final String id = attributes.getValue(NarManifestEntry.NAR_ID.getEntryName());
+            final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getEntryName());
             builder.coordinate(new BundleCoordinate(group, id, version));
 
-            final String dependencyGroup = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_GROUP.getManifestName());
-            final String dependencyId = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_ID.getManifestName());
-            final String dependencyVersion = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_VERSION.getManifestName());
+            final String dependencyGroup = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_GROUP.getEntryName());
+            final String dependencyId = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_ID.getEntryName());
+            final String dependencyVersion = attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_VERSION.getEntryName());
             if (!StringUtils.isBlank(dependencyId)) {
                 builder.dependencyCoordinate(new BundleCoordinate(dependencyGroup, dependencyId, dependencyVersion));
             }
 
-            builder.buildBranch(attributes.getValue(NarManifestEntry.BUILD_BRANCH.getManifestName()));
-            builder.buildTag(attributes.getValue(NarManifestEntry.BUILD_TAG.getManifestName()));
-            builder.buildRevision(attributes.getValue(NarManifestEntry.BUILD_REVISION.getManifestName()));
-            builder.buildTimestamp(attributes.getValue(NarManifestEntry.BUILD_TIMESTAMP.getManifestName()));
-            builder.buildJdk(attributes.getValue(NarManifestEntry.BUILD_JDK.getManifestName()));
-            builder.builtBy(attributes.getValue(NarManifestEntry.BUILT_BY.getManifestName()));
+            builder.buildBranch(attributes.getValue(NarManifestEntry.BUILD_BRANCH.getEntryName()));
+            builder.buildTag(attributes.getValue(NarManifestEntry.BUILD_TAG.getEntryName()));
+            builder.buildRevision(attributes.getValue(NarManifestEntry.BUILD_REVISION.getEntryName()));
+            builder.buildTimestamp(attributes.getValue(NarManifestEntry.BUILD_TIMESTAMP.getEntryName()));
+            builder.buildJdk(attributes.getValue(NarManifestEntry.BUILD_JDK.getEntryName()));
+            builder.builtBy(attributes.getValue(NarManifestEntry.BUILT_BY.getEntryName()));
 
             return builder.build();
         }

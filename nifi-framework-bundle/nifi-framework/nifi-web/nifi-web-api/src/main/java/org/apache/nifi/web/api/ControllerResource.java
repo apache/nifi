@@ -112,6 +112,7 @@ import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,6 +135,10 @@ import java.util.function.Consumer;
 public class ControllerResource extends ApplicationResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(ControllerResource.class);
     public static final String VERIFICATION_REQUEST_TYPE = "verification-request";
+
+    private static final String FILENAME_HEADER = "Filename";
+    private static final String CONTENT_TYPE_HEADER = "Content-Type";
+    private static final String UPLOAD_CONTENT_TYPE = "application/octet-stream";
 
     public RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
             new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Flow Analysis Rule Config Thread");
@@ -2436,7 +2441,7 @@ public class ControllerResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("nar-manager/upload")
+    @Path("nar-manager/nars/content")
     @Operation(
             summary = "Uploads a NAR and requests for it to be installed",
             responses = @ApiResponse(content = @Content(schema = @Schema(implementation = NarSummaryEntity.class))),
@@ -2453,7 +2458,7 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response uploadNar(
-            @HeaderParam(UploadRequestReplicator.FILENAME_HEADER)
+            @HeaderParam(FILENAME_HEADER)
             final String filename,
             @Parameter(description = "The contents of the NAR file.", required = true)
             final InputStream inputStream) throws IOException {
@@ -2461,7 +2466,7 @@ public class ControllerResource extends ApplicationResource {
         authorizeController(RequestAction.WRITE);
 
         if (StringUtils.isBlank(filename)) {
-            throw new IllegalArgumentException(UploadRequestReplicator.FILENAME_HEADER + " header is required");
+            throw new IllegalArgumentException(FILENAME_HEADER + " header is required");
         }
         if (inputStream == null) {
             throw new IllegalArgumentException("NAR contents are required");
@@ -2487,8 +2492,11 @@ public class ControllerResource extends ApplicationResource {
                     .filename(filename)
                     .identifier(UUID.randomUUID().toString())
                     .contents(maxLengthInputStream)
+                    .header(FILENAME_HEADER, filename)
+                    .header(CONTENT_TYPE_HEADER, UPLOAD_CONTENT_TYPE)
                     .exampleRequestUri(getAbsolutePath())
                     .responseClass(NarSummaryEntity.class)
+                    .successfulResponseStatus(HttpResponseStatus.OK.getCode())
                     .build();
             final NarSummaryEntity summaryEntity = uploadRequestReplicator.upload(uploadRequest);
             return generateOkResponse(summaryEntity).build();
@@ -2613,9 +2621,9 @@ public class ControllerResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    @Path("/nar-manager/nars/{id}/download")
+    @Path("/nar-manager/nars/{id}/content")
     @Operation(
-            summary = "Downloads the NAR with the given id",
+            summary = "Retrieves the content of the NAR with the given id",
             responses = @ApiResponse(content = @Content(schema = @Schema(implementation = byte[].class))),
             security = {
                     @SecurityRequirement(name = "Read - /controller")

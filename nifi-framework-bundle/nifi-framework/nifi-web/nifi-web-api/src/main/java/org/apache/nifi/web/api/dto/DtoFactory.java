@@ -5054,7 +5054,7 @@ public final class DtoFactory {
        dto.setDependencyCoordinate(createNarCoordinateDto(narNode.getManifest().getDependencyCoordinate()));
        dto.setBuildTime(narManifest.getBuildTimestamp());
        dto.setCreatedBy(narManifest.getCreatedBy());
-       dto.setDigest(narNode.getNarFileHexDigest());
+       dto.setDigest(narNode.getNarFileDigest());
        dto.setSourceType(narNode.getSource().name());
        dto.setSourceIdentifier(narNode.getSourceIdentifier());
        dto.setState(narNode.getState().getValue());

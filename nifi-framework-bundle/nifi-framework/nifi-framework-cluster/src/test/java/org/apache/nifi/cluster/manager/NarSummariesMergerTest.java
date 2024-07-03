@@ -32,12 +32,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class NarSummariesMergerTest {
 
+    public static final String NIFI_GROUP_ID = "org.apache.nifi";
+    public static final String NIFI_NAR_FORMAT = "nifi-nar-%s";
+    public static final String VERSION = "1.0.0";
+
     @Test
     public void testMergeNarSummaries() {
-        final NarSummaryEntity narSummary1 = createNarSummaryEntity("org.apache.nifi", "nifi-nar-1", "1.0.0");
-        final NarSummaryEntity narSummary2 = createNarSummaryEntity("org.apache.nifi", "nifi-nar-2", "1.0.0");
-        final NarSummaryEntity narSummary3 = createNarSummaryEntity("org.apache.nifi", "nifi-nar-3", "1.0.0");
-        final NarSummaryEntity narSummary4 = createNarSummaryEntity("org.apache.nifi", "nifi-nar-4", "1.0.0");
+        final NarSummaryEntity narSummary1 = createNarSummaryEntity(NIFI_GROUP_ID, NIFI_NAR_FORMAT.formatted("1"), VERSION);
+        final NarSummaryEntity narSummary2 = createNarSummaryEntity(NIFI_GROUP_ID, NIFI_NAR_FORMAT.formatted("2"), VERSION);
+        final NarSummaryEntity narSummary3 = createNarSummaryEntity(NIFI_GROUP_ID, NIFI_NAR_FORMAT.formatted("3"), VERSION);
+        final NarSummaryEntity narSummary4 = createNarSummaryEntity(NIFI_GROUP_ID, NIFI_NAR_FORMAT.formatted("4"), VERSION);
 
         final Collection<NarSummaryEntity> mergedResults = new ArrayList<>();
         mergedResults.add(narSummary1);

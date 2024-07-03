@@ -33,6 +33,19 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class NarManifestTest {
 
+    public static final String NIFI_GROUP_ID = "org.apache.nifi";
+
+    public static final String NIFI_FRAMEWORK_NAR_ID = "nifi-framework-nar";
+    public static final String NIFI_FRAMEWORK_NAR_VERSION = "2.0.0-SNAPSHOT";
+
+    public static final String NIFI_JETTY_NAR_ID = "nifi-jetty-nar";
+    public static final String NIFI_JETTY_NAR_VERSION = "2.0.0-SNAPSHOT";
+
+    public static final String BUILD_TAG = "HEAD";
+    public static final String BUILD_BRANCH = "main";
+    public static final String BUILD_REVISION = "1234";
+    public static final String BUILD_TIMESTAMP = "2024-01-26T00:11:29Z";
+
     @Test
     public void testFromManifestFull() throws IOException {
         final String manifestPath = "nar/MANIFEST-FULL.MF";
@@ -40,18 +53,18 @@ public class NarManifestTest {
         final NarManifest narManifest = NarManifest.fromManifest(manifest);
         assertNotNull(narManifest);
 
-        assertEquals("nifi-framework-nar", narManifest.getId());
-        assertEquals("org.apache.nifi", narManifest.getGroup());
-        assertEquals("2.0.0-SNAPSHOT", narManifest.getVersion());
+        assertEquals(NIFI_FRAMEWORK_NAR_ID, narManifest.getId());
+        assertEquals(NIFI_GROUP_ID, narManifest.getGroup());
+        assertEquals(NIFI_FRAMEWORK_NAR_VERSION, narManifest.getVersion());
 
-        assertEquals("nifi-jetty-nar", narManifest.getDependencyId());
-        assertEquals("org.apache.nifi", narManifest.getDependencyGroup());
-        assertEquals("2.0.0-SNAPSHOT", narManifest.getDependencyVersion());
+        assertEquals(NIFI_JETTY_NAR_ID, narManifest.getDependencyId());
+        assertEquals(NIFI_GROUP_ID, narManifest.getDependencyGroup());
+        assertEquals(NIFI_JETTY_NAR_VERSION, narManifest.getDependencyVersion());
 
-        assertEquals("HEAD", narManifest.getBuildTag());
-        assertEquals("main", narManifest.getBuildBranch());
-        assertEquals("1234", narManifest.getBuildRevision());
-        assertEquals("2024-01-26T00:11:29Z", narManifest.getBuildTimestamp());
+        assertEquals(BUILD_TAG, narManifest.getBuildTag());
+        assertEquals(BUILD_BRANCH, narManifest.getBuildBranch());
+        assertEquals(BUILD_REVISION, narManifest.getBuildRevision());
+        assertEquals(BUILD_TIMESTAMP, narManifest.getBuildTimestamp());
 
         assertEquals("Apache NiFi Nar Maven Plugin 2.0.0", narManifest.getCreatedBy());
 
@@ -69,9 +82,9 @@ public class NarManifestTest {
         final NarManifest narManifest = NarManifest.fromManifest(manifest);
         assertNotNull(narManifest);
 
-        assertEquals("nifi-framework-nar", narManifest.getId());
-        assertEquals("org.apache.nifi", narManifest.getGroup());
-        assertEquals("2.0.0-SNAPSHOT", narManifest.getVersion());
+        assertEquals(NIFI_FRAMEWORK_NAR_ID, narManifest.getId());
+        assertEquals(NIFI_GROUP_ID, narManifest.getGroup());
+        assertEquals(NIFI_FRAMEWORK_NAR_VERSION, narManifest.getVersion());
 
         assertNull(narManifest.getDependencyId());
         assertNull(narManifest.getDependencyGroup());

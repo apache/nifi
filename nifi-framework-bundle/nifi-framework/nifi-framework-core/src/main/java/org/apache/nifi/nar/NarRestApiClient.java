@@ -51,7 +51,7 @@ public class NarRestApiClient {
     private static final String CONTROLLER_PATH = "controller";
     private static final String NAR_MANAGER_PATH = "nar-manager";
     private static final String NARS_PATH = "nars";
-    private static final String NAR_DOWNLOAD_PATH = "download";
+    private static final String NAR_CONTENT_PATH = "content";
 
     private final URI baseUri;
     private final WebClientService webClientService;
@@ -102,7 +102,7 @@ public class NarRestApiClient {
                 .addPathSegment(NAR_MANAGER_PATH)
                 .addPathSegment(NARS_PATH)
                 .addPathSegment(identifier)
-                .addPathSegment(NAR_DOWNLOAD_PATH)
+                .addPathSegment(NAR_CONTENT_PATH)
                 .build();
         LOGGER.info("Downloading NAR [{}] from {}", identifier, requestUri);
 
@@ -119,19 +119,19 @@ public class NarRestApiClient {
 
     private InputStream getResponseBody(final URI requestUri, final HttpResponseEntity response) {
         final int statusCode = response.statusCode();
-        if (HttpResponseStatus.isSuccessful(statusCode)) {
+        if (HttpResponseStatus.OK.getCode() == statusCode) {
             return response.body();
         } else {
             final String responseMessage;
             try {
                 responseMessage = IOUtils.toString(response.body(), StandardCharsets.UTF_8);
             } catch (IOException e) {
-                throw new NarRestApiRetryableException("Error reading response from " + requestUri + " - " + statusCode, e);
+                throw new NarRestApiRetryableException("Error reading response from %s - %s".formatted(requestUri, statusCode), e);
             }
             if (statusCode == HttpResponseStatus.CONFLICT.getCode()) {
-                throw new NarRestApiRetryableException("Error calling " + requestUri + " - " + statusCode + " - " + responseMessage);
+                throw new NarRestApiRetryableException("Error calling %s - %s - %s".formatted(requestUri, statusCode, responseMessage));
             } else {
-                throw new IllegalStateException("Error calling " + requestUri + " - " + statusCode + " - " + responseMessage);
+                throw new IllegalStateException("Error calling %s - %s - %s".formatted(requestUri, statusCode, responseMessage));
             }
         }
     }

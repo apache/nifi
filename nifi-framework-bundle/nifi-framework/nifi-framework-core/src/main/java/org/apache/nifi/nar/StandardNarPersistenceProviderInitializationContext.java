@@ -17,15 +17,15 @@
 
 package org.apache.nifi.nar;
 
-import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 
 public class StandardNarPersistenceProviderInitializationContext implements NarPersistenceProviderInitializationContext {
 
     private final Map<String, String> properties;
 
     public StandardNarPersistenceProviderInitializationContext(final Map<String, String> properties) {
-        this.properties = properties == null ? Collections.emptyMap() : Map.copyOf(properties);
+        this.properties = Map.copyOf(Objects.requireNonNull(properties, "Properties is required"));
     }
 
     @Override

@@ -184,9 +184,9 @@ public class StandardNarLoader implements NarLoader {
             final Manifest manifest = nar.getManifest();
 
             final Attributes attributes = manifest.getMainAttributes();
-            final String groupId = attributes.getValue(NarManifestEntry.NAR_GROUP.getManifestName());
-            final String narId = attributes.getValue(NarManifestEntry.NAR_ID.getManifestName());
-            final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
+            final String groupId = attributes.getValue(NarManifestEntry.NAR_GROUP.getEntryName());
+            final String narId = attributes.getValue(NarManifestEntry.NAR_ID.getEntryName());
+            final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getEntryName());
 
             if (NarClassLoaders.FRAMEWORK_NAR_ID.equals(narId)) {
                 LOGGER.error("Found a framework NAR, will not auto-load {}", narFile.getAbsolutePath());

@@ -22,10 +22,11 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.HttpRequestBodySpec;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
-import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
@@ -44,12 +45,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
- * Implementation of {@link UploadRequestReplicator} that uses OkHttp Client.
+ * Implementation of {@link UploadRequestReplicator} that uses the nifi-web-client-api.
  */
 public class StandardUploadRequestReplicator implements UploadRequestReplicator {
 
@@ -58,16 +60,19 @@ public class StandardUploadRequestReplicator implements UploadRequestReplicator 
 
     private final ClusterCoordinator clusterCoordinator;
     private final WebClientService webClientService;
+    private final File uploadWorkingDirectory;
 
-    public StandardUploadRequestReplicator(final ClusterCoordinator clusterCoordinator, final WebClientService webClientService) {
+    public StandardUploadRequestReplicator(final ClusterCoordinator clusterCoordinator, final WebClientService webClientService, final NiFiProperties properties) throws IOException {
         this.clusterCoordinator = Objects.requireNonNull(clusterCoordinator, "Cluster Coordinator is required");
         this.webClientService = Objects.requireNonNull(webClientService, "Web Client Service is required");
+        this.uploadWorkingDirectory = properties.getUploadWorkingDirectory();
+        FileUtils.ensureDirectoryExistAndCanAccess(this.uploadWorkingDirectory);
     }
 
     @Override
     public <T> T upload(final UploadRequest<T> uploadRequest) throws IOException {
         final String filename = uploadRequest.getFilename();
-        final File tempFile = Files.createTempFile("nifi", "upload").toFile();
+        final File tempFile = new File(uploadWorkingDirectory, UUID.randomUUID().toString());
         logger.debug("Created temporary file {} to hold contents of upload for {}", tempFile.getAbsolutePath(), filename);
 
         try {
@@ -147,27 +152,29 @@ public class StandardUploadRequestReplicator implements UploadRequestReplicator 
             final HttpRequestBodySpec request = webClientService.post()
                     .uri(requestUri)
                     .body(inputStream, OptionalLong.of(inputStream.available()))
-                    .header(CONTENT_TYPE_HEADER, UPLOAD_CONTENT_TYPE)
-                    .header(FILENAME_HEADER, filename)
                     // Special NiFi-specific headers to indicate that the request should be performed and not replicated to the nodes
                     .header(RequestReplicator.REQUEST_EXECUTION_HTTP_HEADER, "true")
                     .header(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true")
                     .header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user))
                     .header(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups()));
 
+            final Map<String, String> additionalHeaders = uploadRequest.getHeaders();
+            for (Map.Entry<String, String> headerEntry : additionalHeaders.entrySet()) {
+                request.header(headerEntry.getKey(), headerEntry.getValue());
+            }
+
             logger.debug("Replicating upload request for {} to {}", filename, nodeId);
 
             try (final HttpResponseEntity response = request.retrieve()) {
                 final int statusCode = response.statusCode();
-                if (!HttpResponseStatus.isSuccessful(statusCode)) {
+                if (uploadRequest.getSuccessfulResponseStatus() != statusCode) {
                     final String responseMessage = IOUtils.toString(response.body(), StandardCharsets.UTF_8);
-                    throw new UploadRequestReplicationException("Failed to replicate upload request to " + nodeId + " - " + responseMessage, statusCode);
+                    throw new UploadRequestReplicationException("Failed to replicate upload request to [%s] %s".formatted(nodeId, responseMessage), statusCode);
                 }
                 final InputStream responseBody = response.body();
                 return objectMapper.readValue(responseBody, uploadRequest.getResponseClass());
             }
         }
-
 
     }
 }

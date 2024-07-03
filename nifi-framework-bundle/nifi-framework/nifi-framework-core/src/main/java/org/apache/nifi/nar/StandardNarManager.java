@@ -30,10 +30,10 @@ import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
 import javax.net.ssl.SSLContext;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -56,9 +56,9 @@ import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-public class StandardNarManager implements NarManager, InitializingBean, DisposableBean {
+public class StandardNarManager implements NarManager, InitializingBean, Closeable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(StandardNarManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(StandardNarManager.class);
 
     private static final Duration MAX_WAIT_TIME_FOR_CLUSTER_COORDINATOR = Duration.ofSeconds(60);
     private static final Duration MAX_WAIT_TIME_FOR_NARS = Duration.ofMinutes(5);
@@ -79,6 +79,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
 
     public StandardNarManager(final FlowController flowController,
                               final ClusterCoordinator clusterCoordinator,
+                              final NarPersistenceProvider narPersistenceProvider,
                               final NarComponentManager narComponentManager,
                               final NarLoader narLoader,
                               final WebClientService webClientService,
@@ -86,7 +87,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
         this.clusterCoordinator = clusterCoordinator;
         this.extensionManager = flowController.getExtensionManager();
         this.controllerServiceProvider = flowController.getControllerServiceProvider();
-        this.persistenceProvider = flowController.getNarPersistenceProvider();
+        this.persistenceProvider = narPersistenceProvider;
         this.narComponentManager = narComponentManager;
         this.narLoader = narLoader;
         this.webClientService = webClientService;
@@ -95,60 +96,18 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
         this.deleteExecutorService = Executors.newSingleThreadExecutor();
     }
 
-    // This serves two purposes...
-    // 1. Any previously stored NARs need to have their extensions loaded and made available for use during start up since they won't be in any of the standard NAR directories
-    // 2. NarLoader keeps track of NARs that were missing dependencies to consider them on future loads, so this restores state that may have been lost on a restart
+    /* This serves two purposes...
+     * 1. Any previously stored NARs need to have their extensions loaded and made available for use during start up since they won't be in any of the standard NAR directories
+     * 2. NarLoader keeps track of NARs that were missing dependencies to consider them on future loads, so this restores state that may have been lost on a restart
+     */
     @Override
     public void afterPropertiesSet() throws IOException {
         final Collection<NarPersistenceInfo> narInfos = loadExistingNars();
         restoreState(narInfos);
     }
 
-    private Collection<NarPersistenceInfo> loadExistingNars() throws IOException {
-        final Collection<NarPersistenceInfo> narInfos = persistenceProvider.getAllNarInfo();
-        LOGGER.info("Initializing NAR Manager, loading {} previously stored NARs", narInfos.size());
-
-        final Collection<File> narFiles = narInfos.stream()
-                .map(NarPersistenceInfo::getNarFile)
-                .collect(Collectors.toSet());
-        narLoader.load(narFiles);
-        return narInfos;
-    }
-
-    private void restoreState(final Collection<NarPersistenceInfo> narInfos) {
-        for (final NarPersistenceInfo narInfo : narInfos) {
-            try {
-                final NarNode narNode = restoreNarNode(narInfo);
-                narNodesById.put(narNode.getIdentifier(), narNode);
-                LOGGER.debug("Restored NAR [{}] with state [{}] and identifier [{}]",
-                        narNode.getManifest().getCoordinate(), narNode.getState(), narNode.getIdentifier());
-            } catch (final Exception e) {
-                LOGGER.warn("Failed to restore NAR for [{}]", narInfo.getNarFile().getAbsolutePath(), e);
-            }
-        }
-    }
-
-    private NarNode restoreNarNode(final NarPersistenceInfo narInfo) throws IOException {
-        final File narFile = narInfo.getNarFile();
-        final NarManifest manifest = NarManifest.fromNarFile(narFile);
-        final BundleCoordinate coordinate = manifest.getCoordinate();
-        final String identifier = createIdentifier(coordinate);
-        final NarState state = determineNarState(manifest);
-        final String narDigest = computeNarDigest(narFile);
-
-        return NarNode.builder()
-                .identifier(identifier)
-                .narFile(narFile)
-                .narFileHexDigest(narDigest)
-                .manifest(manifest)
-                .source(NarSource.valueOf(narInfo.getNarProperties().getSourceType()))
-                .sourceIdentifier(narInfo.getNarProperties().getSourceId())
-                .state(state)
-                .build();
-    }
-
     @Override
-    public void destroy() {
+    public void close() {
         shutdownExecutor(installExecutorService, "Forcing shutdown of NAR Manager Upload Executor Service");
         shutdownExecutor(deleteExecutorService, "Forcing shutdown of NAR Manager Delete Executor Service");
     }
@@ -160,7 +119,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
                 executorService.shutdownNow();
             }
         } catch (InterruptedException ignore) {
-            LOGGER.info(interruptedMessage);
+            logger.info(interruptedMessage);
             executorService.shutdownNow();
         }
     }
@@ -170,74 +129,9 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
         return installNar(installRequest, true);
     }
 
-    private NarNode installNar(final NarInstallRequest installRequest, final boolean async) throws IOException {
-        final InputStream inputStream = installRequest.getInputStream();
-        final File tempNarFile = persistenceProvider.createTempFile(inputStream);
-        try {
-            return installNar(installRequest, tempNarFile, async);
-        } finally {
-            if (tempNarFile.exists() && !tempNarFile.delete()) {
-                LOGGER.warn("Failed to delete temp NAR file at [{}], file must be cleaned up manually", tempNarFile.getAbsolutePath());
-            }
-        }
-    }
-
-    // The outer install method is not synchronized since copying the stream to the temp file make take a long time, so we
-    // synchronize here after already having the temp file to ensure only one request is checked and submitted for installing
-    private synchronized NarNode installNar(final NarInstallRequest installRequest, final File tempNarFile, final boolean async) throws IOException {
-        final NarManifest manifest = getNarManifest(tempNarFile);
-        final BundleCoordinate coordinate = manifest.getCoordinate();
-
-        final Bundle existingBundle = extensionManager.getBundle(coordinate);
-        if (existingBundle != null && !persistenceProvider.exists(coordinate)) {
-            throw new IllegalStateException("A NAR is already registered with the same group, id, and version, " +
-                    "and can not be replaced because it is not part of the NAR Manager");
-        }
-
-        final Set<Bundle> bundlesWithMatchingDependency = extensionManager.getDependentBundles(coordinate);
-        if (!bundlesWithMatchingDependency.isEmpty()) {
-            throw new IllegalStateException("Unable to replace NAR because it is a dependency of other NARs");
-        }
-
-        final NarPersistenceContext persistenceContext = NarPersistenceContext.builder()
-                .manifest(manifest)
-                .source(installRequest.getSource())
-                .sourceIdentifier(installRequest.getSourceIdentifier())
-                .clusterCoordinator(clusterCoordinator != null && clusterCoordinator.isActiveClusterCoordinator())
-                .build();
-
-        final NarPersistenceInfo narPersistenceInfo = persistenceProvider.saveNar(persistenceContext, tempNarFile);
-
-        final File narFile = narPersistenceInfo.getNarFile();
-        final String identifier = createIdentifier(coordinate);
-        final String narDigest = computeNarDigest(narFile);
-
-        final NarNode narNode = NarNode.builder()
-                .identifier(identifier)
-                .narFile(narFile)
-                .narFileHexDigest(narDigest)
-                .manifest(manifest)
-                .source(installRequest.getSource())
-                .sourceIdentifier(installRequest.getSourceIdentifier())
-                .state(NarState.WAITING_TO_INSTALL)
-                .build();
-        narNodesById.put(identifier, narNode);
-
-        final NarInstallTask installTask = createInstallTask(narNode);
-        if (async) {
-            LOGGER.info("Submitting install task for NAR with id [{}] and coordinate [{}]", identifier, coordinate);
-            final Future<?> installTaskFuture = installExecutorService.submit(installTask);
-            installFuturesById.put(identifier, installTaskFuture);
-        } else {
-            LOGGER.info("Synchronously installing NAR with id [{}] and coordinate [{}]", identifier, coordinate);
-            installTask.run();
-        }
-        return narNode;
-    }
-
     @Override
     public void completeInstall(final String identifier) {
-        LOGGER.info("Completed install for NAR [{}]", identifier);
+        logger.info("Completed install for NAR [{}]", identifier);
         installFuturesById.remove(identifier);
     }
 
@@ -273,11 +167,11 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
         final BundleCoordinate coordinate = narNode.getManifest().getCoordinate();
         final Set<Bundle> bundlesWithMatchingDependency = extensionManager.getDependentBundles(coordinate);
         if (!bundlesWithMatchingDependency.isEmpty()) {
-            throw new IllegalStateException("Unable to delete NAR because it is a dependency of other NARs");
+            throw new IllegalStateException("Unable to delete NAR [%s] because it is a dependency of other NARs".formatted(coordinate));
         }
 
         if (!forceDelete && narComponentManager.componentsExist(coordinate)) {
-            throw new IllegalStateException("Unable to delete NAR because components are instantiated from this NAR");
+            throw new IllegalStateException("Unable to delete NAR [%s] because components are instantiated from this NAR".formatted(coordinate));
         }
     }
 
@@ -285,7 +179,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
     public synchronized NarNode deleteNar(final String identifier) throws IOException {
         final NarNode narNode = getNarNodeOrThrowNotFound(identifier);
         final BundleCoordinate coordinate = narNode.getManifest().getCoordinate();
-        LOGGER.info("Deleting NAR with id [{}] and coordinate [{}]", identifier, coordinate);
+        logger.info("Deleting NAR with id [{}] and coordinate [{}]", identifier, coordinate);
 
         final Future<?> installTask = installFuturesById.remove(identifier);
         if (installTask != null) {
@@ -298,10 +192,10 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
         }
 
         deleteExecutorService.submit(() -> {
-            LOGGER.info("Unloading components for deleting NAR with id [{}] and coordinate [{}]", identifier, coordinate);
+            logger.info("Unloading components for deleting NAR with id [{}] and coordinate [{}]", identifier, coordinate);
             final StandardStoppedComponents stoppedComponents = new StandardStoppedComponents(controllerServiceProvider);
             narComponentManager.unloadComponents(coordinate, stoppedComponents);
-            LOGGER.info("Completed unloading components for deleting NAR with id [{}] and coordinate [{}]", identifier, coordinate);
+            logger.info("Completed unloading components for deleting NAR with id [{}] and coordinate [{}]", identifier, coordinate);
         });
 
         persistenceProvider.deleteNar(coordinate);
@@ -324,7 +218,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
     @Override
     public synchronized void syncWithClusterCoordinator() {
         if (clusterCoordinator == null) {
-            LOGGER.info("Cluster coordinator is null, will not sync NARs");
+            logger.info("Clustering is not configured: NAR synchronization disabled");
             return;
         }
 
@@ -333,17 +227,17 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
         // the helper method here will keep checking for the identifier up to a certain threshold to avoid slight timing issues
         final NodeIdentifier coordinatorNodeId = getElectedActiveCoordinatorNode();
         if (coordinatorNodeId == null) {
-            LOGGER.warn("Unable to obtain the node identifier for the cluster coordinator, will not sync NARs");
+            logger.warn("Unable to obtain the node identifier for the cluster coordinator: NAR synchronization disabled");
             return;
         }
 
-        LOGGER.info("Determined cluster coordinator is at {}", coordinatorNodeId);
+        logger.debug("NAR synchronization determined cluster coordinator [{}]", coordinatorNodeId);
         if (clusterCoordinator.isActiveClusterCoordinator()) {
-            LOGGER.info("Current node is the cluster coordinator, will not sync NARs");
+            logger.info("Current node is the cluster coordinator: NAR synchronization disabled");
             return;
         }
 
-        LOGGER.info("Synchronizing NARs with cluster coordinator");
+        logger.info("Synchronizing NARs with cluster coordinator");
         final String coordinatorAddress = coordinatorNodeId.getApiAddress();
         final int coordinatorPort = coordinatorNodeId.getApiPort();
         final NarRestApiClient narRestApiClient = new NarRestApiClient(webClientService, coordinatorAddress, coordinatorPort, sslContext != null);
@@ -354,11 +248,11 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
             // the response will be a 409, so the helper method here will catch any retryable exceptions and retry the request up to a configured threshold
             final NarSummariesEntity narSummaries = getNarSummariesFromCoordinator(narRestApiClient);
             if (narSummaries == null) {
-                LOGGER.error("Unable to retrieve listing of NARs from cluster coordinator within the maximum amount of time, will not sync NARs");
+                logger.error("Timeout listing NARs from cluster coordinator [{}]", coordinatorAddress);
                 return;
             }
 
-            LOGGER.info("Cluster coordinator returned {} NAR summaries", narSummaries.getNarSummaries().size());
+            logger.info("Cluster coordinator returned {} NAR summaries", narSummaries.getNarSummaries().size());
 
             for (final NarSummaryEntity narSummaryEntity : narSummaries.getNarSummaries()) {
                 final NarSummaryDTO narSummaryDTO = narSummaryEntity.getNarSummary();
@@ -366,13 +260,13 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
                 final String coordinatorNarDigest = narSummaryDTO.getDigest();
                 final NarNode matchingNar = narNodesById.get(coordinatorNarId);
                 if (matchingNar == null) {
-                    LOGGER.info("Coordinator has NAR [{}] which does not exist locally, will download", coordinatorNarId);
+                    logger.info("Downloading NAR [{}] from cluster coordinator [{}]", coordinatorNarId, coordinatorAddress);
                     downloadNar(narRestApiClient, narSummaryDTO);
-                } else if (!coordinatorNarDigest.equals(matchingNar.getNarFileHexDigest())) {
-                    LOGGER.info("Coordinator has NAR [{}] which exists locally with a different digest, will download", coordinatorNarId);
+                } else if (!coordinatorNarDigest.equals(matchingNar.getNarFileDigest())) {
+                    logger.info("Downloading NAR [{}] from cluster coordinator [{}] with updated digest [{}]", coordinatorNarId, coordinatorAddress, matchingNar.getNarFileDigest());
                     downloadNar(narRestApiClient, narSummaryDTO);
                 } else {
-                    LOGGER.info("Coordinator has NAR [{}] which exists locally with a matching digest, will not download", coordinatorNarId);
+                    logger.info("Coordinator NAR [{}] found: download not required", coordinatorNarId);
                 }
             }
         } catch (final Exception e) {
@@ -381,9 +275,9 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
             // if the current node has no existing NARs then we can let the node proceed and attempt to join the cluster because maybe the cluster coordinator had no NARs anyway,
             // and if it did then flow synchronization will fail after this because the local flow will have ghosted components that are not ghosted in the cluster
             if (localNarCountBeforeSync > 0) {
-                throw new RuntimeException("Failed to sync NARs from cluster coordinator", e);
+                throw new RuntimeException("Failed to synchronize NARs from cluster coordinator [%s]".formatted(coordinatorAddress), e);
             } else {
-                LOGGER.error("Failed to sync NARs from cluster coordinator, no NARs exist locally, will proceed", e);
+                logger.error("Failed to synchronize NARs from cluster coordinator [{}] no local NARs found", coordinatorAddress, e);
             }
         }
     }
@@ -406,7 +300,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
             if (narSummaries != null) {
                 return narSummaries;
             }
-            LOGGER.info("Unable to retrieve NAR summaries from cluster coordinator, will retry until [{}]", waitUntilInstant);
+            logger.info("Unable to retrieve NAR summaries from cluster coordinator: retrying until [{}]", waitUntilInstant);
             sleep(Duration.ofSeconds(5));
         }
         return null;
@@ -416,10 +310,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
         try {
             return narRestApiClient.listNarSummaries();
         } catch (final NarRestApiRetryableException e) {
-            LOGGER.warn("[{}], will retry", e.getMessage());
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("", e);
-            }
+            logger.warn("[{}]: retrying", e.getMessage());
             return null;
         }
     }
@@ -431,7 +322,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
             if (coordinatorNodeId != null) {
                 return coordinatorNodeId;
             }
-            LOGGER.info("Node identifier for the active cluster coordinator is not known yet, will retry until [{}]", waitUntilInstant);
+            logger.info("Node identifier for the active cluster coordinator is not known yet: retrying until [{}]", waitUntilInstant);
             sleep(Duration.ofSeconds(2));
         }
         return null;
@@ -445,17 +336,124 @@ public class StandardNarManager implements NarManager, InitializingBean, Disposa
         }
     }
 
+    private Collection<NarPersistenceInfo> loadExistingNars() throws IOException {
+        final Collection<NarPersistenceInfo> narInfos = persistenceProvider.getAllNarInfo();
+        logger.info("Initializing NAR Manager, loading {} previously stored NARs", narInfos.size());
+
+        final Collection<File> narFiles = narInfos.stream()
+                .map(NarPersistenceInfo::getNarFile)
+                .collect(Collectors.toSet());
+        narLoader.load(narFiles);
+        return narInfos;
+    }
+
+    private void restoreState(final Collection<NarPersistenceInfo> narInfos) {
+        for (final NarPersistenceInfo narInfo : narInfos) {
+            try {
+                final NarNode narNode = restoreNarNode(narInfo);
+                narNodesById.put(narNode.getIdentifier(), narNode);
+                logger.debug("Restored NAR [{}] with state [{}] and identifier [{}]",
+                        narNode.getManifest().getCoordinate(), narNode.getState(), narNode.getIdentifier());
+            } catch (final Exception e) {
+                logger.warn("Failed to restore NAR for [{}]", narInfo.getNarFile().getAbsolutePath(), e);
+            }
+        }
+    }
+
+    private NarNode restoreNarNode(final NarPersistenceInfo narInfo) throws IOException {
+        final File narFile = narInfo.getNarFile();
+        final NarManifest manifest = NarManifest.fromNarFile(narFile);
+        final BundleCoordinate coordinate = manifest.getCoordinate();
+        final String identifier = createIdentifier(coordinate);
+        final NarState state = determineNarState(manifest);
+        final String narDigest = computeNarDigest(narFile);
+
+        return NarNode.builder()
+                .identifier(identifier)
+                .narFile(narFile)
+                .narFileDigest(narDigest)
+                .manifest(manifest)
+                .source(NarSource.valueOf(narInfo.getNarProperties().getSourceType()))
+                .sourceIdentifier(narInfo.getNarProperties().getSourceId())
+                .state(state)
+                .build();
+    }
+
+    private NarNode installNar(final NarInstallRequest installRequest, final boolean async) throws IOException {
+        final InputStream inputStream = installRequest.getInputStream();
+        final File tempNarFile = persistenceProvider.createTempFile(inputStream);
+        try {
+            return installNar(installRequest, tempNarFile, async);
+        } finally {
+            if (tempNarFile.exists() && !tempNarFile.delete()) {
+                logger.warn("Failed to delete temp NAR file at [{}], file must be cleaned up manually", tempNarFile.getAbsolutePath());
+            }
+        }
+    }
+
+    // The outer install method is not synchronized since copying the stream to the temp file make take a long time, so we
+    // synchronize here after already having the temp file to ensure only one request is checked and submitted for installing
+    private synchronized NarNode installNar(final NarInstallRequest installRequest, final File tempNarFile, final boolean async) throws IOException {
+        final NarManifest manifest = getNarManifest(tempNarFile);
+        final BundleCoordinate coordinate = manifest.getCoordinate();
+
+        final Bundle existingBundle = extensionManager.getBundle(coordinate);
+        if (existingBundle != null && !persistenceProvider.exists(coordinate)) {
+            throw new IllegalStateException("A NAR is already registered with the same coordinate [%s], and can not be replaced because it is not part of the NAR Manager".formatted(coordinate));
+        }
+
+        final Set<Bundle> bundlesWithMatchingDependency = extensionManager.getDependentBundles(coordinate);
+        if (!bundlesWithMatchingDependency.isEmpty()) {
+            throw new IllegalStateException("Unable to replace NAR [%s] because it is a dependency of other NARs".formatted(coordinate));
+        }
+
+        final NarPersistenceContext persistenceContext = NarPersistenceContext.builder()
+                .manifest(manifest)
+                .source(installRequest.getSource())
+                .sourceIdentifier(installRequest.getSourceIdentifier())
+                .clusterCoordinator(clusterCoordinator != null && clusterCoordinator.isActiveClusterCoordinator())
+                .build();
+
+        final NarPersistenceInfo narPersistenceInfo = persistenceProvider.saveNar(persistenceContext, tempNarFile);
+
+        final File narFile = narPersistenceInfo.getNarFile();
+        final String identifier = createIdentifier(coordinate);
+        final String narDigest = computeNarDigest(narFile);
+
+        final NarNode narNode = NarNode.builder()
+                .identifier(identifier)
+                .narFile(narFile)
+                .narFileDigest(narDigest)
+                .manifest(manifest)
+                .source(installRequest.getSource())
+                .sourceIdentifier(installRequest.getSourceIdentifier())
+                .state(NarState.WAITING_TO_INSTALL)
+                .build();
+        narNodesById.put(identifier, narNode);
+
+        final NarInstallTask installTask = createInstallTask(narNode);
+        if (async) {
+            logger.info("Submitting install task for NAR with id [{}] and coordinate [{}]", identifier, coordinate);
+            final Future<?> installTaskFuture = installExecutorService.submit(installTask);
+            installFuturesById.put(identifier, installTaskFuture);
+        } else {
+            logger.info("Synchronously installing NAR with id [{}] and coordinate [{}]", identifier, coordinate);
+            installTask.run();
+        }
+        return narNode;
+    }
+
     private NarNode getNarNodeOrThrowNotFound(final String identifier) {
         final NarNode narNode = narNodesById.get(identifier);
         if (narNode == null) {
-            throw new ResourceNotFoundException("A NAR does not exist with the given identifier");
+            throw new ResourceNotFoundException("A NAR does not exist with the identifier %s".formatted(identifier));
         }
         return narNode;
     }
 
     private void deleteFileQuietly(final File tempNarFile) {
         if (!tempNarFile.delete()) {
-            LOGGER.warn("Failed to delete temp NAR file [{}], this file should be cleaned up manually", tempNarFile.getAbsolutePath());
+            logger.warn("Failed to delete temp NAR file [{}], this file should be cleaned up manually", tempNarFile.getAbsolutePath());
         }
     }
 

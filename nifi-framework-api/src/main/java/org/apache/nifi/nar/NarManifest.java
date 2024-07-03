@@ -173,19 +173,19 @@ public class NarManifest {
         final Attributes attributes = manifest.getMainAttributes();
 
         return NarManifest.builder()
-                .group(attributes.getValue(NarManifestEntry.NAR_GROUP.getManifestName()))
-                .id(attributes.getValue(NarManifestEntry.NAR_ID.getManifestName()))
-                .version(attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName()))
-                .dependencyGroup(attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_GROUP.getManifestName()))
-                .dependencyId(attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_ID.getManifestName()))
-                .dependencyVersion(attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_VERSION.getManifestName()))
-                .buildTag(attributes.getValue(NarManifestEntry.BUILD_TAG.getManifestName()))
-                .buildRevision(attributes.getValue(NarManifestEntry.BUILD_REVISION.getManifestName()))
-                .buildBranch(attributes.getValue(NarManifestEntry.BUILD_BRANCH.getManifestName()))
-                .buildTimestamp(attributes.getValue(NarManifestEntry.BUILD_TIMESTAMP.getManifestName()))
-                .buildJdk(attributes.getValue(NarManifestEntry.BUILD_JDK.getManifestName()))
-                .builtBy(attributes.getValue(NarManifestEntry.BUILT_BY.getManifestName()))
-                .createdBy(attributes.getValue(NarManifestEntry.CREATED_BY.getManifestName()))
+                .group(attributes.getValue(NarManifestEntry.NAR_GROUP.getEntryName()))
+                .id(attributes.getValue(NarManifestEntry.NAR_ID.getEntryName()))
+                .version(attributes.getValue(NarManifestEntry.NAR_VERSION.getEntryName()))
+                .dependencyGroup(attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_GROUP.getEntryName()))
+                .dependencyId(attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_ID.getEntryName()))
+                .dependencyVersion(attributes.getValue(NarManifestEntry.NAR_DEPENDENCY_VERSION.getEntryName()))
+                .buildTag(attributes.getValue(NarManifestEntry.BUILD_TAG.getEntryName()))
+                .buildRevision(attributes.getValue(NarManifestEntry.BUILD_REVISION.getEntryName()))
+                .buildBranch(attributes.getValue(NarManifestEntry.BUILD_BRANCH.getEntryName()))
+                .buildTimestamp(attributes.getValue(NarManifestEntry.BUILD_TIMESTAMP.getEntryName()))
+                .buildJdk(attributes.getValue(NarManifestEntry.BUILD_JDK.getEntryName()))
+                .builtBy(attributes.getValue(NarManifestEntry.BUILT_BY.getEntryName()))
+                .createdBy(attributes.getValue(NarManifestEntry.CREATED_BY.getEntryName()))
                 .build();
     }
 

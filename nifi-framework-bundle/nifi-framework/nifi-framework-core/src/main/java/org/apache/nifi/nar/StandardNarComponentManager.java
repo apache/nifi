@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
 
 public class StandardNarComponentManager implements NarComponentManager {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(StandardNarComponentManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(StandardNarComponentManager.class);
 
     private static final Duration COMPONENT_STOP_TIMEOUT = Duration.ofSeconds(30);
 
@@ -90,7 +90,7 @@ public class StandardNarComponentManager implements NarComponentManager {
     @Override
     public void loadMissingComponents(final BundleCoordinate bundleCoordinate, final StoppedComponents stoppedComponents) {
         final Set<ComponentNode> componentNodes = getComponentsForBundle(bundleCoordinate, (ComponentNode::isExtensionMissing));
-        LOGGER.debug("Found {} missing components to load from NAR [{}]", componentNodes.size(), bundleCoordinate);
+        logger.debug("Found {} missing components to load from NAR [{}]", componentNodes.size(), bundleCoordinate);
         componentNodes.forEach(componentNode -> {
             // ghosted components could have a scheduled state of RUNNING/DISABLED, so they need to be STOPPED/DISABLED before reloading
             stopComponent(componentNode, bundleCoordinate, stoppedComponents);
@@ -101,7 +101,7 @@ public class StandardNarComponentManager implements NarComponentManager {
     @Override
     public void unloadComponents(final BundleCoordinate bundleCoordinate, final StoppedComponents stoppedComponents) {
         final Set<ComponentNode> componentNodes = getComponentsForBundle(bundleCoordinate, (componentNode -> !componentNode.isExtensionMissing()));
-        LOGGER.debug("Found {} components to unload from deleted NAR [{}]", componentNodes.size(), bundleCoordinate);
+        logger.debug("Found {} components to unload from deleted NAR [{}]", componentNodes.size(), bundleCoordinate);
         componentNodes.forEach(componentNode -> {
             stopComponent(componentNode, bundleCoordinate, stoppedComponents);
             reloadComponent(componentNode, bundleCoordinate);
@@ -111,14 +111,14 @@ public class StandardNarComponentManager implements NarComponentManager {
     private void stopComponent(final ComponentNode componentNode, final BundleCoordinate bundleCoordinate, final StoppedComponents stoppedComponents) {
         final String componentId = componentNode.getIdentifier();
         final String componentType = componentNode.getCanonicalClassName();
-        LOGGER.debug("Stopping component [{}] of type [{}] from bundle [{}]", componentId, componentType, bundleCoordinate);
+        logger.debug("Stopping component [{}] of type [{}] from bundle [{}]", componentId, componentType, bundleCoordinate);
 
         switch (componentNode) {
             case ProcessorNode processorNode -> stopProcessor(processorNode, stoppedComponents);
             case ControllerServiceNode controllerServiceNode -> stopControllerService(controllerServiceNode, stoppedComponents);
             case ReportingTaskNode reportingTaskNode -> stopReportingTask(reportingTaskNode, stoppedComponents);
             case FlowAnalysisRuleNode flowAnalysisRuleNode -> stopFlowAnalysisRule(flowAnalysisRuleNode, stoppedComponents);
-            default -> LOGGER.warn("Component of type [{}] from NAR [{}] does not need to be stopped", componentType, bundleCoordinate);
+            default -> logger.warn("Component of type [{}] from NAR [{}] does not need to be stopped", componentType, bundleCoordinate);
         }
     }
 
@@ -132,7 +132,7 @@ public class StandardNarComponentManager implements NarComponentManager {
         try {
             future.get(COMPONENT_STOP_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
         } catch (final Exception e) {
-            LOGGER.warn("Failed to stop processor [{}], processor will be terminated", processorNode.getIdentifier(), e);
+            logger.warn("Failed to stop processor [{}], processor will be terminated", processorNode.getIdentifier(), e);
             processorNode.terminate();
         }
     }
@@ -150,14 +150,14 @@ public class StandardNarComponentManager implements NarComponentManager {
                 case ProcessorNode processorNode -> stoppedComponents.addProcessor(processorNode);
                 case ReportingTaskNode reportingTaskNode -> stoppedComponents.addReportingTask(reportingTaskNode);
                 case FlowAnalysisRuleNode flowAnalysisRuleNode -> stoppedComponents.addFlowAnalysisRule(flowAnalysisRuleNode);
-                default -> LOGGER.warn("Unexpected stopped component of type {} with ID {}}", component.getCanonicalClassName(), component.getIdentifier());
+                default -> logger.warn("Unexpected stopped component of type {} with ID {}}", component.getCanonicalClassName(), component.getIdentifier());
             }
 
             final Future<Void> future = entry.getValue();
             try {
                 future.get(COMPONENT_STOP_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
             } catch (final Exception e) {
-                LOGGER.warn("Failed to stop controller service [{}]", component.getIdentifier(), e);
+                logger.warn("Failed to stop controller service [{}]", component.getIdentifier(), e);
             }
         }
 
@@ -176,7 +176,7 @@ public class StandardNarComponentManager implements NarComponentManager {
         try {
             future.get(COMPONENT_STOP_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
         } catch (final Exception e) {
-            LOGGER.warn("Failed to disable controller service [{}], or one of it's referencing services", controllerServiceNode.getIdentifier(), e);
+            logger.warn("Failed to disable controller service [{}], or one of it's referencing services", controllerServiceNode.getIdentifier(), e);
         }
     }
 
@@ -200,7 +200,7 @@ public class StandardNarComponentManager implements NarComponentManager {
         final String componentId = componentNode.getIdentifier();
         final String componentType = componentNode.getCanonicalClassName();
         final boolean isMissing = componentNode.isExtensionMissing();
-        LOGGER.info("Reloading component [{}] of type [{}] from bundle [{}], isExtensionMissing = {}", componentId, componentType, bundleCoordinate, isMissing);
+        logger.info("Reloading component [{}] of type [{}] from bundle [{}], isExtensionMissing = {}", componentId, componentType, bundleCoordinate, isMissing);
 
         componentNode.pauseValidationTrigger();
         try {
@@ -211,10 +211,10 @@ public class StandardNarComponentManager implements NarComponentManager {
                 case FlowRegistryClientNode flowRegistryClientNode -> reloadComponent.reload(flowRegistryClientNode, componentType, bundleCoordinate, Collections.emptySet());
                 case FlowAnalysisRuleNode flowAnalysisRuleNode -> reloadComponent.reload(flowAnalysisRuleNode, componentType, bundleCoordinate, Collections.emptySet());
                 case ParameterProviderNode parameterProviderNode -> reloadComponent.reload(parameterProviderNode, componentType, bundleCoordinate, Collections.emptySet());
-                default -> LOGGER.warn("Component of type [{}] from NAR [{}] is not reloadable", componentType, bundleCoordinate);
+                default -> logger.warn("Component of type [{}] from NAR [{}] is not reloadable", componentType, bundleCoordinate);
             }
         } catch (final Exception e) {
-            LOGGER.warn("Failed to reload component [{}] of type [{}] from NAR [{}]", componentNode.getComponent().getIdentifier(), componentType, bundleCoordinate, e);
+            logger.warn("Failed to reload component [{}] of type [{}] from NAR [{}]", componentNode.getComponent().getIdentifier(), componentType, bundleCoordinate, e);
         } finally {
             componentNode.resumeValidationTrigger();
         }

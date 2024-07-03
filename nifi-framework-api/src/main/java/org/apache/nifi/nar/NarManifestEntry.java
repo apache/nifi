@@ -35,14 +35,14 @@ public enum NarManifestEntry {
     BUILT_BY("Built-By"),
     CREATED_BY("Created-By");
 
-    final String manifestName;
+    final String entryName;
 
-    NarManifestEntry(String manifestName) {
-        this.manifestName = manifestName;
+    NarManifestEntry(String entryName) {
+        this.entryName = entryName;
     }
 
-    public String getManifestName() {
-        return manifestName;
+    public String getEntryName() {
+        return entryName;
     }
 
 }

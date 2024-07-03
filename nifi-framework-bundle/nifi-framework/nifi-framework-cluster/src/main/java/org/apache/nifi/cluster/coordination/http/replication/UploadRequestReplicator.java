@@ -24,10 +24,6 @@ import java.io.IOException;
  */
 public interface UploadRequestReplicator {
 
-    String FILENAME_HEADER = "Filename";
-    String CONTENT_TYPE_HEADER = "Content-Type";
-    String UPLOAD_CONTENT_TYPE = "application/octet-stream";
-
     /**
      * Replicates the request to upload a file to all nodes in the cluster.
      *

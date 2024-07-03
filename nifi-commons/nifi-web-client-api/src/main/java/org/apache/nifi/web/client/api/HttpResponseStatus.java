@@ -58,11 +58,4 @@ public enum HttpResponseStatus {
         return code;
     }
 
-    public boolean isSuccessful() {
-        return isSuccessful(code);
-    }
-
-    public static boolean isSuccessful(final int code) {
-        return code >= 200 && code < 300;
-    }
 }

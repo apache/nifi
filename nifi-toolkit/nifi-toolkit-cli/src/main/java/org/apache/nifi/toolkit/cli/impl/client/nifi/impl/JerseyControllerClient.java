@@ -57,8 +57,8 @@ import java.util.Objects;
 public class JerseyControllerClient extends AbstractJerseyClient implements ControllerClient {
 
     private static final String NAR_MANAGER_PATH = "nar-manager";
-    private static final String NAR_UPLOAD_PATH = NAR_MANAGER_PATH + "/upload";
     private static final String NARS_PATH = NAR_MANAGER_PATH + "/nars";
+    private static final String NAR_UPLOAD_PATH = NARS_PATH + "/content";
 
     private final WebTarget controllerTarget;
 
@@ -562,7 +562,7 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
         }
 
         return executeAction("Error downloading NAR", () -> {
-            final WebTarget target = controllerTarget.path(NARS_PATH + "/{identifier}/download")
+            final WebTarget target = controllerTarget.path(NARS_PATH + "/{identifier}/content")
                     .resolveTemplate("identifier", identifier);
 
             final Response response = getRequestBuilder(target)

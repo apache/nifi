@@ -37,13 +37,21 @@ public class NarPropertiesTest {
 
     private static final String PROPERTIES_FILE_SUFFIX = ".properties";
 
+    private static final String NIFI_GROUP_ID = "org.apache.nifi";
+    private static final String NIFI_STANDARD_NAR_ID = "nifi-standard-nar";
+    private static final String NIFI_STANDARD_NAR_VERSION = "2.0.0-SNAPSHOT";
+
+    private static final String DEPENDENCY_GROUP_ID = "dependency-group";
+    private static final String DEPENDENCY_ID = "dependency-id";
+    private static final String DEPENDENCY_VERSION = "dependency-version";
+
     @Test
     public void testNarProperties(@TempDir final Path tempDir) throws IOException {
         final NarProperties narProperties = NarProperties.builder()
                 .sourceType(NarSource.UPLOAD.name())
-                .narGroup("org.apache.nifi")
-                .narId("nifi-standard-nar")
-                .narVersion("2.0.0")
+                .narGroup(NIFI_GROUP_ID)
+                .narId(NIFI_STANDARD_NAR_ID)
+                .narVersion(NIFI_STANDARD_NAR_VERSION)
                 .installed(Instant.now())
                 .build();
 
@@ -58,12 +66,12 @@ public class NarPropertiesTest {
     public void testNarPropertiesWithDependencies(@TempDir final Path tempDir) throws IOException {
         final NarProperties narProperties = NarProperties.builder()
                 .sourceType(NarSource.UPLOAD.name())
-                .narGroup("org.apache.nifi")
-                .narId("nifi-standard-nar")
-                .narVersion("2.0.0")
-                .narDependencyGroup("dependency-group")
-                .narDependencyId("dependency-id")
-                .narDependencyVersion("dependency-version")
+                .narGroup(NIFI_GROUP_ID)
+                .narId(NIFI_STANDARD_NAR_ID)
+                .narVersion(NIFI_STANDARD_NAR_VERSION)
+                .narDependencyGroup(DEPENDENCY_GROUP_ID)
+                .narDependencyId(DEPENDENCY_ID)
+                .narDependencyVersion(DEPENDENCY_VERSION)
                 .installed(Instant.now())
                 .build();
 
@@ -78,38 +86,38 @@ public class NarPropertiesTest {
     public void testInvalidDependencyValues() {
         assertThrows(IllegalArgumentException.class, () -> NarProperties.builder()
                 .sourceType(NarSource.UPLOAD.name())
-                .narGroup("org.apache.nifi")
-                .narId("nifi-standard-nar")
-                .narVersion("2.0.0")
-                .narDependencyGroup("dependency-group")
+                .narGroup(NIFI_GROUP_ID)
+                .narId(NIFI_STANDARD_NAR_ID)
+                .narVersion(NIFI_STANDARD_NAR_VERSION)
+                .narDependencyGroup(DEPENDENCY_GROUP_ID)
                 .installed(Instant.now())
                 .build());
 
         assertThrows(IllegalArgumentException.class, () -> NarProperties.builder()
                 .sourceType(NarSource.UPLOAD.name())
-                .narGroup("org.apache.nifi")
-                .narId("nifi-standard-nar")
-                .narVersion("2.0.0")
-                .narDependencyGroup("dependency-group")
-                .narDependencyId("dependency-id")
+                .narGroup(NIFI_GROUP_ID)
+                .narId(NIFI_STANDARD_NAR_ID)
+                .narVersion(NIFI_STANDARD_NAR_VERSION)
+                .narDependencyGroup(DEPENDENCY_GROUP_ID)
+                .narDependencyId(DEPENDENCY_ID)
                 .installed(Instant.now())
                 .build());
 
         assertThrows(IllegalArgumentException.class, () -> NarProperties.builder()
                 .sourceType(NarSource.UPLOAD.name())
-                .narGroup("org.apache.nifi")
-                .narId("nifi-standard-nar")
-                .narVersion("2.0.0")
-                .narDependencyId("dependency-id")
+                .narGroup(NIFI_GROUP_ID)
+                .narId(NIFI_STANDARD_NAR_ID)
+                .narVersion(NIFI_STANDARD_NAR_VERSION)
+                .narDependencyId(DEPENDENCY_ID)
                 .installed(Instant.now())
                 .build());
 
         assertThrows(IllegalArgumentException.class, () -> NarProperties.builder()
                 .sourceType(NarSource.UPLOAD.name())
-                .narGroup("org.apache.nifi")
-                .narId("nifi-standard-nar")
-                .narVersion("2.0.0")
-                .narDependencyVersion("dependency-version")
+                .narGroup(NIFI_GROUP_ID)
+                .narId(NIFI_STANDARD_NAR_ID)
+                .narVersion(NIFI_STANDARD_NAR_VERSION)
+                .narDependencyVersion(DEPENDENCY_VERSION)
                 .installed(Instant.now())
                 .build());
 

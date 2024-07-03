@@ -78,6 +78,7 @@
         <nifi.nar.working.directory>./work/nar/</nifi.nar.working.directory>
         <nifi.documentation.working.directory>./work/docs/components</nifi.documentation.working.directory>
         <nifi.nar.unpack.uber.jar>false</nifi.nar.unpack.uber.jar>
+        <nifi.upload.working.directory>./work/uploads</nifi.upload.working.directory>
 
         <nifi.sensitive.props.key.protected />
         <nifi.sensitive.props.algorithm>NIFI_PBKDF2_AES_GCM_256</nifi.sensitive.props.algorithm>
@@ -118,7 +119,7 @@
 
         <!-- NAR Persistence properties -->
         <nifi.nar.persistence.provider.implementation>org.apache.nifi.nar.StandardNarPersistenceProvider</nifi.nar.persistence.provider.implementation>
-        <nifi.nar.persistence.provider.properties.directory>./nar_storage</nifi.nar.persistence.provider.properties.directory>
+        <nifi.nar.persistence.provider.properties.directory>./nar_repository</nifi.nar.persistence.provider.properties.directory>
 
         <!-- nifi.properties: web properties -->
         <nifi.web.http.host />

@@ -27,7 +27,7 @@ public class NarNode {
 
     private final String identifier;
     private final File narFile;
-    private final String narFileHexDigest;
+    private final String narFileDigest;
     private final NarManifest manifest;
 
     private final NarSource source;
@@ -39,7 +39,7 @@ public class NarNode {
     private NarNode(final Builder builder) {
         this.identifier = Objects.requireNonNull(builder.identifier);
         this.narFile = Objects.requireNonNull(builder.narFile);
-        this.narFileHexDigest = Objects.requireNonNull(builder.narFileHexDigest);
+        this.narFileDigest = Objects.requireNonNull(builder.narFileDigest);
         this.manifest = Objects.requireNonNull(builder.manifest);
         this.source = Objects.requireNonNull(builder.source);
         this.sourceIdentifier = Objects.requireNonNull(builder.sourceIdentifier);
@@ -54,8 +54,8 @@ public class NarNode {
         return narFile;
     }
 
-    public String getNarFileHexDigest() {
-        return narFileHexDigest;
+    public String getNarFileDigest() {
+        return narFileDigest;
     }
 
     public NarManifest getManifest() {
@@ -113,12 +113,11 @@ public class NarNode {
     public static final class Builder {
         private String identifier;
         private File narFile;
-        private String narFileHexDigest;
+        private String narFileDigest;
         private NarManifest manifest;
         private NarSource source;
         private String sourceIdentifier;
         private NarState state;
-        private String failureMessage;
 
         public Builder identifier(final String identifier) {
             this.identifier = identifier;
@@ -130,8 +129,8 @@ public class NarNode {
             return this;
         }
 
-        public Builder narFileHexDigest(final String narFileHexDigest) {
-            this.narFileHexDigest = narFileHexDigest;
+        public Builder narFileDigest(final String narFileDigest) {
+            this.narFileDigest = narFileDigest;
             return this;
         }
 
@@ -152,11 +151,6 @@ public class NarNode {
 
         public Builder state(final NarState state) {
             this.state = state;
-            return this;
-        }
-
-        public Builder failureMessage(final String failureMessage) {
-            this.failureMessage = failureMessage;
             return this;
         }
 

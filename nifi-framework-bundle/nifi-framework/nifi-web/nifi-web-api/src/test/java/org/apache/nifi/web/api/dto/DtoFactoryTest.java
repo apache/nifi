@@ -132,7 +132,7 @@ public class DtoFactoryTest {
         final NarNode narNode = NarNode.builder()
                 .identifier(UUID.randomUUID().toString())
                 .narFile(new File("does-not-ext"))
-                .narFileHexDigest("nar-digest")
+                .narFileDigest("nar-digest")
                 .manifest(narManifest)
                 .source(NarSource.UPLOAD)
                 .sourceIdentifier("1234")
@@ -144,7 +144,7 @@ public class DtoFactoryTest {
         assertEquals(narNode.getIdentifier(), summaryDTO.getIdentifier());
         assertEquals(narManifest.getBuildTimestamp(), summaryDTO.getBuildTime());
         assertEquals(narManifest.getCreatedBy(), summaryDTO.getCreatedBy());
-        assertEquals(narNode.getNarFileHexDigest(), summaryDTO.getDigest());
+        assertEquals(narNode.getNarFileDigest(), summaryDTO.getDigest());
         assertEquals(narNode.getState().getValue(), summaryDTO.getState());
         assertEquals(narNode.getSource().name(), summaryDTO.getSourceType());
         assertEquals(narNode.getSourceIdentifier(), summaryDTO.getSourceIdentifier());
@@ -172,7 +172,7 @@ public class DtoFactoryTest {
         final NarNode narNode = NarNode.builder()
                 .identifier(UUID.randomUUID().toString())
                 .narFile(new File("does-not-ext"))
-                .narFileHexDigest("nar-digest")
+                .narFileDigest("nar-digest")
                 .manifest(narManifest)
                 .source(NarSource.UPLOAD)
                 .sourceIdentifier("1234")
@@ -184,7 +184,7 @@ public class DtoFactoryTest {
         assertEquals(narNode.getIdentifier(), summaryDTO.getIdentifier());
         assertEquals(narManifest.getBuildTimestamp(), summaryDTO.getBuildTime());
         assertEquals(narManifest.getCreatedBy(), summaryDTO.getCreatedBy());
-        assertEquals(narNode.getNarFileHexDigest(), summaryDTO.getDigest());
+        assertEquals(narNode.getNarFileDigest(), summaryDTO.getDigest());
         assertEquals(narNode.getState().getValue(), summaryDTO.getState());
         assertEquals(narNode.getSource().name(), summaryDTO.getSourceType());
         assertEquals(narNode.getSourceIdentifier(), summaryDTO.getSourceIdentifier());
