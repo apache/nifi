@@ -333,7 +333,6 @@ categorizing them by their functions.
 	is valid according to the user-defined XML Schema.
 
 === Database Access
-- *ConvertJSONToSQL*: Convert a JSON document into a SQL INSERT or UPDATE command that can then be passed to the PutSQL Processor
 - *ExecuteSQL*: Executes a user-defined SQL SELECT command, writing the results to a FlowFile in Avro format
 - *PutSQL*: Updates a database by executing the SQL DDM statement defined by the FlowFile's content
 - *SelectHiveQL*: Executes a user-defined HiveQL SELECT command against an Apache Hive database, writing the results to a FlowFile in Avro or CSV format

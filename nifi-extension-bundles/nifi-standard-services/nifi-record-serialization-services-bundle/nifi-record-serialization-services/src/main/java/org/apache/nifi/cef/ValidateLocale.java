@@ -22,9 +22,6 @@ import org.apache.nifi.components.Validator;
 
 import java.util.Locale;
 
-/**
- * This class is identical to {@code org.apache.nifi.processors.standard.ParseCEF.ValidateLocale}.
- */
 public class ValidateLocale implements Validator {
     @Override
     public ValidationResult validate(String subject, String input, ValidationContext context) {

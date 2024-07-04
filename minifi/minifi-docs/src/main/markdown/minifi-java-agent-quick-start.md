@@ -161,7 +161,6 @@ MiNiFi is able to use the following processors out of the box:
 * CompressContent
 * ControlRate
 * ConvertCharacterSet
-* ConvertJSONToSQL
 * ConvertRecord
 * CountText
 * CryptographicHashContent
@@ -208,10 +207,8 @@ MiNiFi is able to use the following processors out of the box:
 * ListSFTP
 * ListenFTP
 * ListenHTTP
-* ListenRELP
 * ListenSyslog
 * ListenTCP
-* ListenTCPRecord
 * ListenUDP
 * ListenUDPRecord
 * LogAttribute
@@ -224,7 +221,6 @@ MiNiFi is able to use the following processors out of the box:
 * MonitorActivity
 * Notify
 * PackageFlowFile
-* ParseCEF
 * ParseSyslog
 * ParseSyslog5424
 * PartitionRecord
@@ -281,7 +277,6 @@ If you want to create a dataflow with a processor not shipped with MiNiFi, you c
 
 **Note:** The following processors are also a part of the default distribution but require adding a NAR for a Controller Service not packaged by default. The processors are grouped by the NAR that is required.
 * nifi-dbcp-service-nar
-  * ConvertJSONToSQL
   * PutSQL
   * GenerateTableFetch
   * ListDatabaseTables

@@ -2637,10 +2637,10 @@ Sometimes it may be desirable to deprecate a component. Whenever this occurs the
 ----
 @DeprecationNotice(
         reason = "Legacy Protocol has been superseded",
-        alternatives = {ListenSyslog.class},
-        classNames = {"org.apache.nifi.processors.standard.ListenRELP"}
+        alternatives = {SomeNewProcessor.class},
+        classNames = {"org.apache.nifi.processors.standard.SomeOldProcessor"}
 )
-public class ListenLegacyProtocol extends AbstractProcessor {}
+public class SomeOldProcessor extends AbstractProcessor {}
 ----
 The `alternatives` property can be used to define an array of recommended replacement Components, while `classNames`
 can be used to represent similar content through an array of class name strings.
@@ -2649,7 +2649,7 @@ Adding the `@DeprecationNotice` annotation renders a warning message in generate
 following warning when the Flow Configuration includes the component:
 
 ----
-Added Deprecated Component ListenLegacyProtocol[id=929a52c7-1e3e-423e-b303-6ca2ef657617] See alternatives [ListenSyslog,ListenRELP]
+Added Deprecated Component SomeOldProcessor[id=929a52c7-1e3e-423e-b303-6ca2ef657617] See alternatives [SomeNewProcessor]
 ----
 
 === Feature Deprecation
