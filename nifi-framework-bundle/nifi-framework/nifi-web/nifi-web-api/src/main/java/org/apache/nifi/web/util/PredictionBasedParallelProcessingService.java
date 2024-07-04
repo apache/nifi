@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.util;
 
-import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
+import org.apache.nifi.prometheusutil.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.web.controller.ControllerFacade;
 
 import java.util.Collection;

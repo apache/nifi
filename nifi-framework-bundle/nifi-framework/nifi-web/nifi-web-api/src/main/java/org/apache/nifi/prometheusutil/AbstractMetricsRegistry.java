@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.prometheus.util;
+package org.apache.nifi.prometheusutil;
 
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
