@@ -40,7 +40,6 @@
         <module>nifi-kerberos-test-utils</module>
         <module>nifi-listed-entity</module>
         <module>nifi-migration-utils</module>
-        <module>nifi-prometheus-utils</module>
         <module>nifi-put-pattern</module>
         <module>nifi-record-path-property</module>
         <module>nifi-record-utils</module>

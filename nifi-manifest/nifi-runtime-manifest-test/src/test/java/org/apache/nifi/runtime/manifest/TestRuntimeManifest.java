@@ -109,25 +109,6 @@ class TestRuntimeManifest {
         assertEquals(1, lineStartPatternDependency.getDependentValues().size());
         assertEquals("Single file", lineStartPatternDependency.getDependentValues().get(0));
 
-        // Verify PrometheusReportingTask definition which also has @DefaultSchedule
-        final ReportingTaskDefinition prometheusReportingTaskDef = getReportingTaskDefinition(bundles, "nifi-prometheus-nar",
-                "org.apache.nifi.reporting.prometheus.PrometheusReportingTask");
-
-        assertEquals(SchedulingStrategy.TIMER_DRIVEN.name(), prometheusReportingTaskDef.getDefaultSchedulingStrategy());
-
-        final List<String> prometheusSchedulingStrategies = prometheusReportingTaskDef.getSupportedSchedulingStrategies();
-        assertNotNull(prometheusSchedulingStrategies);
-        assertEquals(2, prometheusSchedulingStrategies.size());
-        assertTrue(prometheusSchedulingStrategies.contains(SchedulingStrategy.TIMER_DRIVEN.name()));
-        assertTrue(prometheusSchedulingStrategies.contains(SchedulingStrategy.CRON_DRIVEN.name()));
-
-        final Map<String, String> prometheusDefaultSchedulingPeriods = prometheusReportingTaskDef.getDefaultSchedulingPeriodBySchedulingStrategy();
-        assertNotNull(prometheusDefaultSchedulingPeriods);
-        assertEquals(2, prometheusDefaultSchedulingPeriods.size());
-        // TIMER_DRIVEN period should come from the @DefaultSchedule annotation that overrides the default value
-        assertEquals(REPORTING_TASK_DEFAULT_SCHEDULE_TIME, prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
-        assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
-
         final ProcessorDefinition joltTransformDef = getProcessorDefinition(bundles, "nifi-jolt-nar",
                 "org.apache.nifi.processors.jolt.JoltTransformRecord");
         assertEquals(SchedulingStrategy.TIMER_DRIVEN.name(), joltTransformDef.getDefaultSchedulingStrategy());

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.request;
 
-import org.apache.nifi.prometheus.util.AbstractMetricsRegistry;
-import org.apache.nifi.prometheus.util.BulletinMetricsRegistry;
-import org.apache.nifi.prometheus.util.ClusterMetricsRegistry;
-import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
-import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
-import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
+import org.apache.nifi.prometheusutil.AbstractMetricsRegistry;
+import org.apache.nifi.prometheusutil.BulletinMetricsRegistry;
+import org.apache.nifi.prometheusutil.ClusterMetricsRegistry;
+import org.apache.nifi.prometheusutil.ConnectionAnalyticsMetricsRegistry;
+import org.apache.nifi.prometheusutil.JvmMetricsRegistry;
+import org.apache.nifi.prometheusutil.NiFiMetricsRegistry;
 
 /**
  * Flow Metrics Registries

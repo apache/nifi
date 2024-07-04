@@ -15,4 +15,3 @@
 org.apache.nifi.controller.ControllerStatusReportingTask
 org.apache.nifi.controller.MonitorDiskUsage
 org.apache.nifi.controller.MonitorMemory
-org.apache.nifi.reporting.ganglia.StandardGangliaReporter
