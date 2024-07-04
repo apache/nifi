@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.processors.aws.s3.CopyS3Object
-org.apache.nifi.processors.aws.s3.ExistsS3Object
+org.apache.nifi.processors.aws.s3.GetS3ObjectMetadata
 org.apache.nifi.processors.aws.s3.FetchS3Object
 org.apache.nifi.processors.aws.s3.PutS3Object
 org.apache.nifi.processors.aws.s3.DeleteS3Object

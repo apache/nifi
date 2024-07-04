@@ -35,28 +35,28 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestExistsS3Object {
+public class TestGetS3ObjectMetadata {
     private TestRunner runner = null;
-    private ExistsS3Object mockExistsS3Object = null;
+    private GetS3ObjectMetadata mockGetS3ObjectMetadata = null;
     private AmazonS3Client mockS3Client = null;
 
     @BeforeEach
     public void setUp() {
         mockS3Client = mock(AmazonS3Client.class);
-        mockExistsS3Object = new ExistsS3Object() {
+        mockGetS3ObjectMetadata = new GetS3ObjectMetadata() {
             @Override
             protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
                                                   final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
                 return mockS3Client;
             }
         };
-        runner = TestRunners.newTestRunner(mockExistsS3Object);
+        runner = TestRunners.newTestRunner(mockGetS3ObjectMetadata);
         AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
     }
 
     private void commonTest() {
-        runner.setProperty(ExistsS3Object.BUCKET_WITH_DEFAULT_VALUE, "${s3.bucket}");
-        runner.setProperty(ExistsS3Object.KEY, "${filename}");
+        runner.setProperty(GetS3ObjectMetadata.BUCKET_WITH_DEFAULT_VALUE, "${s3.bucket}");
+        runner.setProperty(GetS3ObjectMetadata.KEY, "${filename}");
         runner.enqueue("", Map.of("s3.bucket", "test-data", "filename", "test.txt"));
 
         runner.run();
@@ -67,7 +67,7 @@ public class TestExistsS3Object {
         when(mockS3Client.doesObjectExist(anyString(), anyString()))
                 .thenReturn(true);
         commonTest();
-        runner.assertTransferCount(ExistsS3Object.REL_FOUND, 1);
+        runner.assertTransferCount(GetS3ObjectMetadata.REL_FOUND, 1);
     }
 
     @Test
@@ -75,7 +75,7 @@ public class TestExistsS3Object {
         when(mockS3Client.doesObjectExist(anyString(), anyString()))
                 .thenReturn(false);
         commonTest();
-        runner.assertTransferCount(ExistsS3Object.REL_NOT_FOUND, 1);
+        runner.assertTransferCount(GetS3ObjectMetadata.REL_NOT_FOUND, 1);
     }
 
     @Test
@@ -83,6 +83,6 @@ public class TestExistsS3Object {
         when(mockS3Client.doesObjectExist(anyString(), anyString()))
                 .thenThrow(new RuntimeException("Manually triggered error"));
         commonTest();
-        runner.assertTransferCount(ExistsS3Object.REL_FAILURE, 1);
+        runner.assertTransferCount(GetS3ObjectMetadata.REL_FAILURE, 1);
     }
 }
