@@ -263,7 +263,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         try {
             updater.accept(attributeValue);
         } catch (final Exception e) {
-            getLogger().warn("Failed to update AMQP Message Property {}", attributeKey, e);
+            getLogger().warn("Failed to update AMQP Message Property [{}]", attributeKey, e);
         }
     }
 
