@@ -26,11 +26,9 @@
     <packaging>jar</packaging>
     <properties>
         <spring.integration.version>6.3.1</spring.integration.version>
-        <poi.version>5.3.0</poi.version>
     </properties>
 
     <dependencies>
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
@@ -100,26 +98,6 @@
                 <exclusion>
                     <groupId>io.micrometer</groupId>
                     <artifactId>micrometer-observation</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <!-- poi-scratchpad required for TNEF parsing -->
-        <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi-scratchpad</artifactId>
-            <version>${poi.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.commons</groupId>
-                    <artifactId>commons-math3</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.commons</groupId>
-                    <artifactId>commons-collections4</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.zaxxer</groupId>
-                    <artifactId>SparseBitSet</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
