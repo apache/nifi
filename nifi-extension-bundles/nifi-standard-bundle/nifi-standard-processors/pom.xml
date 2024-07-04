@@ -616,14 +616,6 @@
                         <exclude>src/test/resources/TestConversions/data.int_float_string.without_schema.avro</exclude>
                         <exclude>src/test/resources/TestConversions/data.int_float_string.xml</exclude>
                         <exclude>src/test/resources/TestConversions/explicit.schema.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/malformed-person-extra-comma.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-1.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-bool.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-extra-field.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-null-code.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-without-code.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-without-id.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/persons.json</exclude>
                         <exclude>src/test/resources/TestConvertRecord/input/person_bad_enum.json</exclude>
                         <exclude>src/test/resources/TestConvertRecord/input/person_long_id.json</exclude>
                         <exclude>src/test/resources/TestConvertRecord/input/person.json</exclude>
