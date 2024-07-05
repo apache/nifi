@@ -28,7 +28,7 @@
 
     <properties>
         <!-- when changing the Azure SDK version, also update msal4j to the version that is required by azure-identity -->
-        <azure.sdk.bom.version>1.2.24</azure.sdk.bom.version>
+        <azure.sdk.bom.version>1.2.25</azure.sdk.bom.version>
         <msal4j.version>1.15.1</msal4j.version>
         <qpid.proton.version>0.34.1</qpid.proton.version>
     </properties>
@@ -73,7 +73,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.37.3</version>
+                <version>9.40</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
