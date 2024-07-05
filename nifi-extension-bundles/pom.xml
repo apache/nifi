@@ -38,7 +38,6 @@
         <module>nifi-social-media-bundle</module>
         <module>nifi-enrich-bundle</module>
         <module>nifi-hl7-bundle</module>
-        <module>nifi-language-translation-bundle</module>
         <module>nifi-mongodb-bundle</module>
         <module>nifi-hbase-bundle</module>
         <module>nifi-asana-bundle</module>
