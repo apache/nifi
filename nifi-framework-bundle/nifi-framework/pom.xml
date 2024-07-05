@@ -54,7 +54,6 @@
         <module>nifi-properties-loader</module>
         <module>nifi-standard-prioritizers</module>
         <module>nifi-mock-authorizer</module>
-        <module>nifi-shell-authorizer</module>
         <module>nifi-headless-server</module>
     </modules>
 </project>
