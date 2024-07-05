@@ -83,7 +83,7 @@ appropriate for your operating system.
 === For Windows Users
 
 For Windows users, navigate to the folder where NiFi was installed. Within this folder is a subfolder
-named `bin`. Navigate to this subfolder and double-click the `run-nifi.bat` file.
+named `bin`. Navigate to this subfolder and run `nifi.cmd start` file.
 
 This will launch NiFi and leave it running in the foreground. To shut down NiFi, select the window that
 was launched and hold the Ctrl key while pressing C.
