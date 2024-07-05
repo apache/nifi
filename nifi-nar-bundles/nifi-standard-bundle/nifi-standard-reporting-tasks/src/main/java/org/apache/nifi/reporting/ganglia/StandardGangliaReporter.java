@@ -31,6 +31,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
         + " reported include JVM Metrics (optional); the following 5-minute NiFi statistics: FlowFiles Received, Bytes Received,"
         + " FlowFiles Sent, Bytes Sent, Bytes Read, Bytes Written, Total Task Duration; and the current values for"
         + " FlowFiles Queued, Bytes Queued, and number of Active Threads.")
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class StandardGangliaReporter extends AbstractReportingTask {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()

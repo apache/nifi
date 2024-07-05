@@ -38,7 +38,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,6 +59,7 @@ import java.util.concurrent.TimeUnit;
 @WritesAttributes({
         @WritesAttribute(attribute = "enrich.dns.record*.group*", description = "The captured fields of the Whois query response for each of the records received"),
 })
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class QueryWhois extends AbstractEnrichProcessor {
 
     public static final AllowableValue BEGIN_END = new AllowableValue("Begin/End", "Begin/End",

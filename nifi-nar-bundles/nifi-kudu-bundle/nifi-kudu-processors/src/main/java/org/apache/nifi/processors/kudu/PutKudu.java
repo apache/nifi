@@ -61,6 +61,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 
 import javax.security.auth.login.LoginException;
 import java.io.InputStream;
@@ -88,7 +89,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
         "to the specified Kudu's table. The schema for the Kudu table is inferred from the schema of the Record Reader." +
         " If any error occurs while reading records from the input, or writing records to Kudu, the FlowFile will be routed to failure")
 @WritesAttribute(attribute = "record.count", description = "Number of records written to Kudu")
-
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class PutKudu extends AbstractKuduProcessor {
 
     static final AllowableValue FAILURE_STRATEGY_ROUTE = new AllowableValue("route-to-failure", "Route to Failure",

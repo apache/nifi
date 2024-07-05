@@ -39,6 +39,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.eclipse.jetty.server.Server;
 
 import java.net.InetSocketAddress;
@@ -57,6 +58,7 @@ import static org.apache.nifi.prometheus.util.PrometheusMetricsUtil.METRICS_STRA
         + "Prometheus endpoint) cannot be started (for example if two PrometheusReportingTask instances are started on the same port), this may cause a delay in "
         + "shutting down NiFi while it waits for the server resources to be cleaned up.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "60 sec")
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class PrometheusReportingTask extends AbstractReportingTask {
 
     private PrometheusServer prometheusServer;

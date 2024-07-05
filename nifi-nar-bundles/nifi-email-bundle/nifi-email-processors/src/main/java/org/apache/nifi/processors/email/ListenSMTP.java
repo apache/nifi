@@ -40,6 +40,7 @@ import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.springframework.util.StringUtils;
 import org.subethamail.smtp.MessageContext;
 import org.subethamail.smtp.MessageHandlerFactory;
@@ -78,6 +79,7 @@ import java.util.concurrent.TimeUnit;
     @WritesAttribute(attribute = "smtp.from", description = "The value used during MAIL FROM (i.e. envelope)"),
     @WritesAttribute(attribute = "smtp.recipient.*", description = "The values used during RCPT TO (i.e. envelope)"),
     @WritesAttribute(attribute = "mime.type", description = "Mime type of the message")})
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class ListenSMTP extends AbstractSessionFactoryProcessor {
 
     static final PropertyDescriptor SMTP_PORT = new PropertyDescriptor.Builder()
