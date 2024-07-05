@@ -21,6 +21,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarManifest;
 import org.apache.nifi.nar.NarNode;
 import org.apache.nifi.nar.NarSource;
@@ -139,7 +140,12 @@ public class DtoFactoryTest {
                 .state(NarState.INSTALLED)
                 .build();
 
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(extensionManager.getTypes(narManifest.getCoordinate())).thenReturn(Collections.emptySet());
+
         final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setExtensionManager(extensionManager);
+
         final NarSummaryDTO summaryDTO = dtoFactory.createNarSummaryDto(narNode);
         assertEquals(narNode.getIdentifier(), summaryDTO.getIdentifier());
         assertEquals(narManifest.getBuildTimestamp(), summaryDTO.getBuildTime());
@@ -148,6 +154,7 @@ public class DtoFactoryTest {
         assertEquals(narNode.getState().getValue(), summaryDTO.getState());
         assertEquals(narNode.getSource().name(), summaryDTO.getSourceType());
         assertEquals(narNode.getSourceIdentifier(), summaryDTO.getSourceIdentifier());
+        assertEquals(0, summaryDTO.getExtensionCount());
         assertTrue(summaryDTO.isInstallComplete());
         assertNull(summaryDTO.getFailureMessage());
         assertNull(summaryDTO.getDependencyCoordinate());
@@ -179,7 +186,12 @@ public class DtoFactoryTest {
                 .state(NarState.INSTALLING)
                 .build();
 
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(extensionManager.getTypes(narManifest.getCoordinate())).thenReturn(Collections.emptySet());
+
         final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setExtensionManager(extensionManager);
+
         final NarSummaryDTO summaryDTO = dtoFactory.createNarSummaryDto(narNode);
         assertEquals(narNode.getIdentifier(), summaryDTO.getIdentifier());
         assertEquals(narManifest.getBuildTimestamp(), summaryDTO.getBuildTime());
@@ -188,6 +200,7 @@ public class DtoFactoryTest {
         assertEquals(narNode.getState().getValue(), summaryDTO.getState());
         assertEquals(narNode.getSource().name(), summaryDTO.getSourceType());
         assertEquals(narNode.getSourceIdentifier(), summaryDTO.getSourceIdentifier());
+        assertEquals(0, summaryDTO.getExtensionCount());
         assertFalse(summaryDTO.isInstallComplete());
         assertNull(summaryDTO.getFailureMessage());
 
