@@ -76,6 +76,14 @@ public interface PythonController {
     void reloadProcessor(String type, String version, String workDirectory);
 
     /**
+     * Removes the given Processor from the Python side.
+     *
+     * @param type the type of the Processor
+     * @param version the version
+     */
+    void removeProcessorType(String type, String version);
+
+    /**
      * Setter to provide the ContorllerServiceTypeLookup, which is used to allow Python Processors to make use of
      * Controller Services.
      * @param lookup the lookup

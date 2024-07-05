@@ -5047,10 +5047,11 @@ public final class DtoFactory {
 
     public NarSummaryDTO createNarSummaryDto(final NarNode narNode) {
        final NarManifest narManifest = narNode.getManifest();
+       final BundleCoordinate coordinate = narManifest.getCoordinate();
 
        final NarSummaryDTO dto = new NarSummaryDTO();
        dto.setIdentifier(narNode.getIdentifier());
-       dto.setCoordinate(createNarCoordinateDto(narManifest.getCoordinate()));
+       dto.setCoordinate(createNarCoordinateDto(coordinate));
        dto.setDependencyCoordinate(createNarCoordinateDto(narNode.getManifest().getDependencyCoordinate()));
        dto.setBuildTime(narManifest.getBuildTimestamp());
        dto.setCreatedBy(narManifest.getCreatedBy());
@@ -5060,7 +5061,9 @@ public final class DtoFactory {
        dto.setState(narNode.getState().getValue());
        dto.setFailureMessage(narNode.getFailureMessage());
 
-       final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getTypes(narManifest.getCoordinate());
+        final Set<ExtensionDefinition> extensionDefinitions = new HashSet<>();
+        extensionDefinitions.addAll(extensionManager.getTypes(coordinate));
+        extensionDefinitions.addAll(extensionManager.getPythonExtensions(coordinate));
        dto.setExtensionCount(extensionDefinitions.size());
 
        final NarState narState = narNode.getState();

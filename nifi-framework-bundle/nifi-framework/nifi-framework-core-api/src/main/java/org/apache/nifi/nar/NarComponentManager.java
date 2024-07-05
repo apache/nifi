@@ -19,6 +19,8 @@ package org.apache.nifi.nar;
 
 import org.apache.nifi.bundle.BundleCoordinate;
 
+import java.util.Set;
+
 /**
  * Manages the lifecycle of components for a given NAR.
  */
@@ -30,22 +32,24 @@ public interface NarComponentManager {
      * @param bundleCoordinate the coordinate of the NAR
      * @return true if any components are instantiated from the NAR, false otherwise
      */
-    boolean componentsExist(BundleCoordinate bundleCoordinate);
+    boolean componentsExist(BundleCoordinate bundleCoordinate, Set<ExtensionDefinition> extensionDefinitions);
 
     /**
-     * Loads any components from the given NAR that were previously missing (ghosted).
+     * Loads any components for the given extension definitions that came from the given coordinate that were previously missing (ghosted).
      *
-     * @param bundleCoordinate the coordinate of the NAR
+     * @param bundleCoordinate the bundle coordinate
+     * @param extensionDefinitions the extension definitions to consider
      * @param stoppedComponents the holder for any components that need to be stopped/disable in order to be reloaded
      */
-    void loadMissingComponents(BundleCoordinate bundleCoordinate, StoppedComponents stoppedComponents);
+    void loadMissingComponents(BundleCoordinate bundleCoordinate, Set<ExtensionDefinition> extensionDefinitions, StoppedComponents stoppedComponents);
 
     /**
-     * Unloads (ghosts) any components from the given NAR.
+     * Unloads (ghosts) any components for the given extension definitions.
      *
-     * @param bundleCoordinate the coordinate of the NAR
+     * @param bundleCoordinate the bundle coordinate
+     * @param extensionDefinitions the extension definitions to consider
      * @param stoppedComponents the holder for any components that need to be stopped/disable in order to be reloaded
      */
-    void unloadComponents(BundleCoordinate bundleCoordinate, StoppedComponents stoppedComponents);
+    void unloadComponents(BundleCoordinate bundleCoordinate, Set<ExtensionDefinition> extensionDefinitions, StoppedComponents stoppedComponents);
 
 }

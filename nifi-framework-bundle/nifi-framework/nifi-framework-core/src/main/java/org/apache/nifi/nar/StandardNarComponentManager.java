@@ -61,64 +61,45 @@ public class StandardNarComponentManager implements NarComponentManager {
     }
 
     @Override
-    public boolean componentsExist(final BundleCoordinate coordinate) {
-        if (componentsExist(coordinate, flowManager.getAllControllerServices())) {
-            return true;
-        }
-        if (componentsExist(coordinate, flowManager.getAllReportingTasks())) {
-            return true;
-        }
-        if (componentsExist(coordinate, flowManager.getAllFlowRegistryClients())) {
-            return true;
-        }
-        if (componentsExist(coordinate, flowManager.getAllFlowAnalysisRules())) {
-            return true;
-        }
-        if (componentsExist(coordinate, flowManager.getAllParameterProviders())) {
-            return true;
-        }
-
-        return flowManager.findAllProcessors(processorNode -> processorNode.getBundleCoordinate().equals(coordinate)).stream()
-                .findAny()
-                .isPresent();
-    }
-
-    private <T extends ComponentNode> boolean componentsExist(final BundleCoordinate coordinate, final Set<T> componentNodes) {
-        return componentNodes.stream().anyMatch(componentNode -> componentNode.getBundleCoordinate().equals(coordinate));
+    public boolean componentsExist(final BundleCoordinate coordinate, final Set<ExtensionDefinition> extensionDefinitions) {
+        final Set<ComponentNode> componentNodes = getComponents(extensionDefinitions, (componentNode -> !componentNode.isExtensionMissing()));
+        return !componentNodes.isEmpty();
     }
 
     @Override
-    public void loadMissingComponents(final BundleCoordinate bundleCoordinate, final StoppedComponents stoppedComponents) {
-        final Set<ComponentNode> componentNodes = getComponentsForBundle(bundleCoordinate, (ComponentNode::isExtensionMissing));
-        logger.debug("Found {} missing components to load from NAR [{}]", componentNodes.size(), bundleCoordinate);
+    public void loadMissingComponents(final BundleCoordinate bundleCoordinate, final Set<ExtensionDefinition> extensionDefinitions, final StoppedComponents stoppedComponents) {
+        final Set<ComponentNode> componentNodes = getComponents(extensionDefinitions, (ComponentNode::isExtensionMissing));
+        logger.info("Loading {} missing components from bundle [{}]", componentNodes.size(), bundleCoordinate);
+
         componentNodes.forEach(componentNode -> {
             // ghosted components could have a scheduled state of RUNNING/DISABLED, so they need to be STOPPED/DISABLED before reloading
-            stopComponent(componentNode, bundleCoordinate, stoppedComponents);
+            stopComponent(componentNode, stoppedComponents);
             reloadComponent(componentNode, bundleCoordinate);
         });
     }
 
     @Override
-    public void unloadComponents(final BundleCoordinate bundleCoordinate, final StoppedComponents stoppedComponents) {
-        final Set<ComponentNode> componentNodes = getComponentsForBundle(bundleCoordinate, (componentNode -> !componentNode.isExtensionMissing()));
-        logger.debug("Found {} components to unload from deleted NAR [{}]", componentNodes.size(), bundleCoordinate);
+    public void unloadComponents(final BundleCoordinate bundleCoordinate, final Set<ExtensionDefinition> extensionDefinitions, final StoppedComponents stoppedComponents) {
+        final Set<ComponentNode> componentNodes = getComponents(extensionDefinitions, (componentNode -> !componentNode.isExtensionMissing()));
+        logger.info("Unloading {} components from bundle [{}]", componentNodes.size(), bundleCoordinate);
+
         componentNodes.forEach(componentNode -> {
-            stopComponent(componentNode, bundleCoordinate, stoppedComponents);
+            stopComponent(componentNode, stoppedComponents);
             reloadComponent(componentNode, bundleCoordinate);
         });
     }
 
-    private void stopComponent(final ComponentNode componentNode, final BundleCoordinate bundleCoordinate, final StoppedComponents stoppedComponents) {
+    private void stopComponent(final ComponentNode componentNode, final StoppedComponents stoppedComponents) {
         final String componentId = componentNode.getIdentifier();
         final String componentType = componentNode.getCanonicalClassName();
-        logger.debug("Stopping component [{}] of type [{}] from bundle [{}]", componentId, componentType, bundleCoordinate);
+        logger.debug("Stopping component [{}] of type [{}] from bundle [{}]", componentId, componentType, componentNode.getBundleCoordinate());
 
         switch (componentNode) {
             case ProcessorNode processorNode -> stopProcessor(processorNode, stoppedComponents);
             case ControllerServiceNode controllerServiceNode -> stopControllerService(controllerServiceNode, stoppedComponents);
             case ReportingTaskNode reportingTaskNode -> stopReportingTask(reportingTaskNode, stoppedComponents);
             case FlowAnalysisRuleNode flowAnalysisRuleNode -> stopFlowAnalysisRule(flowAnalysisRuleNode, stoppedComponents);
-            default -> logger.warn("Component of type [{}] from NAR [{}] does not need to be stopped", componentType, bundleCoordinate);
+            default -> logger.warn("Component of type [{}] from bundle [{}] does not need to be stopped", componentType, componentNode.getBundleCoordinate());
         }
     }
 
@@ -200,52 +181,46 @@ public class StandardNarComponentManager implements NarComponentManager {
         final String componentId = componentNode.getIdentifier();
         final String componentType = componentNode.getCanonicalClassName();
         final boolean isMissing = componentNode.isExtensionMissing();
-        logger.info("Reloading component [{}] of type [{}] from bundle [{}], isExtensionMissing = {}", componentId, componentType, bundleCoordinate, isMissing);
+        final BundleCoordinate componentCoordinate = componentNode.getBundleCoordinate();
+        final BundleCoordinate reloadCoordinate = PythonBundle.isPythonCoordinate(componentCoordinate) ? componentCoordinate : bundleCoordinate;
+        logger.info("Reloading component [{}] of type [{}] using bundle [{}], isExtensionMissing = {}", componentId, componentType, reloadCoordinate, isMissing);
 
         componentNode.pauseValidationTrigger();
         try {
             switch (componentNode) {
-                case ProcessorNode processorNode -> reloadComponent.reload(processorNode, componentType, bundleCoordinate, Collections.emptySet());
-                case ControllerServiceNode controllerServiceNode -> reloadComponent.reload(controllerServiceNode, componentType, bundleCoordinate, Collections.emptySet());
-                case ReportingTaskNode reportingTaskNode -> reloadComponent.reload(reportingTaskNode, componentType, bundleCoordinate, Collections.emptySet());
-                case FlowRegistryClientNode flowRegistryClientNode -> reloadComponent.reload(flowRegistryClientNode, componentType, bundleCoordinate, Collections.emptySet());
-                case FlowAnalysisRuleNode flowAnalysisRuleNode -> reloadComponent.reload(flowAnalysisRuleNode, componentType, bundleCoordinate, Collections.emptySet());
-                case ParameterProviderNode parameterProviderNode -> reloadComponent.reload(parameterProviderNode, componentType, bundleCoordinate, Collections.emptySet());
-                default -> logger.warn("Component of type [{}] from NAR [{}] is not reloadable", componentType, bundleCoordinate);
+                case ProcessorNode processorNode -> reloadComponent.reload(processorNode, componentType, reloadCoordinate, Collections.emptySet());
+                case ControllerServiceNode controllerServiceNode -> reloadComponent.reload(controllerServiceNode, componentType, reloadCoordinate, Collections.emptySet());
+                case ReportingTaskNode reportingTaskNode -> reloadComponent.reload(reportingTaskNode, componentType, reloadCoordinate, Collections.emptySet());
+                case FlowRegistryClientNode flowRegistryClientNode -> reloadComponent.reload(flowRegistryClientNode, componentType, reloadCoordinate, Collections.emptySet());
+                case FlowAnalysisRuleNode flowAnalysisRuleNode -> reloadComponent.reload(flowAnalysisRuleNode, componentType, reloadCoordinate, Collections.emptySet());
+                case ParameterProviderNode parameterProviderNode -> reloadComponent.reload(parameterProviderNode, componentType, reloadCoordinate, Collections.emptySet());
+                default -> logger.warn("Component of type [{}] from bundle [{}] is not reloadable", componentType, reloadCoordinate);
             }
         } catch (final Exception e) {
-            logger.warn("Failed to reload component [{}] of type [{}] from NAR [{}]", componentNode.getComponent().getIdentifier(), componentType, bundleCoordinate, e);
+            logger.warn("Failed to reload component [{}] of type [{}] using bundle [{}]", componentNode.getComponent().getIdentifier(), componentType, reloadCoordinate, e);
         } finally {
             componentNode.resumeValidationTrigger();
         }
     }
 
-    private Set<ComponentNode> getComponentsForBundle(final BundleCoordinate bundleCoordinate, final Predicate<ComponentNode> componentFilter) {
+    private Set<ComponentNode> getComponents(final Set<ExtensionDefinition> extensionDefinitions, final Predicate<ComponentNode> componentFilter) {
+        final Predicate<ComponentNode> componentNodePredicate = new ComponentNodeDefinitionPredicate(extensionDefinitions);
         final Set<ComponentNode> componentNodes = new HashSet<>();
-        componentNodes.addAll(flowManager.findAllProcessors(processorNode -> componentFilter.test(processorNode) && isComponentFromBundle(processorNode, bundleCoordinate)));
-        componentNodes.addAll(getComponentsForBundle(flowManager.getAllControllerServices(), bundleCoordinate, componentFilter));
-        componentNodes.addAll(getComponentsForBundle(flowManager.getAllReportingTasks(), bundleCoordinate, componentFilter));
-        componentNodes.addAll(getComponentsForBundle(flowManager.getAllFlowRegistryClients(), bundleCoordinate, componentFilter));
-        componentNodes.addAll(getComponentsForBundle(flowManager.getAllFlowAnalysisRules(), bundleCoordinate, componentFilter));
-        componentNodes.addAll(getComponentsForBundle(flowManager.getAllParameterProviders(), bundleCoordinate, componentFilter));
+        componentNodes.addAll(flowManager.findAllProcessors(processorNode -> componentFilter.test(processorNode) && componentNodePredicate.test(processorNode)));
+        componentNodes.addAll(getComponents(flowManager.getAllControllerServices(), extensionDefinitions, componentFilter));
+        componentNodes.addAll(getComponents(flowManager.getAllReportingTasks(), extensionDefinitions, componentFilter));
+        componentNodes.addAll(getComponents(flowManager.getAllFlowRegistryClients(), extensionDefinitions, componentFilter));
+        componentNodes.addAll(getComponents(flowManager.getAllFlowAnalysisRules(), extensionDefinitions, componentFilter));
+        componentNodes.addAll(getComponents(flowManager.getAllParameterProviders(), extensionDefinitions, componentFilter));
         return componentNodes;
     }
 
-    private <T extends ComponentNode> Set<T> getComponentsForBundle(final Set<T> componentNodes, final BundleCoordinate coordinate, final Predicate<ComponentNode> componentFilter) {
+    private <T extends ComponentNode> Set<T> getComponents(final Set<T> componentNodes, final Set<ExtensionDefinition> extensionDefinitions,
+                                                           final Predicate<ComponentNode> componentFilter) {
         return componentNodes.stream()
                 .filter(componentFilter)
-                .filter(componentNode -> isComponentFromBundle(componentNode, coordinate))
+                .filter(new ComponentNodeDefinitionPredicate(extensionDefinitions))
                 .collect(Collectors.toSet());
-    }
-
-    private <T extends ComponentNode> boolean isComponentFromBundle(final T componentNode, final BundleCoordinate coordinate) {
-        if (componentNode.isExtensionMissing()) {
-            final BundleCoordinate componentBundleCoordinate = componentNode.getBundleCoordinate();
-            return componentBundleCoordinate.getGroup().equals(coordinate.getGroup())
-                    && componentBundleCoordinate.getId().equals(coordinate.getId());
-        } else {
-            return componentNode.getBundleCoordinate().equals(coordinate);
-        }
     }
 
 }

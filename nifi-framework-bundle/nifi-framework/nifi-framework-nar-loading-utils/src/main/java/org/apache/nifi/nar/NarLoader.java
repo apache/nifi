@@ -52,11 +52,11 @@ public interface NarLoader {
     void unload(Set<Bundle> bundles);
 
     /**
-     * Unloads the given NARs.
+     * Unloads the given NAR.
      *
-     * @param bundles the NARs to unload
-      */
-    default void unload(Bundle... bundles) {
-        unload(Set.of(bundles));
+     * @param bundle the NAR to unload
+     */
+    default void unload(Bundle bundle) {
+        unload(Set.of(bundle));
     }
 }

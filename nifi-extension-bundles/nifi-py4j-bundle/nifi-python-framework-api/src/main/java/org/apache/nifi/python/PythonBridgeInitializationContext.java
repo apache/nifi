@@ -17,10 +17,15 @@
 
 package org.apache.nifi.python;
 
+import java.io.File;
+import java.util.Set;
+import java.util.function.Supplier;
+
 public interface PythonBridgeInitializationContext {
 
     PythonProcessConfig getPythonProcessConfig();
 
     ControllerServiceTypeLookup getControllerServiceTypeLookup();
 
+    Supplier<Set<File>> getNarDirectoryLookup();
 }

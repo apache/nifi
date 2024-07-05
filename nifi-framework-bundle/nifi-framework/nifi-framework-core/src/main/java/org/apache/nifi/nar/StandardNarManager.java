@@ -43,6 +43,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Optional;
@@ -170,7 +171,10 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
             throw new IllegalStateException("Unable to delete NAR [%s] because it is a dependency of other NARs".formatted(coordinate));
         }
 
-        if (!forceDelete && narComponentManager.componentsExist(coordinate)) {
+        final Set<ExtensionDefinition> extensionDefinitions = new HashSet<>(extensionManager.getTypes(coordinate));
+        extensionDefinitions.addAll(extensionManager.getPythonExtensions(coordinate));
+
+        if (!forceDelete && narComponentManager.componentsExist(coordinate, extensionDefinitions)) {
             throw new IllegalStateException("Unable to delete NAR [%s] because components are instantiated from this NAR".formatted(coordinate));
         }
     }
@@ -186,21 +190,22 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
             installTask.cancel(true);
         }
 
+        final Set<ExtensionDefinition> extensionDefinitions = new HashSet<>(extensionManager.getTypes(coordinate));
+        extensionDefinitions.addAll(extensionManager.getPythonExtensions(coordinate));
+
         final Bundle existingBundle = extensionManager.getBundle(coordinate);
         if (existingBundle != null) {
             narLoader.unload(existingBundle);
         }
 
         deleteExecutorService.submit(() -> {
-            logger.info("Unloading components for deleting NAR with id [{}] and coordinate [{}]", identifier, coordinate);
             final StandardStoppedComponents stoppedComponents = new StandardStoppedComponents(controllerServiceProvider);
-            narComponentManager.unloadComponents(coordinate, stoppedComponents);
+            narComponentManager.unloadComponents(coordinate, extensionDefinitions, stoppedComponents);
             logger.info("Completed unloading components for deleting NAR with id [{}] and coordinate [{}]", identifier, coordinate);
         });
 
         persistenceProvider.deleteNar(coordinate);
         narNodesById.remove(identifier);
-
         return narNode;
     }
 

@@ -56,6 +56,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -101,6 +102,11 @@ public class PythonControllerInteractionIT {
             @Override
             public ControllerServiceTypeLookup getControllerServiceTypeLookup() {
                 return controllerServiceMap::get;
+            }
+
+            @Override
+            public Supplier<Set<File>> getNarDirectoryLookup() {
+                return Collections::emptySet;
             }
         };
 

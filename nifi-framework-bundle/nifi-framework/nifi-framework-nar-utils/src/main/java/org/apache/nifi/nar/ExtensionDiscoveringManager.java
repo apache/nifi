@@ -87,4 +87,12 @@ public interface ExtensionDiscoveringManager extends ExtensionManager {
      * @param pythonBundle the python bundle
      */
     void discoverNewPythonExtensions(Bundle pythonBundle);
+
+    /**
+     * Discovers any new Python based extensions that exist in the given set of bundles.
+     *
+     * @param pythonBundle the python bundle
+     * @param bundles the bundles to scan for Python extensions
+     */
+    void discoverPythonExtensions(Bundle pythonBundle, Set<Bundle> bundles);
 }

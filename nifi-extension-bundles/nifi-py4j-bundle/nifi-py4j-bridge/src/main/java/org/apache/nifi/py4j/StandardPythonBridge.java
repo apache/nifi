@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
@@ -56,6 +57,7 @@ public class StandardPythonBridge implements PythonBridge {
 
     private PythonProcessConfig processConfig;
     private ControllerServiceTypeLookup serviceTypeLookup;
+    private Supplier<Set<File>> narDirectoryLookup;
     private PythonProcess controllerProcess;
     private final Map<ExtensionId, Integer> processorCountByType = new ConcurrentHashMap<>();
     private final Map<ExtensionId, List<PythonProcess>> processesByProcessorType = new ConcurrentHashMap<>();
@@ -64,6 +66,7 @@ public class StandardPythonBridge implements PythonBridge {
     public void initialize(final PythonBridgeInitializationContext context) {
         this.processConfig = context.getPythonProcessConfig();
         this.serviceTypeLookup = context.getControllerServiceTypeLookup();
+        this.narDirectoryLookup = context.getNarDirectoryLookup();
     }
 
     @Override
@@ -97,10 +100,19 @@ public class StandardPythonBridge implements PythonBridge {
             .collect(Collectors.toCollection(ArrayList::new));
 
         if (includeNarDirectories) {
-            processConfig.getNarDirectories().stream()
-                .map(File::getAbsolutePath)
-                .forEach(extensionsDirs::add);
+            extensionsDirs.addAll(getNarDirectories());
         }
+
+        final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
+        controllerProcess.discoverExtensions(extensionsDirs, workDirPath);
+    }
+
+    @Override
+    public void discoverExtensions(final List<File> extensionDirectories) {
+        ensureStarted();
+        final List<String> extensionsDirs = extensionDirectories.stream()
+                .map(File::getAbsolutePath)
+                .toList();
 
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
         controllerProcess.discoverExtensions(extensionsDirs, workDirPath);
@@ -251,9 +263,7 @@ public class StandardPythonBridge implements PythonBridge {
                 final List<String> extensionsDirs = processConfig.getPythonExtensionsDirectories().stream()
                     .map(File::getAbsolutePath)
                     .collect(Collectors.toCollection(ArrayList::new));
-                processConfig.getNarDirectories().stream()
-                    .map(File::getAbsolutePath)
-                    .forEach(extensionsDirs::add);
+                extensionsDirs.addAll(getNarDirectories());
 
                 final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
                 pythonProcess.discoverExtensions(extensionsDirs, workDirPath);
@@ -292,6 +302,13 @@ public class StandardPythonBridge implements PythonBridge {
 
         return counts;
     }
+
+    @Override
+    public void removeProcessorType(final String type, final String version) {
+        ensureStarted();
+        controllerProcess.getCurrentController().removeProcessorType(type, version);
+    }
+
 
     @Override
     public synchronized List<BoundObjectCounts> getBoundObjectCounts() {
@@ -344,6 +361,12 @@ public class StandardPythonBridge implements PythonBridge {
     @Override
     public String toString() {
         return "StandardPythonBridge";
+    }
+
+    private Set<String> getNarDirectories() {
+        return narDirectoryLookup.get().stream()
+                .map(File::getAbsolutePath)
+                .collect(Collectors.toSet());
     }
 
     private Optional<ExtensionId> findExtensionId(final String type, final String version) {

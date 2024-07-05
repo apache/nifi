@@ -80,9 +80,12 @@ public class NarRestApiClient {
                 .build();
         LOGGER.debug("Requesting NAR summaries from {}", requestUri);
 
+        // Send the replicated header so that the cluster coordinator does not replicate the request for listing the NAR summaries, otherwise this call
+        // can happen when no nodes are considered connected and result in a 500 exception that can't easily be differentiated from other unknown errors
         final HttpRequestBodySpec requestBodySpec = webClientService.get()
                 .uri(requestUri)
-                .header("Accept", "application/json");
+                .header("Accept", "application/json")
+                .header("X-Request-Replicated", "true");
 
         try (final HttpResponseEntity response = requestBodySpec.retrieve()) {
             final InputStream responseBody = getResponseBody(requestUri, response);

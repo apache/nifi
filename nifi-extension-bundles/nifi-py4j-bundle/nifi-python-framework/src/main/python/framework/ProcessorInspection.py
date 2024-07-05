@@ -16,6 +16,8 @@
 import ast
 import logging
 import textwrap
+import os
+import BundleCoordinate
 from nifiapi.documentation import UseCaseDetails, MultiProcessorUseCaseDetails, ProcessorConfiguration, PropertyDescription
 
 import ExtensionDetails
@@ -85,6 +87,7 @@ def get_processor_details(class_node, module_file, extension_home, dependencies_
             use_cases = get_use_cases(class_node)
             multi_processor_use_cases = get_multi_processor_use_cases(class_node)
             property_descriptions = get_property_descriptions(class_node, module_string_constants)
+            bundle_coordinate = __get_bundle_coordinate(extension_home)
 
             return ExtensionDetails.ExtensionDetails(interfaces=interfaces,
                                                      type=class_node.name,
@@ -97,7 +100,8 @@ def get_processor_details(class_node, module_file, extension_home, dependencies_
                                                      tags=tags,
                                                      use_cases=use_cases,
                                                      multi_processor_use_cases=multi_processor_use_cases,
-                                                     property_descriptions=property_descriptions)
+                                                     property_descriptions=property_descriptions,
+                                                     bundle_coordinate=bundle_coordinate)
 
     return ExtensionDetails.ExtensionDetails(interfaces=interfaces,
                             type=class_node.name,
@@ -331,3 +335,28 @@ def get_class_nodes(node) -> list:
 
 def get_assignment_nodes(node) -> list:
     return [n for n in node.body if isinstance(n, ast.Assign)]
+
+def __get_bundle_coordinate(extension_home):
+    group = 'unknown'
+    id = 'unknown'
+    version = 'unknown'
+
+    manifest_file = os.path.join(extension_home, 'META-INF/MANIFEST.MF')
+    if os.path.exists(manifest_file):
+        with open(manifest_file) as file:
+            for line in file:
+                stripped_line = line.strip()
+                if stripped_line.startswith('Nar-Group'):
+                    group = __get_manifest_value(stripped_line)
+                if stripped_line.startswith('Nar-Id'):
+                    id = __get_manifest_value(stripped_line)
+                if stripped_line.startswith('Nar-Version'):
+                    version = __get_manifest_value(stripped_line)
+
+    logger.debug(f"Bundle coordinate from {manifest_file} is [{group} - {id} - {version}]")
+    return BundleCoordinate.BundleCoordinate(group=group, id=id, version=version)
+
+def __get_manifest_value(line):
+    parts = line.split(':')
+    if len(parts) > 1:
+        return parts[1].strip()

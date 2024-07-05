@@ -95,7 +95,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
             narPersistenceInfoMap.put(narCoordinate, narPersistenceInfo);
         });
 
-        logger.info("NarManager initialization completed with storage location [{}]", storageLocation.getAbsolutePath());
+        logger.info("Initialization completed with storage location [{}]", storageLocation.getAbsolutePath());
     }
 
     @Override

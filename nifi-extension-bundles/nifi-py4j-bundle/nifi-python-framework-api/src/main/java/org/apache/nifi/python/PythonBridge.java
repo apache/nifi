@@ -19,6 +19,7 @@ package org.apache.nifi.python;
 
 import org.apache.nifi.components.AsyncLoadedProcessor;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +62,7 @@ public interface PythonBridge {
 
     /**
      * Returns a List of PythonProcessorDetails for each Processor that is available in the Python side. This method should not be called
-     * until after calling {@link #discoverExtensions()}.
+     * until after calling {@link #discoverExtensions(boolean)}.
      *
      * @return a List of PythonProcessorDetails for each Processor that is available in the Python side
      */
@@ -90,6 +91,13 @@ public interface PythonBridge {
     void discoverExtensions(boolean includeNarDirectories);
 
     /**
+     * Triggers the Python Bridge to scan the given directories in order to determine which extensions are available.
+     *
+     * @param extensionDirectories the extension directories to scan
+     */
+    void discoverExtensions(List<File> extensionDirectories);
+
+    /**
      * Creates a Processor with the given identifier, type, and version.
      *
      * @param identifier the Processor's identifier
@@ -110,4 +118,12 @@ public interface PythonBridge {
      * @param version the version of the removed Processor
      */
     void onProcessorRemoved(String identifier, String type, String version);
+
+    /**
+     * Removes the given processor from the Python side.
+     *
+     * @param type the processor type
+     * @param version the processor version
+     */
+    void removeProcessorType(String type, String version);
 }

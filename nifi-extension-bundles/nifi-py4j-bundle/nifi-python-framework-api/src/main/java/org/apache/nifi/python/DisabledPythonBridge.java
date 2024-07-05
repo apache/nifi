@@ -19,6 +19,7 @@ package org.apache.nifi.python;
 
 import org.apache.nifi.components.AsyncLoadedProcessor;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -64,11 +65,19 @@ public class DisabledPythonBridge implements PythonBridge {
     }
 
     @Override
+    public void discoverExtensions(final List<File> extensionDirectories) {
+    }
+
+    @Override
     public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess, final boolean initialize) {
         throw new UnsupportedOperationException("Cannot create Processor of type " + type + " because Python extensions are disabled");
     }
 
     @Override
     public void onProcessorRemoved(final String identifier, final String type, String version) {
+    }
+
+    @Override
+    public void removeProcessorType(final String type, final String version) {
     }
 }

@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -75,14 +76,18 @@ public class NarInstallTask implements Runnable {
 
         try {
             // If replacing an existing NAR with the same coordinate, then unload the existing NAR and stop+ghost any components from it
+            // If the NAR being replaced contains Python extensions, those need to be included through a separate lookup since their bundle coordinate is a logical python coordinate
             final StandardStoppedComponents stoppedComponents = new StandardStoppedComponents(controllerServiceProvider);
             final Bundle existingBundle = extensionManager.getBundle(coordinate);
             if (existingBundle == null) {
                 LOGGER.info("Installing NAR [{}] with coordinate [{}]", narNode.getIdentifier(), coordinate);
             } else {
                 LOGGER.info("Replacing NAR [{}], unloading existing NAR and components", coordinate);
+                final Set<ExtensionDefinition> extensionDefinitions = new HashSet<>(extensionManager.getTypes(coordinate));
+                extensionDefinitions.addAll(extensionManager.getPythonExtensions(coordinate));
+
                 narLoader.unload(existingBundle);
-                narComponentManager.unloadComponents(coordinate, stoppedComponents);
+                narComponentManager.unloadComponents(coordinate, extensionDefinitions, stoppedComponents);
             }
 
             // Attempt to load the NAR which will include any NARs that were previously skipped
@@ -102,7 +107,10 @@ public class NarInstallTask implements Runnable {
                         LOGGER.warn("NAR [{}] was loaded, but no longer exists in the NAR Manager", loadedCoordinate);
                     }
                 }
-                narComponentManager.loadMissingComponents(loadedCoordinate, stoppedComponents);
+
+                final Set<ExtensionDefinition> extensionDefinitions = new HashSet<>(extensionManager.getTypes(loadedCoordinate));
+                extensionDefinitions.addAll(extensionManager.getPythonExtensions(loadedCoordinate));
+                narComponentManager.loadMissingComponents(loadedCoordinate, extensionDefinitions, stoppedComponents);
             }
 
             for (final BundleDetails skippedBundles : narLoadResult.getSkippedBundles()) {

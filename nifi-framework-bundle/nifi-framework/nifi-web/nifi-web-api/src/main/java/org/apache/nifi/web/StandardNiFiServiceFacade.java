@@ -6655,7 +6655,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .orElseThrow(() -> new ResourceNotFoundException("A NAR does not exist with the given identifier"));
 
         final BundleCoordinate coordinate = narNode.getManifest().getCoordinate();
-        final Set<ExtensionDefinition> extensionDefinitions = controllerFacade.getExtensionManager().getTypes(coordinate);
+        final Set<ExtensionDefinition> extensionDefinitions = new HashSet<>();
+        extensionDefinitions.addAll(controllerFacade.getExtensionManager().getTypes(coordinate));
+        extensionDefinitions.addAll(controllerFacade.getExtensionManager().getPythonExtensions(coordinate));
 
         final Set<NarCoordinateDTO> dependentCoordinates = new HashSet<>();
         final Set<Bundle> dependentBundles = controllerFacade.getExtensionManager().getDependentBundles(coordinate);

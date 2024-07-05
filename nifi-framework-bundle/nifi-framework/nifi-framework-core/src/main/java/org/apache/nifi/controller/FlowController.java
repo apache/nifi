@@ -26,6 +26,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
@@ -887,19 +888,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             maxProcessesPerType = maxProcesses;
         }
 
-        final List<File> narDirectories = new ArrayList<>();
-        for (final org.apache.nifi.bundle.Bundle bundle : extensionManager.getAllBundles()) {
-            final File workingDir = bundle.getBundleDetails().getWorkingDirectory();
-            if (workingDir.exists()) {
-                narDirectories.add(workingDir);
-            }
-        }
-
         final PythonProcessConfig pythonProcessConfig = new PythonProcessConfig.Builder()
             .pythonCommand(pythonCommand)
             .pythonFrameworkDirectory(pythonFrameworkSourceDirectory)
             .pythonExtensionsDirectories(pythonExtensionsDirectories)
-            .narDirectories(narDirectories)
             .pythonWorkingDirectory(pythonWorkingDirectory)
             .commsTimeout(commsTimeout == null ? null : Duration.ofMillis(FormatUtils.getTimeDuration(commsTimeout, TimeUnit.MILLISECONDS)))
             .maxPythonProcesses(maxProcesses)
@@ -923,6 +915,14 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 @Override
                 public ControllerServiceTypeLookup getControllerServiceTypeLookup() {
                     return serviceTypeLookup;
+                }
+
+                @Override
+                public Supplier<Set<File>> getNarDirectoryLookup() {
+                    return () -> extensionManager.getAllBundles().stream()
+                            .map(org.apache.nifi.bundle.Bundle::getBundleDetails)
+                            .map(BundleDetails::getWorkingDirectory)
+                            .collect(Collectors.toSet());
                 }
             };
 

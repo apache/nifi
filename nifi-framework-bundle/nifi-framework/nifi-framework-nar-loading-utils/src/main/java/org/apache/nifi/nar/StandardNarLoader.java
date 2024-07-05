@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
 
 /**
  * Loads a set of NARs from the file system into the running application.
@@ -118,8 +119,10 @@ public class StandardNarLoader implements NarLoader {
             LOGGER.debug("Discovering extensions...");
             if (extensionTypes == null) {
                 extensionManager.discoverExtensions(loadedBundles);
+                discoverPythonExtensions(loadedBundles);
             } else {
                 extensionManager.discoverExtensions(loadedBundles, extensionTypes, true);
+                discoverPythonExtensions(loadedBundles);
             }
 
             // Call the DocGenerator for the classes that were loaded from each Bundle
@@ -149,34 +152,46 @@ public class StandardNarLoader implements NarLoader {
         if (extensionUiLoader != null) {
             extensionUiLoader.unloadExtensionUis(bundles);
         }
-        bundles.forEach(this::unload);
-    }
 
-    private void unload(final Bundle bundle) {
-        final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
-        LOGGER.info("Unloading bundle [{}]", bundleCoordinate);
+        final Set<BundleCoordinate> bundleCoordinates = bundles.stream()
+                .map(Bundle::getBundleDetails)
+                .map(BundleDetails::getCoordinate)
+                .collect(Collectors.toSet());
 
-        final Bundle removedBundle = extensionManager.removeBundle(bundleCoordinate);
-        if (removedBundle == null) {
-            LOGGER.warn("The extension manager does not have a bundle registered with the coordinate [{}]", bundleCoordinate);
-            return;
+        for (final BundleCoordinate bundleCoordinate : bundleCoordinates) {
+            LOGGER.info("Unloading bundle [{}]", bundleCoordinate);
         }
 
-        narClassLoaders.removeBundle(removedBundle);
+        final Set<Bundle> removedBundles = extensionManager.removeBundles(bundleCoordinates);
+        removedBundles.forEach(this::removeBundle);
+    }
 
-        final File workingDirectory = removedBundle.getBundleDetails().getWorkingDirectory();
+    private void removeBundle(final Bundle bundle) {
+        final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
+        narClassLoaders.removeBundle(bundle);
+
+        final File workingDirectory = bundle.getBundleDetails().getWorkingDirectory();
         if (workingDirectory.exists()) {
-            LOGGER.info("Removing NAR working directory [{}]", workingDirectory.getAbsolutePath());
+            LOGGER.debug("Removing NAR working directory [{}]", workingDirectory.getAbsolutePath());
             try {
                 FileUtils.deleteFile(workingDirectory, true);
             } catch (final IOException e) {
                 LOGGER.warn("Failed to delete bundle working directory [{}]", workingDirectory.getAbsolutePath());
             }
         } else {
-            LOGGER.info("NAR working directory does not exist at [{}]", workingDirectory.getAbsolutePath());
+            LOGGER.debug("NAR working directory does not exist at [{}]", workingDirectory.getAbsolutePath());
         }
 
         DocGenerator.removeBundleDocumentation(docsWorkingDir, bundleCoordinate);
+    }
+
+    private void discoverPythonExtensions(final Set<Bundle> loadedBundles) {
+        final Bundle pythonBundle = extensionManager.getBundle(PythonBundle.PYTHON_BUNDLE_COORDINATE);
+        if (pythonBundle == null) {
+            LOGGER.warn("Python Bundle does not exist in the ExtensionManager, will not discover new Python extensions");
+        } else {
+            extensionManager.discoverPythonExtensions(pythonBundle, loadedBundles);
+        }
     }
 
     private File unpack(final File narFile) {

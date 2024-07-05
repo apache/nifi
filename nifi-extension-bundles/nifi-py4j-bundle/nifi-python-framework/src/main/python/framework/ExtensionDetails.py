@@ -15,6 +15,8 @@
 
 from nifiapi.__jvm__ import ArrayList
 
+import BundleCoordinate
+
 class ExtensionDetails:
     class Java:
         implements = ['org.apache.nifi.python.PythonProcessorDetails']
@@ -29,7 +31,8 @@ class ExtensionDetails:
                  multi_processor_use_cases=None,
                  extension_home=None,
                  dependencies_bundled=False,
-                 property_descriptions=None):
+                 property_descriptions=None,
+                 bundle_coordinate=BundleCoordinate.BundleCoordinate):
 
         self.type = type
         self.interfaces = interfaces if interfaces else []
@@ -43,6 +46,7 @@ class ExtensionDetails:
         self.multi_processor_use_cases = multi_processor_use_cases if multi_processor_use_cases else {}
         self.property_descriptions = property_descriptions if property_descriptions else {}
         self.dependencies_bundled = dependencies_bundled
+        self.bundle_coordinate = bundle_coordinate
 
     def getProcessorType(self):
         return self.type
@@ -82,3 +86,5 @@ class ExtensionDetails:
             return None
         return self.interfaces[0]
 
+    def getBundleCoordinate(self):
+        return self.bundle_coordinate
