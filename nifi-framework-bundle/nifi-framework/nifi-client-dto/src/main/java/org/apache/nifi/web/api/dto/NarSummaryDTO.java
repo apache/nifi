@@ -34,6 +34,7 @@ public class NarSummaryDTO {
     private String digest;
     private String sourceType;
     private String sourceIdentifier;
+    private int extensionCount;
 
     private String state;
     private String failureMessage;
@@ -116,6 +117,15 @@ public class NarSummaryDTO {
 
     public void setSourceIdentifier(final String sourceIdentifier) {
         this.sourceIdentifier = sourceIdentifier;
+    }
+
+    @Schema(description = "The number of extensions contained in this NAR")
+    public int getExtensionCount() {
+        return extensionCount;
+    }
+
+    public void setExtensionCount(final int extensionCount) {
+        this.extensionCount = extensionCount;
     }
 
     @Schema(description = "The state of the NAR (i.e. Installed, or not)")

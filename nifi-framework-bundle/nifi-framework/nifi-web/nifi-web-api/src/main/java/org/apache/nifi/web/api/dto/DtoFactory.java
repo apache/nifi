@@ -5060,6 +5060,9 @@ public final class DtoFactory {
        dto.setState(narNode.getState().getValue());
        dto.setFailureMessage(narNode.getFailureMessage());
 
+       final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getTypes(narManifest.getCoordinate());
+       dto.setExtensionCount(extensionDefinitions.size());
+
        final NarState narState = narNode.getState();
        dto.setInstallComplete(narState == NarState.INSTALLED || narState == NarState.MISSING_DEPENDENCY || narState == NarState.FAILED);
        return dto;
