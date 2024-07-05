@@ -36,7 +36,6 @@
         <module>nifi-jetty-nar</module>
         <module>nifi-server-nar</module>
         <module>nifi-server-nar-bom</module>
-        <module>nifi-headless-server-nar</module>
     </modules>
 
     <repositories>
