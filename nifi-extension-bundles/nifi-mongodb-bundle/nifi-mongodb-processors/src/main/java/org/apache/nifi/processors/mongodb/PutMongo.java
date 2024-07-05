@@ -157,7 +157,7 @@ public class PutMongo extends AbstractMongoProcessor {
         _propertyDescriptors.add(UPDATE_QUERY_KEY);
         _propertyDescriptors.add(UPDATE_QUERY);
         _propertyDescriptors.add(UPDATE_OPERATION_MODE);
-        _propertyDescriptors.add(MONGO_UPDATE_MODE);
+        _propertyDescriptors.add(UPDATE_METHOD);
         _propertyDescriptors.add(CHARACTER_SET);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
@@ -249,7 +249,7 @@ public class PutMongo extends AbstractMongoProcessor {
                     BasicDBObject update = (BasicDBObject) doc;
                     update.remove(updateKey);
                     UpdateOptions updateOptions = new UpdateOptions().upsert(upsert);
-                    PropertyValue updateQueryMode = context.getProperty(MONGO_UPDATE_MODE);
+                    PropertyValue updateQueryMode = context.getProperty(UPDATE_METHOD);
 
                     if (this.updateModeMatches(MongoUpdateOption.UPDATE_ONE, updateQueryMode, flowFile)) {
                         updateResult = collection.updateOne(updateQuery, update, updateOptions);

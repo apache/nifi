@@ -164,7 +164,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         Map<String, String> attr = new HashMap<>();
         attr.put("mongo.update.query", search.toJson());
         runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
-        runner.setProperty(PutMongo.MONGO_UPDATE_MODE, MongoUpdateOption.UPDATE_MANY);
+        runner.setProperty(PutMongo.UPDATE_METHOD, MongoUpdateOption.UPDATE_MANY);
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setProperty(PutMongo.UPDATE_QUERY, "${mongo.update.query}");
         runner.setValidateExpressionUsage(true);
@@ -223,7 +223,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         Document search = new Document(docKeys);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "name");
         runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
-        runner.setProperty(PutMongo.MONGO_UPDATE_MODE, MongoUpdateOption.UPDATE_MANY);
+        runner.setProperty(PutMongo.UPDATE_METHOD, MongoUpdateOption.UPDATE_MANY);
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setValidateExpressionUsage(true);
         runner.enqueue(updateBody.toJson());
@@ -350,7 +350,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         ));
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "contacts.phone,contacts.email");
         runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
-        runner.setProperty(PutMongo.MONGO_UPDATE_MODE, MongoUpdateOption.UPDATE_MANY);
+        runner.setProperty(PutMongo.UPDATE_METHOD, MongoUpdateOption.UPDATE_MANY);
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setValidateExpressionUsage(true);
         runner.enqueue(updateBody.toJson());
