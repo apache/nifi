@@ -50,7 +50,7 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 
 To start NiFi:
 - [linux/osx] execute bin/nifi.sh start
-- [windows] execute bin/run-nifi.bat
+- [windows] execute bin/nifi.cmd start
 - Obtain the generated username and password from logs/nifi-app.log
   - [linux/osx] For example: `cat logs/nifi-app.log | grep Generated`
 - Direct your browser to https://localhost:8443/nifi/

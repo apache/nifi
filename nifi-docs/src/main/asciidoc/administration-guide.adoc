@@ -58,9 +58,10 @@ NOTE: Under sustained and extremely high throughput the CodeCache settings may n
 ** Decompress into the desired installation directory
 ** Make any desired edits in the files found under `<installdir>/conf`
 *** At a minimum, we recommend editing the _nifi.properties_ file and entering a password for the `nifi.sensitive.props.key` (see <<system_properties>> below)
-** Navigate to the `<installdir>/bin` directory
-** Double-click `run-nifi.bat`. This runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
-** To see the current status of NiFi, double-click `status-nifi.bat`
+** From the `<installdir>\bin` directory, execute the following commands by typing `.\nifi.cmd <command>`:
+*** `start`: starts NiFi in the background
+*** `stop`: stops NiFi that is running in the background
+*** `status`: provides the current status of NiFi
 
 
 When NiFi first starts up, the following files and directories are created:
