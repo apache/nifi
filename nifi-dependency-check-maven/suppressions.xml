@@ -100,11 +100,6 @@
         <cve>CVE-2023-25194</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2022-41915 applies to Netty HTTP decoding which is not applicable to Apache Kudu clients</notes>
-        <packageUrl regex="true">^pkg:maven/io\.netty/netty.*?@.*$</packageUrl>
-        <cve>CVE-2022-41915</cve>
-    </suppress>
-    <suppress>
         <notes>CVE-2023-34462 applies to Netty servers using SniHandler not Netty 4.1 shaded for Couchbase and HBase 2</notes>
         <packageUrl regex="true">^pkg:maven/io\.netty/netty.*$</packageUrl>
         <cve>CVE-2023-34462</cve>
