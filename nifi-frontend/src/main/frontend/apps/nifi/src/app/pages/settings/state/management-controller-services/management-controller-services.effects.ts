@@ -158,18 +158,18 @@ export class ManagementControllerServicesEffects {
         this.actions$.pipe(
             ofType(ManagementControllerServicesActions.createControllerServiceSuccess),
             map((action) => action.response),
-            tap(() => {
+            tap((response) => {
                 this.dialog.closeAll();
-            }),
-            switchMap((response) =>
-                of(
+
+                this.store.dispatch(
                     ManagementControllerServicesActions.selectControllerService({
                         request: {
                             id: response.controllerService.id
                         }
                     })
-                )
-            )
+                );
+            }),
+            switchMap(() => of(ManagementControllerServicesActions.loadManagementControllerServices()))
         )
     );
 
@@ -595,6 +595,13 @@ export class ManagementControllerServicesEffects {
                     )
                 )
             )
+        )
+    );
+
+    deleteControllerServiceSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ManagementControllerServicesActions.deleteControllerServiceSuccess),
+            switchMap(() => of(ManagementControllerServicesActions.loadManagementControllerServices()))
         )
     );
 

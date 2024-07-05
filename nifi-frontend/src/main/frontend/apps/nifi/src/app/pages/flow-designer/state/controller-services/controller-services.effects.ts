@@ -175,15 +175,33 @@ export class ControllerServicesEffects {
         )
     );
 
-    createControllerServiceSuccess$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(ControllerServicesActions.createControllerServiceSuccess),
-                tap(() => {
-                    this.dialog.closeAll();
-                })
-            ),
-        { dispatch: false }
+    createControllerServiceSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ControllerServicesActions.createControllerServiceSuccess),
+            map((action) => action.response),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            tap(([response, processGroupId]) => {
+                this.dialog.closeAll();
+
+                this.store.dispatch(
+                    ControllerServicesActions.selectControllerService({
+                        request: {
+                            id: response.controllerService.id,
+                            processGroupId
+                        }
+                    })
+                );
+            }),
+            switchMap(([, processGroupId]) =>
+                of(
+                    ControllerServicesActions.loadControllerServices({
+                        request: {
+                            processGroupId
+                        }
+                    })
+                )
+            )
+        )
     );
 
     navigateToEditService$ = createEffect(
@@ -713,6 +731,22 @@ export class ControllerServicesEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) }))
                     )
+                )
+            )
+        )
+    );
+
+    deleteControllerServiceSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ControllerServicesActions.deleteControllerServiceSuccess),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([, processGroupId]) =>
+                of(
+                    ControllerServicesActions.loadControllerServices({
+                        request: {
+                            processGroupId
+                        }
+                    })
                 )
             )
         )
