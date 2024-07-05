@@ -46,6 +46,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -105,6 +106,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttribu
                 + "<sql>.args.N.type attribute that indicates how the value should be interpreted when inserting it into the database."
                 + "The prefix for this attribute ('sql', e.g.) is determined by the SQL Parameter Attribute Prefix property.")
 })
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class ConvertJSONToSQL extends AbstractProcessor {
     private static final String UPDATE_TYPE = "UPDATE";
     private static final String INSERT_TYPE = "INSERT";

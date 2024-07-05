@@ -39,6 +39,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.eclipse.jetty.server.Server;
 
 import java.io.IOException;
@@ -55,7 +56,7 @@ import java.util.function.Function;
 @Tags({"record", "send", "write", "prometheus"})
 @CapabilityDescription("Specifies a Record Sink Service that exposes data points to a Prometheus scraping service. Numeric fields are exposed as Gauges, String fields are the "
         + "label values for the gauges, and all other fields are ignored.")
-
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class PrometheusRecordSink extends AbstractControllerService implements RecordSinkService {
 
     private volatile PrometheusServer prometheusServer;
