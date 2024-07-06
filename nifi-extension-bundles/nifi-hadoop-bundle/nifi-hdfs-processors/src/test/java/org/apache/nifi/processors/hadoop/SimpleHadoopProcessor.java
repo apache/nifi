@@ -16,41 +16,20 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 
-import java.io.File;
-
 public class SimpleHadoopProcessor extends AbstractHadoopProcessor {
 
-    private KerberosProperties testKerberosProperties;
-    private boolean allowExplicitKeytab;
-    private boolean localFileSystemAccessDenied;
+    private final boolean localFileSystemAccessDenied;
 
-    public SimpleHadoopProcessor(KerberosProperties kerberosProperties) {
-        this(kerberosProperties, true, true);
-    }
-
-    public SimpleHadoopProcessor(KerberosProperties kerberosProperties, boolean allowExplicitKeytab, boolean localFileSystemAccessDenied) {
-        this.testKerberosProperties = kerberosProperties;
-        this.allowExplicitKeytab = allowExplicitKeytab;
+    public SimpleHadoopProcessor(final boolean localFileSystemAccessDenied) {
         this.localFileSystemAccessDenied = localFileSystemAccessDenied;
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-    }
-
-    @Override
-    protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-        return testKerberosProperties;
-    }
-
-    @Override
-    boolean isAllowExplicitKeytab() {
-        return allowExplicitKeytab;
     }
 
     @Override

@@ -31,7 +31,6 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Objects;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 /**
@@ -49,17 +48,10 @@ public class SecurityUtil {
      * <p/>
      * As of Apache NiFi 1.5.0, this method uses {@link UserGroupInformation#loginUserFromKeytab(String, String)} to
      * authenticate the given <code>principal</code>, which sets the static variable <code>loginUser</code> in the
-     * {@link UserGroupInformation} instance.  Setting <code>loginUser</code> is necessary for
-     * {@link org.apache.hadoop.ipc.Client.Connection#handleSaslConnectionFailure(int, int, Exception, Random, UserGroupInformation)}
-     * to be able to attempt a relogin during a connection failure.  The <code>handleSaslConnectionFailure</code> method
+     * {@link UserGroupInformation} instance.
      * calls <code>UserGroupInformation.getLoginUser().reloginFromKeytab()</code> statically, which can return null
      * if <code>loginUser</code> is not set, resulting in failure of the hadoop operation.
      * <p/>
-     * In previous versions of NiFi, {@link UserGroupInformation#loginUserFromKeytabAndReturnUGI(String, String)} was
-     * used to authenticate the <code>principal</code>, which does not set <code>loginUser</code>, making it impossible
-     * for a
-     * {@link org.apache.hadoop.ipc.Client.Connection#handleSaslConnectionFailure(int, int, Exception, Random, UserGroupInformation)}
-     * to be able to implicitly relogin the principal.
      *
      * @param config the configuration instance
      * @param principal the principal to authenticate as

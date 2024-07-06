@@ -17,27 +17,24 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.hadoop.util.MockFileSystem;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.ietf.jgss.GSSException;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import javax.security.sasl.SaslException;
 import java.io.File;
@@ -55,28 +52,13 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
+@DisabledOnOs(OS.WINDOWS)
 public class MoveHDFSTest {
 
     private static final String OUTPUT_DIRECTORY = "target/test-data-output";
     private static final String TEST_DATA_DIRECTORY = "src/test/resources/testdata";
     private static final String INPUT_DIRECTORY = "target/test-data-input";
-    private KerberosProperties kerberosProperties;
-
-    @BeforeAll
-    public static void setUpSuite() {
-        assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
-    }
-
-    @BeforeEach
-    public void setup() {
-        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = new KerberosProperties(null);
-    }
 
     @AfterEach
     public void teardown() {
@@ -92,7 +74,7 @@ public class MoveHDFSTest {
 
     @Test
     public void testOutputDirectoryValidator() {
-        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        MoveHDFS proc = new TestableMoveHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         Collection<ValidationResult> results;
         ProcessContext pc;
@@ -112,7 +94,7 @@ public class MoveHDFSTest {
 
     @Test
     public void testBothInputAndOutputDirectoriesAreValid() {
-        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        MoveHDFS proc = new TestableMoveHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         Collection<ValidationResult> results;
         ProcessContext pc;
@@ -131,7 +113,7 @@ public class MoveHDFSTest {
     @Test
     public void testOnScheduledShouldRunCleanly() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        MoveHDFS proc = new TestableMoveHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
@@ -145,7 +127,7 @@ public class MoveHDFSTest {
     @Test
     public void testDotFileFilterIgnore() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        MoveHDFS proc = new TestableMoveHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
@@ -161,7 +143,7 @@ public class MoveHDFSTest {
     @Test
     public void testDotFileFilterInclude() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        MoveHDFS proc = new TestableMoveHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
@@ -176,7 +158,7 @@ public class MoveHDFSTest {
     @Test
     public void testFileFilterRegex() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        MoveHDFS proc = new TestableMoveHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
@@ -191,7 +173,7 @@ public class MoveHDFSTest {
     @Test
     public void testSingleFileAsInputCopy() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        MoveHDFS proc = new TestableMoveHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY + "/randombytes-1");
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
@@ -208,7 +190,7 @@ public class MoveHDFSTest {
     @Test
     public void testSingleFileAsInputMove() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        MoveHDFS proc = new TestableMoveHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY + "/randombytes-1");
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
@@ -226,7 +208,7 @@ public class MoveHDFSTest {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
         File subdir = new File(INPUT_DIRECTORY, "subdir");
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), subdir);
-        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        MoveHDFS proc = new TestableMoveHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
@@ -241,7 +223,7 @@ public class MoveHDFSTest {
 
     @Test
     public void testEmptyInputDirectory() throws IOException {
-        MoveHDFS proc = new TestableMoveHDFS(kerberosProperties);
+        MoveHDFS proc = new TestableMoveHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         Files.createDirectories(Paths.get(INPUT_DIRECTORY));
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
@@ -263,7 +245,7 @@ public class MoveHDFSTest {
             }
         };
         noCredentialsFileSystem.setFailOnExists(true);
-        TestRunner runner = TestRunners.newTestRunner(new TestableMoveHDFS(kerberosProperties, noCredentialsFileSystem));
+        TestRunner runner = TestRunners.newTestRunner(new TestableMoveHDFS(noCredentialsFileSystem));
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, "input/does/not/exist");
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, "target/test-classes");
         runner.setProperty(MoveHDFS.CONFLICT_RESOLUTION, "replace");
@@ -333,21 +315,14 @@ public class MoveHDFSTest {
 
     private static class TestableMoveHDFS extends MoveHDFS {
 
-        private final KerberosProperties testKerberosProperties;
         private final FileSystem fileSystem;
 
-        public TestableMoveHDFS(KerberosProperties testKerberosProperties) {
-            this(testKerberosProperties, null);
+        public TestableMoveHDFS() {
+            this(null);
         }
 
-        public TestableMoveHDFS(KerberosProperties testKerberosProperties, FileSystem fileSystem) {
-            this.testKerberosProperties = testKerberosProperties;
+        public TestableMoveHDFS(final FileSystem fileSystem) {
             this.fileSystem = fileSystem;
-        }
-
-        @Override
-        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-            return testKerberosProperties;
         }
 
         @Override

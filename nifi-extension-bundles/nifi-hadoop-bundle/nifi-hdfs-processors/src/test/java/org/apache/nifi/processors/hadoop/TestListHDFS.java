@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -74,9 +73,7 @@ class TestListHDFS {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        final KerberosProperties kerberosProperties = new KerberosProperties(null);
-
-        proc = new ListHDFSWithMockedFileSystem(kerberosProperties);
+        proc = new ListHDFSWithMockedFileSystem();
         mockLogger = spy(new MockComponentLog(UUID.randomUUID().toString(), proc));
         runner = TestRunners.newTestRunner(proc, mockLogger);
 
@@ -560,16 +557,6 @@ class TestListHDFS {
 
     private static class ListHDFSWithMockedFileSystem extends ListHDFS {
         private final MockFileSystem fileSystem = new MockFileSystem();
-        private final KerberosProperties testKerberosProps;
-
-        public ListHDFSWithMockedFileSystem(KerberosProperties kerberosProperties) {
-            this.testKerberosProps = kerberosProperties;
-        }
-
-        @Override
-        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-            return testKerberosProps;
-        }
 
         @Override
         protected FileSystem getFileSystem() {

@@ -23,7 +23,6 @@ import org.apache.hadoop.hdfs.client.HdfsAdmin;
 import org.apache.hadoop.hdfs.inotify.Event;
 import org.apache.hadoop.hdfs.inotify.EventBatch;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processors.hadoop.inotify.util.EventTestUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
@@ -32,7 +31,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -46,15 +44,12 @@ import static org.mockito.Mockito.when;
 
 public class TestGetHDFSEvents {
     NiFiProperties mockNiFiProperties;
-    KerberosProperties kerberosProperties;
     DFSInotifyEventInputStream inotifyEventInputStream;
     HdfsAdmin hdfsAdmin;
 
     @BeforeEach
     public void setup() {
         mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = new KerberosProperties(null);
         inotifyEventInputStream = mock(DFSInotifyEventInputStream.class);
         hdfsAdmin = mock(HdfsAdmin.class);
     }
@@ -62,7 +57,7 @@ public class TestGetHDFSEvents {
     @Test
     public void notSettingHdfsPathToWatchShouldThrowError() {
         AssertionError error = assertThrows(AssertionError.class, () -> {
-            GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
+            GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
             TestRunner runner = TestRunners.newTestRunner(processor);
 
             runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
@@ -81,7 +76,7 @@ public class TestGetHDFSEvents {
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
         when(eventBatch.getTxid()).thenReturn(100L);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
+        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
         TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
@@ -100,7 +95,7 @@ public class TestGetHDFSEvents {
         when(inotifyEventInputStream.poll(1000000L, TimeUnit.MICROSECONDS)).thenReturn(null);
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
+        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
         TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
@@ -123,7 +118,7 @@ public class TestGetHDFSEvents {
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
         when(eventBatch.getTxid()).thenReturn(100L);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
+        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
         TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
@@ -147,7 +142,7 @@ public class TestGetHDFSEvents {
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
         when(eventBatch.getTxid()).thenReturn(100L);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
+        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
         TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path/create(/)?");
@@ -170,7 +165,7 @@ public class TestGetHDFSEvents {
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
         when(eventBatch.getTxid()).thenReturn(100L);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
+        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
         TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path(/.*)?");
@@ -205,7 +200,7 @@ public class TestGetHDFSEvents {
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
         when(eventBatch.getTxid()).thenReturn(100L);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
+        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
         TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path/${literal(1)}/${literal(2)}/${literal(3)}/.*.txt");
@@ -218,7 +213,7 @@ public class TestGetHDFSEvents {
 
         for (MockFlowFile f : successfulFlowFiles) {
             String eventType = f.getAttribute(EventAttributes.EVENT_TYPE);
-            assertTrue(eventType.equals("CREATE"));
+            assertEquals("CREATE", eventType);
         }
 
         verify(eventBatch).getTxid();
@@ -233,25 +228,18 @@ public class TestGetHDFSEvents {
             };
     }
 
-    private class TestableGetHDFSEvents extends GetHDFSEvents {
+    private static class TestableGetHDFSEvents extends GetHDFSEvents {
 
-        private final KerberosProperties testKerberosProperties;
         private final FileSystem fileSystem = new DistributedFileSystem();
         private final HdfsAdmin hdfsAdmin;
 
-        TestableGetHDFSEvents(KerberosProperties testKerberosProperties, HdfsAdmin hdfsAdmin) {
-            this.testKerberosProperties = testKerberosProperties;
+        TestableGetHDFSEvents(HdfsAdmin hdfsAdmin) {
             this.hdfsAdmin = hdfsAdmin;
         }
 
         @Override
         protected FileSystem getFileSystem() {
             return fileSystem;
-        }
-
-        @Override
-        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-            return testKerberosProperties;
         }
 
         @Override

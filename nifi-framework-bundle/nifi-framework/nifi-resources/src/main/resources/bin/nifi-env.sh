@@ -53,16 +53,6 @@ export NIFI_LOG_DIR
 # Disable automatic Logback Initializer to avoid shutdown on web application termination
 export logbackDisableServletContainerInitializer="true"
 
-# Set to false to force the use of Keytab controller service in processors
-# that use Kerberos. If true, these processors will allow configuration of keytab
-# and principal directly within the processor. If false, these processors will be
-# invalid if attempting to configure these properties. This may be advantageous in
-# a multi-tenant environment where management of keytabs should be performed only by
-# a user with elevated permissions (i.e., users that have been granted the 'ACCESS_KEYTAB'
-# restriction).
-NIFI_ALLOW_EXPLICIT_KEYTAB="$(setOrDefault "$NIFI_ALLOW_EXPLICIT_KEYTAB" true)"
-export NIFI_ALLOW_EXPLICIT_KEYTAB
-
 # Set to true to deny access to the Local File System from HDFS Processors
 # This flag forces HDFS Processors to evaluate the File System path during scheduling
 NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS="$(setOrDefault "$NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS" false)"

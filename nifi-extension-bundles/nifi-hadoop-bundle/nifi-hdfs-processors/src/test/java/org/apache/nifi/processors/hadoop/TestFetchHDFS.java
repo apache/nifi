@@ -18,12 +18,10 @@ package org.apache.nifi.processors.hadoop;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processors.hadoop.util.MockFileSystem;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,21 +38,14 @@ import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_F
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestFetchHDFS {
 
     private TestRunner runner;
-    private KerberosProperties kerberosProperties;
 
     @BeforeEach
     public void setup() {
-        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = new KerberosProperties(null);
-
-        TestableFetchHDFS proc = new TestableFetchHDFS(kerberosProperties);
+        FetchHDFS proc = new TestableFetchHDFS();
         runner = TestRunners.newTestRunner(proc);
     }
 
@@ -143,7 +134,7 @@ public class TestFetchHDFS {
 
     @Test
     public void testAutomaticDecompression() throws IOException {
-        FetchHDFS proc = new TestableFetchHDFS(kerberosProperties);
+        FetchHDFS proc = new TestableFetchHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "AUTOMATIC");
@@ -161,7 +152,7 @@ public class TestFetchHDFS {
 
     @Test
     public void testInferCompressionCodecDisabled() throws IOException {
-        FetchHDFS proc = new TestableFetchHDFS(kerberosProperties);
+        FetchHDFS proc = new TestableFetchHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "NONE");
@@ -179,7 +170,7 @@ public class TestFetchHDFS {
 
     @Test
     public void testFileExtensionNotACompressionCodec() throws IOException {
-        FetchHDFS proc = new TestableFetchHDFS(kerberosProperties);
+        FetchHDFS proc = new TestableFetchHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/13545423550275052.zip");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "AUTOMATIC");
@@ -196,10 +187,10 @@ public class TestFetchHDFS {
     }
 
     @Test
-    public void testGSSException() throws IOException {
+    public void testGSSException() {
         MockFileSystem fileSystem = new MockFileSystem();
         fileSystem.setFailOnOpen(true);
-        FetchHDFS proc = new TestableFetchHDFS(kerberosProperties, fileSystem);
+        FetchHDFS proc = new TestableFetchHDFS(fileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "NONE");
@@ -218,7 +209,7 @@ public class TestFetchHDFS {
     public void testRuntimeException() {
         MockFileSystem fileSystem = new MockFileSystem();
         fileSystem.setRuntimeFailOnOpen(true);
-        FetchHDFS proc = new TestableFetchHDFS(kerberosProperties, fileSystem);
+        FetchHDFS proc = new TestableFetchHDFS(fileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "NONE");
@@ -234,21 +225,13 @@ public class TestFetchHDFS {
     }
 
     private static class TestableFetchHDFS extends FetchHDFS {
-        private final KerberosProperties testKerberosProps;
         private final FileSystem fileSystem;
 
-        public TestableFetchHDFS(KerberosProperties testKerberosProps) {
-            this.testKerberosProps = testKerberosProps;
+        public TestableFetchHDFS() {
             this.fileSystem = null;
         }
-        public TestableFetchHDFS(KerberosProperties testKerberosProps, final FileSystem fileSystem) {
-            this.testKerberosProps = testKerberosProps;
+        public TestableFetchHDFS(final FileSystem fileSystem) {
             this.fileSystem = fileSystem;
-        }
-
-        @Override
-        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-            return testKerberosProps;
         }
 
         @Override

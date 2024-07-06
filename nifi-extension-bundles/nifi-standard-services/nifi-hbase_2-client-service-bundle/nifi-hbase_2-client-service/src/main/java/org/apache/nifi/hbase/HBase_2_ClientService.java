@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.hbase;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedExceptionAction;
@@ -75,7 +74,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
@@ -83,12 +81,9 @@ import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.HBaseRegion;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.krb.KerberosKeytabUser;
-import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,17 +106,7 @@ import org.slf4j.LoggerFactory;
         }
 )
 public class HBase_2_ClientService extends AbstractControllerService implements HBaseClientService {
-    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
-
     private static final Logger logger = LoggerFactory.getLogger(HBase_2_ClientService.class);
-
-    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-        .name("kerberos-credentials-service")
-        .displayName("Kerberos Credentials Service")
-        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
-        .identifiesControllerService(KerberosCredentialsService.class)
-        .required(false)
-        .build();
 
     static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
             .name("kerberos-user-service")
@@ -189,25 +174,16 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
     private volatile String masterAddress;
 
     private List<PropertyDescriptor> properties;
-    private KerberosProperties kerberosProperties;
-    private volatile File kerberosConfigFile = null;
 
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
 
     @Override
-    protected void init(ControllerServiceInitializationContext config) throws InitializationException {
-        kerberosConfigFile = config.getKerberosConfigurationFile();
-        kerberosProperties = getKerberosProperties(kerberosConfigFile);
-
+    protected void init(ControllerServiceInitializationContext config) {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONF_FILES);
         props.add(KERBEROS_USER_SERVICE);
-        props.add(KERBEROS_CREDENTIALS_SERVICE);
-        props.add(kerberosProperties.getKerberosPrincipal());
-        props.add(kerberosProperties.getKerberosKeytab());
-        props.add(kerberosProperties.getKerberosPassword());
         props.add(ZOOKEEPER_QUORUM);
         props.add(ZOOKEEPER_CLIENT_PORT);
         props.add(ZOOKEEPER_ZNODE_PARENT);
@@ -217,12 +193,16 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         this.properties = Collections.unmodifiableList(props);
     }
 
-    protected List<PropertyDescriptor> getAdditionalProperties() {
-        return new ArrayList<>();
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.removeProperty("Kerberos Principal");
+        config.removeProperty("Kerberos Password");
+        config.removeProperty("Kerberos Keytab");
+        config.removeProperty("kerberos-credentials-service");
     }
 
-    protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-        return new KerberosProperties(kerberosConfigFile);
+    protected List<PropertyDescriptor> getAdditionalProperties() {
+        return new ArrayList<>();
     }
 
     @Override
@@ -248,22 +228,6 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         boolean znodeParentProvided = validationContext.getProperty(ZOOKEEPER_ZNODE_PARENT).isSet();
         boolean retriesProvided = validationContext.getProperty(HBASE_CLIENT_RETRIES).isSet();
 
-        final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-        final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
-        final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
-        final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        final KerberosUserService kerberosUserService = validationContext.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
-
-        final String resolvedPrincipal;
-        final String resolvedKeytab;
-        if (credentialsService == null) {
-            resolvedPrincipal = explicitPrincipal;
-            resolvedKeytab = explicitKeytab;
-        } else {
-            resolvedPrincipal = credentialsService.getPrincipal();
-            resolvedKeytab = credentialsService.getKeytab();
-        }
-
         final List<ValidationResult> problems = new ArrayList<>();
 
         if (!confFileProvided && (!zkQuorumProvided || !zkPortProvided || !znodeParentProvided || !retriesProvided)) {
@@ -286,50 +250,6 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
                 resources = new ValidationResources(configFiles, getConfigurationFromFiles(configFiles));
                 validationResourceHolder.set(resources);
             }
-
-            final Configuration hbaseConfig = resources.getConfiguration();
-            if (kerberosUserService == null) {
-                problems.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(getClass().getSimpleName(), hbaseConfig,
-                        resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
-            } else {
-                final boolean securityEnabled = SecurityUtil.isSecurityEnabled(hbaseConfig);
-                if (!securityEnabled) {
-                    getLogger().warn("Hadoop Configuration does not have security enabled, KerberosUserService will be ignored");
-                }
-            }
-        }
-
-        if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
-            problems.add(new ValidationResult.Builder()
-                .subject("Kerberos Credentials")
-                .valid(false)
-                .explanation("Cannot specify a Kerberos Credentials Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
-                .build());
-        }
-
-        if (kerberosUserService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
-            problems.add(new ValidationResult.Builder()
-                    .subject("Kerberos User")
-                    .valid(false)
-                    .explanation("Cannot specify a Kerberos User Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
-                    .build());
-        }
-
-        if (kerberosUserService != null && credentialsService != null) {
-            problems.add(new ValidationResult.Builder()
-                    .subject("Kerberos User")
-                    .valid(false)
-                    .explanation("Cannot specify a Kerberos User Service while also specifying a Kerberos Credentials Service")
-                    .build());
-        }
-
-        if (!isAllowExplicitKeytab() && explicitKeytab != null) {
-            problems.add(new ValidationResult.Builder()
-                .subject("Kerberos Credentials")
-                .valid(false)
-                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring Kerberos Keytab in processors. "
-                    + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
-                .build());
         }
 
         return problems;
@@ -408,24 +328,6 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
         if (kerberosUserService != null) {
             return kerberosUserService.createKerberosUser();
-        }
-
-        String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-        String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
-        String password = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
-
-        // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
-        // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
-        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        if (credentialsService != null) {
-            principal = credentialsService.getPrincipal();
-            keyTab = credentialsService.getKeytab();
-        }
-
-        if (keyTab != null) {
-            return new KerberosKeytabUser(principal, keyTab);
-        } else if (password != null) {
-            return new KerberosPasswordUser(principal, password);
         } else {
             throw new IllegalStateException("Unable to authenticate with Kerberos, no keytab or password was provided");
         }
@@ -972,13 +874,6 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         }
         final String transitUriMasterAddress = StringUtils.isEmpty(masterAddress) ? "unknown" : masterAddress;
         return "hbase://" + transitUriMasterAddress + "/" + tableName + (StringUtils.isEmpty(rowKey) ? "" : "/" + rowKey);
-    }
-
-    /*
-     * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
-     */
-    boolean isAllowExplicitKeytab() {
-        return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
 
     UserGroupInformation getUgi() throws IOException {

@@ -20,7 +20,6 @@ package org.apache.nifi.hbase;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -31,7 +30,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -59,8 +57,7 @@ public class TestHBase_2_ListLookupService {
         final Table table = Mockito.mock(Table.class);
         when(table.getName()).thenReturn(TableName.valueOf(TABLE_NAME));
 
-        final KerberosProperties kerberosProperties = new KerberosProperties(new File("src/test/resources/krb5.conf"));
-        clientService = new MockHBaseClientService(table, "family", kerberosProperties);
+        clientService = new MockHBaseClientService(table, "family");
         runner.addControllerService("clientService", clientService);
         runner.setProperty(clientService, HBase_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/hbase-site.xml");
         runner.enableControllerService(clientService);

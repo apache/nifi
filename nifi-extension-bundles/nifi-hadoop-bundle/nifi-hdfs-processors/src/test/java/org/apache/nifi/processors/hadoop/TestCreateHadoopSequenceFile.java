@@ -25,13 +25,10 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -45,8 +42,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestCreateHadoopSequenceFile {
 
@@ -57,22 +52,9 @@ public class TestCreateHadoopSequenceFile {
         new File(testdata, "randombytes-2"), new File(testdata, "randombytes-3")
     };
 
-    private NiFiProperties mockNiFiProperties;
-    private KerberosProperties kerberosProperties;
-
-    @BeforeAll
-    public static void setUpClass() {
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.hadoop", "debug");
-    }
-
     @BeforeEach
     public void setUp() {
-        mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = new KerberosProperties(null);
-
-        CreateHadoopSequenceFile proc = new TestableCreateHadoopSequenceFile(kerberosProperties);
+        CreateHadoopSequenceFile proc = new CreateHadoopSequenceFile();
         controller = TestRunners.newTestRunner(proc);
     }
 
@@ -108,7 +90,7 @@ public class TestCreateHadoopSequenceFile {
     }
 
     @Test
-    public void testSequenceFileSaysValueIsBytesWritable() throws UnsupportedEncodingException, IOException {
+    public void testSequenceFileSaysValueIsBytesWritable() throws IOException {
         for (File inFile : inFiles) {
             try (FileInputStream fin = new FileInputStream(inFile)) {
                 controller.enqueue(fin);
@@ -344,19 +326,4 @@ public class TestCreateHadoopSequenceFile {
 
         assertEquals(DefaultCodec.class.getCanonicalName(), new String(data, codecTypeStartIndex, codecTypeSize, "UTF-8"));
     }
-
-    private static class TestableCreateHadoopSequenceFile extends CreateHadoopSequenceFile {
-
-        private KerberosProperties testKerbersProperties;
-
-        public TestableCreateHadoopSequenceFile(KerberosProperties testKerbersProperties) {
-            this.testKerbersProperties = testKerbersProperties;
-        }
-
-        @Override
-        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-            return testKerbersProperties;
-        }
-    }
-
 }

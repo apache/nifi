@@ -30,7 +30,6 @@ import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.transfer.ResourceTransferProperties;
 import org.apache.nifi.processors.transfer.ResourceTransferSource;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -83,18 +82,16 @@ public class PutHDFSTest {
     private final static String FILE_NAME = "randombytes-1";
     private final static String AVRO_FILE_NAME = "input.avro";
 
-    private KerberosProperties kerberosProperties;
     private MockFileSystem mockFileSystem;
 
     @BeforeEach
     public void setup() {
-        kerberosProperties = new KerberosProperties(null);
         mockFileSystem = new MockFileSystem();
     }
 
     @Test
     public void testValidators() {
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
         Collection<ValidationResult> results;
         ProcessContext pc;
@@ -132,7 +129,7 @@ public class PutHDFSTest {
             assertTrue(vr.toString().contains("is invalid because short integer must be greater than zero"));
         }
 
-        proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        proc = new TestablePutHDFS(mockFileSystem);
         runner = TestRunners.newTestRunner(proc);
         results = new HashSet<>();
         runner.setProperty(PutHDFS.DIRECTORY, "/target");
@@ -147,7 +144,7 @@ public class PutHDFSTest {
             assertTrue(vr.toString().contains("is invalid because short integer must be greater than zero"));
         }
 
-        proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        proc = new TestablePutHDFS(mockFileSystem);
         runner = TestRunners.newTestRunner(proc);
         results = new HashSet<>();
         runner.setProperty(PutHDFS.DIRECTORY, "/target");
@@ -162,7 +159,7 @@ public class PutHDFSTest {
             assertTrue(vr.toString().contains("is invalid because octal umask [-1] cannot be negative"));
         }
 
-        proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        proc = new TestablePutHDFS(mockFileSystem);
         runner = TestRunners.newTestRunner(proc);
         results = new HashSet<>();
         runner.setProperty(PutHDFS.DIRECTORY, "/target");
@@ -191,7 +188,7 @@ public class PutHDFSTest {
         }
 
         results = new HashSet<>();
-        proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        proc = new TestablePutHDFS(mockFileSystem);
         runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "/target");
         runner.setProperty(PutHDFS.COMPRESSION_CODEC, CompressionCodec.class.getName());
@@ -238,7 +235,7 @@ public class PutHDFSTest {
     public void testPutFile() throws IOException {
         // given
         final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
-        final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
+        final PutHDFS proc = new TestablePutHDFS(spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, TARGET_DIRECTORY);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.REPLACE_RESOLUTION);
@@ -279,7 +276,7 @@ public class PutHDFSTest {
     public void testPutFileWithAppendAvroModeNewFileCreated() throws IOException {
         // given
         final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
-        final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
+        final PutHDFS proc = new TestablePutHDFS(spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, AVRO_TARGET_DIRECTORY);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, APPEND_RESOLUTION);
@@ -304,7 +301,7 @@ public class PutHDFSTest {
     public void testPutFileWithAppendAvroModeWhenTargetFileAlreadyExists() throws IOException {
         // given
         final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
-        final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
+        final PutHDFS proc = new TestablePutHDFS(spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, AVRO_TARGET_DIRECTORY);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, APPEND_RESOLUTION);
@@ -331,7 +328,7 @@ public class PutHDFSTest {
     public void testPutFileWithSimpleWrite() throws IOException {
         // given
         final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
-        final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
+        final PutHDFS proc = new TestablePutHDFS(spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, TARGET_DIRECTORY);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.REPLACE_RESOLUTION);
@@ -366,7 +363,7 @@ public class PutHDFSTest {
     @Test
     public void testPutFileWhenTargetDirExists() throws IOException {
         String targetDir = "target/test-classes";
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
         proc.getFileSystem().mkdirs(new Path(targetDir));
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, targetDir);
@@ -401,7 +398,7 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWithCompression() throws IOException {
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
@@ -434,7 +431,7 @@ public class PutHDFSTest {
                 throw new IOException("ioe", new SaslException("sasle", new GSSException(13)));
             }
         };
-        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(kerberosProperties, noCredentialsFileSystem));
+        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(noCredentialsFileSystem));
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
 
@@ -457,7 +454,7 @@ public class PutHDFSTest {
         file.mkdirs();
         Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
 
-        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(kerberosProperties, mockFileSystem) {
+        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(mockFileSystem) {
             @Override
             protected void changeOwner(ProcessContext context, FileSystem hdfs, Path name, FlowFile flowFile) {
                 throw new ProcessException("Forcing Exception to get thrown in order to verify proper handling");
@@ -483,7 +480,7 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWhenDirectoryUsesValidELFunction() throws IOException {
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/data_${literal('testing'):substring(0,4)}");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
@@ -509,7 +506,7 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWhenDirectoryUsesUnrecognizedEL() throws IOException {
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
 
         // this value somehow causes NiFi to not even recognize the EL, and thus it returns successfully from calling
@@ -529,7 +526,7 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWhenDirectoryUsesInvalidEL() {
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties, mockFileSystem);
+        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
         // the validator should pick up the invalid EL
         runner.setProperty(PutHDFS.DIRECTORY, "target/data_${literal('testing'):foo()}");
@@ -541,7 +538,7 @@ public class PutHDFSTest {
     public void testPutFilePermissionsWithProcessorConfiguredUmask() throws IOException {
         // assert the file permission is the same value as processor's property
         MockFileSystem fileSystem = new MockFileSystem();
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties, fileSystem);
+        PutHDFS proc = new TestablePutHDFS(fileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
@@ -563,7 +560,7 @@ public class PutHDFSTest {
     public void testPutFilePermissionsWithXmlConfiguredUmask() throws IOException {
         // assert the file permission is the same value as xml
         MockFileSystem fileSystem = new MockFileSystem();
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties, fileSystem);
+        PutHDFS proc = new TestablePutHDFS(fileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
@@ -584,7 +581,7 @@ public class PutHDFSTest {
     public void testPutFilePermissionsWithNoConfiguredUmask() throws IOException {
         // assert the file permission fallback works. It should read FsPermission.DEFAULT_UMASK
         MockFileSystem fileSystem = new MockFileSystem();
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties, fileSystem);
+        PutHDFS proc = new TestablePutHDFS(fileSystem);
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
@@ -614,7 +611,7 @@ public class PutHDFSTest {
         final String aclDefault = "default:user::rwx,default:group::rwx,default:other::rwx";
         fileSystem.setAcl(directory, AclEntry.parseAclSpec(String.join(",", acl, aclDefault), true));
 
-        final PutHDFS processor = new TestablePutHDFS(kerberosProperties, fileSystem);
+        final PutHDFS processor = new TestablePutHDFS(fileSystem);
         final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(PutHDFS.DIRECTORY, directory.toString());
         runner.setProperty(PutHDFS.UMASK, "077");
@@ -639,7 +636,7 @@ public class PutHDFSTest {
             final String acl = "user::rwx,group::rwx,other::rwx";
             fileSystem.setAcl(directory, AclEntry.parseAclSpec(acl, true));
 
-            final PutHDFS processor = new TestablePutHDFS(kerberosProperties, fileSystem);
+            final PutHDFS processor = new TestablePutHDFS(fileSystem);
             final TestRunner runner = TestRunners.newTestRunner(processor);
             runner.setProperty(PutHDFS.DIRECTORY, directory.toString());
             if (setUmaskIt) {
@@ -669,7 +666,7 @@ public class PutHDFSTest {
             final String aclDefault = "default:user::rwx,default:group::rwx,default:other::rwx";
             fileSystem.setAcl(directory, AclEntry.parseAclSpec(String.join(",", acl, aclDefault), true));
 
-            final PutHDFS processor = new TestablePutHDFS(kerberosProperties, fileSystem);
+            final PutHDFS processor = new TestablePutHDFS(fileSystem);
             final TestRunner runner = TestRunners.newTestRunner(processor);
             runner.setProperty(PutHDFS.DIRECTORY, directory.toString());
             if (setUmaskIt) {
@@ -693,7 +690,7 @@ public class PutHDFSTest {
         file.mkdirs();
         Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
 
-        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(kerberosProperties, mockFileSystem));
+        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(mockFileSystem));
         runner.setProperty(PutHDFS.DIRECTORY, dirName);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
 
@@ -715,7 +712,7 @@ public class PutHDFSTest {
     @Test
     public void testPutFileFromLocalFile() throws Exception {
         final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
-        final PutHDFS proc = new TestablePutHDFS(kerberosProperties, spyFileSystem);
+        final PutHDFS proc = new TestablePutHDFS(spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, TARGET_DIRECTORY);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, PutHDFS.REPLACE_RESOLUTION);
@@ -776,7 +773,7 @@ public class PutHDFSTest {
         file.mkdirs();
         Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
 
-        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(kerberosProperties, mockFileSystem));
+        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(mockFileSystem));
         runner.setProperty(PutHDFS.DIRECTORY, dirName);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
 
@@ -819,17 +816,10 @@ public class PutHDFSTest {
 
     private static class TestablePutHDFS extends PutHDFS {
 
-        private final KerberosProperties testKerberosProperties;
         private final FileSystem fileSystem;
 
-        TestablePutHDFS(KerberosProperties testKerberosProperties, FileSystem fileSystem) {
-            this.testKerberosProperties = testKerberosProperties;
+        TestablePutHDFS(FileSystem fileSystem) {
             this.fileSystem = fileSystem;
-        }
-
-        @Override
-        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-            return testKerberosProperties;
         }
 
         @Override
