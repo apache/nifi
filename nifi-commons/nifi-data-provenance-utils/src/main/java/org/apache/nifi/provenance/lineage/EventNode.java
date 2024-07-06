@@ -24,7 +24,6 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 public class EventNode implements ProvenanceEventLineageNode {
 
     private final ProvenanceEventRecord record;
-    private String clusterNodeIdentifier = null;
 
     public EventNode(final ProvenanceEventRecord event) {
         this.record = event;

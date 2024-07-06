@@ -225,12 +225,6 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
         return getContext().isInteractive();
     }
 
-    protected void printIfInteractive(final String val) {
-        if (isInteractive()) {
-            print(val);
-        }
-    }
-
     protected void printlnIfInteractive(final String val) {
         if (isInteractive()) {
             println(val);

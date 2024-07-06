@@ -21,8 +21,6 @@ import java.util.Map;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.util.Tuple;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -30,7 +28,6 @@ import org.slf4j.LoggerFactory;
  * </p>
  */
 public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
-    private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalyticsEngine.class);
     protected final StatusHistoryRepository statusRepository;
     protected final FlowManager flowManager;
     protected final StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory;

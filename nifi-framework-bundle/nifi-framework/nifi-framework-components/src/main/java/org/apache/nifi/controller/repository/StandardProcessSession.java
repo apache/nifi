@@ -2519,7 +2519,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final List<RepositoryRecord> expiredRecords = new ArrayList<>(flowFiles.size());
 
         final Connectable connectable = context.getConnectable();
-        final String processorType = connectable.getComponentType();
         final InternalProvenanceReporter expiredReporter = context.createProvenanceReporter(this::isFlowFileKnown, this);
 
         final Map<String, FlowFileRecord> recordIdMap = new HashMap<>();

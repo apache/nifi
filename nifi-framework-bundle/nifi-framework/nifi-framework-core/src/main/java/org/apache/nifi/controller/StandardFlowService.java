@@ -915,7 +915,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 return null;
             } else {
                 // cluster manager provided a successful response with a current dataflow
-                // persist node uuid and index returned by NCM and return the response to the caller
+                // persist node uuid and index returned by coordinator and return the response to the caller
                 try {
                     // Ensure that we have registered our 'cluster node configuration' state key
                     final Map<String, String> map = Collections.singletonMap(NODE_UUID, response.getNodeIdentifier().getId());

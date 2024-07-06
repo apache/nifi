@@ -135,10 +135,6 @@ public class TestCreateHadoopSequenceFile {
         final String valueType = BytesWritable.class.getCanonicalName();
         assertEquals(valueType.length(), valueTypeLength);
         assertEquals(valueType, new String(data, valueTypeStart, valueType.length(), "UTF-8"));
-//        FileOutputStream fos = new FileOutputStream("test.sf");
-//        fos.write(data);
-//        fos.flush();
-//        fos.close();
     }
 
     @Test
@@ -175,10 +171,6 @@ public class TestCreateHadoopSequenceFile {
             assertTrue(data.length > 1000000);
             assertTrue(data.length < 1501000);
         }
-//        FileOutputStream fos = new FileOutputStream("zip-3-randoms.sf");
-//        fos.write(data);
-//        fos.flush();
-//        fos.close();
     }
 
     @Test
@@ -198,10 +190,6 @@ public class TestCreateHadoopSequenceFile {
             assertTrue(data.length > 1000000);
             assertTrue(data.length < 1501000);
         }
-//        FileOutputStream fos = new FileOutputStream("flowfilePkg-3-randoms.sf");
-//        fos.write(data);
-//        fos.flush();
-//        fos.close();
     }
 
     @Test

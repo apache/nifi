@@ -434,12 +434,6 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
 
             writeValidValueDescription(xmlStreamWriter, group + "-" + artifact + "-" + version);
 
-//            xmlStreamWriter.writeEmptyElement("br");
-//            xmlStreamWriter.writeCharacters(group);
-//            xmlStreamWriter.writeEmptyElement("br");
-//            xmlStreamWriter.writeCharacters(artifact);
-//            xmlStreamWriter.writeEmptyElement("br");
-//            xmlStreamWriter.writeCharacters(version);
         }
     }
 

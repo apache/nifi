@@ -51,8 +51,6 @@ import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -118,7 +116,6 @@ public class LoadBalancedQueueIT {
     private ClusterCoordinator clusterCoordinator;
     private NodeIdentifier localNodeId;
     private ProcessScheduler processScheduler;
-    private ResourceClaimManager resourceClaimManager;
     private LoadBalancedFlowFileQueue serverQueue;
     private FlowController flowController;
 
@@ -162,7 +159,6 @@ public class LoadBalancedQueueIT {
 
         processScheduler = mock(ProcessScheduler.class);
         clientProvRepo = mock(ProvenanceRepository.class);
-        resourceClaimManager = new StandardResourceClaimManager();
         final Connection connection = mock(Connection.class);
         when(connection.getIdentifier()).thenReturn(queueId);
 
@@ -237,7 +233,7 @@ public class LoadBalancedQueueIT {
         final Thread clientThread = new Thread(clientTask);
 
         final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
 
         flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
 
@@ -346,7 +342,7 @@ public class LoadBalancedQueueIT {
             clientThread.setDaemon(true);
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
 
             try {
@@ -445,7 +441,7 @@ public class LoadBalancedQueueIT {
             clientThread.start();
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
 
             try {
@@ -534,7 +530,7 @@ public class LoadBalancedQueueIT {
             clientThread.start();
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
 
             try {
@@ -606,7 +602,7 @@ public class LoadBalancedQueueIT {
             clientThread.start();
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
             flowFileQueue.setLoadBalanceCompression(LoadBalanceCompression.COMPRESS_ATTRIBUTES_ONLY);
 
@@ -697,7 +693,7 @@ public class LoadBalancedQueueIT {
             clientThread.start();
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
             flowFileQueue.setLoadBalanceCompression(LoadBalanceCompression.COMPRESS_ATTRIBUTES_AND_CONTENT);
 
@@ -786,7 +782,7 @@ public class LoadBalancedQueueIT {
             clientThread.start();
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
 
             try {
@@ -874,7 +870,7 @@ public class LoadBalancedQueueIT {
             clientThread.start();
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
 
             try {
@@ -962,7 +958,7 @@ public class LoadBalancedQueueIT {
             clientThread.start();
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
 
             final byte[] payload = new byte[1024 * 1024];
@@ -1079,7 +1075,7 @@ public class LoadBalancedQueueIT {
             clientThread.start();
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new FlowFilePartitioner() {
                 @Override
                 public QueuePartition getPartition(final FlowFileRecord flowFile, final QueuePartition[] partitions, final QueuePartition localPartition) {
@@ -1185,7 +1181,7 @@ public class LoadBalancedQueueIT {
             clientThread.start();
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
 
             try {
@@ -1254,7 +1250,7 @@ public class LoadBalancedQueueIT {
             clientThread.start();
 
             final SocketLoadBalancedFlowFileQueue flowFileQueue = new SocketLoadBalancedFlowFileQueue(queueId, processScheduler, clientFlowFileRepo, clientProvRepo,
-                    clientContentRepo, resourceClaimManager, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
+                    clientContentRepo, clusterCoordinator, clientRegistry, flowFileSwapManager, swapThreshold, eventReporter);
             flowFileQueue.setFlowFilePartitioner(new RoundRobinPartitioner());
 
             try {

@@ -65,9 +65,6 @@ public class TestFlowContentSerializer {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         serializer.serializeFlowContent(flowContent, out);
 
-        //final String json = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        //System.out.println(json);
-
         final ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
 
         // make sure we can read the version from the input stream and it should be the current version

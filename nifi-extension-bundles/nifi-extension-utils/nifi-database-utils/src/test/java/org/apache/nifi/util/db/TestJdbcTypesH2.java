@@ -96,15 +96,10 @@ public class TestJdbcTypesH2 {
 
         st.executeUpdate(createTable);
 
-//        st.executeUpdate("insert into users (email, password, activation_code, forgotten_password_code, forgotten_password_time, created, active, home_module_id) "
-//                + " values ('robert.gates@cold.com', '******', 'CAS', 'ounou', '2005-12-09', '2005-12-03', 1, 5)");
-
         st.executeUpdate("insert into users (email, password, activation_code, created, active, somebinary, somebinary2, somebinary3, someblob, someclob) "
                 + " values ('mari.gates@cold.com', '******', 'CAS', '2005-12-03', 3, 0x66FF, 'ABDF', 'EE64', 'BB22', 'CC88')");
 
         final ResultSet resultSet = st.executeQuery("select U.*, ROW_NUMBER() OVER () as rownr from users U");
-//      final ResultSet resultSet = st.executeQuery("select U.active from users U");
-//        final ResultSet resultSet = st.executeQuery("select U.somebinary from users U");
 
         final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         JdbcCommon.convertToAvroStream(resultSet, outStream, false);

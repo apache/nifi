@@ -16,15 +16,11 @@
  */
 package org.apache.nifi.parameter;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class ExpressionLanguageAwareParameterParser extends AbstractParameterParser implements ParameterParser {
-    private static final Logger logger = LoggerFactory.getLogger(ExpressionLanguageAwareParameterParser.class);
     private static final char DOLLAR_SIGN = '$';
 
 

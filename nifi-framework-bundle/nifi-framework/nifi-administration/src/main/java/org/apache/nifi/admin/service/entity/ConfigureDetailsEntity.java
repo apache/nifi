@@ -20,8 +20,6 @@ package org.apache.nifi.admin.service.entity;
  * Enumeration of Action Configure Details properties stored as Entity objects
  */
 public enum ConfigureDetailsEntity implements EntityProperty {
-    ACTION("action"),
-
     NAME("name"),
 
     PREVIOUS_VALUE("previousValue"),

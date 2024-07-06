@@ -31,7 +31,6 @@ import jakarta.ws.rs.Path;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.standard.ListenHTTP;
 import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
 import org.apache.nifi.security.cert.StandardPrincipalFormatter;
@@ -43,7 +42,6 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
     public static final String DEFAULT_FOUND_SUBJECT = "none";
     private static final long serialVersionUID = -2675148117984902978L;
 
-    private Processor processor;
     private Pattern authorizedPattern;
     private ComponentLog logger;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
@@ -53,7 +51,6 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
     @Override
     public void init(final ServletConfig config) throws ServletException {
         final ServletContext context = config.getServletContext();
-        this.processor = (Processor) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PROCESSOR);
         this.logger = (ComponentLog) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
         this.authorizedPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);

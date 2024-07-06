@@ -82,10 +82,6 @@ public class TestLogMessage {
         assertEquals(1, successFlowFiles.size());
 
         MockComponentLog mockComponentLog = testableLogMessage.getMockComponentLog();
-        List<org.apache.nifi.util.LogMessage> infoMessages = mockComponentLog.getInfoMessages();
-        //TODO NIFI-12998 find why these fail
-        //assertEquals(1, infoMessages.size());
-        //assertTrue(infoMessages.get(0).getMsg().endsWith("This should help the operator to follow the flow: baz"));
 
         assertTrue(mockComponentLog.getTraceMessages().isEmpty());
         assertTrue(mockComponentLog.getDebugMessages().isEmpty());
@@ -110,12 +106,6 @@ public class TestLogMessage {
         assertEquals(1, successFlowFiles.size());
 
         MockComponentLog mockComponentLog = testableLogMessage.getMockComponentLog();
-        List<org.apache.nifi.util.LogMessage> infoMessages = mockComponentLog.getInfoMessages();
-        //TODO NIFI-12998 find why these fail
-        //assertEquals(1, infoMessages.size());
-        //assertTrue(infoMessages.get(0).getMsg().endsWith("FOOBAR>>>This should help the operator to follow the flow: baz"));
-
-
 
         assertTrue(mockComponentLog.getTraceMessages().isEmpty());
         assertTrue(mockComponentLog.getDebugMessages().isEmpty());

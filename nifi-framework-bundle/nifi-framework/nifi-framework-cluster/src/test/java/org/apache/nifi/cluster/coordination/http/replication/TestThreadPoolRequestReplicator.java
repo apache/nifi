@@ -304,7 +304,7 @@ public class TestThreadPoolRequestReplicator {
                 new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
         clusterResponse.awaitMergedResponse();
 
-        // Ensure that we received two requests - the first should contain the X-NcmExpects header; the second should not.
+        // Ensure that we received two requests
         // These assertions are validated above, in the overridden replicateRequest method.
         assertEquals(2, requestCount.get());
 

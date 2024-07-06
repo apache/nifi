@@ -2234,11 +2234,11 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 final FlowFileQueue flowFileQueue;
 
                 if (clusterCoordinator == null) {
-                    flowFileQueue = new StandardFlowFileQueue(id, flowFileRepository, provenanceRepository, resourceClaimManager, processScheduler, swapManager,
+                    flowFileQueue = new StandardFlowFileQueue(id, flowFileRepository, provenanceRepository, processScheduler, swapManager,
                             eventReporter, nifiProperties.getQueueSwapThreshold(),
                             processGroup.getDefaultFlowFileExpiration(), processGroup.getDefaultBackPressureObjectThreshold(), processGroup.getDefaultBackPressureDataSizeThreshold());
                 } else {
-                    flowFileQueue = new SocketLoadBalancedFlowFileQueue(id, processScheduler, flowFileRepository, provenanceRepository, contentRepository, resourceClaimManager,
+                    flowFileQueue = new SocketLoadBalancedFlowFileQueue(id, processScheduler, flowFileRepository, provenanceRepository, contentRepository,
                             clusterCoordinator, loadBalanceClientRegistry, swapManager, nifiProperties.getQueueSwapThreshold(), eventReporter);
 
                     flowFileQueue.setFlowFileExpiration(processGroup.getDefaultFlowFileExpiration());

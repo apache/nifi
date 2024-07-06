@@ -142,9 +142,6 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         // may perform further inspection. For example, consider that a javax.jms.Message is returned. If this method proxies
         // only that method, but the object itself is a javax.jms.BytesMessage, then code such as the following will result in `isBytes == false`
         // when it should be `true`:
-        //
-        // final javax.jms.Message myMessage = controllerService.getMessage();
-        // final boolean isBytes = myMessage instanceof javax.jms.BytesMessage;
         final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(bareObject.getClass());
         if (interfaces == null || interfaces.isEmpty()) {
             return bareObject;

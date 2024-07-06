@@ -23,12 +23,10 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
@@ -69,7 +67,6 @@ public class ExecuteGroovyScriptTest {
     protected static DBCPService dbcp = null;  //to make single initialization
     protected MockRecordParser recordParser = null;
     protected RecordSetWriterFactory recordWriter = null;
-    protected RecordSchema recordSchema = null;
     protected ExecuteGroovyScript proc;
     public final String TEST_RESOURCE_LOCATION = "target/test/resources/groovy/";
     private final String TEST_CSV_DATA = "gender,title,first,last\n"
@@ -135,7 +132,6 @@ public class ExecuteGroovyScriptTest {
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
                 new RecordField("code", RecordFieldType.INT.getDataType()));
-        recordSchema = new SimpleRecordSchema(recordFields);
 
         recordParser = new MockRecordParser();
         recordFields.forEach((r) -> recordParser.addSchemaField(r));

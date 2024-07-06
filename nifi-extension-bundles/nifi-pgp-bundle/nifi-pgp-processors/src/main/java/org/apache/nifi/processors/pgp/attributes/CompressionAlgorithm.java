@@ -26,8 +26,6 @@ public enum CompressionAlgorithm {
 
     ZIP(CompressionAlgorithmTags.ZIP),
 
-    ZLIB(CompressionAlgorithmTags.ZLIB),
-
     BZIP2(CompressionAlgorithmTags.BZIP2);
 
     private final int id;

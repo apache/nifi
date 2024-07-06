@@ -29,16 +29,10 @@ import java.util.Map;
 public interface EnvironmentVariables {
 
     /**
-     * Returns an empty registry which can be used as a more intentional null
-     * value.
-     */
-    public static final EnvironmentVariables EMPTY_ENVIRONMENT_VARIABLES = () -> Collections.emptyMap();
-
-    /**
      * Provides a registry containing all environment variables and system
      * properties. System properties receive precedence.
      */
-    public static final EnvironmentVariables ENVIRONMENT_VARIABLES = new EnvironmentVariables() {
+    public final EnvironmentVariables ENVIRONMENT_VARIABLES = new EnvironmentVariables() {
         final Map<VariableDescriptor, String> map = new HashMap<>();
 
         {

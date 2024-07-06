@@ -19,6 +19,5 @@ package org.apache.nifi.provenance.index.lucene;
 
 public enum CommitPreference {
     FORCE_COMMIT,
-    PREVENT_COMMIT,
-    NO_PREFERENCE;
+    PREVENT_COMMIT;
 }

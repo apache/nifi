@@ -564,7 +564,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         int exitCode;
         final boolean putToAttribute;
         final int attributeSize;
-        final String attributeName;
 
         byte[] outputBuffer;
         int size;
@@ -580,7 +579,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             this.process = process;
             this.putToAttribute = putToAttribute;
             this.attributeSize = attributeSize;
-            this.attributeName = attributeName;
         }
 
         @Override

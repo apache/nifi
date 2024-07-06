@@ -537,7 +537,7 @@ public class TestWriteAheadFlowFileRepository {
         when(connection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
 
         final FlowFileSwapManager swapMgr = new MockFlowFileSwapManager();
-        final FlowFileQueue queue = new StandardFlowFileQueue("1234", null, null, claimManager, null, swapMgr, null, 10000, "0 sec", 0L, "0 B");
+        final FlowFileQueue queue = new StandardFlowFileQueue("1234", null, null, null, swapMgr, null, 10000, "0 sec", 0L, "0 B");
 
         when(connection.getFlowFileQueue()).thenReturn(queue);
         queueProvider.addConnection(connection);

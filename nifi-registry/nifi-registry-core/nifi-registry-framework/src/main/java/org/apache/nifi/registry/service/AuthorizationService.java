@@ -186,7 +186,6 @@ public class AuthorizationService {
 
     private ResourcePermissions getTopLevelPermissions() {
 
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
         ResourcePermissions resourcePermissions = new ResourcePermissions();
 
         final Permissions bucketsPermissions = getPermissionsForResource(authorizableLookup.getBucketsAuthorizable());
@@ -482,7 +481,6 @@ public class AuthorizationService {
                 getAuthorizableResources(resourceType)
                         .stream()
                         .filter(resource -> {
-                            String resourceId = resource.getIdentifier();
                             try {
                                 authorizableLookup
                                         .getAuthorizableByResource(resource.getIdentifier())

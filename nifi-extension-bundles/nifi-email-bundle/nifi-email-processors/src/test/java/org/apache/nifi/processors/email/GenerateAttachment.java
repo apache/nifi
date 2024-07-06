@@ -24,7 +24,6 @@ public class GenerateAttachment {
     String to;
     String subject;
     String message;
-    String hostName;
 
     private static final String NEWLINE = "\n";
 
@@ -35,7 +34,6 @@ public class GenerateAttachment {
         this.to = to;
         this.subject = subject;
         this.message = message;
-        this.hostName = hostName;
     }
 
     public byte[] simpleMessage() {

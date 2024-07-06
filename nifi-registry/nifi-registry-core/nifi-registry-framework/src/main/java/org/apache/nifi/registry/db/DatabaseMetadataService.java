@@ -1049,7 +1049,6 @@ public class DatabaseMetadataService implements MetadataService {
     @Override
     public List<ExtensionEntity> getExtensionsByBundleVersionId(final String bundleVersionId) {
         final String selectSql = BASE_EXTENSION_SQL + " AND e.bundle_version_id = ?";
-        final Object[] args = {bundleVersionId};
         return jdbcTemplate.query(selectSql, new ExtensionEntityRowMapper(), bundleVersionId);
     }
 

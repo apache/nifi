@@ -524,7 +524,6 @@ public class FileAccessPolicyProviderTest {
     @Test
     public void testOnConfiguredWhenNodeGroupEmpty() throws Exception {
         final String adminIdentity = "admin-user";
-        final String nodeGroupIdentifier = "cluster-nodes";
 
         when(configurationContext.getProperty(eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
             .thenReturn(new StandardPropertyValue(adminIdentity, null, ParameterLookup.EMPTY));

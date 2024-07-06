@@ -23,7 +23,6 @@ import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
@@ -55,7 +54,6 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     private final String identifier;
     private final FlowFileRepository flowFileRepository;
     private final ProvenanceEventRepository provRepository;
-    private final ResourceClaimManager resourceClaimManager;
     private final ProcessScheduler scheduler;
 
     private final AtomicReference<TimePeriod> expirationPeriod = new AtomicReference<>(new TimePeriod("0 sec", 0L));
@@ -75,12 +73,11 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
 
     public AbstractFlowFileQueue(final String identifier, final ProcessScheduler scheduler,
-            final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo, final ResourceClaimManager resourceClaimManager) {
+            final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo) {
         this.identifier = identifier;
         this.scheduler = scheduler;
         this.flowFileRepository = flowFileRepo;
         this.provRepository = provRepo;
-        this.resourceClaimManager = resourceClaimManager;
     }
 
     @Override

@@ -25,41 +25,6 @@ public enum ConnectionState {
     NOT_CLUSTERED,
 
     /**
-     * Instance is in the process of connecting to the cluster
-     */
-    CONNECTING,
-
-    /**
-     * Instance is connected to the cluster
-     */
-    CONNECTED,
-
-    /**
-     * Instance is in the process of disconnecting from the cluster
-     */
-    DISCONNECTING,
-
-    /**
-     * Instance is disconnected from the cluster
-     */
-    DISCONNECTED,
-
-    /**
-     * Instance is offloading
-     */
-    OFFLOADING,
-
-    /**
-     * Instances has completed offloading
-     */
-    OFFLOADED,
-
-    /**
-     * Instance has been removed from the cluster
-     */
-    REMOVED,
-
-    /**
      * The state is not currently known
      */
     UNKNOWN;
