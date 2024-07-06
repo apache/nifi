@@ -39,8 +39,6 @@ public class BundleDetailsTest {
         final String buildJdk = "JDK8";
         final String builtBy = "bbende";
 
-        final boolean cloneDuringInstanceClassLoading = true;
-
         final BundleDetails bundleDetails = new BundleDetails.Builder()
                 .workingDir(workingDirectory)
                 .coordinate(coordinate)

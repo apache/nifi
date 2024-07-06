@@ -16,15 +16,11 @@
  */
 package org.apache.nifi.parameter;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class ExpressionLanguageAgnosticParameterParser extends AbstractParameterParser {
-    private static final Logger logger = LoggerFactory.getLogger(ExpressionLanguageAgnosticParameterParser.class);
 
     @Override
     public ParameterTokenList parseTokens(final String input) {

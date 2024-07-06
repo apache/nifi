@@ -21,5 +21,4 @@ public class BundleTypeValues {
     public static final String NIFI_NAR_VALUE = "nifi-nar";
     public static final String MINIFI_CPP_VALUE = "minifi-cpp";
 
-    public static final String ALL_VALUES = NIFI_NAR_VALUE + ", " + MINIFI_CPP_VALUE;
 }

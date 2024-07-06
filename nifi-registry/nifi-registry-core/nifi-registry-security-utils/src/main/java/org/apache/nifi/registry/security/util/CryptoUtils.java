@@ -55,8 +55,6 @@ public class CryptoUtils {
      *         null if max key length cannot be determined for any known Cipher transformations */
     public static Boolean isCryptoRestricted() {
 
-        Boolean isCryptoRestricted = null;
-
         for (String transformation : standardCryptoTransformations) {
             try {
                 return Cipher.getMaxAllowedKeyLength(transformation) < Integer.MAX_VALUE;

@@ -169,7 +169,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             throw new IllegalArgumentException("UI extension type must support Processor, ControllerService, or ReportingTask configuration.");
         }
 
-        // - when running standalone or cluster ncm - actions from custom UIs are stored locally
+        // - when running standalone or cluster - actions from custom UIs are stored locally
         // - clustered nodes do not serve custom UIs directly to users so they should never be invoking this method
         final Date now = new Date();
         final Collection<Action> actions = new HashSet<>(configurationActions.size());

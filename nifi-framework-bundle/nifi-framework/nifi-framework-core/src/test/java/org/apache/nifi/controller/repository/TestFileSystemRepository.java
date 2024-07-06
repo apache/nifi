@@ -110,10 +110,6 @@ public class TestFileSystemRepository {
             try (final OutputStream out = repository.write(claim)) {
                 out.write(content);
             }
-            //            final ContentClaim claim = cache.getContentClaim();
-            //            try (final OutputStream out = cache.write(claim)) {
-            //                out.write(content);
-            //            }
         }
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
 

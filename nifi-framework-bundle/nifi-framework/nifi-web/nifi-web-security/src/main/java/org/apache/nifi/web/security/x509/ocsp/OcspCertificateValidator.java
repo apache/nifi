@@ -419,24 +419,6 @@ public class OcspCertificateValidator {
         // if the responder certificate was issued by the same CA that issued the subject certificate we may be able to use that...
         final X500Principal issuerCA = issuerCertificate.getSubjectX500Principal();
         if (responderCertificate.getIssuerX500Principal().equals(issuerCA)) {
-            // perform a number of verification steps... TODO... from sun.security.provider.certpath.OCSPResponse.java... currently incomplete...
-//            try {
-//                // ensure appropriate key usage
-//                final List<String> keyUsage = responderCertificate.getExtendedKeyUsage();
-//                if (keyUsage == null || !keyUsage.contains(KP_OCSP_SIGNING_OID)) {
-//                    return null;
-//                }
-//
-//                // ensure the certificate is valid
-//                responderCertificate.checkValidity();
-//
-//                // verify the signature
-//                responderCertificate.verify(issuerCertificate.getPublicKey());
-//
-//                return responderCertificate;
-//            } catch (final CertificateException | NoSuchAlgorithmException | InvalidKeyException | NoSuchProviderException | SignatureException e) {
-//                return null;
-//            }
             return null;
         } else {
             return null;

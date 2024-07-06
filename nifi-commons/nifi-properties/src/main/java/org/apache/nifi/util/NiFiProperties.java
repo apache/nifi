@@ -87,13 +87,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
     public static final String LISTENER_BOOTSTRAP_PORT = "nifi.listener.bootstrap.port";
 
-    // Encryption Properties for all Repositories
-    public static final String REPOSITORY_ENCRYPTION_PROTOCOL_VERSION = "nifi.repository.encryption.protocol.version";
-    public static final String REPOSITORY_ENCRYPTION_KEY_ID = "nifi.repository.encryption.key.id";
-    public static final String REPOSITORY_ENCRYPTION_KEY_PROVIDER = "nifi.repository.encryption.key.provider";
-    public static final String REPOSITORY_ENCRYPTION_KEY_PROVIDER_KEYSTORE_LOCATION = "nifi.repository.encryption.key.provider.keystore.location";
-    public static final String REPOSITORY_ENCRYPTION_KEY_PROVIDER_KEYSTORE_PASSWORD = "nifi.repository.encryption.key.provider.keystore.password";
-
     // content repository properties
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
     public static final String CONTENT_REPOSITORY_IMPLEMENTATION = "nifi.content.repository.implementation";
@@ -1577,10 +1570,6 @@ public class NiFiProperties extends ApplicationProperties {
                 && getProperty(SECURITY_KEYSTORE_PASSWD) != null
                 && StringUtils.isNotBlank(getProperty(SECURITY_TRUSTSTORE))
                 && getProperty(SECURITY_TRUSTSTORE_PASSWD) != null;
-    }
-
-    public String getRepositoryEncryptionKeyId() {
-        return getProperty(REPOSITORY_ENCRYPTION_KEY_ID);
     }
 
     /**

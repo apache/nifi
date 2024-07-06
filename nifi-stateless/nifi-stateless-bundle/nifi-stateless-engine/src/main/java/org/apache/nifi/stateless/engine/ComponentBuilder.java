@@ -207,7 +207,6 @@ public class ComponentBuilder {
 
     public ParameterProviderNode buildParameterProvider() throws ParameterProviderInstantiationException {
         final LoggableComponent<ParameterProvider> parameterProviderComponent = createLoggableParameterProvider();
-        final ProcessScheduler processScheduler = statelessEngine.getProcessScheduler();
         final ControllerServiceProvider controllerServiceProvider = statelessEngine.getControllerServiceProvider();
         final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();

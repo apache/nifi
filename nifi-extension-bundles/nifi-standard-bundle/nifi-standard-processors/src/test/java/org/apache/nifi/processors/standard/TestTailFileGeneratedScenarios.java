@@ -36,55 +36,6 @@ public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario
 
     @BeforeAll
     public static final void createParameters() {
-        // Uncomment the portion for which to run the scenarios.
-        //  They cannot be added to a single large batch because it opens too many files.
-//        final List<Action> baseActions = Arrays.asList(
-//            Action.WRITE_WORD,
-//            Action.WRITE_NUL,
-//            Action.WRITE_NEW_LINE,
-//            Action.WRITE_NUL,
-//            Action.OVERWRITE_NUL,
-//            Action.WRITE_WORD,
-//            Action.OVERWRITE_NUL,
-//            Action.WRITE_NUL,
-//            Action.WRITE_NEW_LINE,
-//            Action.OVERWRITE_NUL,
-//            Action.WRITE_NUL,
-//            Action.OVERWRITE_NUL
-//        );
-//        addAction(parameters, Action.TRIGGER, baseActions, 0, 0);
-//        new ArrayList<>(parameters).forEach(anActionList -> addAction(parameters, Action.ROLLOVER, (List<Action>)anActionList[0], 0, 0));
-//        new ArrayList<>(parameters).forEach(anActionList -> addAction(parameters, Action.SWITCH_FILE, (List<Action>)anActionList[0], 0, 0));
-
-//        final List<Action> baseActions = Arrays.asList(
-//            Action.WRITE_WORD,
-//            Action.WRITE_NEW_LINE,
-//            Action.WRITE_NUL,
-//            Action.OVERWRITE_NUL,
-//            Action.WRITE_WORD,
-//            Action.WRITE_NUL,
-//            Action.WRITE_NEW_LINE,
-//            Action.OVERWRITE_NUL,
-//            Action.ROLLOVER,
-//            Action.WRITE_WORD,
-//            Action.WRITE_NEW_LINE,
-//            Action.WRITE_NUL,
-//            Action.OVERWRITE_NUL,
-//            Action.WRITE_WORD,
-//            Action.WRITE_NUL,
-//            Action.WRITE_NEW_LINE,
-//            Action.OVERWRITE_NUL,
-//            Action.SWITCH_FILE,
-//            Action.WRITE_WORD,
-//            Action.WRITE_NEW_LINE,
-//            Action.WRITE_NUL,
-//            Action.OVERWRITE_NUL,
-//            Action.WRITE_WORD,
-//            Action.WRITE_NUL,
-//            Action.WRITE_NEW_LINE,
-//            Action.OVERWRITE_NUL
-//        );
-//        addAction(parameters, Action.TRIGGER, baseActions, 0, 1);
 
         final List<Action> baseActions = Arrays.asList(
                 Action.WRITE_WORD, Action.WRITE_WORD,

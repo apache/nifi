@@ -26,9 +26,6 @@ public enum CertificateAttribute {
     /** Certificate Issuer Distinguished Name */
     HTTP_ISSUER_DN("http.issuer.dn"),
 
-    /** Certificate Subject Distinguished Name */
-    HTTP_CERTIFICATE_PARSING_EXCEPTION("http.certificate.parsing.exception"),
-
     /** Certificate Subject Alternative Names */
     HTTP_CERTIFICATE_SANS("http.certificate.sans");
 

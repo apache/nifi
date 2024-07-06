@@ -27,7 +27,6 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -63,7 +62,6 @@ public class TestStandardFlowFileQueue {
     private Connection connection = null;
     private FlowFileRepository flowFileRepo = null;
     private ProvenanceEventRepository provRepo = null;
-    private ResourceClaimManager claimManager = null;
     private ProcessScheduler scheduler = null;
 
     private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
@@ -82,7 +80,6 @@ public class TestStandardFlowFileQueue {
 
         flowFileRepo = Mockito.mock(FlowFileRepository.class);
         provRepo = Mockito.mock(ProvenanceEventRepository.class);
-        claimManager = Mockito.mock(ResourceClaimManager.class);
 
         Mockito.when(provRepo.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
         Mockito.doAnswer(new Answer<Object>() {
@@ -96,7 +93,7 @@ public class TestStandardFlowFileQueue {
             }
         }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
 
-        queue = new StandardFlowFileQueue("id", flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 10000, "0 sec", 0L, "0 B");
+        queue = new StandardFlowFileQueue("id", flowFileRepo, provRepo, scheduler, swapManager, null, 10000, "0 sec", 0L, "0 B");
         MockFlowFileRecord.resetIdGenerator();
     }
 
@@ -345,7 +342,7 @@ public class TestStandardFlowFileQueue {
     @Test
     public void testSwapInWhenThresholdIsLessThanSwapSize() {
         // create a queue where the swap threshold is less than 10k
-        queue = new StandardFlowFileQueue("id", flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 1000, "0 sec", 0L, "0 B");
+        queue = new StandardFlowFileQueue("id", flowFileRepo, provRepo, scheduler, swapManager, null, 1000, "0 sec", 0L, "0 B");
 
         for (int i = 1; i <= 20000; i++) {
             queue.put(new MockFlowFileRecord());

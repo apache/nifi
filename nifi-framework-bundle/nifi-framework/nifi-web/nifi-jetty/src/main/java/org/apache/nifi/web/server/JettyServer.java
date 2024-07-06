@@ -853,8 +853,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             // if this nifi is a node in a cluster, start the flow service and load the flow - the
             // flow service is loaded here for clustered nodes because the loading of the flow will
-            // initialize the connection between the node and the NCM. if the node connects (starts
-            // heartbeating, etc), the NCM may issue web requests before the application (wars) have
+            // initialize the connection between the node and the coordinator. if the node connects (starts
+            // heartbeating, etc), the coordinator may issue web requests before the application (wars) have
             // finished loading. this results in the node being disconnected since its unable to
             // successfully respond to the requests. to resolve this, flow loading was moved to here
             // (after the wars have been successfully deployed) when this nifi instance is a node

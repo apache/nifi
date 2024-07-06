@@ -55,15 +55,6 @@ public class GetRegistryClientId extends AbstractNiFiCommand<RegistryClientIDRes
     public RegistryClientIDResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, CommandException {
         final String regClientName = getArg(properties, CommandOption.REGISTRY_CLIENT_NAME);
-        //final String regClientUrl = getArg(properties, CommandOption.REGISTRY_CLIENT_URL);
-
-//        if (!StringUtils.isBlank(regClientName) && !StringUtils.isBlank(regClientUrl)) {
-//            throw new CommandException("Name and URL cannot be specified at the same time");
-//        }
-//
-//        if (StringUtils.isBlank(regClientName) && StringUtils.isBlank(regClientUrl)) {
-//            throw new CommandException("Name or URL must be specified");
-//        }
 
         final FlowRegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
 
@@ -78,7 +69,6 @@ public class GetRegistryClientId extends AbstractNiFiCommand<RegistryClientIDRes
         } else {
             registry = registries.getRegistries().stream()
                     .map(r -> r.getComponent())
-//                    .filter(r -> r.getUri().equalsIgnoreCase(regClientUrl.trim()))
                     .findFirst()
                     .orElse(null);
         }

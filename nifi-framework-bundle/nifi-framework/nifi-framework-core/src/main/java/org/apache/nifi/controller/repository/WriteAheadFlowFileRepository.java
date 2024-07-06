@@ -82,7 +82,6 @@ import java.util.stream.Collectors;
  */
 public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncListener {
     static final String FLOWFILE_REPOSITORY_DIRECTORY_PREFIX = "nifi.flowfile.repository.directory";
-    private static final String WRITE_AHEAD_LOG_IMPL = "nifi.flowfile.repository.wal.implementation";
     private static final String RETAIN_ORPHANED_FLOWFILES = "nifi.flowfile.repository.retain.orphaned.flowfiles";
     private static final String FLOWFILE_REPO_CACHE_SIZE = "nifi.flowfile.repository.wal.cache.characters";
 
@@ -161,7 +160,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         retainOrphanedFlowFiles = orphanedFlowFileProperty == null || Boolean.parseBoolean(orphanedFlowFileProperty);
 
         // determine the database file path and ensure it exists
-        String writeAheadLogImpl = nifiProperties.getProperty(WRITE_AHEAD_LOG_IMPL);
+        String writeAheadLogImpl = nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION);
         if (writeAheadLogImpl == null) {
             writeAheadLogImpl = DEFAULT_WAL_IMPLEMENTATION;
         }
@@ -212,8 +211,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             // TODO: May need to instantiate ESAWAL for clarity?
             wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
         } else {
-            throw new IllegalStateException("Cannot create Write-Ahead Log because the configured property '" + WRITE_AHEAD_LOG_IMPL + "' has an invalid value of '" + walImplementation
-                    + "'. Please update nifi.properties to indicate a valid value for this property.");
+            throw new IllegalStateException("Cannot create Write-Ahead Log because the configured property '" + NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION +
+                    "' has an invalid value of '" + walImplementation + "'. Please update nifi.properties to indicate a valid value for this property.");
         }
 
         logger.info("Initialized FlowFile Repository");

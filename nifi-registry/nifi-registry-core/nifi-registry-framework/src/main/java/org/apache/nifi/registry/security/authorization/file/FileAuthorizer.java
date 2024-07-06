@@ -35,8 +35,6 @@ import org.apache.nifi.registry.security.authorization.util.AccessPolicyProvider
 import org.apache.nifi.registry.security.authorization.util.UserGroupProviderUtils;
 import org.apache.nifi.registry.security.exception.SecurityProviderCreationException;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -47,8 +45,6 @@ import java.util.regex.Matcher;
  * Provides authorizes requests to resources using policies persisted in a file.
  */
 public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
-
-    private static final Logger logger = LoggerFactory.getLogger(FileAuthorizer.class);
 
     private static final String FILE_USER_GROUP_PROVIDER_ID = "file-user-group-provider";
     private static final String FILE_ACCESS_POLICY_PROVIDER_ID = "file-access-policy-provider";

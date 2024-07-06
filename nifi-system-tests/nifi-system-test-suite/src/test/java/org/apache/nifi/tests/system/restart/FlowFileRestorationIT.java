@@ -87,7 +87,6 @@ public class FlowFileRestorationIT extends NiFiSystemIT {
     }
 
     private byte[] getFlowFileContents(final String connectionId, final int flowFileIndex) throws IOException, NiFiClientException {
-        final byte[] flowFileContents;
         try (final InputStream in = getClientUtil().getFlowFileContent(connectionId, flowFileIndex);
              final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 

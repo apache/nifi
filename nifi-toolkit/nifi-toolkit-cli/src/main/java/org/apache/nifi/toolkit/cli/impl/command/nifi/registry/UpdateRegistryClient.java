@@ -78,10 +78,6 @@ public class UpdateRegistryClient extends AbstractNiFiCommand<VoidResult> {
             existingRegClient.getComponent().setName(name);
         }
 
-//        if (StringUtils.isNotBlank(url)) {
-//            existingRegClient.getComponent().setUri(url);
-//        }
-
         if (StringUtils.isNotBlank(desc)) {
             existingRegClient.getComponent().setDescription(desc);
         }

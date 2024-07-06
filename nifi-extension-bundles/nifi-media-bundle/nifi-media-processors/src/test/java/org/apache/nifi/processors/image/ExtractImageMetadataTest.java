@@ -50,7 +50,7 @@ public class ExtractImageMetadataTest {
 
     @Test
     public void testFailedExtraction() throws IOException {
-        MockFlowFile flowFile = verifyTestRunnerFlow("src/test/resources/notImage.txt", ExtractImageMetadata.FAILURE, null);
+        verifyTestRunnerFlow("src/test/resources/notImage.txt", ExtractImageMetadata.FAILURE, null);
     }
 
     @Test

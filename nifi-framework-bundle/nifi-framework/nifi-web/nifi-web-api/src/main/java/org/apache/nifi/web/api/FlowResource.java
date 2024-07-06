@@ -1370,7 +1370,7 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
-        // get the banner from the properties - will come from the NCM when clustered
+        // get the banner from the properties
         final String bannerText = getProperties().getBannerText();
 
         // create the DTO

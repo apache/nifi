@@ -805,7 +805,6 @@ public class ExtensionBuilder {
        try {
            final LoggableComponent<FlowAnalysisRule> loggableComponent = createLoggableComponent(FlowAnalysisRule.class, new StandardLoggingContext(null));
 
-           final String taskName = loggableComponent.getComponent().getClass().getSimpleName();
            final FlowAnalysisRuleInitializationContext config = new StandardFlowAnalysisInitializationContext(identifier,
                    loggableComponent.getLogger(), serviceProvider, kerberosConfig, nodeTypeProvider);
 

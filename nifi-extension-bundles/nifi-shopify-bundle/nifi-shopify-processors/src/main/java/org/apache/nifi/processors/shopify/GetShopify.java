@@ -220,7 +220,6 @@ public class GetShopify extends AbstractProcessor {
     private static final int TOO_MANY_REQUESTS = 429;
     private static final Pattern CURSOR_PATTERN = Pattern.compile("<([^<]*)>; rel=\"next\"");
     private static final String LAST_EXECUTION_TIME_KEY = "last_execution_time";
-    private static final int EXCLUSIVE_TIME_WINDOW_ADJUSTMENT = 1;
     private static final List<String> RESET_STATE_PROPERTY_NAMES;
 
     static {

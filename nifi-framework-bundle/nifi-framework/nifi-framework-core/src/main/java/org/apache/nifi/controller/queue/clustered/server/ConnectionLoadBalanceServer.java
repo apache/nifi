@@ -19,13 +19,14 @@ package org.apache.nifi.controller.queue.clustered.server;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLServerSocket;
 import java.io.BufferedInputStream;
@@ -37,6 +38,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -182,7 +184,7 @@ public class ConnectionLoadBalanceServer {
                     /* The exceptions can fill the log very quickly and make it difficult to use. SSLPeerUnverifiedExceptions
                     especially repeat and have a long stacktrace, and are not likely to be resolved instantaneously. Suppressing
                     them for a period of time is helpful */
-                    if (SocketUtils.isTlsError(e)) {
+                    if (isTlsError(e)) {
                         handleTlsError(channelDescription, e);
                     } else {
                         logger.error("Failed to communicate over Channel {}", channelDescription, e);
@@ -190,6 +192,20 @@ public class ConnectionLoadBalanceServer {
                     }
 
                     return;
+                }
+            }
+        }
+
+        private static boolean isTlsError(Throwable e) {
+            if (e == null) {
+                return false;
+            } else {
+                if (e instanceof CertificateException || e instanceof TlsException || e instanceof SSLException) {
+                    return true;
+                } else if (e.getCause() != null) {
+                    return isTlsError(e.getCause());
+                } else {
+                    return false;
                 }
             }
         }

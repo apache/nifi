@@ -35,8 +35,6 @@ import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.SwapSummary;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -76,7 +74,6 @@ public class TestSocketLoadBalancedFlowFileQueue {
     private FlowFileRepository flowFileRepo;
     private ContentRepository contentRepo;
     private ProvenanceEventRepository provRepo;
-    private ResourceClaimManager claimManager;
     private ClusterCoordinator clusterCoordinator;
     private MockSwapManager swapManager;
     private EventReporter eventReporter;
@@ -95,7 +92,6 @@ public class TestSocketLoadBalancedFlowFileQueue {
         flowFileRepo = mock(FlowFileRepository.class);
         contentRepo = mock(ContentRepository.class);
         provRepo = mock(ProvenanceEventRepository.class);
-        claimManager = new StandardResourceClaimManager();
         clusterCoordinator = mock(ClusterCoordinator.class);
         swapManager = new MockSwapManager();
         eventReporter = EventReporter.NO_OP;
@@ -128,7 +124,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
         final AsyncLoadBalanceClientRegistry registry = mock(AsyncLoadBalanceClientRegistry.class);
         queue = new SocketLoadBalancedFlowFileQueue("unit-test", scheduler, flowFileRepo, provRepo,
-            contentRepo, claimManager, clusterCoordinator, registry, swapManager, 10000, eventReporter);
+            contentRepo, clusterCoordinator, registry, swapManager, 10000, eventReporter);
     }
 
     private NodeIdentifier createNodeIdentifier() {
@@ -223,7 +219,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
         when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(null);
 
         queue = new SocketLoadBalancedFlowFileQueue("unit-test", scheduler, flowFileRepo, provRepo,
-            contentRepo, claimManager, clusterCoordinator, registry, swapManager, 10000, eventReporter);
+            contentRepo, clusterCoordinator, registry, swapManager, 10000, eventReporter);
         queue.setPriorities(Collections.singletonList(iValuePrioritizer));
 
         when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(null);
@@ -563,7 +559,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
         final AsyncLoadBalanceClientRegistry registry = mock(AsyncLoadBalanceClientRegistry.class);
         queue = new SocketLoadBalancedFlowFileQueue("unit-test", mock(ProcessScheduler.class), flowFileRepo, provRepo,
-            contentRepo, claimManager, clusterCoordinator, registry, swapManager, 10000, eventReporter);
+            contentRepo, clusterCoordinator, registry, swapManager, 10000, eventReporter);
 
         queue.setFlowFilePartitioner(new RoundRobinPartitioner());
 

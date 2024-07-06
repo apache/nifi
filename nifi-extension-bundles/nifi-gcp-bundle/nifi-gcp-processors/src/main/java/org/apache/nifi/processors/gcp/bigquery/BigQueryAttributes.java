@@ -47,10 +47,4 @@ public class BigQueryAttributes {
     // Batch Attributes
     public static final String JOB_NB_RECORDS_ATTR = "bq.records.count";
     public static final String JOB_NB_RECORDS_DESC = "Number of records successfully inserted";
-
-    public static final String JOB_ERROR_MSG_ATTR = "bq.error.message";
-
-    public static final String JOB_ERROR_REASON_ATTR = "bq.error.reason";
-
-    public static final String JOB_ERROR_LOCATION_ATTR = "bq.error.location";
 }
