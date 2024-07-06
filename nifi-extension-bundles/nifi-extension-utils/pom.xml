@@ -37,7 +37,6 @@
         <module>nifi-event-transport</module>
         <module>nifi-file-transfer</module>
         <module>nifi-hadoop-utils</module>
-        <module>nifi-kerberos-test-utils</module>
         <module>nifi-listed-entity</module>
         <module>nifi-migration-utils</module>
         <module>nifi-put-pattern</module>

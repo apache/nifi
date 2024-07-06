@@ -22,7 +22,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -39,7 +38,6 @@ import org.junit.jupiter.api.condition.OS;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedExceptionAction;
@@ -59,13 +57,10 @@ import static org.mockito.Mockito.when;
 @DisabledOnOs(OS.WINDOWS)
 public class GetHDFSTest {
 
-    private KerberosProperties kerberosProperties;
-
     @BeforeEach
     public void setup() {
         NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = new KerberosProperties(null);
     }
 
     @Test
@@ -99,7 +94,7 @@ public class GetHDFSTest {
 
     @Test
     public void testValidators() {
-        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         Collection<ValidationResult> results;
         ProcessContext pc;
@@ -141,7 +136,7 @@ public class GetHDFSTest {
 
     @Test
     public void testGetFilesWithFilter() {
-        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*");
@@ -156,7 +151,7 @@ public class GetHDFSTest {
 
     @Test
     public void testDirectoryDoesNotExist() {
-        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "does/not/exist/${now():format('yyyyMMdd')}");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
@@ -167,7 +162,7 @@ public class GetHDFSTest {
 
     @Test
     public void testAutomaticDecompression() throws IOException {
-        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*.gz");
@@ -186,7 +181,7 @@ public class GetHDFSTest {
 
     @Test
     public void testInferCompressionCodecDisabled() throws IOException {
-        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*.gz");
@@ -205,7 +200,7 @@ public class GetHDFSTest {
 
     @Test
     public void testFileExtensionNotACompressionCodec() throws IOException {
-        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
@@ -224,7 +219,7 @@ public class GetHDFSTest {
 
     @Test
     public void testDirectoryUsesValidEL() throws IOException {
-        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/${literal('testdata'):substring(0,8)}");
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
@@ -248,8 +243,8 @@ public class GetHDFSTest {
     }
 
     @Test
-    public void testDirectoryUsesUnrecognizedEL() throws IOException {
-        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+    public void testDirectoryUsesUnrecognizedEL() {
+        GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "data_${literal('testing'):substring(0,4)%7D");
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
@@ -259,8 +254,8 @@ public class GetHDFSTest {
     }
 
     @Test
-    public void testDirectoryUsesInvalidEL() throws IOException {
-        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+    public void testDirectoryUsesInvalidEL() {
+        GetHDFS proc = new GetHDFS();
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "data_${literal('testing'):foo()}");
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
@@ -292,7 +287,7 @@ public class GetHDFSTest {
         FileSystem mockFileSystem = mock(FileSystem.class);
         UserGroupInformation mockUserGroupInformation = mock(UserGroupInformation.class);
 
-        GetHDFS testSubject = new TestableGetHDFSForUGI(kerberosProperties, mockFileSystem, mockUserGroupInformation);
+        GetHDFS testSubject = new TestableGetHDFSForUGI(mockFileSystem, mockUserGroupInformation);
         TestRunner runner = TestRunners.newTestRunner(testSubject);
         runner.setProperty(GetHDFS.DIRECTORY, "src/test/resources/testdata");
 
@@ -330,7 +325,7 @@ public class GetHDFSTest {
         FileSystem mockFileSystem = mock(FileSystem.class);
         UserGroupInformation mockUserGroupInformation = mock(UserGroupInformation.class);
 
-        GetHDFS testSubject = new TestableGetHDFSForUGI(kerberosProperties, mockFileSystem, mockUserGroupInformation);
+        GetHDFS testSubject = new TestableGetHDFSForUGI(mockFileSystem, mockUserGroupInformation);
         TestRunner runner = TestRunners.newTestRunner(testSubject);
         runner.setProperty(GetHDFS.DIRECTORY, "src/test/resources/testdata");
         when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenThrow(new IOException(new GSSException(13)));
@@ -342,26 +337,11 @@ public class GetHDFSTest {
         runner.assertPenalizeCount(0);
     }
 
-    private static class TestableGetHDFS extends GetHDFS {
-
-        private final KerberosProperties testKerberosProperties;
-
-        public TestableGetHDFS(KerberosProperties testKerberosProperties) {
-            this.testKerberosProperties = testKerberosProperties;
-        }
-
-        @Override
-        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-            return testKerberosProperties;
-        }
-    }
-
-    private static class TestableGetHDFSForUGI extends TestableGetHDFS {
+    private static class TestableGetHDFSForUGI extends GetHDFS {
         private final FileSystem mockFileSystem;
         private final UserGroupInformation mockUserGroupInformation;
 
-        public TestableGetHDFSForUGI(KerberosProperties testKerberosProperties, FileSystem mockFileSystem, UserGroupInformation mockUserGroupInformation) {
-            super(testKerberosProperties);
+        public TestableGetHDFSForUGI(FileSystem mockFileSystem, UserGroupInformation mockUserGroupInformation) {
             this.mockFileSystem = mockFileSystem;
             this.mockUserGroupInformation = mockUserGroupInformation;
         }

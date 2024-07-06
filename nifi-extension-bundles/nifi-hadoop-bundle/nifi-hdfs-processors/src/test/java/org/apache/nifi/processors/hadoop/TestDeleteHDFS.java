@@ -20,7 +20,6 @@ import com.google.common.collect.Maps;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -31,7 +30,6 @@ import org.ietf.jgss.GSSException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
@@ -47,13 +45,11 @@ import static org.mockito.Mockito.when;
 
 public class TestDeleteHDFS {
     private FileSystem mockFileSystem;
-    private KerberosProperties kerberosProperties;
 
     @BeforeEach
     public void setup() throws Exception {
         NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = new KerberosProperties(null);
         mockFileSystem = mock(FileSystem.class);
     }
 
@@ -63,7 +59,7 @@ public class TestDeleteHDFS {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
-        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(false);
         runner.assertNotValid();
@@ -89,7 +85,7 @@ public class TestDeleteHDFS {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
-        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
         Map<String, String> attributes = Maps.newHashMap();
@@ -104,7 +100,7 @@ public class TestDeleteHDFS {
     public void testIOException() throws Exception {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenThrow(new IOException());
-        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
         Map<String, String> attributes = Maps.newHashMap();
@@ -118,7 +114,7 @@ public class TestDeleteHDFS {
     public void testGSSException() throws Exception {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenThrow(new IOException(new GSSException(13)));
-        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
         Map<String, String> attributes = Maps.newHashMap();
@@ -135,7 +131,7 @@ public class TestDeleteHDFS {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.delete(any(Path.class), any(Boolean.class))).thenThrow(new IOException("Permissions Error"));
-        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
         Map<String, String> attributes = Maps.newHashMap();
@@ -152,7 +148,7 @@ public class TestDeleteHDFS {
     @Test
     public void testNoFlowFilesWithIncomingConnection() {
         Path filePath = new Path("${hdfs.file}");
-        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, filePath.toString());
         runner.setIncomingConnection(true);
@@ -166,7 +162,7 @@ public class TestDeleteHDFS {
     public void testUnsuccessfulDelete() throws Exception {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenReturn(false);
-        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(false);
         runner.assertNotValid();
@@ -190,7 +186,7 @@ public class TestDeleteHDFS {
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.globStatus(any(Path.class))).thenReturn(fileStatuses);
         when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
-        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(false);
         runner.assertNotValid();
@@ -214,7 +210,7 @@ public class TestDeleteHDFS {
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.globStatus(any(Path.class))).thenReturn(fileStatuses);
         when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
-        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(kerberosProperties, mockFileSystem);
+        DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(true);
         Map<String, String> attributes = Maps.newHashMap();
@@ -227,17 +223,10 @@ public class TestDeleteHDFS {
     }
 
     private static class TestableDeleteHDFS extends DeleteHDFS {
-        private KerberosProperties testKerberosProperties;
-        private FileSystem mockFileSystem;
+        private final FileSystem mockFileSystem;
 
-        public TestableDeleteHDFS(KerberosProperties kerberosProperties, FileSystem mockFileSystem) {
-            this.testKerberosProperties = kerberosProperties;
+        public TestableDeleteHDFS(FileSystem mockFileSystem) {
             this.mockFileSystem = mockFileSystem;
-        }
-
-        @Override
-        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-            return testKerberosProperties;
         }
 
         @Override

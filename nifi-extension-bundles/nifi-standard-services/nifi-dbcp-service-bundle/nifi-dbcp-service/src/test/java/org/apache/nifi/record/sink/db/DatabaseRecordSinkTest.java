@@ -65,9 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_PASSWORD;
-import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_PRINCIPAL;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DATABASE_URL;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION;
@@ -336,10 +333,7 @@ public class DatabaseRecordSinkTest {
         when(dbContext.getProperty(EVICTION_RUN_PERIOD)).thenReturn(new MockPropertyValue("5 sec"));
         when(dbContext.getProperty(MIN_EVICTABLE_IDLE_TIME)).thenReturn(new MockPropertyValue("5 sec"));
         when(dbContext.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME)).thenReturn(new MockPropertyValue("5 sec"));
-        when(dbContext.getProperty(KERBEROS_CREDENTIALS_SERVICE)).thenReturn(new MockPropertyValue(null));
         when(dbContext.getProperty(KERBEROS_USER_SERVICE)).thenReturn(new MockPropertyValue(null));
-        when(dbContext.getProperty(KERBEROS_PRINCIPAL)).thenReturn(new MockPropertyValue(null));
-        when(dbContext.getProperty(KERBEROS_PASSWORD)).thenReturn(new MockPropertyValue(null));
 
         final ControllerServiceInitializationContext dbInitContext = new MockControllerServiceInitializationContext(dbcpService, UUID.randomUUID().toString(), logger, dbStateManager);
         dbcpService.initialize(dbInitContext);

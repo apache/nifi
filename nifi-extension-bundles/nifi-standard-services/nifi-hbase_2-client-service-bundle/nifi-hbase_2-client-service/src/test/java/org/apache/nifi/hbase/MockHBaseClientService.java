@@ -25,13 +25,11 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.mockito.Mockito;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedExceptionAction;
@@ -55,8 +53,6 @@ public class MockHBaseClientService extends HBase_2_ClientService {
     private Table table;
     private String family;
     private Map<String, Result> results = new HashMap<>();
-    private KerberosProperties kerberosProperties;
-    private boolean allowExplicitKeytab;
     private UserGroupInformation mockUgi;
 
     {
@@ -71,25 +67,9 @@ public class MockHBaseClientService extends HBase_2_ClientService {
         }
     }
 
-    public MockHBaseClientService(final Table table, final String family, final KerberosProperties kerberosProperties) {
-        this(table, family, kerberosProperties, false);
-    }
-
-    public MockHBaseClientService(final Table table, final String family, final KerberosProperties kerberosProperties, boolean allowExplicitKeytab) {
+    public MockHBaseClientService(final Table table, final String family) {
         this.table = table;
         this.family = family;
-        this.kerberosProperties = kerberosProperties;
-        this.allowExplicitKeytab = allowExplicitKeytab;
-    }
-
-    @Override
-    protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-        return kerberosProperties;
-    }
-
-    protected void setKerberosProperties(KerberosProperties properties) {
-        this.kerberosProperties = properties;
-
     }
 
     public void addResult(final String rowKey, final Map<String, String> cells, final long timestamp) {
@@ -222,11 +202,6 @@ public class MockHBaseClientService extends HBase_2_ClientService {
         Connection connection = mock(Connection.class);
         Mockito.when(connection.getTable(table.getName())).thenReturn(table);
         return connection;
-    }
-
-    @Override
-    boolean isAllowExplicitKeytab() {
-        return allowExplicitKeytab;
     }
 
     @Override

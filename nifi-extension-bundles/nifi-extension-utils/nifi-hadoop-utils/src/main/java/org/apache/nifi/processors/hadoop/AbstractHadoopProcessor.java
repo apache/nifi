@@ -37,24 +37,19 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.krb.KerberosKeytabUser;
-import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.ietf.jgss.GSSException;
 
 import javax.net.SocketFactory;
-import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -83,8 +78,6 @@ import java.util.stream.Stream;
  */
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
 public abstract class AbstractHadoopProcessor extends AbstractProcessor implements ClassloaderIsolationKeyProvider {
-    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
-
     private static final String DENY_LFS_ACCESS = "NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS";
 
     private static final String DENY_LFS_EXPLANATION = String.format("LFS Access Denied according to Environment Variable [%s]", DENY_LFS_ACCESS);
@@ -146,14 +139,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             .dynamicallyModifiesClasspath(true)
             .build();
 
-    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-credentials-service")
-            .displayName("Kerberos Credentials Service")
-            .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
-            .identifiesControllerService(KerberosCredentialsService.class)
-            .required(false)
-            .build();
-
     static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
             .name("kerberos-user-service")
             .displayName("Kerberos User Service")
@@ -171,9 +156,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     private static final Object RESOURCES_LOCK = new Object();
     private static final HdfsResources EMPTY_HDFS_RESOURCES = new HdfsResources(null, null, null, null);
 
-    protected KerberosProperties kerberosProperties;
     protected List<PropertyDescriptor> properties;
-    private volatile File kerberosConfigFile = null;
 
     // variables shared by all threads of this processor
     // Hadoop Configuration, Filesystem, and UserGroupInformation (optional)
@@ -186,23 +169,20 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     protected void init(ProcessorInitializationContext context) {
         hdfsResources.set(EMPTY_HDFS_RESOURCES);
 
-        kerberosConfigFile = context.getKerberosConfigurationFile();
-        kerberosProperties = getKerberosProperties(kerberosConfigFile);
-
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONFIGURATION_RESOURCES);
-        props.add(KERBEROS_CREDENTIALS_SERVICE);
         props.add(KERBEROS_USER_SERVICE);
-        props.add(kerberosProperties.getKerberosPrincipal());
-        props.add(kerberosProperties.getKerberosKeytab());
-        props.add(kerberosProperties.getKerberosPassword());
         props.add(KERBEROS_RELOGIN_PERIOD);
         props.add(ADDITIONAL_CLASSPATH_RESOURCES);
         properties = Collections.unmodifiableList(props);
     }
 
-    protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
-        return new KerberosProperties(kerberosConfigFile);
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.removeProperty("Kerberos Principal");
+        config.removeProperty("Kerberos Password");
+        config.removeProperty("Kerberos Keytab");
+        config.removeProperty("kerberos-credentials-service");
     }
 
     @Override
@@ -236,20 +216,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         builder.add(context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue());
         builder.add(context.getProperty(ADDITIONAL_CLASSPATH_RESOURCES).getValue());
 
-        final String explicitKerberosPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-        if (explicitKerberosPrincipal != null) {
-            builder.add(explicitKerberosPrincipal);
-        }
-
         try {
-            final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-            if (credentialsService != null) {
-                final String credentialsServicePrincipal = credentialsService.getPrincipal();
-                if (credentialsServicePrincipal != null) {
-                    builder.add(credentialsServicePrincipal);
-                }
-            }
-
             final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
             if (kerberosUserService != null) {
                 final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
@@ -264,22 +231,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-        final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
-        final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
-        final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        final KerberosUserService kerberosUserService = validationContext.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
-
-        final String resolvedPrincipal;
-        final String resolvedKeytab;
-        if (credentialsService == null) {
-            resolvedPrincipal = explicitPrincipal;
-            resolvedKeytab = explicitKeytab;
-        } else {
-            resolvedPrincipal = credentialsService.getPrincipal();
-            resolvedKeytab = credentialsService.getKeytab();
-        }
-
         final List<ValidationResult> results = new ArrayList<>();
         final List<String> locations = getConfigLocations(validationContext);
 
@@ -289,16 +240,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
         try {
             final Configuration conf = getHadoopConfigurationForValidation(locations);
-            if (kerberosUserService == null) {
-                results.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(
-                        this.getClass().getSimpleName(), conf, resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
-            } else {
-                final boolean securityEnabled = SecurityUtil.isSecurityEnabled(conf);
-                if (!securityEnabled) {
-                    getLogger().warn("Hadoop Configuration does not have security enabled, KerberosUserService will be ignored");
-                }
-            }
-
             results.addAll(validateFileSystem(conf));
         } catch (final IOException e) {
             results.add(new ValidationResult.Builder()
@@ -306,39 +247,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                     .subject("Hadoop Configuration Resources")
                     .explanation("Could not load Hadoop Configuration resources due to: " + e)
                     .build());
-        }
-
-        if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
-            results.add(new ValidationResult.Builder()
-                .subject("Kerberos Credentials")
-                .valid(false)
-                .explanation("Cannot specify a Kerberos Credentials Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
-                .build());
-        }
-
-        if (kerberosUserService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
-            results.add(new ValidationResult.Builder()
-                    .subject("Kerberos User")
-                    .valid(false)
-                    .explanation("Cannot specify a Kerberos User Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
-                    .build());
-        }
-
-        if (kerberosUserService != null && credentialsService != null) {
-            results.add(new ValidationResult.Builder()
-                    .subject("Kerberos User")
-                    .valid(false)
-                    .explanation("Cannot specify a Kerberos User Service while also specifying a Kerberos Credentials Service")
-                    .build());
-        }
-
-        if (!isAllowExplicitKeytab() && explicitKeytab != null) {
-            results.add(new ValidationResult.Builder()
-                .subject("Kerberos Credentials")
-                .valid(false)
-                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring Kerberos Keytab in processors. "
-                    + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
-                .build());
         }
 
         return results;
@@ -411,29 +319,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
         // Clear out the reference to the resources
         hdfsResources.set(EMPTY_HDFS_RESOURCES);
-    }
-
-    private void interruptStatisticsThread(final FileSystem fileSystem) throws NoSuchFieldException, IllegalAccessException {
-        final Field statsField = FileSystem.class.getDeclaredField("statistics");
-        statsField.setAccessible(true);
-
-        final Object statsObj = statsField.get(fileSystem);
-        if (statsObj instanceof FileSystem.Statistics) {
-            final FileSystem.Statistics statistics = (FileSystem.Statistics) statsObj;
-
-            final Field statsThreadField = statistics.getClass().getDeclaredField("STATS_DATA_CLEANER");
-            statsThreadField.setAccessible(true);
-
-            final Object statsThreadObj = statsThreadField.get(statistics);
-            if (statsThreadObj instanceof Thread) {
-                final Thread statsThread = (Thread) statsThreadObj;
-                try {
-                    statsThread.interrupt();
-                } catch (Exception e) {
-                    getLogger().warn("Error interrupting thread", e);
-                }
-            }
-        }
     }
 
     private static Configuration getConfigurationFromResources(final Configuration config, final List<String> locations) throws IOException {
@@ -512,25 +397,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
         if (kerberosUserService != null) {
             return kerberosUserService.createKerberosUser();
-        }
-
-        // Kerberos User Service wasn't set, so create KerberosUser based on credentials service or explicit properties...
-        String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
-        String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
-        String password = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
-
-        // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
-        // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
-        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        if (credentialsService != null) {
-            principal = credentialsService.getPrincipal();
-            keyTab = credentialsService.getKeytab();
-        }
-
-        if (keyTab != null) {
-            return new KerberosKeytabUser(principal, keyTab);
-        } else if (password != null) {
-            return new KerberosPasswordUser(principal, password);
         } else {
             throw new IllegalStateException("Unable to authenticate with Kerberos, no keytab or password was provided");
         }
@@ -651,13 +517,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         // if there is a KerberosUser associated with UGI, call checkTGTAndRelogin to ensure UGI's underlying Subject has a valid ticket
         SecurityUtil.checkTGTAndRelogin(getLogger(), hdfsResources.get().getKerberosUser());
         return hdfsResources.get().getUserGroupInformation();
-    }
-
-    /*
-     * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
-     */
-    boolean isAllowExplicitKeytab() {
-        return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
 
     boolean isLocalFileSystemAccessDenied() {

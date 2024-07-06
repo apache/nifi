@@ -27,7 +27,6 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
-import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -37,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -58,9 +56,6 @@ import static org.mockito.Mockito.when;
 
 public class TestHBase_2_ClientMapCacheService {
 
-    private KerberosProperties kerberosPropsWithFile;
-    private KerberosProperties kerberosPropsWithoutFile;
-
     private Serializer<String> stringSerializer = new StringSerializer();
     private Deserializer<String> stringDeserializer = new StringDeserializer();
 
@@ -70,10 +65,6 @@ public class TestHBase_2_ClientMapCacheService {
         // config with Kerberos authentication enabled
         System.setProperty("java.security.krb5.realm", "nifi.com");
         System.setProperty("java.security.krb5.kdc", "nifi.kdc");
-
-        kerberosPropsWithFile = new KerberosProperties(new File("src/test/resources/krb5.conf"));
-
-        kerberosPropsWithoutFile = new KerberosProperties(null);
     }
 
     private final String tableName = "nifi";
@@ -391,7 +382,7 @@ public class TestHBase_2_ClientMapCacheService {
 
 
     private MockHBaseClientService configureHBaseClientService(final TestRunner runner, final Table table) throws InitializationException {
-        final MockHBaseClientService service = new MockHBaseClientService(table, "family1", kerberosPropsWithFile);
+        final MockHBaseClientService service = new MockHBaseClientService(table, "family1");
         runner.addControllerService("hbaseClient", service);
         runner.setProperty(service, HBase_2_ClientService.HADOOP_CONF_FILES, "src/test/resources/hbase-site.xml");
         runner.enableControllerService(service);
