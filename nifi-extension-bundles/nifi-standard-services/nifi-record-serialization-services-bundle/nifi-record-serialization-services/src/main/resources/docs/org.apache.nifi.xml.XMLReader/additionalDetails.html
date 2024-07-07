@@ -75,7 +75,7 @@
     </code>
 
     <p>
-        This record can be described by a schema containing one field (e. g. of type string). By providing this schema,
+        This record can be described by a schema containing one field (e.g. of type string). By providing this schema,
         the reader expects zero or one occurrences of "simple_field" in the record.
     </p>
 
@@ -584,7 +584,7 @@
         The "Field Name for Content" property is not set, and the XML element has a sub-element named "value". The name of the sub-element clashes with the
         default field name added to the schema by the Schema Inference logic (see Example 2). As seen in the output data, the input XML attribute's value
         is added to the record just like in the previous examples. The value of the <code>&lt;value&gt;</code> element is retained, but the content of the
-        <code>&lt;field_with_attribute&gt;</code> that was outside of the sub-element, is lost.
+        <code>&lt;field_with_attribute&gt;</code> that was outside the sub-element, is lost.
     </p>
 
     <h3>XML Attributes and Schema Inference Example 5</h3>
@@ -907,7 +907,7 @@
             When two values are encountered for the same field in two different records (or two values are encountered for an ARRAY type), the inference engine prefers
             to use a "wider" data type over using a CHOICE data type. A data type "A" is said to be wider than data type "B" if and only if data type "A" encompasses all
             values of "B" in addition to other values. For example, the LONG type is wider than the INT type but not wider than the BOOLEAN type (and BOOLEAN is also not wider
-            than LONG). INT is wider than SHORT. The STRING type is considered wider than all other types with the Exception of MAP, RECORD, ARRAY, and CHOICE.
+            than LONG). INT is wider than SHORT. The STRING type is considered wider than all other types except MAP, RECORD, ARRAY, and CHOICE.
         </li>
         <li>
             If two values are encountered for the same field in two different records (or two values are encountered for an ARRAY type), but neither value is of a type that

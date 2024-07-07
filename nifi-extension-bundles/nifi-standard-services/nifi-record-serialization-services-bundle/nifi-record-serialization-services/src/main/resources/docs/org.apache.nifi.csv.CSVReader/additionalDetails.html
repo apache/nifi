@@ -108,10 +108,10 @@ Jane, Ten
                 When two values are encountered for the same field in two different records (or two values are encountered for an ARRAY type), the inference engine prefers
                 to use a "wider" data type over using a CHOICE data type. A data type "A" is said to be wider than data type "B" if and only if data type "A" encompasses all
                 values of "B" in addition to other values. For example, the LONG type is wider than the INT type but not wider than the BOOLEAN type (and BOOLEAN is also not wider
-                than LONG). INT is wider than SHORT. The STRING type is considered wider than all other types with the Exception of MAP, RECORD, ARRAY, and CHOICE.
+                than LONG). INT is wider than SHORT. The STRING type is considered wider than all other types except MAP, RECORD, ARRAY, and CHOICE.
             </li>
             <li>
-                Before inferring the type of a value, leading and trailing whitespace are removed. Additionally, if the value is surrounded by double-quotes ("), the double-quotes
+                Before inferring the type of value, leading and trailing whitespace are removed. Additionally, if the value is surrounded by double-quotes ("), the double-quotes
                 are removed. Therefore, the value <code>16</code> is interpreted the same as <code>         "16"</code>. Both will be interpreted as an INT. However, the value
                 <code>"         16"</code> will be inferred as a STRING type because the white space is enclosed within double-quotes, which means that the white space is considered
                 part of the value.

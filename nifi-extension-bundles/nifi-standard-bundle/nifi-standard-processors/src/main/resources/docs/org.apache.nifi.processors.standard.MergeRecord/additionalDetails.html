@@ -50,8 +50,8 @@
     	<p>
     	    How the Processor determines which bin to place a FlowFile in depends on a few different configuration options. Firstly, the Merge Strategy
     	    is considered. The Merge Strategy can be set to one of two options: Bin Packing Algorithm, or Defragment. When the goal is to simply combine
-    	    smaller FlowFiles into one larger FlowFiles, the Bin Packing Algorithm should be used. This algorithm picks a bin based on whether or not the FlowFile
-    	    can fit in the bin according to its size and the &lt;Maximum Bin Size&gt; property and whether or not the FlowFile is 'like' the other FlowFiles in
+    	    smaller FlowFiles into one larger FlowFiles, the Bin Packing Algorithm should be used. This algorithm picks a bin based on whether the FlowFile
+    	    can fit in the bin according to its size and the &lt;Maximum Bin Size&gt; property and whether the FlowFile is 'like' the other FlowFiles in
     	    the bin. What it means for two FlowFiles to be 'like FlowFiles' is discussed at the end of this section.
     	</p>
 
@@ -87,12 +87,11 @@
 		<h3>When a Bin is Merged</h3>
     	<p>
     	    Above, we discussed how a bin is chosen for a given FlowFile. Once a bin has been created and FlowFiles added to it, we must have some way to determine
-    	    when a bin is "full" so that we can bin those FlowFiles together into a "merged" FlowFile. There are a few criteria that are used to make a determination as
-    	    to whether or not a bin should be merged.
+    	    when a bin is "full" so that we can bin those FlowFiles together into a "merged" FlowFile.
     	</p>
 
 		<p>
-		    If the &lt;Merge Strategy&gt; property is set to "Bin Packing Algorithm" then then the following rules will be evaluated.
+		    If the &lt;Merge Strategy&gt; property is set to "Bin Packing Algorithm" then the following rules will be evaluated.
 		    Firstly, in order for a bin to be full, both of the thresholds specified by the &lt;Minimum Bin Size&gt; and the &lt;Minimum Number of Records&gt; properties
 		    must be satisfied. If one of these properties is not set, then it is ignored. Secondly, if either the &lt;Maximum Bin Size&gt; or the &lt;Maximum Number of
 		    Records&gt; property is reached, then the bin is merged. That is, both of the minimum values must be reached but only one of the maximum values need be reached.
@@ -109,7 +108,7 @@
             If the &lt;Merge Strategy&gt; property is set to "Defragment" then a bin is full only when the number of FlowFiles in the bin is equal to the number specified
             by the "fragment.count" attribute of one of the FlowFiles in the bin. All FlowFiles that have this attribute must have the same value for this attribute,
             or else they will be routed to the "failure" relationship. It is not necessary that all FlowFiles have this value, but at least one FlowFile in the bin must have
-            this value or the bin will never be complete. If all of the necessary FlowFiles are not binned together by the point at which the bin times amount
+            this value or the bin will never be complete. If all the necessary FlowFiles are not binned together by the point at which the bin times amount
             (as specified by the &lt;Max Bin Age&gt; property), then the FlowFiles will all be routed to the 'failure' relationship instead of being merged together.
         </p>
 
@@ -117,7 +116,7 @@
             Once a bin is merged into a single FlowFile, it can sometimes be useful to understand why exactly the bin was merged when it was. For example, if the maximum number
             of allowable bins is reached, a merged FlowFile may consist of far fewer records than expected. In order to help understand the behavior, the Processor will emit
             a JOIN Provenance Events when creating the merged FlowFile, and the JOIN event will include in it a "Details" field that explains why the bin was merged when it was.
-            For example, the event will indicate "Records Merged due to: Bin is full" if the bin reached its minimum thresholds and no more subsequent FlowFiles were able to be
+            For example, the event will indicate "Records Merged due to: Bin is full" if the bin reached its minimum thresholds and no more subsequent FlowFiles were
             added to it. Or it may indicate "Records Merged due to: Maximum number of bins has been exceeded" if the bin was merged due to the configured maximum number of bins
             being filled and needing to free up space for a new bin.
         </p>
@@ -125,8 +124,8 @@
 
     	<h3>When a Failure Occurs</h3>
     	<p>
-    	    When a bin is filled, the Processor is responsible for merging together all of the records in those FlowFiles into a single FlowFile. If the Processor fails
-    	    to do so for any reason (for example, a Record cannot be read from an input FlowFile), then all of the FlowFiles in that bin are routed to the 'failure'
+    	    When a bin is filled, the Processor is responsible for merging together all the records in those FlowFiles into a single FlowFile. If the Processor fails
+    	    to do so for any reason (for example, a Record cannot be read from an input FlowFile), then all the FlowFiles in that bin are routed to the 'failure'
     	    Relationship. The Processor does not skip the single problematic FlowFile and merge the others. This behavior was chosen because of two different considerations.
     	    Firstly, without those problematic records, the bin may not truly be full, as the minimum bin size may not be reached without those records.
     	    Secondly, and more importantly, if the problematic FlowFile contains 100 "good" records before the problematic ones, those 100 records would already have been
@@ -205,7 +204,7 @@
 		<p>
 			In this, because we have not configured a Correlation Attribute, and because all FlowFiles have the same schema, the Processor
 			will attempt to add all of these FlowFiles to the same bin. Because the Minimum Number of Records is 3 and the Maximum Number of Records is 5,
-			all of the FlowFiles will be added to the same bin. The output, then, is a single FlowFile with the following content:
+			all the FlowFiles will be added to the same bin. The output, then, is a single FlowFile with the following content:
 		</p>
 
 <code>
@@ -219,7 +218,7 @@ Jan, 2
 </code>
 
 		<p>
-		   When the Processor runs, it will bin all of the FlowFiles that it can get from the queue. After that, it will merge any bin that is "full enough."
+		   When the Processor runs, it will bin all the FlowFiles that it can get from the queue. After that, it will merge any bin that is "full enough."
 		   So if we had only 3 FlowFiles on the queue, those 3 would have been added, and a new bin would have been created in the next iteration, once the
 		   4th FlowFile showed up. However, if we had 8 FlowFiles queued up, only 5 would have been added to the first bin. The other 3 would have been added
 		   to a second bin, and that bin would then be merged since it reached the minimum threshold of 3 also.

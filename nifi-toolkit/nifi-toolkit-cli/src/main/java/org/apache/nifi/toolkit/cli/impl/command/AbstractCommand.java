@@ -95,7 +95,7 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
     }
 
     protected void doInitialize(final Context context) {
-        // sub-classes can override to do additional things like add options
+        // subclasses can override to do additional things like add options
     }
 
     protected void addOption(final Option option) {

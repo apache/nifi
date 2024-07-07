@@ -58,7 +58,7 @@
             It usually guesses the name of this class correctly from <i>Root Model Name</i>.<br/>
             However there may be situations where this is not the case.
             Should this happen, one can take use of the fact that NiFi logs the temporary directory where the compiled Java classes can be found.
-            Once the proper class of the root model type is identified in that directory (should be easily done by looking for it by it's name)
+            Once the proper class of the root model type is identified in that directory (should be easily done by looking for it by its name)
                 it can be provided directly via the <i>Root Model Class Name</i> property.
             (Note however that the service should be left <i>Enabled</i> while doing the search as it deletes the temporary directory when it is disabled.
             To be able to set the property the service needs to be disabled in the end - and let it remove the directory,

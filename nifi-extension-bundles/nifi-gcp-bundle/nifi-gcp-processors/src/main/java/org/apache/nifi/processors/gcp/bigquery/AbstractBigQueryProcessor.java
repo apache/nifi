@@ -168,7 +168,7 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
     }
 
     /**
-     * If sub-classes needs to implement any custom validation, override this method then add
+     * If subclasses needs to implement any custom validation, override this method then add
      * validation result to the results.
      */
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {

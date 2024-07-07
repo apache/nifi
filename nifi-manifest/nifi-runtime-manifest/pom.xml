@@ -150,7 +150,7 @@
     </build>
 
     <profiles>
-        <!-- Specifies an empty buildRevision and buildBranch when building outside of a git repo -->
+        <!-- Specifies an empty buildRevision and buildBranch when building outside a git repo -->
         <profile>
             <id>build-info-no-git</id>
             <activation>

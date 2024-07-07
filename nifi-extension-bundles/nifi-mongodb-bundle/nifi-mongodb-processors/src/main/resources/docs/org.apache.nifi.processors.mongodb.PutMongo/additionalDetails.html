@@ -56,7 +56,7 @@
     The update key method takes keys from the document and builds a query from them. It will attempt to parse the <em>_id</em>
     field as an <em>ObjectID</em> type if that is one of the keys that is specified in the configuration field. Multiple keys
     can be specified by separating them with commas. This configuration field supports Expression Language, so it can
-    derived in part or entirely from flowfile attributes.
+    be derived in part or entirely from flowfile attributes.
 </p>
 
 <h3>Update Query</h3>
@@ -64,7 +64,7 @@
     The update query method takes a valid JSON document as its value and uses it to find one or more documents to update.
     This field supports Expression Language, so it can be derived in part or entirely from flowfile attributes. It is possible,
     for instance, to put an attribute named <em>update_query</em> on a flowfile and specify <em>${update_query}</em> in the
-    configuration field so it will load the value from the flowfile.
+    configuration field, so it will load the value from the flowfile.
 </p>
 
 <h3>Upserts</h3>

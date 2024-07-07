@@ -32,7 +32,7 @@
     		In order to make the Processor valid, at least one user-defined property must be added to the Processor.
     		The value of the property must be a valid RecordPath. Expression Language is supported and will be evaluated before
     		attempting to compile the RecordPath. However, if Expression Language is used, the Processor is not able to validate
-    		the RecordPath before-hand and may result in having FlowFiles fail processing if the RecordPath is not valid when being
+    		the RecordPath beforehand and may result in having FlowFiles fail processing if the RecordPath is not valid when being
     		used.
     	</p>
     	
@@ -46,7 +46,7 @@
     	</p>
     	
     	<p>
-    		Once a FlowFile has been written, we know that all of the Records within that FlowFile have the same value for the fields that are
+    		Once a FlowFile has been written, we know that all the Records within that FlowFile have the same value for the fields that are
     		described by the configured RecordPath's. As a result, this means that we can promote those values to FlowFile Attributes. We do so
     		by looking at the name of the property to which each RecordPath belongs. For example, if we have a property named <code>country</code>
     		with a value of <code>/geo/country/name</code>, then each outbound FlowFile will have an attribute named <code>country</code> with the
@@ -142,7 +142,7 @@
     	<h3>Example 1 - Partition By Simple Field</h3>
     	
     	<p>
-    		For a simple case, let's partition all of the records based on the state that they live in.
+    		For a simple case, let's partition all the records based on the state that they live in.
     		We can add a property named <code>state</code> with a value of <code>/locations/home/state</code>.
     		The result will be that we will have two outbound FlowFiles. The first will contain an attribute with the name
     		<code>state</code> and a value of <code>NY</code>. This FlowFile will consist of 3 records: John Doe, Jane Doe, and Jacob Doe.
@@ -174,7 +174,7 @@
     	</p>
     	
     	<p>
-    		This will result in three different FlowFiles being created. The first FlowFile will contain records for John Doe and Jane Doe. If will contain an attribute
+    		This will result in three different FlowFiles being created. The first FlowFile will contain records for John Doe and Jane Doe. It will contain an attribute
     		named "favorite.food" with a value of "spaghetti." However, because the second RecordPath pointed to a Record field, no "home" attribute will be added.
     		In this case, both of these records have the same value for both the first element of the "favorites" array
     		and the same value for the home address. Janet Doe has the same value for the first element in the "favorites" array but has a different home address. Similarly,

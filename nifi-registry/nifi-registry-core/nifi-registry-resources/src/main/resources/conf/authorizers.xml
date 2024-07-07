@@ -224,7 +224,7 @@
         The FileAccessPolicyProvider will provide support for managing access policies which is backed by a file
         on the local file system.
 
-        - User Group Provider - The identifier for an User Group Provider defined above that will be used to access
+        - User Group Provider - The identifier for a User Group Provider defined above that will be used to access
             users and groups for use in the managed access policies.
 
         - Authorizations File - The file where the FileAccessPolicyProvider will store policies.

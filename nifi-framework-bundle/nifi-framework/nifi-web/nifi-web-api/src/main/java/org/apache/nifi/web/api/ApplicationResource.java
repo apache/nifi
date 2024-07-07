@@ -355,7 +355,7 @@ public abstract class ApplicationResource {
      * When a two-phase commit style request is used, the first phase (generally referred to
      * as the "commit-request stage") is intended to validate that the request can be completed.
      * In NiFi, we use this phase to validate that the request can complete. This method determines
-     * whether or not the request is the first phase of a two-phase commit.
+     * whether the request is the first phase of a two-phase commit.
      *
      * @param httpServletRequest the request
      * @return <code>true</code> if the request represents a two-phase commit style request and is the
@@ -374,7 +374,7 @@ public abstract class ApplicationResource {
     }
 
     /**
-     * Checks whether or not the request should be replicated to the cluster
+     * Checks whether the request should be replicated to the cluster
      *
      * @return <code>true</code> if the request should be replicated, <code>false</code> otherwise
      */
@@ -847,7 +847,7 @@ public abstract class ApplicationResource {
      * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
      */
     protected Response replicate(final URI path, final String method, final Object entity, final String nodeUuid, final Map<String, String> headersToOverride) {
-        // since we're cluster we must specify the cluster node identifier
+        // since we're in a cluster we must specify the cluster node identifier
         if (nodeUuid == null) {
             throw new IllegalArgumentException("The cluster node identifier must be specified.");
         }

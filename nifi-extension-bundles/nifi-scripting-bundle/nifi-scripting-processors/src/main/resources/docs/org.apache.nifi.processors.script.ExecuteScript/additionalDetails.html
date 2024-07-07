@@ -128,7 +128,7 @@ if(!flowFileList.isEmpty()) {
 <p>&nbsp;</p>
 <p><strong>Create a new FlowFile from a parent FlowFile</strong></p>
 <p><strong>Use Case</strong>: You want to generate new FlowFile(s) based on an incoming FlowFile.</p>
-<p><strong>Approach</strong>: Use the create(<em>parentFlowFile</em>) method from the session object. This method takes a parent FlowFile reference and returns a new child FlowFile object. The newly created FlowFile will inherit all of the parent's attributes except for the UUID. This method will automatically generate a Provenance FORK event or a Provenance JOIN event, depending on whether or not other FlowFiles are generated from the same parent before the ProcessSession is committed.</p>
+<p><strong>Approach</strong>: Use the create(<em>parentFlowFile</em>) method from the session object. This method takes a parent FlowFile reference and returns a new child FlowFile object. The newly created FlowFile will inherit all the parent's attributes except for the UUID. This method will automatically generate a Provenance FORK event or a Provenance JOIN event, depending on whether other FlowFiles are generated from the same parent before the ProcessSession is committed.</p>
 <p><strong>Examples</strong>:</p>
 <p><em>Groovy</em></p>
 <pre>flowFile = session.get()
@@ -213,7 +213,7 @@ else {
 <p>&nbsp;</p>
 <p><strong>Read the contents of an incoming FlowFile using a callback</strong></p>
 <p><strong>Use Case</strong>: You have incoming connection(s) to ExecuteScript and want to retrieve the contents of a FlowFile from the queue(s) for processing.</p>
-<p><strong>Approach</strong>: Use the read(<em>flowFile</em>, <em>inputStreamCallback</em>) method from the session object. An InputStreamCallback object is needed to pass into the read() method. Note that because InputStreamCallback is an object, the contents are only visible to that object by default. If you need to use the data outside the read() method, use a more globally-scoped variable. The examples will store the full contents of the incoming FlowFile into a String (using Apache Commons' IOUtils class). NOTE: For large FlowFiles, this is not the best technique; rather you should read in only as much data as you need, and process that as appropriate. For something like SplitText, you could read in a line at a time and process it within the InputStreamCallback, or use the session.read(flowFile) approach mentioned earlier to get an InputStream reference to use outside of a callback.</p>
+<p><strong>Approach</strong>: Use the read(<em>flowFile</em>, <em>inputStreamCallback</em>) method from the session object. An InputStreamCallback object is needed to pass into the read() method. Note that because InputStreamCallback is an object, the contents are only visible to that object by default. If you need to use the data outside the read() method, use a more globally-scoped variable. The examples will store the full contents of the incoming FlowFile into a String (using Apache Commons' IOUtils class). NOTE: For large FlowFiles, this is not the best technique; rather you should read in only as much data as you need, and process that as appropriate. For something like SplitText, you could read in a line at a time and process it within the InputStreamCallback, or use the session.read(flowFile) approach mentioned earlier to get an InputStream reference to use outside the callback.</p>
 <p><strong>Examples</strong>:</p>
 <p><em>Groovy</em></p>
 <pre>import org.apache.commons.io.IOUtils

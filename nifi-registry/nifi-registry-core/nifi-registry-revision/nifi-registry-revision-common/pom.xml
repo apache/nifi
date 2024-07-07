@@ -23,7 +23,7 @@
     <artifactId>nifi-registry-revision-common</artifactId>
     <packaging>jar</packaging>
 
-    <!-- NOTE: This module should be mindful of it's dependencies and should generally only depend on the revision API -->
+    <!-- NOTE: This module should be mindful of its dependencies and should generally only depend on the revision API -->
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>

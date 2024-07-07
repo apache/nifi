@@ -46,7 +46,7 @@
 		<p>
 			This Controller Service must be configured with a schema. Each JSON Path that is evaluated and is found in the "root level"
 			of the schema will produce a Field in the Record. I.e., the schema should match the Record that is created by evaluating all
-			of the JSON Paths. It should not match the "incoming JSON" that is read from the FlowFile.
+			the JSON Paths. It should not match the "incoming JSON" that is read from the FlowFile.
 		</p>
 
 
@@ -130,7 +130,7 @@
 				When two values are encountered for the same field in two different records (or two values are encountered for an ARRAY type), the inference engine prefers
 				to use a "wider" data type over using a CHOICE data type. A data type "A" is said to be wider than data type "B" if and only if data type "A" encompasses all
 				values of "B" in addition to other values. For example, the LONG type is wider than the INT type but not wider than the BOOLEAN type (and BOOLEAN is also not wider
-				than LONG). INT is wider than SHORT. The STRING type is considered wider than all other types with the Exception of MAP, RECORD, ARRAY, and CHOICE.
+				than LONG). INT is wider than SHORT. The STRING type is considered wider than all other types except MAP, RECORD, ARRAY, and CHOICE.
 			</li>
 			<li>
 				If two values are encountered for the same field in two different records (or two values are encountered for an ARRAY type), but neither value is of a type that

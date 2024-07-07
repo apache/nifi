@@ -208,7 +208,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
      *         configured set of properties
      */
     protected boolean isClasspathDifferent(final Map<PropertyDescriptor, String> properties) {
-        // If any property in the given map modifies classpath and is different than the currently configured value,
+        // If any property in the given map modifies classpath and is different from the currently configured value,
         // the given properties will require a different classpath.
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
@@ -308,7 +308,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     if (propertyName != null && entry.getValue() == null) {
                         removeProperty(propertyName, allowRemovalOfRequiredProperties);
                     } else if (propertyName != null) {
-                        // Use the EL-Agnostic Parameter Parser to gather the list of referenced Parameters. We do this because we want to to keep track of which parameters
+                        // Use the EL-Agnostic Parameter Parser to gather the list of referenced Parameters. We do this because we want to keep track of which parameters
                         // are referenced, regardless of whether or not they are referenced from within an EL Expression. However, we also will need to derive a different ParameterTokenList
                         // that we can provide to the PropertyConfiguration, so that when compiling the Expression Language Expressions, we are able to keep the Parameter Reference within
                         // the Expression's text.
