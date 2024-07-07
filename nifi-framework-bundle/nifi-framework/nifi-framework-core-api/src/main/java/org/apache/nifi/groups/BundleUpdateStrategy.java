@@ -22,7 +22,11 @@ public enum BundleUpdateStrategy {
     /**
      * If a proposed flow has a different bundle than the current flow, the bundle is not updated
      */
+    IGNORE_BUNDLE,
+
     USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST,
+
+    USE_SPECIFIED_OR_GHOST,
 
     USE_SPECIFIED_OR_FAIL;
 }
