@@ -32,7 +32,7 @@
 
 <p>
     The implementation supports the atomic method family defined in AtomicDistributedMapCacheClient. This is achieved by maintaining
-    a revision number for every entry. The revision is a 8 byte long integer. It is increased when the entry is updated. The value is kept
+    a revision number for every entry. The revision is an 8 byte long integer. It is increased when the entry is updated. The value is kept
     during modifications not part of the atomic method family but this is mainly for regular management of the entries. It is not
     recommended to work with elements by mixing the two method families.
 </p>

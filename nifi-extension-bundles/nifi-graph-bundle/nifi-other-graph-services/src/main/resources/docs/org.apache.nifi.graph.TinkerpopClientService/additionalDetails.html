@@ -35,7 +35,7 @@
 <h2>Script Submission</h2>
 <p>
     Script submission is the default way to interact with the gremlin server. This takes the input script and uses <a href="https://tinkerpop.apache.org/docs/current/reference/#gremlin-go-scripts">Script Submission</a>
-    to interact with the gremlin server. Because the script is shipped to the gremlin server as a string, only simple queries are recommended (count, path, etc)
+    to interact with the gremlin server. Because the script is shipped to the gremlin server as a string, only simple queries are recommended (count, path, etc.)
     as there are no complex serializers available in this operation. This also means that NiFi will not be opinionated about what is returned, whatever the response from
     the tinkerpop server is, the response will be deserialized assuming common Java types. In the case of a Map return, the values
     will be returned as a record in the FlowFile response, in all other cases, the return of the query will be coerced into a

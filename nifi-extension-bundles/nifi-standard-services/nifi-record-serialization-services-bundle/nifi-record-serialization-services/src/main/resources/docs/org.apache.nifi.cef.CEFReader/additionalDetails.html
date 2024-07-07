@@ -103,7 +103,7 @@ Oct 12 04:16:11 localhost CEF:0|Company|Product|1.2.3|audit-login|Successful log
 
         <p>
             A common concern when inferring schemas is how to handle the condition of two values that have different types. For example, a custom extension field might
-            have a Float value in one record and String in an other. In these cases, the inferred will contain a CHOICE data type with FLOAT and STRING options. Records will
+            have a Float value in one record and String in another. In these cases, the inferred will contain a CHOICE data type with FLOAT and STRING options. Records will
             be allowed to have either value for the particular field.
         </p>
 
@@ -111,7 +111,7 @@ Oct 12 04:16:11 localhost CEF:0|Company|Product|1.2.3|audit-login|Successful log
             CEF format comes with specification not only to the message format but also has directives for the content. Because of this, the data type of some
             fields are not determined by the actual value(s) in the FlowFile but by the CEF format. This includes header fields, which always have to appear and
             comply to the data types defined in the CEF format. Also, extension fields from the Extension Dictionary might or might not appear in the generated
-            schema based on the FlowFile content but in case an extension field is added it's data type is bound by the CEF format. Custom extensions have no similar
+            schema based on the FlowFile content but in case an extension field is added its data type is bound by the CEF format. Custom extensions have no similar
             restrictions, their presence in the schema is completely depending on the FlowFile content.
         </p>
 

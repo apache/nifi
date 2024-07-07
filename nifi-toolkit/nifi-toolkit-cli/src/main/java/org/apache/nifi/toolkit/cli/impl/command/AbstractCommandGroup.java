@@ -51,7 +51,7 @@ public abstract class AbstractCommandGroup implements CommandGroup {
     }
 
     /**
-     * Sub-classes override to provide the appropriate commands for the given group.
+     * Subclasses override to provide the appropriate commands for the given group.
      *
      * @return the list of commands for this group
      */

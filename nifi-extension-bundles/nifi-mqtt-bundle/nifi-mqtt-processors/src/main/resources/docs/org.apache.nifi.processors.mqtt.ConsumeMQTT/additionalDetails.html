@@ -22,7 +22,7 @@
 </head>
 <body>
     <p>The MQTT messages are always being sent to subscribers on a topic regardless of how frequently the processor is scheduled to run. 
-    If the 'Run Schedule' is significantly behind the rate at which the messages are arriving to this processor, then a back up can occur 
+    If the 'Run Schedule' is significantly behind the rate at which the messages are arriving to this processor, then a back-up can occur
     in the internal queue of this processor. Each time the processor is scheduled, the messages in the internal queue will be written to 
     FlowFiles. In case the internal queue is full, the MQTT client will try for up to 1 second to add the message into the internal queue. 
     If the internal queue is still full after this time, an exception saying that 'The subscriber queue is full' would be thrown, the 

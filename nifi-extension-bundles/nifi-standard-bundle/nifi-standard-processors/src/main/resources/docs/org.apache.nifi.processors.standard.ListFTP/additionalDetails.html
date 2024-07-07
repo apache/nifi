@@ -52,7 +52,7 @@
 
 <p>
     We can still accomplish the desired use case of waiting until all files in the directory have been processed by splitting apart the FlowFile
-    and processing all of the data within a Process Group. Configuring the Process Group with a FlowFile Concurrency of "Single FlowFile per Node"
+    and processing all the data within a Process Group. Configuring the Process Group with a FlowFile Concurrency of "Single FlowFile per Node"
     means that only one FlowFile will be brought into the Process Group. Once that happens, the FlowFile can be split apart and each part processed.
     Configuring the Process Group with an Outbound Policy of "Batch Output" means that none of the FlowFiles will leave the Process Group until all have
     finished processing. As a result, we can build a flow like the following:

@@ -49,8 +49,8 @@
 <p>
     How the Processor determines which bin to place a FlowFile in depends on a few different configuration options. Firstly, the Merge Strategy
     is considered. The Merge Strategy can be set to one of two options: "Bin Packing Algorithm," or "Defragment". When the goal is to simply combine
-    smaller FlowFiles into one larger FlowFile, the Bin Packing Algorithm should be used. This algorithm picks a bin based on whether or not the FlowFile
-    can fit in the bin according to its size and the &lt;Maximum Bin Size&gt; property and whether or not the FlowFile is 'like' the other FlowFiles in
+    smaller FlowFiles into one larger FlowFile, the Bin Packing Algorithm should be used. This algorithm picks a bin based on whether the FlowFile
+    can fit in the bin according to its size and the &lt;Maximum Bin Size&gt; property and whether the FlowFile is 'like' the other FlowFiles in
     the bin. What it means for two FlowFiles to be 'like FlowFiles' is discussed at the end of this section.
 </p>
 
@@ -62,7 +62,7 @@
     so that the FlowFiles can be ordered correctly. For a given "fragment.identifier", at least one FlowFile must have the "fragment.count" attribute
     (which indicates how many FlowFiles belong in the bin). Other FlowFiles with the same identifier must have the same value for the "fragment.count" attribute,
     or they can omit this attribute.
-    <b>NOTE:</b> while there are valid use cases for breaking apart FlowFiles and later re-merging them, it is an anti-pattern to take a larger FlowFile,
+    <b>NOTE:</b> while there are valid use cases for breaking apart FlowFiles and later re-merging them, it is an antipattern to take a larger FlowFile,
     break it into a million tiny FlowFiles, and then re-merge them. Doing so can result in using huge amounts of Java heap and can result in Out Of Memory Errors.
     Additionally, it adds large amounts of load to the NiFi framework. This can result in increased CPU and disk utilization and often times can be an order of magnitude
     lower throughput and an order of magnitude higher latency. As an alternative, whenever possible, dataflows should be built to make use of Record-oriented processors,
@@ -84,8 +84,7 @@
 <h3>When a Bin is Merged</h3>
 <p>
     Above, we discussed how a bin is chosen for a given FlowFile. Once a bin has been created and FlowFiles added to it, we must have some way to determine
-    when a bin is "full" so that we can bin those FlowFiles together into a "merged" FlowFile. There are a few criteria that are used to make a determination as
-    to whether or not a bin should be merged.
+    when a bin is "full" so that we can bin those FlowFiles together into a "merged" FlowFile.
 </p>
 
 <p>
@@ -112,7 +111,7 @@
     If the &lt;Merge Strategy&gt; property is set to "Defragment", then a bin is full only when the number of FlowFiles in the bin is equal to the number specified
     by the "fragment.count" attribute of one of the FlowFiles in the bin. All FlowFiles that have this attribute must have the same value for this attribute,
     or else they will be routed to the "failure" relationship. It is not necessary that all FlowFiles have this value, but at least one FlowFile in the bin must have
-    this value or the bin will never be complete. If all of the necessary FlowFiles are not binned together by the point at which the bin times amount
+    this value or the bin will never be complete. If all the necessary FlowFiles are not binned together by the point at which the bin times amount
     (as specified by the &lt;Max Bin Age&gt; property), then the FlowFiles will all be routed to the 'failure' relationship instead of being merged together.
 </p>
 
@@ -150,7 +149,7 @@
             Bin has not yet reached either of the minimum thresholds. Note that the age here is determined by when the Bin was created, NOT the age of the FlowFiles that reside within those
             Bins. As a result, if the Processor is stopped until it has 1 million FlowFiles queued, each one being 10 days old, but the Max Bin Age is set to "1 day," the Max Bin Age will not
             be met for at least one full day, even though the FlowFiles themselves are much older than this threshold. If the Processor is stopped and restarted, all Bins are destroyed and
-            recreated, so the timer is reset.</td>
+            recreated, and the timer is reset.</td>
     </tr>
     <tr>
         <td>BIN_MANAGER_FULL</td>

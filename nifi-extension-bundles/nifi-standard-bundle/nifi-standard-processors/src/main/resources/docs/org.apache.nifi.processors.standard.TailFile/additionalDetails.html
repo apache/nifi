@@ -44,7 +44,7 @@
 		<h3>Modes</h3>
         <p>
             This processor is used to tail a file or multiple files, depending on the configured mode. The
-            mode to choose depends of the logging pattern followed by the file(s) to tail. In any case, if there
+            mode to choose depends on the logging pattern followed by the file(s) to tail. In any case, if there
             is a rolling pattern, the rolling files must be plain text files (compression is not supported at
             the moment).
         </p>
@@ -171,7 +171,7 @@
 		</p>
 
 		<p>
-			Additionally, we run the chance of the Regular Expression not matching the data in the file. This could result in buffering all of the file's content, which could cause NiFi
+			Additionally, we run the chance of the Regular Expression not matching the data in the file. This could result in buffering all the file's content, which could cause NiFi
 			to run out of memory. To avoid this, the &lt;Max Buffer Size&gt; property limits the amount of data that can be buffered. If this amount of data is buffered, it will be flushed
 			to the FlowFile, even if another message hasn't been encountered.
 		</p>

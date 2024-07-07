@@ -132,14 +132,14 @@
             It is also worth noting that the outbound FlowFiles have two different schemas. The <code>Engineers</code> and <code>Younger Than Average</code> FlowFiles contain 3 fields:
             <code>name</code>, <code>age</code>, and <code>title</code> while the <code>VP</code> FlowFile contains only the <code>name</code> field. In most cases, the Record Writer is configured to
             use whatever Schema is provided to it by the Record (this generally means that it is configured with a <code>Schema Access Strategy</code> of <code>Inherit Record Schema</code>). In such
-            a case, this works well. However, if a Schema is supplied to the Record Writer explicitly, it is important to ensure that the Schema accounts for all fields. If not, then then the
+            a case, this works well. However, if a Schema is supplied to the Record Writer explicitly, it is important to ensure that the Schema accounts for all fields. If not, then the
             fields that are missing from the Record Writer's schema will simply not be present in the output.
         </p>
 
 
         <h3>SQL Over Hierarchical Data</h3>
         <p>
-            One important detail that we must taken into account when evaluating SQL over streams of arbitrary data is how
+            One important detail that we must take into account when evaluating SQL over streams of arbitrary data is how
             we can handle hierarchical data, such as JSON, XML, and Avro. Because SQL was developed originally for relational databases, which
             represent "flat" data, it is easy to understand how this would map to other "flat" data like a CSV file. Or even
             a "flat" JSON representation where all fields are primitive types. However, in many cases, users encounter cases where they would like to evaluate SQL

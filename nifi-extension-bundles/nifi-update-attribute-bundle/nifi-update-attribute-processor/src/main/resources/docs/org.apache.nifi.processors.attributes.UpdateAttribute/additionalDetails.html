@@ -342,7 +342,7 @@
 
             In the event that the processor is unable to get the state at the beginning of the onTrigger, the FlowFile will be pushed back to the originating relationship and the processor will yield.
             If the processor is able to get the state at the beginning of the onTrigger but unable to set the state after adding attributes to the FlowFile, the FlowFile will be transferred to
-            "set state fail". This is normally due to the state not being the most up to date version (another thread has replaced the state with another version). In most use-cases this relationship
+            "set state fail". This is normally due to the state not being the most recent version (another thread has replaced the state with another version). In most use-cases this relationship
             should loop back to the processor since the only affected attributes will be overwritten.
 
             Note: Currently the only "stateful" option is to store state locally. This is done because the current implementation of clustered state relies on Zookeeper and Zookeeper isn't designed
@@ -367,7 +367,7 @@
             <strong>Notes about Concurrency and Stateful Usage</strong></p>
         <p>
             When using the stateful option, concurrent tasks should be used with caution. If every incoming FlowFile will update state then it will be much more efficient to have only one
-            task. This is because the first thing the onTrigger does is get the state and the last thing it does is store the state if there are an updates. If it does not have the most up to date
+            task. This is because the first thing the onTrigger does is get the state and the last thing it does is store the state if there are an updates. If it does not have the most recent
             initial state when it goes to update it will fail and send the FlowFile to "set state fail". This is done so that the update is successful when it was done with the most recent information.
             If it didn't do it in this mock-atomic way, there'd be no guarantee that the state is accurate.
 

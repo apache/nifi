@@ -155,7 +155,7 @@ This strategy would produce output the looks like this (assuming a JSON Writer):
 <h3>Insert Enrichment Fields</h3>
 
 <p>
-    The "Insert Enrichment Fields" strategy inserts all of the fields of the "enrichment" record into the original record. The records are correlated by their index in the FlowFile. That is,
+    The "Insert Enrichment Fields" strategy inserts all the fields of the "enrichment" record into the original record. The records are correlated by their index in the FlowFile. That is,
     the first record in the "enrichment" FlowFile is inserted into the first record in the "original" FlowFile. The second record of the "enrichment" FlowFile is inserted into the second
     record of the "original" FlowFile and so on.
 </p>
@@ -323,7 +323,7 @@ FlowFile as its own table with the name "original" while we treat the enrichment
 </p>
 
 <p>
-Given this, we might combine all of the data using a simple query such as:
+Given this, we might combine all the data using a simple query such as:
 </p>
 <pre><code>
 SELECT o.*, e.*
@@ -445,7 +445,7 @@ using this Processor.
         small attributes on a FlowFile is perfectly fine. Storing 300 attributes, on the other hand, may occupy a significant amount of heap.
     </li>
     <li>
-        Limit backpressure. The JoinEnrichment Processor will pull into its own memory all of the incoming FlowFiles. As a result, it will be helpful to avoid providing a huge number of FlowFiles
+        Limit backpressure. The JoinEnrichment Processor will pull into its own memory all the incoming FlowFiles. As a result, it will be helpful to avoid providing a huge number of FlowFiles
         to the Processor at any given time. This can be done by setting the backpressure limits to a smaller value. For example, in our example above, the ForkEnrichment Processor is connected
         directly to the JoinEnrichment Processor. We may want to limit the backpressure on this connection to 500 or 1,000 instead of the default 10,000. Doing so will limit the number of FlowFiles
         that are allowed to be loaded into the JoinEnrichment Processor at one time.
@@ -456,7 +456,7 @@ using this Processor.
 <h3>More Complex Joining Strategies</h3>
 <p>
 This Processor offers several strategies that can be used for correlating data together and joining records from two different FlowFiles into a single FlowFile. However, there are times
-when users may require more powerful capabilities than what is offered. We might, for example, want to use the information in an enrichment record to determine whether or not to null out a value in
+when users may require more powerful capabilities than what is offered. We might, for example, want to use the information in an enrichment record to determine whether to null out a value in
 the corresponding original records.
 </p>
 

@@ -55,7 +55,7 @@
 
 <p>
     Undetermined cases are normal in healthy environment as it is possible that NiFi asks for indexing status before Splunk
-    finishes and acknowledges it. These cases are safe to retry and it is suggested to loop "undetermined" relationship
+    finishes and acknowledges it. These cases are safe to retry, and it is suggested to loop "undetermined" relationship
     back to the processor for later try. Flow files transferred into the "Undetermined" relationship are penalized.
 </p>
 
@@ -70,7 +70,7 @@
 <p>
     Also, it is suggested to execute the query in batches. The "Maximum Query Size" property might be used for fine tune
     the maximum number of events the processor will query about in one API request. This serves as an upper limit for the
-    batch but the processor might execute the query with less number of undetermined events.
+    batch but the processor might execute the query with fewer events.
 </p>
 
 </body>
