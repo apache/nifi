@@ -27,11 +27,9 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.ietf.jgss.GSSException;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -56,12 +54,6 @@ import static org.mockito.Mockito.when;
 
 @DisabledOnOs(OS.WINDOWS)
 public class GetHDFSTest {
-
-    @BeforeEach
-    public void setup() {
-        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-    }
 
     @Test
     public void getPathDifferenceTest() {

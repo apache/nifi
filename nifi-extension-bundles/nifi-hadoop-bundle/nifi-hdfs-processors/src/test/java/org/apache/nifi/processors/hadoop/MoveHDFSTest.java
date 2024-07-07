@@ -28,12 +28,10 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.hadoop.util.MockFileSystem;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.ietf.jgss.GSSException;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -54,8 +52,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @DisabledOnOs(OS.WINDOWS)
 public class MoveHDFSTest {
@@ -63,12 +59,6 @@ public class MoveHDFSTest {
     private static final String OUTPUT_DIRECTORY = "target/test-data-output";
     private static final String TEST_DATA_DIRECTORY = "src/test/resources/testdata";
     private static final String INPUT_DIRECTORY = "target/test-data-input";
-
-    @BeforeEach
-    public void setup() {
-        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-    }
 
     @AfterEach
     public void teardown() {

@@ -26,7 +26,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -43,8 +42,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestCreateHadoopSequenceFile {
 
@@ -55,13 +52,8 @@ public class TestCreateHadoopSequenceFile {
         new File(testdata, "randombytes-2"), new File(testdata, "randombytes-3")
     };
 
-    private NiFiProperties mockNiFiProperties;
-
     @BeforeEach
     public void setUp() {
-        mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-
         CreateHadoopSequenceFile proc = new CreateHadoopSequenceFile();
         controller = TestRunners.newTestRunner(proc);
     }

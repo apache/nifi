@@ -34,28 +34,21 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.util.MockFileSystem;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestGetHDFSFileInfo {
     private static final Pattern SINGLE_JSON_PATTERN = Pattern.compile("^\\{[^\\}]*\\}$");
 
     private TestRunner runner;
     private GetHDFSFileInfoWithMockedFileSystem proc;
-    private NiFiProperties mockNiFiProperties;
 
     @BeforeEach
     public void setup() throws InitializationException {
-        mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-
         proc = new GetHDFSFileInfoWithMockedFileSystem();
         runner = TestRunners.newTestRunner(proc);
 

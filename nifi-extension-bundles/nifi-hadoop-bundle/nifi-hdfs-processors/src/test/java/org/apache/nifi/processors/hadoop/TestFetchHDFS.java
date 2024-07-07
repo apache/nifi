@@ -22,7 +22,6 @@ import org.apache.nifi.processors.hadoop.util.MockFileSystem;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,8 +38,6 @@ import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_F
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestFetchHDFS {
 
@@ -48,9 +45,6 @@ public class TestFetchHDFS {
 
     @BeforeEach
     public void setup() {
-        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-
         FetchHDFS proc = new TestableFetchHDFS();
         runner = TestRunners.newTestRunner(proc);
     }

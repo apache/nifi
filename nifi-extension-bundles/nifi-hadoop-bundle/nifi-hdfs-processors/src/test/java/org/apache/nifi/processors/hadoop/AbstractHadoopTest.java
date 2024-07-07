@@ -27,10 +27,8 @@ import org.apache.nifi.components.resource.StandardResourceReferences;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -53,26 +51,12 @@ import static org.mockito.Mockito.when;
 
 public class AbstractHadoopTest {
 
-    private File temporaryFile;
-    private NiFiProperties mockedProperties;
-
     @BeforeEach
     public void setup() throws IOException {
         // needed for calls to UserGroupInformation.setConfiguration() to work when passing in
         // config with Kerberos authentication enabled
         System.setProperty("java.security.krb5.realm", "nifi.com");
         System.setProperty("java.security.krb5.kdc", "nifi.kdc");
-
-        temporaryFile = File.createTempFile("hadoop-test", ".properties");
-
-        // mock properties and return a temporary file for the kerberos configuration
-        mockedProperties = mock(NiFiProperties.class);
-        when(mockedProperties.getKerberosConfigurationFile()).thenReturn(temporaryFile);
-    }
-
-    @AfterEach
-    public void cleanUp() {
-        temporaryFile.delete();
     }
 
     @Test

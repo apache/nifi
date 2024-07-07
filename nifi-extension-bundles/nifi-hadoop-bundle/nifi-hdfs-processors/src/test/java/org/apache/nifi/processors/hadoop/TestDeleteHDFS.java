@@ -23,7 +23,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.ietf.jgss.GSSException;
@@ -48,8 +47,6 @@ public class TestDeleteHDFS {
 
     @BeforeEach
     public void setup() throws Exception {
-        NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
         mockFileSystem = mock(FileSystem.class);
     }
 

@@ -27,15 +27,6 @@ export NIFI_PID_DIR="${NIFI_HOME}/run"
 #The directory for NiFi log files
 export NIFI_LOG_DIR="${NIFI_HOME}/logs"
 
-# Set to false to force the use of Keytab controller service in processors
-# that use Kerberos. If true, these processors will allow configuration of keytab
-# and principal directly within the processor. If false, these processors will be
-# invalid if attempting to configure these properties. This may be advantageous in
-# a multi-tenant environment where management of keytabs should be performed only by
-# a user with elevated permissions (i.e., users that have been granted the 'ACCESS_KEYTAB'
-# restriction).
-export NIFI_ALLOW_EXPLICIT_KEYTAB=true
-
 # Set to true to deny access to the Local File System from HDFS Processors
 # This flag forces HDFS Processors to evaluate the File System path during scheduling
 export NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS=false

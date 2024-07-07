@@ -50,7 +50,6 @@ public class TestGetHDFSEvents {
     @BeforeEach
     public void setup() {
         mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
         inotifyEventInputStream = mock(DFSInotifyEventInputStream.class);
         hdfsAdmin = mock(HdfsAdmin.class);
     }
