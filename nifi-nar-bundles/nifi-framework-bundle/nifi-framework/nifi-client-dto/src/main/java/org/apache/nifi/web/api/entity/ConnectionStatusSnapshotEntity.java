@@ -66,6 +66,7 @@ public class ConnectionStatusSnapshotEntity extends Entity implements ReadablePe
     @Override
     public ConnectionStatusSnapshotEntity clone() {
         final ConnectionStatusSnapshotEntity other = new ConnectionStatusSnapshotEntity();
+        other.setId(this.getId());
         other.setCanRead(this.getCanRead());
         other.setConnectionStatusSnapshot(this.getConnectionStatusSnapshot().clone());
 

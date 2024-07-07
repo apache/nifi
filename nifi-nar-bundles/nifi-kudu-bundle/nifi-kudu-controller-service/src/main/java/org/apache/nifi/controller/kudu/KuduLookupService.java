@@ -51,6 +51,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 
 import javax.security.auth.login.LoginException;
 import java.util.ArrayList;
@@ -69,6 +70,7 @@ import java.util.stream.Collectors;
 
 @CapabilityDescription("Lookup a record from Kudu Server associated with the specified key. Binary columns are base64 encoded. Only one matched row will be returned")
 @Tags({"lookup", "enrich", "key", "value", "kudu"})
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class KuduLookupService extends AbstractControllerService implements RecordLookupService {
 
     public static final PropertyDescriptor KUDU_MASTERS = new PropertyDescriptor.Builder()

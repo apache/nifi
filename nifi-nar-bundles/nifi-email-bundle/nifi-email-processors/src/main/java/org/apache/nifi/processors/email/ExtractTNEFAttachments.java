@@ -49,6 +49,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.poi.hmef.Attachment;
 import org.apache.poi.hmef.HMEFMessage;
 
@@ -64,6 +65,7 @@ import org.apache.poi.hmef.HMEFMessage;
         @WritesAttribute(attribute = "email.tnef.attachment.parent.filename ", description = "The filename of the parent FlowFile"),
         @WritesAttribute(attribute = "email.tnef.attachment.parent.uuid", description = "The UUID of the original FlowFile.")})
 
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class ExtractTNEFAttachments extends AbstractProcessor {
     public static final String ATTACHMENT_ORIGINAL_FILENAME = "email.tnef.attachment.parent.filename";
     public static final String ATTACHMENT_ORIGINAL_UUID = "email.tnef.attachment.parent.uuid";

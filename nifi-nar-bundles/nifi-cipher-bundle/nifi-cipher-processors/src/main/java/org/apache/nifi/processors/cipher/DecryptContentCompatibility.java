@@ -34,6 +34,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.cipher.io.DecryptStreamCallback;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.Cipher;
@@ -66,6 +67,7 @@ import java.util.Set;
         @WritesAttribute(attribute = CipherAttributeKey.PBE_SYMMETRIC_CIPHER, description = "Password-Based Encryption Block Cipher"),
         @WritesAttribute(attribute = CipherAttributeKey.PBE_DIGEST_ALGORITHM, description = "Password-Based Encryption Digest Algorithm"),
 })
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class DecryptContentCompatibility extends AbstractProcessor {
 
     static final PropertyDescriptor ENCRYPTION_SCHEME = new PropertyDescriptor.Builder()

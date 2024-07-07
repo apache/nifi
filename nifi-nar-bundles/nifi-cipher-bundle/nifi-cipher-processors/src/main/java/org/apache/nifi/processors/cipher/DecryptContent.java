@@ -41,6 +41,7 @@ import org.apache.nifi.security.crypto.key.StandardDerivedKeySpec;
 import org.apache.nifi.security.crypto.key.detection.DetectedDerivedKeyParameterSpecReader;
 import org.apache.nifi.security.crypto.key.detection.DetectedDerivedKeyProvider;
 import org.apache.nifi.security.crypto.key.io.ByteBufferSearch;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.bouncycastle.util.encoders.Hex;
 
 import javax.crypto.Cipher;
@@ -70,6 +71,7 @@ import java.util.Set;
         "The salt format indicates the Key Derivation Function that the Processor uses to generate a secret key based on a configured password. " +
         "The Processor derives keys with a size of 128 bits according to the conventions implemented in NiFi 0.5.0."
 )
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class DecryptContent extends AbstractProcessor {
 
     static final PropertyDescriptor CIPHER_ALGORITHM_MODE = new PropertyDescriptor.Builder()

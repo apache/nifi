@@ -54,6 +54,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -110,6 +111,7 @@ import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_I
         @WritesAttribute(attribute="client.certificate.subject.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
                                                                                 "client certificate's owner (subject) is attached to the FlowFile.")
 })
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class ListenTCPRecord extends AbstractProcessor {
     private static final String CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE = "client.certificate.subject.dn";
     private static final String CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE = "client.certificate.issuer.dn";

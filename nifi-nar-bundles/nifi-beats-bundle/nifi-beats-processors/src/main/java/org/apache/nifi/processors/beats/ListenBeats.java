@@ -47,6 +47,7 @@ import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -70,6 +71,7 @@ import java.util.concurrent.LinkedBlockingQueue;
     @WritesAttribute(attribute = "beats.sequencenumber", description = "The sequence number of the message included for batches containing single messages"),
     @WritesAttribute(attribute = "mime.type", description = "The mime.type of the content which is application/json")
 })
+@DeprecationNotice(reason = "This component is deprecated and will be removed in NiFi 2.x.")
 public class ListenBeats extends AbstractProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
