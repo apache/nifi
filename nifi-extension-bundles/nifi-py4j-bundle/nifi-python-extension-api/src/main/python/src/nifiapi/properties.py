@@ -292,30 +292,11 @@ class PropertyDescriptor:
         builder.identifiesExternalResource(cardinality, types[0], types[1:])
 
 
-class ProcessContext:
+class PropertyContext:
     __trivial_attribute_reference__ = re.compile(r"\$\{([^${}\[\],:;/*\' \t\r\n\\d][^${}\[\],:;/*\' \t\r\n]*)}")
     __escaped_attribute_reference__ = re.compile(r"\$\{'([^${}\[\],:;/*\' \t\r\n\\d][^${}\[\],:;/*\'\t\r\n]*)'}")
 
-    def __init__(self, java_context):
-        self.java_context = java_context
-
-        descriptors = java_context.getProperties().keySet()
-        self.name = java_context.getName()
-        self.property_values = {}
-        self.descriptor_value_map = {}
-
-        for descriptor in descriptors:
-            property_value = java_context.getProperty(descriptor.getName())
-            string_value = property_value.getValue()
-
-            property_value = self.__create_python_property_value(descriptor.isExpressionLanguageSupported(), property_value, string_value)
-            self.property_values[descriptor.getName()] = property_value
-
-            python_descriptor = PropertyDescriptor.from_java_descriptor(descriptor)
-            self.descriptor_value_map[python_descriptor] = string_value
-
-
-    def __create_python_property_value(self, el_supported, java_property_value, string_value):
+    def create_python_property_value(self, el_supported, java_property_value, string_value):
         el_present = java_property_value.isExpressionLanguagePresent()
         referenced_attribute = None
         if el_present:
@@ -339,11 +320,51 @@ class ProcessContext:
 
     def newPropertyValue(self, value):
         java_property_value = self.java_context.newPropertyValue(value)
-        return self.__create_python_property_value(True, java_property_value, value)
+        return self.create_python_property_value(True, java_property_value, value)
+
+
+class ProcessContext(PropertyContext):
+
+    def __init__(self, java_context):
+        self.java_context = java_context
+
+        descriptors = java_context.getProperties().keySet()
+        self.name = java_context.getName()
+        self.property_values = {}
+        self.descriptor_value_map = {}
+
+        for descriptor in descriptors:
+            property_value = java_context.getProperty(descriptor.getName())
+            string_value = property_value.getValue()
+
+            property_value = self.create_python_property_value(descriptor.isExpressionLanguageSupported(), property_value, string_value)
+            self.property_values[descriptor.getName()] = property_value
+
+            python_descriptor = PropertyDescriptor.from_java_descriptor(descriptor)
+            self.descriptor_value_map[python_descriptor] = string_value
 
     def getName(self):
         return self.name
 
+
+class ValidationContext(PropertyContext):
+
+    def __init__(self, java_context):
+        self.java_context = java_context
+
+        descriptors = java_context.getProperties().keySet()
+        self.property_values = {}
+        self.descriptor_value_map = {}
+
+        for descriptor in descriptors:
+            property_value = java_context.getProperty(descriptor)
+            string_value = property_value.getValue()
+
+            property_value = self.create_python_property_value(descriptor.isExpressionLanguageSupported(), property_value, string_value)
+            self.property_values[descriptor.getName()] = property_value
+
+            python_descriptor = PropertyDescriptor.from_java_descriptor(descriptor)
+            self.descriptor_value_map[python_descriptor] = string_value
 
 
 class TimeUnit(Enum):
@@ -435,3 +456,18 @@ class PythonPropertyValue:
 
         return self
 
+
+class ValidationResult:
+    def __init__(self, subject="", explanation="", valid=False, input=None):
+        self.subject = subject
+        self.explanation = explanation
+        self.valid = valid
+        self.input = input
+
+    def to_java_validation_result(self):
+            return JvmHolder.gateway.jvm.org.apache.nifi.components.ValidationResult.Builder() \
+                .subject(self.subject) \
+                .explanation(self.explanation) \
+                .valid(self.valid) \
+                .input(self.input) \
+                .build()
