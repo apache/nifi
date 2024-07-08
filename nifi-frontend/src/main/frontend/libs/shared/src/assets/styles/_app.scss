@@ -113,6 +113,57 @@
 
     /* overriding 3rd party styles */
 
+    /* Codemirror begin */
+
+    .CodeMirror-hints {
+        z-index: 1000 !important;
+        overflow-y: scroll !important;
+    }
+
+    /* Codemirror end */
+
+    /* material typography begin */
+
+    .mat-h2,
+    .mat-typography .mat-h2,
+    .mat-typography h2 {
+        // Because angular material typography adds bottom margin
+        margin: unset;
+    }
+
+    .mat-h4,
+    .mat-typography .mat-h4,
+    .mat-typography h4 {
+        // Because angular material typography adds bottom margin
+        margin: unset;
+    }
+
+    /* material typography end */
+
+    /* material expansion panels begin (upload NARs and JOLT UI) */
+
+    .mat-expansion-panel-header.mat-expanded {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .mat-expansion-panel-header-title,
+    .mat-expansion-panel-header-description {
+        margin-right: 0 !important;
+    }
+
+    .mat-expansion-panel-body {
+        overflow-y: auto;
+    }
+
+    .mat-content.mat-content-hide-toggle {
+        margin-right: 0 !important;
+    }
+
+    /* material expansion panels end */
+
+    /* material cdk drag and drop begin (connection prioritizers and parameter inheritence) */
+
     .cdk-drag-disabled {
         cursor: not-allowed !important;
     }
@@ -161,19 +212,39 @@
         }
     }
 
-    //This style is needed due to an incompatibility between material and tailwind.
+    /* material cdk drag and drop end */
+
+    /* material dialog overrides begin */
+
+    .mat-mdc-dialog-actions {
+        height: 52px;
+        display: block;
+        padding: 8px;
+    }
+
+    .mdc-dialog__content {
+        font-size: 14px !important;
+    }
+
+    /* material dialog overrides end */
+
+    /* material form field overrides begin */
+
     .mdc-notched-outline__notch {
         border-right: none;
     }
 
-    .CodeMirror-hints {
-        z-index: 1000 !important;
-        overflow-y: scroll !important;
-    }
+    /* material form field overrides end */
+
+    /* material tab overrides begin */
 
     .mat-mdc-tab-header {
         user-select: none;
     }
+
+    /* material tab overrides end *
+
+    /* material button overrides begin */
 
     .mat-mdc-icon-button {
         --mdc-icon-button-state-layer-size: 28px;
@@ -186,17 +257,47 @@
         }
     }
 
+    /* material button overrides end */
+
+    /* material paginator overrides begin */
+
     .mat-mdc-paginator {
         background-color: unset !important;
     }
 
-    .mdc-dialog__content {
-        font-size: 14px !important;
-    }
+    /* material paginator overrides end */
+
+    /* material menu overrides begin */
 
     .mat-mdc-menu-content .mat-mdc-menu-item {
         min-height: 2.25rem;
     }
+
+    .mat-mdc-menu-panel {
+        max-width: 420px;
+
+        .fa {
+            width: 14px;
+            height: 14px;
+            text-align: center;
+        }
+
+        .icon {
+            display: inline-block;
+            width: 14px;
+            text-align: center;
+        }
+    }
+
+    /* material menu overrides end */
+
+    /* material card overrides begin */
+
+    .mat-mdc-card-header-text {
+        width: 100%;
+    }
+
+    /* material card overrides end */
 }
 
 @mixin generate-material-theme($material-theme) {
@@ -232,11 +333,6 @@
     $material-theme-warn-palette-default: mat.get-color-from-palette($material-theme-warn-palette, default);
     $material-theme-warn-palette-lighter: mat.get-color-from-palette($material-theme-warn-palette, lighter);
     $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
-
-    // support dark-mode browser default inputs (time, color, ...)
-    input {
-        color-scheme: if($is-dark, dark, light);
-    }
 
     // semantic classes for the material theme
 
@@ -290,6 +386,11 @@
         );
     }
 
+    // support dark-mode browser default inputs (time, color, ...)
+    input {
+        color-scheme: if($is-dark, dark, light);
+    }
+
     .has-errors,
     .invalid,
     .stopped,
@@ -312,39 +413,7 @@
             )};
     }
 
-    .mat-h2,
-    .mat-typography .mat-h2,
-    .mat-typography h2 {
-        // Because angular material typography adds bottom margin
-        margin: unset;
-    }
-
-    .mat-h4,
-    .mat-typography .mat-h4,
-    .mat-typography h4 {
-        // Because angular material typography adds bottom margin
-        margin: unset;
-    }
-
-    .mat-mdc-menu-panel {
-        max-width: 420px;
-
-        .fa {
-            width: 14px;
-            height: 14px;
-            text-align: center;
-        }
-
-        .icon {
-            display: inline-block;
-            width: 14px;
-            text-align: center;
-        }
-    }
-
-    .mat-mdc-card-header-text {
-        width: 100%;
-    }
+    /* material cdk drag and drop begin (connection prioritizers and parameter inheritence) */
 
     // center input text in form fields
     .mdc-text-field--outlined .mat-mdc-form-field-infix {
@@ -364,6 +433,8 @@
             background-color: $material-theme-primary-palette-default;
         }
     }
+
+    /* material cdk drag and drop end */
 }
 
 @mixin generate-supplemental-theme($supplemental-theme) {
@@ -488,6 +559,8 @@
         border-color: $alternate-surface;
     }
 
+    /* material cdk drag and drop begin (connection prioritizers and parameter inheritence) */
+
     .cdk-drop-list {
         background: if(
             $is-dark,
@@ -546,7 +619,13 @@
         }
     }
 
+    /* material cdk drag and drop end */
+
+    /* ngx-skeleton loader begin */
+
     ngx-skeleton-loader .skeleton-loader {
         background: $alternate-surface;
     }
+
+    /* ngx-skeleton loader end */
 }
