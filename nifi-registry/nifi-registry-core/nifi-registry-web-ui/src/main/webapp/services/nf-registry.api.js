@@ -34,6 +34,23 @@ var config = {
     }
 };
 
+var utils = {
+    /**
+     * Encode strings to base-64 with support for Unicode characters
+     *
+     * @param {string} str     The string to be encoded.
+     * @returns {*}
+     */
+    b64UnicodeEncode: function (str) {
+        return btoa(encodeURIComponent(str).replace(
+            /%([0-9A-F]{2})/g,
+            function toSolidBytes(match, p1) {
+                return String.fromCharCode('0x' + p1);
+            }
+        ));
+    }
+};
+
 /**
  * NfRegistryApi constructor.
  *
@@ -879,7 +896,7 @@ NfRegistryApi.prototype = {
     postToLogin: function (username, password) {
         var self = this;
 
-        var encodedCredentials = btoa(username + ':' + password);
+        var encodedCredentials = utils.b64UnicodeEncode(username + ':' + password);
         var headers = new HttpHeaders({
             'Authorization': 'Basic ' + encodedCredentials
         });
