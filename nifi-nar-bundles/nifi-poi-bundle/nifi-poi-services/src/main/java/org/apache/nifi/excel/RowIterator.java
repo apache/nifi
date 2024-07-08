@@ -47,6 +47,7 @@ class RowIterator implements Iterator<Row>, Closeable {
                 .bufferSize(4096)
                 .password(configuration.getPassword())
                 .setAvoidTempFiles(configuration.isAvoidTempFiles())
+                .setReadSharedFormulas(true) // NOTE: If not set to true, then data with shared formulas fail.
                 .open(in);
 
         final List<String> requiredSheets = configuration.getRequiredSheets();
