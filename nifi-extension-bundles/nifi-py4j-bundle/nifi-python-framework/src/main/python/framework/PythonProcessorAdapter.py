@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nifiapi.properties import ProcessContext
+from nifiapi.properties import ProcessContext, ValidationContext
 
 
 def is_method_defined(processor, method_name):
@@ -58,7 +58,7 @@ class PythonProcessorAdapter:
         if not self.hasCustomValidate:
             return None
 
-        return self.processor.customValidate(ProcessContext(context))
+        return self.processor.customValidate(ValidationContext(context))
 
     def getRelationships(self):
         # If self.relationships is None, it means that the Processor has implemented the method, and we need
