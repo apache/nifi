@@ -48,7 +48,7 @@ public class ProcessorStatus implements Cloneable {
     private int flowFilesSent;
     private long bytesSent;
     private Map<String, Long> counters;
-    private PerformanceMetrics performanceMetrics;
+    private ProcessingPerformanceStatus processingPerformanceStatus;
 
     public String getId() {
         return id;
@@ -242,12 +242,12 @@ public class ProcessorStatus implements Cloneable {
         this.counters = counters;
     }
 
-    public PerformanceMetrics getPerformanceMetrics() {
-        return performanceMetrics;
+    public ProcessingPerformanceStatus getProcessingPerformanceStatus() {
+        return processingPerformanceStatus;
     }
 
-    public void setPerformanceMetrics(PerformanceMetrics performanceMetrics) {
-        this.performanceMetrics = performanceMetrics;
+    public void setProcessingPerformanceStatus(ProcessingPerformanceStatus processingPerformanceStatus) {
+        this.processingPerformanceStatus = processingPerformanceStatus;
     }
 
     @Override
@@ -276,7 +276,7 @@ public class ProcessorStatus implements Cloneable {
         clonedObj.executionNode = executionNode;
         clonedObj.type = type;
         clonedObj.counters = counters == null ? null : new HashMap<>(counters);
-        clonedObj.performanceMetrics = performanceMetrics;
+        clonedObj.processingPerformanceStatus = processingPerformanceStatus;
         return clonedObj;
     }
 
@@ -317,8 +317,8 @@ public class ProcessorStatus implements Cloneable {
         builder.append(terminatedThreadCount);
         builder.append(", counters=");
         builder.append(counters);
-        builder.append(", performanceMetrics=");
-        builder.append(performanceMetrics);
+        builder.append(", processingPerformanceStatus=");
+        builder.append(processingPerformanceStatus);
         builder.append("]");
         return builder.toString();
     }

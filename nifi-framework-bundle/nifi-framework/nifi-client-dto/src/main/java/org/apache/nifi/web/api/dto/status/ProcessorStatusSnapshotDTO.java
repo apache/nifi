@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.status;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.xml.bind.annotation.XmlType;
-import org.apache.nifi.controller.status.PerformanceMetrics;
+import org.apache.nifi.controller.status.ProcessingPerformanceStatus;
 
 /**
  * DTO for serializing the status of a processor.
@@ -54,7 +54,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     private Integer activeThreadCount = 0;
     private Integer terminatedThreadCount = 0;
 
-    private PerformanceMetrics performanceMetrics;
+    private ProcessingPerformanceStatus processingPerformanceStatus;
 
     /* getters / setters */
     /**
@@ -298,12 +298,12 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.tasksDurationNanos = taskNanos;
     }
 
-    public PerformanceMetrics getPerformanceMetrics() {
-        return performanceMetrics;
+    public ProcessingPerformanceStatus getProcessingPerformanceStatus() {
+        return processingPerformanceStatus;
     }
 
-    public void setPerformanceMetrics(PerformanceMetrics performanceMetrics) {
-        this.performanceMetrics = performanceMetrics;
+    public void setProcessingPerformanceStatus(ProcessingPerformanceStatus processingPerformanceStatus) {
+        this.processingPerformanceStatus = processingPerformanceStatus;
     }
 
     @Override
@@ -333,7 +333,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         other.setWritten(getWritten());
         other.setTasks(getTasks());
 
-        other.setPerformanceMetrics(getPerformanceMetrics());
+        other.setProcessingPerformanceStatus(getProcessingPerformanceStatus());
 
         return other;
     }

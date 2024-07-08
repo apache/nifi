@@ -55,17 +55,10 @@ public class ProcessorStatusDataSource implements ResettableDataSource {
         new ColumnSchema("runStatus", String.class, false),
         new ColumnSchema("executionNode", String.class, false),
         new ColumnSchema("cpuTime", long.class, false),
-        new ColumnSchema("cpuOverallPct", long.class, false),
         new ColumnSchema("readTime", long.class, false),
-        new ColumnSchema("readTimeOverallPct", long.class, false),
         new ColumnSchema("writeTime", long.class, false),
-        new ColumnSchema("writeTimeOverallPct", long.class, false),
         new ColumnSchema("commitTime", long.class, false),
-        new ColumnSchema("commitTimeOverallPct", long.class, false),
-        new ColumnSchema("gcTime", long.class, false),
-        new ColumnSchema("gcTimeOverallPct", long.class, false),
-        new ColumnSchema("bytesReadOverallPct", long.class, false),
-        new ColumnSchema("bytesWrittenOverallPct", long.class, false)
+        new ColumnSchema("gcTime", long.class, false)
     ));
 
 
@@ -136,18 +129,11 @@ public class ProcessorStatusDataSource implements ResettableDataSource {
             status.getProcessingNanos(),
             status.getRunStatus().name(),
             status.getExecutionNode() == null ? null : status.getExecutionNode().name(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getCpuTime(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getCpuTimePercentage(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getReadTime(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getReadTimePercentage(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getWriteTime(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getWriteTimePercentage(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getCommitTime(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getCommitTimePercentage(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getGcTime(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getGcTimePercentage(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getBytesReadPercentage(),
-            status.getPerformanceMetrics() == null ? -1 : status.getPerformanceMetrics().getBytesWrittenPercentage()
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getCpuTime(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getReadTime(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getWriteTime(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getCommitTime(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getGcTime()
         };
     }
 }

@@ -21,7 +21,6 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.controller.status.PerformanceMetrics;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.registry.flow.VersionedFlowState;
@@ -179,7 +178,7 @@ public class StatusMerger {
 
         target.setProcessingNanos(target.getProcessingNanos() + toMerge.getProcessingNanos());
 
-        PerformanceMetrics.merge(target.getPerformanceMetrics(), toMerge.getPerformanceMetrics());
+        ProcessingPerformanceStatusMerger.mergeStatus(target.getProcessingPerformanceStatus(), toMerge.getProcessingPerformanceStatus());
 
         updatePrettyPrintedFields(target);
 
@@ -459,7 +458,7 @@ public class StatusMerger {
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
         target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
 
-        PerformanceMetrics.merge(target.getPerformanceMetrics(), toMerge.getPerformanceMetrics());
+        ProcessingPerformanceStatusMerger.mergeStatus(target.getProcessingPerformanceStatus(), toMerge.getProcessingPerformanceStatus());
 
         updatePrettyPrintedFields(target);
     }

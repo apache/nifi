@@ -57,7 +57,7 @@ public class ProcessGroupStatus implements Cloneable {
     private Collection<PortStatus> inputPortStatus = new ArrayList<>();
     private Collection<PortStatus> outputPortStatus = new ArrayList<>();
 
-    private PerformanceMetrics performanceMetrics;
+    private ProcessingPerformanceStatus processingPerformanceStatus;
 
     public String getId() {
         return id;
@@ -275,12 +275,12 @@ public class ProcessGroupStatus implements Cloneable {
         this.processingNanos = processingNanos;
     }
 
-    public PerformanceMetrics getPerformanceMetrics() {
-        return performanceMetrics;
+    public ProcessingPerformanceStatus getProcessingPerformanceStatus() {
+        return processingPerformanceStatus;
     }
 
-    public void setPerformanceMetrics(PerformanceMetrics performanceMetrics) {
-        this.performanceMetrics = performanceMetrics;
+    public void setProcessingPerformanceStatus(ProcessingPerformanceStatus processingPerformanceStatus) {
+        this.processingPerformanceStatus = processingPerformanceStatus;
     }
 
     @Override
@@ -306,7 +306,7 @@ public class ProcessGroupStatus implements Cloneable {
         clonedObj.flowFilesTransferred = flowFilesTransferred;
         clonedObj.bytesTransferred = bytesTransferred;
         clonedObj.processingNanos = processingNanos;
-        clonedObj.performanceMetrics = performanceMetrics;
+        clonedObj.processingPerformanceStatus = processingPerformanceStatus;
 
         if (connectionStatus != null) {
             final Collection<ConnectionStatus> statusList = new ArrayList<>();
@@ -429,8 +429,8 @@ public class ProcessGroupStatus implements Cloneable {
             builder.append(status);
         }
 
-        builder.append(", performanceMetrics=");
-        builder.append(performanceMetrics);
+        builder.append(", processingPerformanceStatus=");
+        builder.append(processingPerformanceStatus);
 
         builder.append("]");
         return builder.toString();
@@ -635,7 +635,21 @@ public class ProcessGroupStatus implements Cloneable {
 
         target.setRemoteProcessGroupStatus(mergedRemoteGroupMap.values());
 
-        PerformanceMetrics.merge(target.getPerformanceMetrics(), toMerge.getPerformanceMetrics());
+        final ProcessingPerformanceStatus targetPerformanceStatus = target.getProcessingPerformanceStatus();
+        final ProcessingPerformanceStatus toMergePerformanceStatus = toMerge.getProcessingPerformanceStatus();
+
+        if (targetPerformanceStatus != null && toMergePerformanceStatus != null) {
+            targetPerformanceStatus.setIdentifier(toMergePerformanceStatus.getIdentifier());
+            targetPerformanceStatus.setCpuTime(targetPerformanceStatus.getCpuTime() + toMergePerformanceStatus.getCpuTime());
+            targetPerformanceStatus.setReadTime(targetPerformanceStatus.getReadTime() + toMergePerformanceStatus.getReadTime());
+            targetPerformanceStatus.setWriteTime(targetPerformanceStatus.getWriteTime() + toMergePerformanceStatus.getWriteTime());
+            targetPerformanceStatus.setCommitTime(targetPerformanceStatus.getCommitTime() + toMergePerformanceStatus.getCommitTime());
+            targetPerformanceStatus.setGcTime(targetPerformanceStatus.getGcTime() + toMergePerformanceStatus.getGcTime());
+            targetPerformanceStatus.setBytesRead(targetPerformanceStatus.getBytesRead() + toMergePerformanceStatus.getBytesRead());
+            targetPerformanceStatus.setBytesWritten(targetPerformanceStatus.getBytesWritten() + toMergePerformanceStatus.getBytesWritten());
+        } else {
+            target.setProcessingPerformanceStatus(targetPerformanceStatus);
+        }
     }
 
     public static FlowFileAvailability mergeFlowFileAvailability(final FlowFileAvailability availabilityA, final FlowFileAvailability availabilityB) {
