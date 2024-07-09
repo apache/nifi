@@ -52,10 +52,10 @@ public class ProcessGroupStatusDataSource implements ResettableDataSource {
         new ColumnSchema("versionedFlowState", String.class, false),
         new ColumnSchema("processingNanos", long.class, false),
         new ColumnSchema("cpuTime", long.class, false),
-        new ColumnSchema("readTime", long.class, false),
-        new ColumnSchema("writeTime", long.class, false),
-        new ColumnSchema("commitTime", long.class, false),
-        new ColumnSchema("gcTime", long.class, false)
+        new ColumnSchema("contentReadDuration", long.class, false),
+        new ColumnSchema("contentWriteDuration", long.class, false),
+        new ColumnSchema("sessionCommitDuration", long.class, false),
+        new ColumnSchema("garbageCollectionDuration", long.class, false)
     ));
 
 
@@ -130,10 +130,10 @@ public class ProcessGroupStatusDataSource implements ResettableDataSource {
             status.getVersionedFlowState() == null ? null : status.getVersionedFlowState().name(),
             status.getProcessingNanos(),
             status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getCpuTime(),
-            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getReadTime(),
-            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getWriteTime(),
-            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getCommitTime(),
-            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getGcTime()
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getContentReadDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getContentWriteDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getSessionCommitDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getGarbageCollectionDuration()
         };
     }
 

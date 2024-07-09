@@ -641,12 +641,10 @@ public class ProcessGroupStatus implements Cloneable {
         if (targetPerformanceStatus != null && toMergePerformanceStatus != null) {
             targetPerformanceStatus.setIdentifier(toMergePerformanceStatus.getIdentifier());
             targetPerformanceStatus.setCpuTime(targetPerformanceStatus.getCpuTime() + toMergePerformanceStatus.getCpuTime());
-            targetPerformanceStatus.setReadTime(targetPerformanceStatus.getReadTime() + toMergePerformanceStatus.getReadTime());
-            targetPerformanceStatus.setWriteTime(targetPerformanceStatus.getWriteTime() + toMergePerformanceStatus.getWriteTime());
-            targetPerformanceStatus.setCommitTime(targetPerformanceStatus.getCommitTime() + toMergePerformanceStatus.getCommitTime());
-            targetPerformanceStatus.setGcTime(targetPerformanceStatus.getGcTime() + toMergePerformanceStatus.getGcTime());
-            targetPerformanceStatus.setBytesRead(targetPerformanceStatus.getBytesRead() + toMergePerformanceStatus.getBytesRead());
-            targetPerformanceStatus.setBytesWritten(targetPerformanceStatus.getBytesWritten() + toMergePerformanceStatus.getBytesWritten());
+            targetPerformanceStatus.setContentReadDuration(targetPerformanceStatus.getContentReadDuration() + toMergePerformanceStatus.getContentReadDuration());
+            targetPerformanceStatus.setContentWriteDuration(targetPerformanceStatus.getContentWriteDuration() + toMergePerformanceStatus.getContentWriteDuration());
+            targetPerformanceStatus.setSessionCommitDuration(targetPerformanceStatus.getSessionCommitDuration() + toMergePerformanceStatus.getSessionCommitDuration());
+            targetPerformanceStatus.setGarbageCollectionDuration(targetPerformanceStatus.getGarbageCollectionDuration() + toMergePerformanceStatus.getGarbageCollectionDuration());
         } else {
             target.setProcessingPerformanceStatus(targetPerformanceStatus);
         }

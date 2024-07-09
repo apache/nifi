@@ -200,12 +200,10 @@ public abstract class AbstractEventAccess implements EventAccess {
 
             if (processorPerformanceStatus != null) {
                 performanceStatus.setCpuTime(performanceStatus.getCpuTime() + processorPerformanceStatus.getCpuTime());
-                performanceStatus.setReadTime(performanceStatus.getReadTime() + processorPerformanceStatus.getReadTime());
-                performanceStatus.setWriteTime(performanceStatus.getWriteTime() + processorPerformanceStatus.getWriteTime());
-                performanceStatus.setCommitTime(performanceStatus.getCommitTime() + processorPerformanceStatus.getCommitTime());
-                performanceStatus.setGcTime(performanceStatus.getGcTime() + processorPerformanceStatus.getGcTime());
-                performanceStatus.setBytesRead(performanceStatus.getBytesRead() + processorPerformanceStatus.getBytesRead());
-                performanceStatus.setBytesWritten(performanceStatus.getBytesWritten() + processorPerformanceStatus.getBytesWritten());
+                performanceStatus.setContentReadDuration(performanceStatus.getContentReadDuration() + processorPerformanceStatus.getContentReadDuration());
+                performanceStatus.setContentWriteDuration(performanceStatus.getContentWriteDuration() + processorPerformanceStatus.getContentWriteDuration());
+                performanceStatus.setSessionCommitDuration(performanceStatus.getSessionCommitDuration() + processorPerformanceStatus.getSessionCommitDuration());
+                performanceStatus.setGarbageCollectionDuration(performanceStatus.getGarbageCollectionDuration() + processorPerformanceStatus.getGarbageCollectionDuration());
             }
         }
 
@@ -246,12 +244,10 @@ public abstract class AbstractEventAccess implements EventAccess {
 
             if (childGroupPerformanceStatus != null) {
                 performanceStatus.setCpuTime(performanceStatus.getCpuTime() + childGroupPerformanceStatus.getCpuTime());
-                performanceStatus.setReadTime(performanceStatus.getReadTime() + childGroupPerformanceStatus.getReadTime());
-                performanceStatus.setWriteTime(performanceStatus.getWriteTime() + childGroupPerformanceStatus.getWriteTime());
-                performanceStatus.setCommitTime(performanceStatus.getCommitTime() + childGroupPerformanceStatus.getCommitTime());
-                performanceStatus.setGcTime(performanceStatus.getGcTime() + childGroupPerformanceStatus.getGcTime());
-                performanceStatus.setBytesRead(performanceStatus.getBytesRead() + childGroupPerformanceStatus.getBytesRead());
-                performanceStatus.setBytesWritten(performanceStatus.getBytesWritten() + childGroupPerformanceStatus.getBytesWritten());
+                performanceStatus.setContentReadDuration(performanceStatus.getContentReadDuration() + childGroupPerformanceStatus.getContentReadDuration());
+                performanceStatus.setContentWriteDuration(performanceStatus.getContentWriteDuration() + childGroupPerformanceStatus.getContentWriteDuration());
+                performanceStatus.setSessionCommitDuration(performanceStatus.getSessionCommitDuration() + childGroupPerformanceStatus.getSessionCommitDuration());
+                performanceStatus.setGarbageCollectionDuration(performanceStatus.getGarbageCollectionDuration() + childGroupPerformanceStatus.getGarbageCollectionDuration());
             }
         }
 

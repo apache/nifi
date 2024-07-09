@@ -26,11 +26,9 @@ public class ProcessingPerformanceStatusMerger {
 
         target.setIdentifier(toMerge.getIdentifier());
         target.setCpuTime(target.getCpuTime() + toMerge.getCpuTime());
-        target.setReadTime(target.getReadTime() + toMerge.getReadTime());
-        target.setWriteTime(target.getWriteTime() + toMerge.getWriteTime());
-        target.setCommitTime(target.getCommitTime() + toMerge.getCommitTime());
-        target.setGcTime(target.getGcTime() + toMerge.getGcTime());
-        target.setBytesRead(target.getBytesRead() + toMerge.getBytesRead());
-        target.setBytesWritten(target.getBytesWritten() + toMerge.getBytesWritten());
+        target.setContentReadDuration(target.getContentReadDuration() + toMerge.getContentReadDuration());
+        target.setContentWriteDuration(target.getContentWriteDuration() + toMerge.getContentWriteDuration());
+        target.setSessionCommitDuration(target.getSessionCommitDuration() + toMerge.getSessionCommitDuration());
+        target.setGarbageCollectionDuration(target.getGarbageCollectionDuration() + toMerge.getGarbageCollectionDuration());
     }
 }

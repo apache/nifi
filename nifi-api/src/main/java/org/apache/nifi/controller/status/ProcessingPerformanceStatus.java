@@ -20,12 +20,10 @@ public class ProcessingPerformanceStatus implements Cloneable {
 
     private String identifier;
     private long cpuTime;
-    private long readTime;
-    private long writeTime;
-    private long commitTime;
-    private long gcTime;
-    private long bytesRead;
-    private long bytesWritten;
+    private long contentReadDuration;
+    private long contentWriteDuration;
+    private long sessionCommitDuration;
+    private long garbageCollectionDuration;
 
     public String getIdentifier() {
         return identifier;
@@ -43,52 +41,36 @@ public class ProcessingPerformanceStatus implements Cloneable {
         this.cpuTime = cpuTime;
     }
 
-    public long getReadTime() {
-        return readTime;
+    public long getContentReadDuration() {
+        return contentReadDuration;
     }
 
-    public void setReadTime(long readTime) {
-        this.readTime = readTime;
+    public void setContentReadDuration(long contentReadDuration) {
+        this.contentReadDuration = contentReadDuration;
     }
 
-    public long getWriteTime() {
-        return writeTime;
+    public long getContentWriteDuration() {
+        return contentWriteDuration;
     }
 
-    public void setWriteTime(long writeTime) {
-        this.writeTime = writeTime;
+    public void setContentWriteDuration(long contentWriteDuration) {
+        this.contentWriteDuration = contentWriteDuration;
     }
 
-    public long getCommitTime() {
-        return commitTime;
+    public long getSessionCommitDuration() {
+        return sessionCommitDuration;
     }
 
-    public void setCommitTime(long commitTime) {
-        this.commitTime = commitTime;
+    public void setSessionCommitDuration(long sessionCommitDuration) {
+        this.sessionCommitDuration = sessionCommitDuration;
     }
 
-    public long getGcTime() {
-        return gcTime;
+    public long getGarbageCollectionDuration() {
+        return garbageCollectionDuration;
     }
 
-    public void setGcTime(long gcTime) {
-        this.gcTime = gcTime;
-    }
-
-    public long getBytesRead() {
-        return bytesRead;
-    }
-
-    public void setBytesRead(long bytesRead) {
-        this.bytesRead = bytesRead;
-    }
-
-    public long getBytesWritten() {
-        return bytesWritten;
-    }
-
-    public void setBytesWritten(long bytesWritten) {
-        this.bytesWritten = bytesWritten;
+    public void setGarbageCollectionDuration(long garbageCollectionDuration) {
+        this.garbageCollectionDuration = garbageCollectionDuration;
     }
 
     @Override
@@ -97,13 +79,10 @@ public class ProcessingPerformanceStatus implements Cloneable {
 
         clonedObj.identifier = identifier;
         clonedObj.cpuTime = cpuTime;
-        clonedObj.readTime = readTime;
-        clonedObj.writeTime = writeTime;
-        clonedObj.commitTime = commitTime;
-        clonedObj.gcTime = gcTime;
-        clonedObj.bytesRead = bytesRead;
-        clonedObj.bytesWritten = bytesWritten;
-
+        clonedObj.contentReadDuration = contentReadDuration;
+        clonedObj.contentWriteDuration = contentWriteDuration;
+        clonedObj.sessionCommitDuration = sessionCommitDuration;
+        clonedObj.garbageCollectionDuration = garbageCollectionDuration;
         return clonedObj;
     }
 
@@ -114,14 +93,14 @@ public class ProcessingPerformanceStatus implements Cloneable {
         builder.append(identifier);
         builder.append(", cpuTime= ");
         builder.append(cpuTime);
-        builder.append(", readTime= ");
-        builder.append(readTime);
-        builder.append(", writeTime= ");
-        builder.append(writeTime);
-        builder.append(", commitTime= ");
-        builder.append(commitTime);
-        builder.append(", gcTime= ");
-        builder.append(gcTime);
+        builder.append(", contentReadDuration= ");
+        builder.append(contentReadDuration);
+        builder.append(", contentWriteDuration= ");
+        builder.append(contentWriteDuration);
+        builder.append(", sessionCommitDuration= ");
+        builder.append(sessionCommitDuration);
+        builder.append(", garbageCollectionDuration= ");
+        builder.append(garbageCollectionDuration);
         builder.append("]");
         return builder.toString();
     }

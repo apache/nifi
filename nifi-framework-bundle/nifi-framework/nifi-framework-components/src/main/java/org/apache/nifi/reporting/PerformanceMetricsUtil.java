@@ -27,12 +27,10 @@ public class PerformanceMetricsUtil {
 
         newMetrics.setIdentifier(processorNode.getProcessGroup().getIdentifier());
         newMetrics.setCpuTime(fileEvent.getCpuNanoseconds());
-        newMetrics.setReadTime(fileEvent.getContentReadNanoseconds());
-        newMetrics.setWriteTime(fileEvent.getContentWriteNanoseconds());
-        newMetrics.setCommitTime(fileEvent.getSessionCommitNanoseconds());
-        newMetrics.setGcTime(fileEvent.getGargeCollectionMillis());
-        newMetrics.setBytesRead(fileEvent.getBytesRead());
-        newMetrics.setBytesWritten(fileEvent.getBytesWritten());
+        newMetrics.setContentReadDuration(fileEvent.getContentReadNanoseconds());
+        newMetrics.setContentWriteDuration(fileEvent.getContentWriteNanoseconds());
+        newMetrics.setSessionCommitDuration(fileEvent.getSessionCommitNanoseconds());
+        newMetrics.setGarbageCollectionDuration(fileEvent.getGargeCollectionMillis());
 
         return newMetrics;
     }
