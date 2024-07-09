@@ -458,22 +458,16 @@ class PythonPropertyValue:
 
 
 class ValidationResult:
-    def __init__(self):
-        self.validation_results = []
+    def __init__(self, subject="", explanation="", valid=False, input=None):
+        self.subject = subject
+        self.explanation = explanation
+        self.valid = valid
+        self.input = input
 
-    def add_validation_result(self, subject="", explanation="", valid=False, input=None):
-        self.validation_results.append(self.__to_java_validation_result(subject, explanation, valid, input))
-
-    def __to_java_validation_result(self, subject, explanation, valid, input):
-        return JvmHolder.gateway.jvm.org.apache.nifi.components.ValidationResult.Builder() \
-            .subject(subject) \
-            .explanation(explanation) \
-            .valid(valid) \
-            .input(input) \
-            .build()
-
-    def build_validation_result_list(self):
-        resultList = JvmHolder.gateway.jvm.java.util.ArrayList()
-        for result in self.validation_results:
-            resultList.add(result)
-        return resultList
+    def to_java_validation_result(self):
+            return JvmHolder.gateway.jvm.org.apache.nifi.components.ValidationResult.Builder() \
+                .subject(self.subject) \
+                .explanation(self.explanation) \
+                .valid(self.valid) \
+                .input(self.input) \
+                .build()

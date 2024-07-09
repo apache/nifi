@@ -58,7 +58,12 @@ class PythonProcessorAdapter:
         if not self.hasCustomValidate:
             return None
 
-        return self.processor.customValidate(ValidationContext(context))
+        validation_results = self.processor.customValidate(ValidationContext(context))
+
+        result_list = self.gateway.jvm.java.util.ArrayList()
+        for result in validation_results:
+            result_list.add(result.to_java_validation_result())
+        return result_list
 
     def getRelationships(self):
         # If self.relationships is None, it means that the Processor has implemented the method, and we need
