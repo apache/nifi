@@ -188,6 +188,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
     private CalciteConnection createConnection() {
         final Properties properties = new Properties();
         properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.MYSQL_ANSI.name());
+        properties.put(CalciteConnectionProperty.TIME_ZONE, "UTC");
 
         try {
             final Connection connection = DriverManager.getConnection("jdbc:calcite:", properties);
