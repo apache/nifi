@@ -95,6 +95,7 @@ public class SqlJoinCache implements AutoCloseable {
     private CalciteConnection createCalciteConnection() {
         final Properties properties = new Properties();
         properties.put(CalciteConnectionProperty.LEX.camelName(), Lex.MYSQL_ANSI.name());
+        properties.put(CalciteConnectionProperty.TIME_ZONE, "UTC");
 
         try {
             final Connection connection = DriverManager.getConnection("jdbc:calcite:", properties);
