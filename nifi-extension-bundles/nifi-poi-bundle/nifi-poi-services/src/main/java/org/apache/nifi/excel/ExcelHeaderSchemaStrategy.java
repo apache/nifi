@@ -49,7 +49,7 @@ import java.util.stream.IntStream;
 public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
     private static final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
     static final int NUM_ROWS_TO_DETERMINE_TYPES = 10; // NOTE: This number is arbitrary.
-    static final AllowableValue HEADER_DERIVED = new AllowableValue("Use String Fields From Header", "Use String Fields From Header",
+    static final AllowableValue HEADER_DERIVED = new AllowableValue("Use Starting Row", "Use Starting Row",
             "The configured first row of the Excel file is a header line that contains the names of the columns. The schema will be derived by using the "
                     + "column names in the header and the following " + NUM_ROWS_TO_DETERMINE_TYPES + " rows to determine the type(s) of each column");
 
