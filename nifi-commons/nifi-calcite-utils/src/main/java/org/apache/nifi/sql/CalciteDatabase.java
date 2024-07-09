@@ -193,6 +193,10 @@ public class CalciteDatabase implements Closeable {
             calciteProperties = properties;
         }
 
+        // If not explicitly set, default timezone to UTC. We ensure that when we provide timestamps, we convert them to UTC. We don't want
+        // Calcite trying to convert them again.
+        calciteProperties.putIfAbsent("timeZone", "UTC");
+
         final Connection sqlConnection = DriverManager.getConnection("jdbc:calcite:", calciteProperties);
         final CalciteConnection connection = sqlConnection.unwrap(CalciteConnection.class);
         connection.getRootSchema().setCacheEnabled(false);

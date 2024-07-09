@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -85,6 +87,25 @@ public class TestCalciteDatabase {
         }
     }
 
+    @Test
+    public void testWithTimestamp() throws SQLException, IOException {
+        final String query = "SELECT * FROM CANNED_DATA";
+
+        try (final CalciteDatabase database = createNameTimestampDatabase();
+                     final PreparedStatement stmt = database.getConnection().prepareStatement(query);
+                     final ResultSet resultSet = stmt.executeQuery()) {
+
+            assertTrue(resultSet.next());
+
+            // We should get the same result whether we call getTimestamp() or getObject(). We should also get back the same original Long value.
+            final Timestamp timestamp = resultSet.getTimestamp(2);
+            assertEquals(timestamp, resultSet.getObject(2));
+            assertEquals(1704056400000L, timestamp.getTime());
+
+            assertFalse(resultSet.next());
+        }
+    }
+
     public static class ToUpperCase {
         public String invoke(final String value) {
             return value.toUpperCase();
@@ -105,6 +126,25 @@ public class TestCalciteDatabase {
             new Object[] {"Jane Doe", 2910},
             new Object[] {"Other", -42}
         );
+        final ListDataSource arrayListDataSource = new ListDataSource(tableSchema, rows);
+
+        final NiFiTable table = new NiFiTable("CANNED_DATA", arrayListDataSource, mock(ComponentLog.class));
+        database.addTable(table);
+
+        return database;
+    }
+
+    private CalciteDatabase createNameTimestampDatabase() throws SQLException {
+        final CalciteDatabase database = new CalciteDatabase();
+
+        final NiFiTableSchema tableSchema = new NiFiTableSchema(List.of(
+            new ColumnSchema("name", String.class, false),
+            new ColumnSchema("dob", Timestamp.class, false)
+        ));
+
+        final List<Object[]> rows = new ArrayList<>();
+        rows.add(new Object[] {"Mark", new Timestamp(1704056400000L)});
+
         final ListDataSource arrayListDataSource = new ListDataSource(tableSchema, rows);
 
         final NiFiTable table = new NiFiTable("CANNED_DATA", arrayListDataSource, mock(ComponentLog.class));
