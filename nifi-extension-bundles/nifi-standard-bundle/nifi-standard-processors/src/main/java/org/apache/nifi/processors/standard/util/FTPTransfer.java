@@ -475,16 +475,10 @@ public class FTPTransfer implements FileTransfer {
         }
 
         if (!filename.equals(tempFilename)) {
-            // if destination fullPath already exists, delete it before rename
             try {
-                int reply = client.mlst(fullPath);
-                if (FTPReply.isPositiveCompletion(reply)) {
-                    if (!client.deleteFile(fullPath)) {
-                        throw new IOException("Failed to remove file " + fullPath + " due to " + client.getReplyString());
-                    }
-                }
-            } catch (final IOException e) {
-                throw new IOException("Failed to replace remote file " + fullPath, e);
+                // file was transferred to a temporary filename, attempt to delete destination filename before rename
+                client.deleteFile(fullPath);
+            } catch (final IOException ignore) {
             }
 
             try {
