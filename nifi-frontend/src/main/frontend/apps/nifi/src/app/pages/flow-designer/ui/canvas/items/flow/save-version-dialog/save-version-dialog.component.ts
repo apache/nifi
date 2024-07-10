@@ -33,10 +33,9 @@ import { Observable, of, take } from 'rxjs';
 import { SelectOption } from 'libs/shared/src';
 import { BranchEntity, BucketEntity, RegistryClientEntity } from '../../../../../../../state/shared';
 import { SaveVersionDialogRequest, SaveVersionRequest, VersionControlInformation } from '../../../../../state/flow';
-import { TextTip, NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
+import { TextTip, NiFiCommon, NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
 import { NgForOf, NgIf } from '@angular/common';
 import { MatInput } from '@angular/material/input';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'save-version-dialog',

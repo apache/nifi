@@ -25,7 +25,7 @@ import { Client } from '../../../../../service/client.service';
 import { DocumentedType } from '../../../../../state/shared';
 import { selectSaving } from '../../../state/reporting-tasks/reporting-tasks.selectors';
 import { AsyncPipe } from '@angular/common';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'create-reporting-task',

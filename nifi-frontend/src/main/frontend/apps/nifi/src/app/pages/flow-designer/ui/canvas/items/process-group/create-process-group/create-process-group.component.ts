@@ -34,7 +34,7 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'create-process-group',

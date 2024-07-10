@@ -46,7 +46,7 @@ import * as ParameterProviderActions from '../../../state/parameter-providers/pa
 import { Store } from '@ngrx/store';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'fetch-parameter-provider-parameters',

@@ -50,7 +50,7 @@
 @use 'app/pages/summary/ui/processor-status-listing/processor-status-table/processor-status-table.component-theme' as
     processor-status-table;
 @use 'app/pages/flow-designer/ui/canvas/change-color-dialog/change-color-dialog.component-theme' as change-color-dialog;
-@use 'app/ui/common/map-table/editors/text-editor/text-editor.component-theme' as text-editor;
+@use 'libs/shared/src/components/map-table/editors/text-editor/text-editor.component-theme' as text-editor;
 
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';

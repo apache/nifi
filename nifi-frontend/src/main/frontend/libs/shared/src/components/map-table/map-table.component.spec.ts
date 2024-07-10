@@ -15,11 +15,24 @@
  * limitations under the License.
  */
 
-// @ts-expect-error https://thymikee.github.io/jest-preset-angular/docs/getting-started/test-environment
-globalThis.ngJest = {
-    testEnvironmentOptions: {
-        errorOnUnknownElements: true,
-        errorOnUnknownProperties: true
-    }
-};
-import 'jest-preset-angular/setup-jest';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MapTable } from './map-table.component';
+
+describe('MapTable', () => {
+    let component: MapTable;
+    let fixture: ComponentFixture<MapTable>;
+
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            imports: [MapTable]
+        }).compileComponents();
+
+        fixture = TestBed.createComponent(MapTable);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

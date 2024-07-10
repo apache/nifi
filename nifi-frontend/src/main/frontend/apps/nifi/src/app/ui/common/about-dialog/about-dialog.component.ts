@@ -21,7 +21,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { AsyncPipe, NgOptimizedImage } from '@angular/common';
-import { NifiTooltipDirective } from '@nifi/shared';
+import { NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { Store } from '@ngrx/store';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -29,7 +29,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { AboutState } from '../../../state/about';
 import { selectAbout } from '../../../state/about/about.selectors';
-import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'about',

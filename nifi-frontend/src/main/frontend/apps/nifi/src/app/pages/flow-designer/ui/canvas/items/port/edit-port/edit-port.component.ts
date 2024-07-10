@@ -33,9 +33,7 @@ import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
-import { NifiTooltipDirective, TextTip } from '@nifi/shared';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
-
+import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
 @Component({
     selector: 'edit-port',
     standalone: true,

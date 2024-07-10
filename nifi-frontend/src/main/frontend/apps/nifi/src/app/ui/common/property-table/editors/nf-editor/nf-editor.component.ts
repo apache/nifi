@@ -24,7 +24,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective } from '@nifi/shared';
+import { NifiTooltipDirective, Resizable } from '@nifi/shared';
 import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hint-tip.component';
 import { Parameter, PropertyHintTipInput } from '../../../../../state/shared';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -32,7 +32,6 @@ import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { NfEl } from './modes/nfel';
 import { NfPr } from './modes/nfpr';
 import { Editor } from 'codemirror';
-import { Resizable } from '../../../resizable/resizable.component';
 
 @Component({
     selector: 'nf-editor',

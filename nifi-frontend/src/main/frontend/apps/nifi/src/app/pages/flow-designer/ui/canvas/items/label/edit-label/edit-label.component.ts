@@ -34,8 +34,7 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
-import { NifiTooltipDirective } from '@nifi/shared';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'edit-label',

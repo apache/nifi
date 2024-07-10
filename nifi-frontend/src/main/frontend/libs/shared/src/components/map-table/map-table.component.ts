@@ -28,7 +28,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable, take } from 'rxjs';
-import { MapTableEntry } from '../../../state/shared';
 import {
     MatCell,
     MatCellDef,
@@ -49,21 +48,13 @@ import {
     OriginConnectionPosition,
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
-import { NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { TextEditor } from './editors/text-editor/text-editor.component';
-
-export interface MapTableItem {
-    entry: MapTableEntry;
-    id: number;
-    triggerEdit: boolean;
-    deleted: boolean;
-    dirty: boolean;
-    added: boolean;
-}
+import { NifiTooltipDirective } from '../../directives';
+import { MapTableEntry, MapTableItem, NiFiCommon, TextTip } from '../../index';
 
 @Component({
     selector: 'map-table',

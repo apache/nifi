@@ -22,14 +22,13 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 
 import { ControllerServiceApiTipInput, DocumentedType, RestrictionsTipInput } from '../../../state/shared';
-import { NifiTooltipDirective, NiFiCommon } from '@nifi/shared';
+import { NifiTooltipDirective, NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
 import { RestrictionsTip } from '../tooltips/restrictions-tip/restrictions-tip.component';
 import { ControllerServiceApiTip } from '../tooltips/controller-service-api-tip/controller-service-api-tip.component';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { ReactiveFormsModule } from '@angular/forms';
-import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'extension-creation',

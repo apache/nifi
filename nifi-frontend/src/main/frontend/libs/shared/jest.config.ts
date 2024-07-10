@@ -16,10 +16,21 @@
  */
 
 export default {
-    displayName: 'shared',
-    preset: '../../jest.preset.js',
-    setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
+    displayName: 'NiFi shared lib',
+    clearMocks: true,
     coverageDirectory: '../../coverage/libs/shared',
+    extensionsToTreatAsEsm: ['.ts'],
+
+    // A preset that is used as a base for Jest's configuration
+    preset: '../../jest.preset.js',
+
+    // The paths to modules that run some code to configure or set up the testing environment before each test
+    setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
+
+    // The test environment that will be used for testing
+    testEnvironment: '@happy-dom/jest-environment',
+
+    // A map from regular expressions to paths to transformers
     transform: {
         '^.+\\.(ts|mjs|js|html)$': [
             'jest-preset-angular',
@@ -29,10 +40,5 @@ export default {
             }
         ]
     },
-    transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$)'],
-    snapshotSerializers: [
-        'jest-preset-angular/build/serializers/no-ng-attributes',
-        'jest-preset-angular/build/serializers/ng-snapshot',
-        'jest-preset-angular/build/serializers/html-comment'
-    ]
+    transformIgnorePatterns: []
 };

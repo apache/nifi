@@ -17,7 +17,6 @@
 
 import { Component, EventEmitter, Input, Output, Renderer2, ViewContainerRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MapTableItem } from '../../map-table.component';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Editor } from 'codemirror';
 import { CdkDrag } from '@angular/cdk/drag-drop';
@@ -25,8 +24,9 @@ import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { MatButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
-import { NifiTooltipDirective } from '@nifi/shared';
+import { NifiTooltipDirective } from '../../../../directives';
 import { Resizable } from '../../../resizable/resizable.component';
+import { MapTableItem } from '../../../../index';
 
 @Component({
     selector: 'text-editor',

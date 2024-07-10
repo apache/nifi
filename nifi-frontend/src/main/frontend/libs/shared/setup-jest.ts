@@ -14,25 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import 'jest-preset-angular/setup-jest';
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MapTable } from './map-table.component';
-
-describe('EditableMapTable', () => {
-    let component: MapTable;
-    let fixture: ComponentFixture<MapTable>;
-
-    beforeEach(async () => {
-        await TestBed.configureTestingModule({
-            imports: [MapTable]
-        }).compileComponents();
-
-        fixture = TestBed.createComponent(MapTable);
-        component = fixture.componentInstance;
-        fixture.detectChanges();
-    });
-
-    it('should create', () => {
-        expect(component).toBeTruthy();
-    });
-});
+// jsdom testing environment does not provide crypto functionality... provide a dummy implementation in its place.
+window.crypto.randomUUID = () => {
+    return '7DC4EA44-EA0F-4EAE-8438-274B52620B02';
+};

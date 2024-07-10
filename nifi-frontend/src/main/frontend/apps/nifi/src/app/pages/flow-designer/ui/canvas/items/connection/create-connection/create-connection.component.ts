@@ -35,7 +35,7 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TextTip, NifiTooltipDirective } from '@nifi/shared';
+import { TextTip, NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
 import { ComponentType } from 'libs/shared/src';
 import { NiFiState } from '../../../../../../../state';
 import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';
@@ -57,7 +57,6 @@ import { BreadcrumbEntity } from '../../../../../state/shared';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
-import { CloseOnEscapeDialog } from '../../../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'create-connection',

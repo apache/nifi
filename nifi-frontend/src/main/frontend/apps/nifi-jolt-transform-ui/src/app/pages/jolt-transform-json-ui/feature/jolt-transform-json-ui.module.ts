@@ -33,7 +33,7 @@ import { CdkDrag } from '@angular/cdk/drag-drop';
 import { MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
-import { NifiTooltipDirective, ComponentContext } from '@nifi/shared';
+import { NifiTooltipDirective, ComponentContext, MapTable } from '@nifi/shared';
 import { MatInput } from '@angular/material/input';
 import { MatExpansionModule } from '@angular/material/expansion';
 
@@ -61,7 +61,8 @@ import { MatExpansionModule } from '@angular/material/expansion';
         MatHint,
         ComponentContext,
         MatExpansionModule,
-        FormsModule
+        FormsModule,
+        MapTable
     ]
 })
 export class JoltTransformJsonUiModule {}

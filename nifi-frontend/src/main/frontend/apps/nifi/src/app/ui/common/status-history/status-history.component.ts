@@ -42,16 +42,14 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import * as d3 from 'd3';
-import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
+import { NifiTooltipDirective, NiFiCommon, TextTip, Resizable, CloseOnEscapeDialog } from '@nifi/shared';
 import { isDefinedAndNotNull } from 'libs/shared/src';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
-import { Resizable } from '../resizable/resizable.component';
 import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
 import { StatusHistoryChart } from './status-history-chart/status-history-chart.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorBanner } from '../error-banner/error-banner.component';
 import { clearBannerErrors } from '../../../state/error/error.actions';
-import { CloseOnEscapeDialog } from '../close-on-escape-dialog/close-on-escape-dialog.component';
 
 @Component({
     selector: 'status-history',

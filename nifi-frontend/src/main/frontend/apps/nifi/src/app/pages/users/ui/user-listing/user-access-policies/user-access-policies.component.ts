@@ -26,7 +26,7 @@ import { NiFiCommon } from '@nifi/shared';
 import { RouterLink } from '@angular/router';
 import { UserAccessPoliciesDialogRequest } from '../../../state/user-listing';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
-import { CloseOnEscapeDialog } from '../../../../../ui/common/close-on-escape-dialog/close-on-escape-dialog.component';
+import { CloseOnEscapeDialog } from '@nifi/shared';
 import { ComponentType, SelectOption } from 'libs/shared/src';
 
 @Component({

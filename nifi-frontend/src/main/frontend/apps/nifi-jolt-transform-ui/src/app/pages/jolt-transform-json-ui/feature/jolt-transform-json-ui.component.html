@@ -254,14 +254,28 @@
                                                             class="fa fa-info-circle primary-color ml-2"
                                                             nifiTooltip
                                                             [tooltipComponentType]="TextTip"
-                                                            tooltipInputData="Enter Attributes And Values To Reference Within Your Specification For Testing Input. These Attribute Values Will Only Be Available For Testing And Not When Executing The Actual Flow:"></i>
+                                                            tooltipInputData="Enter test attributes to be transformed according to the specification along with the flow file input. NOTE: These attributes are not saved and will only be available during testing and not when executing the actual flow."></i>
                                                     </div>
                                                 </div>
                                             </mat-panel-title>
                                         </mat-expansion-panel-header>
 
-                                        <div class="listing-table">
-                                            <!--                                        TODO: Attributes-->
+                                        <div class="attributes-editor">
+                                            <map-table
+                                                formControlName="expressionLanguageAttributes"
+                                                [createNew]="createNew"
+                                                [reportChangesOnly]="false">
+                                                <div class="flex flex-row justify-end items-center">
+                                                    <button
+                                                        mat-icon-button
+                                                        [disabled]="isEmpty()"
+                                                        color="primary"
+                                                        type="button"
+                                                        (click)="clearAttributesClicked()">
+                                                        <i class="fa fa-eraser"></i>
+                                                    </button>
+                                                </div>
+                                            </map-table>
                                         </div>
                                     </mat-expansion-panel>
                                 </mat-accordion>
