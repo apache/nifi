@@ -20,12 +20,16 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
-import { asyncScheduler, catchError, from, interval, map, of, startWith, switchMap, takeUntil } from 'rxjs';
+import { asyncScheduler, catchError, from, interval, map, of, startWith, switchMap, takeUntil, tap } from 'rxjs';
 import * as FlowAnalysisActions from './flow-analysis.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FlowAnalysisService } from '../../service/flow-analysis.service';
 import { ErrorHelper } from 'apps/nifi/src/app/service/error-helper.service';
 import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
+import { Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { LARGE_DIALOG } from 'apps/nifi/src/app';
+import { RuleDetailsDialogComponent } from '../../ui/canvas/header/flow-analysis-drawer/violation-details-dialog/violation-details-dialog.component';
 
 @Injectable()
 export class FlowAnalysisEffects {
@@ -33,7 +37,9 @@ export class FlowAnalysisEffects {
         private actions$: Actions,
         private store: Store<NiFiState>,
         private flowAnalysisService: FlowAnalysisService,
-        private errorHelper: ErrorHelper
+        private errorHelper: ErrorHelper,
+        private router: Router,
+        private dialog: MatDialog
     ) {}
 
     startPollingFlowAnalysis$ = createEffect(() =>
@@ -81,5 +87,34 @@ export class FlowAnalysisEffects {
                 );
             })
         )
+    );
+
+    navigateToEditFlowAnalysisRule$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowAnalysisActions.navigateToEditFlowAnalysisRule),
+                map((action) => action.id),
+                tap((id) => {
+                    this.router.navigate(['/settings', 'flow-analysis-rules', id, 'edit']);
+                })
+            ),
+        { dispatch: false }
+    );
+
+    openRuleDetailsDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowAnalysisActions.openRuleDetailsDialog),
+                tap(({ violation, rule }) => {
+                    this.dialog.open(RuleDetailsDialogComponent, {
+                        ...LARGE_DIALOG,
+                        data: {
+                            violation,
+                            rule
+                        }
+                    });
+                })
+            ),
+        { dispatch: false }
     );
 }

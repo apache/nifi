@@ -85,23 +85,8 @@
                                                             {{ violation.subjectId }}
                                                         </span>
                                                     </div>
-                                                    <button mat-icon-button [matMenuTriggerFor]="violationMenu" class="violation-menu-btn w-[24px] h-[24px]">
-                                                        <i class="fa fa-ellipsis-v"></i>
-                                                    </button>
-                                                    <mat-menu #violationMenu="matMenu" class="rule-menu" id="rule-menu">
-                                                        <ul>
-                                                            <li class="rule-menu-option" id="rule-menu-view-documentation">
-                                                                <button mat-menu-item (click)="viewViolationDetails(rule.id)" class="">
-                                                                    <i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Violation details</span>
-                                                                </button>
-                                                            </li>
-                                                            <li class="rule-menu-option" id="rule-menu-edit-rule">
-                                                                <button mat-menu-item (click)="goToComponent(rule.id)">
-                                                                    <i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Go to component</span>
-                                                                </button>
-                                                            </li>
-                                                        </ul>
-                                                    </mat-menu>
+
+                                                    <ng-template [ngTemplateOutlet]="violationMenuTemplate" [ngTemplateOutletContext]="{violation:violation}"></ng-template>
                                                 </li>
                                             }
                                         </ul>
@@ -156,23 +141,8 @@
                                                             {{ violation.subjectId }}
                                                         </span>
                                                     </div>
-                                                    <button mat-icon-button [matMenuTriggerFor]="violationMenu" class="violation-menu-btn w-[24px] h-[24px]">
-                                                        <i class="fa fa-ellipsis-v"></i>
-                                                    </button>
-                                                    <mat-menu #violationMenu="matMenu" class="rule-menu" id="rule-menu">
-                                                        <ul>
-                                                            <li class="rule-menu-option" id="rule-menu-view-documentation">
-                                                                <button mat-menu-item (click)="viewViolationDetails(rule.id)" class="">
-                                                                    <i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Violation details</span>
-                                                                </button>
-                                                            </li>
-                                                            <li class="rule-menu-option" id="rule-menu-edit-rule">
-                                                                <button mat-menu-item (click)="goToComponent(rule.id)">
-                                                                    <i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Go to component</span>
-                                                                </button>
-                                                            </li>
-                                                        </ul>
-                                                    </mat-menu>
+
+                                                    <ng-template [ngTemplateOutlet]="violationMenuTemplate" [ngTemplateOutletContext]="{violation:violation}"></ng-template>
                                                 </li>
                                             }
                                         </ul>
@@ -204,9 +174,8 @@
                             <div class="violation-list-item-name" *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">{{ violation.subjectDisplayName }}</div>
                             <span class="violation-list-item-id">{{ violation.subjectId }}</span>
                         </div>
-                        <button class="violation-menu-btn">
-                            <i class="fa fa-ellipsis-v rules-list-item-menu-target"></i>
-                        </button>
+
+                        <ng-template [ngTemplateOutlet]="violationMenuTemplate" [ngTemplateOutletContext]="{violation:violation}"></ng-template>
                     </div>
                 </li>
             }
@@ -230,15 +199,34 @@
                             <div class="warning-list-item-name" *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">{{ violation.subjectDisplayName }}</div>
                             <span class="warning-list-item-id">{{ violation.subjectId }}</span>
                         </div>
-                        <button class="violation-menu-btn">
-                            <i class="fa fa-ellipsis-v rules-list-item-menu-target"></i>
-                        </button>
+
+                        <ng-template [ngTemplateOutlet]="violationMenuTemplate" [ngTemplateOutletContext]="{violation:violation}"></ng-template>
                     </div>
                 </li>
             }
         </ul>
     </div>
 </section>
+
+<ng-template #violationMenuTemplate let-violation="violation">
+    <button mat-icon-button [matMenuTriggerFor]="violationMenu" class="violation-menu-btn w-[24px] h-[24px]">
+        <i class="fa fa-ellipsis-v rules-list-item-menu-target"></i>
+    </button>
+    <mat-menu #violationMenu="matMenu" class="rule-menu" id="rule-menu">
+        <ul>
+            <li class="rule-menu-option" id="rule-menu-view-documentation">
+                <button mat-menu-item (click)="viewViolationDetails(violation)" class="">
+                    <i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Violation details</span>
+                </button>
+            </li>
+            <li class="rule-menu-option" id="rule-menu-edit-rule">
+                <button mat-menu-item (click)="goToComponent(violation.ruleId)">
+                    <i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Go to component</span>
+                </button>
+            </li>
+        </ul>
+    </mat-menu>
+</ng-template>
 
 <ng-template #unauthorized>
     Unauthorized

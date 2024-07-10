@@ -16,7 +16,7 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { FlowAnalysisRequestResponse } from '.';
+import { FlowAnalysisRequestResponse, FlowAnalysisRule, FlowAnalysisRuleViolation } from '.';
 
 export const startPollingFlowAnalysis = createAction('[Flow Analysis] Start Polling Flow Analysis');
 
@@ -32,3 +32,13 @@ export const pollFlowAnalysisSuccess = createAction(
 export const flowAnalysisApiError = createAction('[Flow Analysis] API Error', props<{ error: string }>());
 
 export const resetPollingFlowAnalysis = createAction(`[Flow Analysis] Reset Polling Flow Analysis`);
+
+export const navigateToEditFlowAnalysisRule = createAction(
+    '[Flow Analysis Rules] Navigate To Edit Flow Analysis Rule',
+    props<{ id: string }>()
+);
+
+export const openRuleDetailsDialog = createAction(
+    '[Flow Analysis Rules] Open Flow Analysis Rule Details Dialog',
+    props<{ violation: FlowAnalysisRuleViolation; rule: FlowAnalysisRule }>()
+);
