@@ -21,8 +21,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
@@ -60,17 +58,6 @@ import java.util.concurrent.TimeUnit;
                 Using 'DeleteFile', delete the file from the filesystem only after the result has been stored.
                 """
 )
-@WritesAttributes({
-        @WritesAttribute(
-                attribute = DeleteFile.ATTRIBUTE_FAILURE_REASON,
-                description = "Human-readable reason of failure. Only available if FlowFile is routed to relationship 'failure'."),
-        @WritesAttribute(
-                attribute = DeleteFile.ATTRIBUTE_EXCEPTION_CLASS,
-                description = "The class name of the exception thrown during processor execution. Only available if an exception caused the FlowFile to be routed to relationship 'failure'."),
-        @WritesAttribute(
-                attribute = DeleteFile.ATTRIBUTE_EXCEPTION_MESSAGE,
-                description = "The message of the exception thrown during processor execution. Only available if an exception caused the FlowFile to be routed to relationship 'failure'.")
-})
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -82,10 +69,6 @@ import java.util.concurrent.TimeUnit;
         }
 )
 public class DeleteFile extends AbstractProcessor {
-
-    public static final String ATTRIBUTE_FAILURE_REASON = "DeleteFile.failure.reason";
-    public static final String ATTRIBUTE_EXCEPTION_CLASS = "DeleteFile.failure.exception.class";
-    public static final String ATTRIBUTE_EXCEPTION_MESSAGE = "DeleteFile.failure.exception.message";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -177,11 +160,6 @@ public class DeleteFile extends AbstractProcessor {
     private void handleFailure(ProcessSession session, FlowFile flowFile, String errorMessage, Throwable throwable) {
         getLogger().error(errorMessage, throwable);
 
-        session.putAttribute(flowFile, ATTRIBUTE_FAILURE_REASON, errorMessage);
-        if (throwable != null) {
-            session.putAttribute(flowFile, ATTRIBUTE_EXCEPTION_CLASS, throwable.getClass().toString());
-            session.putAttribute(flowFile, ATTRIBUTE_EXCEPTION_MESSAGE, throwable.getMessage());
-        }
         session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
     }
