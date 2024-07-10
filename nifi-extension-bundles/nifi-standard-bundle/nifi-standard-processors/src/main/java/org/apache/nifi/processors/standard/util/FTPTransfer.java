@@ -478,7 +478,8 @@ public class FTPTransfer implements FileTransfer {
             try {
                 // file was transferred to a temporary filename, attempt to delete destination filename before rename
                 client.deleteFile(fullPath);
-            } catch (final IOException ignore) {
+            } catch (final IOException e) {
+                logger.debug("Failed to remove {} before renaming temporary file", fullPath, e);
             }
 
             try {
