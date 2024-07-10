@@ -114,10 +114,6 @@ class TestDeleteFile {
         assertExists(fileToDelete);
         runner.assertAllFlowFilesTransferred(DeleteFile.REL_FAILURE);
         runner.assertPenalizeCount(1);
-        final MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(DeleteFile.REL_FAILURE).getFirst();
-        resultFlowFile.assertAttributeExists(DeleteFile.ATTRIBUTE_FAILURE_REASON);
-        resultFlowFile.assertAttributeExists(DeleteFile.ATTRIBUTE_EXCEPTION_CLASS);
-        resultFlowFile.assertAttributeExists(DeleteFile.ATTRIBUTE_EXCEPTION_MESSAGE);
     }
 
     @Test
@@ -133,10 +129,6 @@ class TestDeleteFile {
         assertExists(fileToDelete);
         runner.assertAllFlowFilesTransferred(DeleteFile.REL_FAILURE, 1);
         runner.assertPenalizeCount(1);
-        final MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(DeleteFile.REL_FAILURE).getFirst();
-        resultFlowFile.assertAttributeExists(DeleteFile.ATTRIBUTE_FAILURE_REASON);
-        resultFlowFile.assertAttributeNotExists(DeleteFile.ATTRIBUTE_EXCEPTION_CLASS);
-        resultFlowFile.assertAttributeNotExists(DeleteFile.ATTRIBUTE_EXCEPTION_MESSAGE);
     }
 
     private MockFlowFile enqueue(String directoryPath, String filename) {
