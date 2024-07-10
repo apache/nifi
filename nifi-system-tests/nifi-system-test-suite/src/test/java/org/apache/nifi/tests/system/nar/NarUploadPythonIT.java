@@ -30,6 +30,8 @@ import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,9 +41,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class NarUploadPythonIT extends NiFiSystemIT {
+
+    private static final Logger logger = LoggerFactory.getLogger(NarUploadPythonIT.class);
 
     private static final String PYTHON_TEXT_EXTENSIONS_NAR_ID = "nifi-python-test-extensions-nar";
     private static final String PYTHON_WRITE_BECH_32_CHARSET = "python.WriteBech32Charset";
@@ -129,14 +132,16 @@ public class NarUploadPythonIT extends NiFiSystemIT {
         assertNull(getDocumentedTypeDTO(PYTHON_WRITE_BECH_32_CHARSET));
 
         // Verify existing processor is ghosted
-        final ProcessorEntity pythonProcessorAfterDelete = getNifiClient().getProcessorClient().getProcessor(pythonProcessor.getId());
-        assertNotNull(pythonProcessorAfterDelete);
-        assertNotNull(pythonProcessorAfterDelete.getComponent());
-        assertTrue(pythonProcessorAfterDelete.getComponent().getExtensionMissing());
+        final String pythonProcessorId = pythonProcessor.getId();
+        waitFor(() -> {
+            final ProcessorEntity pythonProcessorAfterDelete = getNifiClient().getProcessorClient().getProcessor(pythonProcessorId);
+            logger.info("Waiting for processor {} to be considered missing", pythonProcessorId);
+            return pythonProcessorAfterDelete.getComponent().getExtensionMissing();
+        });
 
         // Restore NAR
         final NarSummaryDTO restoredNarSummary = narUploadUtil.uploadNar(pythonTestExtensionsNar);
-        waitFor(narUploadUtil.getWaitForNarStateSupplier(uploadedNarSummary.getIdentifier(), NarState.INSTALLED));
+        waitFor(narUploadUtil.getWaitForNarStateSupplier(restoredNarSummary.getIdentifier(), NarState.INSTALLED));
 
         // Verify existing processor is un-ghosted
         final ProcessorEntity pythonProcessorAfterRestore = getNifiClient().getProcessorClient().getProcessor(pythonProcessor.getId());
