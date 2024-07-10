@@ -3256,27 +3256,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<VersionedFlowEntity> getFlowsForUser(final String registryClientId, final String bucketId) {
+    public Set<VersionedFlowEntity> getFlowsForUser(final String registryClientId, final String branch, final String bucketId) {
         final FlowRegistryClientUserContext clientUserContext = FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser());
-        final FlowRegistryBranch defaultBranch = flowRegistryDAO.getDefaultBranchForUser(clientUserContext, registryClientId);
-        return flowRegistryDAO.getFlowsForUser(clientUserContext, registryClientId, defaultBranch.getName(), bucketId).stream()
+        return flowRegistryDAO.getFlowsForUser(clientUserContext, registryClientId, branch, bucketId).stream()
                 .map(rf -> createVersionedFlowEntity(registryClientId, rf))
                 .collect(Collectors.toSet());
     }
 
     @Override
-    public VersionedFlowEntity getFlowForUser(final String registryClientId, final String bucketId, final String flowId) {
+    public VersionedFlowEntity getFlowForUser(final String registryClientId, final String branch, final String bucketId, final String flowId) {
         final FlowRegistryClientUserContext clientUserContext = FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser());
-        final FlowRegistryBranch defaultBranch = flowRegistryDAO.getDefaultBranchForUser(clientUserContext, registryClientId);
-        final RegisteredFlow flow = flowRegistryDAO.getFlowForUser(clientUserContext, registryClientId, defaultBranch.getName(), bucketId, flowId);
+        final RegisteredFlow flow = flowRegistryDAO.getFlowForUser(clientUserContext, registryClientId, branch, bucketId, flowId);
         return createVersionedFlowEntity(registryClientId, flow);
     }
 
     @Override
-    public Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(final String registryClientId, final String bucketId, final String flowId) {
+    public Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(final String registryClientId, final String branch, final String bucketId, final String flowId) {
         final FlowRegistryClientUserContext clientUserContext = FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser());
-        final FlowRegistryBranch defaultBranch = flowRegistryDAO.getDefaultBranchForUser(clientUserContext, registryClientId);
-        return flowRegistryDAO.getFlowVersionsForUser(clientUserContext, registryClientId, defaultBranch.getName(), bucketId, flowId).stream()
+        return flowRegistryDAO.getFlowVersionsForUser(clientUserContext, registryClientId, branch, bucketId, flowId).stream()
                 .map(md -> createVersionedFlowSnapshotMetadataEntity(registryClientId, md))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }

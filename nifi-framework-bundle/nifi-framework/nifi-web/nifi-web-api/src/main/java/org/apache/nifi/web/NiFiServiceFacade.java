@@ -2434,31 +2434,34 @@ public interface NiFiServiceFacade {
      * Gets the flows for the current user for the specified registry and bucket.
      *
      * @param registryClientId registry client id
+     * @param branch the branch
      * @param bucketId bucket id
      * @return the flows
      */
-    Set<VersionedFlowEntity> getFlowsForUser(String registryClientId, String bucketId);
+    Set<VersionedFlowEntity> getFlowsForUser(String registryClientId, String branch, String bucketId);
 
 
     /**
      * Returns the details of a versioned flow from a given bucket of a given registry.
      *
      * @param registryClientId registry client id
+     * @param branch the branch
      * @param bucketId bucket id
      * @param flowId flow id
      * @return the flow details
      */
-    VersionedFlowEntity getFlowForUser(String registryClientId, String bucketId, String flowId);
+    VersionedFlowEntity getFlowForUser(String registryClientId, String branch, String bucketId, String flowId);
 
     /**
      * Gets the versions of the specified registry, bucket, and flow for the current user.
      *
      * @param registryClientId registry client id
+     * @param branch the branch
      * @param bucketId bucket id
      * @param flowId flow id
      * @return the versions of the flow
      */
-    Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(String registryClientId, String bucketId, String flowId);
+    Set<VersionedFlowSnapshotMetadataEntity> getFlowVersionsForUser(String registryClientId, String branch, String bucketId, String flowId);
 
     /**
      * Updates the specified registry using the specified revision.
