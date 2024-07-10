@@ -319,14 +319,11 @@ export class JoltTransformJsonUi implements OnDestroy {
         this.editJoltTransformJSONProcessorForm.get('expressionLanguageAttributes')?.setValue([]);
     }
 
-    private mapExpressionLanguageAttributes(attributeArray: { name: string; value: string }[]) {
-        const result = {};
-
-        attributeArray.forEach((item: { name: string; value: string }) => {
-            // @ts-ignore
-            result[item.name] = item.value;
-        });
-
+    private mapExpressionLanguageAttributes(attributeArray: MapTableEntry[]) {
+        const result: { [key: string]: string | null } = {};
+        if (attributeArray) {
+            attributeArray.forEach((attriubte) => (result[attriubte.name] = attriubte.value));
+        }
         return result;
     }
 }
