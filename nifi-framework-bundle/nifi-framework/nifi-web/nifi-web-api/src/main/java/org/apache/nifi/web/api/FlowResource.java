@@ -1940,7 +1940,7 @@ public class FlowResource extends ApplicationResource {
             @Parameter(
                     description = "The name of a branch to get the buckets from. If not specified the default branch of the registry client will be used."
             )
-            @QueryParam("branch") String branch) throws NiFiRegistryException {
+            @QueryParam("branch") String branch) {
 
         authorizeFlow();
 
@@ -1995,11 +1995,16 @@ public class FlowResource extends ApplicationResource {
                     description = "The bucket id.",
                     required = true
             )
-            @PathParam("bucket-id") String bucketId) {
+            @PathParam("bucket-id") String bucketId,
+            @Parameter(
+                    description = "The name of a branch to get the flows from. If not specified the default branch of the registry client will be used."
+            )
+            @QueryParam("branch") String branch) {
 
         authorizeFlow();
 
-        final Set<VersionedFlowEntity> registeredFlows = serviceFacade.getFlowsForUser(registryId, bucketId);
+        final String selectedBranch = branch == null ? serviceFacade.getDefaultBranch(registryId).getBranch().getName() : branch;
+        final Set<VersionedFlowEntity> registeredFlows = serviceFacade.getFlowsForUser(registryId, selectedBranch, bucketId);
         final SortedSet<VersionedFlowEntity> sortedFlows = sortFlows(registeredFlows);
 
         final VersionedFlowsEntity versionedFlowsEntity = new VersionedFlowsEntity();
@@ -2054,11 +2059,16 @@ public class FlowResource extends ApplicationResource {
                     description = "The flow id.",
                     required = true
             )
-            @PathParam("flow-id") String flowId) {
+            @PathParam("flow-id") String flowId,
+            @Parameter(
+                    description = "The name of a branch to get the flow from. If not specified the default branch of the registry client will be used."
+            )
+            @QueryParam("branch") String branch) {
 
         authorizeFlow();
 
-        final VersionedFlowEntity flowDetails = serviceFacade.getFlowForUser(registryId, bucketId, flowId);
+        final String selectedBranch = branch == null ? serviceFacade.getDefaultBranch(registryId).getBranch().getName() : branch;
+        final VersionedFlowEntity flowDetails = serviceFacade.getFlowForUser(registryId, selectedBranch, bucketId, flowId);
         return generateOkResponse(flowDetails).build();
     }
 
@@ -2191,11 +2201,16 @@ public class FlowResource extends ApplicationResource {
                     description = "The flow id.",
                     required = true
             )
-            @PathParam("flow-id") String flowId) {
+            @PathParam("flow-id") String flowId,
+            @Parameter(
+                    description = "The name of a branch to get the flow versions from. If not specified the default branch of the registry client will be used."
+            )
+            @QueryParam("branch") String branch) {
 
         authorizeFlow();
 
-        final Set<VersionedFlowSnapshotMetadataEntity> registeredFlowSnapshotMetadataSet = serviceFacade.getFlowVersionsForUser(registryId, bucketId, flowId);
+        final String selectedBranch = branch == null ? serviceFacade.getDefaultBranch(registryId).getBranch().getName() : branch;
+        final Set<VersionedFlowSnapshotMetadataEntity> registeredFlowSnapshotMetadataSet = serviceFacade.getFlowVersionsForUser(registryId, selectedBranch, bucketId, flowId);
 
         final VersionedFlowSnapshotMetadataSetEntity versionedFlowSnapshotMetadataSetEntity = new VersionedFlowSnapshotMetadataSetEntity();
         versionedFlowSnapshotMetadataSetEntity.setVersionedFlowSnapshotMetadataSet(registeredFlowSnapshotMetadataSet);
