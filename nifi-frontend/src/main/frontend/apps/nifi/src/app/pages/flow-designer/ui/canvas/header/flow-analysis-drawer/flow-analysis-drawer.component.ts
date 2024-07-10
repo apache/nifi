@@ -22,7 +22,7 @@ import { Store } from '@ngrx/store';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatAccordion, MatExpansionModule } from '@angular/material/expansion';
-import { navigateToComponentDocumentation } from 'apps/nifi/src/app/state/documentation/documentation.actions';
+import { navigateToComponentDocumentation } from '../../../../../../state/documentation/documentation.actions';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FormsModule } from '@angular/forms';
 import { selectFlowAnalysisState } from '../../../../state/flow-analysis/flow-analysis.selectors';
@@ -33,11 +33,20 @@ import {
 } from '../../../../state/flow-analysis/flow-analysis.actions';
 import { FlowAnalysisRule, FlowAnalysisRuleViolation } from '../../../../state/flow-analysis';
 import { selectCurrentProcessGroupId } from '../../../../state/flow/flow.selectors';
+import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'flow-analysis-drawer',
     standalone: true,
-    imports: [CommonModule, MatMenuModule, MatIconModule, MatExpansionModule, MatCheckboxModule, FormsModule],
+    imports: [
+        CommonModule,
+        MatMenuModule,
+        MatIconModule,
+        MatExpansionModule,
+        MatCheckboxModule,
+        FormsModule,
+        RouterLink
+    ],
     templateUrl: './flow-analysis-drawer.component.html',
     styleUrl: './flow-analysis-drawer.component.scss'
 })
@@ -126,9 +135,8 @@ export class FlowAnalysisDrawerComponent {
         this.store.dispatch(openRuleDetailsDialog({ violation, rule: ruleTest }));
     }
 
-    goToComponent(id: string) {
-        // TODO: add 'go to component' logic
-        throw new Error('Method not implemented.');
+    getProcessorLink(violation: FlowAnalysisRuleViolation): string[] {
+        return ['/process-groups', violation.groupId, violation.subjectComponentType, violation.subjectId];
     }
 
     getRuleName(id: string) {
