@@ -212,7 +212,7 @@ public class GitHubRepositoryClient {
         return execute(() -> {
             try {
                 final GHContent ghContent = repository.getFileContent(resolvedPath, branchRef);
-                return ghContent.read();
+                return repository.readBlob(ghContent.getSha());
             } catch (final FileNotFoundException fnf) {
                 throwPathOrBranchNotFound(fnf, resolvedPath, branchRef);
                 return null;
@@ -238,7 +238,7 @@ public class GitHubRepositoryClient {
         return execute(() -> {
             try {
                 final GHContent ghContent = repository.getFileContent(resolvedPath, commitSha);
-                return ghContent.read();
+                return repository.readBlob(ghContent.getSha());
             } catch (final FileNotFoundException fnf) {
                 throw new FlowRegistryException("Path [" + resolvedPath + "] or Commit [" + commitSha + "] not found", fnf);
             }
