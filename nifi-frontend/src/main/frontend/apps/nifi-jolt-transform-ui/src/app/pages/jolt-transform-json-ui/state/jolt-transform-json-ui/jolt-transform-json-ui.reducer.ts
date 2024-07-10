@@ -41,7 +41,13 @@ export const initialState: JoltTransformJsonUiState = {
     processorDetails: null,
     transformingJoltSpec: false,
     validatingJoltSpec: false,
-    savingProperties: false
+    savingProperties: false,
+    savePropertiesResponse: null,
+    savePropertiesFailureResponse: null,
+    validationResponse: null,
+    validationFailureResponse: null,
+    transformationResponse: null,
+    transformationFailureResponse: null
 };
 
 export const joltTransformJsonUiReducer = createReducer(

@@ -83,7 +83,9 @@
                                         <button
                                             mat-icon-button
                                             color="primary"
-                                            title="Format Jolt Specification"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="getFormatTooltip()"
                                             (click)="formatSpecification()">
                                             <i class="fa fa-align-left"></i>
                                         </button>
@@ -91,7 +93,8 @@
                                     <ngx-codemirror
                                         formControlName="specification"
                                         [options]="getJoltSpecOptions()"
-                                        (mousedown)="preventDrag($event)"></ngx-codemirror>
+                                        (mousedown)="preventDrag($event)"
+                                        (codeMirrorLoaded)="initSpecEditor($event)"></ngx-codemirror>
                                 </div>
                                 <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
                                     @if (joltState().validatingJoltSpec) {
@@ -233,7 +236,9 @@
                                                 <button
                                                     mat-icon-button
                                                     color="primary"
-                                                    title="Format flow file content"
+                                                    nifiTooltip
+                                                    [tooltipComponentType]="TextTip"
+                                                    [tooltipInputData]="getFormatTooltip()"
                                                     (click)="formatInput()">
                                                     <i class="fa fa-align-left"></i>
                                                 </button>
@@ -241,7 +246,8 @@
                                             <ngx-codemirror
                                                 formControlName="input"
                                                 [options]="getExampleDataOptions()"
-                                                (mousedown)="preventDrag($event)"></ngx-codemirror>
+                                                (mousedown)="preventDrag($event)"
+                                                (codeMirrorLoaded)="initInputEditor($event)"></ngx-codemirror>
                                         </div>
                                     </mat-expansion-panel>
                                     <mat-expansion-panel [expanded]="step === 1" (opened)="setStep(1)" hideToggle>

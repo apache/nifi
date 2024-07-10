@@ -27,8 +27,6 @@
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
 @use 'codemirror/lib/codemirror.css';
-@use 'codemirror/addon/fold/foldgutter.css';
-@use 'codemirror/addon/hint/show-hint.css';
 @use 'codemirror/addon/lint/lint.css';
 
 @import 'font-awesome';
