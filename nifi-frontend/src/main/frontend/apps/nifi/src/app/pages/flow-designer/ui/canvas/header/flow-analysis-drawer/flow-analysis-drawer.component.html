@@ -215,12 +215,12 @@
     <mat-menu #violationMenu="matMenu" class="rule-menu" id="rule-menu">
         <ul>
             <li class="rule-menu-option" id="rule-menu-view-documentation">
-                <button mat-menu-item (click)="viewViolationDetails(violation)" class="">
+                <button mat-menu-item (click)="viewViolationDetails(violation)" class="" [disabled]="!violation.subjectPermissionDto.canRead">
                     <i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Violation details</span>
                 </button>
             </li>
-            <li class="rule-menu-option" id="rule-menu-edit-rule">
-                <button mat-menu-item (click)="goToComponent(violation.ruleId)">
+            <li class="rule-menu-option" id="rule-menu-edit-rule" *ngIf="violation.subjectComponentType === 'PROCESSOR' && violation.subjectPermissionDto.canRead">
+                <button mat-menu-item [routerLink]="getProcessorLink(violation)">
                     <i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i><span class="pl-2">Go to component</span>
                 </button>
             </li>
