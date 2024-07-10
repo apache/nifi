@@ -28,6 +28,7 @@ import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -59,6 +60,7 @@ public class TestCopyS3Object {
         AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
     }
 
+    @DisplayName("Test a normal run that SHOULD succeed")
     @Test
     public void testRun() {
         runner.enqueue("".getBytes(StandardCharsets.UTF_8), setupRun());
@@ -73,6 +75,7 @@ public class TestCopyS3Object {
         assertEquals(1, provenanceEvents.size());
     }
 
+    @DisplayName("Validate that S3 errors cleanly route to failure")
     @Test
     public void testS3ErrorHandling() {
         when(mockS3Client.copyObject(any(CopyObjectRequest.class)))

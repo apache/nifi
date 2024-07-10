@@ -22,13 +22,18 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -39,6 +44,8 @@ public class TestGetS3ObjectMetadata {
     private TestRunner runner = null;
     private GetS3ObjectMetadata mockGetS3ObjectMetadata = null;
     private AmazonS3Client mockS3Client = null;
+
+    private ObjectMetadata mockMetadata;
 
     @BeforeEach
     public void setUp() {
@@ -52,9 +59,15 @@ public class TestGetS3ObjectMetadata {
         };
         runner = TestRunners.newTestRunner(mockGetS3ObjectMetadata);
         AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
+
+        mockMetadata = mock(ObjectMetadata.class);
+        Map<String, String> user = Map.of("x", "y");
+        Map<String, Object> raw = Map.of("a", "b");
+        when(mockMetadata.getUserMetadata()).thenReturn(user);
+        when(mockMetadata.getRawMetadata()).thenReturn(raw);
     }
 
-    private void commonTest() {
+    private void run() {
         runner.setProperty(GetS3ObjectMetadata.BUCKET_WITH_DEFAULT_VALUE, "${s3.bucket}");
         runner.setProperty(GetS3ObjectMetadata.KEY, "${filename}");
         runner.enqueue("", Map.of("s3.bucket", "test-data", "filename", "test.txt"));
@@ -62,27 +75,130 @@ public class TestGetS3ObjectMetadata {
         runner.run();
     }
 
+    /*
+     * Router mode tests
+     */
+
+    @DisplayName("Validate router mode works when the file exists")
     @Test
-    public void testRunExists() {
-        when(mockS3Client.doesObjectExist(anyString(), anyString()))
-                .thenReturn(true);
-        commonTest();
+    public void testRouterRunExists() {
+        runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_ROUTER.getValue());
+        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
+                .thenReturn(mockMetadata);
+        run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_FOUND, 1);
     }
 
+    @DisplayName("Validate router mode routes to failure on S3 error")
     @Test
-    public void testRunDoesNotExist() {
-        when(mockS3Client.doesObjectExist(anyString(), anyString()))
-                .thenReturn(false);
-        commonTest();
+    public void testRouterRunHasS3Error() {
+        AmazonS3Exception exception = new AmazonS3Exception("test");
+        exception.setStatusCode(501);
+
+        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
+                .thenThrow(exception);
+        run();
+        runner.assertTransferCount(GetS3ObjectMetadata.REL_FAILURE, 1);
+    }
+
+    @DisplayName("Validate router mode routes to not-found when when the file doesn't exist")
+    @Test
+    public void testRouterRunDoesNotExist() {
+        AmazonS3Exception exception = new AmazonS3Exception("test");
+        exception.setStatusCode(404);
+
+        runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_ROUTER.getValue());
+        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
+                .thenThrow(exception);
+        run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_NOT_FOUND, 1);
     }
 
+    /*
+     * Fetch to attribute tests
+     */
+
+    @DisplayName("Validate fetch metadata to attribute routes to found when the file exists")
     @Test
-    public void testRunHasS3Error() {
-        when(mockS3Client.doesObjectExist(anyString(), anyString()))
-                .thenThrow(new RuntimeException("Manually triggered error"));
-        commonTest();
+    public void testFetchMetadataToAttributeExists() {
+        runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
+        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTE.getValue());
+        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
+                .thenReturn(mockMetadata);
+        run();
+        runner.assertTransferCount(GetS3ObjectMetadata.REL_FOUND, 1);
+    }
+
+    @DisplayName("Validate fetch to attribute mode routes to failure on S3 error")
+    @Test
+    public void testFetchMetadataToAttributeS3Error() {
+        AmazonS3Exception exception = new AmazonS3Exception("test");
+        exception.setStatusCode(501);
+
+        runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
+        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTE.getValue());
+        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
+                .thenThrow(exception);
+        run();
+        runner.assertTransferCount(GetS3ObjectMetadata.REL_FAILURE, 1);
+    }
+
+    @DisplayName("Validate fetch metadata to attribute routes to not-found when when the file doesn't exist")
+    @Test
+    public void testFetchMetadataToAttributeNotExist() {
+        AmazonS3Exception exception = new AmazonS3Exception("test");
+        exception.setStatusCode(404);
+
+        runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
+        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTE.getValue());
+        runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
+        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
+                .thenThrow(exception);
+        run();
+        runner.assertTransferCount(GetS3ObjectMetadata.REL_NOT_FOUND, 1);
+    }
+
+    /*
+     * Fetch to body tests
+     */
+
+    @DisplayName("Validate fetch metadata to flowfile body routes to found when the file exists")
+    @Test
+    public void testFetchMetadataToBodyExists() {
+        runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
+        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_FLOWFILE_BODY.getValue());
+        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
+                .thenReturn(mockMetadata);
+        run();
+        runner.assertTransferCount(GetS3ObjectMetadata.REL_FOUND, 1);
+        List<MockFlowFile> list = runner.getFlowFilesForRelationship(GetS3ObjectMetadata.REL_FOUND);
+    }
+
+    @DisplayName("Validate fetch metadata to flowfile body routes to not-found when when the file doesn't exist")
+    @Test
+    public void testFetchMetadataToBodyNotExist() {
+        AmazonS3Exception exception = new AmazonS3Exception("test");
+        exception.setStatusCode(404);
+
+        runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
+        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_FLOWFILE_BODY.getValue());
+        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
+                .thenThrow(exception);
+        run();
+        runner.assertTransferCount(GetS3ObjectMetadata.REL_NOT_FOUND, 1);
+    }
+
+    @DisplayName("Validate fetch to flowfile body mode routes to failure on S3 error")
+    @Test
+    public void testFetchMetadataToBodyS3Error() {
+        AmazonS3Exception exception = new AmazonS3Exception("test");
+        exception.setStatusCode(501);
+
+        runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
+        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_FLOWFILE_BODY.getValue());
+        when(mockS3Client.getObjectMetadata(anyString(), anyString()))
+                .thenThrow(exception);
+        run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_FAILURE, 1);
     }
 }

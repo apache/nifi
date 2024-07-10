@@ -33,7 +33,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.nio.charset.StandardCharsets;
@@ -51,7 +50,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
         "used as a router for work flows that need to check on a file in S3 before proceeding with data processing")
 @SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class})
 public class GetS3ObjectMetadata extends AbstractS3Processor {
-    public static final AllowableValue MODE_FETCH_METADATA = new AllowableValue("fetch" , "Fetch Metadata",
+    public static final AllowableValue MODE_FETCH_METADATA = new AllowableValue("fetch", "Fetch Metadata",
             "This is the default mode. It will fetch the metadata and write it to either the flowfile body or an " +
                     "attribute");
     public static final AllowableValue MODE_ROUTER = new AllowableValue("router", "Router", "When selected," +
