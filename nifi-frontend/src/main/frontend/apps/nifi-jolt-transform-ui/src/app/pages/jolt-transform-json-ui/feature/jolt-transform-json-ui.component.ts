@@ -316,7 +316,7 @@ export class JoltTransformJsonUi implements OnDestroy {
     }
 
     clearAttributesClicked() {
-        this.editJoltTransformJSONProcessorForm.get('expressionLanguageAttributes')?.reset();
+        this.editJoltTransformJSONProcessorForm.get('expressionLanguageAttributes')?.setValue([]);
     }
 
     private mapExpressionLanguageAttributes(attributeArray: { name: string; value: string }[]) {
