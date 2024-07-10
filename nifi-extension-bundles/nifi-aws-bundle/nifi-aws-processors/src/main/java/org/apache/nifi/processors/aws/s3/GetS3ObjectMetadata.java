@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -35,6 +36,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -174,14 +176,16 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             } catch (AmazonS3Exception e) {
                 if (e.getStatusCode() == 404) {
                     route = REL_NOT_FOUND;
+                    flowFile = extractExceptionDetails(e, session, flowFile);
                 } else {
                     throw e;
                 }
             }
 
             session.transfer(flowFile, route);
-        } catch (Exception ex) {
+        } catch (IOException | AmazonClientException ex) {
             getLogger().error("There was a problem checking for " + String.format("s3://%s%s", bucket, key), ex);
+            flowFile = extractExceptionDetails(ex, session, flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

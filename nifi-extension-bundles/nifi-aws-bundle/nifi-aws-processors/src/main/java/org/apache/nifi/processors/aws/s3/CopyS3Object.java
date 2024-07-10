@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
@@ -132,7 +133,8 @@ public class CopyS3Object extends AbstractS3Processor {
             session.getProvenanceReporter().send(flowFile, getTransitUrl(targetBucket, targetKey));
 
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (Exception ex) {
+        } catch (AmazonClientException ex) {
+            flowFile = extractExceptionDetails(ex, session, flowFile);
             getLogger().error("Copy S3 Object Request failed with error:", ex);
             session.transfer(flowFile, REL_FAILURE);
         }

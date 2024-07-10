@@ -22,6 +22,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
@@ -78,8 +79,10 @@ public class TestCopyS3Object {
     @DisplayName("Validate that S3 errors cleanly route to failure")
     @Test
     public void testS3ErrorHandling() {
+        var ex = new AmazonS3Exception("Manually triggered error");
+        ex.setStatusCode(503);
         when(mockS3Client.copyObject(any(CopyObjectRequest.class)))
-                .thenThrow(new RuntimeException("Manually triggered error"));
+                .thenThrow(ex);
 
         runner.enqueue("".getBytes(StandardCharsets.UTF_8), setupRun());
         runner.run();
