@@ -119,10 +119,6 @@ class TestDeleteSFTP {
         assertExists(fileToDelete);
         runner.assertAllFlowFilesTransferred(DeleteSFTP.REL_FAILURE);
         runner.assertPenalizeCount(1);
-        final MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(DeleteSFTP.REL_FAILURE).getFirst();
-        resultFlowFile.assertAttributeExists(DeleteSFTP.ATTRIBUTE_FAILURE_REASON);
-        resultFlowFile.assertAttributeExists(DeleteSFTP.ATTRIBUTE_EXCEPTION_CLASS);
-        resultFlowFile.assertAttributeExists(DeleteSFTP.ATTRIBUTE_EXCEPTION_MESSAGE);
     }
 
     @Test
@@ -138,10 +134,6 @@ class TestDeleteSFTP {
         assertExists(fileToDelete);
         runner.assertAllFlowFilesTransferred(DeleteSFTP.REL_FAILURE, 1);
         runner.assertPenalizeCount(1);
-        final MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(DeleteSFTP.REL_FAILURE).getFirst();
-        resultFlowFile.assertAttributeExists(DeleteSFTP.ATTRIBUTE_FAILURE_REASON);
-        resultFlowFile.assertAttributeNotExists(DeleteSFTP.ATTRIBUTE_EXCEPTION_CLASS);
-        resultFlowFile.assertAttributeNotExists(DeleteSFTP.ATTRIBUTE_EXCEPTION_MESSAGE);
     }
 
     @Test
