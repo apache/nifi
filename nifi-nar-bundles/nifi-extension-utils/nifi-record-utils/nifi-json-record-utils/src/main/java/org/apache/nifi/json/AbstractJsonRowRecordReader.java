@@ -76,7 +76,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
-    private static final StreamReadConstraints DEFAULT_STREAM_READ_CONSTRAINTS = StreamReadConstraints.builder()
+    static final StreamReadConstraints DEFAULT_STREAM_READ_CONSTRAINTS = StreamReadConstraints.builder()
             .maxStringLength(DataUnit.parseDataSize(DEFAULT_MAX_STRING_LENGTH, DataUnit.B).intValue())
             .build();
 
