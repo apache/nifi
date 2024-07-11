@@ -152,7 +152,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         _propertyDescriptors.add(UPDATE_MODE);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
-      relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+        relationships = Set.of(REL_SUCCESS, REL_FAILURE);
     }
 
     @Override
