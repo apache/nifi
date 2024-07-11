@@ -447,7 +447,8 @@ public class PythonProcess {
         controller.discoverExtensions(directories, workDirectory);
     }
 
-    public PythonProcessorBridge createProcessor(final String identifier, final String type, final String version, final String workDirPath) {
+    public PythonProcessorBridge createProcessor(final String identifier, final String type, final String version, final String workDirPath, final boolean prefersIsolation) {
+
         final ProcessorCreationWorkflow creationWorkflow = new ProcessorCreationWorkflow() {
             @Override
             public boolean isPackagedWithDependencies() {
@@ -486,7 +487,7 @@ public class PythonProcess {
 
             final CreatedProcessor createdProcessor = new CreatedProcessor(identifier, type, processorBridge);
             createdProcessors.add(createdProcessor);
-
+            processorPrefersIsolation.put(identifier, prefersIsolation);
             return processorBridge;
         } finally {
             processorDetails.free();
@@ -510,8 +511,18 @@ public class PythonProcess {
     }
 
     public boolean removeProcessor(final String identifier) {
-        final Boolean prefersIsolation = processorPrefersIsolation.remove(identifier);
-        return prefersIsolation != null;
+        final CreatedProcessor matchingProcessor = createdProcessors.stream()
+                .filter(createdProcessor -> createdProcessor.identifier().equals(identifier))
+                .findFirst()
+                .orElse(null);
+
+        if (matchingProcessor == null) {
+            return false;
+        }
+
+        createdProcessors.remove(matchingProcessor);
+        processorPrefersIsolation.remove(identifier);
+        return true;
     }
 
     public int getProcessorCount() {

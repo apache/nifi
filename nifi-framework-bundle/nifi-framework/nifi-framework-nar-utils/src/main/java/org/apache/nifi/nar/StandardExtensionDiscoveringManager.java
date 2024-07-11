@@ -781,7 +781,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         classNameBundles.removeIf(bundle -> bundle.getBundleDetails().getCoordinate().equals(extensionDefinitionCoordinate));
 
         final String tempComponentKey = getClassBundleKey(removeExtensionClassName, extensionDefinitionCoordinate);
-        tempComponentLookup.remove(tempComponentKey);
+        final ConfigurableComponent removedTempComponent = tempComponentLookup.remove(tempComponentKey);
 
         if (removeExtensionClassName.startsWith(PYTHON_TYPE_PREFIX)) {
             final String strippedClassName = stripPythonTypePrefix(removeExtensionClassName);
@@ -791,6 +791,10 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             processorDetailsList.removeIf(processorDetails -> processorDetails.getProcessorType().equals(strippedClassName)
                     && processorDetails.getProcessorVersion().equals(extensionDefinition.getVersion()));
 
+            if (removedTempComponent != null) {
+                final String pythonTempComponentId = getPythonTempComponentId(strippedClassName);
+                pythonBridge.onProcessorRemoved(pythonTempComponentId, strippedClassName, extensionDefinition.getVersion());
+            }
             pythonBridge.removeProcessorType(strippedClassName, extensionDefinition.getVersion());
         }
     }
@@ -858,7 +862,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
                 // TODO: This is a workaround due to bug in UI. Fix bug in UI.
                 final String type = stripPythonTypePrefix(classType);
 
-                final String procId = "temp-component-" + type;
+                final String procId = getPythonTempComponentId(type);
                 tempComponent = pythonBridge.createProcessor(procId, type, bundleCoordinate.getVersion(), false, false);
             } else {
                 final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
@@ -878,6 +882,10 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
             return null;
         }
+    }
+
+    private static String getPythonTempComponentId(final String type) {
+        return "temp-component-" + type;
     }
 
     private static String stripPythonTypePrefix(final String value) {

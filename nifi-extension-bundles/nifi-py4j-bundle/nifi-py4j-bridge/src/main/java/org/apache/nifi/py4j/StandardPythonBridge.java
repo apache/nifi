@@ -137,7 +137,7 @@ public class StandardPythonBridge implements PythonBridge {
         final PythonProcess pythonProcess = getProcessForNextComponent(extensionId, identifier, processorHome, preferIsolatedProcess, bundledWithDependencies);
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
 
-        final PythonProcessorBridge processorBridge = pythonProcess.createProcessor(identifier, type, version, workDirPath);
+        final PythonProcessorBridge processorBridge = pythonProcess.createProcessor(identifier, type, version, workDirPath, preferIsolatedProcess);
         processorCountByType.merge(extensionId, 1, Integer::sum);
         return processorBridge;
     }
