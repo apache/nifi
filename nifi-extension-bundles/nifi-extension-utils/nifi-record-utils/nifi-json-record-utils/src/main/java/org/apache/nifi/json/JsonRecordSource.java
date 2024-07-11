@@ -39,15 +39,20 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
     private final StartingFieldStrategy strategy;
 
     public JsonRecordSource(final InputStream in) throws IOException {
-        this(in, null, null);
+        this(in, null, null, DEFAULT_STREAM_READ_CONSTRAINTS);
     }
 
-    public JsonRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName) throws IOException {
-        this(in, strategy, startingFieldName, new JsonParserFactory());
+    public JsonRecordSource(final InputStream in, StreamReadConstraints streamReadConstraints) throws IOException {
+        this(in, null, null, streamReadConstraints);
     }
 
-    public JsonRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName, TokenParserFactory tokenParserFactory) throws IOException {
-        jsonParser = tokenParserFactory.getJsonParser(in, DEFAULT_STREAM_READ_CONSTRAINTS, ALLOW_COMMENTS_ENABLED);
+    public JsonRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName, StreamReadConstraints streamReadConstraints) throws IOException {
+        this(in, strategy, startingFieldName, new JsonParserFactory(), streamReadConstraints);
+    }
+
+    public JsonRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName, TokenParserFactory tokenParserFactory,
+                            StreamReadConstraints streamReadConstraints) throws IOException {
+        jsonParser = tokenParserFactory.getJsonParser(in, streamReadConstraints, ALLOW_COMMENTS_ENABLED);
         this.strategy = strategy;
 
         if (strategy == StartingFieldStrategy.NESTED_FIELD) {

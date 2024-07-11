@@ -19,11 +19,13 @@ package org.apache.nifi.json;
 
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
+import com.jayway.jsonpath.spi.json.JsonProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -48,17 +50,17 @@ import java.util.Map;
 import java.util.Optional;
 
 public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
-    private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider()).build();
 
     private final ComponentLog logger;
     private final LinkedHashMap<String, JsonPath> jsonPaths;
     private final InputStream in;
     private final RecordSchema schema;
+    private final Configuration providerConfiguration;
 
     public JsonPathRowRecordReader(final LinkedHashMap<String, JsonPath> jsonPaths, final RecordSchema schema, final InputStream in, final ComponentLog logger,
                                    final String dateFormat, final String timeFormat, final String timestampFormat)
             throws MalformedRecordException, IOException {
-        this(jsonPaths, schema, in, logger, dateFormat, timeFormat, timestampFormat, false, null);
+        this(jsonPaths, schema, in, logger, dateFormat, timeFormat, timestampFormat, false, DEFAULT_STREAM_READ_CONSTRAINTS);
     }
 
     public JsonPathRowRecordReader(final LinkedHashMap<String, JsonPath> jsonPaths, final RecordSchema schema, final InputStream in, final ComponentLog logger,
@@ -72,6 +74,11 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
         this.jsonPaths = jsonPaths;
         this.in = in;
         this.logger = logger;
+
+        final ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.getFactory().setStreamReadConstraints(streamReadConstraints);
+        final JsonProvider jsonProvider = new JacksonJsonProvider(objectMapper);
+        providerConfiguration = Configuration.builder().jsonProvider(jsonProvider).build();
     }
 
     @Override
@@ -90,7 +97,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             return null;
         }
 
-        final DocumentContext ctx = JsonPath.using(STRICT_PROVIDER_CONFIGURATION).parse(jsonNode.toString());
+        final DocumentContext ctx = JsonPath.using(providerConfiguration).parse(jsonNode.toString());
         final Map<String, Object> values = new HashMap<>(schema.getFieldCount());
 
         for (final Map.Entry<String, JsonPath> entry : jsonPaths.entrySet()) {

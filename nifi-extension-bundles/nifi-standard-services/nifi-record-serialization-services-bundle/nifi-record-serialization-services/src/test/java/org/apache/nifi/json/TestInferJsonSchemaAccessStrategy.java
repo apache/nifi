@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
@@ -236,7 +237,7 @@ class TestInferJsonSchemaAccessStrategy {
              final InputStream bufferedIn = new BufferedInputStream(in)) {
 
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                    (var, content) -> new JsonRecordSource(content, strategy, startingFieldName),
+                    (var, content) -> new JsonRecordSource(content, strategy, startingFieldName, StreamReadConstraints.defaults()),
                     timestampInference, Mockito.mock(ComponentLog.class)
             );
 
