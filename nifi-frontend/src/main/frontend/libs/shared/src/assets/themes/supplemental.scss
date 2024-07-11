@@ -106,11 +106,11 @@ $caution-palette: (
 
 // surface palette default color hue must have enough contrast on top of the mat-app-background. For light mode this is a minimum of 600 up to 900.
 // For the lighter and darker hues these are used as the surface colors for canvas components, the birdseye, navigate/operate palettes etc. When the theme is in light mode the lighter hue is used as the surface color and the darker hue sets the contrast color hue.
-$surface-light-palette: mat.define-palette($surface-palette, 600, 100, 900);
-$success-light-palette: mat.define-palette($success-palette, 400, 200, 800);
-$caution-light-palette: mat.define-palette($caution-palette, A400, A200, A700);
+$surface-light-palette: mat.m2-define-palette($surface-palette, 600, 100, 900);
+$success-light-palette: mat.m2-define-palette($success-palette, 400, 200, 800);
+$caution-light-palette: mat.m2-define-palette($caution-palette, A400, A200, A700);
 
-$supplemental-theme-light: mat.define-light-theme(
+$supplemental-theme-light: mat.m2-define-light-theme(
     (
         color: (
             primary: $surface-light-palette,
@@ -122,11 +122,11 @@ $supplemental-theme-light: mat.define-light-theme(
 
 // surface palette default color hue must have enough contrast on top of the mat-app-background. For light mode this is a minimum of 300 up to 500.
 // For the lighter and darker hues these are used as the surface colors for canvas components, the birdseye, navigate/operate palettes etc. When the theme is in dark mode the darker hue is used as the surface color and the lighter hue sets the contrast color hue.
-$surface-dark-palette: mat.define-palette($surface-palette, 500, 200, 800);
-$success-dark-palette: mat.define-palette($success-palette, 400, 200, 800);
-$caution-dark-palette: mat.define-palette($caution-palette, A400, A200, A700);
+$surface-dark-palette: mat.m2-define-palette($surface-palette, 500, 200, 800);
+$success-dark-palette: mat.m2-define-palette($success-palette, 400, 200, 800);
+$caution-dark-palette: mat.m2-define-palette($caution-palette, A400, A200, A700);
 
-$supplemental-theme-dark: mat.define-dark-theme(
+$supplemental-theme-dark: mat.m2-define-dark-theme(
     (
         color: (
             primary: $surface-dark-palette,

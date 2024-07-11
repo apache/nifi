@@ -50,8 +50,8 @@
 
 @mixin generate-theme($material-theme, $supplemental-theme) {
     // Get the color config from the theme.
-    $material-theme-color-config: mat.get-color-config($material-theme);
-    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
+    $material-theme-color-config: mat.m2-get-color-config($material-theme);
+    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
 
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
@@ -61,20 +61,23 @@
     // Get hues from palette
     $is-dark: map-get($supplemental-theme-color-config, is-dark);
 
-    $supplemental-theme-surface-palette-lighter: mat.get-color-from-palette(
+    $supplemental-theme-surface-palette-lighter: mat.m2-get-color-from-palette(
         $supplemental-theme-surface-palette,
         lighter
     );
-    $supplemental-theme-surface-palette-darker: mat.get-color-from-palette($supplemental-theme-surface-palette, darker);
+    $supplemental-theme-surface-palette-darker: mat.m2-get-color-from-palette(
+        $supplemental-theme-surface-palette,
+        darker
+    );
     $selected-row-color: if(
         $is-dark,
-        mat.get-color-from-palette($material-theme-accent-palette, darker),
-        mat.get-color-from-palette($material-theme-accent-palette, lighter)
+        mat.m2-get-color-from-palette($material-theme-accent-palette, darker),
+        mat.m2-get-color-from-palette($material-theme-accent-palette, lighter)
     );
     $header-surface: if(
         $is-dark,
-        mat.get-color-from-palette($material-theme-primary-palette),
-        mat.get-color-from-palette($material-theme-primary-palette, darker)
+        mat.m2-get-color-from-palette($material-theme-primary-palette),
+        mat.m2-get-color-from-palette($material-theme-primary-palette, darker)
     );
 
     .listing-table {

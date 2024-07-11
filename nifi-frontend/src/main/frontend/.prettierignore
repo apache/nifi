@@ -36,3 +36,5 @@ src/styles.scss
 Thumbs.db
 
 .angular
+
+/.nx/workspace-data
