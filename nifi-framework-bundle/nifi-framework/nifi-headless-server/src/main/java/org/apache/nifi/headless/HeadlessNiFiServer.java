@@ -169,6 +169,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             flowService.start();
             flowService.load(null);
             flowController.onFlowInitialized(true);
+            validateFlow();
             FlowManager flowManager = flowController.getFlowManager();
             flowManager.getGroup(flowManager.getRootGroupId()).startProcessing();
 
@@ -193,6 +194,10 @@ public class HeadlessNiFiServer implements NiFiServer {
             }
             startUpFailure(new Exception("Unable to load flow due to: " + e, e));
         }
+    }
+
+    protected void validateFlow() {
+        logger.info("Flow validation not implemented. Proceeding without validating the flow");
     }
 
     private void startUpFailure(Throwable t) {
