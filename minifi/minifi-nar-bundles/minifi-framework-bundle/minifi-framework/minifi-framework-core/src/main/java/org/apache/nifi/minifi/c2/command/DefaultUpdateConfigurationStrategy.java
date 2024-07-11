@@ -17,15 +17,35 @@
 
 package org.apache.nifi.minifi.c2.command;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptySet;
+import static java.util.UUID.randomUUID;
+import static java.util.function.Predicate.not;
+import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BACKUP_EXTENSION;
+import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.backup;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.persist;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.removeIfExists;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.revert;
+import static org.apache.nifi.minifi.commons.utils.RetryUtil.retry;
+import static org.apache.nifi.minifi.validator.FlowValidator.validate;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.nifi.c2.client.service.operation.UpdateConfigurationStrategy;
-import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.Connection;
-import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -38,49 +58,12 @@ import org.apache.nifi.services.FlowService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.emptySet;
-import static java.util.UUID.randomUUID;
-import static java.util.function.Predicate.not;
-import static org.apache.nifi.components.AsyncLoadedProcessor.LoadState.DOWNLOADING_DEPENDENCIES;
-import static org.apache.nifi.components.AsyncLoadedProcessor.LoadState.INITIALIZING_ENVIRONMENT;
-import static org.apache.nifi.components.AsyncLoadedProcessor.LoadState.LOADING_PROCESSOR_CODE;
-import static org.apache.nifi.components.validation.ValidationStatus.INVALID;
-import static org.apache.nifi.components.validation.ValidationStatus.VALIDATING;
-import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BACKUP_EXTENSION;
-import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.backup;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.persist;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.removeIfExists;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.revert;
-
 public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationStrategy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultUpdateConfigurationStrategy.class);
 
-    private static final Set<AsyncLoadedProcessor.LoadState> INITIALIZING_ASYNC_PROCESSOR_STATES =
-        Set.of(INITIALIZING_ENVIRONMENT, DOWNLOADING_DEPENDENCIES, LOADING_PROCESSOR_CODE);
-
-    private static int ASYNC_LOADING_COMPONENT_INIT_RETRY_PAUSE_DURATION_MS = 5000;
-    private static int ASYNC_LOADING_COMPONENT_INIT_MAX_RETRIES = 60;
-    private static int VALIDATION_RETRY_PAUSE_DURATION_MS = 1000;
-    private static int VALIDATION_MAX_RETRIES = 5;
-    private static int FLOW_DRAIN_RETRY_PAUSE_DURATION_MS = 1000;
-    private static int FLOW_DRAIN_MAX_RETRIES = 60;
+    private static final int FLOW_DRAIN_RETRY_PAUSE_DURATION_MS = 1000;
+    private static final int FLOW_DRAIN_MAX_RETRIES = 60;
 
     private final FlowController flowController;
     private final FlowService flowService;
@@ -115,9 +98,9 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         Set<String> originalConnectionIds = emptySet();
         try {
             originalConnectionIds = findAllExistingConnections(flowController.getFlowManager().getRootGroup())
-                    .stream()
-                    .map(Connection::getIdentifier)
-                    .collect(Collectors.toSet());
+                .stream()
+                .map(Connection::getIdentifier)
+                .collect(Collectors.toSet());
             VersionedDataflow rawDataFlow = flowSerDeService.deserialize(rawFlow);
 
             VersionedDataflow propertyEncryptedRawDataFlow = flowPropertyEncryptor.encryptSensitiveProperties(rawDataFlow);
@@ -187,9 +170,9 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         return rootProcessGroup -> {
             LOGGER.warn("Flow did not stop within graceful period. Force stopping flow and emptying non referenced queues");
             findAllExistingConnections(rootProcessGroup).stream()
-                    .filter(connection -> !proposedConnectionIds.contains(connection.getIdentifier()))
-                    .map(Connection::getFlowFileQueue)
-                    .forEach(queue -> queue.dropFlowFiles(randomUUID().toString(), randomUUID().toString()));
+                .filter(connection -> !proposedConnectionIds.contains(connection.getIdentifier()))
+                .map(Connection::getFlowFileQueue)
+                .forEach(queue -> queue.dropFlowFiles(randomUUID().toString(), randomUUID().toString()));
         };
     }
 
@@ -216,84 +199,21 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         }
     }
 
-    private List<ValidationResult> validate(FlowManager flowManager) {
-        List<? extends ComponentNode> componentNodes = extractComponentNodes(flowManager);
-
-        retry(() -> initializingAsyncLoadingComponents(componentNodes), List::isEmpty,
-            ASYNC_LOADING_COMPONENT_INIT_MAX_RETRIES, ASYNC_LOADING_COMPONENT_INIT_RETRY_PAUSE_DURATION_MS)
-            .ifPresent(components -> {
-                LOGGER.error("The following components are async loading components and are still initializing: {}", components);
-                throw new IllegalStateException("Maximum retry number exceeded while waiting for async loading components to be initialized");
-            });
-
-        retry(() -> componentsInValidatingState(componentNodes), List::isEmpty, VALIDATION_MAX_RETRIES, VALIDATION_RETRY_PAUSE_DURATION_MS)
-            .ifPresent(components -> {
-                LOGGER.error("The following components are still in VALIDATING state: {}", components);
-                throw new IllegalStateException("Maximum retry number exceeded while waiting for components to be validated");
-            });
-
-        return componentNodes.stream()
-            .map(ComponentNode::getValidationErrors)
-            .flatMap(Collection::stream)
-            .toList();
-    }
-
-    private List<? extends ComponentNode> extractComponentNodes(FlowManager flowManager) {
-        return Stream.of(
-                flowManager.getAllControllerServices(),
-                flowManager.getAllReportingTasks(),
-                Set.copyOf(flowManager.getRootGroup().findAllProcessors()))
-            .flatMap(Set::stream)
-            .toList();
-    }
-
-    private List<? extends ComponentNode> componentsInValidatingState(List<? extends ComponentNode> componentNodes) {
-        return componentNodes.stream()
-            .filter(componentNode -> componentNode.performValidation() == VALIDATING)
-            .toList();
-    }
-
-    private List<? extends ComponentNode> initializingAsyncLoadingComponents(List<? extends ComponentNode> componentNodes) {
-        return componentNodes.stream()
-            .filter(componentNode -> componentNode.performValidation() == INVALID)
-            .filter(componentNode -> componentNode.getComponent() instanceof AsyncLoadedProcessor asyncLoadedProcessor
-                && INITIALIZING_ASYNC_PROCESSOR_STATES.contains(asyncLoadedProcessor.getState()))
-            .toList();
-    }
-
-    private <T> Optional<T> retry(Supplier<T> input, Predicate<T> predicate, int maxRetries, int pauseDurationMillis) {
-        int retries = 0;
-        while (true) {
-            T t = input.get();
-            if (predicate.test(t)) {
-                return Optional.empty();
-            }
-            if (retries == maxRetries) {
-                return Optional.ofNullable(t);
-            }
-            retries++;
-            try {
-                Thread.sleep(pauseDurationMillis);
-            } catch (InterruptedException e) {
-            }
-        }
-    }
-
     private Set<String> findAllProposedConnectionIds(VersionedProcessGroup versionedProcessGroup) {
         return versionedProcessGroup == null
-                ? emptySet()
-                : Stream.concat(
-                    versionedProcessGroup.getConnections().stream().map(VersionedConnection::getInstanceIdentifier),
-                    versionedProcessGroup.getProcessGroups().stream().map(this::findAllProposedConnectionIds).flatMap(Set::stream)
-                ).collect(Collectors.toSet());
+            ? emptySet()
+            : Stream.concat(
+                versionedProcessGroup.getConnections().stream().map(VersionedConnection::getInstanceIdentifier),
+                versionedProcessGroup.getProcessGroups().stream().map(this::findAllProposedConnectionIds).flatMap(Set::stream)
+            ).collect(Collectors.toSet());
     }
 
     private Set<Connection> findAllExistingConnections(ProcessGroup processGroup) {
         return processGroup == null
-                ? emptySet()
-                : Stream.concat(
-                    processGroup.getConnections().stream(),
-                    processGroup.getProcessGroups().stream().map(this::findAllExistingConnections).flatMap(Set::stream)
-                ).collect(Collectors.toSet());
+            ? emptySet()
+            : Stream.concat(
+                processGroup.getConnections().stream(),
+                processGroup.getProcessGroups().stream().map(this::findAllExistingConnections).flatMap(Set::stream)
+            ).collect(Collectors.toSet());
     }
 }
