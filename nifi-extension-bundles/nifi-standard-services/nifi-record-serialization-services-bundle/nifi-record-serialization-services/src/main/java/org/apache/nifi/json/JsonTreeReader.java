@@ -74,8 +74,8 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     protected volatile String startingFieldName;
     protected volatile StartingFieldStrategy startingFieldStrategy;
     protected volatile SchemaApplicationStrategy schemaApplicationStrategy;
+    protected volatile StreamReadConstraints streamReadConstraints;
     private volatile boolean allowComments;
-    private volatile StreamReadConstraints streamReadConstraints;
 
     public static final PropertyDescriptor STARTING_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("starting-field-strategy")
@@ -179,7 +179,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     }
 
     protected RecordSourceFactory<JsonNode> createJsonRecordSourceFactory() {
-        return (variables, in) -> new JsonRecordSource(in, startingFieldStrategy, startingFieldName);
+        return (variables, in) -> new JsonRecordSource(in, startingFieldStrategy, startingFieldName, streamReadConstraints);
     }
 
     @Override

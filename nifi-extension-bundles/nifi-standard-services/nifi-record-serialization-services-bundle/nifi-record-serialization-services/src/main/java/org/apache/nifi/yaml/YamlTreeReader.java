@@ -17,13 +17,11 @@
 
 package org.apache.nifi.yaml;
 
-import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.json.AbstractJsonRowRecordReader;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
 import org.apache.nifi.logging.ComponentLog;
@@ -51,28 +49,18 @@ public class YamlTreeReader extends JsonTreeReader {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        // Remove those properties which are not applicable for YAML
-        properties.remove(AbstractJsonRowRecordReader.MAX_STRING_LENGTH);
-        properties.remove(AbstractJsonRowRecordReader.ALLOW_COMMENTS);
-
-        return properties;
+        return new ArrayList<>(super.getSupportedPropertyDescriptors());
     }
 
     @Override
     protected RecordSourceFactory<JsonNode> createJsonRecordSourceFactory() {
-        return (var, in) -> new YamlRecordSource(in, startingFieldStrategy, startingFieldName);
+        return (var, in) -> new YamlRecordSource(in, startingFieldStrategy, startingFieldName, streamReadConstraints);
     }
 
     @Override
     protected JsonTreeRowRecordReader createJsonTreeRowRecordReader(InputStream in, ComponentLog logger, RecordSchema schema) throws IOException, MalformedRecordException {
         return new YamlTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName,
                 schemaApplicationStrategy, null);
-    }
-
-    @Override
-    protected StreamReadConstraints buildStreamReadConstraints(final ConfigurationContext context) {
-        return StreamReadConstraints.defaults();
     }
 
     @Override

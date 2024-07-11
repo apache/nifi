@@ -21,12 +21,12 @@ import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.apache.nifi.json.TokenParserFactory;
+import org.yaml.snakeyaml.LoaderOptions;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 public class YamlParserFactory implements TokenParserFactory {
-    private static final YAMLFactory YAML_FACTORY = new YAMLFactory(new YAMLMapper());
 
     /**
      * Get Parser implementation for YAML
@@ -39,6 +39,12 @@ public class YamlParserFactory implements TokenParserFactory {
      */
     @Override
     public JsonParser getJsonParser(final InputStream in, final StreamReadConstraints streamReadConstraints, final boolean allowComments) throws IOException {
-        return YAML_FACTORY.createParser(in);
+        final LoaderOptions loaderOptions = new LoaderOptions();
+        loaderOptions.setCodePointLimit(streamReadConstraints.getMaxStringLength());
+        final YAMLFactory yamlFactory = YAMLFactory.builder()
+                .loaderOptions(loaderOptions)
+                .build();
+
+        return yamlFactory.setCodec(new YAMLMapper()).createParser(in);
     }
 }

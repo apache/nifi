@@ -17,6 +17,7 @@
 
 package org.apache.nifi.yaml;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import org.apache.avro.Schema;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
@@ -1087,7 +1088,7 @@ class TestYamlTreeRowRecordReader {
 
     private RecordSchema inferSchema(InputStream jsonStream, StartingFieldStrategy strategy, String startingFieldName) throws IOException {
         RecordSchema schema = new InferSchemaAccessStrategy<>(
-            (__, inputStream) -> new YamlRecordSource(inputStream, strategy, startingFieldName),
+            (__, inputStream) -> new YamlRecordSource(inputStream, strategy, startingFieldName, StreamReadConstraints.defaults()),
             new JsonSchemaInference(new TimeValueInference(null, null, null)),
             mock(ComponentLog.class)
         ).getSchema(Collections.emptyMap(), jsonStream, null);
