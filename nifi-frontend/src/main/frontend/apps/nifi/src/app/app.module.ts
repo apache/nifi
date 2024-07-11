@@ -28,12 +28,7 @@ import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { environment } from '../environments/environment';
-import {
-    provideHttpClient,
-    withInterceptors,
-    withInterceptorsFromDi,
-    withXsrfConfiguration
-} from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withInterceptorsFromDi, withXsrfConfiguration } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
 import { CurrentUserEffects } from './state/current-user/current-user.effects';

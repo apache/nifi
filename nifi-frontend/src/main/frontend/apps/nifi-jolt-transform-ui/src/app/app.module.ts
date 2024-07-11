@@ -27,12 +27,7 @@ import {
 import { StoreModule } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { environment } from '../environments/environment';
-import {
-    provideHttpClient,
-    withInterceptors,
-    withInterceptorsFromDi,
-    withXsrfConfiguration
-} from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withInterceptorsFromDi, withXsrfConfiguration } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
