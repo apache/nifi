@@ -24,7 +24,7 @@ import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.mongodb.AbstractMongoProcessor.MongoUpdateOption;
+import org.apache.nifi.processors.mongodb.AbstractMongoProcessor.UpdateMethod;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -424,7 +424,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         TestRunner updateRunner = init();
 
         updateRunner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
-        updateRunner.setProperty(PutMongoRecord.UPDATE_MODE, MongoUpdateOption.UPDATE_MANY.getValue());
+        updateRunner.setProperty(PutMongoRecord.UPDATE_MODE, UpdateMethod.UPDATE_MANY.getValue());
 
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
@@ -487,7 +487,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         TestRunner updateRunner = init();
 
         updateRunner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
-        updateRunner.setProperty(PutMongoRecord.UPDATE_MODE, MongoUpdateOption.UPDATE_FF_ATTRIBUTE.getValue());
+        updateRunner.setProperty(PutMongoRecord.UPDATE_MODE, UpdateMethod.UPDATE_FF_ATTRIBUTE.getValue());
 
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
@@ -552,7 +552,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
-        runner.setProperty(PutMongoRecord.UPDATE_MODE, MongoUpdateOption.UPDATE_FF_ATTRIBUTE.getValue());
+        runner.setProperty(PutMongoRecord.UPDATE_MODE, UpdateMethod.UPDATE_FF_ATTRIBUTE.getValue());
 
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);

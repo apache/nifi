@@ -164,7 +164,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
       descriptors = List.of(CLIENT_SERVICE, DATABASE_NAME, COLLECTION_NAME);
     }
 
-    public enum MongoUpdateOption implements DescribedValue {
+    public enum UpdateMethod implements DescribedValue {
         UPDATE_ONE("one", "Update One", "Updates only the first document that matches the query."),
         UPDATE_MANY("many", "Update Many", "Updates every document that matches the query."),
         UPDATE_FF_ATTRIBUTE("flowfile-attribute", "Use '" + ATTRIBUTE_MONGODB_UPDATE_MODE + "' flowfile attribute.",
@@ -173,7 +173,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         private final String displayName;
         private final String description;
 
-        MongoUpdateOption(final String value, final String displayName, final String description) {
+        UpdateMethod(final String value, final String displayName, final String description) {
             this.value = value;
             this.displayName = displayName;
             this.description = description;
@@ -271,16 +271,16 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
 
     /**
      * Checks if given update mode option matches for the incoming flow file
-     * @param updateModeToMatch the value against which processor's mode is compared
-     * @param processorMode the value coming from running processor
+     * @param updateMethodToMatch the value against which processor's mode is compared
+     * @param configuredUpdateMethod the value coming from running processor
      * @param flowFile incoming flow file to extract processor mode
-     * @return true if the incoming files update mode matches with updateModeToMatch
+     * @return true if the incoming files update mode matches with updateMethodToMatch
      */
-    public boolean updateModeMatches(
-        MongoUpdateOption updateModeToMatch, PropertyValue processorMode, FlowFile flowFile) {
-        String updateMode = processorMode.getValue();
+    protected boolean updateModeMatches(
+        UpdateMethod updateMethodToMatch, PropertyValue configuredUpdateMethod, FlowFile flowFile) {
+        String updateMode = configuredUpdateMethod.getValue();
 
-        return updateModeToMatch.matches(updateMode) || (MongoUpdateOption.UPDATE_FF_ATTRIBUTE.matches(updateMode) && updateModeToMatch.getValue()
+        return updateMethodToMatch.matches(updateMode) || (UpdateMethod.UPDATE_FF_ATTRIBUTE.matches(updateMode) && updateMethodToMatch.getValue()
             .equalsIgnoreCase(flowFile.getAttribute(ATTRIBUTE_MONGODB_UPDATE_MODE)));
     }
 

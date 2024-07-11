@@ -102,7 +102,7 @@ public class PutMongo extends AbstractMongoProcessor {
         .build();
     static final PropertyDescriptor UPDATE_QUERY_KEY = new PropertyDescriptor.Builder()
         .name("Update Query Key")
-        .description("Comma separated key names used to build the update query criteria. Their values are taken from incoming flowfile. Example: _id")
+        .description("One or more comma-separated document key names used to build the update query criteria, such as _id")
         .required(false)
         .dependsOn(MODE, MODE_UPDATE)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -135,9 +135,9 @@ public class PutMongo extends AbstractMongoProcessor {
     static final PropertyDescriptor UPDATE_METHOD = new PropertyDescriptor.Builder()
         .name("Update Method")
         .dependsOn(UPDATE_OPERATION_MODE, UPDATE_WITH_OPERATORS)
-        .description("Choose between 'updateOne' or 'updateMany' Mongo documents per incoming flow file.")
-        .allowableValues(MongoUpdateOption.class)
-        .defaultValue(MongoUpdateOption.UPDATE_ONE)
+        .description("MongoDB method for running collection update operations, such as updateOne or updateMany")
+        .allowableValues(UpdateMethod.class)
+        .defaultValue(UpdateMethod.UPDATE_ONE)
         .build();
     static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
         .name("Character Set")
@@ -161,7 +161,7 @@ public class PutMongo extends AbstractMongoProcessor {
         _propertyDescriptors.add(CHARACTER_SET);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
-      relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+        relationships = Set.of(REL_SUCCESS, REL_FAILURE);
     }
 
     @Override
@@ -213,7 +213,7 @@ public class PutMongo extends AbstractMongoProcessor {
 
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final String processorMode = context.getProperty(MODE).getValue();
-        final String flowfileType = context.getProperty(UPDATE_OPERATION_MODE).getValue();
+        final String updateOperationMode = context.getProperty(UPDATE_OPERATION_MODE).getValue();
         final WriteConcern writeConcern = clientService.getWriteConcern();
 
         try {
@@ -223,7 +223,7 @@ public class PutMongo extends AbstractMongoProcessor {
             session.read(flowFile, in -> StreamUtils.fillBuffer(in, content, true));
 
             // parse
-            final Object doc = (processorMode.equals(MODE_INSERT) || (processorMode.equals(MODE_UPDATE) && flowfileType.equals(UPDATE_WITH_DOC.getValue())))
+            final Object doc = (processorMode.equals(MODE_INSERT) || (processorMode.equals(MODE_UPDATE) && updateOperationMode.equals(UPDATE_WITH_DOC.getValue())))
                     ? Document.parse(new String(content, charset)) : BasicDBObject.parse(new String(content, charset));
 
             if (MODE_INSERT.equals(processorMode)) {
@@ -243,7 +243,7 @@ public class PutMongo extends AbstractMongoProcessor {
                     updateQuery = Document.parse(filterQuery);
                 }
                 UpdateResult updateResult;
-                if (flowfileType.equals(UPDATE_WITH_DOC.getValue())) {
+                if (updateOperationMode.equals(UPDATE_WITH_DOC.getValue())) {
                     updateResult = collection.replaceOne(updateQuery, (Document) doc, new ReplaceOptions().upsert(upsert));
                 } else {
                     BasicDBObject update = (BasicDBObject) doc;
@@ -251,9 +251,9 @@ public class PutMongo extends AbstractMongoProcessor {
                     UpdateOptions updateOptions = new UpdateOptions().upsert(upsert);
                     PropertyValue updateQueryMode = context.getProperty(UPDATE_METHOD);
 
-                    if (this.updateModeMatches(MongoUpdateOption.UPDATE_ONE, updateQueryMode, flowFile)) {
+                    if (this.updateModeMatches(UpdateMethod.UPDATE_ONE, updateQueryMode, flowFile)) {
                         updateResult = collection.updateOne(updateQuery, update, updateOptions);
-                    } else if (this.updateModeMatches(MongoUpdateOption.UPDATE_MANY, updateQueryMode, flowFile)) {
+                    } else if (this.updateModeMatches(UpdateMethod.UPDATE_MANY, updateQueryMode, flowFile)) {
                         updateResult = collection.updateMany(updateQuery, update, updateOptions);
                     } else {
                         String flowfileUpdateMode = flowFile.getAttribute(ATTRIBUTE_MONGODB_UPDATE_MODE);

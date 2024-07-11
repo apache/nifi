@@ -134,8 +134,8 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         .displayName("Update Mode")
         .dependsOn(UPDATE_KEY_FIELDS)
         .description("Choose between updating a single document or multiple documents per incoming record.")
-        .allowableValues(MongoUpdateOption.class)
-        .defaultValue(MongoUpdateOption.UPDATE_ONE)
+        .allowableValues(UpdateMethod.class)
+        .defaultValue(UpdateMethod.UPDATE_ONE)
         .build();
 
     private final static Set<Relationship> relationships;
@@ -221,13 +221,13 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 if (context.getProperty(UPDATE_KEY_FIELDS).isSet()) {
                     Bson[] filters = buildFilters(updateKeyFieldPathToFieldChain, readyToUpsert);
                     PropertyValue mongoUpdateMode = context.getProperty(UPDATE_MODE);
-                    if (this.updateModeMatches(MongoUpdateOption.UPDATE_ONE, mongoUpdateMode, flowFile)) {
+                    if (this.updateModeMatches(UpdateMethod.UPDATE_ONE, mongoUpdateMode, flowFile)) {
                         writeModel = new UpdateOneModel<>(
                             Filters.and(filters),
                             new Document("$set", readyToUpsert),
                             new UpdateOptions().upsert(true)
                         );
-                    } else if (this.updateModeMatches(MongoUpdateOption.UPDATE_MANY, mongoUpdateMode, flowFile)) {
+                    } else if (this.updateModeMatches(UpdateMethod.UPDATE_MANY, mongoUpdateMode, flowFile)) {
                         writeModel = new UpdateManyModel<>(
                             Filters.and(filters),
                             new Document("$set", readyToUpsert),
