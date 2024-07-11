@@ -1038,7 +1038,7 @@ export class FlowEffects {
                 ofType(FlowActions.navigateToParameterContext),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['/parameter-contexts', request.id], {
+                    this.router.navigate(['/parameter-contexts', request.id, 'edit'], {
                         state: {
                             backNavigation: request.backNavigation
                         }
