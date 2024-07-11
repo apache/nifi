@@ -271,7 +271,7 @@ public class C2NifiClientService {
         }
     }
 
-    private RuntimeInfoWrapper generateRuntimeInfo() {
+    private synchronized RuntimeInfoWrapper generateRuntimeInfo() {
         AgentManifest agentManifest = new AgentManifest(runtimeManifestService.getManifest());
         agentManifest.setSupportedOperations(supportedOperationsProvider.getSupportedOperations());
         return new RuntimeInfoWrapper(getAgentRepositories(), agentManifest, getQueueStatus());
