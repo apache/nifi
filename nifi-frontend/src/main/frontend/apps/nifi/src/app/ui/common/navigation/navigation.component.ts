@@ -70,6 +70,7 @@ export class Navigation implements OnInit, OnDestroy {
     LIGHT_THEME: string = LIGHT_THEME;
     DARK_THEME: string = DARK_THEME;
     OS_SETTING: string = OS_SETTING;
+    disableAnimations: string | null;
 
     currentUser = this.store.selectSignal(selectCurrentUser);
     flowConfiguration = this.store.selectSignal(selectFlowConfiguration);
@@ -84,6 +85,7 @@ export class Navigation implements OnInit, OnDestroy {
     ) {
         this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         this.theme = this.storage.getItem('theme');
+        this.disableAnimations = this.storage.getItem('disable-animations');
 
         if (window.matchMedia) {
             // Watch for changes of the preference
@@ -153,5 +155,11 @@ export class Navigation implements OnInit, OnDestroy {
         this.theme = theme;
         this.storage.setItem('theme', theme);
         this.themingService.toggleTheme(!!this.darkModeOn, theme);
+    }
+
+    toggleAnimations(disableAnimations: string = '') {
+        this.disableAnimations = disableAnimations;
+        this.storage.setItem('disable-animations', this.disableAnimations?.toString());
+        window.location.reload();
     }
 }

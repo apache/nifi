@@ -19,7 +19,11 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import {
+    BrowserAnimationsModule,
+    provideAnimations,
+    provideNoopAnimations
+} from '@angular/platform-browser/animations';
 import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
@@ -50,6 +54,14 @@ import { PropertyVerificationEffects } from './state/property-verification/prope
 import { loadingInterceptor } from './service/interceptors/loading.interceptor';
 import { LoginConfigurationEffects } from './state/login-configuration/login-configuration.effects';
 import { BannerTextEffects } from './state/banner-text/banner-text.effects';
+
+const entry = localStorage.getItem('disable-animations');
+let disableAnimations: string = entry !== null ? JSON.parse(entry).item : '';
+
+// honor OS settings if user has not explicitly disabled animations for the application
+if (disableAnimations !== 'true' && disableAnimations !== 'false') {
+    disableAnimations = window.matchMedia('(prefers-reduced-motion: reduce)').matches.toString();
+}
 
 @NgModule({
     declarations: [AppComponent],
@@ -95,6 +107,7 @@ import { BannerTextEffects } from './state/banner-text/banner-text.effects';
         PipesModule
     ],
     providers: [
+        disableAnimations === 'true' ? provideNoopAnimations() : provideAnimations(),
         { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
         provideHttpClient(withInterceptors([authInterceptor, loadingInterceptor, pollingInterceptor]))
     ],
