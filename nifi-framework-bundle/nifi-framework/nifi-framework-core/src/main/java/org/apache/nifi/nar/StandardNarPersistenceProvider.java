@@ -51,6 +51,8 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardNarPersistenceProvider.class);
 
     private static final String STORAGE_LOCATION_PROPERTY = "directory";
+    private static final String DEFAULT_STORAGE_LOCATION = "./nar_repository";
+
     private static final String TEMP_STORAGE_DIR = "temp";
     private static final String INSTALLED_STORAGE_DIR = "installed";
 
@@ -67,7 +69,7 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
 
     @Override
     public void initialize(final NarPersistenceProviderInitializationContext initializationContext) throws IOException {
-        final String storageLocationPropertyValue = getRequiredValue(initializationContext, STORAGE_LOCATION_PROPERTY);
+        final String storageLocationPropertyValue = getStorageLocation(initializationContext);
         storageLocation = new File(storageLocationPropertyValue);
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(storageLocation);
@@ -239,13 +241,10 @@ public class StandardNarPersistenceProvider implements NarPersistenceProvider {
         return new File(tempStorageLocation, UUID.randomUUID().toString());
     }
 
-    private String getRequiredValue(final NarPersistenceProviderInitializationContext initializationContext, final String property) {
+    private String getStorageLocation(final NarPersistenceProviderInitializationContext initializationContext) {
         final Map<String, String> properties = initializationContext.getProperties();
-        final String value = properties.get(property);
-        if (StringUtils.isBlank(value)) {
-            throw new IllegalStateException("The NAR Persistence Provider's [" + property + "] property must be set");
-        }
-        return value;
+        final String propertyValue = properties.get(STORAGE_LOCATION_PROPERTY);
+        return StringUtils.isBlank(propertyValue) ? DEFAULT_STORAGE_LOCATION : propertyValue;
     }
 
     private NarProperties createNarProperties(final NarPersistenceContext persistenceContext) {
