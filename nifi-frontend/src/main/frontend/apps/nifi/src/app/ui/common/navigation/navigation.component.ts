@@ -87,13 +87,11 @@ export class Navigation implements OnInit, OnDestroy {
         this.theme = this.storage.getItem('theme');
         this.disableAnimations = this.storage.getItem('disable-animations');
 
-        if (window.matchMedia) {
-            // Watch for changes of the preference
-            window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
-                this.darkModeOn = e.matches;
-                this.theme = this.storage.getItem('theme');
-            });
-        }
+        // Watch for changes of the preference
+        window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
+            this.darkModeOn = e.matches;
+            this.theme = this.storage.getItem('theme');
+        });
     }
 
     ngOnInit(): void {
@@ -159,7 +157,7 @@ export class Navigation implements OnInit, OnDestroy {
 
     toggleAnimations(disableAnimations: string = '') {
         this.disableAnimations = disableAnimations;
-        this.storage.setItem('disable-animations', this.disableAnimations?.toString());
+        this.storage.setItem('disable-animations', this.disableAnimations.toString());
         window.location.reload();
     }
 }
