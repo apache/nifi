@@ -16,6 +16,24 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.controller.repository.util.DiskUtils;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -39,23 +57,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
-import org.apache.nifi.controller.repository.util.DiskUtils;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -179,7 +180,6 @@ public class TestFileSystemRepository {
         // Perform a few iterations to ensure that it works not just the first time, since there is a lot of logic on initialization.
         for (int i = 0; i < 3; i++) {
             final File archiveDir = containerPath.resolve(String.valueOf(i)).resolve("archive").toFile();
-            assertTrue(archiveDir.mkdirs());
             final File archivedFile = new File(archiveDir, "1234");
 
             try (final OutputStream fos = new FileOutputStream(archivedFile)) {
@@ -209,7 +209,6 @@ public class TestFileSystemRepository {
         // Perform a few iterations to ensure that it works not just the first time, since there is a lot of logic on initialization.
         for (int i = 0; i < 3; i++) {
             final File archiveDir = containerPath.resolve(String.valueOf(i)).resolve("archive").toFile();
-            assertTrue(archiveDir.mkdirs());
             final File archivedFile = new File(archiveDir, "1234");
 
             try (final OutputStream fos = new FileOutputStream(archivedFile)) {
