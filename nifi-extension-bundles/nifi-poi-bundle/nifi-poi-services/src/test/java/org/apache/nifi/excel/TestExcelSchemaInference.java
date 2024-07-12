@@ -46,10 +46,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(MockitoExtension.class)
 public class TestExcelSchemaInference {
-    private static final String EXPECTED_FIRST_FIELD_NAME = ExcelSchemaInference.FIELD_NAME_PREFIX + "0";
-    private static final String EXPECTED_SECOND_FIELD_NAME = ExcelSchemaInference.FIELD_NAME_PREFIX + "1";
-    private static final String EXPECTED_THIRD_FIELD_NAME = ExcelSchemaInference.FIELD_NAME_PREFIX + "2";
-    private static final String EXPECTED_FOURTH_FIELD_NAME = ExcelSchemaInference.FIELD_NAME_PREFIX + "3";
+    private static final String EXPECTED_FIRST_FIELD_NAME = ExcelUtils.FIELD_NAME_PREFIX + "0";
+    private static final String EXPECTED_SECOND_FIELD_NAME = ExcelUtils.FIELD_NAME_PREFIX + "1";
+    private static final String EXPECTED_THIRD_FIELD_NAME = ExcelUtils.FIELD_NAME_PREFIX + "2";
+    private static final String EXPECTED_FOURTH_FIELD_NAME = ExcelUtils.FIELD_NAME_PREFIX + "3";
     private final TimeValueInference timestampInference = new TimeValueInference("MM/dd/yyyy", "HH:mm:ss.SSS", "yyyy/MM/dd/ HH:mm");
 
     @Mock

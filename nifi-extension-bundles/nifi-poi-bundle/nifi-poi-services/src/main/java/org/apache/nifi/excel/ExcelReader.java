@@ -78,7 +78,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .displayName("Starting Row")
             .description("The row number of the first row to start processing (One based)."
                     + " Use this to skip over rows of data at the top of a worksheet that are not part of the dataset."
-                    + " When using the '" + ExcelHeaderSchemaStrategy.HEADER_DERIVED.getValue() + "' strategy this should be the column header row.")
+                    + " When using the '" + ExcelHeaderSchemaStrategy.USE_STARTING_ROW.getValue() + "' strategy this should be the column header row.")
             .required(true)
             .defaultValue("1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -157,7 +157,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        if (allowableValue.equalsIgnoreCase(ExcelHeaderSchemaStrategy.HEADER_DERIVED.getValue())) {
+        if (allowableValue.equalsIgnoreCase(ExcelHeaderSchemaStrategy.USE_STARTING_ROW.getValue())) {
             return new ExcelHeaderSchemaStrategy(context, getLogger(), new TimeValueInference(dateFormat, timeFormat, timestampFormat), null);
         } else if (SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(allowableValue)) {
             final RecordSourceFactory<Row> sourceFactory = (variables, in) -> new ExcelRecordSource(in, context, variables, getLogger());
@@ -171,21 +171,21 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
-        allowableValues.add(ExcelHeaderSchemaStrategy.HEADER_DERIVED);
+        allowableValues.add(ExcelHeaderSchemaStrategy.USE_STARTING_ROW);
         allowableValues.add(SchemaInferenceUtil.INFER_SCHEMA);
         return allowableValues;
     }
 
     @Override
     protected AllowableValue getDefaultSchemaAccessStrategy() {
-        return SchemaInferenceUtil.INFER_SCHEMA;
+        return ExcelHeaderSchemaStrategy.USE_STARTING_ROW;
     }
 
     private int getStartingRow(final Map<String, String> variables) {
         int rawStartingRow = configurationContext.getProperty(STARTING_ROW).evaluateAttributeExpressions(variables).asInteger();
         String schemaAccessStrategy = configurationContext.getProperty(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY).getValue();
 
-        if (ExcelHeaderSchemaStrategy.HEADER_DERIVED.getValue().equals(schemaAccessStrategy)) {
+        if (ExcelHeaderSchemaStrategy.USE_STARTING_ROW.getValue().equals(schemaAccessStrategy)) {
             rawStartingRow++;
         }
         return getZeroBasedIndex(rawStartingRow);

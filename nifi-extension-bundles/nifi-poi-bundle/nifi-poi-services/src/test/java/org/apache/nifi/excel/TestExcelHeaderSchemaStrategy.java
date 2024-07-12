@@ -21,6 +21,8 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.TimeValueInference;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -39,6 +41,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -63,16 +66,17 @@ public class TestExcelHeaderSchemaStrategy {
     }
 
     @Test
-    void testWhereConfiguredStartRowHasEmptyCell() throws IOException {
+    void testWhereConfiguredStartRowHasEmptyCell() throws Exception {
         Object[][] data = {{"ID", "", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
         final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, null, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
-            SchemaNotFoundException schemaNotFoundException = assertThrows(SchemaNotFoundException.class, () -> schemaStrategy.getSchema(null, inputStream, null));
-            assertTrue(schemaNotFoundException.getMessage().contains("is empty"));
+            RecordSchema schema = schemaStrategy.getSchema(null, inputStream, null);
+            RecordField recordField = schema.getField(1);
+            assertEquals("column_1", recordField.getFieldName());
         }
     }
 
@@ -98,6 +102,22 @@ public class TestExcelHeaderSchemaStrategy {
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
         final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
         assertTrue(data.length - 1 < ExcelHeaderSchemaStrategy.NUM_ROWS_TO_DETERMINE_TYPES);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            assertDoesNotThrow(() -> schemaStrategy.getSchema(null, inputStream, null));
+        }
+    }
+
+    @Test
+    void testWhereConfiguredInferenceRowsHasAnEmptyRow() throws IOException {
+        Object[][] data = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
+                {4, "Four", "F"}, {5, "Five", "F"}, {}, {7, "Seven", "S"}, {8, "Eight", "E"},
+                {9, "Nine", "N"}, {10, "Ten", "T"}};
+
+        final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             assertDoesNotThrow(() -> schemaStrategy.getSchema(null, inputStream, null));

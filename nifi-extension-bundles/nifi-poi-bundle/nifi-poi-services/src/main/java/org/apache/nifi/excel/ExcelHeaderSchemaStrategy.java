@@ -49,7 +49,7 @@ import java.util.stream.IntStream;
 public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
     private static final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
     static final int NUM_ROWS_TO_DETERMINE_TYPES = 10; // NOTE: This number is arbitrary.
-    static final AllowableValue HEADER_DERIVED = new AllowableValue("Use Starting Row", "Use Starting Row",
+    static final AllowableValue USE_STARTING_ROW = new AllowableValue("Use Starting Row", "Use Starting Row",
             "The configured first row of the Excel file is a header line that contains the names of the columns. The schema will be derived by using the "
                     + "column names in the header and the following " + NUM_ROWS_TO_DETERMINE_TYPES + " rows to determine the type(s) of each column");
 
@@ -114,34 +114,34 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
             final Cell cell = row.getCell(index);
             final String fieldName = dataFormatter.formatCellValue(cell);
 
-            if (fieldName == null || fieldName.isEmpty()) {
-                throw new SchemaNotFoundException(String.format("Configured header row %s at cell %s is empty which is not suitable for a field name", row.getRowNum(), index));
+            // NOTE: This accounts for column(s) which may be empty in the configured starting row.
+            if (fieldName != null && !fieldName.isEmpty()) {
+                fieldNames.add(fieldName);
+            } else {
+                fieldNames.add(ExcelUtils.FIELD_NAME_PREFIX + index);
             }
-
-            fieldNames.add(fieldName);
         }
 
         return fieldNames;
     }
 
     private void inferSchema(final Row row, final List<String> fieldNames, final Map<String, FieldTypeInference> typeMap) throws SchemaNotFoundException {
-        if (!ExcelUtils.hasCells(row)) {
-            throw new SchemaNotFoundException(String.format("Row %s a required row for inferring field types has no cells", row.getRowNum()));
-        }
+        // NOTE: This allows rows to be blank when inferring the schema
+        if (ExcelUtils.hasCells(row)) {
+            if (row.getLastCellNum() > fieldNames.size()) {
+                throw new SchemaNotFoundException(String.format("Row %s has %s cells, more than the expected %s number of field names", row.getRowNum(), row.getLastCellNum(), fieldNames.size()));
+            }
 
-        if (row.getLastCellNum() > fieldNames.size()) {
-            throw new SchemaNotFoundException(String.format("Row %s has %s cells, more than the expected %s number of field names", row.getRowNum(), row.getLastCellNum(), fieldNames.size()));
+            IntStream.range(0, row.getLastCellNum())
+                    .forEach(index -> {
+                        final Cell cell = row.getCell(index);
+                        final String fieldName = fieldNames.get(index);
+                        final FieldTypeInference typeInference = typeMap.computeIfAbsent(fieldName, key -> new FieldTypeInference());
+                        final String formattedCellValue = dataFormatter.formatCellValue(cell);
+                        final DataType dataType = SchemaInferenceUtil.getDataType(formattedCellValue, timeValueInference);
+                        typeInference.addPossibleDataType(dataType);
+                    });
         }
-
-        IntStream.range(0, row.getLastCellNum())
-                .forEach(index -> {
-                    final Cell cell = row.getCell(index);
-                    final String fieldName = fieldNames.get(index);
-                    final FieldTypeInference typeInference = typeMap.computeIfAbsent(fieldName, key -> new FieldTypeInference());
-                    final String formattedCellValue = dataFormatter.formatCellValue(cell);
-                    final DataType dataType = SchemaInferenceUtil.getDataType(formattedCellValue, timeValueInference);
-                    typeInference.addPossibleDataType(dataType);
-                });
     }
 
     private RecordSchema createSchema(final Map<String, FieldTypeInference> inferences) {
