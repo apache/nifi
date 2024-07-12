@@ -102,8 +102,8 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
         }
 
         if (typeMap.isEmpty()) {
-            throw new SchemaNotFoundException("Could not infer the schema from the first " + NUM_ROWS_TO_DETERMINE_TYPES +
-                    " rows as they were all blank");
+            final String message = String.format("Failed to infer schema from empty first %s rows", NUM_ROWS_TO_DETERMINE_TYPES);
+            throw new SchemaNotFoundException(message);
         }
         return createSchema(typeMap);
     }
@@ -119,10 +119,10 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
             final String fieldName = dataFormatter.formatCellValue(cell);
 
             // NOTE: This accounts for column(s) which may be empty in the configured starting row.
-            if (fieldName != null && !fieldName.isEmpty()) {
-                fieldNames.add(fieldName);
-            } else {
+            if (fieldName == null || fieldName.isEmpty()) {
                 fieldNames.add(ExcelUtils.FIELD_NAME_PREFIX + index);
+            } else {
+                fieldNames.add(fieldName);
             }
         }
 

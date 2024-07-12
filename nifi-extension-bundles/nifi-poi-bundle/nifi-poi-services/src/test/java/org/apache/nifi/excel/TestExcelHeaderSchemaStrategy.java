@@ -151,7 +151,7 @@ public class TestExcelHeaderSchemaStrategy {
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             SchemaNotFoundException schemaNotFoundException = assertThrows(SchemaNotFoundException.class, () -> schemaStrategy.getSchema(null, inputStream, null));
-            assertTrue(schemaNotFoundException.getMessage().contains("blank"));
+            assertTrue(schemaNotFoundException.getMessage().contains("empty"));
         }
     }
 
