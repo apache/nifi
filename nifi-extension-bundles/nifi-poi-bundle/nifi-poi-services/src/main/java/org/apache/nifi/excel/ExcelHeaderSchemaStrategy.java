@@ -102,7 +102,7 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
         }
 
         if (typeMap.isEmpty()) {
-            final String message = String.format("Failed to infer schema from empty first %s rows", NUM_ROWS_TO_DETERMINE_TYPES);
+            final String message = String.format("Failed to infer schema from empty first %d rows", NUM_ROWS_TO_DETERMINE_TYPES);
             throw new SchemaNotFoundException(message);
         }
         return createSchema(typeMap);
