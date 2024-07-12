@@ -101,6 +101,10 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
            index++;
         }
 
+        if (typeMap.isEmpty()) {
+            throw new SchemaNotFoundException("Could not infer the schema from the first " + NUM_ROWS_TO_DETERMINE_TYPES +
+                    " rows as they were all blank");
+        }
         return createSchema(typeMap);
     }
 

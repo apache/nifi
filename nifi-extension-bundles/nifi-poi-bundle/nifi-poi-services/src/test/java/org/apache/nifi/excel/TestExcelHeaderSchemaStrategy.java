@@ -141,6 +141,20 @@ public class TestExcelHeaderSchemaStrategy {
         }
     }
 
+    @Test
+    void testWhereConfiguredInferenceRowsAreAllBlank() throws IOException {
+        Object[][] data = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {11, "Eleven", "E"}};
+        final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
+
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            SchemaNotFoundException schemaNotFoundException = assertThrows(SchemaNotFoundException.class, () -> schemaStrategy.getSchema(null, inputStream, null));
+            assertTrue(schemaNotFoundException.getMessage().contains("blank"));
+        }
+    }
+
     private static ByteArrayOutputStream getSingleSheetWorkbook(Object[][] data) throws IOException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
