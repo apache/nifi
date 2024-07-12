@@ -199,7 +199,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             final ProcessingPerformanceStatus processorPerformanceStatus = procStat.getProcessingPerformanceStatus();
 
             if (processorPerformanceStatus != null) {
-                performanceStatus.setCpuTime(performanceStatus.getCpuTime() + processorPerformanceStatus.getCpuTime());
+                performanceStatus.setCpuDuration(performanceStatus.getCpuDuration() + processorPerformanceStatus.getCpuDuration());
                 performanceStatus.setContentReadDuration(performanceStatus.getContentReadDuration() + processorPerformanceStatus.getContentReadDuration());
                 performanceStatus.setContentWriteDuration(performanceStatus.getContentWriteDuration() + processorPerformanceStatus.getContentWriteDuration());
                 performanceStatus.setSessionCommitDuration(performanceStatus.getSessionCommitDuration() + processorPerformanceStatus.getSessionCommitDuration());
@@ -243,7 +243,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             final ProcessingPerformanceStatus childGroupPerformanceStatus = childGroupStatus.getProcessingPerformanceStatus();
 
             if (childGroupPerformanceStatus != null) {
-                performanceStatus.setCpuTime(performanceStatus.getCpuTime() + childGroupPerformanceStatus.getCpuTime());
+                performanceStatus.setCpuDuration(performanceStatus.getCpuDuration() + childGroupPerformanceStatus.getCpuDuration());
                 performanceStatus.setContentReadDuration(performanceStatus.getContentReadDuration() + childGroupPerformanceStatus.getContentReadDuration());
                 performanceStatus.setContentWriteDuration(performanceStatus.getContentWriteDuration() + childGroupPerformanceStatus.getContentWriteDuration());
                 performanceStatus.setSessionCommitDuration(performanceStatus.getSessionCommitDuration() + childGroupPerformanceStatus.getSessionCommitDuration());

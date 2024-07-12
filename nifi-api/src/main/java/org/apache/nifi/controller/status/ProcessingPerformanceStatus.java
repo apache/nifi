@@ -19,7 +19,7 @@ package org.apache.nifi.controller.status;
 public class ProcessingPerformanceStatus implements Cloneable {
 
     private String identifier;
-    private long cpuTime;
+    private long cpuDuration;
     private long contentReadDuration;
     private long contentWriteDuration;
     private long sessionCommitDuration;
@@ -33,12 +33,12 @@ public class ProcessingPerformanceStatus implements Cloneable {
         this.identifier = identifier;
     }
 
-    public long getCpuTime() {
-        return cpuTime;
+    public long getCpuDuration() {
+        return cpuDuration;
     }
 
-    public void setCpuTime(long cpuTime) {
-        this.cpuTime = cpuTime;
+    public void setCpuDuration(long cpuDuration) {
+        this.cpuDuration = cpuDuration;
     }
 
     public long getContentReadDuration() {
@@ -78,7 +78,7 @@ public class ProcessingPerformanceStatus implements Cloneable {
         final ProcessingPerformanceStatus clonedObj = new ProcessingPerformanceStatus();
 
         clonedObj.identifier = identifier;
-        clonedObj.cpuTime = cpuTime;
+        clonedObj.cpuDuration = cpuDuration;
         clonedObj.contentReadDuration = contentReadDuration;
         clonedObj.contentWriteDuration = contentWriteDuration;
         clonedObj.sessionCommitDuration = sessionCommitDuration;
@@ -91,8 +91,8 @@ public class ProcessingPerformanceStatus implements Cloneable {
         StringBuilder builder = new StringBuilder();
         builder.append("ProcessorPerformanceStatus [Group ID= ");
         builder.append(identifier);
-        builder.append(", cpuTime= ");
-        builder.append(cpuTime);
+        builder.append(", cpuDuration= ");
+        builder.append(cpuDuration);
         builder.append(", contentReadDuration= ");
         builder.append(contentReadDuration);
         builder.append(", contentWriteDuration= ");

@@ -25,7 +25,7 @@ public class ProcessingPerformanceStatusMerger {
         }
 
         target.setIdentifier(toMerge.getIdentifier());
-        target.setCpuTime(target.getCpuTime() + toMerge.getCpuTime());
+        target.setCpuDuration(target.getCpuDuration() + toMerge.getCpuDuration());
         target.setContentReadDuration(target.getContentReadDuration() + toMerge.getContentReadDuration());
         target.setContentWriteDuration(target.getContentWriteDuration() + toMerge.getContentWriteDuration());
         target.setSessionCommitDuration(target.getSessionCommitDuration() + toMerge.getSessionCommitDuration());

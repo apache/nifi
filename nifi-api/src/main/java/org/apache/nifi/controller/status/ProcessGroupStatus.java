@@ -640,7 +640,7 @@ public class ProcessGroupStatus implements Cloneable {
 
         if (targetPerformanceStatus != null && toMergePerformanceStatus != null) {
             targetPerformanceStatus.setIdentifier(toMergePerformanceStatus.getIdentifier());
-            targetPerformanceStatus.setCpuTime(targetPerformanceStatus.getCpuTime() + toMergePerformanceStatus.getCpuTime());
+            targetPerformanceStatus.setCpuDuration(targetPerformanceStatus.getCpuDuration() + toMergePerformanceStatus.getCpuDuration());
             targetPerformanceStatus.setContentReadDuration(targetPerformanceStatus.getContentReadDuration() + toMergePerformanceStatus.getContentReadDuration());
             targetPerformanceStatus.setContentWriteDuration(targetPerformanceStatus.getContentWriteDuration() + toMergePerformanceStatus.getContentWriteDuration());
             targetPerformanceStatus.setSessionCommitDuration(targetPerformanceStatus.getSessionCommitDuration() + toMergePerformanceStatus.getSessionCommitDuration());

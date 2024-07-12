@@ -26,7 +26,7 @@ public class PerformanceMetricsUtil {
         final ProcessingPerformanceStatus newMetrics = new ProcessingPerformanceStatus();
 
         newMetrics.setIdentifier(processorNode.getProcessGroup().getIdentifier());
-        newMetrics.setCpuTime(fileEvent.getCpuNanoseconds());
+        newMetrics.setCpuDuration(fileEvent.getCpuNanoseconds());
         newMetrics.setContentReadDuration(fileEvent.getContentReadNanoseconds());
         newMetrics.setContentWriteDuration(fileEvent.getContentWriteNanoseconds());
         newMetrics.setSessionCommitDuration(fileEvent.getSessionCommitNanoseconds());
