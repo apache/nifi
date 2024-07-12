@@ -34,7 +34,6 @@
         "@types/js-beautify": "^1.14.3",
         "codemirror": "^5.65.16",
         "d3": "^7.8.5",
-        "file": "^0.2.2",
         "font-awesome": "4.7.0",
         "humanize-duration": "^3.31.0",
         "immer": "10.0.3",
@@ -42,7 +41,6 @@
         "jsonlint": "^1.6.3",
         "ngx-skeleton-loader": "^8.1.0",
         "rxjs": "~7.8.1",
-        "system": "^2.0.1",
         "tslib": "^2.6.2",
         "webfontloader": "^1.6.28",
         "zone.js": "0.14.4"
@@ -96,6 +94,8 @@
     "browser": {
         "fs": false,
         "path": false,
-        "assert": false
+        "assert": false,
+        "file": false,
+        "system": false
     }
 }
