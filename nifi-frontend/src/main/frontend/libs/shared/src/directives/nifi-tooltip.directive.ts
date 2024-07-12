@@ -32,6 +32,7 @@ export class NifiTooltipDirective<T> implements OnDestroy {
 
     private closeTimer = -1;
     private overlayRef: OverlayRef | null = null;
+    private overTip = false;
 
     constructor(
         private element: ElementRef<HTMLElement>,
@@ -47,7 +48,7 @@ export class NifiTooltipDirective<T> implements OnDestroy {
 
     @HostListener('mouseleave')
     mouseLeave() {
-        if (this.overlayRef?.hasAttached()) {
+        if (this.overlayRef?.hasAttached() && !this.overTip) {
             if (this.delayClose) {
                 this.closeTimer = window.setTimeout(() => {
                     this.overlayRef?.detach();
@@ -96,10 +97,13 @@ export class NifiTooltipDirective<T> implements OnDestroy {
                 window.clearTimeout(this.closeTimer);
                 this.closeTimer = -1;
             }
+
+            this.overTip = true;
         });
         tooltipReference.location.nativeElement.addEventListener('mouseleave', () => {
             this.overlayRef?.detach();
             this.closeTimer = -1;
+            this.overTip = false;
         });
     }
 
