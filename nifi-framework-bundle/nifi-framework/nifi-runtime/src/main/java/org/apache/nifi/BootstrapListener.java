@@ -16,6 +16,8 @@
  */
 package org.apache.nifi;
 
+import org.apache.nifi.cluster.ClusterDetailsFactory;
+import org.apache.nifi.cluster.ConnectionState;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.status.history.StatusHistoryDump;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
@@ -299,7 +301,13 @@ public class BootstrapListener {
     }
 
     private String getClusterStatus() {
-        return nifi.getServer().getClusterDetailsFactory().getConnectionState().name();
+        final ClusterDetailsFactory clusterDetailsFactory = nifi.getServer().getClusterDetailsFactory();
+        if (clusterDetailsFactory == null) {
+            return ConnectionState.UNKNOWN.name();
+        }
+
+        final ConnectionState connectionState = clusterDetailsFactory.getConnectionState();
+        return connectionState == null ? ConnectionState.UNKNOWN.name() : connectionState.name();
     }
 
     private void decommission() throws InterruptedException {
