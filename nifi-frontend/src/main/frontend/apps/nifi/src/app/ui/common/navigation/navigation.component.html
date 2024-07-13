@@ -157,6 +157,10 @@
                             <i class="fa mr-2"></i>
                             Appearance
                         </button>
+                        <button mat-menu-item [matMenuTriggerFor]="animations">
+                            <i class="fa mr-2"></i>
+                            Animations
+                        </button>
                     </mat-menu>
                     <mat-menu #theming="matMenu" xPosition="before">
                         <button mat-menu-item class="global-menu-item" (click)="toggleTheme(LIGHT_THEME)">
@@ -182,6 +186,32 @@
                                 <i class="fa fa-check primary-color mr-2"></i>
                             }
                             @if (theme !== OS_SETTING && theme !== null) {
+                                <i class="fa mr-2"></i>
+                            }
+                            Device
+                        </button>
+                    </mat-menu>
+                    <mat-menu #animations="matMenu" xPosition="before">
+                        <button mat-menu-item class="global-menu-item" (click)="toggleAnimations('false')">
+                            @if (disableAnimations === 'false') {
+                                <i class="fa fa-check primary-color mr-2"></i>
+                            } @else {
+                                <i class="fa mr-2"></i>
+                            }
+                            Enabled
+                        </button>
+                        <button mat-menu-item class="global-menu-item" (click)="toggleAnimations('true')">
+                            @if (disableAnimations === 'true') {
+                                <i class="fa fa-check primary-color mr-2"></i>
+                            } @else {
+                                <i class="fa mr-2"></i>
+                            }
+                            Disabled
+                        </button>
+                        <button mat-menu-item class="global-menu-item" (click)="toggleAnimations()">
+                            @if (disableAnimations === null) {
+                                <i class="fa fa-check primary-color mr-2"></i>
+                            } @else {
                                 <i class="fa mr-2"></i>
                             }
                             Device
