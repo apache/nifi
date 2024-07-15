@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.parameter;
 
+import java.io.IOException;
+import java.util.List;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
-
-import java.io.IOException;
-import java.util.List;
 
 /**
  * Defines a provider that is responsible for fetching from an external source Parameters with
@@ -85,4 +85,22 @@ public interface ParameterProvider extends ConfigurableComponent {
      * @throws IOException if there is an I/O problem while fetching the Parameters
      */
     List<ParameterGroup> fetchParameters(ConfigurationContext context) throws IOException;
+
+    /**
+     * <p>
+     * Allows for the migration of an old property configuration to a new configuration. This allows the Parameter Provider to evolve over time,
+     * as it allows properties to be renamed, removed, or reconfigured.
+     * </p>
+     *
+     * <p>
+     * This method is called only when a Parameter Provider is restored from a previous configuration. For example, when NiFi is restarted and the
+     * flow is restored from disk, when a previously configured flow is imported (e.g., from a JSON file that was exported or a NiFi Registry),
+     * or when a node joins a cluster and inherits a flow that has a new Parameter Provider. Once called, the method will not be invoked again for this
+     * Parameter Provider until NiFi is restarted.
+     * </p>
+     *
+     * @param config the current property configuration
+     */
+    default void migrateProperties(PropertyConfiguration config) {
+    }
 }

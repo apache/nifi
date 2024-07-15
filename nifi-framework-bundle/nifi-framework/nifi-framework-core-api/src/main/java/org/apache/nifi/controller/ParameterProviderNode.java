@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.controller;
 
+import java.util.Map;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterProvider;
@@ -79,4 +81,6 @@ public interface ParameterProviderNode extends ComponentNode {
      * @return a list of results indicating whether or not the given configuration is valid
      */
     List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, ExtensionManager extensionManager);
+
+    void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 }

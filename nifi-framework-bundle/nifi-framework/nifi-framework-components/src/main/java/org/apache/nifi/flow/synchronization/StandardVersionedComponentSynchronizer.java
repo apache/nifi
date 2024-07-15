@@ -265,6 +265,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     service.migrateConfiguration(originalPropertyValues, serviceFactory);
                 } else if (extension instanceof final ReportingTaskNode task) {
                     task.migrateConfiguration(originalPropertyValues, serviceFactory);
+                } else if (extension instanceof final ParameterProviderNode parameterProvider) {
+                    parameterProvider.migrateConfiguration(originalPropertyValues, serviceFactory);
                 }
             }
         } finally {

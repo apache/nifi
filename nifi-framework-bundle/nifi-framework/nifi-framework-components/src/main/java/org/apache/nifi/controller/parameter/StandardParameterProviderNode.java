@@ -45,6 +45,9 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ControllerServiceCreationDetails;
+import org.apache.nifi.migration.ControllerServiceFactory;
+import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
@@ -80,9 +83,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardParameterProviderNode extends AbstractComponentNode implements ParameterProviderNode {
 
+    private static final Logger LOG = LoggerFactory.getLogger(StandardParameterProviderNode.class);
     private static final Pattern PARAMETER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9-_. ]+$");
 
     private final AtomicReference<ParameterProviderDetails> parameterProviderRef;
@@ -450,6 +456,32 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         }
 
         return results;
+    }
+
+    @Override
+    public void migrateConfiguration(final Map<String, String> originalPropertyValues, final ControllerServiceFactory serviceFactory) {
+        final Map<String, String> effectiveValues = new HashMap<>();
+        originalPropertyValues.forEach((key, value) -> effectiveValues.put(key, mapRawValueToEffectiveValue(value)));
+
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(effectiveValues,
+                originalPropertyValues, super::mapRawValueToEffectiveValue, toString(), serviceFactory);
+
+        final ParameterProvider implementation = getParameterProvider();
+        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), implementation.getClass(), getIdentifier())) {
+            implementation.migrateProperties(propertyConfig);
+        } catch (final Exception e) {
+            LOG.error("Failed to migrate Property Configuration for {}.", this, e);
+        }
+
+        if (propertyConfig.isModified()) {
+            // Create any necessary Controller Services. It is important that we create the services
+            // before updating this service's properties, as it's necessary in order to properly account
+            // for the Controller Service References.
+            final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
+            servicesCreated.forEach(serviceFactory::create);
+
+            overwriteProperties(propertyConfig.getRawProperties());
+        }
     }
 
     /**
