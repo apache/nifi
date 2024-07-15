@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, model, viewChild } from '@angular/core';
+import { Component, model, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
@@ -34,6 +34,7 @@ import {
 import { FlowAnalysisRule, FlowAnalysisRuleViolation } from '../../../../state/flow-analysis';
 import { selectCurrentProcessGroupId } from '../../../../state/flow/flow.selectors';
 import { RouterLink } from '@angular/router';
+import { NifiSpinnerDirective } from '../../../../../../ui/common/spinner/nifi-spinner.directive';
 
 @Component({
     selector: 'flow-analysis-drawer',
@@ -45,7 +46,8 @@ import { RouterLink } from '@angular/router';
         MatExpansionModule,
         MatCheckboxModule,
         FormsModule,
-        RouterLink
+        RouterLink,
+        NifiSpinnerDirective
     ],
     templateUrl: './flow-analysis-drawer.component.html',
     styleUrl: './flow-analysis-drawer.component.scss'
@@ -59,6 +61,7 @@ export class FlowAnalysisDrawerComponent {
     enforcedViolations: FlowAnalysisRuleViolation[] = [];
     rules: FlowAnalysisRule[] = [];
     currentProcessGroupId = '';
+    isAnalysisPending = false;
     readonly showEnforcedViolations = model(false);
     readonly showWarningViolations = model(false);
     flowAnalysisState$ = this.store.select(selectFlowAnalysisState);
@@ -68,6 +71,7 @@ export class FlowAnalysisDrawerComponent {
         this.store.dispatch(startPollingFlowAnalysis());
         this.flowAnalysisState$.pipe(takeUntilDestroyed()).subscribe((res) => {
             this.clearRulesTracking();
+            this.isAnalysisPending = res.flowAnalysisPending;
             this.rules = res.rules;
 
             res.rules.forEach((rule: FlowAnalysisRule) => {
