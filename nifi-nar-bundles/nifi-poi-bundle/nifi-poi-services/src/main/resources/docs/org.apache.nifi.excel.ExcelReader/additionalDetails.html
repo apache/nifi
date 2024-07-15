@@ -25,6 +25,9 @@
         	The ExcelReader allows for interpreting input data as delimited Records. Each row in an Excel spreadsheet is a record
 			and each cell is considered a field. The reader allows for choosing which row to start from and which sheets
 			in a spreadsheet to ingest.
+			When using the "Use Starting Row" strategy, the field names will be assumed to be the column names from the configured
+			starting row. If there are any column(s) from the starting row which are blank, they are automatically assigned a field name
+			using the cell number prefixed with "column_".
 			When using the "Infer Schema" strategy, the field names will be assumed to be the
 			cell numbers of each column prefixed with "column_". Otherwise, the names of fields can be supplied
 			when specifying the schema by using the Schema Text or looking up the schema in a Schema Registry.
@@ -70,13 +73,16 @@
 			will be thrown.
 		</p>
 
-
-        <h2>Schema Inference</h2>
+        <h2>Use Starting Row and Schema Inference</h2>
 
         <p>
             While NiFi's Record API does require that each Record have a schema, it is often convenient to infer the schema based on the values in the data,
-            rather than having to manually create a schema. This is accomplished by selecting a value of "Infer Schema" for the "Schema Access Strategy" property.
-            When using this strategy, the Reader will determine the schema by first parsing all data in the FlowFile, keeping track of all fields that it has encountered
+            rather than having to manually create a schema. This is accomplished by selecting either value of "Use Starting Row" or "Infer Schema" for the
+			"Schema Access Strategy" property. When using the "Use Starting Row" strategy, the Reader will determine the schema by parsing the first ten rows
+			after the configured starting row of the data in the FlowFile all the while keeping track of all fields that it has encountered
+			and the type of each field. A schema is then formed that encompasses all encountered fields. A schema can even be inferred if there are blank lines
+			within those ten rows, but if they are all blank, then this strategy will fail to create a schema.
+            When using the "Infer Schema" strategy, the Reader will determine the schema by first parsing all data in the FlowFile, keeping track of all fields that it has encountered
             and the type of each field. Once all data has been parsed, a schema is formed that encompasses all fields that have been encountered.
         </p>
 
