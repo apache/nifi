@@ -29,7 +29,7 @@
     <div>
         <div class="flex justify-between mt-4 mb-1">
             <div>Violation</div>
-            <div class="violation-type-pill" [ngClass]="violation.enforcementPolicy | lowercase">{{ violation.enforcementPolicy }}</div>
+            <div class="py-1 px-2 rounded-xl pill" [ngClass]="violation.enforcementPolicy | lowercase">{{ violation.enforcementPolicy }}</div>
         </div>
 
         <p class="">{{ violation.violationMessage }}</p>

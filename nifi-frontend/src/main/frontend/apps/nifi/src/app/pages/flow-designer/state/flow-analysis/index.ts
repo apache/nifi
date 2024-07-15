@@ -63,6 +63,6 @@ export interface FlowAnalysisRequestResponse {
 export interface FlowAnalysisState {
     rules: FlowAnalysisRule[];
     ruleViolations: FlowAnalysisRuleViolation[];
-    flowAnalysisPending: boolean | null;
+    flowAnalysisPending: boolean;
     status: 'pending' | 'loading' | 'success';
 }

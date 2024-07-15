@@ -22,7 +22,7 @@ import { pollFlowAnalysis, pollFlowAnalysisSuccess } from './flow-analysis.actio
 export const initialState: FlowAnalysisState = {
     rules: [],
     ruleViolations: [],
-    flowAnalysisPending: null,
+    flowAnalysisPending: false,
     status: 'pending'
 };
 
