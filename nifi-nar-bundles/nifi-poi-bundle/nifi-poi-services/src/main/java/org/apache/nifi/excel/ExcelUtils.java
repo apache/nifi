@@ -19,6 +19,8 @@ package org.apache.nifi.excel;
 import org.apache.poi.ss.usermodel.Row;
 
 public class ExcelUtils {
+    static final String FIELD_NAME_PREFIX = "column_";
+
     private ExcelUtils() {
     }
 
