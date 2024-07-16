@@ -55,7 +55,7 @@ public class CopyS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor SOURCE_KEY = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(KEY)
-            .name("copy-s3-source-key")
+            .name("Source Key")
             .displayName("Source Key")
             .description("The source key in the source bucket")
             .build();
