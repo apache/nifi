@@ -42,7 +42,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 public class CopyS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor SOURCE_BUCKET = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(BUCKET_WITH_DEFAULT_VALUE)
-            .name("copy-s3-object-source-bucket")
+            .name("Source Bucket")
             .displayName("Source Bucket")
             .description("The bucket that contains the file to be copied.")
             .build();
