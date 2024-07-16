@@ -73,7 +73,7 @@ import java.util.Set;
     the contents of the FlowFile can be sent as the message. If sending a user-defined message, the contents of the FlowFile may also be optionally uploaded as
     a file attachment.
     """)
-@SeeAlso({ListenSlack.class, ConsumeSlack.class})
+@SeeAlso({ListenSlack.class, ConsumeSlack.class, GetSlackReaction.class})
 @Tags({"slack", "conversation", "chat.postMessage", "social media", "team", "text", "unstructured", "write", "upload", "send", "publish"})
 @WritesAttributes({
     @WritesAttribute(attribute = "slack.channel.id", description = "The ID of the Slack Channel from which the messages were retrieved"),

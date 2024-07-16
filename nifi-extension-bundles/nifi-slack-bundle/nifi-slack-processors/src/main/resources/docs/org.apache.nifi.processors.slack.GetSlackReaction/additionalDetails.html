@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8"/>
+    <title>GetSlackReaction</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+
+<body>
+<h2>Description:</h2>
+
+<p>
+    GetSlackReaction allows for the ability to fetch reactions for a previously published Slack message using Slack's <code>reactions.get</code> API.</br>
+    This Processor fetches reactions for messages consumed by ConsumeSlack/ListenSlack or published by PublishSlack processors.</br>
+    The reactions are written as Flow File attributes in the format of: slack.reaction.<i>emoji_name</i> = <i>number_of_reactions</i>.
+</p>
+
+<p>
+    It is configurable by 'Wait Period' property how long the GetSlackReaction processor waits for feedbacks. The 'Wait Period' is calculated from
+    the timestamp of the Slack message (the time when the message was created). In case the Slack message was created e.g. 10 minutes ago and
+    'Wait Period' is set to 5 minutes, the Processor won't wait for additional 5 minutes, since 10 minutes already has been elapsed since the
+    message was created.</br>
+    User can configure whether only the first reaction(s) are fetched or all the reactions are collected during the 'Wait Period'. The 'Release Per Reaction'
+    property can be used for this purpose.</br>
+    During the waiting period, the flow file is sent to "wait" relationship, and it stays there for the configured penalty time period before the processor looks for available reactions again.
+    The default penalty period set for GetSlackReaction is 5 minutes.</br>
+    The "wait" relationship must be looped back to the processor by the flow designer.</br>
+    In case no reaction is found for a message in the configured time period, the flow file goes to "no_reaction" relationship.
+</p>
+
+<p>
+    GetSlackReaction identifies a message by the id of the channel the message was published to and the message Slack timestamp.</br>
+    The GetSlackReaction processor requires an upstream processor (ConsumeSlack, ListenSlack or PublishSlack) to obtain these values from flow file attributes or
+    JSON flow file content.
+</p>
+
+<p>
+    PublishSlack processor adds the "slack.channel.id" and "slack.ts" attributes to the outgoing flow file and flow file content contains the message text.</br>
+    ConsumeSlack, ListenSlack provide JSON output containing several messages. The channel id, message timestamp, message text are included in the JSON content.
+</p>
+
+<p>
+    Users can configure GetSlackReaction to look for attributes or JSON path to obtain the values of message timestamp and channel id.</br>
+    "Message Identifier Strategy" property controls this behaviour. It has two possible values, 'Attributes' or 'JSON Path'.</br>
+    The 'Attributes' value should be used if PublishSlack precedes GetSlackReaction, while 'JSON path' mode should be used if ConsumeSlack or ListenSlack precedes the GetSlackReaction processor.
+</p>
+
+<p>
+    In case ConsumeSlack/ListenSlack processor precedes GetSlackReaction ('JSON Path' mode), the user has to configure JSON path for channel id,
+    message timestamp and message text.</br>
+    GetSlackReaction processor splits the incoming JSON array content to separate JSONs including only one Slack message and creates a separate flow file for each message.
+    The original flow file goes to "original" relationship.</br>
+    The slack.channel.id, slack.ts attributes are set for each outgoing flow file, the flow file content is set to the message text.</br>
+    In case PublishSlack processor precedes GetSlackReaction ('Attributes' mode), the slack.channel.id and slack.ts attributes are already set, the flow file content is the published Slack message's text.
+</p>
+
+
+<h2>Slack Setup</h2>
+<p>
+    In order use this Processor, it requires that a Slack App be created and installed in your Slack workspace.
+    An OAuth User or Bot Token must be created for the App.
+    The token must have the <code>reactions:read</code> Token Scope.
+    Please see <a href="https://api.slack.com/start/quickstart">Slack's documentation</a> for the
+    latest information on how to create an Application and install it into your workspace.
+</p>
+
+<p>
+    At the time of this writing, the following steps may be used to create a Slack App with the necessary scope of
+    <code>reactions.read</code> scope. However, these instructions are subject to change at any time, so it is
+    best to read through <a href="https://api.slack.com/start/quickstart">Slack's Quickstart Guide</a>.
+</p>
+<ul>
+    <li>
+        Create a Slack App. Click <a href="https://api.slack.com/apps">here</a> to get started. From here,
+        click the "Create New App" button and choose "From scratch." Give your App a name and choose the workspace
+        that you want to use for developing the app.
+    </li>
+    <li>
+        Creating your app will take you to the configuration page for your application.
+        For example, <code>https://api.slack.com/apps/&lt;APP_IDENTIFIER&gt;</code>. From here, click on
+        "OAuth & Permissions" in the left-hand menu. Scroll down to the "Scopes" section and click the
+        "Add an OAuth Scope" button under 'Bot Token Scopes'. Choose the <code>reactions.get</code> scope.
+    </li>
+    <li>
+        Scroll back to the top, and under the "OAuth Tokens for Your Workspace" section, click the
+        "Install to Workspace" button. This will prompt you to allow the application to be added to your workspace,
+        if you have the appropriate permissions. Otherwise, it will generate a notification for a Workspace Owner
+        to approve the installation. Additionally, it will generate a "Bot User OAuth Token".
+    </li>
+    <li>
+        Copy the value of the "Bot User OAuth Token." This will be used as the value for the GetSlackReaction Processor's
+        <code>Access Token</code> property.
+    </li>
+    <li>
+        The Bot must then be enabled for each Channel that you would like to fetch reactions from. In order to do that,
+        in the Slack application, go to the Channel that you would like to fetch the reactions from and press <code>/</code>.
+        Choose the <code>Add apps to this channel</code> option, and add the Application that you created as a Bot to
+        the channel.
+    </li>
+</ul>
+
+
+</body>
+</html>
