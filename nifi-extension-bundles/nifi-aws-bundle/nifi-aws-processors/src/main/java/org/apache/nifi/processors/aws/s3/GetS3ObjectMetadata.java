@@ -183,7 +183,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             }
 
             session.transfer(flowFile, route);
-        } catch (IOException | AmazonClientException ex) {
+        } catch (final IOException | AmazonClientException e) {
             getLogger().error("Failed to get S3 Object Metadata from s3://{}{} ", bucket, key, e);
             flowFile = extractExceptionDetails(ex, session, flowFile);
             session.transfer(flowFile, REL_FAILURE);
