@@ -47,7 +47,7 @@ import org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.events.VolatileBulletinRepository;
-import org.apache.nifi.framework.configuration.SslContextConfiguration;
+import org.apache.nifi.framework.ssl.FrameworkSslContextProvider;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
@@ -136,9 +136,8 @@ public class HeadlessNiFiServer implements NiFiServer {
             final BulletinRepository bulletinRepository = new VolatileBulletinRepository();
             final StatusHistoryRepository statusHistoryRepository = getStatusHistoryRepository(extensionManager);
 
-            final SslContextConfiguration sslContextConfiguration = new SslContextConfiguration();
-            sslContextConfiguration.setProperties(props);
-            final SSLContext sslContext = sslContextConfiguration.sslContext();
+            final FrameworkSslContextProvider sslContextProvider = new FrameworkSslContextProvider(props);
+            final SSLContext sslContext = sslContextProvider.loadSslContext().orElse(null);
             final StateManagerProvider stateManagerProvider = StandardStateManagerProvider.create(props, sslContext, extensionManager, ParameterLookup.EMPTY);
 
             flowController = FlowController.createStandaloneInstance(
