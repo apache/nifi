@@ -135,7 +135,7 @@ public class CopyS3Object extends AbstractS3Processor {
             session.transfer(flowFile, REL_SUCCESS);
         } catch (AmazonClientException ex) {
             flowFile = extractExceptionDetails(ex, session, flowFile);
-            getLogger().error("Copy S3 Object Request failed with error:", ex);
+            getLogger().error("Failed to copy S3 object", e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
