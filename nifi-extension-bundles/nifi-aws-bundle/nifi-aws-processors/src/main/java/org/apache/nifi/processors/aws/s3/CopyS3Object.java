@@ -60,10 +60,10 @@ public class CopyS3Object extends AbstractS3Processor {
             .description("The source key in the source bucket")
             .build();
 
-    public static final PropertyDescriptor TARGET_KEY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor DESTINATION_KEY = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(KEY)
-            .name("copy-s3-target-key")
-            .displayName("Target Key")
+            .name("Destination Key")
+            .displayName("Destination Key")
             .description("The target key in the target bucket")
             .defaultValue("")
             .build();
