@@ -55,7 +55,7 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
         this.controllerServiceMap.putAll(other.controllerServiceMap);
     }
 
-    protected ControllerServiceConfiguration getConfiguration(final String identifier) {
+    public ControllerServiceConfiguration getConfiguration(final String identifier) {
         return controllerServiceMap.get(identifier);
     }
 
