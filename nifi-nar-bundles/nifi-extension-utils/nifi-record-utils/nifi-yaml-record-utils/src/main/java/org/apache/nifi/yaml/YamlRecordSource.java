@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.yaml;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import org.apache.nifi.json.JsonRecordSource;
 import org.apache.nifi.json.StartingFieldStrategy;
 
@@ -23,7 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class YamlRecordSource extends JsonRecordSource {
-   public YamlRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName) throws IOException {
-       super(in, strategy, startingFieldName, new YamlParserFactory());
+   public YamlRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName, StreamReadConstraints streamReadConstraints) throws IOException {
+       super(in, strategy, startingFieldName, new YamlParserFactory(), streamReadConstraints);
    }
 }

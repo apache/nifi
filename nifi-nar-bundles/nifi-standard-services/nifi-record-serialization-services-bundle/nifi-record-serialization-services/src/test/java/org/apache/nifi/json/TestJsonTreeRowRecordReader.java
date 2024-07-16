@@ -1433,7 +1433,7 @@ class TestJsonTreeRowRecordReader {
 
     private RecordSchema inferSchema(InputStream jsonStream, StartingFieldStrategy strategy, String startingFieldName) throws IOException {
         RecordSchema schema = new InferSchemaAccessStrategy<>(
-            (__, inputStream) -> new JsonRecordSource(inputStream, strategy, startingFieldName),
+            (__, inputStream) -> new JsonRecordSource(inputStream, strategy, startingFieldName, StreamReadConstraints.defaults()),
             new JsonSchemaInference(new TimeValueInference(null, null, null)),
             mock(ComponentLog.class)
         ).getSchema(Collections.emptyMap(), jsonStream, null);
