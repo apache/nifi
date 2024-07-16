@@ -84,7 +84,7 @@ public class TestCopyS3Object {
         when(mockS3Client.copyObject(any(CopyObjectRequest.class)))
                 .thenThrow(ex);
 
-        runner.enqueue("".getBytes(StandardCharsets.UTF_8), setupRun());
+        runner.enqueue(new byte[]{}, setupRun());
         runner.run();
 
         runner.assertTransferCount(CopyS3Object.REL_FAILURE, 1);
