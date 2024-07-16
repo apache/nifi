@@ -82,7 +82,7 @@ public class FrameworkSslContextProvider {
     private KeyManagerBuilder getKeyManagerBuilder() {
         final KeyManagerBuilder keyManagerBuilder;
 
-        if (properties.isHTTPSConfigured()) {
+        if (isPropertyConfigured(SECURITY_KEYSTORE) && isPropertyConfigured(SECURITY_KEYSTORE_PASSWD)) {
             final Path keyStorePath = getKeyStorePath();
             final String keyStorePassword = properties.getProperty(SECURITY_KEYSTORE_PASSWD, EMPTY);
             final char[] keyPassword = properties.getProperty(SECURITY_KEY_PASSWD, keyStorePassword).toCharArray();
@@ -102,7 +102,7 @@ public class FrameworkSslContextProvider {
     private TrustManagerBuilder getTrustManagerBuilder() {
         final TrustManagerBuilder trustManagerBuilder;
 
-        if (properties.isHTTPSConfigured()) {
+        if (isPropertyConfigured(SECURITY_TRUSTSTORE) && isPropertyConfigured(SECURITY_TRUSTSTORE_PASSWD)) {
             final Path trustStorePath = getTrustStorePath();
             final String trustStorePassword = properties.getProperty(SECURITY_TRUSTSTORE_PASSWD, EMPTY);
             final String trustStoreType = properties.getProperty(SECURITY_TRUSTSTORE_TYPE);
@@ -133,5 +133,10 @@ public class FrameworkSslContextProvider {
         }
 
         return Paths.get(trustStoreProperty);
+    }
+
+    private boolean isPropertyConfigured(final String propertyName) {
+        final String value = properties.getProperty(propertyName);
+        return value != null && !value.isBlank();
     }
 }
