@@ -91,7 +91,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .required(true)
             .build();
 
-    public static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static final List<PropertyDescriptor> properties = List.of(
             MODE,
