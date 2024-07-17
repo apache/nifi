@@ -34,7 +34,8 @@ import static org.mockito.Mockito.when;
 
 public class ComponentNodeDefinitionPredicateTest {
 
-    private static final String STANDARD_PROCESSOR_TYPE = "org.apache.nifi.MyProcessor";
+    private static final String STANDARD_PROCESSOR_COMPONENT_TYPE = "MyProcessor";
+    private static final String STANDARD_PROCESSOR_CLASS_NAME = "org.apache.nifi." + STANDARD_PROCESSOR_COMPONENT_TYPE;
     private static final BundleCoordinate STANDARD_BUNDLE_COORDINATE_V1 = new BundleCoordinate("org.apache.nifi", "my-processors-nar", "1.0.0");
     private static final BundleCoordinate STANDARD_BUNDLE_COORDINATE_V2 = new BundleCoordinate("org.apache.nifi", "my-processors-nar", "2.0.0");
 
@@ -55,7 +56,7 @@ public class ComponentNodeDefinitionPredicateTest {
         when(standardBundle.getBundleDetails()).thenReturn(standardBundleDetails);
 
         standardProcessorDefinition = mock(ExtensionDefinition.class);
-        when(standardProcessorDefinition.getImplementationClassName()).thenReturn(STANDARD_PROCESSOR_TYPE);
+        when(standardProcessorDefinition.getImplementationClassName()).thenReturn(STANDARD_PROCESSOR_CLASS_NAME);
         when(standardProcessorDefinition.getBundle()).thenReturn(standardBundle);
 
         final BundleDetails pythonBundleDetails = mock(BundleDetails.class);
@@ -72,7 +73,7 @@ public class ComponentNodeDefinitionPredicateTest {
     @Test
     public void testWhenComponentNodeMatchesDefinition() {
         final ComponentNode componentNode = mock(ComponentNode.class);
-        when(componentNode.getComponentType()).thenReturn(STANDARD_PROCESSOR_TYPE);
+        when(componentNode.getCanonicalClassName()).thenReturn(STANDARD_PROCESSOR_CLASS_NAME);
         when(componentNode.getBundleCoordinate()).thenReturn(STANDARD_BUNDLE_COORDINATE_V1);
 
         final Predicate<ComponentNode> predicate = new ComponentNodeDefinitionPredicate(Set.of(standardProcessorDefinition));
@@ -82,7 +83,7 @@ public class ComponentNodeDefinitionPredicateTest {
     @Test
     public void testWhenComponentNodeTypeDoesNotMatchDefinition() {
         final ComponentNode componentNode = mock(ComponentNode.class);
-        when(componentNode.getComponentType()).thenReturn("com.SomeOtherProcessor");
+        when(componentNode.getCanonicalClassName()).thenReturn("com.SomeOtherProcessor");
         when(componentNode.getBundleCoordinate()).thenReturn(STANDARD_BUNDLE_COORDINATE_V1);
 
         final Predicate<ComponentNode> predicate = new ComponentNodeDefinitionPredicate(Set.of(standardProcessorDefinition));
@@ -92,7 +93,7 @@ public class ComponentNodeDefinitionPredicateTest {
     @Test
     public void testWhenComponentNodeCoordinateDoesMatchDefinition() {
         final ComponentNode componentNode = mock(ComponentNode.class);
-        when(componentNode.getComponentType()).thenReturn(STANDARD_PROCESSOR_TYPE);
+        when(componentNode.getCanonicalClassName()).thenReturn(STANDARD_PROCESSOR_CLASS_NAME);
         when(componentNode.getBundleCoordinate()).thenReturn(STANDARD_BUNDLE_COORDINATE_V2);
 
         final Predicate<ComponentNode> predicate = new ComponentNodeDefinitionPredicate(Set.of(standardProcessorDefinition));
@@ -102,7 +103,7 @@ public class ComponentNodeDefinitionPredicateTest {
     @Test
     public void testWhenComponentNodeIsMissingAndCompatibleBundle() {
         final ComponentNode componentNode = mock(ComponentNode.class);
-        when(componentNode.getComponentType()).thenReturn(STANDARD_PROCESSOR_TYPE);
+        when(componentNode.getCanonicalClassName()).thenReturn(STANDARD_PROCESSOR_CLASS_NAME);
         when(componentNode.getBundleCoordinate()).thenReturn(STANDARD_BUNDLE_COORDINATE_V2);
         when(componentNode.isExtensionMissing()).thenReturn(true);
 

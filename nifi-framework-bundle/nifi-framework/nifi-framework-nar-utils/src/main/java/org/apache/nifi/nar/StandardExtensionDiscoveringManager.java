@@ -830,7 +830,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             throw new IllegalArgumentException("Class cannot be null");
         }
         final Set<ExtensionDefinition> extensions = definitionMap.get(definition);
-        return (extensions == null) ? Collections.emptySet() : extensions;
+        return (extensions == null) ? Collections.emptySet() : new HashSet<>(extensions);
     }
 
     @Override

@@ -28,8 +28,11 @@ import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.NarDetailsEntity;
 import org.apache.nifi.web.api.entity.NarSummariesEntity;
 import org.apache.nifi.web.api.entity.NarSummaryEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,8 +46,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class NarUploadStandaloneIT extends NiFiSystemIT {
 
+    private static final Logger logger = LoggerFactory.getLogger(NarUploadStandaloneIT.class);
+
     private static final String NAR_PROVIDER_NARS_LOCATION = "target/nifi-nar-provider-nars";
     private static final String PROCESSORS_NAR_ID = "nifi-nar-provider-processors-nar";
+    private static final String PROCESSOR_CLASS_NAME = "org.apache.nifi.nar.provider.GetClassLoaderInfo";
     private static final String CONTROLLER_SERVICE_API_NAR_ID = "nifi-nar-provider-service-api-nar";
     private static final String CONTROLLER_SERVICE_NAR_ID = "nifi-nar-provider-service-nar";
 
@@ -116,6 +122,14 @@ public class NarUploadStandaloneIT extends NiFiSystemIT {
         assertNotNull(serviceApiNarDetails.getDependentCoordinates());
         assertEquals(2, serviceApiNarDetails.getDependentCoordinates().size());
 
+        // Create instance of the custom processor
+        final NarCoordinateDTO uploadedProcessorCoordinate = uploadedProcessorsNar.getCoordinate();
+        final ProcessorEntity customProcessor = getClientUtil().createProcessor(PROCESSOR_CLASS_NAME, uploadedProcessorCoordinate.getGroup(),
+                uploadedProcessorCoordinate.getArtifact(), uploadedProcessorCoordinate.getVersion());
+        assertNotNull(customProcessor.getComponent());
+        assertNotNull(customProcessor.getComponent().getExtensionMissing());
+        assertFalse(customProcessor.getComponent().getExtensionMissing());
+
         // Verify service API NAR can't be replaced while other NARs depend on it
         assertThrows(NiFiClientException.class, () -> narUploadUtil.uploadNar(narsLocation, CONTROLLER_SERVICE_API_NAR_ID));
 
@@ -137,6 +151,27 @@ public class NarUploadStandaloneIT extends NiFiSystemIT {
 
         // Verify no NARs exist
         narUploadUtil.verifyNarSummaries(0);
+
+        // Verify custom processor is ghosted
+        final String customProcessorId = customProcessor.getId();
+        waitFor(() -> {
+            final ProcessorEntity customProcessorAfterDelete = getNifiClient().getProcessorClient().getProcessor(customProcessorId);
+            logger.info("Waiting for processor {} to be considered missing", customProcessorId);
+            return customProcessorAfterDelete.getComponent().getExtensionMissing();
+        });
+
+        // Restore NARs
+        narUploadUtil.uploadNar(narsLocation, CONTROLLER_SERVICE_API_NAR_ID);
+        narUploadUtil.uploadNar(narsLocation, CONTROLLER_SERVICE_NAR_ID);
+        final NarSummaryDTO restoredProcessorsNar = narUploadUtil.uploadNar(narsLocation, PROCESSORS_NAR_ID);
+        waitFor(narUploadUtil.getWaitForNarStateSupplier(restoredProcessorsNar.getIdentifier(), NarState.INSTALLED));
+
+        // Verify processor is un-ghosted
+        waitFor(() -> {
+            final ProcessorEntity customProcessorAfterDelete = getNifiClient().getProcessorClient().getProcessor(customProcessorId);
+            logger.info("Waiting for processor {} to be considered not missing", customProcessorId);
+            return !customProcessorAfterDelete.getComponent().getExtensionMissing();
+        });
     }
 
     private boolean matchingBundles(final BundleDTO bundleDTO, final NarCoordinateDTO narCoordinateDTO) {

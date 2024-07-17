@@ -42,21 +42,22 @@ class ComponentNodeDefinitionPredicate implements Predicate<ComponentNode> {
     }
 
     private <T extends ComponentNode> boolean isComponentFromType(final T componentNode, final ExtensionDefinition extensionDefinition) {
-        final String componentType = componentNode.getComponentType();
+        final String componentClassName = componentNode.getCanonicalClassName();
         final BundleCoordinate componentCoordinate = componentNode.getBundleCoordinate();
 
-        final String extensionDefinitionType = extensionDefinition.getImplementationClassName();
+        final String extensionDefinitionClassName = extensionDefinition.getImplementationClassName();
         final BundleCoordinate extensionDefinitionCoordinate = extensionDefinition.getBundle().getBundleDetails().getCoordinate();
 
         if (PythonBundle.isPythonCoordinate(componentCoordinate)) {
+            final String componentType = componentNode.getComponentType();
             final String pythonComponentType = "python." + componentType;
-            return pythonComponentType.equals(extensionDefinitionType) && componentCoordinate.equals(extensionDefinitionCoordinate);
+            return pythonComponentType.equals(extensionDefinitionClassName) && componentCoordinate.equals(extensionDefinitionCoordinate);
         } else if (componentNode.isExtensionMissing()) {
-            return componentType.equals(extensionDefinitionType)
+            return componentClassName.equals(extensionDefinitionClassName)
                     && componentCoordinate.getGroup().equals(extensionDefinitionCoordinate.getGroup())
                     && componentCoordinate.getId().equals(extensionDefinitionCoordinate.getId());
         } else {
-            return componentType.equals(extensionDefinitionType) && componentCoordinate.equals(extensionDefinitionCoordinate);
+            return componentClassName.equals(extensionDefinitionClassName) && componentCoordinate.equals(extensionDefinitionCoordinate);
         }
     }
 }
