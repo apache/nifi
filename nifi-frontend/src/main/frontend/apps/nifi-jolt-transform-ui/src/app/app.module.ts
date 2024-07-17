@@ -27,7 +27,7 @@ import {
 import { StoreModule } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { environment } from '../environments/environment';
-import { provideHttpClient, withInterceptors, withInterceptorsFromDi, withXsrfConfiguration } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
@@ -64,9 +64,8 @@ if (disableAnimations !== 'true' && disableAnimations !== 'false') {
     providers: [
         disableAnimations === 'true' ? provideNoopAnimations() : provideAnimations(),
         { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
-        provideHttpClient(withInterceptors([])),
         provideHttpClient(
-            withInterceptorsFromDi(),
+            withInterceptors([]),
             withXsrfConfiguration({
                 cookieName: '__Secure-Request-Token',
                 headerName: 'Request-Token'
