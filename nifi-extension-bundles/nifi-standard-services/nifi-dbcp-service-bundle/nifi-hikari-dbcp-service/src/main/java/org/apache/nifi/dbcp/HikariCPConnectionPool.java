@@ -303,7 +303,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
         try {
             final Connection con;
             if (kerberosUser != null) {
-                KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, () -> dataSource.getConnection(), getLogger());
+                KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, dataSource::getConnection, getLogger());
                 con = kerberosAction.execute();
             } else {
                 con = dataSource.getConnection();
@@ -458,7 +458,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             // If using Kerberos,  attempt to re-login
             if (kerberosUser != null) {
                 try {
-                    getLogger().info("Error getting connection, performing Kerberos re-login");
+                    getLogger().info("Error getting connection, performing Kerberos re-login", e);
                     kerberosUser.login();
                 } catch (KerberosLoginException le) {
                     throw new ProcessException("Unable to authenticate Kerberos principal", le);
