@@ -29,7 +29,7 @@ import { selectActiveLineageId, selectClusterNodeIdFromActiveLineage } from './l
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import { isDefinedAndNotNull, NiFiCommon } from 'libs/shared/src';
 
 @Injectable()
 export class LineageEffects {
@@ -38,6 +38,7 @@ export class LineageEffects {
         private store: Store<NiFiState>,
         private provenanceService: ProvenanceService,
         private errorHelper: ErrorHelper,
+        private nifiCommon: NiFiCommon,
         private dialog: MatDialog
     ) {}
 
@@ -78,8 +79,11 @@ export class LineageEffects {
             map((action) => action.response),
             switchMap((response) => {
                 const query: Lineage = response.lineage;
-                if (query.finished) {
-                    this.dialog.closeAll();
+                if (query.finished || !this.nifiCommon.isEmpty(query.results.errors)) {
+                    response.lineage.results.errors?.forEach((error) => {
+                        this.store.dispatch(ErrorActions.addBannerError({ error }));
+                    });
+
                     return of(LineageActions.deleteLineageQuery());
                 } else {
                     return of(LineageActions.startPollingLineageQuery());
@@ -138,8 +142,16 @@ export class LineageEffects {
         this.actions$.pipe(
             ofType(LineageActions.pollLineageQuerySuccess),
             map((action) => action.response),
-            filter((response) => response.lineage.finished),
-            switchMap(() => of(LineageActions.stopPollingLineageQuery()))
+            filter(
+                (response) => response.lineage.finished || !this.nifiCommon.isEmpty(response.lineage.results.errors)
+            ),
+            switchMap((response) => {
+                response.lineage.results.errors?.forEach((error) => {
+                    this.store.dispatch(ErrorActions.addBannerError({ error }));
+                });
+
+                return of(LineageActions.stopPollingLineageQuery());
+            })
         )
     );
 
@@ -158,6 +170,8 @@ export class LineageEffects {
                 this.store.select(selectClusterNodeIdFromActiveLineage)
             ]),
             tap(([, id, clusterNodeId]) => {
+                this.dialog.closeAll();
+
                 if (id) {
                     this.provenanceService.deleteLineageQuery(id, clusterNodeId).subscribe();
                 }

@@ -41,7 +41,7 @@ import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import { isDefinedAndNotNull, NiFiCommon } from 'libs/shared/src';
 import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { ClusterService } from '../../../../service/cluster.service';
 import { LARGE_DIALOG, MEDIUM_DIALOG } from 'libs/shared/src';
@@ -54,6 +54,7 @@ export class ProvenanceEventListingEffects {
         private provenanceService: ProvenanceService,
         private errorHelper: ErrorHelper,
         private clusterService: ClusterService,
+        private nifiCommon: NiFiCommon,
         private dialog: MatDialog,
         private router: Router
     ) {}
@@ -143,8 +144,11 @@ export class ProvenanceEventListingEffects {
             map((action) => action.response),
             switchMap((response) => {
                 const query: Provenance = response.provenance;
-                if (query.finished) {
-                    this.dialog.closeAll();
+                if (query.finished || !this.nifiCommon.isEmpty(query.results.errors)) {
+                    response.provenance.results.errors?.forEach((error) => {
+                        this.store.dispatch(ErrorActions.addBannerError({ error }));
+                    });
+
                     return of(ProvenanceEventListingActions.deleteProvenanceQuery());
                 } else {
                     return of(ProvenanceEventListingActions.startPollingProvenanceQuery());
@@ -203,8 +207,17 @@ export class ProvenanceEventListingEffects {
         this.actions$.pipe(
             ofType(ProvenanceEventListingActions.pollProvenanceQuerySuccess),
             map((action) => action.response),
-            filter((response) => response.provenance.finished),
-            switchMap(() => of(ProvenanceEventListingActions.stopPollingProvenanceQuery()))
+            filter(
+                (response) =>
+                    response.provenance.finished || !this.nifiCommon.isEmpty(response.provenance.results.errors)
+            ),
+            switchMap((response) => {
+                response.provenance.results.errors?.forEach((error) => {
+                    this.store.dispatch(ErrorActions.addBannerError({ error }));
+                });
+
+                return of(ProvenanceEventListingActions.stopPollingProvenanceQuery());
+            })
         )
     );
 
