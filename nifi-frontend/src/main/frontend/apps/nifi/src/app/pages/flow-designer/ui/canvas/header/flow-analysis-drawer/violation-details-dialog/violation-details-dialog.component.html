@@ -20,19 +20,16 @@
         <div>
             Violation Information
         </div>
-        <div class="text-base">
-            <!-- {{ formatType(request.flowAnalysisRule) }} -->
-        </div>
     </div>
 </h2>
 <mat-dialog-content>
     <div>
-        <div class="flex justify-between mt-4 mb-1">
+        <div class="flex justify-between mt-4 mb-4">
             <div>Violation</div>
             <div class="py-1 px-2 rounded-xl pill" [ngClass]="violation.enforcementPolicy | lowercase">{{ violation.enforcementPolicy }}</div>
         </div>
 
-        <p class="">{{ violation.violationMessage }}</p>
+        <p>{{ violation.violationMessage }}</p>
 
         <button mat-menu-item (click)="viewDocumentation()">
             <i class="fa fa-book primary-color mr-2"></i>

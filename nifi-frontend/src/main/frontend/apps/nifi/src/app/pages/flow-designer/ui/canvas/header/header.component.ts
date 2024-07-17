@@ -36,6 +36,7 @@ import { RouterLink } from '@angular/router';
 import { FlowStatus } from './flow-status/flow-status.component';
 import { Navigation } from '../../../../../ui/common/navigation/navigation.component';
 import { selectClusterSummary } from '../../../../../state/cluster-summary/cluster-summary.selectors';
+import { selectFlowAnalysisState } from '../../../state/flow-analysis/flow-analysis.selectors';
 
 @Component({
     selector: 'fd-header',
@@ -63,6 +64,7 @@ export class HeaderComponent {
     controllerBulletins$ = this.store.select(selectControllerBulletins);
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
     canvasPermissions$ = this.store.select(selectCanvasPermissions);
+    flowAnalysisState$ = this.store.select(selectFlowAnalysisState);
 
     constructor(
         private store: Store<CanvasState>,

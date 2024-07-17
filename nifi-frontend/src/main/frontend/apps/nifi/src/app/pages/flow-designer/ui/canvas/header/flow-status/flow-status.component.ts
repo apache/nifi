@@ -26,20 +26,35 @@ import { NifiTooltipDirective } from '@nifi/shared';
 import { ClusterSummary } from '../../../../../../state/cluster-summary';
 import { ConnectedPosition } from '@angular/cdk/overlay';
 import { CanvasActionsService } from '../../../../service/canvas-actions.service';
+import { FlowAnalysisState } from '../../../../state/flow-analysis';
+import { CommonModule } from '@angular/common';
 
 @Component({
     selector: 'flow-status',
     standalone: true,
     templateUrl: './flow-status.component.html',
-    imports: [Search, NifiTooltipDirective],
+    imports: [Search, NifiTooltipDirective, CommonModule],
     styleUrls: ['./flow-status.component.scss']
 })
 export class FlowStatus {
+    public flowAnalysisNotificationClass: string = '';
     @Input() controllerStatus: ControllerStatus = initialState.flowStatus.controllerStatus;
     @Input() lastRefreshed: string = initialState.flow.processGroupFlow.lastRefreshed;
     @Input() clusterSummary: ClusterSummary | null = null;
     @Input() currentProcessGroupId: string = initialState.id;
     @Input() loadingStatus = false;
+    @Input() set flowAnalysisState(state: FlowAnalysisState) {
+        if (!state.ruleViolations.length) {
+            this.flowAnalysisNotificationClass = '';
+        } else {
+            const isEnforcedRuleViolated = state.ruleViolations.find((v) => {
+                return v.enforcementPolicy === 'ENFORCE';
+            });
+            isEnforcedRuleViolated
+                ? (this.flowAnalysisNotificationClass = 'enforce')
+                : (this.flowAnalysisNotificationClass = 'warn');
+        }
+    }
 
     @Input() set bulletins(bulletins: BulletinEntity[]) {
         if (bulletins) {
