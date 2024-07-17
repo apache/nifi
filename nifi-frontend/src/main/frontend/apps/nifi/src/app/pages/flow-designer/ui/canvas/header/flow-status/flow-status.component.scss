@@ -27,3 +27,17 @@
         cursor: default;
     }
 }
+
+.flow-analysis-notification-icon {
+    &.warn {
+        border: 1px solid #176e83;
+        border-radius: 15px;
+        color: #728e9b;
+    }
+
+   &.enforce {
+        background-color: #ba554a;
+        border-radius: 15px;
+        color: #ffffff;
+    }
+}

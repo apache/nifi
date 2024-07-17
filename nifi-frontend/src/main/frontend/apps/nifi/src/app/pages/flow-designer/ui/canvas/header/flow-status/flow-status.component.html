@@ -127,8 +127,10 @@
         </div>
         <div class="flex">
             <search [currentProcessGroupId]="currentProcessGroupId"></search>
-            <button id="flow-analysis" class="flow-analysis" (click)="openFlowAnalysisMenu()">
-                <i class="fa fa-lightbulb-o flow-analysis-notification-icon w-8"></i>
+            <button class="flow-analysis-notification w-8 border-l flex justify-center items-center"
+                    (click)="openFlowAnalysisMenu()">
+                <i class="fa fa-lightbulb-o flow-analysis-notification-icon p-1 w-[24px] h-[24px] flex justify-center items-center"
+                   [ngClass]="flowAnalysisNotificationClass"></i>
             </button>
             @if (hasBulletins()) {
                 <button
