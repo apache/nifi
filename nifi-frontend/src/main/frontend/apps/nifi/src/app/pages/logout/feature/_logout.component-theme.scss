@@ -20,15 +20,15 @@
 
 @mixin generate-theme($material-theme, $nifi-theme) {
     // Get the color config from the theme.
-    $nifi-theme-color-config: mat.get-color-config($nifi-theme);
+    $nifi-theme-color-config: mat.m2-get-color-config($nifi-theme);
 
     // Get the color palettes from the color-config.
     $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
 
     // Get hues from palette
     $is-dark: map-get($nifi-theme-color-config, is-dark);
-    $nifi-theme-surface-palette-darker: mat.get-color-from-palette($nifi-theme-surface-palette, darker);
-    $nifi-theme-surface-palette-lighter: mat.get-color-from-palette($nifi-theme-surface-palette, lighter);
+    $nifi-theme-surface-palette-darker: mat.m2-get-color-from-palette($nifi-theme-surface-palette, darker);
+    $nifi-theme-surface-palette-lighter: mat.m2-get-color-from-palette($nifi-theme-surface-palette, lighter);
 
     .logout-background {
         background: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter)

@@ -54,11 +54,11 @@
 
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
-@use 'font-awesome/css/font-awesome.min.css';
 @use 'codemirror/lib/codemirror.css';
 @use 'codemirror/addon/fold/foldgutter.css';
 @use 'codemirror/addon/hint/show-hint.css';
 
+@import 'font-awesome';
 @import 'libs/shared/src/assets/themes/supplemental';
 // To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
 @import 'libs/shared/src/assets/themes/material';

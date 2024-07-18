@@ -20,15 +20,15 @@
 
 @mixin generate-theme($material-theme) {
     // Get the color config from the theme.
-    $material-theme-color-config: mat.get-color-config($material-theme);
+    $material-theme-color-config: mat.m2-get-color-config($material-theme);
 
     // Get the color palette from the color-config.
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
 
     // Get hues from palette
     $is-dark: map-get($material-theme-color-config, is-dark);
-    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
-    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
+    $material-theme-primary-palette-default: mat.m2-get-color-from-palette($material-theme-primary-palette, default);
+    $material-theme-primary-palette-darker: mat.m2-get-color-from-palette($material-theme-primary-palette, darker);
 
     .splash {
         background-color: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker);

@@ -302,7 +302,7 @@
 
 @mixin generate-material-theme($material-theme) {
     // Get the color config from the theme.
-    $material-theme-color-config: mat.get-color-config($material-theme);
+    $material-theme-color-config: mat.m2-get-color-config($material-theme);
 
     // Get the palettes
     $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
@@ -311,11 +311,11 @@
 
     // colors from the theme palettes
     $is-dark: map-get($material-theme-color-config, is-dark);
-    $material-theme-primary-palette-darker-contrast: mat.get-color-from-palette(
+    $material-theme-primary-palette-darker-contrast: mat.m2-get-color-from-palette(
         $material-theme-primary-palette,
         darker-contrast
     );
-    $material-theme-primary-palette-lighter-contrast: mat.get-color-from-palette(
+    $material-theme-primary-palette-lighter-contrast: mat.m2-get-color-from-palette(
         $material-theme-primary-palette,
         lighter-contrast
     );
@@ -324,15 +324,15 @@
         $material-theme-primary-palette-darker-contrast,
         $material-theme-primary-palette-lighter-contrast
     );
-    $material-theme-primary-palette-default: mat.get-color-from-palette($material-theme-primary-palette, default);
-    $material-theme-primary-palette-lighter: mat.get-color-from-palette($material-theme-primary-palette, lighter);
-    $material-theme-primary-palette-darker: mat.get-color-from-palette($material-theme-primary-palette, darker);
-    $material-theme-accent-palette-default: mat.get-color-from-palette($material-theme-accent-palette, default);
-    $material-theme-accent-palette-lighter: mat.get-color-from-palette($material-theme-accent-palette, lighter);
-    $material-theme-accent-palette-darker: mat.get-color-from-palette($material-theme-accent-palette, darker);
-    $material-theme-warn-palette-default: mat.get-color-from-palette($material-theme-warn-palette, default);
-    $material-theme-warn-palette-lighter: mat.get-color-from-palette($material-theme-warn-palette, lighter);
-    $material-theme-warn-palette-darker: mat.get-color-from-palette($material-theme-warn-palette, darker);
+    $material-theme-primary-palette-default: mat.m2-get-color-from-palette($material-theme-primary-palette, default);
+    $material-theme-primary-palette-lighter: mat.m2-get-color-from-palette($material-theme-primary-palette, lighter);
+    $material-theme-primary-palette-darker: mat.m2-get-color-from-palette($material-theme-primary-palette, darker);
+    $material-theme-accent-palette-default: mat.m2-get-color-from-palette($material-theme-accent-palette, default);
+    $material-theme-accent-palette-lighter: mat.m2-get-color-from-palette($material-theme-accent-palette, lighter);
+    $material-theme-accent-palette-darker: mat.m2-get-color-from-palette($material-theme-accent-palette, darker);
+    $material-theme-warn-palette-default: mat.m2-get-color-from-palette($material-theme-warn-palette, default);
+    $material-theme-warn-palette-lighter: mat.m2-get-color-from-palette($material-theme-warn-palette, lighter);
+    $material-theme-warn-palette-darker: mat.m2-get-color-from-palette($material-theme-warn-palette, darker);
 
     // semantic classes for the material theme
 
@@ -439,7 +439,7 @@
 
 @mixin generate-supplemental-theme($supplemental-theme) {
     // Get the color config from the theme.
-    $supplemental-theme-color-config: mat.get-color-config($supplemental-theme);
+    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
 
     // Get the color palettes from the color-config.
     $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
@@ -448,17 +448,20 @@
 
     // default/lighter/darker colors from the supplemental theme palettes
     $is-dark: map-get($supplemental-theme-color-config, is-dark);
-    $supplemental-theme-surface-palette-default: mat.get-color-from-palette($supplemental-theme-surface-palette);
-    $supplemental-theme-surface-palette-lighter: mat.get-color-from-palette(
+    $supplemental-theme-surface-palette-default: mat.m2-get-color-from-palette($supplemental-theme-surface-palette);
+    $supplemental-theme-surface-palette-lighter: mat.m2-get-color-from-palette(
         $supplemental-theme-surface-palette,
         lighter
     );
-    $supplemental-theme-surface-palette-darker: mat.get-color-from-palette($supplemental-theme-surface-palette, darker);
-    $supplemental-theme-surface-palette-darker-contrast: mat.get-color-from-palette(
+    $supplemental-theme-surface-palette-darker: mat.m2-get-color-from-palette(
+        $supplemental-theme-surface-palette,
+        darker
+    );
+    $supplemental-theme-surface-palette-darker-contrast: mat.m2-get-color-from-palette(
         $supplemental-theme-surface-palette,
         darker-contrast
     );
-    $supplemental-theme-surface-palette-lighter-contrast: mat.get-color-from-palette(
+    $supplemental-theme-surface-palette-lighter-contrast: mat.m2-get-color-from-palette(
         $supplemental-theme-surface-palette,
         lighter-contrast
     );
@@ -472,20 +475,26 @@
         $supplemental-theme-surface-palette-darker-contrast,
         $supplemental-theme-surface-palette-lighter-contrast
     );
-    $supplemental-theme-success-palette-default: mat.get-color-from-palette(
+    $supplemental-theme-success-palette-default: mat.m2-get-color-from-palette(
         $supplemental-theme-success-palette,
         default
     );
-    $supplemental-theme-success-palette-lighter: mat.get-color-from-palette(
+    $supplemental-theme-success-palette-lighter: mat.m2-get-color-from-palette(
         $supplemental-theme-success-palette,
         lighter
     );
-    $supplemental-theme-success-palette-darker: mat.get-color-from-palette($supplemental-theme-success-palette, darker);
-    $supplemental-theme-caution-palette-default: mat.get-color-from-palette(
+    $supplemental-theme-success-palette-darker: mat.m2-get-color-from-palette(
+        $supplemental-theme-success-palette,
+        darker
+    );
+    $supplemental-theme-caution-palette-default: mat.m2-get-color-from-palette(
         $supplemental-theme-caution-palette,
         default
     );
-    $supplemental-theme-caution-palette-darker: mat.get-color-from-palette($supplemental-theme-caution-palette, darker);
+    $supplemental-theme-caution-palette-darker: mat.m2-get-color-from-palette(
+        $supplemental-theme-caution-palette,
+        darker
+    );
 
     // semantic classes for contrast colors determined based on the light/dark mode of the theme.
 

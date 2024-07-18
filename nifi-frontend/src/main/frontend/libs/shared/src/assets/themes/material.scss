@@ -51,7 +51,7 @@ $material-primary-light-palette: (
     )
 );
 
-$material-accent-light-palette: mat.$brown-palette;
+$material-accent-light-palette: mat.$m2-brown-palette;
 
 $warn-light-palette: (
     50: #ffebee,
@@ -90,43 +90,43 @@ $warn-dark-palette: $warn-light-palette;
 // default hue: must have enough contrast on top of the mat-app-background (#fafafa). For light mode this is a minimum of 600 up to 900. It needs to be dark enough to be displayed on top of the darker hue.
 // lighter hue: is used for the flow run status icons, PG banner run status icons, RPG banner run status icons as well as PG banner background color, RPG banner background color. For light mode this is a minimum of 600 up to 900.
 // darker hue: is used for the navigation header background color. It needs to have enough contrast with the default hue since the default hue is displayed on top of the darker hue. In this case the darker hue is 300 so 900 was chosen for the default hue.
-$material-primary-light: mat.define-palette($material-primary-light-palette, 900, 600, 300);
+$material-primary-light: mat.m2-define-palette($material-primary-light-palette, 900, 600, 300);
 // accent material palette:
 //
 // default hue: must have enough contrast on top of the mat-app-background (#fafafa). For light mode this is a minimum of 600 up to 900.
 // lighter hue: snackbar action button text color, Should be light as the action button is on a dark background in light mode.
 // darker hue: nothing
-$material-accent-light: mat.define-palette($material-accent-light-palette, 500, 100, 700);
+$material-accent-light: mat.m2-define-palette($material-accent-light-palette, 500, 100, 700);
 // warn material palette color default hue must have enough contrast on top of the mat-app-background. For light mode this is a minimum of 600 up to 900.
-$warn-light: mat.define-palette($warn-light-palette, 400, 200, 900);
+$warn-light: mat.m2-define-palette($warn-light-palette, 400, 200, 900);
 
 @use '@fontsource/roboto/latin.css' as roboto-normal;
 @use '@fontsource/roboto/latin-300-italic.css' as roboto-light-italic;
 @use '@fontsource/roboto/latin-400-italic.css' as roboto-normal-italic;
 
 //https://m2.material.io/design/typography/the-type-system.html#type-scale
-$typography-config: mat.define-typography-config(
+$typography-config: mat.m2-define-typography-config(
     $font-family: Roboto,
     // All `<h2>` native elements or use: `.text-xl font-bold`, `.mat-h2`, or `.mat-headline-6`
-    $headline-6: mat.define-typography-level(18px, 28px, 700),
+    $headline-6: mat.m2-define-typography-level(18px, 28px, 700),
     // All `<h3>` native elements or use: `.text-2xl font-bold`, `.mat-h3`, or `.mat-subtitle-1`
-    $subtitle-1: mat.define-typography-level(20px, 28px, 700),
+    $subtitle-1: mat.m2-define-typography-level(20px, 28px, 700),
     // All <th> native elements or use: `.mat-body-strong` or `.mat-subtitle-2`
-    $subtitle-2: mat.define-typography-level(14px, 20px, 700),
+    $subtitle-2: mat.m2-define-typography-level(14px, 20px, 700),
     // All `<h4>` native elements or use: `.text-base`, `.mat-h4`, or `.mat-body-1`
-    $body-1: mat.define-typography-level(14px, 20px, 400),
+    $body-1: mat.m2-define-typography-level(14px, 20px, 400),
     // Any body text or use: `.mat-body` or `.mat-body-2`
-    $body-2: mat.define-typography-level(14px, 20px, 400),
+    $body-2: mat.m2-define-typography-level(14px, 20px, 400),
     // Smaller body and hint text like <mat-error> or <mat-hint> or use: `.text-sm`, `.mat-small`, or`.mat-caption`
-    $caption: mat.define-typography-level(12px, 16px, 400, $letter-spacing: 0.4px),
+    $caption: mat.m2-define-typography-level(12px, 16px, 400, $letter-spacing: 0.4px),
     // Buttons and anchors.
-    $button: mat.define-typography-level(14px, 20px, 400)
+    $button: mat.m2-define-typography-level(14px, 20px, 400)
 );
 
 @include mat.typography-hierarchy($typography-config);
 
 // Create the theme objects. We can extract the values we need from the theme passed into the mixins.
-$material-theme-light: mat.define-light-theme(
+$material-theme-light: mat.m2-define-light-theme(
     (
         color: (
             primary: $material-primary-light,
@@ -145,18 +145,18 @@ $material-theme-light: mat.define-light-theme(
 // default hue: default is used for the navigation header background color. It must have enough contrast on top of the mat-app-background (#303030). For dark mode this is a minimum of 200 to 400. It needs to be light enough to have the darker hue displayed on top of it.
 // lighter hue: is used for the flow run status icons, PG banner run status icons, RPG banner run status icons as well as PG banner background color, RPG banner background color. For light mode this is a minimum of 50 up to 200.
 // darker hue: is used for the PG banner background color, RPG banner background color. For light mode this is a minimum of 700 to 900 (or A700). It needs to be dark enough to be displayed on top of the default hue.
-$material-primary-dark: mat.define-palette($material-primary-dark-palette, 400, 200, A700);
+$material-primary-dark: mat.m2-define-palette($material-primary-dark-palette, 400, 200, A700);
 // accent material palette color default hue must have enough contrast on top of the mat-app-background (#303030). For dark mode this is a minimum of 300 up to 500.
 // accent material palette:
 //
 // default hue: must have enough contrast on top of the mat-app-background (#303030). For light mode this is a minimum of 300 up to 400.
 // lighter hue: nothing
 // darker hue: snackbar action button text color, Should be darker as the action button is on a light background in dark mode.
-$material-accent-dark: mat.define-palette($material-accent-dark-palette, 200, 100, 900);
+$material-accent-dark: mat.m2-define-palette($material-accent-dark-palette, 200, 100, 900);
 // warn material palette color default hue must have enough contrast on top of the mat-app-background (#303030). For dark mode this is a minimum of 300 up to 500.
-$warn-dark: mat.define-palette($warn-dark-palette, 600, 200, 300);
+$warn-dark: mat.m2-define-palette($warn-dark-palette, 600, 200, 300);
 
-$material-theme-dark: mat.define-dark-theme(
+$material-theme-dark: mat.m2-define-dark-theme(
     (
         color: (
             primary: $material-primary-dark,
