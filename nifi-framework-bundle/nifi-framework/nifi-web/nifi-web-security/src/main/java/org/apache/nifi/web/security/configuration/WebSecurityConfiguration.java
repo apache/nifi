@@ -55,8 +55,13 @@ import org.springframework.security.web.authentication.AnonymousAuthenticationFi
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatchers;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Application Security Configuration using Spring Security
@@ -68,6 +73,18 @@ import java.util.List;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class WebSecurityConfiguration {
+    private static final List<String> UNFILTERED_PATHS = List.of(
+            "/access",
+            "/access/config",
+            "/access/token",
+            "/access/logout/complete",
+            "/authentication/configuration"
+    );
+
+    private static final RequestMatcher UNFILTERED_PATHS_REQUEST_MATCHER = new OrRequestMatcher(
+            UNFILTERED_PATHS.stream().map(AntPathRequestMatcher::new).collect(Collectors.toList())
+    );
+
     /**
      * Spring Security Authentication Manager configured using Authentication Providers from specific configuration classes
      *
@@ -108,14 +125,12 @@ public class WebSecurityConfiguration {
                 .securityContext(AbstractHttpConfigurer::disable)
                 .sessionManagement(AbstractHttpConfigurer::disable)
                 .headers(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(authorize -> authorize
+                .securityMatchers(securityMatchers -> securityMatchers
                         .requestMatchers(
-                                "/access",
-                                "/access/config",
-                                "/access/token",
-                                "/access/logout/complete",
-                                "/authentication/configuration"
-                        ).permitAll()
+                                RequestMatchers.not(UNFILTERED_PATHS_REQUEST_MATCHER)
+                        )
+                )
+                .authorizeHttpRequests(authorize -> authorize
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new SkipReplicatedCsrfFilter(), CsrfFilter.class)
