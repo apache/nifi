@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 public class DataTransferExcludedDoSFilterTest {
     private static final String DATA_TRANSFER_URI = "/nifi-api/data-transfer";
 
-    private static final String ACCESS_URI = "/nifi-api/access";
+    private static final String CONFIGURATION_URI = "/nifi-api/authentication/configuration";
 
     @Mock
     private FilterConfig filterConfig;
@@ -62,7 +62,7 @@ public class DataTransferExcludedDoSFilterTest {
 
     @Test
     public void testDoFilterChain() throws ServletException, IOException {
-        when(request.getRequestURI()).thenReturn(ACCESS_URI);
+        when(request.getRequestURI()).thenReturn(CONFIGURATION_URI);
 
         filter.doFilterChain(filterChain, request, response);
 

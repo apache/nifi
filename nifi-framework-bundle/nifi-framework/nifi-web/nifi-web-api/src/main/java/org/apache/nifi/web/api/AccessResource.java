@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api;
 
 import java.net.URI;
-import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Optional;
@@ -49,41 +48,18 @@ import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authentication.exception.AuthenticationNotSupportedException;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
-import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
-import org.apache.nifi.web.api.dto.AccessStatusDTO;
-import org.apache.nifi.web.api.dto.AccessTokenExpirationDTO;
-import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
-import org.apache.nifi.web.api.entity.AccessStatusEntity;
-import org.apache.nifi.web.api.entity.AccessTokenExpirationEntity;
-import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.LogoutException;
-import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.jwt.revocation.JwtLogoutListener;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
-import org.apache.nifi.web.security.x509.X509AuthenticationRequestToken;
-import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AuthenticationServiceException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
-import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 /**
  * RESTful endpoint for managing access.
@@ -95,130 +71,11 @@ public class AccessResource extends ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(AccessResource.class);
     protected static final String AUTHENTICATION_NOT_ENABLED_MSG = "User authentication/authorization is only supported when running over HTTPS.";
 
-    private X509CertificateExtractor certificateExtractor;
-    private X509AuthenticationProvider x509AuthenticationProvider;
-    private X509PrincipalExtractor principalExtractor;
-
     private LoginIdentityProvider loginIdentityProvider;
-    private JwtAuthenticationProvider jwtAuthenticationProvider;
     private JwtLogoutListener jwtLogoutListener;
-    private JwtDecoder jwtDecoder;
     private BearerTokenProvider bearerTokenProvider;
     private BearerTokenResolver bearerTokenResolver;
     private LogoutRequestManager logoutRequestManager;
-
-    /**
-     * Retrieves the access configuration for this NiFi.
-     *
-     * @param httpServletRequest the servlet request
-     * @return A accessConfigurationEntity
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("config")
-    @Operation(
-            summary = "Retrieves the access configuration for this NiFi",
-            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AccessConfigurationEntity.class)))
-    )
-    public Response getLoginConfig(@Context HttpServletRequest httpServletRequest) {
-
-        final AccessConfigurationDTO accessConfiguration = new AccessConfigurationDTO();
-
-        // specify whether login should be supported and only support for secure requests
-        accessConfiguration.setSupportsLogin(loginIdentityProvider != null && httpServletRequest.isSecure());
-
-        // create the response entity
-        final AccessConfigurationEntity entity = new AccessConfigurationEntity();
-        entity.setConfig(accessConfiguration);
-
-        // generate the response
-        return generateOkResponse(entity).build();
-    }
-
-    /**
-     * Gets the status the client's access.
-     *
-     * @param httpServletRequest the servlet request
-     * @return A accessStatusEntity
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("")
-    @Operation(
-            summary = "Gets the status the client's access",
-            description = NON_GUARANTEED_ENDPOINT,
-            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AccessStatusEntity.class)))
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(responseCode = "401", description = "Unable to determine access status because the client could not be authenticated."),
-                    @ApiResponse(responseCode = "403", description = "Unable to determine access status because the client is not authorized to make this request."),
-                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
-                    @ApiResponse(responseCode = "500", description = "Unable to determine access status because an unexpected error occurred.")
-            }
-    )
-    public Response getAccessStatus(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
-        if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
-        }
-
-        final AccessStatusDTO accessStatus = new AccessStatusDTO();
-
-        try {
-            final X509Certificate[] certificates = certificateExtractor.extractClientCertificate(httpServletRequest);
-
-            if (certificates == null) {
-                final String bearerToken = bearerTokenResolver.resolve(httpServletRequest);
-                if (bearerToken == null) {
-                    accessStatus.setStatus(AccessStatusDTO.Status.UNKNOWN.name());
-                    accessStatus.setMessage("Access Unknown: Certificate and Token not found.");
-                } else {
-                    try {
-                        final BearerTokenAuthenticationToken authenticationToken = new BearerTokenAuthenticationToken(bearerToken);
-                        final Authentication authentication = jwtAuthenticationProvider.authenticate(authenticationToken);
-                        final NiFiUserDetails userDetails = (NiFiUserDetails) authentication.getPrincipal();
-                        final String identity = userDetails.getUsername();
-
-                        accessStatus.setIdentity(identity);
-                        accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                        accessStatus.setMessage("Access Granted: Token authenticated.");
-                    } catch (final AuthenticationException iae) {
-                        applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
-                        throw iae;
-                    }
-                }
-            } else {
-                try {
-                    final String proxiedEntitiesChain = httpServletRequest.getHeader(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN);
-                    final String proxiedEntityGroups = httpServletRequest.getHeader(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS);
-
-                    final X509AuthenticationRequestToken x509Request = new X509AuthenticationRequestToken(
-                            proxiedEntitiesChain, proxiedEntityGroups, principalExtractor, certificates, httpServletRequest.getRemoteAddr());
-
-                    final Authentication authenticationResponse = x509AuthenticationProvider.authenticate(x509Request);
-                    final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
-
-                    accessStatus.setIdentity(nifiUser.getIdentity());
-                    accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                    accessStatus.setMessage("Access Granted: Certificate authenticated.");
-                } catch (final IllegalArgumentException iae) {
-                    throw new InvalidAuthenticationException(iae.getMessage(), iae);
-                }
-            }
-        } catch (final UntrustedProxyException upe) {
-            throw new AccessDeniedException(upe.getMessage(), upe);
-        } catch (final AuthenticationServiceException ase) {
-            throw new AdministrationException(ase.getMessage(), ase);
-        }
-
-        final AccessStatusEntity entity = new AccessStatusEntity();
-        entity.setAccessStatus(accessStatus);
-
-        return generateOkResponse(entity).build();
-    }
 
     /**
      * Creates a token for accessing the REST API via username/password stored as a cookie in the browser.
@@ -290,36 +147,6 @@ public class AccessResource extends ApplicationResource {
         final URI uri = URI.create(generateResourceUri("access", "token"));
         setBearerToken(httpServletResponse, bearerToken);
         return generateCreatedResponse(uri, bearerToken).build();
-    }
-
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("/token/expiration")
-    @Operation(
-            summary = "Get expiration for current Access Token",
-            description = NON_GUARANTEED_ENDPOINT,
-            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AccessTokenExpirationEntity.class)))
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(responseCode = "200", description = "Access Token Expiration found"),
-                    @ApiResponse(responseCode = "401", description = "Access Token not authorized"),
-                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
-            }
-    )
-    public Response getAccessTokenExpiration() {
-        final String bearerToken = bearerTokenResolver.resolve(httpServletRequest);
-        if (bearerToken == null) {
-            throw new IllegalStateException("Access Token not found");
-        } else {
-            final Jwt jwt = jwtDecoder.decode(bearerToken);
-            final Instant expiration = jwt.getExpiresAt();
-            final AccessTokenExpirationDTO accessTokenExpiration = new AccessTokenExpirationDTO();
-            accessTokenExpiration.setExpiration(expiration);
-            final AccessTokenExpirationEntity accessTokenExpirationEntity = new AccessTokenExpirationEntity();
-            accessTokenExpirationEntity.setAccessTokenExpiration(accessTokenExpiration);
-            return Response.ok(accessTokenExpirationEntity).build();
-        }
     }
 
     @DELETE
@@ -446,28 +273,8 @@ public class AccessResource extends ApplicationResource {
         this.bearerTokenResolver = bearerTokenResolver;
     }
 
-    public void setJwtAuthenticationProvider(JwtAuthenticationProvider jwtAuthenticationProvider) {
-        this.jwtAuthenticationProvider = jwtAuthenticationProvider;
-    }
-
-    public void setJwtDecoder(final JwtDecoder jwtDecoder) {
-        this.jwtDecoder = jwtDecoder;
-    }
-
     public void setJwtLogoutListener(final JwtLogoutListener jwtLogoutListener) {
         this.jwtLogoutListener = jwtLogoutListener;
-    }
-
-    public void setX509AuthenticationProvider(X509AuthenticationProvider x509AuthenticationProvider) {
-        this.x509AuthenticationProvider = x509AuthenticationProvider;
-    }
-
-    public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
-        this.principalExtractor = principalExtractor;
-    }
-
-    public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
-        this.certificateExtractor = certificateExtractor;
     }
 
     public void setLogoutRequestManager(LogoutRequestManager logoutRequestManager) {
