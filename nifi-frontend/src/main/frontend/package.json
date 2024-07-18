@@ -94,7 +94,6 @@
     "browser": {
         "fs": false,
         "path": false,
-        "assert": false,
         "file": false,
         "system": false
     }
