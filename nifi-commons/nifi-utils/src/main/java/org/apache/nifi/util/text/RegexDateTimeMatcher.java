@@ -384,7 +384,7 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
         }
 
         private void addShortMonth() {
-            patterns.add("(?:0[1-9]|1[0-2])");
+            patterns.add("(?:0?[1-9]|1[0-2])");
             range = range.plus(1, 2);
         }
 
