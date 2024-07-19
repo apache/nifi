@@ -42,6 +42,8 @@
                 <configuration>
                     <!-- Enable parameters for AspectJ Around annotation argument name resolution -->
                     <parameters>true</parameters>
+                    <source>8</source>
+                    <target>8</target>
                 </configuration>
             </plugin>
             <plugin>
