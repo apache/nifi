@@ -16,19 +16,36 @@
  */
 
 import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
-import { joltTransformJsonUiReducer } from './jolt-transform-json-ui/jolt-transform-json-ui.reducer';
-import { JoltTransformJsonUiState } from './jolt-transform-json-ui';
+import { JoltTransformJsonPropertyState } from './jolt-transform-json-property';
+import { joltTransformJsonPropertyReducer } from './jolt-transform-json-property/jolt-transform-json-property.reducer';
+import { JoltTransformJsonTransformState } from './jolt-transform-json-transform';
+import { joltTransformJsonTransformReducer } from './jolt-transform-json-transform/jolt-transform-json-transform.reducer';
+import { JoltTransformJsonProcessorDetailsState } from './jolt-transform-json-processor-details';
+import { joltTransformJsonProcessorDetailsReducer } from './jolt-transform-json-processor-details/jolt-transform-json-processor-details.reducer';
+import { joltTransformJsonValidateReducer } from './jolt-transform-json-validate/jolt-transform-json-validate.reducer';
+import { JoltTransformJsonValidateState } from './jolt-transform-json-validate';
 
 export const joltTransformJsonUiFeatureKey = 'joltTransformJsonUi';
+export const joltTransformJsonProcessorDetailsFeatureKey = 'joltTransformJsonProcessorDetails';
+export const joltTransformJsonPropertyFeatureKey = 'joltTransformJsonProperty';
+export const joltTransformJsonTransformFeatureKey = 'joltTransformJsonTransform';
+export const joltTransformJsonValidateFeatureKey = 'joltTransformJsonValidate';
 
-export interface JoltTransformState {
-    [joltTransformJsonUiFeatureKey]: JoltTransformJsonUiState;
+export interface JoltTransformJsonUiState {
+    [joltTransformJsonProcessorDetailsFeatureKey]: JoltTransformJsonProcessorDetailsState;
+    [joltTransformJsonPropertyFeatureKey]: JoltTransformJsonPropertyState;
+    [joltTransformJsonTransformFeatureKey]: JoltTransformJsonTransformState;
+    [joltTransformJsonValidateFeatureKey]: JoltTransformJsonValidateState;
 }
 
-export function reducers(state: JoltTransformState | undefined, action: Action) {
+export function reducers(state: any, action: Action) {
     return combineReducers({
-        [joltTransformJsonUiFeatureKey]: joltTransformJsonUiReducer
+        [joltTransformJsonProcessorDetailsFeatureKey]: joltTransformJsonProcessorDetailsReducer,
+        [joltTransformJsonPropertyFeatureKey]: joltTransformJsonPropertyReducer,
+        [joltTransformJsonTransformFeatureKey]: joltTransformJsonTransformReducer,
+        [joltTransformJsonValidateFeatureKey]: joltTransformJsonValidateReducer
     })(state, action);
 }
 
-export const selectJoltTransformState = createFeatureSelector<JoltTransformState>(joltTransformJsonUiFeatureKey);
+export const selectJoltTransformJsonUiState =
+    createFeatureSelector<JoltTransformJsonUiState>(joltTransformJsonUiFeatureKey);

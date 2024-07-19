@@ -24,25 +24,38 @@ import {
     selectClientIdFromRoute,
     selectDisconnectedNodeAcknowledgedFromRoute,
     selectEditableFromRoute,
-    selectJoltTransformJsonUiState,
+    selectJoltTransformJsonProcessorDetailsState,
     selectProcessorDetails,
     selectProcessorIdFromRoute,
     selectRevisionFromRoute
-} from '../state/jolt-transform-json-ui/jolt-transform-json-ui.selectors';
+} from '../state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.selectors';
 import { Observable, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     loadProcessorDetails,
-    resetJoltTransformJsonUiState,
-    resetValidateJoltSpecState,
-    saveProperties,
-    transformJoltSpec,
-    validateJoltSpec
-} from '../state/jolt-transform-json-ui/jolt-transform-json-ui.actions';
-import { SavePropertiesRequest, ValidateJoltSpecRequest } from '../state/jolt-transform-json-ui';
+    resetJoltTransformJsonProcessorDetailsState
+} from '../state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.actions';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { Editor, EditorChange, EditorFromTextArea } from 'codemirror';
 import { CodemirrorComponent } from '@ctrl/ngx-codemirror/codemirror.component';
+import {
+    resetJoltTransformJsonTransformState,
+    transformJoltSpec
+} from '../state/jolt-transform-json-transform/jolt-transform-json-transform.actions';
+import {
+    resetJoltTransformJsonValidateState,
+    resetValidateJoltSpecState,
+    validateJoltSpec
+} from '../state/jolt-transform-json-validate/jolt-transform-json-validate.actions';
+import {
+    resetJoltTransformJsonPropertyState,
+    saveProperties
+} from '../state/jolt-transform-json-property/jolt-transform-json-property.actions';
+import { SavePropertiesRequest } from '../state/jolt-transform-json-property';
+import { ValidateJoltSpecRequest } from '../state/jolt-transform-json-validate';
+import { selectJoltTransformJsonPropertyState } from '../state/jolt-transform-json-property/jolt-transform-json-property.selectors';
+import { selectJoltTransformJsonValidateState } from '../state/jolt-transform-json-validate/jolt-transform-json-validate.selectors';
+import { selectJoltTransformJsonTransformState } from '../state/jolt-transform-json-transform/jolt-transform-json-transform.selectors';
 
 const JS_BEAUTIFY_OPTIONS = {
     indent_size: 2,
@@ -64,7 +77,12 @@ export class JoltTransformJsonUi implements OnDestroy {
 
     editJoltTransformJSONProcessorForm: FormGroup;
     step = 0;
-    joltState = this.store.selectSignal(selectJoltTransformJsonUiState);
+    joltState = {
+        processorDetails: this.store.selectSignal(selectJoltTransformJsonProcessorDetailsState),
+        properties: this.store.selectSignal(selectJoltTransformJsonPropertyState),
+        validate: this.store.selectSignal(selectJoltTransformJsonValidateState),
+        transform: this.store.selectSignal(selectJoltTransformJsonTransformState)
+    };
     processorDetails$ = this.store.select(selectProcessorDetails);
     editable: boolean = false;
     createNew: (existingEntries: string[]) => Observable<MapTableEntry> =
@@ -136,7 +154,10 @@ export class JoltTransformJsonUi implements OnDestroy {
     }
 
     ngOnDestroy(): void {
-        this.store.dispatch(resetJoltTransformJsonUiState());
+        this.store.dispatch(resetJoltTransformJsonTransformState());
+        this.store.dispatch(resetJoltTransformJsonValidateState());
+        this.store.dispatch(resetJoltTransformJsonProcessorDetailsState());
+        this.store.dispatch(resetJoltTransformJsonPropertyState());
     }
 
     getJoltSpecOptions(): any {

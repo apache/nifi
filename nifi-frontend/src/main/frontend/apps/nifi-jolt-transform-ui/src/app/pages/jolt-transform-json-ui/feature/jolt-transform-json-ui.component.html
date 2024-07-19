@@ -97,7 +97,7 @@
                                         (codeMirrorLoaded)="initSpecEditor($event)"></ngx-codemirror>
                                 </div>
                                 <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                    @if (joltState().validatingJoltSpec) {
+                                    @if (joltState.validate().validatingJoltSpec) {
                                         <i
                                             class="fa fa-refresh fa-spin mr-2"
                                             nifiTooltip
@@ -105,7 +105,7 @@
                                             tooltipInputData="Validating..."></i
                                         ><mat-hint>Validating...</mat-hint>
                                     } @else {
-                                        @if (joltState().validationResponse?.valid) {
+                                        @if (joltState.validate().validationResponse?.valid) {
                                             <i
                                                 class="fa fa-check success-color mr-2"
                                                 nifiTooltip
@@ -113,25 +113,31 @@
                                                 tooltipInputData="The specification is valid."></i
                                             ><mat-hint>The specification is valid.</mat-hint>
                                         } @else if (
-                                            joltState().validationResponse?.valid === false &&
-                                            joltState().validationResponse?.message !== null
+                                            joltState.validate().validationResponse?.valid === false &&
+                                            joltState.validate().validationResponse?.message !== null
                                         ) {
                                             <i
                                                 class="fa fa-warning caution-color mr-2"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
-                                                [tooltipInputData]="joltState().validationResponse?.message"></i
-                                            ><mat-hint>{{ joltState().validationResponse?.message }}</mat-hint>
-                                        } @else if (joltState().validationFailureResponse) {
+                                                [tooltipInputData]="
+                                                    joltState.validate().validationResponse?.message
+                                                "></i
+                                            ><mat-hint>{{ joltState.validate().validationResponse?.message }}</mat-hint>
+                                        } @else if (joltState.validate().validationFailureResponse) {
                                             <i
                                                 class="fa fa-warning caution-color mr-2"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
-                                                [tooltipInputData]="joltState().validationFailureResponse?.message"></i
-                                            ><mat-hint>{{ joltState().validationFailureResponse?.message }}</mat-hint>
+                                                [tooltipInputData]="
+                                                    joltState.validate().validationFailureResponse?.message
+                                                "></i
+                                            ><mat-hint>{{
+                                                joltState.validate().validationFailureResponse?.message
+                                            }}</mat-hint>
                                         }
                                     }
-                                    @if (joltState().savingProperties) {
+                                    @if (joltState.properties().savingProperties) {
                                         <i
                                             class="fa fa-refresh fa-spin text-shadow mr-2"
                                             nifiTooltip
@@ -139,31 +145,31 @@
                                             tooltipInputData="Saving Properties..."></i
                                         ><mat-hint>Saving...</mat-hint>
                                     } @else {
-                                        @if (joltState().savePropertiesResponse) {
+                                        @if (joltState.properties().savePropertiesResponse) {
                                             <i
                                                 class="fa fa-check success-color text-shadow mr-2"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 tooltipInputData="Properties successfully saved!"></i
                                             ><mat-hint>Properties successfully saved!</mat-hint>
-                                        } @else if (joltState().savePropertiesFailureResponse) {
+                                        } @else if (joltState.properties().savePropertiesFailureResponse) {
                                             <i
                                                 class="fa fa-warning caution-color text-shadow mr-2"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 [tooltipInputData]="
-                                                    joltState().savePropertiesFailureResponse?.message
+                                                    joltState.properties().savePropertiesFailureResponse?.message
                                                 "></i
                                             ><mat-hint>{{
-                                                joltState().savePropertiesFailureResponse?.message
+                                                joltState.properties().savePropertiesFailureResponse?.message
                                             }}</mat-hint>
                                         }
                                     }
                                     @if (
-                                        joltState().savePropertiesResponse === null &&
-                                        joltState().savePropertiesFailureResponse === null &&
-                                        joltState().validationResponse === null &&
-                                        joltState().validationFailureResponse === null
+                                        joltState.properties().savePropertiesResponse === null &&
+                                        joltState.properties().savePropertiesFailureResponse === null &&
+                                        joltState.validate().validationResponse === null &&
+                                        joltState.validate().validationFailureResponse === null
                                     ) {
                                         <i
                                             class="fa fa-info-circle primary-color mr-2"
@@ -287,7 +293,7 @@
                                 </mat-accordion>
                                 <div class="flex flex-1 mt-2 justify-start">
                                     <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        @if (joltState().transformingJoltSpec) {
+                                        @if (joltState.transform().transformingJoltSpec) {
                                             <i
                                                 class="fa fa-refresh fa-spin mr-2"
                                                 nifiTooltip
@@ -295,23 +301,23 @@
                                                 tooltipInputData="Transforming..."></i
                                             ><mat-hint>Transforming...</mat-hint>
                                         } @else {
-                                            @if (joltState().transformationResponse) {
+                                            @if (joltState.transform().transformationResponse) {
                                                 <i
                                                     class="fa fa-check success-color mr-2"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     tooltipInputData="The transform was successful."></i
                                                 ><mat-hint>The transform was successful.</mat-hint>
-                                            } @else if (joltState().transformationFailureResponse) {
+                                            } @else if (joltState.transform().transformationFailureResponse) {
                                                 <i
                                                     class="fa fa-warning caution-color mr-2"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     [tooltipInputData]="
-                                                        joltState().transformationFailureResponse?.message
+                                                        joltState.transform().transformationFailureResponse?.message
                                                     "></i
                                                 ><mat-hint>{{
-                                                    joltState().transformationFailureResponse?.message
+                                                    joltState.transform().transformationFailureResponse?.message
                                                 }}</mat-hint>
                                             } @else {
                                                 <i
@@ -361,8 +367,8 @@
                                 <div class="output-editor mt-4 mb-4 flex-1">
                                     <ngx-codemirror
                                         [ngModel]="
-                                            joltState().transformationResponse
-                                                ? (joltState().transformationResponse | json)
+                                            joltState.transform().transformationResponse
+                                                ? (joltState.transform().transformationResponse | json)
                                                 : ''
                                         "
                                         [ngModelOptions]="{ standalone: true }"
