@@ -28,8 +28,8 @@ import org.apache.nifi.provenance.store.EventStore;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * An Event Index is responsible for indexing Provenance Events in such a way that the index can be quickly
@@ -83,13 +83,13 @@ public interface EventIndex extends Closeable {
     QuerySubmission submitQuery(Query query, EventAuthorizer authorizer, String userId);
 
     /**
-     * Retrieves the most recent Provenance Event that is cached for the given component that is also accessible by the given user
+     * Retrieves the list of Provenance Events that are cached for the most recent invocation of the given component
      * @param componentId the ID of the component
      *
      * @return an Optional containing the event, or an empty optional if no events are available or none of the available events are accessible by the given user
      * @throws IOException if unable to read from the repository
      */
-    Optional<ProvenanceEventRecord> getLatestCachedEvent(String componentId) throws IOException;
+    List<ProvenanceEventRecord> getLatestCachedEvents(String componentId) throws IOException;
 
     /**
      * Asynchronously computes the lineage for the FlowFile that is identified by the Provenance Event with the given ID.

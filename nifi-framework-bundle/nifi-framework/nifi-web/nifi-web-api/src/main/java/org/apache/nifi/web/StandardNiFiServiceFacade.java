@@ -280,6 +280,7 @@ import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.dto.provenance.LatestProvenanceEventsDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
@@ -325,6 +326,7 @@ import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
+import org.apache.nifi.web.api.entity.LatestProvenanceEventsEntity;
 import org.apache.nifi.web.api.entity.NarDetailsEntity;
 import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
@@ -3654,6 +3656,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ProvenanceEventDTO getProvenanceEvent(final Long id) {
         return controllerFacade.getProvenanceEvent(id);
+    }
+
+    @Override
+    public LatestProvenanceEventsEntity getLatestProvenanceEvents(final String componentId) {
+        final LatestProvenanceEventsDTO dto = controllerFacade.getLatestProvenanceEvents(componentId);
+
+        final LatestProvenanceEventsEntity entity = new LatestProvenanceEventsEntity();
+        entity.setLatestProvenanceEvents(dto);
+        return entity;
     }
 
     @Override

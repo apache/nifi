@@ -57,7 +57,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 
@@ -258,8 +257,8 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public Optional<ProvenanceEventRecord> getLatestCachedEvent(final String componentId) throws IOException {
-        return eventIndex.getLatestCachedEvent(componentId);
+    public List<ProvenanceEventRecord> getLatestCachedEvents(final String componentId) throws IOException {
+        return eventIndex.getLatestCachedEvents(componentId);
     }
 
     @Override

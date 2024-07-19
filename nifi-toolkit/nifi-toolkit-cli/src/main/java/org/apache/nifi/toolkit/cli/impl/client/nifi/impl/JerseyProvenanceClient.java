@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
+import org.apache.nifi.web.api.entity.LatestProvenanceEventsEntity;
 import org.apache.nifi.web.api.entity.LineageEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
 import org.apache.nifi.web.api.entity.ReplayLastEventRequestEntity;
 import org.apache.nifi.web.api.entity.ReplayLastEventResponseEntity;
 
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -136,6 +137,18 @@ public class JerseyProvenanceClient extends AbstractJerseyClient implements Prov
             return getRequestBuilder(target).post(
                 Entity.entity(requestEntity, MediaType.APPLICATION_JSON_TYPE),
                 ReplayLastEventResponseEntity.class);
+        });
+    }
+
+    @Override
+    public LatestProvenanceEventsEntity getLatestEvents(final String processorId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processorId)) {
+            throw new IllegalArgumentException("Processor ID must be specified");
+        }
+
+        return executeAction("Error getting latest events for Processor " + processorId, () -> {
+            final WebTarget target = provenanceEventsTarget.path("/latest/").path(processorId);
+            return getRequestBuilder(target).get(LatestProvenanceEventsEntity.class);
         });
     }
 }

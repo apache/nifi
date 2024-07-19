@@ -17,21 +17,24 @@
 
 package org.apache.nifi.provenance.index.lucene;
 
-import java.util.List;
-import java.util.Optional;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.util.RingBuffer;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class LatestEventsQuery implements CachedQuery {
 
     final RingBuffer<Long> latestRecords = new RingBuffer<>(1000);
 
     @Override
-    public void update(final ProvenanceEventRecord event, final StorageSummary storageSummary) {
-        latestRecords.add(storageSummary.getEventId());
+    public void update(final Map<ProvenanceEventRecord, StorageSummary> events) {
+        for (final StorageSummary storageSummary : events.values()) {
+            latestRecords.add(storageSummary.getEventId());
+        }
     }
 
     @Override

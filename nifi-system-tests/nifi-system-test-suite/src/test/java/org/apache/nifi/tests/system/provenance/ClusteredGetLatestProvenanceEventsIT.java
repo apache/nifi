@@ -15,20 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.provenance.index.lucene;
+package org.apache.nifi.tests.system.provenance;
 
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.search.Query;
-import org.apache.nifi.provenance.serialization.StorageSummary;
+import org.apache.nifi.tests.system.NiFiInstanceFactory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+public class ClusteredGetLatestProvenanceEventsIT extends GetLatestProvenanceEventsIT {
 
-public interface CachedQuery {
-
-    void update(Map<ProvenanceEventRecord, StorageSummary> events);
-
-    Optional<List<Long>> evaluate(Query query);
-
+    @Override
+    public NiFiInstanceFactory getInstanceFactory() {
+        return createTwoNodeInstanceFactory();
+    }
 }

@@ -24,30 +24,46 @@ import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.util.RingBuffer;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class LatestEventsPerProcessorQuery implements CachedQuery {
     private static final String COMPONENT_ID_FIELD_NAME = SearchableFields.ComponentID.getSearchableFieldName();
+    // Map of component ID to a RingBuffer holding up to the last 1000 events
     private final ConcurrentMap<String, RingBuffer<Long>> latestRecords = new ConcurrentHashMap<>();
 
+    // Map of component ID to a List of the Event IDs for all events in the latest batch of events that have been indexed for the given component ID
+    private final ConcurrentMap<String, List<Long>> latestEventSet = new ConcurrentHashMap<>();
+
     @Override
-    public void update(final ProvenanceEventRecord event, final StorageSummary storageSummary) {
+    public void update(final Map<ProvenanceEventRecord, StorageSummary> events) {
+        final Map<String, List<Long>> eventsByComponent = new HashMap<>();
+
+        for (final Map.Entry<ProvenanceEventRecord, StorageSummary> entry : events.entrySet()) {
+            update(entry.getKey(), entry.getValue());
+
+            final String componentId = entry.getKey().getComponentId();
+            final List<Long> eventSet = eventsByComponent.computeIfAbsent(componentId, id -> new ArrayList<>());
+            eventSet.add(entry.getValue().getEventId());
+        }
+
+        latestEventSet.putAll(eventsByComponent);
+    }
+
+    private void update(final ProvenanceEventRecord event, final StorageSummary storageSummary) {
         final String componentId = event.getComponentId();
         final RingBuffer<Long> ringBuffer = latestRecords.computeIfAbsent(componentId, id -> new RingBuffer<>(1000));
         ringBuffer.add(storageSummary.getEventId());
     }
 
     public List<Long> getLatestEventIds(final String componentId) {
-        final RingBuffer<Long> ringBuffer = latestRecords.get(componentId);
-        if (ringBuffer == null) {
-            return Collections.emptyList();
-        }
-
-        return ringBuffer.asList();
+        final List<Long> eventIds = latestEventSet.get(componentId);
+        return eventIds == null ? List.of() : eventIds;
     }
 
     @Override
