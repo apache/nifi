@@ -34,6 +34,8 @@ public class TestRegexDateTimeMatcher {
         exampleToPattern.put("2018/12/12", "yyyy/MM/dd");
         exampleToPattern.put("12/12/2018", "MM/dd/yyyy");
         exampleToPattern.put("12/12/18", "MM/dd/yy");
+        exampleToPattern.put("1/1/18", "M/d/yy");
+        exampleToPattern.put("1/10/18", "M/d/yy");
         exampleToPattern.put("1:40:55", "HH:mm:ss");
         exampleToPattern.put("01:0:5", "HH:mm:ss");
         exampleToPattern.put("12/12/2018 13:04:08 GMT-05:00", "MM/dd/yyyy HH:mm:ss z");
