@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.dto.status;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.controller.status.ProcessingPerformanceStatus;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
@@ -82,7 +81,8 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     private Integer terminatedThreadCount = 0;
     private Long processingNanos = 0L;
 
-    private ProcessingPerformanceStatus processingPerformanceStatus;
+    @Schema(description = "Represents the processing performance for all the processors in the given process group.")
+    private ProcessingPerformanceStatusDTO processingPerformanceStatusDTO;
 
     /**
      * The id for the process group.
@@ -523,12 +523,12 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.processingNanos = processingNanos;
     }
 
-    public ProcessingPerformanceStatus getProcessingPerformanceStatus() {
-        return processingPerformanceStatus;
+    public ProcessingPerformanceStatusDTO getProcessingPerformanceStatusDTO() {
+        return processingPerformanceStatusDTO;
     }
 
-    public void setProcessingPerformanceStatus(ProcessingPerformanceStatus processingPerformanceStatus) {
-        this.processingPerformanceStatus = processingPerformanceStatus;
+    public void setProcessingPerformanceStatusDTO(ProcessingPerformanceStatusDTO processingPerformanceStatusDTO) {
+        this.processingPerformanceStatusDTO = processingPerformanceStatusDTO;
     }
 
     @Override
@@ -609,7 +609,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
             other.setProcessGroupStatusSnapshots(childGroups);
         }
 
-        other.setProcessingPerformanceStatus(getProcessingPerformanceStatus());
+        other.setProcessingPerformanceStatusDTO(getProcessingPerformanceStatusDTO().clone());
 
         return other;
     }

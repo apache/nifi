@@ -14,10 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.status;
+package org.apache.nifi.web.api.dto.status;
 
-public class ProcessingPerformanceStatus implements Cloneable {
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlType;
 
+/**
+ * DTO for serializing the performance status of a processor.
+ */
+@XmlType(name = "processingPerformanceStatus")
+public class ProcessingPerformanceStatusDTO implements Cloneable {
     private String identifier;
     private long cpuDuration;
     private long contentReadDuration;
@@ -25,6 +31,7 @@ public class ProcessingPerformanceStatus implements Cloneable {
     private long sessionCommitDuration;
     private long garbageCollectionDuration;
 
+    @Schema(description = "The unique ID of the process group that the Processor belongs to")
     public String getIdentifier() {
         return identifier;
     }
@@ -33,6 +40,7 @@ public class ProcessingPerformanceStatus implements Cloneable {
         this.identifier = identifier;
     }
 
+    @Schema(description = "The number of nanoseconds has spent on CPU usage in the last 5 minutes.")
     public long getCpuDuration() {
         return cpuDuration;
     }
@@ -41,6 +49,7 @@ public class ProcessingPerformanceStatus implements Cloneable {
         this.cpuDuration = cpuDuration;
     }
 
+    @Schema(description = "The number of nanoseconds has spent to read content in the last 5 minutes.")
     public long getContentReadDuration() {
         return contentReadDuration;
     }
@@ -49,6 +58,7 @@ public class ProcessingPerformanceStatus implements Cloneable {
         this.contentReadDuration = contentReadDuration;
     }
 
+    @Schema(description = "The number of nanoseconds has spent to write content in the last 5 minutes.")
     public long getContentWriteDuration() {
         return contentWriteDuration;
     }
@@ -57,6 +67,7 @@ public class ProcessingPerformanceStatus implements Cloneable {
         this.contentWriteDuration = contentWriteDuration;
     }
 
+    @Schema(description = "The number of nanoseconds has spent running to commit sessions the last 5 minutes.")
     public long getSessionCommitDuration() {
         return sessionCommitDuration;
     }
@@ -65,6 +76,7 @@ public class ProcessingPerformanceStatus implements Cloneable {
         this.sessionCommitDuration = sessionCommitDuration;
     }
 
+    @Schema(description = "The number of nanoseconds has spent running garbage collection in the last 5 minutes.")
     public long getGarbageCollectionDuration() {
         return garbageCollectionDuration;
     }
@@ -74,8 +86,8 @@ public class ProcessingPerformanceStatus implements Cloneable {
     }
 
     @Override
-    public ProcessingPerformanceStatus clone() {
-        final ProcessingPerformanceStatus clonedObj = new ProcessingPerformanceStatus();
+    public ProcessingPerformanceStatusDTO clone() {
+        final ProcessingPerformanceStatusDTO clonedObj = new ProcessingPerformanceStatusDTO();
 
         clonedObj.identifier = identifier;
         clonedObj.cpuDuration = cpuDuration;
@@ -84,24 +96,5 @@ public class ProcessingPerformanceStatus implements Cloneable {
         clonedObj.sessionCommitDuration = sessionCommitDuration;
         clonedObj.garbageCollectionDuration = garbageCollectionDuration;
         return clonedObj;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("ProcessorPerformanceStatus [Group ID= ");
-        builder.append(identifier);
-        builder.append(", cpuDuration= ");
-        builder.append(cpuDuration);
-        builder.append(", contentReadDuration= ");
-        builder.append(contentReadDuration);
-        builder.append(", contentWriteDuration= ");
-        builder.append(contentWriteDuration);
-        builder.append(", sessionCommitDuration= ");
-        builder.append(sessionCommitDuration);
-        builder.append(", garbageCollectionDuration= ");
-        builder.append(garbageCollectionDuration);
-        builder.append("]");
-        return builder.toString();
     }
 }

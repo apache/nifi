@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.cluster.manager;
 
-import org.apache.nifi.controller.status.ProcessingPerformanceStatus;
+import org.apache.nifi.web.api.dto.status.ProcessingPerformanceStatusDTO;
 
 public class ProcessingPerformanceStatusMerger {
-    public static void mergeStatus(final ProcessingPerformanceStatus target, final ProcessingPerformanceStatus toMerge) {
+    public static void mergeStatus(final ProcessingPerformanceStatusDTO target, final ProcessingPerformanceStatusDTO toMerge) {
         if (target == null || toMerge == null) {
             return;
         }
