@@ -62,7 +62,6 @@ export class JoltTransformJsonUi implements OnDestroy {
 
     protected readonly TextTip = TextTip;
 
-    specEditor!: EditorFromTextArea | undefined;
     editJoltTransformJSONProcessorForm: FormGroup;
     step = 0;
     joltState = this.store.selectSignal(selectJoltTransformJsonUiState);
@@ -322,24 +321,24 @@ export class JoltTransformJsonUi implements OnDestroy {
     }
 
     initSpecEditor(codeEditor: CodemirrorComponent): void {
-        this.specEditor = codeEditor.codeMirror;
+        if (codeEditor.codeMirror) {
+            codeEditor.codeMirror.on('change', (cm: Editor, changeObj: EditorChange) => {
+                const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
 
-        this.specEditor?.on('change', (cm: Editor, changeObj: EditorChange) => {
-            const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
+                if (!(transform == 'jolt-transform-sort' && changeObj.text.toString() == '')) {
+                    this.clearMessages();
+                }
+            });
 
-            if (!(transform == 'jolt-transform-sort' && changeObj.text.toString() == '')) {
-                this.clearMessages();
-            }
-        });
+            // listen to value changes
+            this.editJoltTransformJSONProcessorForm.controls['specification'].valueChanges.subscribe(() => {
+                this.toggleSpecEditorEnabled(codeEditor.codeMirror);
+            });
 
-        // listen to value changes
-        this.editJoltTransformJSONProcessorForm.controls['specification'].valueChanges.subscribe(() => {
-            this.toggleSpecEditorEnabled();
-        });
-
-        this.editJoltTransformJSONProcessorForm.controls['transform'].valueChanges.subscribe(() => {
-            this.toggleSpecEditorEnabled();
-        });
+            this.editJoltTransformJSONProcessorForm.controls['transform'].valueChanges.subscribe(() => {
+                this.toggleSpecEditorEnabled(codeEditor.codeMirror);
+            });
+        }
     }
 
     initInputEditor(codeEditor: any): void {
@@ -356,34 +355,36 @@ export class JoltTransformJsonUi implements OnDestroy {
         this.store.dispatch(resetValidateJoltSpecState());
     }
 
-    private toggleSpecEditorEnabled() {
-        const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
-        const display: HTMLElement | undefined = this.specEditor?.getWrapperElement();
+    private toggleSpecEditorEnabled(specEditor: EditorFromTextArea | undefined) {
+        if (specEditor) {
+            const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
+            const display: HTMLElement = specEditor.getWrapperElement();
 
-        if (transform == 'jolt-transform-sort') {
-            this.specEditor?.setOption('readOnly', 'nocursor');
-            this.renderer.addClass(display, 'disabled');
-            this.toggleDisplayEditorErrors(this.specEditor, true);
-        } else {
-            this.specEditor?.setOption('readOnly', false);
-            this.renderer.removeClass(display, 'disabled');
-            this.toggleDisplayEditorErrors(this.specEditor);
+            if (transform == 'jolt-transform-sort') {
+                specEditor.setOption('readOnly', 'nocursor');
+                this.renderer.addClass(display, 'disabled');
+                this.toggleDisplayEditorErrors(specEditor, true);
+            } else {
+                specEditor.setOption('readOnly', false);
+                this.renderer.removeClass(display, 'disabled');
+                this.toggleDisplayEditorErrors(specEditor);
+            }
+
+            this.clearMessages();
         }
-
-        this.clearMessages();
     }
 
-    private toggleDisplayEditorErrors(editor: EditorFromTextArea | undefined, hideErrors: boolean = false) {
-        if (editor) {
-            const display: HTMLElement | undefined = editor?.getWrapperElement();
-            const errors: Element[] = Array.from(display?.getElementsByClassName('CodeMirror-lint-marker-error'));
+    private toggleDisplayEditorErrors(specEditor: EditorFromTextArea | undefined, hideErrors: boolean = false) {
+        if (specEditor) {
+            const display: HTMLElement = specEditor.getWrapperElement();
+            const errors: Element[] = Array.from(display.getElementsByClassName('CodeMirror-lint-marker-error'));
 
             if (hideErrors) {
                 errors.forEach((error: Element) => {
                     this.renderer.addClass(error, 'hidden');
                 });
 
-                const markErrors: Element[] = Array.from(display?.getElementsByClassName('CodeMirror-lint-mark-error'));
+                const markErrors: Element[] = Array.from(display.getElementsByClassName('CodeMirror-lint-mark-error'));
                 markErrors.forEach((markError: Element) => {
                     this.renderer.addClass(markError, 'CodeMirror-lint-mark-error-hide');
                     this.renderer.removeClass(markError, 'CodeMirror-lint-mark-error');
@@ -394,7 +395,7 @@ export class JoltTransformJsonUi implements OnDestroy {
                 });
 
                 const markErrors: Element[] = Array.from(
-                    display?.getElementsByClassName('CodeMirror-lint-mark-error-hide')
+                    display.getElementsByClassName('CodeMirror-lint-mark-error-hide')
                 );
                 markErrors.forEach((markError: Element) => {
                     this.renderer.addClass(markError, 'CodeMirror-lint-mark-error');
