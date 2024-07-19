@@ -10,7 +10,8 @@
         "test:dev": "nx test --watch=true",
         "prettier": "prettier --config .prettierrc . --check",
         "prettier-format": "prettier --config .prettierrc . --write",
-        "ci": "npm ci --ignore-scripts"
+        "ci": "npm ci --ignore-scripts",
+        "preinstall": "npx force-resolutions"
     },
     "private": true,
     "dependencies": {
@@ -96,5 +97,8 @@
         "path": false,
         "file": false,
         "system": false
+    },
+    "resolutions": {
+        "underscore": "1.13.6"
     }
 }
