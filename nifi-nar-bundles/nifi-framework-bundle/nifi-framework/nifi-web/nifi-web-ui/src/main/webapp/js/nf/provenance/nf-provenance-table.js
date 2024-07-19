@@ -1236,7 +1236,11 @@
             goTo: function (item) {
                 // if being called by context menu
                 if (!Object.hasOwn(item, 'componentId') && Object.hasOwn(item, 'id')) {
-                    item = this.provenanceData.getItemById(item.id);
+                    if (nfCommon.isUndefinedOrNull(item.clusterNodeIdentifier)) {
+                        item = this.provenanceData.getItemById(item.id);
+                    } else {
+                        item = this.provenanceData.getItemById(item.clusterNodeIdentifier + item.id);
+                    }
                 }
                 // ensure the component is still present in the flow
                 if (nfCommon.isDefinedAndNotNull(item.groupId)) {
