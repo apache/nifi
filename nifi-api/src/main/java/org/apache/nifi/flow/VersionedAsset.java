@@ -22,7 +22,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class VersionedAsset {
     private String identifier;
     private String name;
-    private String filename;
 
     @Schema(description = "The identifier of the asset")
     public String getIdentifier() {
@@ -42,12 +41,4 @@ public class VersionedAsset {
         this.name = name;
     }
 
-    @Schema(description = "The filename of the asset")
-    public String getFilename() {
-        return filename;
-    }
-
-    public void setFilename(final String filename) {
-        this.filename = filename;
-    }
 }

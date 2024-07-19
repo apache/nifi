@@ -29,6 +29,7 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -36,12 +37,13 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
-import org.apache.nifi.asset.AssetRequestReplicator;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -50,12 +52,17 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.UploadRequest;
+import org.apache.nifi.cluster.coordination.http.replication.UploadRequestReplicator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.stream.io.MaxLengthInputStream;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.ResumeFlowException;
@@ -66,6 +73,8 @@ import org.apache.nifi.web.api.concurrent.RequestManager;
 import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
 import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
 import org.apache.nifi.web.api.concurrent.UpdateStep;
+import org.apache.nifi.web.api.dto.AssetDTO;
+import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextUpdateRequestDTO;
@@ -75,6 +84,7 @@ import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.AssetEntity;
+import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultsEntity;
 import org.apache.nifi.web.api.entity.Entity;
@@ -85,15 +95,16 @@ import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.util.ComponentLifecycle;
 import org.apache.nifi.web.util.ParameterUpdateManager;
-import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -118,6 +129,9 @@ import java.util.stream.Collectors;
 public class ParameterContextResource extends AbstractParameterResource {
     private static final Logger logger = LoggerFactory.getLogger(ParameterContextResource.class);
     private static final Pattern VALID_PARAMETER_NAME_PATTERN = Pattern.compile("[A-Za-z0-9 ._\\-]+");
+    private static final String FILENAME_HEADER = "Filename";
+    private static final String CONTENT_TYPE_HEADER = "Content-Type";
+    private static final String UPLOAD_CONTENT_TYPE = "application/octet-stream";
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -125,7 +139,7 @@ public class ParameterContextResource extends AbstractParameterResource {
     private ComponentLifecycle clusterComponentLifecycle;
     private ComponentLifecycle localComponentLifecycle;
     private AssetManager assetManager;
-    private AssetRequestReplicator assetRequestReplicator;
+    private UploadRequestReplicator uploadRequestReplicator;
 
     private ParameterUpdateManager parameterUpdateManager;
     private final RequestManager<List<ParameterContextEntity>, List<ParameterContextEntity>> updateRequestManager =
@@ -141,6 +155,15 @@ public class ParameterContextResource extends AbstractParameterResource {
     private void authorizeReadParameterContext(final String parameterContextId) {
         if (parameterContextId == null) {
             throw new IllegalArgumentException("Parameter Context ID must be specified");
+        }
+
+        // In order for a node to sync its assets with the cluster coordinator, it needs to be able to READ from any parameter context, and parameter contexts can have specific policies
+        // which would require users adding the node identities to all of these policies, so this identifies if the incoming request is made directly by a known node identity and allows
+        // it to bypass standard authorization, meaning a node is automatically granted READ to any parameter context
+        final NiFiUser currentUser = NiFiUserUtils.getNiFiUser();
+        if (isRequestFromClusterNode()) {
+            logger.debug("Authorizing READ on ParameterContext[{}] to cluster node [{}]", parameterContextId, currentUser.getIdentity());
+            return;
         }
 
         serviceFacade.authorizeAccess(lookup -> {
@@ -192,7 +215,6 @@ public class ParameterContextResource extends AbstractParameterResource {
         // generate the response
         return generateOkResponse(entity).build();
     }
-
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -334,9 +356,8 @@ public class ParameterContextResource extends AbstractParameterResource {
         );
     }
 
-
     @POST
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{contextId}/assets")
     @Operation(
@@ -363,13 +384,12 @@ public class ParameterContextResource extends AbstractParameterResource {
     )
     public Response createAsset(
             @PathParam("contextId") final String contextId,
-
-            @FormDataParam("assetName") final String assetName,
-            @FormDataParam("file") final InputStream assetContents) throws IOException {
+            @HeaderParam(FILENAME_HEADER) final String assetName,
+            @Parameter(description = "The contents of the asset.", required = true) final InputStream assetContents) throws IOException {
 
         // Validate input
-        if (assetName == null) {
-            throw new IllegalArgumentException("Asset name must be specified.");
+        if (StringUtils.isBlank(assetName)) {
+            throw new IllegalArgumentException(FILENAME_HEADER + " header is required");
         }
         if (assetContents == null) {
             throw new IllegalArgumentException("Asset contents must be specified.");
@@ -403,23 +423,137 @@ public class ParameterContextResource extends AbstractParameterResource {
             affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
         });
 
-        // If we need to replicate the request, we do so using the Asset Request Replicator, rather than the typical replicate() method.
-        // This is because Asset Request Replication works differently in that it needs to be able to replicate the InputStream multiple times,
-        // so it must create a file on disk to do so and then use multipart/form-data to replicate the request. It also bypasses the two-phase
+        // If we need to replicate the request, we do so using the Upload Request Replicator, rather than the typical replicate() method.
+        // This is because Upload Request Replication works differently in that it needs to be able to replicate the InputStream multiple times,
+        // so it must create a file on disk to do so and then use the file's content to replicate the request. It also bypasses the two-phase
         // commit process that is used for other requests because doing so would result in uploading the file twice to each node or providing a
         // different request for each of the two phases.
-        final Asset asset;
+
+        final long startTime = System.currentTimeMillis();
+        final InputStream maxLengthInputStream = new MaxLengthInputStream(assetContents, (long) DataUnit.GB.toB(1));
+
+        final AssetEntity assetEntity;
         if (isReplicateRequest()) {
-            asset = assetRequestReplicator.createAsset(assetName, assetContents, getAbsolutePath());
+            final UploadRequest<AssetEntity> uploadRequest = new UploadRequest.Builder<AssetEntity>()
+                    .user(NiFiUserUtils.getNiFiUser())
+                    .filename(assetName)
+                    .identifier(UUID.randomUUID().toString())
+                    .contents(maxLengthInputStream)
+                    .header(FILENAME_HEADER, assetName)
+                    .header(CONTENT_TYPE_HEADER, UPLOAD_CONTENT_TYPE)
+                    .exampleRequestUri(getAbsolutePath())
+                    .responseClass(AssetEntity.class)
+                    .successfulResponseStatus(HttpResponseStatus.OK.getCode())
+                    .build();
+            assetEntity = uploadRequestReplicator.upload(uploadRequest);
         } else {
-            // Delegate to the Asset Manager to create the asset
-            asset = assetManager.createAsset(contextId, assetName, assetContents);
+            final String sanitizedAssetName = FileUtils.sanitizeFilename(assetName);
+            final Asset asset = assetManager.createAsset(contextId, sanitizedAssetName, maxLengthInputStream);
+            assetEntity = dtoFactory.createAssetEntity(asset);
         }
 
-        final AssetEntity assetEntity = dtoFactory.createAssetEntity(asset);
+        final AssetDTO assetDTO = assetEntity.getAsset();
+        final long elapsedTime = System.currentTimeMillis() - startTime;
+        logger.info("Creation of asset [id={},name={}] in parameter context [{}] completed in {} ms", assetDTO.getId(), assetDTO.getName(), contextId, elapsedTime);
+
         return generateOkResponse(assetEntity).build();
     }
 
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{contextId}/assets")
+    @Operation(
+            summary = "Lists the assets that belong to the Parameter Context with the given ID",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AssetsEntity.class))),
+            description = "Lists the assets that belong to the Parameter Context with the given ID.",
+            security = {
+                    @SecurityRequirement(name = "Read - /parameter-contexts/{id}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response getAssets(
+            @Parameter(description = "The ID of the Parameter Context")
+            @PathParam("contextId") final String parameterContextId
+    ) {
+        // authorize access
+        authorizeReadParameterContext(parameterContextId);
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // Get the assets from the manager rather than from the context's values since there could be assets that were created, but never referenced
+        final List<Asset> paramContextAssets = assetManager.getAssets(parameterContextId);
+
+        final AssetsEntity assetsEntity = new AssetsEntity();
+        assetsEntity.setAssets(paramContextAssets.stream()
+                .map(dtoFactory::createAssetEntity)
+                .toList());
+
+        return generateOkResponse(assetsEntity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    @Path("{contextId}/assets/{assetId}")
+    @Operation(
+            summary = "Retrieves the content of the asset with the given id",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = byte[].class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /parameter-contexts/{id}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response getAssetContent(
+            @Parameter(description = "The ID of the Parameter Context")
+            @PathParam("contextId")
+            final String parameterContextId,
+            @Parameter(description = "The ID of the Asset")
+            @PathParam("assetId")
+            final String assetId
+    ) {
+        // authorize access
+        authorizeReadParameterContext(parameterContextId);
+
+        final Asset asset = assetManager.getAsset(assetId)
+                .orElseThrow(() -> new ResourceNotFoundException("Asset does not exist with the id %s".formatted(assetId)));
+
+        if (!asset.getParameterContextIdentifier().equals(parameterContextId)) {
+            throw new ResourceNotFoundException("Asset does not exist with id %s".formatted(assetId));
+        }
+
+        if (!asset.getFile().exists()) {
+            throw new IllegalStateException("Content does not exist for asset with id %s".formatted(assetId));
+        }
+
+        final StreamingOutput streamingOutput = (outputStream) -> {
+            try (final InputStream assetInputStream = new FileInputStream(asset.getFile())) {
+                assetInputStream.transferTo(outputStream);
+            }
+        };
+
+        return generateOkResponse(streamingOutput)
+                .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", asset.getName()))
+                .build();
+    }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -584,21 +718,29 @@ public class ParameterContextResource extends AbstractParameterResource {
     private void validateAssetReferences(final ParameterContextDTO parameterContextDto) {
         if (parameterContextDto.getParameters() != null) {
             for (final ParameterEntity entity : parameterContextDto.getParameters()) {
-                final List<String> assetIds = entity.getParameter().getReferencedAssets();
-                if (assetIds == null) {
+                final List<AssetReferenceDTO> referencedAssets = entity.getParameter().getReferencedAssets();
+                if (referencedAssets == null) {
                     continue;
                 }
 
-                for (final String assetId : assetIds) {
-                    final Optional<Asset> asset = assetManager.getAsset(assetId);
+                for (final AssetReferenceDTO referencedAsset : referencedAssets) {
+                    if (StringUtils.isBlank(referencedAsset.getId())) {
+                        throw new IllegalArgumentException("Asset reference id cannot be blank");
+                    }
+                    final Optional<Asset> asset = assetManager.getAsset(referencedAsset.getId());
                     if (asset.isEmpty()) {
-                        throw new IllegalArgumentException("Request contains a reference to an Asset (%s) that does not exist".formatted(assetId));
+                        throw new IllegalArgumentException("Request contains a reference to an Asset (%s) that does not exist".formatted(referencedAsset));
                     }
                 }
 
-                if (!assetIds.isEmpty() && entity.getParameter().getValue() != null) {
+                if (!referencedAssets.isEmpty() && entity.getParameter().getValue() != null) {
                     throw new IllegalArgumentException(
                         "Request contains a Parameter (%s) with both a value and a reference to an Asset. A Parameter may have either a value or a reference to an Asset, but not both."
+                            .formatted(entity.getParameter().getName()));
+                }
+
+                if (!referencedAssets.isEmpty() && entity.getParameter().getSensitive() != null && entity.getParameter().getSensitive()) {
+                    throw new IllegalArgumentException("Request contains a sensitive Parameter (%s) with references to an Assets. Sensitive parameters may not reference Assets."
                             .formatted(entity.getParameter().getName()));
                 }
             }
@@ -1244,8 +1386,9 @@ public class ParameterContextResource extends AbstractParameterResource {
         this.assetManager = assetManager;
     }
 
-    @Autowired
-    public void setAssetRequestReplicator(final AssetRequestReplicator assetRequestReplicator) {
-        this.assetRequestReplicator = assetRequestReplicator;
+    @Autowired(required = false)
+    public void setUploadRequestReplicator(final UploadRequestReplicator uploadRequestReplicator) {
+        this.uploadRequestReplicator = uploadRequestReplicator;
     }
+
 }

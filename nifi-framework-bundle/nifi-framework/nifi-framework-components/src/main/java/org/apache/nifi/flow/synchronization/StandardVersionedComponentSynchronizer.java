@@ -2175,13 +2175,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             assets = new ArrayList<>();
             for (final VersionedAsset reference : referencedAssets) {
                 final Optional<Asset> assetOption = assetManager.getAsset(reference.getIdentifier());
-                final Asset asset;
-                if (assetOption.isEmpty()) {
-                    asset = assetManager.createMissingAsset(contextId, reference.getName());
-                } else {
-                    asset = assetOption.get();
-                }
-
+                final Asset asset = assetOption.orElseGet(() -> assetManager.createMissingAsset(contextId, reference.getName()));
                 assets.add(asset);
             }
         }

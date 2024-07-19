@@ -15,18 +15,18 @@
  *  limitations under the License.
  */
 
-package org.apache.nifi.nar;
+package org.apache.nifi.client;
 
 /**
- * Thrown from {@link NarRestApiClient} to indicate an error for a request that should be retried.
+ * Indicates a retryable error from calling NiFi's REST API.
  */
-public class NarRestApiRetryableException extends RuntimeException {
+public class NiFiRestApiRetryableException extends RuntimeException {
 
-    public NarRestApiRetryableException(final String message) {
+    public NiFiRestApiRetryableException(final String message) {
         super(message);
     }
 
-    public NarRestApiRetryableException(final String message, final Throwable cause) {
+    public NiFiRestApiRetryableException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

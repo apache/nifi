@@ -18,21 +18,32 @@
 package org.apache.nifi.asset;
 
 import java.io.File;
+import java.util.Objects;
+import java.util.Optional;
 
 public class StandardAsset implements Asset {
     private final String identifier;
+    private final String parameterContextIdentifier;
     private final String name;
     private final File file;
+    private final String digest;
 
-    public StandardAsset(final String identifier, final String name, final File file) {
-        this.identifier = identifier;
-        this.name = name;
-        this.file = file;
+    public StandardAsset(final String identifier, final String paramContextIdentifier, final String name, final File file, final String digest) {
+        this.identifier = Objects.requireNonNull(identifier, "Identifier is required");
+        this.parameterContextIdentifier = Objects.requireNonNull(paramContextIdentifier, "Parameter Context Identifier is required");
+        this.name = Objects.requireNonNull(name, "Name is required");
+        this.file = Objects.requireNonNull(file, "File is required");
+        this.digest = digest;
     }
 
     @Override
     public String getIdentifier() {
         return identifier;
+    }
+
+    @Override
+    public String getParameterContextIdentifier() {
+        return parameterContextIdentifier;
     }
 
     @Override
@@ -43,5 +54,10 @@ public class StandardAsset implements Asset {
     @Override
     public File getFile() {
         return file;
+    }
+
+    @Override
+    public Optional<String> getDigest() {
+        return Optional.ofNullable(digest);
     }
 }

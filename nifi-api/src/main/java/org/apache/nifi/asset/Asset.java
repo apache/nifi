@@ -18,6 +18,7 @@
 package org.apache.nifi.asset;
 
 import java.io.File;
+import java.util.Optional;
 
 /**
  * An Asset is a representation of some resource that is necessary in order to run a dataflow.
@@ -31,6 +32,11 @@ public interface Asset {
     String getIdentifier();
 
     /**
+     * Returns the identifier of the parameter context the Asset belongs to
+     */
+    String getParameterContextIdentifier();
+
+    /**
      * Returns the name of the Asset
      */
     String getName();
@@ -40,4 +46,9 @@ public interface Asset {
      */
     File getFile();
 
+    /**
+     * Returns the digest of the contents of the local file that the Asset is associated with.
+     * The digest will not be present when the asset is considered missing and the local file does not exist.
+     */
+    Optional<String> getDigest();
 }

@@ -22,7 +22,7 @@ import java.util.Set;
 public interface AssetReferenceLookup {
 
     /**
-     * The Set of identifiers for all Assets that are currently referenced by any parameters.
+     * The Set of all Assets that are currently referenced by any parameters.
      */
     Set<Asset> getReferencedAssets();
 

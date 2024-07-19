@@ -35,6 +35,7 @@ import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
@@ -43,12 +44,13 @@ import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.apache.nifi.web.dao.ParameterContextDAO;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Repository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,6 +60,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Repository
 public class StandardParameterContextDAO implements ParameterContextDAO {
@@ -99,6 +102,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         resolveInheritedParameterContexts(parameterContextDto);
 
         verifyParameterSourceConflicts(parameterContextDto);
+        verifyAssets(parameterContextDto, parameters);
 
         final AtomicReference<ParameterContext> parameterContextReference = new AtomicReference<>();
         flowManager.withParameterContextResolution(() -> {
@@ -115,6 +119,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             }
 
             parameterContextReference.set(parameterContext);
+            logger.info("Created parameter context with id [{}] and name [{}]", parameterContext.getIdentifier(), parameterContext.getName());
         });
         return parameterContextReference.get();
     }
@@ -216,7 +221,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
     private Parameter createParameter(final ParameterDTO dto, final ParameterContext context) {
         final String dtoValue = dto.getValue();
-        final List<String> referencedAssets = dto.getReferencedAssets();
+        final List<AssetReferenceDTO> referencedAssets = dto.getReferencedAssets();
         final boolean referencesAsset = referencedAssets != null && !referencedAssets.isEmpty();
         final String parameterContextId = dto.getParameterContext() == null ? null : dto.getParameterContext().getId();
 
@@ -227,10 +232,8 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             value = null;
         } else if (referencesAsset)  {
             // Parameter is referencing an asset. The value is not used.
+            assets = getAssets(referencedAssets);
             value = null;
-            assets = referencedAssets.stream()
-                .map(assetId -> assetManager.getAsset(assetId).orElseThrow(() -> new ResourceNotFoundException("Unable to find asset with id " + assetId)))
-                .collect(Collectors.toList());
         } else if (dto.getValue() == null && context != null) {
             // Value was just never supplied. Use the value from the Parameter Context, if there is one.
             final Optional<Parameter> optionalParameter = context.getParameter(dto.getName());
@@ -248,6 +251,18 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             .referencedAssets(assets)
             .provided(dto.getProvided())
             .build();
+    }
+
+    private List<Asset> getAssets(final List<AssetReferenceDTO> referencedAssets) {
+        return Stream.ofNullable(referencedAssets)
+                .flatMap(Collection::stream)
+                .map(AssetReferenceDTO::getId)
+                .map(this::getAsset)
+                .collect(Collectors.toList());
+    }
+
+    private Asset getAsset(final String assetId) {
+        return assetManager.getAsset(assetId).orElseThrow(() -> new ResourceNotFoundException("Unable to find asset with id " + assetId));
     }
 
     @Override
@@ -302,7 +317,6 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         return context;
     }
 
-
     private Set<String> getReferencedAssetIds(final ParameterContext parameterContext) {
         final Set<String> referencedAssetIds = new HashSet<>();
         for (final Parameter parameter : parameterContext.getParameters().values()) {
@@ -347,8 +361,23 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         final List<ParameterContext> inheritedParameterContexts = getInheritedParameterContexts(parameterContextDto);
 
         final Map<String, Parameter> parameters = parameterContextDto.getParameters() == null ? Collections.emptyMap() : getParameters(parameterContextDto, currentContext);
+        verifyAssets(parameterContextDto, parameters);
 
         currentContext.verifyCanUpdateParameterContext(parameters, inheritedParameterContexts);
+    }
+
+    public void verifyAssets(final ParameterContextDTO parameterContextDto, final Map<String, Parameter> parameters) {
+        for (final Parameter parameter : parameters.values()) {
+            if (parameter != null) {
+                final List<Asset> assets = parameter.getReferencedAssets() == null ? Collections.emptyList() : parameter.getReferencedAssets();
+                for (final Asset asset : assets) {
+                    if (!asset.getParameterContextIdentifier().equals(parameterContextDto.getId())) {
+                        throw new IllegalArgumentException(String.format("Parameter [%s] is not allowed to reference asset [%s] which does not belong to parameter context [%s]",
+                                parameter.getDescriptor().getName(), asset.getName(), parameterContextDto.getId()));
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -475,6 +504,13 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
                     .forEach(referencesToRemove::add);
             referencesToRemove.forEach(provider::removeReference);
         });
+
+        // Remove all assets
+        final Set<String> assetIds = Optional.ofNullable(assetManager.getAssets(parameterContextId))
+                .orElse(Collections.emptyList()).stream()
+                .map(Asset::getIdentifier)
+                .collect(Collectors.toSet());
+        assetIds.forEach(assetId -> assetManager.deleteAsset(assetId));
     }
 
     @Autowired

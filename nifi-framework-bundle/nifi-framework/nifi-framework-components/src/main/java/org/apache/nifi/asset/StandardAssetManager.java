@@ -17,40 +17,44 @@
 
 package org.apache.nifi.asset;
 
+import org.apache.nifi.nar.FileDigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class StandardAssetManager implements AssetManager {
     private static final Logger logger = LoggerFactory.getLogger(StandardAssetManager.class);
 
     public static final String ASSET_STORAGE_LOCATION_PROPERTY = "directory";
+    public static final String DEFAULT_ASSET_STORAGE_LOCATION = "./assets";
+
     private volatile File assetStorageLocation;
     private final Map<String, Asset> assets = new ConcurrentHashMap<>();
 
-
     @Override
     public void initialize(final AssetManagerInitializationContext context) {
-        final String storageLocation = context.getProperties().get(ASSET_STORAGE_LOCATION_PROPERTY);
-        if (storageLocation == null) {
-            throw new IllegalStateException("The Asset Manager's [" + ASSET_STORAGE_LOCATION_PROPERTY + "] property must be set");
-        }
+        final String storageLocation = getStorageLocation(context);
 
         assetStorageLocation = new File(storageLocation);
         if (!assetStorageLocation.exists()) {
             try {
                 Files.createDirectories(assetStorageLocation.toPath());
             } catch (IOException e) {
-                throw new RuntimeException("The Asset Manager's [" + ASSET_STORAGE_LOCATION_PROPERTY + "] property is set to [" + storageLocation +
-                                           "] but the directory does not exist and cannot be created", e);
+                throw new RuntimeException("The Asset Manager's [%s] property is set to [%s] but the directory does not exist and cannot be created"
+                        .formatted(ASSET_STORAGE_LOCATION_PROPERTY, storageLocation), e);
             }
         }
 
@@ -61,37 +65,11 @@ public class StandardAssetManager implements AssetManager {
         }
     }
 
-    private void recoverLocalAssets() throws IOException {
-        final File[] files = assetStorageLocation.listFiles();
-        if (files == null) {
-            throw new IOException("Unable to list files for asset storage location " + assetStorageLocation.getAbsolutePath());
-        }
-
-        for (final File file : files) {
-            if (!file.isDirectory()) {
-                continue;
-            }
-
-            final String contextId = file.getName();
-            final File[] assetFiles = file.listFiles();
-            if (assetFiles == null) {
-                logger.warn("Unable to determine which assets exist for Parameter Context " + contextId);
-                continue;
-            }
-
-            for (final File assetFile : assetFiles) {
-                final String assetId = contextId + "/" + assetFile.getName();
-                final Asset asset = new StandardAsset(assetId, assetId, assetFile);
-                assets.put(assetId, asset);
-            }
-        }
-    }
-
     @Override
     public Asset createAsset(final String parameterContextId, final String assetName, final InputStream contents) throws IOException {
         final String assetId = createAssetId(parameterContextId, assetName);
 
-        final File file = getFile(assetId);
+        final File file = getFile(parameterContextId, assetName);
         final File dir = file.getParentFile();
         if (!dir.exists()) {
             try {
@@ -104,6 +82,8 @@ public class StandardAssetManager implements AssetManager {
         // Write contents to a temporary file, then move it to the final location.
         // This allows us to avoid a situation where we upload a file, then we attempt to overwrite it but fail, leaving a corrupt asset.
         final File tempFile = new File(dir, file.getName() + ".tmp");
+        logger.debug("Writing temp asset file [{}]", tempFile.getAbsolutePath());
+
         try {
             Files.copy(contents, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (final Exception e) {
@@ -112,14 +92,10 @@ public class StandardAssetManager implements AssetManager {
 
         Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-        final Asset asset = new StandardAsset(assetId, assetName, file);
+        final String digest = computeDigest(file);
+        final Asset asset = new StandardAsset(assetId, parameterContextId, assetName, file, digest);
         assets.put(assetId, asset);
-
         return asset;
-    }
-
-    private File getFile(final String assetId) {
-        return new File(assetStorageLocation, assetId);
     }
 
     @Override
@@ -128,20 +104,34 @@ public class StandardAssetManager implements AssetManager {
     }
 
     @Override
-    public Asset createMissingAsset(final String parameterContextId, final String assetName) {
-        final String assetId = createAssetId(parameterContextId, assetName);
-        final File file = getFile(assetId);
-        return assets.putIfAbsent(assetId, new StandardAsset(assetId, assetName, file));
+    public List<Asset> getAssets(final String parameterContextId) {
+        final List<Asset> allAssets = new ArrayList<>(assets.values());
+        final List<Asset> paramContextAssets = new ArrayList<>();
+        for (final Asset asset : allAssets) {
+            if (asset.getParameterContextIdentifier().equals(parameterContextId)) {
+                paramContextAssets.add(asset);
+            }
+        }
+        return paramContextAssets;
     }
 
-    private String createAssetId(final String parameterContextId, final String assetName) {
-        return parameterContextId + "/" + assetName;
+    @Override
+    public Asset createMissingAsset(final String parameterContextId, final String assetName) {
+        final String assetId = createAssetId(parameterContextId, assetName);
+        final File file = getFile(parameterContextId, assetName);
+        final Asset asset = new StandardAsset(assetId, parameterContextId, assetName, file, null);
+        assets.put(assetId, asset);
+        return asset;
     }
 
     @Override
     public Optional<Asset> deleteAsset(final String id) {
         final Asset removed = assets.remove(id);
-        final File file = getFile(id);
+        if (removed == null) {
+            return Optional.empty();
+        }
+
+        final File file = removed.getFile();
         if (file.exists()) {
             try {
                 Files.delete(file.toPath());
@@ -160,6 +150,51 @@ public class StandardAssetManager implements AssetManager {
             }
         }
 
-        return Optional.ofNullable(removed);
+        return Optional.of(removed);
+    }
+
+    private String createAssetId(final String parameterContextId, final String assetName) {
+        final String seed = parameterContextId + "/" + assetName;
+        return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString();
+    }
+
+    private File getFile(final String paramContextId, final String assetName) {
+        return new File(assetStorageLocation, paramContextId + "/" + assetName);
+    }
+
+    private String getStorageLocation(final AssetManagerInitializationContext initializationContext) {
+        final String storageLocation = initializationContext.getProperties().get(ASSET_STORAGE_LOCATION_PROPERTY);
+        return storageLocation == null ? DEFAULT_ASSET_STORAGE_LOCATION : storageLocation;
+    }
+
+    private void recoverLocalAssets() throws IOException {
+        final File[] files = assetStorageLocation.listFiles();
+        if (files == null) {
+            throw new IOException("Unable to list files for asset storage location %s".formatted(assetStorageLocation.getAbsolutePath()));
+        }
+
+        for (final File file : files) {
+            if (!file.isDirectory()) {
+                continue;
+            }
+
+            final String contextId = file.getName();
+            final File[] assetFiles = file.listFiles();
+            if (assetFiles == null) {
+                logger.warn("Unable to determine which assets exist for Parameter Context {}", contextId);
+                continue;
+            }
+
+            for (final File assetFile : assetFiles) {
+                final String assetId = createAssetId(contextId, assetFile.getName());
+                final String digest = computeDigest(assetFile);
+                final Asset asset = new StandardAsset(assetId, contextId, assetFile.getName(), assetFile, digest);
+                assets.put(assetId, asset);
+            }
+        }
+    }
+
+    private String computeDigest(final File file) throws IOException {
+        return HexFormat.of().formatHex(FileDigestUtils.getDigest(file));
     }
 }

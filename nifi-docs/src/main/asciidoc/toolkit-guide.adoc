@@ -146,6 +146,11 @@ The following are available commands:
  nifi delete-nar
  nifi list-nars
  nifi list-nar-component-types
+ nifi create-asset
+ nifi list-assets
+ nifi get-asset
+ nifi add-asset-reference
+ nifi remove-asset-reference
  registry current-user
  registry list-buckets
  registry create-bucket

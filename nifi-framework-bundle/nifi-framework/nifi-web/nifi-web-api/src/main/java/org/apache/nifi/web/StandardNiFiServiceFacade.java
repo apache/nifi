@@ -26,6 +26,8 @@ import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AccessPolicy;
@@ -204,6 +206,7 @@ import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AccessPolicySummaryDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
+import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
@@ -486,6 +489,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private RuleViolationsManager ruleViolationsManager;
     private PredictionBasedParallelProcessingService parallelProcessingService;
     private NarManager narManager;
+    private AssetManager assetManager;
 
     // -----------------------------------------
     // Synchronization methods
@@ -1404,15 +1408,43 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return null; // null description, sensitivity flag, and value indicates a deletion, which we want to represent as a null Parameter.
         }
 
+        final String dtoValue = dto.getValue();
+        final List<AssetReferenceDTO> referencedAssets = dto.getReferencedAssets();
+        final boolean referencesAsset = referencedAssets != null && !referencedAssets.isEmpty();
         final String parameterContextId = dto.getParameterContext() == null ? null : dto.getParameterContext().getId();
+
+        final String value;
+        List<Asset> assets = null;
+        if (dtoValue == null && !referencesAsset && Boolean.TRUE.equals(dto.getValueRemoved())) {
+            value = null;
+        } else if (referencesAsset)  {
+            assets = getAssets(referencedAssets);
+            value = null;
+        } else {
+            value = dto.getValue();
+        }
+
         return new Parameter.Builder()
             .name(dto.getName())
             .description(dto.getDescription())
             .sensitive(Boolean.TRUE.equals(dto.getSensitive()))
-            .value(dto.getValue())
+            .value(value)
+            .referencedAssets(assets)
             .parameterContextId(parameterContextId)
             .provided(dto.getProvided())
             .build();
+    }
+
+    private List<Asset> getAssets(final List<AssetReferenceDTO> referencedAssets) {
+        return Stream.ofNullable(referencedAssets)
+                .flatMap(Collection::stream)
+                .map(AssetReferenceDTO::getId)
+                .map(this::getAsset)
+                .collect(Collectors.toList());
+    }
+
+    private Asset getAsset(final String assetId) {
+        return assetManager.getAsset(assetId).orElseThrow(() -> new ResourceNotFoundException("Unable to find asset with id " + assetId));
     }
 
     @Override
@@ -7005,5 +7037,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Autowired
     public void setNarManager(final NarManager narManager) {
         this.narManager = narManager;
+    }
+
+    public void setAssetManager(final AssetManager assetManager) {
+        this.assetManager = assetManager;
     }
 }

@@ -974,7 +974,6 @@ public class NiFiRegistryFlowMapper {
             final List<VersionedAsset> assetIds = referencedAssets.stream()
                     .map(this::createVersionedAsset)
                     .toList();
-
             versionedParameter.setReferencedAssets(assetIds);
         }
         return versionedParameter;
@@ -984,7 +983,6 @@ public class NiFiRegistryFlowMapper {
         final VersionedAsset versionedAsset = new VersionedAsset();
         versionedAsset.setIdentifier(asset.getIdentifier());
         versionedAsset.setName(asset.getName());
-        versionedAsset.setFilename(asset.getFile().getAbsolutePath());
         return versionedAsset;
     }
 

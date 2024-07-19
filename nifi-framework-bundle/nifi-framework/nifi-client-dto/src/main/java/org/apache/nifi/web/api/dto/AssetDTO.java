@@ -17,15 +17,20 @@
 
 package org.apache.nifi.web.api.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
+
+import java.util.Objects;
 
 @XmlType(name = "asset")
 public class AssetDTO {
 
     private String id;
     private String name;
-    private String filename;
+    private String digest;
+    private Boolean missingContent;
 
+    @Schema(description = "The identifier of the asset.")
     public String getId() {
         return id;
     }
@@ -34,6 +39,7 @@ public class AssetDTO {
         this.id = id;
     }
 
+    @Schema(description = "The name of the asset.")
     public String getName() {
         return name;
     }
@@ -42,11 +48,38 @@ public class AssetDTO {
         this.name = name;
     }
 
-    public String getFilename() {
-        return filename;
+    @Schema(description = "The digest of the asset, will be null if the asset content is missing.")
+    public String getDigest() {
+        return digest;
     }
 
-    public void setFilename(final String filename) {
-        this.filename = filename;
+    public void setDigest(final String digest) {
+        this.digest = digest;
+    }
+
+    @Schema(description = "Indicates if the content of the asset is missing.")
+    public Boolean getMissingContent() {
+        return missingContent;
+    }
+
+    public void setMissingContent(final Boolean missingContent) {
+        this.missingContent = missingContent;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final AssetDTO assetDTO = (AssetDTO) o;
+        return Objects.equals(id, assetDTO.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

@@ -1388,6 +1388,13 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 }
 
                 @Override
+                public List<Asset> getAssets(final String parameterContextId) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                        return assetManager.getAssets(parameterContextId);
+                    }
+                }
+
+                @Override
                 public Asset createMissingAsset(final String parameterContextId, final String assetName) {
                     try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
                         return assetManager.createMissingAsset(parameterContextId, assetName);

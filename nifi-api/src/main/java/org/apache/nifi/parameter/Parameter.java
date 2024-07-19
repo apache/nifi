@@ -30,7 +30,6 @@ public class Parameter {
     private final boolean provided;
     private final List<Asset> referencedAssets;
 
-
     private Parameter(final Builder builder) {
         this.descriptor = new ParameterDescriptor.Builder()
             .name(builder.name)
@@ -153,7 +152,7 @@ public class Parameter {
         }
 
         public Builder provided(final Boolean provided) {
-            this.provided = provided;
+            this.provided = provided != null && provided;
             return this;
         }
 

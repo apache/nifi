@@ -19,6 +19,7 @@ package org.apache.nifi.asset;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Optional;
 
 public interface AssetManager {
@@ -44,6 +45,13 @@ public interface AssetManager {
      * @return the asset, if it exists
      */
     Optional<Asset> getAsset(String id);
+
+    /**
+     * Retrieves the Assets that belong to the given parameter context.
+     * @param parameterContextId the id of the parameter context
+     * @return the list of assets for the given context
+     */
+    List<Asset> getAssets(String parameterContextId);
 
     /**
      * Creates an Asset with the given name and associates it with the given parameter context. If the asset already exists, it is returned. Otherwise, an asset is created

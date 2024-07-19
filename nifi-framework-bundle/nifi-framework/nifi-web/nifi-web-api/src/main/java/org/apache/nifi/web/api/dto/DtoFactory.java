@@ -258,6 +258,7 @@ import org.apache.nifi.web.revision.RevisionManager;
 
 import jakarta.ws.rs.WebApplicationException;
 
+import java.io.File;
 import java.text.Collator;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -1518,11 +1519,17 @@ public final class DtoFactory {
    }
 
    public AssetDTO createAssetDto(final Asset asset) {
+       final File assetFile = asset.getFile();
        final AssetDTO dto = new AssetDTO();
-       dto.setName(asset.getName());
        dto.setId(asset.getIdentifier());
-       dto.setFilename(asset.getFile().getAbsolutePath());
+       dto.setName(asset.getName());
+       dto.setDigest(asset.getDigest().orElse(null));
+       dto.setMissingContent(!assetFile.exists());
        return dto;
+   }
+
+   public AssetReferenceDTO createAssetReferenceDto(final Asset asset) {
+       return new AssetReferenceDTO(asset.getIdentifier(), asset.getName());
    }
 
    public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
@@ -1550,7 +1557,7 @@ public final class DtoFactory {
        }
        dto.setProvided(parameter.isProvided());
        final List<Asset> assets = parameter.getReferencedAssets();
-       dto.setReferencedAssets(assets == null ? List.of() : parameter.getReferencedAssets().stream().map(Asset::getIdentifier).toList());
+       dto.setReferencedAssets(assets == null ? List.of() : parameter.getReferencedAssets().stream().map(this::createAssetReferenceDto).toList());
 
        final ParameterReferenceManager parameterReferenceManager = parameterContext.getParameterReferenceManager();
 

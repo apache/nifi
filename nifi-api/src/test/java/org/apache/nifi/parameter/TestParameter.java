@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -45,7 +46,7 @@ public class TestParameter {
     @Test
     public void testCreateParameterWithSingleReference() {
         final File file = new File("file");
-        final Asset asset = new MockAsset("id", "name", file);
+        final Asset asset = new MockAsset("id", "parmContext", "name", file, "asset-digest");
 
         final Parameter parameter = new Parameter.Builder()
             .name("A")
@@ -64,9 +65,9 @@ public class TestParameter {
         final File file1 = new File("file1");
         final File file2 = new File("file2");
         final File file3 = new File("file3");
-        final Asset asset1 = new MockAsset("id1", "name1", file1);
-        final Asset asset2 = new MockAsset("id2", "name2", file2);
-        final Asset asset3 = new MockAsset("id3", "name3", file3);
+        final Asset asset1 = new MockAsset("id1", "parmContext", "name1", file1, "asset-digest");
+        final Asset asset2 = new MockAsset("id2", "parmContext", "name2", file2, "asset-digest");
+        final Asset asset3 = new MockAsset("id3", "parmContext", "name3", file3, "asset-digest");
 
         final Parameter parameter = new Parameter.Builder()
             .name("A")
@@ -82,7 +83,7 @@ public class TestParameter {
     @Test
     public void testCreateParameterWithValueThenAsset() {
         final File file = new File("file");
-        final Asset asset = new MockAsset("id", "name", file);
+        final Asset asset = new MockAsset("id", "parmContext", "name", file, "asset-digest");
 
         final Parameter parameter = new Parameter.Builder()
             .name("A")
@@ -100,7 +101,7 @@ public class TestParameter {
     @Test
     public void testCreateParameterAssetThenValue() {
         final File file = new File("file");
-        final Asset asset = new MockAsset("id", "name", file);
+        final Asset asset = new MockAsset("id", "parmContext", "name", file, "asset-digest");
 
         final Parameter parameter = new Parameter.Builder()
             .name("A")
@@ -117,7 +118,7 @@ public class TestParameter {
     @Test
     public void testCreateParameterFromOtherThenOverrideWithAsset() {
         final File file = new File("file");
-        final Asset asset = new MockAsset("id", "name", file);
+        final Asset asset = new MockAsset("id", "parmContext", "name", file, "asset-digest");
 
         final Parameter original = new Parameter.Builder()
             .name("A")
@@ -138,7 +139,7 @@ public class TestParameter {
     @Test
     public void testCreateParameterFromOtherThenOverrideWithValue() {
         final File file = new File("file");
-        final Asset asset = new MockAsset("id", "name", file);
+        final Asset asset = new MockAsset("id", "parmContext", "name", file, "asset-digest");
 
         final Parameter original = new Parameter.Builder()
             .name("A")
@@ -174,21 +175,29 @@ public class TestParameter {
         assertEquals(0, parameter.getReferencedAssets().size());
     }
 
-
     private static class MockAsset implements Asset {
         private final String identifier;
+        private final String parameterContextIdentifier;
         private final String name;
         private final File file;
+        private final String digest;
 
-        public MockAsset(final String identifier, final String name, final File file) {
+        public MockAsset(final String identifier, final String parameterContextIdentifier, final String name, final File file, final String digest) {
             this.identifier = identifier;
+            this.parameterContextIdentifier = parameterContextIdentifier;
             this.name = name;
             this.file = file;
+            this.digest = digest;
         }
 
         @Override
         public String getIdentifier() {
             return identifier;
+        }
+
+        @Override
+        public String getParameterContextIdentifier() {
+            return parameterContextIdentifier;
         }
 
         @Override
@@ -199,6 +208,11 @@ public class TestParameter {
         @Override
         public File getFile() {
             return file;
+        }
+
+        @Override
+        public Optional<String> getDigest() {
+            return Optional.ofNullable(digest);
         }
     }
 }

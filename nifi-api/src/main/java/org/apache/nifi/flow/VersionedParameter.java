@@ -75,7 +75,7 @@ public class VersionedParameter {
         this.value = value;
     }
 
-    @Schema(description = "The ID's of assets that are referenced by this parameter")
+    @Schema(description = "The assets that are referenced by this parameter")
     public List<VersionedAsset> getReferencedAssets() {
         return referencedAssets;
     }

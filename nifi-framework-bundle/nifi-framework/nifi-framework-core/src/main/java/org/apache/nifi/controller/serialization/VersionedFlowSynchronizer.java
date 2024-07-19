@@ -113,6 +113,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -123,6 +124,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 
 import static org.apache.nifi.controller.serialization.FlowSynchronizationUtils.createBundleCoordinate;
@@ -932,19 +934,26 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final Map<String, Parameter> parameters = createParameterMap(flowManager, versionedParameterContext, encryptor, assetManager);
 
         final Map<String, String> currentValues = new HashMap<>();
-        parameterContext.getParameters().values().forEach(param -> currentValues.put(param.getDescriptor().getName(), param.getValue()));
+        final Map<String, Set<String>> currentAssetReferences = new HashMap<>();
+        parameterContext.getParameters().values().forEach(param -> {
+            currentValues.put(param.getDescriptor().getName(), param.getValue());
+            currentAssetReferences.put(param.getDescriptor().getName(), getAssetIds(param));
+        });
 
         final Map<String, Parameter> updatedParameters = new HashMap<>();
         final Set<String> proposedParameterNames = new HashSet<>();
         for (final VersionedParameter parameter : versionedParameterContext.getParameters()) {
             final String parameterName = parameter.getName();
             final String currentValue = currentValues.get(parameterName);
+            final Set<String> currentAssetIds = currentAssetReferences.get(parameterName);
 
-            proposedParameterNames.add(parameterName);
-            if (!Objects.equals(currentValue, parameter.getValue())) {
-                final Parameter updatedParameterObject = parameters.get(parameterName);
+            final Parameter updatedParameterObject = parameters.get(parameterName);
+            final String updatedValue = updatedParameterObject.getValue();
+            final Set<String> updatedAssetIds = getAssetIds(updatedParameterObject);
+            if (!Objects.equals(currentValue, updatedValue) || !currentAssetIds.equals(updatedAssetIds)) {
                 updatedParameters.put(parameterName, updatedParameterObject);
             }
+            proposedParameterNames.add(parameterName);
         }
 
         // If any parameters are removed, need to add a null value to the map in order to make sure that the parameter is removed.
@@ -968,6 +977,13 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 .map(contextManager::getParameterContext)
                 .collect(Collectors.toList());
         parameterContext.setInheritedParameterContexts(referencedContexts);
+    }
+
+    private Set<String> getAssetIds(final Parameter parameter) {
+        return Stream.ofNullable(parameter.getReferencedAssets())
+                .flatMap(Collection::stream)
+                .map(Asset::getIdentifier)
+                .collect(Collectors.toSet());
     }
 
     private void inheritControllerServices(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {

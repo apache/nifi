@@ -56,8 +56,13 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.nodes.DisconnectNode;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.nodes.GetNode;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.nodes.GetNodes;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.nodes.OffloadNode;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.params.AddAssetReference;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.params.CreateAsset;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.CreateParamContext;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.CreateParamProvider;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.params.GetAsset;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.params.ListAssets;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.params.RemoveAssetReference;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.DeleteParam;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.DeleteParamContext;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.DeleteParamProvider;
@@ -212,6 +217,11 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new ListNars());
         commands.add(new ListNarComponentTypes());
         commands.add(new DeleteNar());
+        commands.add(new CreateAsset());
+        commands.add(new ListAssets());
+        commands.add(new GetAsset());
+        commands.add(new AddAssetReference());
+        commands.add(new RemoveAssetReference());
         return new ArrayList<>(commands);
     }
 }

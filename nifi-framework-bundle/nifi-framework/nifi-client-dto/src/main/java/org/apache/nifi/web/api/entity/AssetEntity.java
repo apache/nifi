@@ -21,6 +21,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.AssetDTO;
 
+import java.util.Objects;
+
 @XmlRootElement(name = "assetEntity")
 public class AssetEntity extends Entity {
     private AssetDTO asset;
@@ -34,5 +36,22 @@ public class AssetEntity extends Entity {
 
     public void setAsset(AssetDTO asset) {
         this.asset = asset;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final AssetEntity that = (AssetEntity) o;
+        return Objects.equals(asset, that.asset);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(asset);
     }
 }

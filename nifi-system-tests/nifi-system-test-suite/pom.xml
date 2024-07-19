@@ -118,6 +118,7 @@
                         <exclude>src/test/resources/keystore.jks</exclude>
                         <exclude>src/test/resources/truststore.jks</exclude>
                         <exclude>src/test/resources/sample-assets/helloworld.txt</exclude>
+                        <exclude>src/test/resources/sample-assets/helloworld2.txt</exclude>
                     </excludes>
                 </configuration>
             </plugin>

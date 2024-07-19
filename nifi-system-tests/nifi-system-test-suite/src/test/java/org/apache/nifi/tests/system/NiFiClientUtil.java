@@ -31,6 +31,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
+import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
@@ -586,7 +587,7 @@ public class NiFiClientUtil {
     public ParameterEntity createAssetReferenceParameterEntity(final String name, final List<String> referencedAssets) {
         final ParameterDTO dto = new ParameterDTO();
         dto.setName(name);
-        dto.setReferencedAssets(referencedAssets);
+        dto.setReferencedAssets(referencedAssets.stream().map(assetId -> new AssetReferenceDTO(assetId)).toList());
         dto.setValue(null);
         dto.setProvided(false);
 
@@ -1364,6 +1365,7 @@ public class NiFiClientUtil {
         for (final ProcessorEntity processorEntity : flowDto.getProcessors()) {
             processorEntity.setDisconnectedNodeAcknowledged(true);
             getProcessorClient().deleteProcessor(processorEntity);
+            logger.info("Deleted processor [{}]", processorEntity.getId());
         }
 
         // Delete all Controller Services
@@ -1395,6 +1397,7 @@ public class NiFiClientUtil {
         for (final ProcessGroupEntity childGroupEntity : flowDto.getProcessGroups()) {
             childGroupEntity.setDisconnectedNodeAcknowledged(true);
             deleteAll(childGroupEntity.getId());
+            nifiClient.getProcessGroupClient().deleteProcessGroup(childGroupEntity);
         }
     }
 

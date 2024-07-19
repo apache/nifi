@@ -20,6 +20,7 @@ package org.apache.nifi.asset;
 import org.apache.nifi.controller.NodeTypeProvider;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class StandardAssetManagerInitializationContext implements AssetManagerInitializationContext {
     private final AssetReferenceLookup assetReferenceLookup;
@@ -27,9 +28,9 @@ public class StandardAssetManagerInitializationContext implements AssetManagerIn
     private final NodeTypeProvider nodeTypeProvider;
 
     public StandardAssetManagerInitializationContext(final AssetReferenceLookup assetReferenceLookup, final Map<String, String> properties, final NodeTypeProvider nodeTypeProvider) {
-        this.assetReferenceLookup = assetReferenceLookup;
-        this.properties = properties;
-        this.nodeTypeProvider = nodeTypeProvider;
+        this.assetReferenceLookup = Objects.requireNonNull(assetReferenceLookup);
+        this.properties = Objects.requireNonNull(properties);
+        this.nodeTypeProvider = Objects.requireNonNull(nodeTypeProvider);
     }
 
     @Override

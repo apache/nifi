@@ -21,11 +21,23 @@ import org.apache.nifi.controller.NodeTypeProvider;
 
 import java.util.Map;
 
+/**
+ * Initialization context for AssetManager.
+ */
 public interface AssetManagerInitializationContext {
 
+    /**
+     * @return lookup for obtaining referenced assets
+     */
     AssetReferenceLookup getAssetReferenceLookup();
 
+    /**
+     * @return configuration for the asset manager
+     */
     Map<String, String> getProperties();
 
+    /**
+     * @return the node type provider
+     */
     NodeTypeProvider getNodeTypeProvider();
 }

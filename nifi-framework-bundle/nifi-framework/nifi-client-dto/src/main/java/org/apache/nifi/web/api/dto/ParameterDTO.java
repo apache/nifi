@@ -33,7 +33,7 @@ public class ParameterDTO {
     private String value;
     private Boolean valueRemoved;
     private Boolean provided;
-    private List<String> referencedAssets;
+    private List<AssetReferenceDTO> referencedAssets;
     private Set<AffectedComponentEntity> referencingComponents;
     private ParameterContextReferenceEntity parameterContext;
     private Boolean inherited;
@@ -126,11 +126,11 @@ public class ParameterDTO {
     }
 
     @Schema(description = "A list of identifiers of the assets that are referenced by the parameter")
-    public List<String> getReferencedAssets() {
+    public List<AssetReferenceDTO> getReferencedAssets() {
         return referencedAssets;
     }
 
-    public void setReferencedAssets(final List<String> referencedAssets) {
+    public void setReferencedAssets(final List<AssetReferenceDTO> referencedAssets) {
         this.referencedAssets = referencedAssets;
     }
 
