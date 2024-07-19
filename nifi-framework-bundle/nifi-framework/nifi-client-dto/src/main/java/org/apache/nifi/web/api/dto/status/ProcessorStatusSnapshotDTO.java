@@ -333,7 +333,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         other.setWritten(getWritten());
         other.setTasks(getTasks());
 
-        other.setProcessingPerformanceStatusDTO(getProcessingPerformanceStatusDTO().clone());
+        other.setProcessingPerformanceStatusDTO(getProcessingPerformanceStatusDTO());
 
         return other;
     }

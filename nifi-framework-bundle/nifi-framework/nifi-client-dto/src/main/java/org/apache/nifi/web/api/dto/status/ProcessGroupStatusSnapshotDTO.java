@@ -609,7 +609,8 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
             other.setProcessGroupStatusSnapshots(childGroups);
         }
 
-        other.setProcessingPerformanceStatusDTO(getProcessingPerformanceStatusDTO().clone());
+
+        other.setProcessingPerformanceStatusDTO(getProcessingPerformanceStatusDTO());
 
         return other;
     }
