@@ -17,8 +17,6 @@
 
 export interface JoltTransformJsonProcessorDetailsState {
     saving: boolean;
-    loadedTimestamp: string;
-    status: 'pending' | 'loading' | 'success';
     processorDetails: ProcessorDetails | null;
 }
 

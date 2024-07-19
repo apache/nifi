@@ -27,9 +27,6 @@ import {
 
 export const initialState: JoltTransformJsonValidateState = {
     saving: false,
-    loadedTimestamp: '',
-    status: 'pending',
-    validatingJoltSpec: false,
     validationResponse: null,
     validationFailureResponse: null
 };
@@ -41,21 +38,21 @@ export const joltTransformJsonValidateReducer = createReducer(
     })),
     on(validateJoltSpec, (state) => ({
         ...state,
-        validatingJoltSpec: true
+        saving: true
     })),
     on(validateJoltSpecSuccess, (state, { response }) => ({
         ...state,
-        validatingJoltSpec: false,
+        saving: false,
         validationResponse: response
     })),
     on(validateJoltSpecFailure, (state, { response }) => ({
         ...state,
-        validatingJoltSpec: false,
+        saving: false,
         validationFailureResponse: response
     })),
     on(resetValidateJoltSpecState, (state) => ({
         ...state,
-        validatingJoltSpec: null,
+        saving: null,
         validationResponse: null,
         validationFailureResponse: null
     }))

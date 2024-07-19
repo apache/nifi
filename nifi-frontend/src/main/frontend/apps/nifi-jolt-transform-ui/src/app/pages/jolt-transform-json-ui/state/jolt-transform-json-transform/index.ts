@@ -19,9 +19,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 export interface JoltTransformJsonTransformState {
     saving: boolean;
-    transformingJoltSpec: boolean;
-    loadedTimestamp: string;
-    status: 'pending' | 'loading' | 'success';
     transformationResponse?: TransformJoltSpecSuccess | null;
     transformationFailureResponse?: HttpErrorResponse | null;
 }

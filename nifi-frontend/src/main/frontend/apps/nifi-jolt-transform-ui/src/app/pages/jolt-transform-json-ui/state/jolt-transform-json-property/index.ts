@@ -19,9 +19,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 export interface JoltTransformJsonPropertyState {
     saving: boolean;
-    savingProperties: boolean;
-    loadedTimestamp: string;
-    status: 'pending' | 'loading' | 'success';
     savePropertiesResponse?: SavePropertiesSuccess | null;
     savePropertiesFailureResponse?: HttpErrorResponse | null;
 }

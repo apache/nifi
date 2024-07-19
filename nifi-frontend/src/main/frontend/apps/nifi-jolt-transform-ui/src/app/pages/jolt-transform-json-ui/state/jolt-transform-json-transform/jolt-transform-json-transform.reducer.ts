@@ -26,9 +26,6 @@ import {
 
 export const initialState: JoltTransformJsonTransformState = {
     saving: false,
-    loadedTimestamp: '',
-    status: 'pending',
-    transformingJoltSpec: false,
     transformationResponse: null,
     transformationFailureResponse: null
 };
@@ -40,16 +37,16 @@ export const joltTransformJsonTransformReducer = createReducer(
     })),
     on(transformJoltSpec, (state) => ({
         ...state,
-        transformingJoltSpec: true
+        saving: true
     })),
     on(transformJoltSpecSuccess, (state, { response }) => ({
         ...state,
-        transformingJoltSpec: false,
+        saving: false,
         transformationResponse: response
     })),
     on(transformJoltSpecFailure, (state, { response }) => ({
         ...state,
-        transformingJoltSpec: false,
+        saving: false,
         transformationResponse: null,
         transformationFailureResponse: response
     }))

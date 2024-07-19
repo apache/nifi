@@ -27,9 +27,6 @@ import {
 
 export const initialState: JoltTransformJsonPropertyState = {
     saving: false,
-    loadedTimestamp: '',
-    status: 'pending',
-    savingProperties: false,
     savePropertiesResponse: null,
     savePropertiesFailureResponse: null
 };
@@ -41,21 +38,21 @@ export const joltTransformJsonPropertyReducer = createReducer(
     })),
     on(saveProperties, (state) => ({
         ...state,
-        savingProperties: true
+        saving: true
     })),
     on(savePropertiesSuccess, (state, { response }) => ({
         ...state,
-        savingProperties: false,
+        saving: false,
         savePropertiesResponse: response
     })),
     on(savePropertiesFailure, (state, { response }) => ({
         ...state,
-        savingProperties: false,
+        saving: false,
         savePropertiesFailureResponse: response
     })),
     on(resetSavePropertiesState, (state) => ({
         ...state,
-        savingProperties: false,
+        saving: false,
         savePropertiesResponse: null,
         savePropertiesFailureResponse: null
     }))

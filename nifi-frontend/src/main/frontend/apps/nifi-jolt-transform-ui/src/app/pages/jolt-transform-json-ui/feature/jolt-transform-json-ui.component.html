@@ -97,7 +97,7 @@
                                         (codeMirrorLoaded)="initSpecEditor($event)"></ngx-codemirror>
                                 </div>
                                 <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                    @if (joltState.validate().validatingJoltSpec) {
+                                    @if (joltState.validate().saving) {
                                         <i
                                             class="fa fa-refresh fa-spin mr-2"
                                             nifiTooltip
@@ -137,7 +137,7 @@
                                             }}</mat-hint>
                                         }
                                     }
-                                    @if (joltState.properties().savingProperties) {
+                                    @if (joltState.properties().saving) {
                                         <i
                                             class="fa fa-refresh fa-spin text-shadow mr-2"
                                             nifiTooltip
@@ -293,7 +293,7 @@
                                 </mat-accordion>
                                 <div class="flex flex-1 mt-2 justify-start">
                                     <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        @if (joltState.transform().transformingJoltSpec) {
+                                        @if (joltState.transform().saving) {
                                             <i
                                                 class="fa fa-refresh fa-spin mr-2"
                                                 nifiTooltip

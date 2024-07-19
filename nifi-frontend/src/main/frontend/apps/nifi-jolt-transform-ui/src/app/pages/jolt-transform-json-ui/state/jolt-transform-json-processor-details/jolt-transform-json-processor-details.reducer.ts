@@ -25,8 +25,6 @@ import {
 
 export const initialState: JoltTransformJsonProcessorDetailsState = {
     saving: false,
-    loadedTimestamp: '',
-    status: 'pending',
     processorDetails: null
 };
 

@@ -32,8 +32,3 @@ export const selectSaving = createSelector(
     selectJoltTransformJsonValidateState,
     (state: JoltTransformJsonValidateState) => state.saving
 );
-
-export const selectStatus = createSelector(
-    selectJoltTransformJsonValidateState,
-    (state: JoltTransformJsonValidateState) => state.status
-);
