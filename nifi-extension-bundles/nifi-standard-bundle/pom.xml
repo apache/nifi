@@ -117,7 +117,7 @@
             <dependency>
                 <groupId>net.sf.saxon</groupId>
                 <artifactId>Saxon-HE</artifactId>
-                <version>12.4</version>
+                <version>12.5</version>
             </dependency>
             <dependency>
                 <groupId>javax.jms</groupId>
@@ -231,7 +231,7 @@
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-                <version>1.4.2</version>
+                <version>1.5.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
