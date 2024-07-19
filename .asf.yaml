@@ -28,6 +28,8 @@ github:
     squash:  true
     merge:   true
     rebase:  true
+  autolink_jira:
+    - NIFI
 notifications:
     commits:      commits@nifi.apache.org
     issues:       issues@nifi.apache.org
