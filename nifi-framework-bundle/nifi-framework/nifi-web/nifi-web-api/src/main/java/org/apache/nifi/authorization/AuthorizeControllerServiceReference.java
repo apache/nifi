@@ -162,7 +162,6 @@ public final class AuthorizeControllerServiceReference {
             Authorizable serviceAuthorizable = service.getAuthorizable();
 
             serviceAuthorizable.authorize(authorizer, RequestAction.READ, user);
-            serviceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
         });
     }
 }
