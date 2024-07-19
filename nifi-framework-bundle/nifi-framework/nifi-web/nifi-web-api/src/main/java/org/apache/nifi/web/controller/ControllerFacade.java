@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.controller;
 
+import jakarta.ws.rs.WebApplicationException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -66,8 +67,8 @@ import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
-import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -107,6 +108,7 @@ import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.provenance.AttributeDTO;
+import org.apache.nifi.web.api.dto.provenance.LatestProvenanceEventsDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
@@ -126,7 +128,6 @@ import org.apache.nifi.web.search.query.SearchQueryParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.Collator;
@@ -137,10 +138,10 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
@@ -1414,20 +1415,37 @@ public class ControllerFacade implements Authorizable {
             }
 
             // lookup the original event
-            final Optional<ProvenanceEventRecord> optionalEvent = flowController.getProvenanceRepository().getLatestCachedEvent(componentId);
-            if (!optionalEvent.isPresent()) {
+            final List<ProvenanceEventRecord> latestEvents = flowController.getProvenanceRepository().getLatestCachedEvents(componentId);
+            if (latestEvents.isEmpty()) {
                 return null;
             }
 
-            // Authorize the replay
-            final ProvenanceEventRecord event = optionalEvent.get();
-            authorizeReplay(event);
+            final Iterator<ProvenanceEventRecord> itr = latestEvents.iterator();
+            while (itr.hasNext()) {
+                final ProvenanceEventRecord event = itr.next();
 
-            // Replay the FlowFile
-            flowController.replayFlowFile(event, user);
+                try {
+                    // Authorize the replay
+                    authorizeReplay(event);
 
-            // convert the event record
-            return createProvenanceEventDto(event, false);
+                    // Replay the FlowFile
+                    flowController.replayFlowFile(event, user);
+
+                    // convert the event record
+                    return createProvenanceEventDto(event, false);
+                } catch (final IOException e) {
+                    throw e;
+                } catch (final Exception e) {
+                    if (itr.hasNext()) {
+                        logger.debug("Failed to replay Provenance Event {} but will continue to try remaining events", event, e);
+                    } else {
+                        throw e;
+                    }
+                }
+            }
+
+            // Won't happen, because we will have either thrown an Exception or returned the result of createProvenanceEventDto, but necessary for compiler
+            return null;
         } catch (final IOException ioe) {
             throw new NiFiCoreException("An error occurred while getting the specified event.", ioe);
         }
@@ -1516,6 +1534,30 @@ public class ControllerFacade implements Authorizable {
             return createProvenanceEventDto(event, false);
         } catch (final IOException ioe) {
             throw new NiFiCoreException("An error occurred while getting the specified event.", ioe);
+        }
+    }
+
+    public LatestProvenanceEventsDTO getLatestProvenanceEvents(final String componentId) {
+        final Authorizable authorizable = flowController.getProvenanceAuthorizableFactory().createProvenanceDataAuthorizable(componentId);
+        final Authorizer authorizer = flowController.getAuthorizer();
+        if (!authorizable.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
+            throw new AccessDeniedException("User does not have permission to view the latest events for the specified component.");
+        }
+
+        try {
+            final List<ProvenanceEventRecord> events = flowController.getProvenanceRepository().getLatestCachedEvents(componentId);
+            final List<ProvenanceEventDTO> eventDtos = new ArrayList<>();
+            for (final ProvenanceEventRecord event : events) {
+                eventDtos.add(createProvenanceEventDto(event, false));
+            }
+
+            final LatestProvenanceEventsDTO dto = new LatestProvenanceEventsDTO();
+            dto.setComponentId(componentId);
+            dto.setProvenanceEvents(eventDtos);
+
+            return dto;
+        } catch (final IOException ioe) {
+            throw new NiFiCoreException("An error occurred while getting the latest events for the specified component.", ioe);
         }
     }
 

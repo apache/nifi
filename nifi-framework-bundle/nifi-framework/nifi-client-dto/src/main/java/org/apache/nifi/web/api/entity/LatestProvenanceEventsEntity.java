@@ -15,20 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.provenance.index.lucene;
+package org.apache.nifi.web.api.entity;
 
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.search.Query;
-import org.apache.nifi.provenance.serialization.StorageSummary;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.provenance.LatestProvenanceEventsDTO;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+@XmlRootElement(name = "latestProvenanceEventsEntity")
+public class LatestProvenanceEventsEntity extends Entity {
+    private LatestProvenanceEventsDTO latestProvenanceEvents;
 
-public interface CachedQuery {
+    /**
+     * @return latest provenance events
+     */
+    public LatestProvenanceEventsDTO getLatestProvenanceEvents() {
+        return latestProvenanceEvents;
+    }
 
-    void update(Map<ProvenanceEventRecord, StorageSummary> events);
-
-    Optional<List<Long>> evaluate(Query query);
-
+    public void setLatestProvenanceEvents(LatestProvenanceEventsDTO latestProvenanceEvents) {
+        this.latestProvenanceEvents = latestProvenanceEvents;
+    }
 }

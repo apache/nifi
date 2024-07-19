@@ -368,14 +368,14 @@ public class LuceneEventIndex implements EventIndex {
         File lastIndexDir = null;
         long lastEventTime = -2L;
 
+        for (final CachedQuery cachedQuery : cachedQueries) {
+            cachedQuery.update(events);
+        }
+
         final List<IndexableDocument> indexableDocs = new ArrayList<>(events.size());
         for (final Map.Entry<ProvenanceEventRecord, StorageSummary> entry : events.entrySet()) {
             final ProvenanceEventRecord event = entry.getKey();
             final StorageSummary summary = entry.getValue();
-
-            for (final CachedQuery cachedQuery : cachedQueries) {
-                cachedQuery.update(event, summary);
-            }
 
             final Document document = eventConverter.convert(event, summary);
             if (document == null) {
@@ -424,10 +424,6 @@ public class LuceneEventIndex implements EventIndex {
     }
 
     protected void addEvent(final ProvenanceEventRecord event, final StorageSummary location) {
-        for (final CachedQuery cachedQuery : cachedQueries) {
-            cachedQuery.update(event, location);
-        }
-
         final Document document = eventConverter.convert(event, location);
         if (document == null) {
             logger.debug("Received Provenance Event {} to index but it contained no information that should be indexed, so skipping it", event.getEventId());
@@ -485,6 +481,10 @@ public class LuceneEventIndex implements EventIndex {
 
         for (final Map.Entry<ProvenanceEventRecord, StorageSummary> entry : events.entrySet()) {
             addEvent(entry.getKey(), entry.getValue());
+        }
+
+        for (final CachedQuery cachedQuery : cachedQueries) {
+            cachedQuery.update(events);
         }
     }
 
@@ -643,22 +643,28 @@ public class LuceneEventIndex implements EventIndex {
     }
 
     @Override
-    public Optional<ProvenanceEventRecord> getLatestCachedEvent(final String componentId) throws IOException {
+    public List<ProvenanceEventRecord> getLatestCachedEvents(final String componentId) throws IOException {
         final List<Long> eventIds = latestEventsPerProcessorQuery.getLatestEventIds(componentId);
         if (eventIds.isEmpty()) {
             logger.info("There are no recent Provenance Events cached for Component with ID {}", componentId);
-            return Optional.empty();
+            return List.of();
         }
 
-        final Long latestEventId = eventIds.get(eventIds.size() - 1);
-        final Optional<ProvenanceEventRecord> latestEvent = eventStore.getEvent(latestEventId);
-        if (latestEvent.isPresent()) {
-            logger.info("Returning {} as the most recent Provenance Events cached for Component with ID {}", latestEvent.get(), componentId);
-        } else {
+        final List<ProvenanceEventRecord> latestEvents = new ArrayList<>(eventIds.size());
+        for (final Long eventId : eventIds) {
+            final Optional<ProvenanceEventRecord> latestEvent = eventStore.getEvent(eventId);
+            if (latestEvent.isPresent()) {
+                latestEvents.add(latestEvent.get());
+            }
+        }
+
+        if (latestEvents.isEmpty()) {
             logger.info("There are no recent Provenance Events cached for Component with ID {}", componentId);
+        } else {
+            logger.info("Returning {} as the most recent Provenance Events cached for Component with ID {}", latestEvents, componentId);
         }
 
-        return latestEvent;
+        return latestEvents;
     }
 
     @Override

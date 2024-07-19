@@ -114,6 +114,7 @@ import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
+import org.apache.nifi.web.api.entity.LatestProvenanceEventsEntity;
 import org.apache.nifi.web.api.entity.NarDetailsEntity;
 import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
@@ -321,6 +322,13 @@ public interface NiFiServiceFacade {
      * @return event
      */
     ProvenanceEventDTO getProvenanceEvent(Long id);
+
+    /**
+     * Gets the latest provenance events for the specified component.
+     * @param componentId the ID of the components to retrieve the latest events for
+     * @return the latest provenance events
+     */
+    LatestProvenanceEventsEntity getLatestProvenanceEvents(String componentId);
 
     /**
      * Gets the configuration for this controller.

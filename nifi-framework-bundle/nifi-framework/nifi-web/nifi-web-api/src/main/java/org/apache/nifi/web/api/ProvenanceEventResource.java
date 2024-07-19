@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URI;
-import java.util.Collections;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -57,6 +51,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
+import org.apache.nifi.web.api.entity.LatestProvenanceEventsEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEventEntity;
 import org.apache.nifi.web.api.entity.ReplayLastEventRequestEntity;
 import org.apache.nifi.web.api.entity.ReplayLastEventResponseEntity;
@@ -66,6 +61,12 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.ResponseBuilderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.Collections;
 
 /**
  * RESTful endpoint for querying data provenance.
@@ -494,6 +495,45 @@ public class ProvenanceEventResource extends ApplicationResource {
         // generate the response
         URI uri = URI.create(generateResourceUri("provenance-events", event.getId()));
         return generateCreatedResponse(uri, entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("latest/{componentId}")
+    @Operation(
+        summary = "Retrieves the latest cached Provenance Events for the specified component",
+        responses = @ApiResponse(content = @Content(schema = @Schema(implementation = LatestProvenanceEventsEntity.class))),
+        security = {
+            @SecurityRequirement(name = "Read Component Provenance Data - /provenance-data/{component-type}/{uuid}"),
+            @SecurityRequirement(name = "Read Component Data - /data/{component-type}/{uuid}")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+            @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+            @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+            @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+        }
+    )
+    public Response getLatestProvenanceEvents(
+        @Parameter(
+            description = "The ID of the component to retrieve the latest Provenance Events for.",
+            required = true
+        )
+        @PathParam("componentId") final String componentId
+    ) {
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // get the latest provenance events
+        final LatestProvenanceEventsEntity entity = serviceFacade.getLatestProvenanceEvents(componentId);
+
+        // generate the response
+        return generateOkResponse(entity).build();
     }
 
     // setters

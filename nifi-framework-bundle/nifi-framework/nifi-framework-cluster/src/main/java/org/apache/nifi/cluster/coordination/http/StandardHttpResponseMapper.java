@@ -51,6 +51,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.GroupStatusEndpointMe
 import org.apache.nifi.cluster.coordination.http.endpoints.InputPortsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.LabelEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.LabelsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.LatestProvenanceEventsMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ListFlowFilesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.NarDetailsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.NarSummariesEndpointMerger;
@@ -111,7 +112,7 @@ import java.util.stream.Collectors;
 
 public class StandardHttpResponseMapper implements HttpResponseMapper {
 
-    private Logger logger = LoggerFactory.getLogger(StandardHttpResponseMapper.class);
+    private final Logger logger = LoggerFactory.getLogger(StandardHttpResponseMapper.class);
 
     private final List<EndpointResponseMerger> endpointMergers = new ArrayList<>();
 
@@ -145,6 +146,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new FlowSnippetEndpointMerger());
         endpointMergers.add(new ProvenanceQueryEndpointMerger());
         endpointMergers.add(new ProvenanceEventEndpointMerger());
+        endpointMergers.add(new LatestProvenanceEventsMerger());
         endpointMergers.add(new ControllerServiceEndpointMerger());
         endpointMergers.add(new ControllerServicesEndpointMerger());
         endpointMergers.add(new ControllerServiceReferenceEndpointMerger());

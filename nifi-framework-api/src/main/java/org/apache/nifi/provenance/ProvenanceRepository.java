@@ -26,7 +26,6 @@ import org.apache.nifi.provenance.search.SearchableField;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 public interface ProvenanceRepository extends ProvenanceEventRepository {
@@ -95,12 +94,12 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
     QuerySubmission submitQuery(Query query, NiFiUser user);
 
     /**
-     * Retrieves the most recent Provenance Event that is cached for the given component that is also accessible by the given user
+     * Retrieves the Provenance Events that are cached for the most recent invocation of the given component.
      * @param componentId the ID of the component
-     * @return an Optional containing the event, or an empty optional if no events are available or none of the available events are accessible by the given user
+     * @return the list of events that are cached for the given component
      * @throws IOException if unable to read from the repository
      */
-    Optional<ProvenanceEventRecord> getLatestCachedEvent(String componentId) throws IOException;
+    List<ProvenanceEventRecord> getLatestCachedEvents(String componentId) throws IOException;
 
     /**
      * @param queryIdentifier of the query

@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -54,6 +50,10 @@ import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.LineageEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
 import org.apache.nifi.web.api.entity.ProvenanceOptionsEntity;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
