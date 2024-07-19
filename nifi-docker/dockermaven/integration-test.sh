@@ -70,7 +70,7 @@ echo
 
 echo "Checking NiFi REST API Access (expect status: 400)"
 # Return code is 400 instead of 200 because of an invalid SNI
-test "400" = "$(docker exec "${container_name}" bash -c "curl -ksSo /dev/null -w %{http_code} -m 10 --retry 5 --retry-connrefused --retry-max-time 60 https://${ip}:${port}/nifi-api/access")"
+test "400" = "$(docker exec "${container_name}" bash -c "curl -ksSo /dev/null -w %{http_code} -m 10 --retry 5 --retry-connrefused --retry-max-time 60 https://${ip}:${port}/nifi-api/authentication/configuration")"
 echo
 
 echo "Stopping NiFi container"

@@ -606,11 +606,6 @@
     <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
         <property name="logoutRequestManager" ref="logoutRequestManager" />
         <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
-        <property name="x509AuthenticationProvider" ref="x509AuthenticationProvider"/>
-        <property name="certificateExtractor" ref="certificateExtractor"/>
-        <property name="principalExtractor" ref="principalExtractor"/>
-        <property name="jwtAuthenticationProvider" ref="jwtAuthenticationProvider"/>
-        <property name="jwtDecoder" ref="jwtDecoder" />
         <property name="jwtLogoutListener" ref="jwtLogoutListener"/>
         <property name="bearerTokenProvider" ref="bearerTokenProvider"/>
         <property name="bearerTokenResolver" ref="bearerTokenResolver"/>

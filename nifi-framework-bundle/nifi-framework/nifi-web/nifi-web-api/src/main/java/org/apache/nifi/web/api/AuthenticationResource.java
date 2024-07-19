@@ -32,7 +32,6 @@ import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AuthenticationConfigurationDTO;
-import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
 import org.apache.nifi.web.api.entity.AuthenticationConfigurationEntity;
 import org.apache.nifi.web.configuration.AuthenticationConfiguration;
 import org.apache.nifi.web.util.RequestUriBuilder;
@@ -66,7 +65,7 @@ public class AuthenticationResource extends ApplicationResource {
     @Path("/configuration")
     @Operation(
             summary = "Retrieves the authentication configuration endpoint and status information",
-            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AccessConfigurationEntity.class)))
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AuthenticationConfigurationEntity.class)))
     )
     public Response getAuthenticationConfiguration() {
         final AuthenticationConfigurationDTO configuration = new AuthenticationConfigurationDTO();

@@ -74,8 +74,6 @@ import java.util.stream.Collectors;
 @EnableMethodSecurity
 public class WebSecurityConfiguration {
     private static final List<String> UNFILTERED_PATHS = List.of(
-            "/access",
-            "/access/config",
             "/access/token",
             "/access/logout/complete",
             "/authentication/configuration"
