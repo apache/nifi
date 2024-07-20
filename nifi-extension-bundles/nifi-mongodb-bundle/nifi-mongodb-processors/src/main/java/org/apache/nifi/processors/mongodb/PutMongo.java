@@ -32,7 +32,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -249,7 +248,7 @@ public class PutMongo extends AbstractMongoProcessor {
                     BasicDBObject update = (BasicDBObject) doc;
                     update.remove(updateKey);
                     UpdateOptions updateOptions = new UpdateOptions().upsert(upsert);
-                    PropertyValue updateQueryMode = context.getProperty(UPDATE_METHOD);
+                    UpdateMethod updateQueryMode = context.getProperty(UPDATE_METHOD).asAllowableValue(UpdateMethod.class);
 
                     if (this.updateModeMatches(UpdateMethod.UPDATE_ONE, updateQueryMode, flowFile)) {
                         updateResult = collection.updateOne(updateQuery, update, updateOptions);

@@ -30,7 +30,6 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -193,10 +192,6 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         public String getDescription() {
             return description;
         }
-
-        public boolean matches(String value) {
-            return this.value.equals(value);
-        }
     }
 
     protected ObjectMapper objectMapper;
@@ -277,11 +272,11 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
      * @return true if the incoming files update mode matches with updateMethodToMatch
      */
     protected boolean updateModeMatches(
-        UpdateMethod updateMethodToMatch, PropertyValue configuredUpdateMethod, FlowFile flowFile) {
-        String updateMode = configuredUpdateMethod.getValue();
+        UpdateMethod updateMethodToMatch, UpdateMethod configuredUpdateMethod, FlowFile flowFile) {
 
-        return updateMethodToMatch.matches(updateMode) || (UpdateMethod.UPDATE_FF_ATTRIBUTE.matches(updateMode) && updateMethodToMatch.getValue()
-            .equalsIgnoreCase(flowFile.getAttribute(ATTRIBUTE_MONGODB_UPDATE_MODE)));
+        return updateMethodToMatch == configuredUpdateMethod
+            || (UpdateMethod.UPDATE_FF_ATTRIBUTE == configuredUpdateMethod
+                    && updateMethodToMatch.getValue().equalsIgnoreCase(flowFile.getAttribute(ATTRIBUTE_MONGODB_UPDATE_MODE)));
     }
 
 }

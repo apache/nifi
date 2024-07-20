@@ -31,7 +31,6 @@ import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -220,7 +219,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 WriteModel<Document> writeModel;
                 if (context.getProperty(UPDATE_KEY_FIELDS).isSet()) {
                     Bson[] filters = buildFilters(updateKeyFieldPathToFieldChain, readyToUpsert);
-                    PropertyValue mongoUpdateMode = context.getProperty(UPDATE_MODE);
+                    UpdateMethod mongoUpdateMode = context.getProperty(UPDATE_MODE).asAllowableValue(UpdateMethod.class);
                     if (this.updateModeMatches(UpdateMethod.UPDATE_ONE, mongoUpdateMode, flowFile)) {
                         writeModel = new UpdateOneModel<>(
                             Filters.and(filters),
