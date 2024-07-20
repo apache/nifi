@@ -195,7 +195,7 @@ public class PublishAMQPTest {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
-        runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.ATTRIBUTES);
+        runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.FLOWFILE_ATTRIBUTES);
         runner.setProperty(PublishAMQP.HEADERS_ATTRIBUTES_REGEX, "test.*|tmp\\..*|foo2|foo3");
 
         final Map<String, String> expectedHeaders = new HashMap<>();
@@ -239,106 +239,9 @@ public class PublishAMQPTest {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
         setConnectionProperties(runner);
-        runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.ATTRIBUTES);
+        runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.FLOWFILE_ATTRIBUTES);
         runner.setProperty(PublishAMQP.HEADERS_ATTRIBUTES_REGEX, "*");
         runner.assertNotValid();
-    }
-
-    @Test
-    public void validateSuccessWithHeaderFromBothSourcesToSuccess() throws Exception {
-        final PublishAMQP pubProc = new LocalPublishAMQP();
-        final TestRunner runner = TestRunners.newTestRunner(pubProc);
-        setConnectionProperties(runner);
-        runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.BOTH);
-        // header keys from `amq$headers will be put in output if present in both sources
-        runner.setProperty(PublishAMQP.HEADERS_SOURCE_PRECEDENCE, InputHeaderSource.STRING);
-        runner.setProperty(PublishAMQP.HEADERS_ATTRIBUTES_REGEX, "test.*|tmp\\..*|foo2|foo3");
-        runner.setProperty(PublishAMQP.HEADER_SEPARATOR, "|");
-        final Map<String, String> expectedHeaders = new HashMap<>();
-            expectedHeaders.put("test1", "value1");
-            expectedHeaders.put("test2", "value2");
-            expectedHeaders.put("foo2", "string"); // value should be from `amq$headers` since precedence is set from string
-            expectedHeaders.put("foo3", null);
-            expectedHeaders.put("tmp.test1", "tmp1");
-            expectedHeaders.put("tmp.test2.key", "tmp2");
-            expectedHeaders.put("foo", "(bar,bar)");
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, "foo=(bar,bar)|foo2=string");
-        attributes.put("test1", "value1");
-        attributes.put("test2", "value2");
-        attributes.put("foo4", "value4");
-        attributes.put("foo2", "attribute");
-        attributes.put("foo3", null);
-        // attributes where key matches Regex for headers
-        attributes.put("tmp.test1", "tmp1");
-        attributes.put("tmp.test2.key", "tmp2");
-
-        runner.enqueue("Hello Joe".getBytes(), attributes);
-
-        runner.run();
-
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
-        assertNotNull(successFF);
-
-        final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
-        final GetResponse msg1 = channel.basicGet("queue1", true);
-        assertNotNull(msg1);
-
-        final Map<String, Object> headerMap = msg1.getProps().getHeaders();
-
-        assertEquals(expectedHeaders, headerMap);
-
-        assertNotNull(channel.basicGet("queue2", true));
-    }
-
-    @Test
-    public void validateSuccessAttributesPrecedenceWithHeaderFromBothSourcesToSuccess() throws Exception {
-        final PublishAMQP pubProc = new LocalPublishAMQP();
-        final TestRunner runner = TestRunners.newTestRunner(pubProc);
-        setConnectionProperties(runner);
-        runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.BOTH);
-        // header keys from `amq$headers will be put in output if present in both sources
-        runner.setProperty(PublishAMQP.HEADERS_SOURCE_PRECEDENCE, InputHeaderSource.ATTRIBUTES);
-        runner.setProperty(PublishAMQP.HEADERS_ATTRIBUTES_REGEX, "test.*|tmp\\..*|foo2|foo3");
-        runner.setProperty(PublishAMQP.HEADER_SEPARATOR, "|");
-        final Map<String, String> expectedHeaders = new HashMap<>();
-        expectedHeaders.put("test1", "value1");
-        expectedHeaders.put("test2", "value2");
-        expectedHeaders.put("foo2", "attribute"); // value should be from attribute since precedence is set from attribute
-        expectedHeaders.put("foo3", null);
-        expectedHeaders.put("tmp.test1", "tmp1");
-        expectedHeaders.put("tmp.test2.key", "tmp2");
-        expectedHeaders.put("foo", "(bar,bar)");
-
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, "foo=(bar,bar)|foo2=string");
-        attributes.put("test1", "value1");
-        attributes.put("test2", "value2");
-        attributes.put("foo4", "value4");
-        attributes.put("foo2", "attribute");
-        attributes.put("foo3", null);
-        // attributes where key matches Regex for headers
-        attributes.put("tmp.test1", "tmp1");
-        attributes.put("tmp.test2.key", "tmp2");
-
-        runner.enqueue("Hello Joe".getBytes(), attributes);
-
-        runner.run();
-
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
-        assertNotNull(successFF);
-
-        final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
-        final GetResponse msg1 = channel.basicGet("queue1", true);
-        assertNotNull(msg1);
-
-        final Map<String, Object> headerMap = msg1.getProps().getHeaders();
-
-        assertEquals(expectedHeaders, headerMap);
-
-        assertNotNull(channel.basicGet("queue2", true));
     }
 
     private void setConnectionProperties(TestRunner runner) {

@@ -19,7 +19,6 @@ package org.apache.nifi.amqp.processors;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Connection;
-import java.util.EnumSet;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -62,7 +61,8 @@ import java.util.regex.Pattern;
     @ReadsAttribute(attribute = AbstractAMQPProcessor.AMQP_APPID_ATTRIBUTE, description = "The App ID field to set on the AMQP Message"),
     @ReadsAttribute(attribute = AbstractAMQPProcessor.AMQP_CONTENT_ENCODING_ATTRIBUTE, description = "The Content Encoding to set on the AMQP Message"),
     @ReadsAttribute(attribute = AbstractAMQPProcessor.AMQP_CONTENT_TYPE_ATTRIBUTE, description = "The Content Type to set on the AMQP Message"),
-    @ReadsAttribute(attribute = AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, description = "The headers to set on the AMQP Message"),
+    @ReadsAttribute(attribute = AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, description = "The headers to set on the AMQP Message, if 'Header Source' is set to use it. "
+        + "See additional details of the processor."),
     @ReadsAttribute(attribute = AbstractAMQPProcessor.AMQP_DELIVERY_MODE_ATTRIBUTE, description = "The numeric indicator for the Message's Delivery Mode"),
     @ReadsAttribute(attribute = AbstractAMQPProcessor.AMQP_PRIORITY_ATTRIBUTE, description = "The Message priority"),
     @ReadsAttribute(attribute = AbstractAMQPProcessor.AMQP_CORRELATION_ID_ATTRIBUTE, description = "The Message's Correlation ID"),
@@ -87,7 +87,6 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .build();
     public static final PropertyDescriptor ROUTING_KEY = new PropertyDescriptor.Builder()
             .name("Routing Key")
-            .displayName("Routing Key")
             .description("The name of the Routing Key that will be used by AMQP to route messages from the exchange to a destination queue(s). "
                     + "Usually provided by the administrator (e.g., 'myKey')In the event when messages are sent to a default exchange this property "
                     + "corresponds to a destination queue name, otherwise a binding from the Exchange to a Queue via Routing Key must be set "
@@ -98,31 +97,17 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .build();
     public static final PropertyDescriptor HEADERS_SOURCE = new PropertyDescriptor.Builder()
             .name("Headers Source")
-            .displayName("Headers Source")
-            .description(
-                    "The source of the headers which will be put in the published message. They can come either from the processor property as a string or they can be " +
-                            "picked from flow file attributes based on Regex expression.")
+            .description("The source of the headers which will be applied to the published message.")
             .required(true)
-            .allowableValues(InputHeaderSource.getAllowedValues())
-            .defaultValue(InputHeaderSource.STRING)
-            .build();
-    public static final PropertyDescriptor HEADERS_SOURCE_PRECEDENCE = new PropertyDescriptor.Builder()
-            .name("Headers Source Precedence")
-            .displayName("Headers Source Precedence")
-            .description(
-                    "In case of key duplication in header sources, this defines which value to take.")
-            .required(true)
-            .dependsOn(HEADERS_SOURCE, InputHeaderSource.BOTH)
-            .allowableValues(InputHeaderSource.STRING, InputHeaderSource.ATTRIBUTES)
-            .defaultValue(InputHeaderSource.STRING)
+            .allowableValues(InputHeaderSource.class)
+            .defaultValue(InputHeaderSource.AMQP_HEADERS_ATTRIBUTE)
             .build();
     public static final PropertyDescriptor HEADERS_ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
             .name("Attributes To Headers Regular Expression")
-            .displayName("Attributes To Headers Regular Expression")
-            .description("Regular expression that will be evaluated against the flow file attributes to select "
-                    + "the matching attributes and put as AMQP headers.")
+            .description("Regular expression that will be evaluated against the flow file attributes to select the matching attributes and put as AMQP headers. "
+                + "Attribute name will be used as header key.")
             .required(true)
-            .dependsOn(HEADERS_SOURCE, InputHeaderSource.ATTRIBUTES, InputHeaderSource.BOTH)
+            .dependsOn(HEADERS_SOURCE, InputHeaderSource.FLOWFILE_ATTRIBUTES)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -133,7 +118,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .description("The character that is used to split key-value for headers. The value must only one character. "
                     + "Otherwise you will get an error message")
             .defaultValue(",")
-            .dependsOn(HEADERS_SOURCE, InputHeaderSource.STRING, InputHeaderSource.BOTH)
+            .dependsOn(HEADERS_SOURCE, InputHeaderSource.AMQP_HEADERS_ATTRIBUTE)
             .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
             .required(false)
             .build();
@@ -157,7 +142,6 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         properties.add(EXCHANGE);
         properties.add(ROUTING_KEY);
         properties.add(HEADERS_SOURCE);
-        properties.add(HEADERS_SOURCE_PRECEDENCE);
         properties.add(HEADERS_ATTRIBUTES_REGEX);
         properties.add(HEADER_SEPARATOR);
         properties.addAll(getCommonPropertyDescriptors());
@@ -172,8 +156,8 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * <br>
      * <p>
      * NOTE: Attributes extracted from {@link FlowFile} are considered candidates for AMQP properties if their names are prefixed with
-     * "amq$" (e.g., amqp$contentType=text/xml). For "amqp$headers" it depends on the value of
-     * {@link PublishAMQP#HEADERS_SOURCE}, if the value is {@link InputHeaderSource#ATTRIBUTES} then message headers are created from this attribute value,
+     * "amqp$" (e.g., amqp$contentType=text/xml). For "amqp$headers" it depends on the value of
+     * {@link PublishAMQP#HEADERS_SOURCE}, if the value is {@link InputHeaderSource#FLOWFILE_ATTRIBUTES} then message headers are created from this attribute value,
      * otherwise this attribute will be ignored.
      */
     @Override
@@ -188,21 +172,17 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"
                 + context.getProperty(ROUTING_KEY) + "' after evaluating it as expression against incoming FlowFile.");
         }
-        String selectedHeaderSource = context.getProperty(HEADERS_SOURCE).getValue();
-        String headerSourcePrecedence = null;
+        InputHeaderSource selectedHeaderSource = context.getProperty(HEADERS_SOURCE).asAllowableValue(InputHeaderSource.class);
         Character headerSeparator = null;
         Pattern pattern = null;
         if (context.getProperty(HEADERS_ATTRIBUTES_REGEX).isSet()) {
             pattern = Pattern.compile(context.getProperty(HEADERS_ATTRIBUTES_REGEX).evaluateAttributeExpressions().getValue());
         }
-        if (context.getProperty(HEADERS_SOURCE_PRECEDENCE).isSet()) {
-            headerSourcePrecedence = context.getProperty(HEADERS_SOURCE_PRECEDENCE).getValue();
-        }
         if (context.getProperty(HEADER_SEPARATOR).isSet()) {
             headerSeparator = context.getProperty(HEADER_SEPARATOR).getValue().charAt(0);
         }
 
-        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile, selectedHeaderSource, headerSourcePrecedence, headerSeparator, pattern);
+        final BasicProperties amqpProperties = extractAmqpPropertiesFromFlowFile(flowFile, selectedHeaderSource, headerSeparator, pattern);
 
         final String exchange = context.getProperty(EXCHANGE).evaluateAttributeExpressions(flowFile).getValue();
         final byte[] messageContent = extractMessage(flowFile, session);
@@ -240,7 +220,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     /**
      * Extracts contents of the {@link FlowFile} as byte array.
      */
-    private byte[] extractMessage(FlowFile flowFile, ProcessSession session) {
+    private byte[] extractMessage(final FlowFile flowFile, ProcessSession session) {
         final byte[] messageContent = new byte[(int) flowFile.getSize()];
         session.read(flowFile, in -> StreamUtils.fillBuffer(in, messageContent, true));
         return messageContent;
@@ -270,9 +250,9 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     /**
      * Extracts AMQP properties from the {@link FlowFile} attributes. Attributes
      * extracted from {@link FlowFile} are considered candidates for AMQP
-     * properties if their names are prefixed with "amq$" (e.g., amqp$contentType=text/xml).
+     * properties if their names are prefixed with "amqp$" (e.g., amqp$contentType=text/xml).
      */
-    private BasicProperties extractAmqpPropertiesFromFlowFile(FlowFile flowFile, String selectedHeaderSource, String headerSourcePrecedence, Character separator, Pattern pattern) {
+    private BasicProperties extractAmqpPropertiesFromFlowFile(final FlowFile flowFile, final InputHeaderSource selectedHeaderSource, final Character separator, final Pattern pattern) {
         final AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
 
         readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_CONTENT_TYPE_ATTRIBUTE, builder::contentType);
@@ -289,7 +269,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_APPID_ATTRIBUTE, builder::appId);
         readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_CLUSTER_ID_ATTRIBUTE, builder::clusterId);
 
-        Map<String, Object> headers = prepareAMQPHeaders(flowFile, selectedHeaderSource, headerSourcePrecedence, separator, pattern);
+        Map<String, Object> headers = prepareAMQPHeaders(flowFile, selectedHeaderSource, separator, pattern);
         builder.headers(headers);
 
         return builder.build();
@@ -301,21 +281,12 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * @param flowFile used to extract headers
      * @return {@link Map}
      */
-    private Map<String, Object> prepareAMQPHeaders(FlowFile flowFile, String selectedHeaderSource, String headerSourcePrecedence, Character headerSeparator, Pattern pattern) {
+    private Map<String, Object> prepareAMQPHeaders(final FlowFile flowFile, final InputHeaderSource selectedHeaderSource, final Character headerSeparator, final Pattern pattern) {
         final Map<String, Object> headers = new HashMap<>();
-        if (InputHeaderSource.ATTRIBUTES.getValue().equals(selectedHeaderSource)) {
-                headers.putAll(attributesToHeaders(flowFile.getAttributes(), pattern));
-        } else if (InputHeaderSource.STRING.getValue().equals(selectedHeaderSource)) {
+        if (InputHeaderSource.FLOWFILE_ATTRIBUTES.equals(selectedHeaderSource)) {
+                headers.putAll(getMatchedAttributes(flowFile.getAttributes(), pattern));
+        } else if (InputHeaderSource.AMQP_HEADERS_ATTRIBUTE.equals(selectedHeaderSource)) {
             readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, value -> headers.putAll(validateAMQPHeaderProperty(value, headerSeparator)));
-        } else {
-            // When precedence matches, put values in the last so it can override keys from other source
-            if (InputHeaderSource.ATTRIBUTES.getValue().equals(headerSourcePrecedence)) {
-                readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, value -> headers.putAll(validateAMQPHeaderProperty(value, headerSeparator)));
-                headers.putAll(attributesToHeaders(flowFile.getAttributes(), pattern));
-            } else {
-                headers.putAll(attributesToHeaders(flowFile.getAttributes(), pattern));
-                readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, value -> headers.putAll(validateAMQPHeaderProperty(value, headerSeparator)));
-            }
         }
         return headers;
     }
@@ -325,7 +296,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * @param attributes flowFile attributes to scan for match
      * @return Map with entries matching the pattern
      */
-    private Map<String, String> attributesToHeaders(Map<String, String> attributes, Pattern pattern) {
+    private Map<String, String> getMatchedAttributes(final Map<String, String> attributes, final Pattern pattern) {
         final Map<String, String> headers = new HashMap<>();
         for (Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
             if (pattern.matcher(attributeEntry.getKey()).matches()) {
@@ -342,7 +313,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * @param amqpPropValue the value of the property
      * @return {@link Map} if valid otherwise null
      */
-    private Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue, Character splitValue) {
+    private Map<String, Object> validateAMQPHeaderProperty(final String amqpPropValue, final Character splitValue) {
         final String[] strEntries = amqpPropValue.split(Pattern.quote(String.valueOf(splitValue)));
         final Map<String, Object> headers = new HashMap<>();
         for (String strEntry : strEntries) {
@@ -359,36 +330,24 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     }
     public enum InputHeaderSource implements DescribedValue {
 
-        ATTRIBUTES("headersFromAttributes", "Attributes Matching Regex",
-            "Select attributes based on regex pattern to put in rabbitmq headers. Key of the attribute will be used as header key"),
-        STRING("headersFromString", "Attribute 'amp$headers' Value",
-            "Prepare headers from 'amp$headers' attribute string"),
-        BOTH("headersFromBoth", "Regex Match And 'amp$headers' Value",
-            "Take headers from both sources: 'amp$headers' attribute and attributes matching Regex. In case of key duplication precedence property will define which value to take.");
-
-        private final String value;
-        private final String displayName;
+        FLOWFILE_ATTRIBUTES("Attributes Matching Regex", "Select flow file attributes based on regex pattern to put in rabbitmq headers. Key of the matching attribute will be used as header key"),
+        AMQP_HEADERS_ATTRIBUTE("Attribute amqp$headers Value", "Prepare headers from '" + AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE + "' attribute string");
+        private final String name;
         private final String description;
 
-        InputHeaderSource(String value, String displayName, String description) {
-
-            this.value = value;
-            this.displayName = displayName;
+        InputHeaderSource(String displayName, String description) {
+            this.name = displayName;
             this.description = description;
-        }
-
-        public static EnumSet<InputHeaderSource> getAllowedValues() {
-            return EnumSet.of(STRING, ATTRIBUTES, BOTH);
         }
 
         @Override
         public String getValue() {
-            return value;
+            return name();
         }
 
         @Override
         public String getDisplayName() {
-            return displayName;
+            return name;
         }
 
         @Override
