@@ -340,6 +340,20 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     }
 
     @Override
+    public Optional<ParameterGroup> findFetchedParameterGroup(final String parameterGroupName) {
+        Objects.requireNonNull(parameterGroupName, "Parameter Group Name required");
+
+        readLock.lock();
+        try {
+            return fetchedParameterGroups.stream()
+                    .filter(parameterGroup -> parameterGroup.getGroupName().equals(parameterGroupName))
+                    .findFirst();
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
     public void verifyCanApplyParameters(final Collection<ParameterGroupConfiguration> parameterGroupConfigurations) {
         if (fetchedParameterGroups.isEmpty()) {
             return;

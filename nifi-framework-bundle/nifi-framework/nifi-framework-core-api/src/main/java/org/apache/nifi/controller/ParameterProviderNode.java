@@ -20,11 +20,13 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public interface ParameterProviderNode extends ComponentNode {
@@ -41,12 +43,30 @@ public interface ParameterProviderNode extends ComponentNode {
 
     void verifyCanFetchParameters();
 
+    /**
+     * Retrieve Parameter Groups from configured Parameter Provider and store for subsequent retrieval in others methods
+     *
+     */
     void fetchParameters();
+
+    /**
+     * Find a named Parameter Group cached from previous request to fetch Parameters from the configured Parameter Provider
+     *
+     * @param parameterGroupName Parameter Group Name to find
+     * @return Parameter Group with Parameter Names and Values or empty when not found
+     */
+    Optional<ParameterGroup> findFetchedParameterGroup(String parameterGroupName);
 
     void verifyCanApplyParameters(Collection<ParameterGroupConfiguration> parameterNames);
 
     Collection<ParameterGroupConfiguration> getParameterGroupConfigurations();
 
+    /**
+     * Get Parameter Groups with Parameter Names and Values to be applied to associated Parameter Contexts
+     *
+     * @param parameterGroupConfigurations Parameter Group Configurations to be retrieved
+     * @return List of Parameter Groups and Parameter Contexts to be applied based on Parameters retrieved in previous fetch requests
+     */
     List<ParametersApplication> getFetchedParametersToApply(Collection<ParameterGroupConfiguration> parameterGroupConfigurations);
 
     void verifyCanClearState();
@@ -76,7 +96,7 @@ public interface ParameterProviderNode extends ComponentNode {
      * @param context the configuration to verify
      * @param logger a logger that can be used when performing verification
      * @param extensionManager extension manager that is used for obtaining appropriate NAR ClassLoaders
-     * @return a list of results indicating whether or not the given configuration is valid
+     * @return a list of results indicating whether the given configuration is valid
      */
     List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, ExtensionManager extensionManager);
 }
