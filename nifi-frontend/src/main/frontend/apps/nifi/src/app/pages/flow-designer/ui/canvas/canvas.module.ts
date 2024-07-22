@@ -25,7 +25,7 @@ import { GraphControls } from './graph-controls/graph-controls.component';
 import { CanvasRoutingModule } from './canvas-routing.module';
 import { HeaderComponent } from './header/header.component';
 import { FooterComponent } from './footer/footer.component';
-import { FlowAnalysisDrawerComponent } from "./header/flow-analysis-drawer/flow-analysis-drawer.component";
+import { FlowAnalysisDrawerComponent } from './header/flow-analysis-drawer/flow-analysis-drawer.component';
 
 @NgModule({
     declarations: [Canvas],

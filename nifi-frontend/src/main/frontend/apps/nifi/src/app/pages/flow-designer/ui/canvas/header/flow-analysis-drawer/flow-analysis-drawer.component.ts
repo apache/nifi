@@ -62,8 +62,8 @@ export class FlowAnalysisDrawerComponent {
     rules: FlowAnalysisRule[] = [];
     currentProcessGroupId = '';
     isAnalysisPending = false;
-    readonly showEnforcedViolations = model(false);
-    readonly showWarningViolations = model(false);
+    showEnforcedViolations = model(false);
+    showWarningViolations = model(false);
     flowAnalysisState$ = this.store.select(selectFlowAnalysisState);
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
 

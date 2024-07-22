@@ -18,7 +18,7 @@ interface Data {
     templateUrl: './violation-details-dialog.component.html',
     styleUrl: './violation-details-dialog.component.scss'
 })
-export class RuleDetailsDialogComponent {
+export class ViolationDetailsDialogComponent {
     violation: FlowAnalysisRuleViolation;
     rule: FlowAnalysisRule;
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);

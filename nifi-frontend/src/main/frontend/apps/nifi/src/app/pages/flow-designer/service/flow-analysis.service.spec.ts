@@ -18,12 +18,22 @@
 import { TestBed } from '@angular/core/testing';
 
 import { FlowAnalysisService } from './flow-analysis.service';
+import { provideMockStore } from '@ngrx/store/testing';
+import { HttpClient } from '@angular/common/http';
 
 describe('FlowAnalysisService', () => {
     let service: FlowAnalysisService;
 
     beforeEach(() => {
-        TestBed.configureTestingModule({});
+        TestBed.configureTestingModule({
+            providers: [
+                provideMockStore({}),
+                {
+                    provide: HttpClient,
+                    useValue: {}
+                }
+            ]
+        });
         service = TestBed.inject(FlowAnalysisService);
     });
 
