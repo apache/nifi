@@ -969,8 +969,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     logger.info("Started Server on {}", applicationUrl);
                 }
             }
-        } catch (Exception ex) {
-            startUpFailure(ex);
+        } catch (Throwable t) {
+            startUpFailure(t);
         }
     }
 
