@@ -17,6 +17,8 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FlowAnalysisDrawerComponent } from './flow-analysis-drawer.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('FlowAnalysisDrawerComponent', () => {
     let component: FlowAnalysisDrawerComponent;
@@ -24,7 +26,8 @@ describe('FlowAnalysisDrawerComponent', () => {
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [FlowAnalysisDrawerComponent]
+            imports: [FlowAnalysisDrawerComponent, NoopAnimationsModule],
+            providers: [provideMockStore({})]
         }).compileComponents();
 
         fixture = TestBed.createComponent(FlowAnalysisDrawerComponent);

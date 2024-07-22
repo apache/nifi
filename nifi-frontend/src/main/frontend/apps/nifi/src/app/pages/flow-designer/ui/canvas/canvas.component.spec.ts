@@ -30,6 +30,11 @@ import { HeaderComponent } from './header/header.component';
 import { FooterComponent } from './footer/footer.component';
 import { canvasFeatureKey } from '../../state';
 import { flowFeatureKey } from '../../state/flow';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { FlowAnalysisDrawerComponent } from './header/flow-analysis-drawer/flow-analysis-drawer.component';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { CanvasActionsService } from '../../service/canvas-actions.service';
+import { of } from 'rxjs';
 
 describe('Canvas', () => {
     let component: Canvas;
@@ -54,9 +59,12 @@ describe('Canvas', () => {
             imports: [
                 CdkContextMenuTrigger,
                 ContextMenu,
+                MatSidenavModule,
+                NoopAnimationsModule,
                 MockComponent(GraphControls),
                 MockComponent(HeaderComponent),
-                MockComponent(FooterComponent)
+                MockComponent(FooterComponent),
+                FlowAnalysisDrawerComponent
             ],
             providers: [
                 provideMockStore({
@@ -71,7 +79,8 @@ describe('Canvas', () => {
                             value: breadcrumbEntity
                         }
                     ]
-                })
+                }),
+                CanvasActionsService
             ]
         });
         fixture = TestBed.createComponent(Canvas);

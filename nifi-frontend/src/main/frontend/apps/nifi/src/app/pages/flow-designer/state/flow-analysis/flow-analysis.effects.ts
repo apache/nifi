@@ -28,8 +28,8 @@ import { ErrorHelper } from 'apps/nifi/src/app/service/error-helper.service';
 import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { LARGE_DIALOG } from 'apps/nifi/src/app';
-import { RuleDetailsDialogComponent } from '../../ui/canvas/header/flow-analysis-drawer/violation-details-dialog/violation-details-dialog.component';
+import { LARGE_DIALOG } from '@nifi/shared';
+import { ViolationDetailsDialogComponent } from '../../ui/canvas/header/flow-analysis-drawer/violation-details-dialog/violation-details-dialog.component';
 
 @Injectable()
 export class FlowAnalysisEffects {
@@ -106,7 +106,7 @@ export class FlowAnalysisEffects {
             this.actions$.pipe(
                 ofType(FlowAnalysisActions.openRuleDetailsDialog),
                 tap(({ violation, rule }) => {
-                    this.dialog.open(RuleDetailsDialogComponent, {
+                    this.dialog.open(ViolationDetailsDialogComponent, {
                         ...LARGE_DIALOG,
                         data: {
                             violation,
