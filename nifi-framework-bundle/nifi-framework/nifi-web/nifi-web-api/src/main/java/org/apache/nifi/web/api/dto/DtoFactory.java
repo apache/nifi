@@ -1055,7 +1055,7 @@ public final class DtoFactory {
 
        final ProcessingPerformanceStatus performanceStatus = processGroupStatus.getProcessingPerformanceStatus();
        if (performanceStatus != null) {
-           snapshot.setProcessingPerformanceStatusDTO(createProcessingPerformanceStatusDTO(performanceStatus));
+           snapshot.setProcessingPerformanceStatus(createProcessingPerformanceStatusDTO(performanceStatus));
        }
 
        StatusMerger.updatePrettyPrintedFields(snapshot);
@@ -1277,7 +1277,7 @@ public final class DtoFactory {
 
        final ProcessingPerformanceStatus performanceStatus = procStatus.getProcessingPerformanceStatus();
        if (performanceStatus != null) {
-           snapshot.setProcessingPerformanceStatusDTO(createProcessingPerformanceStatusDTO(procStatus.getProcessingPerformanceStatus()));
+           snapshot.setProcessingPerformanceStatus(createProcessingPerformanceStatusDTO(procStatus.getProcessingPerformanceStatus()));
        }
 
        StatusMerger.updatePrettyPrintedFields(snapshot);

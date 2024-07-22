@@ -82,7 +82,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     private Long processingNanos = 0L;
 
     @Schema(description = "Represents the processing performance for all the processors in the given process group.")
-    private ProcessingPerformanceStatusDTO processingPerformanceStatusDTO;
+    private ProcessingPerformanceStatusDTO processingPerformanceStatus;
 
     /**
      * The id for the process group.
@@ -523,12 +523,12 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.processingNanos = processingNanos;
     }
 
-    public ProcessingPerformanceStatusDTO getProcessingPerformanceStatusDTO() {
-        return processingPerformanceStatusDTO;
+    public ProcessingPerformanceStatusDTO getProcessingPerformanceStatus() {
+        return processingPerformanceStatus;
     }
 
-    public void setProcessingPerformanceStatusDTO(ProcessingPerformanceStatusDTO processingPerformanceStatusDTO) {
-        this.processingPerformanceStatusDTO = processingPerformanceStatusDTO;
+    public void setProcessingPerformanceStatus(ProcessingPerformanceStatusDTO processingPerformanceStatus) {
+        this.processingPerformanceStatus = processingPerformanceStatus;
     }
 
     @Override
@@ -610,7 +610,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         }
 
 
-        other.setProcessingPerformanceStatusDTO(getProcessingPerformanceStatusDTO());
+        other.setProcessingPerformanceStatus(getProcessingPerformanceStatus());
 
         return other;
     }

@@ -54,7 +54,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     private Integer terminatedThreadCount = 0;
 
     @Schema(description = "Represents the processor's processing performance.")
-    private ProcessingPerformanceStatusDTO processingPerformanceStatusDTO;
+    private ProcessingPerformanceStatusDTO processingPerformanceStatus;
 
     /* getters / setters */
     /**
@@ -298,12 +298,12 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.tasksDurationNanos = taskNanos;
     }
 
-    public ProcessingPerformanceStatusDTO getProcessingPerformanceStatusDTO() {
-        return processingPerformanceStatusDTO;
+    public ProcessingPerformanceStatusDTO getProcessingPerformanceStatus() {
+        return processingPerformanceStatus;
     }
 
-    public void setProcessingPerformanceStatusDTO(ProcessingPerformanceStatusDTO processingPerformanceStatusDTO) {
-        this.processingPerformanceStatusDTO = processingPerformanceStatusDTO;
+    public void setProcessingPerformanceStatus(ProcessingPerformanceStatusDTO processingPerformanceStatus) {
+        this.processingPerformanceStatus = processingPerformanceStatus;
     }
 
     @Override
@@ -333,7 +333,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         other.setWritten(getWritten());
         other.setTasks(getTasks());
 
-        other.setProcessingPerformanceStatusDTO(getProcessingPerformanceStatusDTO());
+        other.setProcessingPerformanceStatus(getProcessingPerformanceStatus());
 
         return other;
     }
