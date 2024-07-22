@@ -17,12 +17,14 @@
 
 package org.apache.nifi.nar;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.NarSummaryDTO;
 import org.apache.nifi.web.api.entity.NarSummariesEntity;
@@ -32,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 
-import javax.net.ssl.SSLContext;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -71,7 +72,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
     private final NarComponentManager narComponentManager;
     private final NarLoader narLoader;
     private final WebClientService webClientService;
-    private final SSLContext sslContext;
+    private final NiFiProperties properties;
 
     private final Map<String, NarNode> narNodesById = new ConcurrentHashMap<>();
     private final Map<String, Future<?>> installFuturesById = new ConcurrentHashMap<>();
@@ -84,7 +85,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
                               final NarComponentManager narComponentManager,
                               final NarLoader narLoader,
                               final WebClientService webClientService,
-                              final SSLContext sslContext) {
+                              final NiFiProperties properties) {
         this.clusterCoordinator = clusterCoordinator;
         this.extensionManager = flowController.getExtensionManager();
         this.controllerServiceProvider = flowController.getControllerServiceProvider();
@@ -92,7 +93,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
         this.narComponentManager = narComponentManager;
         this.narLoader = narLoader;
         this.webClientService = webClientService;
-        this.sslContext = sslContext;
+        this.properties = properties;
         this.installExecutorService = Executors.newSingleThreadExecutor();
         this.deleteExecutorService = Executors.newSingleThreadExecutor();
     }
@@ -245,7 +246,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
         logger.info("Synchronizing NARs with cluster coordinator");
         final String coordinatorAddress = coordinatorNodeId.getApiAddress();
         final int coordinatorPort = coordinatorNodeId.getApiPort();
-        final NarRestApiClient narRestApiClient = new NarRestApiClient(webClientService, coordinatorAddress, coordinatorPort, sslContext != null);
+        final NarRestApiClient narRestApiClient = new NarRestApiClient(webClientService, coordinatorAddress, coordinatorPort, properties.isHTTPSConfigured());
 
         final int localNarCountBeforeSync = narNodesById.size();
         try {
@@ -315,7 +316,8 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
         try {
             return narRestApiClient.listNarSummaries();
         } catch (final NarRestApiRetryableException e) {
-            logger.warn("{}: retrying", e.getMessage());
+            final Throwable rootCause = ExceptionUtils.getRootCause(e);
+            logger.warn("{}, root cause [{}]: retrying", e.getMessage(), rootCause.getMessage());
             return null;
         }
     }

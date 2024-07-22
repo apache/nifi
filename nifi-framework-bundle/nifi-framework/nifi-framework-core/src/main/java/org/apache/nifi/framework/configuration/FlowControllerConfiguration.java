@@ -431,7 +431,7 @@ public class FlowControllerConfiguration {
                 narComponentManager(),
                 narLoader(),
                 webClientService(),
-                sslContext
+                properties
         );
     }
 }
