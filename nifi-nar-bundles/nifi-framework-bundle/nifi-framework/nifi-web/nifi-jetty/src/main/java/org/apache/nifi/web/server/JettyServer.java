@@ -341,7 +341,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // Deploy each WAR that was loaded...
         for (final WebAppContext webAppContext : webAppContexts) {
             final App extensionUiApp = new App(deploymentManager, null, "nifi-jetty-server", webAppContext);
-            deploymentManager.addApp(extensionUiApp);
+                deploymentManager.addApp(extensionUiApp);
         }
 
         final Collection<WebAppContext> componentUiExtensionWebContexts = extensionUiInfo.getComponentUiExtensionWebContexts();
@@ -635,8 +635,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         });
 
         try {
-            // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
-            webappContext.setClassLoader(new WebAppClassLoader(parentClassLoader, webappContext));
+        // configure the class loader - webappClassLoader -> jetty nar -> web app's nar -> ...
+        webappContext.setClassLoader(new WebAppClassLoader(parentClassLoader, webappContext));
         } catch (final IOException ioe) {
             startUpFailure(ioe);
         }
@@ -909,8 +909,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             // dump the application url after confirming everything started successfully
             dumpUrls();
-        } catch (Exception ex) {
-            startUpFailure(ex);
+        } catch (Throwable t) {
+            startUpFailure(t);
         }
     }
 
@@ -922,7 +922,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final Map<String, ExternalResourceProvider> result = new HashMap<>();
         final Set<String> externalSourceNames = props.getDirectSubsequentTokens(providerPropertyPrefix);
 
-        for(final String externalSourceName : externalSourceNames) {
+        for (final String externalSourceName : externalSourceNames) {
             logger.info("External resource provider '{}' found in configuration", externalSourceName);
 
             final String providerClass = props.getProperty(providerPropertyPrefix + externalSourceName + "." + NAR_PROVIDER_IMPLEMENTATION_PROPERTY);
@@ -987,29 +987,29 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private void performInjectionForComponentUis(final Collection<WebAppContext> componentUiExtensionWebContexts,
                                                  final NiFiWebConfigurationContext configurationContext, final FilterHolder securityFilter) {
         if (CollectionUtils.isNotEmpty(componentUiExtensionWebContexts)) {
-            for (final WebAppContext customUiContext : componentUiExtensionWebContexts) {
-                // set the NiFi context in each custom ui servlet context
-                final ServletContext customUiServletContext = customUiContext.getServletHandler().getServletContext();
-                customUiServletContext.setAttribute("nifi-web-configuration-context", configurationContext);
+        for (final WebAppContext customUiContext : componentUiExtensionWebContexts) {
+            // set the NiFi context in each custom ui servlet context
+            final ServletContext customUiServletContext = customUiContext.getServletHandler().getServletContext();
+            customUiServletContext.setAttribute("nifi-web-configuration-context", configurationContext);
 
-                // add the security filter to any ui extensions wars
-                if (securityFilter != null) {
-                    customUiContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
-                }
+            // add the security filter to any ui extensions wars
+            if (securityFilter != null) {
+                customUiContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
             }
         }
+    }
     }
 
     private void performInjectionForContentViewerUis(final Collection<WebAppContext> contentViewerWebContexts,
                                                      final FilterHolder securityFilter) {
         if (CollectionUtils.isNotEmpty(contentViewerWebContexts)) {
-            for (final WebAppContext contentViewerContext : contentViewerWebContexts) {
-                // add the security filter to any content viewer  wars
-                if (securityFilter != null) {
-                    contentViewerContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
-                }
+        for (final WebAppContext contentViewerContext : contentViewerWebContexts) {
+            // add the security filter to any content viewer  wars
+            if (securityFilter != null) {
+                contentViewerContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
             }
         }
+    }
     }
 
     private void dumpUrls() throws SocketException {
