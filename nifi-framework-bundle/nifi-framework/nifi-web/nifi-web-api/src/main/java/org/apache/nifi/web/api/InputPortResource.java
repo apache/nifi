@@ -54,10 +54,13 @@ import org.apache.nifi.web.api.entity.PortRunStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing an Input Port.
  */
+@Controller
 @Path("/input-ports")
 @Tag(name = "InputPorts")
 public class InputPortResource extends ApplicationResource {
@@ -393,12 +396,12 @@ public class InputPortResource extends ApplicationResource {
         return dto;
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

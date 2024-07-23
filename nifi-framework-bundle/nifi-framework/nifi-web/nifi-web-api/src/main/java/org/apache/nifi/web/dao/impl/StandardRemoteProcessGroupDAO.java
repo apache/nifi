@@ -35,6 +35,8 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +45,7 @@ import java.util.regex.Matcher;
 
 import static org.apache.nifi.util.StringUtils.isEmpty;
 
+@Repository
 public class StandardRemoteProcessGroupDAO extends ComponentDAO implements RemoteProcessGroupDAO {
 
     private FlowController flowController;
@@ -475,10 +478,12 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         return componentStateDAO.getState(remoteProcessGroup, scope);
     }
 
+    @Autowired
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
     }
 
+    @Autowired
     public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
     }

@@ -50,10 +50,13 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing a Funnel.
  */
+@Controller
 @Path("/funnels")
 @Tag(name = "Funnels")
 public class FunnelResource extends ApplicationResource {
@@ -306,12 +309,12 @@ public class FunnelResource extends ApplicationResource {
         );
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

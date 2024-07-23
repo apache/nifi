@@ -92,10 +92,13 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing a Controller Service.
  */
+@Controller
 @Path("/controller-services")
 @Tag(name = "Controller Services")
 public class ControllerServiceResource extends ApplicationResource {
@@ -1151,11 +1154,12 @@ public class ControllerServiceResource extends ApplicationResource {
         return dto;
     }
 
-    // setters
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

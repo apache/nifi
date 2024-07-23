@@ -57,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -75,9 +76,9 @@ public class TestProcessGroupAuditor {
     @Autowired
     private ProcessGroupAuditor processGroupAuditor;
 
-    @Mock
+    @Autowired
     private AuditService auditService;
-    @Mock
+    @Autowired
     private FlowController flowController;
     @Mock
     private Authentication authentication;
@@ -89,6 +90,9 @@ public class TestProcessGroupAuditor {
 
     @BeforeEach
     void setUp() {
+        reset(flowController);
+        reset(auditService);
+
         processGroupDAO.setFlowController(flowController);
         processGroupAuditor.setAuditService(auditService);
         processGroupAuditor.setProcessGroupDAO(processGroupDAO);
@@ -138,6 +142,17 @@ public class TestProcessGroupAuditor {
         @Bean
         public ProcessGroupAuditor processGroupAuditor() {
             return new ProcessGroupAuditor();
+        }
+
+
+        @Bean
+        public AuditService auditService() {
+            return mock(AuditService.class);
+        }
+
+        @Bean
+        public FlowController flowController() {
+            return mock(FlowController.class);
         }
     }
 }

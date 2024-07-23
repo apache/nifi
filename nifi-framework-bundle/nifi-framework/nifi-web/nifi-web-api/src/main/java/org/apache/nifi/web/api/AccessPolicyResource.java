@@ -57,10 +57,12 @@ import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing access policies.
  */
+@Controller
 @Path("/policies")
 @Tag(name = "Policies")
 public class AccessPolicyResource extends ApplicationResource {

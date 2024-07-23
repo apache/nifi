@@ -49,6 +49,8 @@ import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -58,6 +60,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Repository
 public class StandardControllerServiceDAO extends ComponentDAO implements ControllerServiceDAO {
 
     private ControllerServiceProvider serviceProvider;
@@ -452,15 +455,17 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         componentStateDAO.clearState(controllerService);
     }
 
-    /* setters */
+    @Autowired
     public void setServiceProvider(final ControllerServiceProvider serviceProvider) {
         this.serviceProvider = serviceProvider;
     }
 
+    @Autowired
     public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
     }
 
+    @Autowired
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }

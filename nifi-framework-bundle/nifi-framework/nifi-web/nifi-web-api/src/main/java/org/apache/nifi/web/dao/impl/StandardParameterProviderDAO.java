@@ -45,6 +45,8 @@ import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ParameterProviderDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.net.URL;
 import java.util.Collection;
@@ -54,6 +56,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Repository
 public class StandardParameterProviderDAO extends ComponentDAO implements ParameterProviderDAO {
 
     private ComponentStateDAO componentStateDAO;
@@ -306,14 +309,17 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
         flowController.getFlowManager().removeParameterProvider(parameterProvider);
     }
 
+    @Autowired
     public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
     }
 
+    @Autowired
     public void setReloadComponent(final ReloadComponent reloadComponent) {
         this.reloadComponent = reloadComponent;
     }
 
+    @Autowired
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }

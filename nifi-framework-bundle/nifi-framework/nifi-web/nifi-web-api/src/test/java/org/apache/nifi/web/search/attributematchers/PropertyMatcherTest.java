@@ -17,6 +17,7 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -32,15 +33,12 @@ public class PropertyMatcherTest extends AbstractAttributeMatcherTest {
 
     @Test
     public void testMatchingAndNotFiltered() {
-        // given
-        final PropertyMatcher testSubject = new PropertyMatcher();
+        final PropertyMatcher<ComponentNode> testSubject = new PropertyMatcher<>();
         givenProperties(false);
         givenSearchTerm("lorem");
 
-        // when
         testSubject.match(component, searchQuery, matches);
 
-        // then
         thenMatchConsistsOf("Property name: loremName", //
                 "Property value: loremName - loremValue", //
                 "Property description: loremDescription");
@@ -48,45 +46,36 @@ public class PropertyMatcherTest extends AbstractAttributeMatcherTest {
 
     @Test
     public void testMatchingAndNotFilteredButSensitive() {
-        // given
-        final PropertyMatcher testSubject = new PropertyMatcher();
+        final PropertyMatcher<ComponentNode> testSubject = new PropertyMatcher<>();
         givenProperties(true);
         givenSearchTerm("lorem");
 
-        // when
         testSubject.match(component, searchQuery, matches);
 
-        // then
         thenMatchConsistsOf("Property name: loremName", //
                 "Property description: loremDescription");
     }
 
     @Test
     public void testMatchingAndFiltered() {
-        // given
-        final PropertyMatcher testSubject = new PropertyMatcher();
+        final PropertyMatcher<ComponentNode> testSubject = new PropertyMatcher<>();
         givenSearchTerm("lorem");
         givenFilter("properties", "exclude");
 
-        // when
         testSubject.match(component, searchQuery, matches);
 
-        // then
         thenNoMatches();
     }
 
     @Test
     public void testMatchingAndFilteredWithIncorrectValue() {
-        // given
-        final PropertyMatcher testSubject = new PropertyMatcher();
+        final PropertyMatcher<ComponentNode> testSubject = new PropertyMatcher<>();
         givenProperties(false);
         givenSearchTerm("lorem");
         givenFilter("properties", "foobar");
 
-        // when
         testSubject.match(component, searchQuery, matches);
 
-        // then
         thenMatchConsistsOf("Property name: loremName", //
                 "Property value: loremName - loremValue", //
                 "Property description: loremDescription");

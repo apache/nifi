@@ -24,9 +24,12 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.dao.LabelDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.util.Set;
 
+@Repository
 public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
 
     private FlowController flowController;
@@ -121,7 +124,7 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
         label.getProcessGroup().removeLabel(label);
     }
 
-    /* setters */
+    @Autowired
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
     }

@@ -66,10 +66,13 @@ import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.util.ResponseBuilderUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing a flowfile queue.
  */
+@Controller
 @Path("/flowfile-queues")
 @Tag(name = "FlowFileQueues")
 public class FlowFileQueueResource extends ApplicationResource {
@@ -711,11 +714,12 @@ public class FlowFileQueueResource extends ApplicationResource {
         }
     }
 
-    // setters
+    @Autowired
     public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }

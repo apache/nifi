@@ -51,6 +51,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.WebApplicationException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -60,6 +63,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Repository
 public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGroupDAO {
     private static final Logger logger = LoggerFactory.getLogger(StandardProcessGroupDAO.class);
 
@@ -594,6 +598,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         parentGroup.removeProcessGroup(group);
     }
 
+    @Autowired
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
     }

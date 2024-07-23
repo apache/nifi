@@ -136,10 +136,13 @@ import org.apache.nifi.web.util.ParameterContextReplacer;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing a Group.
  */
+@Controller
 @Path("/process-groups")
 @Tag(name = "ProcessGroups")
 public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportEntity, ProcessGroupReplaceRequestEntity> {
@@ -3105,40 +3108,47 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         }
     }
 
-    // setters
-
+    @Autowired
     public void setProcessorResource(ProcessorResource processorResource) {
         this.processorResource = processorResource;
     }
 
+    @Autowired
     public void setInputPortResource(InputPortResource inputPortResource) {
         this.inputPortResource = inputPortResource;
     }
 
+    @Autowired
     public void setOutputPortResource(OutputPortResource outputPortResource) {
         this.outputPortResource = outputPortResource;
     }
 
+    @Autowired
     public void setFunnelResource(FunnelResource funnelResource) {
         this.funnelResource = funnelResource;
     }
 
+    @Autowired
     public void setLabelResource(LabelResource labelResource) {
         this.labelResource = labelResource;
     }
 
+    @Autowired
     public void setRemoteProcessGroupResource(RemoteProcessGroupResource remoteProcessGroupResource) {
         this.remoteProcessGroupResource = remoteProcessGroupResource;
     }
 
+    @Autowired
     public void setConnectionResource(ConnectionResource connectionResource) {
         this.connectionResource = connectionResource;
     }
 
+    @Autowired
     public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
     }
 
+    @Autowired
     public void setParameterContextReplacer(ParameterContextReplacer parameterContextReplacer) {
         this.parameterContextReplacer = parameterContextReplacer;
     }

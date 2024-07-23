@@ -85,7 +85,9 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.ComponentLifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
 
+@Controller
 @Path("/versions")
 @Tag(name = "Versions")
 public class VersionsResource extends FlowUpdateResource<VersionControlInformationEntity, VersionedFlowUpdateRequestEntity> {

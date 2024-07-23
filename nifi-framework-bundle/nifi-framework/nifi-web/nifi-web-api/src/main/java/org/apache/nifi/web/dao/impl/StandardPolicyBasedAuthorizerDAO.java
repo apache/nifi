@@ -44,10 +44,12 @@ import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
+import org.springframework.stereotype.Repository;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Repository
 public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGroupDAO, UserDAO {
 
     private final AccessPolicyProvider accessPolicyProvider;

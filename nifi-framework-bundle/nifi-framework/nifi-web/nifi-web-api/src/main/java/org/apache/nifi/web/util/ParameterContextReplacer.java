@@ -46,7 +46,7 @@ public class ParameterContextReplacer {
 
     private final ParameterContextNameCollisionResolver nameCollisionResolver;
 
-    ParameterContextReplacer(final ParameterContextNameCollisionResolver nameCollisionResolver) {
+    public ParameterContextReplacer(final ParameterContextNameCollisionResolver nameCollisionResolver) {
         this.nameCollisionResolver = nameCollisionResolver;
     }
 

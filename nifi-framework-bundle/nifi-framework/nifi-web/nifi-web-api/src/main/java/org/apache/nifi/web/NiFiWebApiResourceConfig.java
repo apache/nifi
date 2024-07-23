@@ -87,7 +87,7 @@ public class NiFiWebApiResourceConfig extends ResourceConfig {
         register(ctx.getBean("processGroupResource"));
         register(ctx.getBean("processorResource"));
         register(ctx.getBean("connectionResource"));
-        register(ctx.getBean("flowfileQueueResource"));
+        register(ctx.getBean("flowFileQueueResource"));
         register(ctx.getBean("remoteProcessGroupResource"));
         register(ctx.getBean("inputPortResource"));
         register(ctx.getBean("outputPortResource"));

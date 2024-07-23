@@ -61,6 +61,8 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.ResponseBuilderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -71,6 +73,7 @@ import java.util.Collections;
 /**
  * RESTful endpoint for querying data provenance.
  */
+@Controller
 @Path("/provenance-events")
 @Tag(name = "ProvenanceEvents")
 public class ProvenanceEventResource extends ApplicationResource {
@@ -536,12 +539,12 @@ public class ProvenanceEventResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

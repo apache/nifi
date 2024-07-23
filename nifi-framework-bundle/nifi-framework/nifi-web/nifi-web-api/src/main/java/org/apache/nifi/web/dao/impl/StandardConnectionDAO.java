@@ -54,6 +54,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.WebApplicationException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -65,6 +68,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 
+@Repository
 public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectionDAO.class);
@@ -682,11 +686,12 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         }
     }
 
-    /* setters */
+    @Autowired
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

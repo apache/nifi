@@ -29,6 +29,7 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -196,7 +197,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
         inputPort.verifyCanDelete();
     }
 
-    /* setters */
+    @Autowired
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
     }

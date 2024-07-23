@@ -79,6 +79,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.ResponseBuilder;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -241,16 +242,6 @@ public abstract class ApplicationResource {
     protected ResponseBuilder generateCreatedResponse(final URI uri, final Object entity) {
         // generate the response builder
         return Response.created(uri).entity(entity);
-    }
-
-    /**
-     * Generates a 401 Not Authorized response with no content.
-     *
-     * @return The response to be built
-     */
-    protected ResponseBuilder generateNotAuthorizedResponse() {
-        // generate the response builder
-        return Response.status(HttpServletResponse.SC_UNAUTHORIZED);
     }
 
     /**
@@ -1057,6 +1048,7 @@ public abstract class ApplicationResource {
         }
     }
 
+    @Autowired
     public void setRequestReplicator(final RequestReplicator requestReplicator) {
         this.requestReplicator = requestReplicator;
     }
@@ -1067,10 +1059,12 @@ public abstract class ApplicationResource {
         return requestReplicator;
     }
 
+    @Autowired
     public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 
+    @Autowired
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
     }
@@ -1079,6 +1073,7 @@ public abstract class ApplicationResource {
         return clusterCoordinator;
     }
 
+    @Autowired
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
