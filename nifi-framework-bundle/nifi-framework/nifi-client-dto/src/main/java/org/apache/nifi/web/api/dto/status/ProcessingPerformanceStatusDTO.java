@@ -31,11 +31,6 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
     private long sessionCommitDuration;
     private long garbageCollectionDuration;
 
-    /**
-     * The id for the process group.
-     *
-     * @return The id for the process group
-     */
     @Schema(description = "The unique ID of the process group that the Processor belongs to")
     public String getIdentifier() {
         return identifier;
@@ -45,11 +40,6 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         this.identifier = identifier;
     }
 
-    /**
-     * The number of nanoseconds has spent on CPU usage.
-     *
-     * @return The number of nanoseconds has spent on CPU usage
-     */
     @Schema(description = "The number of nanoseconds has spent on CPU usage in the last 5 minutes.")
     public long getCpuDuration() {
         return cpuDuration;
@@ -59,11 +49,6 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         this.cpuDuration = cpuDuration;
     }
 
-    /**
-     * The number of nanoseconds has spent to read content.
-     *
-     * @return The number of nanoseconds has spent to read content
-     */
     @Schema(description = "The number of nanoseconds has spent to read content in the last 5 minutes.")
     public long getContentReadDuration() {
         return contentReadDuration;
@@ -73,11 +58,6 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         this.contentReadDuration = contentReadDuration;
     }
 
-    /**
-     * The number of nanoseconds has spent to write content.
-     *
-     * @return The number of nanoseconds has spent to write content
-     */
     @Schema(description = "The number of nanoseconds has spent to write content in the last 5 minutes.")
     public long getContentWriteDuration() {
         return contentWriteDuration;
@@ -87,11 +67,6 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         this.contentWriteDuration = contentWriteDuration;
     }
 
-    /**
-     * The number of nanoseconds has spent running to commit sessions.
-     *
-     * @return The number of nanoseconds has spent running to commit sessions
-     */
     @Schema(description = "The number of nanoseconds has spent running to commit sessions the last 5 minutes.")
     public long getSessionCommitDuration() {
         return sessionCommitDuration;
@@ -101,11 +76,6 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         this.sessionCommitDuration = sessionCommitDuration;
     }
 
-    /**
-     * The number of nanoseconds has spent running garbage collection.
-     *
-     * @return The number of nanoseconds has spent running garbage collection
-     */
     @Schema(description = "The number of nanoseconds has spent running garbage collection in the last 5 minutes.")
     public long getGarbageCollectionDuration() {
         return garbageCollectionDuration;
