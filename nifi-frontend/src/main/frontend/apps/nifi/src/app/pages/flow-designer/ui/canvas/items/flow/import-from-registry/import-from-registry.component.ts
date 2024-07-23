@@ -200,7 +200,8 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
     bucketChanged(bucketId: string): void {
         this.clearFlows();
         const registryId = this.importFromRegistryForm.get('registry')?.value;
-        this.loadFlows(registryId, bucketId);
+        const branch = this.importFromRegistryForm.get('branch')?.value;
+        this.loadFlows(registryId, bucketId, branch);
     }
 
     private clearFlows() {
