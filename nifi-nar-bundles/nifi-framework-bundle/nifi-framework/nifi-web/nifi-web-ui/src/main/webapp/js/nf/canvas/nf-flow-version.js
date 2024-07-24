@@ -718,6 +718,7 @@
 
         // hold onto an instance of the grid
         flowChangesTable.data('gridInstance', flowChangesGrid);
+        flowChangesTable.data('dataViewInstance', flowChangesData);
 
         var formattedChanges = [];
         // unique ids are needed for each item in the table
@@ -761,7 +762,32 @@
                 var selectedVersionComboVal = $('#show-flow-changes-selected-version-combo').combo('getSelectedOption');
                 if (selectedVersionComboVal) {
                     loadDiffDetails(versionControlInformation.registryId, versionControlInformation.bucketId, versionControlInformation.flowId, encodeURIComponent(option.value), encodeURIComponent(selectedVersionComboVal.value)).done(function (flowDiff) {
-                        initFlowDiffTable(flowDiff);
+                        var changesDataView = $('#show-flow-changes-table').data("dataViewInstance");
+                        if (flowDiff.componentDifferences.length > 0) {
+                            $('#show-flow-changes-empty-message').hide();
+                            var formattedChanges = [];
+                            // unique ids are needed for each item in the table
+                            var index = 0;
+                            flowDiff.componentDifferences.forEach(function (component) {
+                                component.differences.forEach(function (difference) {
+                                    var newObj = {
+                                        id: index,
+                                        componentName: component.componentName,
+                                        differenceType: difference.differenceType,
+                                        difference: difference.difference
+                                    };
+                                    index++;
+                                    formattedChanges.push(newObj);
+                                });
+                            });
+                        } else {
+                            $('#show-flow-changes-empty-message').show();
+                        }
+                        
+                        changesDataView.beginUpdate();
+                        changesDataView.setItems(formattedChanges || []);
+                        changesDataView.endUpdate();
+                        changesDataView.refresh();
                     });
                 }
             }
@@ -776,7 +802,32 @@
                 var currentVersionComboVal = $('#show-flow-changes-current-version-combo').combo('getSelectedOption');
                 if (currentVersionComboVal) {
                     loadDiffDetails(versionControlInformation.registryId, versionControlInformation.bucketId, versionControlInformation.flowId, encodeURIComponent(currentVersionComboVal.value), encodeURIComponent(option.value)).done(function (flowDiff) {
-                        initFlowDiffTable(flowDiff);
+                        var changesDataView = $('#show-flow-changes-table').data("dataViewInstance");
+                        if (flowDiff.componentDifferences.length > 0) {
+                            $('#show-flow-changes-empty-message').hide();
+                            var formattedChanges = [];
+                            // unique ids are needed for each item in the table
+                            var index = 0;
+                            flowDiff.componentDifferences.forEach(function (component) {
+                                component.differences.forEach(function (difference) {
+                                    var newObj = {
+                                        id: index,
+                                        componentName: component.componentName,
+                                        differenceType: difference.differenceType,
+                                        difference: difference.difference
+                                    };
+                                    index++;
+                                    formattedChanges.push(newObj);
+                                });
+                            });
+                        } else {
+                            $('#show-flow-changes-empty-message').show();
+                        }
+
+                        changesDataView.beginUpdate();
+                        changesDataView.setItems(formattedChanges || []);
+                        changesDataView.endUpdate();
+                        changesDataView.refresh();
                     });
                 }
             }
