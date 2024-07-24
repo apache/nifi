@@ -31,11 +31,6 @@ import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@ang
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
-import { EffectsModule } from '@ngrx/effects';
-import { JoltTransformJsonProcessorDetailsEffects } from './pages/jolt-transform-json-ui/state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.effects';
-import { JoltTransformJsonTransformEffects } from './pages/jolt-transform-json-ui/state/jolt-transform-json-transform/jolt-transform-json-transform.effects';
-import { JoltTransformJsonValidateEffects } from './pages/jolt-transform-json-ui/state/jolt-transform-json-validate/jolt-transform-json-validate.effects';
-import { JoltTransformJsonPropertyEffects } from './pages/jolt-transform-json-ui/state/jolt-transform-json-property/jolt-transform-json-property.effects';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations: string = entry !== null ? JSON.parse(entry).item : '';
@@ -57,12 +52,7 @@ if (disableAnimations !== 'true' && disableAnimations !== 'false') {
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(
-            JoltTransformJsonProcessorDetailsEffects,
-            JoltTransformJsonTransformEffects,
-            JoltTransformJsonValidateEffects,
-            JoltTransformJsonPropertyEffects
-        ),
+
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,
