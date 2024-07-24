@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @ExtendWith(MockitoExtension.class)
 class TestStandardParameterValueMapper {
@@ -77,6 +78,15 @@ class TestStandardParameterValueMapper {
 
         assertNotEquals(VALUE, mapped);
         assertNotEquals(StandardParameterValueMapper.PROVIDED_MAPPING, mapped);
+    }
+
+    @Test
+    void testGetMappedSensitiveNotProvidedNullValue() {
+        final Parameter parameter = getParameter(true, false);
+
+        final String mapped = mapper.getMapped(parameter, null);
+
+        assertNull(mapped);
     }
 
     private Parameter getParameter(final boolean sensitive, final boolean provided) {
