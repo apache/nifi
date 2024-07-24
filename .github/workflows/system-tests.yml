@@ -26,7 +26,7 @@ on:
       - 'nifi-system-tests/**'
       - 'nifi-api/**'
       - 'nifi-framework-api/**'
-      - 'nifi-nifi-framework-bundle/**'
+      - 'nifi-framework-bundle/**'
       - 'nifi-extension-bundles/nifi-py4j-bundle/**'
       - 'nifi-stateless/**'
   pull_request:
@@ -36,7 +36,7 @@ on:
       - 'nifi-system-tests/**'
       - 'nifi-api/**'
       - 'nifi-framework-api/**'
-      - 'nifi-nifi-framework-bundle/**'
+      - 'nifi-framework-bundle/**'
       - 'nifi-extension-bundles/nifi-py4j-bundle/**'
       - 'nifi-stateless/**'
 

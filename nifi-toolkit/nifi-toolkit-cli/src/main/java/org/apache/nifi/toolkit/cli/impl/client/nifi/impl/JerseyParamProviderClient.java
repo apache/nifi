@@ -75,6 +75,11 @@ public class JerseyParamProviderClient extends AbstractJerseyClient implements P
 
     @Override
     public ParameterProviderEntity deleteParamProvider(final String id, final String version) throws NiFiClientException, IOException {
+        return deleteParamProvider(id, version, false);
+    }
+
+    @Override
+    public ParameterProviderEntity deleteParamProvider(final String id, final String version, final boolean disconnectedNodeAcknowledged) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Parameter provider id cannot be null or blank");
         }
@@ -84,9 +89,14 @@ public class JerseyParamProviderClient extends AbstractJerseyClient implements P
         }
 
         return executeAction("Error deleting parameter provider", () -> {
-            final WebTarget target = paramProviderTarget.path("{id}")
+            WebTarget target = paramProviderTarget.path("{id}")
                     .resolveTemplate("id", id)
                     .queryParam("version", version);
+
+            if (disconnectedNodeAcknowledged) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
+
             return getRequestBuilder(target).delete(ParameterProviderEntity.class);
         });
     }

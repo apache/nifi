@@ -83,6 +83,11 @@ public class JerseyParamContextClient extends AbstractJerseyClient implements Pa
 
     @Override
     public ParameterContextEntity deleteParamContext(final String id, final String version) throws NiFiClientException, IOException {
+        return deleteParamContext(id, version, false);
+    }
+
+    @Override
+    public ParameterContextEntity deleteParamContext(final String id, final String version, final boolean disconnectedNodeAcknowledged) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Parameter context id cannot be null or blank");
         }
@@ -92,9 +97,14 @@ public class JerseyParamContextClient extends AbstractJerseyClient implements Pa
         }
 
         return executeAction("Error deleting parameter context", () -> {
-            final WebTarget target = paramContextTarget.path("{id}")
+            WebTarget target = paramContextTarget.path("{id}")
                     .resolveTemplate("id", id)
                     .queryParam("version", version);
+
+            if (disconnectedNodeAcknowledged) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
+
             return getRequestBuilder(target).delete(ParameterContextEntity.class);
         });
     }
