@@ -89,6 +89,7 @@ import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
+import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEntity;
@@ -96,6 +97,7 @@ import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
+import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
@@ -126,11 +128,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class NiFiClientUtil {
@@ -469,6 +473,38 @@ public class NiFiClientUtil {
         for (final FlowAnalysisRuleEntity taskEntity : rulesEntity.getFlowAnalysisRules()) {
             taskEntity.setDisconnectedNodeAcknowledged(true);
             nifiClient.getControllerClient().deleteFlowAnalysisRule(taskEntity);
+        }
+    }
+
+    public void deleteParameterContexts() throws NiFiClientException, IOException {
+        final ParameterContextsEntity parameterContextsEntity = nifiClient.getParamContextClient().getParamContexts();
+        final Map<String, ParameterContextEntity> parameterContextMap = parameterContextsEntity.getParameterContexts().stream()
+                .collect(Collectors.toMap(ParameterContextEntity::getId, Function.identity()));
+
+        // If parameter context have inherited contexts then they needed to be deleted from the bottom up, so we just keep iterating
+        // over the set of ids and retrying deletes until all have been deleted, knowing that some delete calls will fail the first time
+        final Set<String> parameterContextIds = new HashSet<>(parameterContextMap.keySet());
+        while (!parameterContextIds.isEmpty()) {
+            final Iterator<String> parameterContextIdIterator = parameterContextIds.iterator();
+            while (parameterContextIdIterator.hasNext()) {
+                final String parameterContextId = parameterContextIdIterator.next();
+                final ParameterContextEntity parameterContextEntity = parameterContextMap.get(parameterContextId);
+                try {
+                    final String version = String.valueOf(parameterContextEntity.getRevision().getVersion());
+                    nifiClient.getParamContextClient().deleteParamContext(parameterContextId, version, true);
+                    parameterContextIdIterator.remove();
+                } catch (final Exception e) {
+                    logger.warn("Failed to delete parameter context [{}] due to: {}", parameterContextId, e.getMessage());
+                }
+            }
+        }
+    }
+
+    public void deleteParameterProviders() throws NiFiClientException, IOException {
+        final ParameterProvidersEntity parameterProvidersEntity = nifiClient.getFlowClient().getParamProviders();
+        for (final ParameterProviderEntity parameterProviderEntity : parameterProvidersEntity.getParameterProviders()) {
+            final String version = String.valueOf(parameterProviderEntity.getRevision().getVersion());
+            nifiClient.getParamProviderClient().deleteParamProvider(parameterProviderEntity.getId(), version, true);
         }
     }
 
