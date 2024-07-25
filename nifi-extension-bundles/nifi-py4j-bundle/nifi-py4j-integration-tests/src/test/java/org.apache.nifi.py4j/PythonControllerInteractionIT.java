@@ -595,6 +595,21 @@ public class PythonControllerInteractionIT {
                 multiLineContent.getBytes(StandardCharsets.UTF_8));
     }
 
+    @Test
+    public void testCreateNothing() throws IOException {
+        /* Test the use-case where the source processor returns with None.
+           (The case must not result in Java NullPointerException.) */
+
+        final String processorName = "CreateNothing";
+        final String relationshipSuccess = "success";
+
+        final TestRunner runner = createProcessor(processorName);
+        waitForValid(runner);
+        runner.run();
+
+        runner.assertTransferCount(relationshipSuccess, 0);
+    }
+
     public interface StringLookupService extends ControllerService {
         Optional<String> lookup(Map<String, String> coordinates);
     }
