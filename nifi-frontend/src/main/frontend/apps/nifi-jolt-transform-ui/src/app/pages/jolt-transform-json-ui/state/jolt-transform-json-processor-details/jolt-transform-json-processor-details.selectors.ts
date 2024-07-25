@@ -16,28 +16,27 @@
  */
 
 import { createSelector } from '@ngrx/store';
-import { selectJoltTransformState, JoltTransformState, joltTransformJsonUiFeatureKey } from '../index';
-import { JoltTransformJsonUiState } from './index';
 import { selectCurrentRoute } from '@nifi/shared';
+import {
+    joltTransformJsonProcessorDetailsFeatureKey,
+    JoltTransformJsonUiState,
+    selectJoltTransformJsonUiState
+} from '../index';
+import { JoltTransformJsonProcessorDetailsState } from './index';
 
-export const selectJoltTransformJsonUiState = createSelector(
-    selectJoltTransformState,
-    (state: JoltTransformState) => state[joltTransformJsonUiFeatureKey]
+export const selectJoltTransformJsonProcessorDetailsState = createSelector(
+    selectJoltTransformJsonUiState,
+    (state: JoltTransformJsonUiState) => state[joltTransformJsonProcessorDetailsFeatureKey]
 );
 
 export const selectProcessorDetails = createSelector(
-    selectJoltTransformJsonUiState,
-    (state: JoltTransformJsonUiState) => state.processorDetails
+    selectJoltTransformJsonProcessorDetailsState,
+    (state: JoltTransformJsonProcessorDetailsState) => state.processorDetails
 );
 
 export const selectSaving = createSelector(
-    selectJoltTransformJsonUiState,
-    (state: JoltTransformJsonUiState) => state.saving
-);
-
-export const selectStatus = createSelector(
-    selectJoltTransformJsonUiState,
-    (state: JoltTransformJsonUiState) => state.status
+    selectJoltTransformJsonProcessorDetailsState,
+    (state: JoltTransformJsonProcessorDetailsState) => state.saving
 );
 
 export const selectProcessorIdFromRoute = createSelector(selectCurrentRoute, (route) => {

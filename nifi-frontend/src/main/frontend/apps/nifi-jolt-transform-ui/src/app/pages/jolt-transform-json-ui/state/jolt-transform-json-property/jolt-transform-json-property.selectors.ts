@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,17 +15,20 @@
  * limitations under the License.
  */
 
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+import { createSelector } from '@ngrx/store';
+import {
+    selectJoltTransformJsonUiState,
+    JoltTransformJsonUiState,
+    joltTransformJsonPropertyFeatureKey
+} from '../index';
+import { JoltTransformJsonPropertyState } from './index';
 
-import { AppModule } from './app/app.module';
+export const selectJoltTransformJsonPropertyState = createSelector(
+    selectJoltTransformJsonUiState,
+    (state: JoltTransformJsonUiState) => state[joltTransformJsonPropertyFeatureKey]
+);
 
-import 'codemirror/mode/javascript/javascript.js';
-import 'codemirror/addon/lint/lint';
-import 'codemirror/addon/lint/json-lint';
-import * as jsonlint from 'jsonlint';
-
-(window as any).jsonlint = jsonlint;
-
-platformBrowserDynamic()
-    .bootstrapModule(AppModule)
-    .catch((err) => console.error(err));
+export const selectSaving = createSelector(
+    selectJoltTransformJsonPropertyState,
+    (state: JoltTransformJsonPropertyState) => state.saving
+);

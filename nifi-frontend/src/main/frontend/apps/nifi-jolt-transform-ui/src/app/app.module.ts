@@ -30,9 +30,8 @@ import { environment } from '../environments/environment';
 import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
-import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { EffectsModule } from '@ngrx/effects';
-import { JoltTransformJsonUiEffects } from './pages/jolt-transform-json-ui/state/jolt-transform-json-ui/jolt-transform-json-ui.effects';
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations: string = entry !== null ? JSON.parse(entry).item : '';
@@ -54,7 +53,8 @@ if (disableAnimations !== 'true' && disableAnimations !== 'false') {
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-        EffectsModule.forRoot(JoltTransformJsonUiEffects),
+
+        EffectsModule.forRoot(),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,

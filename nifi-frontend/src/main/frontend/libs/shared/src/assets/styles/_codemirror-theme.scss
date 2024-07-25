@@ -71,6 +71,10 @@
             $supplemental-theme-surface-palette-lighter
         );
         border: 1px solid var(--mdc-outlined-text-field-label-text-color);
+
+        &.disabled {
+            opacity: 0.4;
+        }
     }
 
     .cm-s-nifi .CodeMirror-gutters {
@@ -249,5 +253,10 @@
 
     .cm-s-nifi .CodeMirror-activeline-background {
         background: if($is-dark, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.5));
+    }
+
+    .cm-s-nifi .CodeMirror-hints {
+        z-index: 1000 !important;
+        overflow-y: scroll !important;
     }
 }

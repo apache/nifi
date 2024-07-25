@@ -17,29 +17,10 @@
 
 import { HttpErrorResponse } from '@angular/common/http';
 
-export interface JoltTransformJsonUiState {
+export interface JoltTransformJsonPropertyState {
     saving: boolean;
-    transformingJoltSpec: boolean;
-    validatingJoltSpec: boolean | null;
-    savingProperties: boolean;
-    loadedTimestamp: string;
-    status: 'pending' | 'loading' | 'success';
     savePropertiesResponse?: SavePropertiesSuccess | null;
     savePropertiesFailureResponse?: HttpErrorResponse | null;
-    validationResponse?: ValidateJoltSpecSuccess | null;
-    validationFailureResponse?: HttpErrorResponse | null;
-    transformationResponse?: TransformJoltSpecSuccess | null;
-    transformationFailureResponse?: HttpErrorResponse | null;
-    processorDetails: ProcessorDetails | null;
-}
-
-export interface ValidateJoltSpecRequest {
-    customClass: string;
-    expressionLanguageAttributes: any;
-    input: string;
-    modules: string;
-    specification: string;
-    transform: string;
 }
 
 export interface SavePropertiesRequest {
@@ -52,23 +33,3 @@ export interface SavePropertiesRequest {
 }
 
 export interface SavePropertiesSuccess {}
-
-export interface ValidateJoltSpecSuccess {
-    valid: boolean;
-    message: string | null;
-}
-
-export interface TransformJoltSpecSuccess {}
-
-export interface ProcessorDetails {
-    id: string;
-    descriptors: {
-        [key: string]: any;
-    };
-    properties: any;
-    name: string;
-    state: string;
-    type: string;
-    validationErrors: [] | null;
-    annotationData: [] | null;
-}

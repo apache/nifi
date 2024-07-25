@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,17 +15,20 @@
  * limitations under the License.
  */
 
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+export interface JoltTransformJsonProcessorDetailsState {
+    saving: boolean;
+    processorDetails: ProcessorDetails | null;
+}
 
-import { AppModule } from './app/app.module';
-
-import 'codemirror/mode/javascript/javascript.js';
-import 'codemirror/addon/lint/lint';
-import 'codemirror/addon/lint/json-lint';
-import * as jsonlint from 'jsonlint';
-
-(window as any).jsonlint = jsonlint;
-
-platformBrowserDynamic()
-    .bootstrapModule(AppModule)
-    .catch((err) => console.error(err));
+export interface ProcessorDetails {
+    id: string;
+    descriptors: {
+        [key: string]: any;
+    };
+    properties: any;
+    name: string;
+    state: string;
+    type: string;
+    validationErrors: [] | null;
+    annotationData: [] | null;
+}
