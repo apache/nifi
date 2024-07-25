@@ -30,6 +30,7 @@ import { environment } from '../environments/environment';
 import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@angular/common/http';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { rootReducers } from './state';
+import { EffectsModule } from '@ngrx/effects';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 
 const entry = localStorage.getItem('disable-animations');
@@ -53,6 +54,7 @@ if (disableAnimations !== 'true' && disableAnimations !== 'false') {
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
 
+        EffectsModule.forRoot(),
         StoreDevtoolsModule.instrument({
             maxAge: 25,
             logOnly: environment.production,

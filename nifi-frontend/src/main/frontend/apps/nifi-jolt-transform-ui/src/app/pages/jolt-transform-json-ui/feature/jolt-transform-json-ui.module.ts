@@ -47,7 +47,7 @@ import { JoltTransformJsonPropertyEffects } from '../state/jolt-transform-json-p
         CommonModule,
         JoltTransformJsonUiRoutingModule,
         StoreModule.forFeature(joltTransformJsonUiFeatureKey, reducers),
-        EffectsModule.forRoot(
+        EffectsModule.forFeature(
             JoltTransformJsonProcessorDetailsEffects,
             JoltTransformJsonTransformEffects,
             JoltTransformJsonValidateEffects,
