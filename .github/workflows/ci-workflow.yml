@@ -52,6 +52,7 @@ env:
     -pl -:nifi-py4j-integration-tests
     -pl -:nifi-server-nar
     -pl -:nifi-ui
+    -pl -:nifi-jolt-transform-json-ui
   MAVEN_VERIFY_COMMAND: >-
     verify
     --show-version
