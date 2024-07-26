@@ -51,7 +51,6 @@ import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.processor.util.listen.queue.TrackingLinkedBlockingQueue;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
@@ -104,7 +103,7 @@ public class ListenTCP extends AbstractProcessor {
             .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
                     "messages will be received over a secure connection.")
             .required(false)
-            .identifiesControllerService(RestrictedSSLContextService.class)
+            .identifiesControllerService(SSLContextService.class)
             .build();
 
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()

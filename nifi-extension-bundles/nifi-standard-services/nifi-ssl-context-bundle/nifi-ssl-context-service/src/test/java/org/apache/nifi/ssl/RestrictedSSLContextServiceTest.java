@@ -35,16 +35,16 @@ import javax.net.ssl.SSLContext;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(MockitoExtension.class)
-public class StandardRestrictedSSLContextServiceTest {
+public class RestrictedSSLContextServiceTest {
 
-    private static final String SERVICE_ID = StandardRestrictedSSLContextService.class.getSimpleName();
+    private static final String SERVICE_ID = RestrictedSSLContextService.class.getSimpleName();
 
     private static TlsConfiguration tlsConfiguration;
 
     @Mock
     private Processor processor;
 
-    private StandardRestrictedSSLContextService service;
+    private RestrictedSSLContextService service;
 
     private TestRunner runner;
 
@@ -56,7 +56,7 @@ public class StandardRestrictedSSLContextServiceTest {
     @BeforeEach
     public void setRunner() {
         runner = TestRunners.newTestRunner(processor);
-        service = new StandardRestrictedSSLContextService();
+        service = new RestrictedSSLContextService();
     }
 
     @Test
@@ -72,7 +72,7 @@ public class StandardRestrictedSSLContextServiceTest {
         setMinimumProperties();
 
         for (final String protocol : TlsPlatform.getPreferredProtocols()) {
-            runner.setProperty(service, StandardRestrictedSSLContextService.SSL_ALGORITHM, protocol);
+            runner.setProperty(service, RestrictedSSLContextService.SSL_ALGORITHM, protocol);
             runner.assertValid(service);
         }
     }
@@ -83,7 +83,7 @@ public class StandardRestrictedSSLContextServiceTest {
         setMinimumProperties();
 
         for (final String protocol : TlsPlatform.getPreferredProtocols()) {
-            runner.setProperty(service, StandardRestrictedSSLContextService.SSL_ALGORITHM, protocol);
+            runner.setProperty(service, RestrictedSSLContextService.SSL_ALGORITHM, protocol);
             runner.assertValid(service);
             runner.enableControllerService(service);
 
@@ -95,11 +95,11 @@ public class StandardRestrictedSSLContextServiceTest {
     }
 
     private void setMinimumProperties() {
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE, tlsConfiguration.getKeystorePath());
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_PASSWORD, tlsConfiguration.getKeystorePassword());
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE, tlsConfiguration.getTruststorePath());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_PASSWORD, tlsConfiguration.getTruststorePassword());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        runner.setProperty(service, RestrictedSSLContextService.KEYSTORE, tlsConfiguration.getKeystorePath());
+        runner.setProperty(service, RestrictedSSLContextService.KEYSTORE_PASSWORD, tlsConfiguration.getKeystorePassword());
+        runner.setProperty(service, RestrictedSSLContextService.KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+        runner.setProperty(service, RestrictedSSLContextService.TRUSTSTORE, tlsConfiguration.getTruststorePath());
+        runner.setProperty(service, RestrictedSSLContextService.TRUSTSTORE_PASSWORD, tlsConfiguration.getTruststorePassword());
+        runner.setProperty(service, RestrictedSSLContextService.TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
     }
 }

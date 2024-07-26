@@ -36,7 +36,6 @@ import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -680,7 +679,7 @@ public class TestListenHTTP {
 
     private void configureProcessorSslContextService(final ListenHTTP.ClientAuthentication clientAuthentication,
                                                                   final TlsConfiguration tlsConfiguration) throws InitializationException {
-        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
+        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
         Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_IDENTIFIER);
         Mockito.when(sslContextService.createTlsConfiguration()).thenReturn(tlsConfiguration);
 

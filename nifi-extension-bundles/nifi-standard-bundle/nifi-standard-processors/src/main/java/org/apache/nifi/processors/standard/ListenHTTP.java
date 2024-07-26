@@ -48,7 +48,6 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
 import org.apache.nifi.stream.io.StreamThrottler;
@@ -190,7 +189,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .name("SSL Context Service")
         .description("SSL Context Service enables support for HTTPS")
         .required(false)
-        .identifiesControllerService(RestrictedSSLContextService.class)
+        .identifiesControllerService(SSLContextService.class)
         .build();
     public static final PropertyDescriptor HTTP_PROTOCOL_STRATEGY = new PropertyDescriptor.Builder()
         .name("HTTP Protocols")

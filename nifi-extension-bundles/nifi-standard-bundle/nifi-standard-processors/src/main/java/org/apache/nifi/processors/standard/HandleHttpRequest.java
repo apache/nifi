@@ -48,7 +48,6 @@ import org.apache.nifi.processors.standard.http.HandleHttpRequestCertificateAttr
 import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.scheduling.ExecutionNode;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
@@ -190,7 +189,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("The SSL Context Service to use in order to secure the server. If specified, the server will accept only HTTPS requests; "
                     + "otherwise, the server will accept only HTTP requests")
             .required(false)
-            .identifiesControllerService(RestrictedSSLContextService.class)
+            .identifiesControllerService(SSLContextService.class)
             .build();
     public static final PropertyDescriptor HTTP_PROTOCOL_STRATEGY = new PropertyDescriptor.Builder()
             .name("HTTP Protocols")

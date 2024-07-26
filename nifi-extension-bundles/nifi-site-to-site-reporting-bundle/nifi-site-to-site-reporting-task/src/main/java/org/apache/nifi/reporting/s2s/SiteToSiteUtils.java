@@ -33,7 +33,6 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
@@ -62,7 +61,7 @@ public class SiteToSiteUtils {
             .displayName("SSL Context Service")
             .description("The SSL Context Service to use when communicating with the destination. If not specified, communications will not be secure.")
             .required(false)
-            .identifiesControllerService(RestrictedSSLContextService.class)
+            .identifiesControllerService(SSLContextService.class)
             .build();
     public static final PropertyDescriptor INSTANCE_URL = new PropertyDescriptor.Builder()
             .name("Instance URL")

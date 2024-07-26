@@ -37,7 +37,7 @@ import org.apache.nifi.security.util.TlsPlatform;
         + "evolve over time as new protocols emerge and older protocols are deprecated. This service is recommended "
         + "over StandardSSLContextService if a component doesn't expect to communicate with legacy systems since it is "
         + "unlikely that legacy systems will support these protocols.")
-public class StandardRestrictedSSLContextService extends StandardSSLContextService implements RestrictedSSLContextService {
+public class RestrictedSSLContextService extends StandardSSLContextService implements SSLContextService {
 
     public static final PropertyDescriptor RESTRICTED_SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")

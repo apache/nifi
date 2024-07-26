@@ -37,7 +37,7 @@ import org.apache.nifi.elasticsearch.MapBuilder;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.elasticsearch.UpdateOperationResponse;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceLookup;
@@ -178,7 +178,7 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     @Test
     void testVerifyFailedSSL() throws Exception {
         runner.disableControllerService(service);
-        final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
+        final SSLContextService sslContextService = new RestrictedSSLContextService();
         runner.addControllerService("SSL Context", sslContextService);
         runner.setProperty(service, ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE, "SSL Context");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "not/a/file");

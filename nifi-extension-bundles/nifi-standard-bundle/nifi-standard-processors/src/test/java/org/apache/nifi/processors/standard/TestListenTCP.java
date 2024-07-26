@@ -26,7 +26,6 @@ import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.TlsException;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -181,7 +180,7 @@ public class TestListenTCP {
     }
 
     private void enableSslContextService(final SSLContext sslContext) throws InitializationException {
-        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
+        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
         Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
         Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
         runner.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextService);

@@ -38,7 +38,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -317,18 +317,18 @@ public class Kafka3ConnectionServiceBaseIT {
 
     protected String addSSLContextService(final TestRunner runner) throws InitializationException {
         final String identifier = SSLContextService.class.getSimpleName();
-        final SSLContextService service = new StandardRestrictedSSLContextService();
+        final SSLContextService service = new RestrictedSSLContextService();
         runner.addControllerService(identifier, service);
 
         // TemporaryKeyStoreBuilder sets keystorePassword and keyPassword to the same value.
         // The SSL Context Service uses specified Keystore Password as the Key Password.
         //runner.setProperty(service, StandardRestrictedSSLContextService.KEY_PASSWORD, tlsConfiguration.getKeyPassword());
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE, tlsConfiguration.getKeystorePath());
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_PASSWORD, tlsConfiguration.getKeystorePassword());
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE, tlsConfiguration.getTruststorePath());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_PASSWORD, tlsConfiguration.getTruststorePassword());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        runner.setProperty(service, RestrictedSSLContextService.KEYSTORE, tlsConfiguration.getKeystorePath());
+        runner.setProperty(service, RestrictedSSLContextService.KEYSTORE_PASSWORD, tlsConfiguration.getKeystorePassword());
+        runner.setProperty(service, RestrictedSSLContextService.KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+        runner.setProperty(service, RestrictedSSLContextService.TRUSTSTORE, tlsConfiguration.getTruststorePath());
+        runner.setProperty(service, RestrictedSSLContextService.TRUSTSTORE_PASSWORD, tlsConfiguration.getTruststorePassword());
+        runner.setProperty(service, RestrictedSSLContextService.TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
 
         runner.enableControllerService(service);
         return identifier;
