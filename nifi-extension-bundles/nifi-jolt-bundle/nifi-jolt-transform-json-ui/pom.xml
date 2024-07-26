@@ -21,9 +21,7 @@ language governing permissions and limitations under the License. -->
 
     <packaging>war</packaging>
     <properties>
-        <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
-        <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
-        <frontend.assets>${project.build.directory}/${project.build.finalName}/assets</frontend.assets>
+        <nifi.jolt.ui.working.dir>${project.build.directory}/nifi-jolt-transform-json-ui-working-directory</nifi.jolt.ui.working.dir>
     </properties>
 
     <dependencies>
@@ -52,10 +50,6 @@ language governing permissions and limitations under the License. -->
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>jakarta.ws.rs</groupId>
             <artifactId>jakarta.ws.rs-api</artifactId>
         </dependency>
@@ -72,18 +66,6 @@ language governing permissions and limitations under the License. -->
             <artifactId>jersey-hk2</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.glassfish.jersey.test-framework.providers</groupId>
             <artifactId>jersey-test-framework-provider-inmemory</artifactId>
             <scope>test</scope>
@@ -94,93 +76,55 @@ language governing permissions and limitations under the License. -->
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-utils</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-frontend</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
+            <!--
+                Unpack the built nifi front end application
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
+                <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>copy-client-side-deps</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${frontend.assets}</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${frontend.working.dir}/node_modules</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <include>**/*.js</include>
-                                        <include>**/*.css</include>
-                                        <!-- font awesome -->
-                                        <include>font-awesome/fonts/**/*</include>
-                                        <include>font-awesome/README.md</include>
-                                    </includes>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-package-json</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${frontend.working.dir}</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${frontend.dependency.configs}</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <include>package.json</include>
-                                        <include>package-lock.json</include>
-                                    </includes>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.github.eirslett</groupId>
-                <artifactId>frontend-maven-plugin</artifactId>
-                <version>${frontend.mvn.plugin.version}</version>
-                <configuration>
-                    <installDirectory>${frontend.working.dir}</installDirectory>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>install-node-and-npm</id>
-                        <goals>
-                            <goal>install-node-and-npm</goal>
-                        </goals>
+                        <id>unpack-nifi-jolt-transform-json-ui</id>
                         <phase>generate-resources</phase>
-                        <configuration>
-                            <nodeVersion>${node.version}</nodeVersion>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>npm install</id>
                         <goals>
-                            <goal>npm</goal>
+                            <goal>unpack-dependencies</goal>
                         </goals>
                         <configuration>
-                            <arguments>--cache-min Infinity install</arguments>
-                            <workingDirectory>${frontend.working.dir}</workingDirectory>
+                            <includeGroupIds>org.apache.nifi</includeGroupIds>
+                            <includeArtifactIds>nifi-frontend</includeArtifactIds>
+                            <excludeTransitive>true</excludeTransitive>
+                            <silent>false</silent>
+                            <outputDirectory>${nifi.jolt.ui.working.dir}</outputDirectory>
+                            <includes>nifi-jolt-transform-ui/**/*</includes>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
+            <!--
+                Include the NiFi UI and exclude the JAR dependency
+            -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <configuration>
                     <webResources>
+                        <resource>
+                            <directory>${nifi.jolt.ui.working.dir}/nifi-jolt-transform-ui</directory>
+                            <includes>**/*</includes>
+                        </resource>
                         <resource>
                             <directory>src/main/webapp/META-INF</directory>
                             <targetPath>META-INF</targetPath>
@@ -190,21 +134,7 @@ language governing permissions and limitations under the License. -->
                             <filtering>true</filtering>
                         </resource>
                     </webResources>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <exclude>nbactions.xml</exclude>
-                        <exclude>src/main/frontend/package.json</exclude>
-                        <exclude>src/main/frontend/package-lock.json</exclude>
-                        <exclude>src/main/webapp/js/codemirror/</exclude>
-                        <exclude>src/main/webapp/css/main.css</exclude>
-                        <exclude>src/main/webapp/js/js-beautify/*</exclude>
-                        <exclude>src/main/webapp/fonts/**/*</exclude>
-                    </excludes>
+                    <packagingExcludes>WEB-INF/lib/nifi-frontend*.jar</packagingExcludes>
                 </configuration>
             </plugin>
         </plugins>

@@ -53,7 +53,6 @@ if (disableAnimations !== 'true' && disableAnimations !== 'false') {
             routerState: RouterState.Minimal,
             navigationActionTiming: NavigationActionTiming.PostActivation
         }),
-
         EffectsModule.forRoot(),
         StoreDevtoolsModule.instrument({
             maxAge: 25,

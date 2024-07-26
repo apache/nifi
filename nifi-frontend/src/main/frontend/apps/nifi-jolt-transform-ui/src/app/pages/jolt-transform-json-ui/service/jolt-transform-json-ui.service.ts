@@ -34,7 +34,7 @@ export class JoltTransformJsonUiService {
     saveProperties(request: SavePropertiesRequest): Observable<any> {
         const params = new HttpParams()
             .set('processorId', request.processorId)
-            .set('revision', request.revision)
+            .set('revisionId', request.revision)
             .set('clientId', request.clientId)
             .set('disconnectedNodeAcknowledged', request.disconnectedNodeAcknowledged);
 

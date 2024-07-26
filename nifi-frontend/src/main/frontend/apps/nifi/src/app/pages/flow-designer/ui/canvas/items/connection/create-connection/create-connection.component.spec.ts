@@ -254,7 +254,7 @@ describe('CreateConnection', () => {
                             concurrentlySchedulableTaskCount: 1,
                             autoTerminatedRelationships: [],
                             comments: '',
-                            customUiUrl: '/nifi-update-attribute-ui-2.0.0-SNAPSHOT/configure',
+                            customUiUrl: '/nifi-update-attribute-ui-2.0.0-SNAPSHOT',
                             lossTolerant: false,
                             defaultConcurrentTasks: {
                                 TIMER_DRIVEN: '1',

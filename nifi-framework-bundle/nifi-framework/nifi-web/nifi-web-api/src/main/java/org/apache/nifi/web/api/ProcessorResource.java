@@ -173,7 +173,7 @@ public class ProcessorResource extends ApplicationResource {
                 final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
                 for (final UiExtension uiExtension : uiExtensions) {
                     if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
-                        config.setCustomUiUrl(generateExternalUiUri(uiExtension.getContextPath(), "configure"));
+                        config.setCustomUiUrl(generateExternalUiUri(uiExtension.getContextPath()));
                     }
                 }
             }
