@@ -41,6 +41,7 @@ import java.util.UUID;
 
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -88,13 +89,11 @@ public class TestUnpackContent {
             assertEquals("rw-r--r--", flowFile.getAttribute("file.permissions"));
             assertEquals("jmcarey", flowFile.getAttribute("file.owner"));
             assertEquals("mkpasswd", flowFile.getAttribute("file.group"));
+
             String modifiedTimeAsString = flowFile.getAttribute("file.lastModifiedTime");
-
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(modifiedTimeAsString);
-
+            assertDoesNotThrow(() -> DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(modifiedTimeAsString));
             String creationTimeAsString = flowFile.getAttribute("file.creationTime");
-
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(creationTimeAsString);
+            assertDoesNotThrow(() -> DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(creationTimeAsString));
 
             assertTrue(Files.exists(path));
 
