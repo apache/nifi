@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -199,6 +200,22 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
         relationships = Collections.unmodifiableSet(_relationships);
     }
 
+    volatile Boolean allowIllegalChars;
+    volatile Pattern attributeHeaderPattern;
+    volatile RecordReaderFactory readerFactory;
+    volatile RecordSetWriterFactory writerFactory;
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        allowIllegalChars = context.getProperty(ALLOW_ILLEGAL_HEADER_CHARS).asBoolean();
+
+        final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
+        attributeHeaderPattern = Pattern.compile(attributeHeaderRegex);
+
+        readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+    }
+
     /**
      * Will construct JMS {@link Message} by extracting its body from the
      * incoming {@link FlowFile}. {@link FlowFile} attributes that represent
@@ -221,15 +238,12 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
             try {
                 final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions(flowFile).getValue();
                 final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue();
-                final Boolean allowIllegalChars = context.getProperty(ALLOW_ILLEGAL_HEADER_CHARS).asBoolean();
-                final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
 
                 final Map<String, String> attributesToSend = new HashMap<>();
                 // REGEX Attributes
-                final Pattern pattern = Pattern.compile(attributeHeaderRegex);
                 for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
                     final String key = entry.getKey();
-                    if (pattern.matcher(key).matches()) {
+                    if (attributeHeaderPattern.matcher(key).matches()) {
                         if (allowIllegalChars || key.endsWith(".type") || (!key.contains("-") && !key.contains("."))) {
                             attributesToSend.put(key, flowFile.getAttribute(key));
                         }
@@ -237,9 +251,6 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                 }
 
                 if (context.getProperty(RECORD_READER).isSet()) {
-                    final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-                    final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-
                     final FlowFileReader flowFileReader = new StateTrackingFlowFileReader(
                             getIdentifier(),
                             new RecordSupplier(readerFactory, writerFactory),

@@ -130,7 +130,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
 
     static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Maximum Batch Size")
-            .description("The number of messages to publish or consume in a single iteration of the processor.")
+            .description("The maximum number of messages to publish or consume in each invocation of the processor.")
             .required(true)
             .defaultValue("1")
             .addValidator(StandardValidators.createLongValidator(1, 10_000, true))
