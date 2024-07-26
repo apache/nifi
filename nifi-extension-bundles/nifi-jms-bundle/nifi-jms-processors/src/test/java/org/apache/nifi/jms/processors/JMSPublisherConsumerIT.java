@@ -386,7 +386,7 @@ public class JMSPublisherConsumerIT {
                     try {
                         JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) consumeTemplate.getConnectionFactory(), consumeTemplate, mock(ComponentLog.class));
 
-                        while(msgCounter.get() < totalMessageCount) {
+                        while (msgCounter.get() < totalMessageCount) {
                             consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 5,
                                     responses -> {
                                         responses.forEach( response -> {
