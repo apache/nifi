@@ -60,10 +60,8 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -148,12 +146,6 @@ public class ListDatabaseTables extends AbstractProcessor {
     public static final String DB_TABLE_REMARKS = "db.table.remarks";
     public static final String DB_TABLE_COUNT = "db.table.count";
 
-    // Relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("All FlowFiles that are received are routed to success")
-            .build();
-
     // Property descriptors
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("list-db-tables-db-connection")
@@ -235,39 +227,27 @@ public class ListDatabaseTables extends AbstractProcessor {
         .identifiesControllerService(RecordSetWriterFactory.class)
         .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DBCP_SERVICE, CATALOG, SCHEMA_PATTERN, TABLE_NAME_PATTERN, TABLE_TYPES, INCLUDE_COUNT,
+            RECORD_WRITER, REFRESH_INTERVAL
+    );
 
-    private static final List<PropertyDescriptor> propertyDescriptors;
-    private static final Set<Relationship> relationships;
+    // Relationships
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All FlowFiles that are received are routed to success")
+            .build();
 
-    /*
-     * Will ensure that the list of property descriptors is build only once.
-     * Will also create a Set of relationships
-     */
-    static {
-        final List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.add(DBCP_SERVICE);
-        _propertyDescriptors.add(CATALOG);
-        _propertyDescriptors.add(SCHEMA_PATTERN);
-        _propertyDescriptors.add(TABLE_NAME_PATTERN);
-        _propertyDescriptors.add(TABLE_TYPES);
-        _propertyDescriptors.add(INCLUDE_COUNT);
-        _propertyDescriptors.add(RECORD_WRITER);
-        _propertyDescriptors.add(REFRESH_INTERVAL);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
-
-        final Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        relationships = Collections.unmodifiableSet(_relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -437,7 +417,6 @@ public class ListDatabaseTables extends AbstractProcessor {
     }
 
     static class RecordTableListingWriter implements TableListingWriter {
-        private static final RecordSchema RECORD_SCHEMA;
         public static final String TABLE_NAME = "tableName";
         public static final String TABLE_CATALOG = "catalog";
         public static final String TABLE_SCHEMA = "schemaName";
@@ -446,19 +425,15 @@ public class ListDatabaseTables extends AbstractProcessor {
         public static final String TABLE_REMARKS = "remarks";
         public static final String TABLE_ROW_COUNT = "rowCount";
 
-
-        static {
-            final List<RecordField> fields = new ArrayList<>();
-            fields.add(new RecordField(TABLE_NAME, RecordFieldType.STRING.getDataType(), false));
-            fields.add(new RecordField(TABLE_CATALOG, RecordFieldType.STRING.getDataType()));
-            fields.add(new RecordField(TABLE_SCHEMA, RecordFieldType.STRING.getDataType()));
-            fields.add(new RecordField(TABLE_FULLNAME, RecordFieldType.STRING.getDataType(), false));
-            fields.add(new RecordField(TABLE_TYPE, RecordFieldType.STRING.getDataType(), false));
-            fields.add(new RecordField(TABLE_REMARKS, RecordFieldType.STRING.getDataType(), false));
-            fields.add(new RecordField(TABLE_ROW_COUNT, RecordFieldType.LONG.getDataType(), false));
-            RECORD_SCHEMA = new SimpleRecordSchema(fields);
-        }
-
+        private static final RecordSchema RECORD_SCHEMA = new SimpleRecordSchema(List.of(
+                new RecordField(TABLE_NAME, RecordFieldType.STRING.getDataType(), false),
+                new RecordField(TABLE_CATALOG, RecordFieldType.STRING.getDataType()),
+                new RecordField(TABLE_SCHEMA, RecordFieldType.STRING.getDataType()),
+                new RecordField(TABLE_FULLNAME, RecordFieldType.STRING.getDataType(), false),
+                new RecordField(TABLE_TYPE, RecordFieldType.STRING.getDataType(), false),
+                new RecordField(TABLE_REMARKS, RecordFieldType.STRING.getDataType(), false),
+                new RecordField(TABLE_ROW_COUNT, RecordFieldType.LONG.getDataType(), false)
+        ));
 
         private final ProcessSession session;
         private final RecordSetWriterFactory writerFactory;
@@ -496,6 +471,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             if (writeResult.getRecordCount() == 0) {
                 session.remove(flowFile);
             } else {
+                // todo 13590
                 final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
                 attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                 flowFile = session.putAllAttributes(flowFile, attributes);

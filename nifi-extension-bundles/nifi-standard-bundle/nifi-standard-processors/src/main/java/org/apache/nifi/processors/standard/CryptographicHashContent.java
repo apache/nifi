@@ -17,12 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -35,12 +29,15 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.hash.HashAlgorithm;
 import org.apache.nifi.processors.standard.hash.HashService;
+
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 @SideEffectFree
 @SupportsBatching
@@ -73,6 +70,8 @@ public class CryptographicHashContent extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(FAIL_WHEN_EMPTY, HASH_ALGORITHM);
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Used for flowfiles that have a hash value added")
@@ -83,31 +82,16 @@ public class CryptographicHashContent extends AbstractProcessor {
             .description("Used for flowfiles that have no content if the 'fail on empty' setting is enabled")
             .build();
 
-    private static Set<Relationship> relationships;
-
-    private static List<PropertyDescriptor> properties;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_FAILURE);
-        _relationships.add(REL_SUCCESS);
-        relationships = Collections.unmodifiableSet(_relationships);
-
-        final List<PropertyDescriptor> _properties = new ArrayList<>();
-        _properties.add(FAIL_WHEN_EMPTY);
-        _properties.add(HASH_ALGORITHM);
-        properties = Collections.unmodifiableList(_properties);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_FAILURE, REL_SUCCESS);
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

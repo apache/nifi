@@ -23,27 +23,21 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.HashSet;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"counter", "debug", "instrumentation"})
 @CapabilityDescription("This processor allows users to set specific counters and key points in their flow. It is useful for debugging and basic counting functions.")
 @ReadsAttribute(attribute = "counterName", description = "The name of the counter to update/get.")
 public class UpdateCounter extends AbstractProcessor {
-
-
 
     static final PropertyDescriptor COUNTER_NAME = new PropertyDescriptor.Builder()
             .name("counter-name")
@@ -66,35 +60,23 @@ public class UpdateCounter extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(COUNTER_NAME, DELTA);
+
     static final Relationship SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Counter was updated/retrieved")
             .build();
 
-    private List<PropertyDescriptor> descriptors;
-
-    private Set<Relationship> relationships;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(COUNTER_NAME);
-        descriptors.add(DELTA);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS);
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override

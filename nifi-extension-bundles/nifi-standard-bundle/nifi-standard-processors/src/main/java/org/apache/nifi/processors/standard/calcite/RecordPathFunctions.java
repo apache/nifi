@@ -50,7 +50,7 @@ public class RecordPathFunctions {
 
     public static class ObjectRecordPath extends RecordPathFunction {
         private static final RecordField ROOT_RECORD_FIELD = new RecordField("root", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
-        private static final RecordSchema ROOT_RECORD_SCHEMA = new SimpleRecordSchema(Collections.singletonList(ROOT_RECORD_FIELD));
+        private static final RecordSchema ROOT_RECORD_SCHEMA = new SimpleRecordSchema(List.of(ROOT_RECORD_FIELD));
         private static final RecordField PARENT_RECORD_FIELD = new RecordField("root", RecordFieldType.RECORD.getRecordDataType(ROOT_RECORD_SCHEMA));
 
 
@@ -124,7 +124,7 @@ public class RecordPathFunctions {
             }
 
             if (selectedFields.size() == 1) {
-                return selectedFields.get(0).getValue();
+                return selectedFields.getFirst().getValue();
             }
 
             return selectedFields.stream()

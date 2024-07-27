@@ -30,7 +30,6 @@ import org.apache.nifi.serialization.RecordReader;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,7 +138,7 @@ public class RecordBinManager {
         // We have to do this outside of our for-loop above in order to avoid a concurrent modification Exception.
         if (acceptedBin != null) {
             if (acceptedBin.isComplete()) {
-                removeBins(groupIdentifier, Collections.singletonList(acceptedBin));
+                removeBins(groupIdentifier, List.of(acceptedBin));
             }
 
             return;
@@ -226,7 +225,7 @@ public class RecordBinManager {
                 return;
             }
 
-            removeBins(oldestBinGroup, Collections.singletonList(oldestBin));
+            removeBins(oldestBinGroup, List.of(oldestBin));
         } finally {
             lock.unlock();
         }

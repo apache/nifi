@@ -24,7 +24,6 @@ import org.apache.nifi.processors.standard.db.TableSchema;
 import java.sql.JDBCType;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -152,7 +151,7 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");
 
-        return Collections.singletonList(createTableStatement.toString());
+        return List.of(createTableStatement.toString());
     }
 
     @Override

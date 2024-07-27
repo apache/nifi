@@ -16,33 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static javax.xml.xpath.XPathConstants.NODESET;
-import static javax.xml.xpath.XPathConstants.STRING;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.xml.namespace.QName;
-import javax.xml.transform.Source;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-
+import net.sf.saxon.xpath.XPathEvaluator;
+import net.sf.saxon.xpath.XPathFactoryImpl;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -65,7 +40,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.xml.DocumentTypeAllowedDocumentProvider;
@@ -73,11 +47,32 @@ import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.w3c.dom.Document;
-
-import net.sf.saxon.xpath.XPathEvaluator;
-import net.sf.saxon.xpath.XPathFactoryImpl;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import javax.xml.namespace.QName;
+import javax.xml.transform.Source;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static javax.xml.xpath.XPathConstants.NODESET;
+import static javax.xml.xpath.XPathConstants.STRING;
 
 @SideEffectFree
 @SupportsBatching
@@ -136,6 +131,8 @@ public class EvaluateXPath extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(DESTINATION, RETURN_TYPE, VALIDATE_DTD);
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles are routed to this relationship "
@@ -153,25 +150,9 @@ public class EvaluateXPath extends AbstractProcessor {
                     + "Type is 'nodeset' and the XPath evaluates to multiple nodes")
             .build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> properties;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCH, REL_NO_MATCH, REL_FAILURE);
 
     private final AtomicReference<XPathFactory> factoryRef = new AtomicReference<>();
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_MATCH);
-        relationships.add(REL_NO_MATCH);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DESTINATION);
-        properties.add(RETURN_TYPE);
-        properties.add(VALIDATE_DTD);
-        this.properties = Collections.unmodifiableList(properties);
-    }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
@@ -198,12 +179,12 @@ public class EvaluateXPath extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @OnScheduled
@@ -330,7 +311,7 @@ public class EvaluateXPath extends AbstractProcessor {
                             ByteArrayOutputStream baos = new ByteArrayOutputStream();
                             final StreamResult streamResult = new StreamResult(baos);
                             transformProvider.transform(sourceNode, streamResult);
-                            xpathResults.put(entry.getKey(), new String(baos.toByteArray(), StandardCharsets.UTF_8));
+                            xpathResults.put(entry.getKey(), baos.toString(StandardCharsets.UTF_8));
                         } catch (final ProcessingException e) {
                             error.set(e);
                         }

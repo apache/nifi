@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
+import jakarta.servlet.Servlet;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -52,21 +55,17 @@ import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
 import org.apache.nifi.stream.io.StreamThrottler;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.net.ssl.SSLContext;
-import jakarta.servlet.Servlet;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.ws.rs.Path;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -118,11 +117,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             return new AllowableValue(name(), name(), description);
         }
     }
-
-    public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("Relationship for successfully received FlowFiles")
-        .build();
 
     public static final PropertyDescriptor BASE_PATH = new PropertyDescriptor.Builder()
         .name("Base Path")
@@ -275,29 +269,19 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .dependsOn(RECORD_READER)
             .build();
 
-    protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            BASE_PATH,
-            PORT,
-            HEALTH_CHECK_PORT,
-            MAX_DATA_RATE,
-            SSL_CONTEXT_SERVICE,
-            HTTP_PROTOCOL_STRATEGY,
-            CLIENT_AUTHENTICATION,
-            AUTHORIZED_DN_PATTERN,
-            AUTHORIZED_ISSUER_DN_PATTERN,
-            MAX_UNCONFIRMED_TIME,
-            HEADERS_AS_ATTRIBUTES_REGEX,
-            RETURN_CODE,
-            MULTIPART_REQUEST_MAX_SIZE,
-            MULTIPART_READ_BUFFER_SIZE,
-            MAX_THREAD_POOL_SIZE,
-            RECORD_READER,
-            RECORD_WRITER
-    ));
+    protected static final List<PropertyDescriptor> PROPERTIES = List.of(
+            BASE_PATH, PORT, HEALTH_CHECK_PORT, MAX_DATA_RATE, SSL_CONTEXT_SERVICE, HTTP_PROTOCOL_STRATEGY,
+            CLIENT_AUTHENTICATION, AUTHORIZED_DN_PATTERN, AUTHORIZED_ISSUER_DN_PATTERN, MAX_UNCONFIRMED_TIME,
+            HEADERS_AS_ATTRIBUTES_REGEX, RETURN_CODE, MULTIPART_REQUEST_MAX_SIZE, MULTIPART_READ_BUFFER_SIZE,
+            MAX_THREAD_POOL_SIZE, RECORD_READER, RECORD_WRITER
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Collections.singletonList(
-            RELATIONSHIP_SUCCESS
-    )));
+    public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Relationship for successfully received FlowFiles")
+            .build();
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(RELATIONSHIP_SUCCESS);
 
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
     public static final String CONTEXT_ATTRIBUTE_LOGGER = "logger";
@@ -533,13 +517,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     protected Set<Class<? extends Servlet>> getServerClasses() {
-        final Set<Class<? extends Servlet>> s = new HashSet<>();
         // NOTE: Servlets added below MUST have a Path annotation
         // any servlets other than ListenHTTPServlet must have a Path annotation start with /
-        s.add(ListenHTTPServlet.class);
-        s.add(ContentAcknowledgmentServlet.class);
-        s.add(HealthCheckServlet.class);
-        return s;
+        return Set.of(ListenHTTPServlet.class, ContentAcknowledgmentServlet.class, HealthCheckServlet.class);
     }
 
     private Set<String> findOldFlowFileIds(final ProcessContext ctx) {

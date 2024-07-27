@@ -17,9 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -34,9 +31,13 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.file.transfer.FetchFileTransfer;
-import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processor.util.file.transfer.FileTransfer;
+import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 // Note that we do not use @SupportsBatching annotation. This processor cannot support batching because it must ensure that session commits happen before remote files are deleted.
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -83,48 +84,33 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
 )
 public class FetchSFTP extends FetchFileTransfer {
 
+    private static final PropertyDescriptor PORT =
+            new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("22").build();
+
+    private static final PropertyDescriptor DISABLE_DIRECTORY_LISTING = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(SFTPTransfer.DISABLE_DIRECTORY_LISTING)
+            .description(String.format("Control how '%s' is created when '%s' is '%s' and '%s' is enabled. %s",
+                    MOVE_DESTINATION_DIR.getDisplayName(),
+                    COMPLETION_STRATEGY.getDisplayName(),
+                    COMPLETION_MOVE.getDisplayName(),
+                    MOVE_CREATE_DIRECTORY.getDisplayName(),
+                    SFTPTransfer.DISABLE_DIRECTORY_LISTING.getDescription())).build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            HOSTNAME, PORT, USERNAME, SFTPTransfer.PASSWORD, SFTPTransfer.PRIVATE_KEY_PATH,
+            SFTPTransfer.PRIVATE_KEY_PASSPHRASE, REMOTE_FILENAME, COMPLETION_STRATEGY, MOVE_DESTINATION_DIR,
+            MOVE_CREATE_DIRECTORY, DISABLE_DIRECTORY_LISTING, SFTPTransfer.CONNECTION_TIMEOUT,
+            SFTPTransfer.DATA_TIMEOUT, SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT, SFTPTransfer.HOST_KEY_FILE,
+            SFTPTransfer.STRICT_HOST_KEY_CHECKING, SFTPTransfer.USE_COMPRESSION, SFTPTransfer.PROXY_CONFIGURATION_SERVICE,
+            FTPTransfer.PROXY_TYPE, FTPTransfer.PROXY_HOST, FTPTransfer.PROXY_PORT, FTPTransfer.HTTP_PROXY_USERNAME,
+            FTPTransfer.HTTP_PROXY_PASSWORD, FILE_NOT_FOUND_LOG_LEVEL, SFTPTransfer.CIPHERS_ALLOWED,
+            SFTPTransfer.KEY_ALGORITHMS_ALLOWED, SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED,
+            SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED
+    );
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("22").build();
-        final PropertyDescriptor disableDirectoryListing = new PropertyDescriptor.Builder()
-                .fromPropertyDescriptor(SFTPTransfer.DISABLE_DIRECTORY_LISTING)
-                .description(String.format("Control how '%s' is created when '%s' is '%s' and '%s' is enabled. %s",
-                        MOVE_DESTINATION_DIR.getDisplayName(),
-                        COMPLETION_STRATEGY.getDisplayName(),
-                        COMPLETION_MOVE.getDisplayName(),
-                        MOVE_CREATE_DIRECTORY.getDisplayName(),
-                        SFTPTransfer.DISABLE_DIRECTORY_LISTING.getDescription())).build();
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(HOSTNAME);
-        properties.add(port);
-        properties.add(USERNAME);
-        properties.add(SFTPTransfer.PASSWORD);
-        properties.add(SFTPTransfer.PRIVATE_KEY_PATH);
-        properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);
-        properties.add(REMOTE_FILENAME);
-        properties.add(COMPLETION_STRATEGY);
-        properties.add(MOVE_DESTINATION_DIR);
-        properties.add(MOVE_CREATE_DIRECTORY);
-        properties.add(disableDirectoryListing);
-        properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
-        properties.add(SFTPTransfer.DATA_TIMEOUT);
-        properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
-        properties.add(SFTPTransfer.HOST_KEY_FILE);
-        properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
-        properties.add(SFTPTransfer.USE_COMPRESSION);
-        properties.add(SFTPTransfer.PROXY_CONFIGURATION_SERVICE);
-        properties.add(FTPTransfer.PROXY_TYPE);
-        properties.add(FTPTransfer.PROXY_HOST);
-        properties.add(FTPTransfer.PROXY_PORT);
-        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
-        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
-        properties.add(FILE_NOT_FOUND_LOG_LEVEL);
-        properties.add(SFTPTransfer.CIPHERS_ALLOWED);
-        properties.add(SFTPTransfer.KEY_ALGORITHMS_ALLOWED);
-        properties.add(SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED);
-        properties.add(SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

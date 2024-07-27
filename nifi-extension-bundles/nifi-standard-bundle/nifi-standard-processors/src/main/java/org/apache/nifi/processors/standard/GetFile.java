@@ -37,7 +37,6 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -56,7 +55,6 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -190,6 +188,11 @@ public class GetFile extends AbstractProcessor {
             .defaultValue("10")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DIRECTORY, FILE_FILTER, PATH_FILTER, BATCH_SIZE, KEEP_SOURCE_FILE, RECURSE, POLLING_INTERVAL,
+            IGNORE_HIDDEN_FILES, MIN_AGE, MAX_AGE, MIN_SIZE, MAX_SIZE
+    );
+
     public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
     public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = "file.lastModifiedTime";
     public static final String FILE_LAST_ACCESS_TIME_ATTRIBUTE = "file.lastAccessTime";
@@ -200,8 +203,7 @@ public class GetFile extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All files are routed to success").build();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     private final BlockingQueue<File> fileQueue = new LinkedBlockingQueue<>();
     private final Set<File> inProcess = new HashSet<>();    // guarded by queueLock
@@ -213,35 +215,13 @@ public class GetFile extends AbstractProcessor {
     private final AtomicLong queueLastUpdated = new AtomicLong(0L);
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DIRECTORY);
-        properties.add(FILE_FILTER);
-        properties.add(PATH_FILTER);
-        properties.add(BATCH_SIZE);
-        properties.add(KEEP_SOURCE_FILE);
-        properties.add(RECURSE);
-        properties.add(POLLING_INTERVAL);
-        properties.add(IGNORE_HIDDEN_FILES);
-        properties.add(MIN_AGE);
-        properties.add(MAX_AGE);
-        properties.add(MIN_SIZE);
-        properties.add(MAX_SIZE);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnScheduled
@@ -446,7 +426,7 @@ public class GetFile extends AbstractProcessor {
                 flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), relativePathString);
                 flowFile = session.putAttribute(flowFile, CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
                 Map<String, String> attributes = getAttributesFromFile(filePath);
-                if (attributes.size() > 0) {
+                if (!attributes.isEmpty()) {
                     flowFile = session.putAllAttributes(flowFile, attributes);
                 }
 

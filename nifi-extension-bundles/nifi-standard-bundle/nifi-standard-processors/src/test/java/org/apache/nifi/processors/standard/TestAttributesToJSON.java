@@ -45,6 +45,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -68,9 +69,7 @@ public class TestAttributesToJSON {
         FlowFile ff = session.create();
 
         testRunner.enqueue(ff);
-        assertThrows(AssertionError.class, () -> {
-            testRunner.run();
-        });
+        assertThrows(AssertionError.class, testRunner::run);
     }
 
     @Test
@@ -84,9 +83,7 @@ public class TestAttributesToJSON {
         FlowFile ff = session.create();
 
         testRunner.enqueue(ff);
-        assertThrows(AssertionError.class, () -> {
-            testRunner.run();
-        });
+        assertThrows(AssertionError.class, testRunner::run);
     }
 
     @Test
@@ -104,14 +101,14 @@ public class TestAttributesToJSON {
         testRunner.run();
 
         //Expecting success transition because Jackson is taking care of escaping the bad JSON characters
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
 
         //Make sure that the value is a true JSON null for the non existing attribute
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
-                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+                .getFirst().getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
         Map<String, String> val = MAPPER.readValue(json, HashMap.class);
 
@@ -133,14 +130,14 @@ public class TestAttributesToJSON {
         testRunner.run();
 
         //Expecting success transition because Jackson is taking care of escaping the bad JSON characters
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
 
         //Make sure that the value is a true JSON null for the non existing attribute
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
-                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+                .getFirst().getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
         Map<String, String> val = MAPPER.readValue(json, HashMap.class);
 
@@ -148,7 +145,7 @@ public class TestAttributesToJSON {
     }
 
     @Test
-    public void testInvalidJSONValueInAttribute() throws Exception {
+    public void testInvalidJSONValueInAttribute() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
 
@@ -162,7 +159,7 @@ public class TestAttributesToJSON {
         testRunner.run();
 
         //Expecting success transition because Jackson is taking care of escaping the bad JSON characters
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
@@ -182,21 +179,21 @@ public class TestAttributesToJSON {
         testRunner.enqueue(ff);
         testRunner.run();
 
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
 
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
-                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+                .getFirst().getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
         Map<String, String> val = MAPPER.readValue(json, HashMap.class);
-        assertTrue(val.get(TEST_ATTRIBUTE_KEY).equals(TEST_ATTRIBUTE_VALUE));
+        assertEquals(TEST_ATTRIBUTE_VALUE, val.get(TEST_ATTRIBUTE_KEY));
     }
 
 
     @Test
-    public void testContent_emptyListUserSpecifiedAttributes() throws Exception {
+    public void testContent_emptyListUserSpecifiedAttributes() {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
         testRunner.setProperty(AttributesToJSON.INCLUDE_CORE_ATTRIBUTES, "false");
@@ -207,11 +204,11 @@ public class TestAttributesToJSON {
         testRunner.enqueue(ff);
         testRunner.run();
 
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeNotExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0).assertContentEquals("{}");
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst().assertContentEquals("{}");
     }
 
     @Test
@@ -227,17 +224,17 @@ public class TestAttributesToJSON {
         testRunner.enqueue(ff);
         testRunner.run();
 
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
 
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
-                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+                .getFirst().getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
         Map<String, String> val = MAPPER.readValue(json, HashMap.class);
-        assertTrue(val.get(TEST_ATTRIBUTE_KEY).equals(TEST_ATTRIBUTE_VALUE));
-        assertTrue(val.size() == 1);
+        assertEquals(TEST_ATTRIBUTE_VALUE, val.get(TEST_ATTRIBUTE_KEY));
+        assertEquals(1, val.size());
     }
 
 
@@ -254,17 +251,17 @@ public class TestAttributesToJSON {
         testRunner.enqueue(ff);
         testRunner.run();
 
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
 
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
-                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+                .getFirst().getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
         Map<String, String> val = MAPPER.readValue(json, HashMap.class);
-        assertTrue(val.get(TEST_ATTRIBUTE_KEY).equals(TEST_ATTRIBUTE_VALUE));
-        assertTrue(val.size() == 1);
+        assertEquals(TEST_ATTRIBUTE_VALUE, val.get(TEST_ATTRIBUTE_KEY));
+        assertEquals(1, val.size());
     }
 
 
@@ -281,19 +278,19 @@ public class TestAttributesToJSON {
         testRunner.enqueue(ff);
         testRunner.run();
 
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
 
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
-                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+                .getFirst().getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
         Map<String, String> val = MAPPER.readValue(json, HashMap.class);
 
         //If a Attribute is requested but does not exist then it is placed in the JSON with an empty string
-        assertTrue(val.get("NonExistingAttribute").equals(""));
-        assertTrue(val.size() == 1);
+        assertEquals("", val.get("NonExistingAttribute"));
+        assertEquals(1, val.size());
     }
 
     @Test
@@ -310,13 +307,13 @@ public class TestAttributesToJSON {
         testRunner.enqueue(ff);
         testRunner.run();
 
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
 
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
-                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+                .getFirst().getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
         Map<String, String> val = MAPPER.readValue(json, HashMap.class);
         assertEquals(TEST_ATTRIBUTE_VALUE, val.get(TEST_ATTRIBUTE_KEY));
@@ -338,13 +335,13 @@ public class TestAttributesToJSON {
         testRunner.enqueue(ff);
         testRunner.run();
 
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
 
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
-                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+                .getFirst().getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
         Map<String, String> val = MAPPER.readValue(json, HashMap.class);
         assertEquals(TEST_ATTRIBUTE_VALUE, val.get(CoreAttributes.PATH.key()));
@@ -368,7 +365,7 @@ public class TestAttributesToJSON {
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
 
-        Map<String, String> val = MAPPER.readValue(testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0).toByteArray(), HashMap.class);
+        Map<String, String> val = MAPPER.readValue(testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst().toByteArray(), HashMap.class);
         assertEquals(TEST_ATTRIBUTE_VALUE, val.get(TEST_ATTRIBUTE_KEY));
         assertEquals(1, val.size());
     }
@@ -390,7 +387,7 @@ public class TestAttributesToJSON {
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = flowFilesForRelationship.get(0);
+        MockFlowFile flowFile = flowFilesForRelationship.getFirst();
 
         assertEquals(AttributesToJSON.APPLICATION_JSON, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
@@ -416,7 +413,7 @@ public class TestAttributesToJSON {
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = flowFilesForRelationship.get(0);
+        MockFlowFile flowFile = flowFilesForRelationship.getFirst();
 
         assertNull(flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
@@ -433,7 +430,7 @@ public class TestAttributesToJSON {
         testRunner.setProperty(AttributesToJSON.ATTRIBUTES_REGEX, "${regex}");
         testRunner.setProperty(AttributesToJSON.ATTRIBUTES_LIST, "test, test1");
 
-        Map<String, String> attributes = new HashMap<String, String>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("delimited.header.column.1", "Registry");
         attributes.put("delimited.header.column.2", "Assignment");
         attributes.put("delimited.header.column.3", "Organization Name");
@@ -448,16 +445,16 @@ public class TestAttributesToJSON {
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst();
 
         Map<String, String> val = MAPPER.readValue(flowFile.getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME), HashMap.class);
-        assertTrue(val.keySet().contains("delimited.header.column.1"));
-        assertTrue(val.keySet().contains("delimited.header.column.2"));
-        assertTrue(val.keySet().contains("delimited.header.column.3"));
-        assertTrue(val.keySet().contains("delimited.header.column.4"));
-        assertTrue(!val.keySet().contains("delimited.footer.column.1"));
-        assertTrue(val.keySet().contains("test"));
-        assertTrue(val.keySet().contains("test1"));
+        assertTrue(val.containsKey("delimited.header.column.1"));
+        assertTrue(val.containsKey("delimited.header.column.2"));
+        assertTrue(val.containsKey("delimited.header.column.3"));
+        assertTrue(val.containsKey("delimited.header.column.4"));
+        assertFalse(val.containsKey("delimited.footer.column.1"));
+        assertTrue(val.containsKey("test"));
+        assertTrue(val.containsKey("test1"));
     }
 
     @ParameterizedTest
@@ -465,8 +462,7 @@ public class TestAttributesToJSON {
     public void testAttributeWithNestedJsonOutputAsJsonInContent(String nestedJson, Class<?> expectedClass) throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
-        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
-                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY, AttributesToJSON.JsonHandlingStrategy.NESTED);
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
@@ -478,7 +474,7 @@ public class TestAttributesToJSON {
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
 
         List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS);
-        MockFlowFile flowFile = flowFilesForRelationship.get(0);
+        MockFlowFile flowFile = flowFilesForRelationship.getFirst();
         assertEquals(AttributesToJSON.APPLICATION_JSON, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
         Map<String, Object> val = MAPPER.readValue(flowFile.toByteArray(), Map.class);
         assertInstanceOf(expectedClass, val.get(TEST_ATTRIBUTE_KEY));
@@ -495,8 +491,7 @@ public class TestAttributesToJSON {
     public void testAttributeWithNestedJsonOutputAsJsonInAttribute(String nestedJson, Class<?> expectedClass) throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
-                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY, AttributesToJSON.JsonHandlingStrategy.NESTED);
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
@@ -506,11 +501,11 @@ public class TestAttributesToJSON {
 
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
-                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+                .getFirst().getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         Map<String, Object> val = MAPPER.readValue(json, Map.class);
         assertInstanceOf(expectedClass, val.get(TEST_ATTRIBUTE_KEY));
     }
@@ -520,8 +515,7 @@ public class TestAttributesToJSON {
     public void testAttributesWithLookALikeJson(String lookAlikeJson) {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
-        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
-                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY, AttributesToJSON.JsonHandlingStrategy.NESTED);
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
@@ -532,7 +526,7 @@ public class TestAttributesToJSON {
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 1);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 0);
         MockComponentLog logger = testRunner.getLogger();
-        assertTrue(logger.getErrorMessages().get(0).getMsg().contains("expecting"));
+        assertTrue(logger.getErrorMessages().getFirst().getMsg().contains("expecting"));
     }
 
     @ParameterizedTest
@@ -549,11 +543,11 @@ public class TestAttributesToJSON {
 
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
-        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst()
                 .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
 
         String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
-                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+                .getFirst().getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
         Map<String, Object> val = MAPPER.readValue(json, Map.class);
         assertInstanceOf(String.class, val.get(TEST_ATTRIBUTE_KEY));
     }
@@ -569,8 +563,7 @@ public class TestAttributesToJSON {
 
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
-        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
-                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY, AttributesToJSON.JsonHandlingStrategy.NESTED);
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
@@ -580,7 +573,7 @@ public class TestAttributesToJSON {
 
         testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
         testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
-        MockFlowFile result = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0);
+        MockFlowFile result = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).getFirst();
         Map<String, Object> attributes = MAPPER.readValue(result.getContent(), Map.class);
         assertInstanceOf(Map.class, attributes.get(TEST_ATTRIBUTE_KEY));
     }

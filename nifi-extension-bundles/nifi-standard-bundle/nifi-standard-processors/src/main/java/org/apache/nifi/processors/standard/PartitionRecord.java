@@ -55,12 +55,10 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -143,6 +141,8 @@ public class PartitionRecord extends AbstractProcessor {
         .required(true)
         .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(RECORD_READER, RECORD_WRITER);
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("FlowFiles that are successfully partitioned will be routed to this relationship")
@@ -157,33 +157,28 @@ public class PartitionRecord extends AbstractProcessor {
             + "the unchanged FlowFile will be routed to this relationship")
         .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_ORIGINAL);
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(RECORD_READER);
-        properties.add(RECORD_WRITER);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_ORIGINAL);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final boolean hasDynamic = validationContext.getProperties().keySet().stream()
-            .anyMatch(prop -> prop.isDynamic());
+            .anyMatch(PropertyDescriptor::isDynamic);
 
         if (hasDynamic) {
             return Collections.emptyList();
         }
 
-        return Collections.singleton(new ValidationResult.Builder()
+        return Set.of(new ValidationResult.Builder()
             .subject("User-defined Properties")
             .valid(false)
             .explanation("At least one RecordPath must be added to this processor by adding a user-defined property")
@@ -214,10 +209,10 @@ public class PartitionRecord extends AbstractProcessor {
         final Map<String, RecordPath> recordPaths;
         try {
             recordPaths = context.getProperties().keySet().stream()
-                .filter(prop -> prop.isDynamic())
-                .collect(Collectors.toMap(
-                    prop -> prop.getName(),
-                    prop -> getRecordPath(context, prop, flowFile)));
+                    .filter(PropertyDescriptor::isDynamic)
+                    .collect(Collectors.toMap(
+                            PropertyDescriptor::getName,
+                            prop -> getRecordPath(context, prop, flowFile)));
         } catch (final Exception e) {
             getLogger().error("Failed to compile RecordPath for {}; routing to failure", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
@@ -324,8 +319,7 @@ public class PartitionRecord extends AbstractProcessor {
 
     private RecordPath getRecordPath(final ProcessContext context, final PropertyDescriptor prop, final FlowFile flowFile) {
         final String pathText = context.getProperty(prop).evaluateAttributeExpressions(flowFile).getValue();
-        final RecordPath recordPath = recordPathCache.getCompiled(pathText);
-        return recordPath;
+        return recordPathCache.getCompiled(pathText);
     }
 
     /**
@@ -365,10 +359,9 @@ public class PartitionRecord extends AbstractProcessor {
             if (obj == null) {
                 return false;
             }
-            if (!(obj instanceof ValueWrapper)) {
+            if (!(obj instanceof ValueWrapper other)) {
                 return false;
             }
-            final ValueWrapper other = (ValueWrapper) obj;
             if (value == null && other.value == null) {
                 return true;
             }
@@ -401,7 +394,7 @@ public class PartitionRecord extends AbstractProcessor {
                 }
 
                 // If value is null, don't create an attribute
-                final Object value = values.get(0).get();
+                final Object value = values.getFirst().get();
                 if (value == null) {
                     continue;
                 }
@@ -440,10 +433,9 @@ public class PartitionRecord extends AbstractProcessor {
             if (obj == null) {
                 return false;
             }
-            if (!(obj instanceof RecordValueMap)) {
+            if (!(obj instanceof RecordValueMap other)) {
                 return false;
             }
-            final RecordValueMap other = (RecordValueMap) obj;
             return values.equals(other.values);
         }
 

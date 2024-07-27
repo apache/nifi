@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.nio.charset.Charset;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.net.ssl.SSLContext;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
@@ -42,20 +29,30 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventSender;
-import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.configuration.LineEnding;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.StringNettyEventSenderFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.syslog.parsers.SyslogParser;
 import org.apache.nifi.util.StopWatch;
+
+import javax.net.ssl.SSLContext;
+import java.nio.charset.Charset;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @TriggerWhenEmpty
@@ -152,6 +149,11 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .dependsOn(PROTOCOL, TCP_VALUE)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            HOSTNAME, PROTOCOL, PORT, MAX_SOCKET_SEND_BUFFER_SIZE, SSL_CONTEXT_SERVICE, IDLE_EXPIRATION, TIMEOUT,
+            BATCH_SIZE, CHARSET, MSG_PRIORITY, MSG_VERSION, MSG_TIMESTAMP, MSG_HOSTNAME, MSG_BODY
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that are sent successfully to Syslog are sent out this relationship.")
@@ -165,46 +167,19 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .description("FlowFiles that do not form a valid Syslog message are sent out this relationship.")
             .build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> descriptors;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_INVALID);
 
     private EventSender<String> eventSender;
     private String transitUri;
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(HOSTNAME);
-        descriptors.add(PROTOCOL);
-        descriptors.add(PORT);
-        descriptors.add(MAX_SOCKET_SEND_BUFFER_SIZE);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(IDLE_EXPIRATION);
-        descriptors.add(TIMEOUT);
-        descriptors.add(BATCH_SIZE);
-        descriptors.add(CHARSET);
-        descriptors.add(MSG_PRIORITY);
-        descriptors.add(MSG_VERSION);
-        descriptors.add(MSG_TIMESTAMP);
-        descriptors.add(MSG_HOSTNAME);
-        descriptors.add(MSG_BODY);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_INVALID);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
     public Set<Relationship> getRelationships() {
-        return this.relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override

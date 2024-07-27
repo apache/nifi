@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -46,6 +37,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @SupportsBatching
 @Tags({"map", "cache", "notify", "distributed", "signal", "release"})
@@ -134,6 +132,11 @@ public class Notify extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RELEASE_SIGNAL_IDENTIFIER, SIGNAL_COUNTER_NAME, SIGNAL_COUNTER_DELTA, SIGNAL_BUFFER_COUNT,
+            DISTRIBUTED_CACHE_SERVICE, ATTRIBUTE_CACHE_REGEX
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles where the release signal has been successfully entered in the cache will be routed to this relationship")
@@ -144,30 +147,16 @@ public class Notify extends AbstractProcessor {
             .description("When the cache cannot be reached, or if the Release Signal Identifier evaluates to null or empty, FlowFiles will be routed to this relationship")
             .build();
 
-    private final Set<Relationship> relationships;
-
-    public Notify() {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(rels);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(RELEASE_SIGNAL_IDENTIFIER);
-        descriptors.add(SIGNAL_COUNTER_NAME);
-        descriptors.add(SIGNAL_COUNTER_DELTA);
-        descriptors.add(SIGNAL_BUFFER_COUNT);
-        descriptors.add(DISTRIBUTED_CACHE_SERVICE);
-        descriptors.add(ATTRIBUTE_CACHE_REGEX);
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     private class SignalBuffer {
@@ -177,7 +166,7 @@ public class Notify extends AbstractProcessor {
         final List<FlowFile> flowFiles = new ArrayList<>();
 
         int incrementDelta(final String counterName, final int delta) {
-            int current = deltas.containsKey(counterName) ? deltas.get(counterName) : 0;
+            int current = deltas.getOrDefault(counterName, 0);
             // Zero (0) clears count.
             int updated = delta == 0 ? 0 : current + delta;
             deltas.put(counterName, updated);
@@ -253,7 +242,6 @@ public class Notify extends AbstractProcessor {
             if (logger.isDebugEnabled()) {
                 logger.debug("Cached release signal identifier {} counterName {} from FlowFile {}", signalId, counterName, flowFile);
             }
-
         }
 
         signalBuffers.forEach((signalId, signalBuffer) -> {
@@ -268,5 +256,4 @@ public class Notify extends AbstractProcessor {
             }
         });
     }
-
 }

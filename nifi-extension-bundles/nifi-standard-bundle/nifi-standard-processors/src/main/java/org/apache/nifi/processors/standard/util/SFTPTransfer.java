@@ -87,14 +87,14 @@ public class SFTPTransfer implements FileTransfer {
     static {
         DefaultConfig defaultConfig = new DefaultConfig();
 
-        DEFAULT_KEY_ALGORITHM_NAMES = Collections.unmodifiableSet(defaultConfig.getKeyAlgorithms().stream()
-                .map(Factory.Named::getName).collect(Collectors.toSet()));
-        DEFAULT_CIPHER_NAMES = Collections.unmodifiableSet(defaultConfig.getCipherFactories().stream()
-                .map(Factory.Named::getName).collect(Collectors.toSet()));
-        DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES = Collections.unmodifiableSet(defaultConfig.getMACFactories().stream()
-                .map(Factory.Named::getName).collect(Collectors.toSet()));
-        DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES = Collections.unmodifiableSet(defaultConfig.getKeyExchangeFactories().stream()
-                .map(Factory.Named::getName).collect(Collectors.toSet()));
+        DEFAULT_KEY_ALGORITHM_NAMES = defaultConfig.getKeyAlgorithms().stream()
+                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
+        DEFAULT_CIPHER_NAMES = defaultConfig.getCipherFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
+        DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES = defaultConfig.getMACFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
+        DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES = defaultConfig.getKeyExchangeFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
     }
 
     /**
@@ -478,15 +478,10 @@ public class SFTPTransfer implements FileTransfer {
     @Override
     public FlowFile getRemoteFile(final String remoteFileName, final FlowFile origFlowFile, final ProcessSession session) throws ProcessException, IOException {
         final SFTPClient sftpClient = getSFTPClient(origFlowFile);
-        RemoteFile rf = null;
-        RemoteFile.ReadAheadRemoteFileInputStream rfis = null;
-        FlowFile resultFlowFile;
-        try {
-            rf = sftpClient.open(remoteFileName);
-            rfis = rf.new ReadAheadRemoteFileInputStream(16);
-            final InputStream in = rfis;
-            resultFlowFile = session.write(origFlowFile, out -> StreamUtils.copy(in, out));
-            return resultFlowFile;
+
+        try (RemoteFile rf = sftpClient.open(remoteFileName);
+             RemoteFile.ReadAheadRemoteFileInputStream rfis = rf.new ReadAheadRemoteFileInputStream(16)) {
+            return session.write(origFlowFile, out -> StreamUtils.copy(rfis, out));
         } catch (final SFTPException e) {
             switch (e.getStatusCode()) {
                 case NO_SUCH_FILE:
@@ -495,21 +490,6 @@ public class SFTPTransfer implements FileTransfer {
                     throw new PermissionDeniedException("Insufficient permissions to read file " + remoteFileName + " from remote SFTP Server", e);
                 default:
                     throw new IOException("Failed to obtain file content for " + remoteFileName, e);
-            }
-        } finally {
-            if (rf != null) {
-                try {
-                    rf.close();
-                } catch (final IOException ioe) {
-                    //do nothing
-                }
-            }
-            if (rfis != null) {
-                try {
-                    rfis.close();
-                } catch (final IOException ioe) {
-                    //do nothing
-                }
             }
         }
     }

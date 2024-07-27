@@ -18,13 +18,13 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.json.schema.JsonSchema;
+import org.apache.nifi.json.schema.SchemaVersion;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.json.schema.JsonSchema;
 import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.json.schema.SchemaVersion;
 import org.apache.nifi.schemaregistry.services.JsonSchemaRegistry;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -64,7 +64,7 @@ class TestValidateJson {
 
     @ParameterizedTest(name = "{2}")
     @MethodSource("customValidateArgs")
-    void testCustomValidateMissingProperty(final String strategy) {
+    void testCustomValidateMissingProperty(final ValidateJson.JsonSchemaStrategy strategy) {
         runner.setProperty(ValidateJson.SCHEMA_ACCESS_STRATEGY, strategy);
         runner.enqueue(JSON);
 
@@ -87,7 +87,7 @@ class TestValidateJson {
 
         assertValidationErrors(ValidateJson.REL_VALID, false);
         assertEquals(1, runner.getProvenanceEvents().size());
-        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
     }
 
     @Test
@@ -105,7 +105,7 @@ class TestValidateJson {
 
         assertValidationErrors(ValidateJson.REL_VALID, false);
         assertEquals(1, runner.getProvenanceEvents().size());
-        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
     }
 
     @Test
@@ -122,7 +122,7 @@ class TestValidateJson {
 
         assertValidationErrors(ValidateJson.REL_VALID, false);
         assertEquals(1, runner.getProvenanceEvents().size());
-        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
     }
 
     @Test
@@ -140,7 +140,7 @@ class TestValidateJson {
 
         assertValidationErrors(ValidateJson.REL_VALID, false);
         assertEquals(1, runner.getProvenanceEvents().size());
-        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
     }
 
     @Test
@@ -158,7 +158,7 @@ class TestValidateJson {
 
         assertValidationErrors(ValidateJson.REL_INVALID, true);
         assertEquals(1, runner.getProvenanceEvents().size());
-        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
     }
 
     @Test
@@ -176,7 +176,7 @@ class TestValidateJson {
 
         assertValidationErrors(ValidateJson.REL_INVALID, true);
         assertEquals(1, runner.getProvenanceEvents().size());
-        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
     }
 
     @Test
@@ -193,7 +193,7 @@ class TestValidateJson {
 
         assertValidationErrors(ValidateJson.REL_FAILURE, false);
         assertEquals(1, runner.getProvenanceEvents().size());
-        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().getFirst().getEventType());
     }
 
     @Test
@@ -239,7 +239,7 @@ class TestValidateJson {
         runner.addControllerService(registryIdentifier, validJsonSchemaRegistry);
         runner.enableControllerService(validJsonSchemaRegistry);
         runner.assertValid(validJsonSchemaRegistry);
-        runner.setProperty(ValidateJson.SCHEMA_ACCESS_STRATEGY, ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY.getValue());
+        runner.setProperty(ValidateJson.SCHEMA_ACCESS_STRATEGY, ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY);
         runner.setProperty(ValidateJson.SCHEMA_REGISTRY, registryIdentifier);
 
         Map<String, String> attributes = new HashMap<>();
@@ -253,7 +253,7 @@ class TestValidateJson {
     }
 
     private void assertValidationErrors(Relationship relationship, boolean expected) {
-        final Map<String, String> attributes = runner.getFlowFilesForRelationship(relationship).get(0).getAttributes();
+        final Map<String, String> attributes = runner.getFlowFilesForRelationship(relationship).getFirst().getAttributes();
 
         if (expected) {
             // JSON library supports English and French validation output. Validate existence of message rather than value.
@@ -265,8 +265,8 @@ class TestValidateJson {
 
     private static Stream<Arguments> customValidateArgs() {
         return Stream.of(
-                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY.getValue(), "requires that the JSON Schema Registry property be set"),
-                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY.getValue(), "requires that the JSON Schema property be set")
+                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY, "requires that the JSON Schema Registry property be set"),
+                Arguments.of(ValidateJson.JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY, "requires that the JSON Schema property be set")
         );
     }
 

@@ -30,16 +30,12 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.eclipse.jetty.util.StringUtil;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -79,43 +75,27 @@ public class LogMessage extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(LOG_LEVEL, LOG_PREFIX, LOG_MESSAGE);
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles are routed to this relationship")
             .build();
 
-    private static final int CHUNK_SIZE = 50;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     enum MessageLogLevel {
-
         trace, debug, info, warn, error
-    }
-
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> supportedDescriptors;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> procRels = new HashSet<>();
-        procRels.add(REL_SUCCESS);
-        relationships = Collections.unmodifiableSet(procRels);
-
-        // descriptors
-        final List<PropertyDescriptor> supDescriptors = new ArrayList<>();
-        supDescriptors.add(LOG_LEVEL);
-        supDescriptors.add(LOG_PREFIX);
-        supDescriptors.add(LOG_MESSAGE);
-        supportedDescriptors = Collections.unmodifiableList(supDescriptors);
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return supportedDescriptors;
+        return PROPERTIES;
     }
 
     @Override
@@ -136,24 +116,13 @@ public class LogMessage extends AbstractProcessor {
         }
 
         final ComponentLog logger = getLogger();
-        boolean isLogLevelEnabled = false;
-        switch (logLevel) {
-            case trace:
-                isLogLevelEnabled = logger.isTraceEnabled();
-                break;
-            case debug:
-                isLogLevelEnabled = logger.isDebugEnabled();
-                break;
-            case info:
-                isLogLevelEnabled = logger.isInfoEnabled();
-                break;
-            case warn:
-                isLogLevelEnabled = logger.isWarnEnabled();
-                break;
-            case error:
-                isLogLevelEnabled = logger.isErrorEnabled();
-                break;
-        }
+        boolean isLogLevelEnabled = switch (logLevel) {
+            case trace -> logger.isTraceEnabled();
+            case debug -> logger.isDebugEnabled();
+            case info -> logger.isInfoEnabled();
+            case warn -> logger.isWarnEnabled();
+            case error -> logger.isErrorEnabled();
+        };
 
         if (isLogLevelEnabled) {
             processFlowFile(logger, logLevel, flowFile, context);

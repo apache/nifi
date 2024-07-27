@@ -71,11 +71,8 @@ import org.apache.nifi.util.db.JdbcProperties;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -189,18 +186,10 @@ public class JoinEnrichment extends BinFiles {
         .defaultValue("10000")
         .build();
 
-    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
-        ORIGINAL_RECORD_READER,
-        ENRICHMENT_RECORD_READER,
-        RECORD_WRITER,
-        JOIN_STRATEGY,
-        SQL,
-        DEFAULT_PRECISION,
-        DEFAULT_SCALE,
-        INSERTION_RECORD_PATH,
-        MAX_BIN_COUNT,
-        TIMEOUT
-    ));
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            ORIGINAL_RECORD_READER, ENRICHMENT_RECORD_READER, RECORD_WRITER, JOIN_STRATEGY, SQL, DEFAULT_PRECISION,
+            DEFAULT_SCALE, INSERTION_RECORD_PATH, MAX_BIN_COUNT, TIMEOUT
+    );
 
     // Relationships
     static final Relationship REL_JOINED = new Relationship.Builder()
@@ -223,23 +212,18 @@ public class JoinEnrichment extends BinFiles {
             "relationship.")
         .build();
 
-    private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_JOINED,
-        REL_ORIGINAL,
-        REL_TIMEOUT,
-        REL_FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_JOINED, REL_ORIGINAL, REL_TIMEOUT, REL_FAILURE);
 
     private final SqlJoinCache sqlJoinCache = new SqlJoinCache(getLogger());
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnStopped
@@ -307,10 +291,10 @@ public class JoinEnrichment extends BinFiles {
 
             session.transfer(flowFiles, REL_TIMEOUT);
 
-            final FlowFile flowFile = flowFiles.get(0);
+            final FlowFile flowFile = flowFiles.getFirst();
             final EnrichmentRole role = getEnrichmentRole(flowFile);
             final String missingType = (role == null) ? "other" : getOtherEnrichmentRole(role).name();
-            getLogger().warn("Timed out waiting for the {} FlowFile to match {}; routing to {}", missingType, flowFiles.get(0), REL_TIMEOUT.getName());
+            getLogger().warn("Timed out waiting for the {} FlowFile to match {}; routing to {}", missingType, flowFiles.getFirst(), REL_TIMEOUT.getName());
             session.commitAsync();
 
             return new BinProcessingResult(true);
@@ -413,8 +397,7 @@ public class JoinEnrichment extends BinFiles {
         try (final InputStream rawIn = session.read(flowFile)) {
             final Map<String, String> enrichmentAttributes = flowFile.getAttributes();
             final RecordReader reader = recordReaderFactory.createRecordReader(enrichmentAttributes, rawIn, flowFile.getSize(), getLogger());
-            final RecordSchema schema = reader.getSchema();
-            return schema;
+            return reader.getSchema();
         }
     }
 
@@ -466,20 +449,12 @@ public class JoinEnrichment extends BinFiles {
     }
 
     private EnrichmentRole getOtherEnrichmentRole(final EnrichmentRole role) {
-        if (role == null) {
-            return null;
-        }
-
-        switch (role) {
-            case ENRICHMENT:
-                return EnrichmentRole.ORIGINAL;
-            case ORIGINAL:
-                return EnrichmentRole.ENRICHMENT;
-            case UNKNOWN:
-                return EnrichmentRole.UNKNOWN;
-        }
-
-        return null;
+        return switch (role) {
+            case ENRICHMENT -> EnrichmentRole.ORIGINAL;
+            case ORIGINAL -> EnrichmentRole.ENRICHMENT;
+            case UNKNOWN -> EnrichmentRole.UNKNOWN;
+            case null -> null;
+        };
     }
 
     @Override

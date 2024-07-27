@@ -36,21 +36,20 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.file.transfer.FileInfo;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processor.util.file.transfer.ListFileTransfer;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
-import org.apache.nifi.processor.util.file.transfer.FileInfo;
-import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -80,52 +79,27 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListSFTP extends ListFileTransfer {
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            FILE_TRANSFER_LISTING_STRATEGY, SFTPTransfer.HOSTNAME, SFTPTransfer.PORT, SFTPTransfer.USERNAME,
+            SFTPTransfer.PASSWORD, SFTPTransfer.PRIVATE_KEY_PATH, SFTPTransfer.PRIVATE_KEY_PASSPHRASE, REMOTE_PATH,
+            RECORD_WRITER, DISTRIBUTED_CACHE_SERVICE, SFTPTransfer.RECURSIVE_SEARCH, SFTPTransfer.FOLLOW_SYMLINK,
+            SFTPTransfer.FILE_FILTER_REGEX, SFTPTransfer.PATH_FILTER_REGEX, SFTPTransfer.IGNORE_DOTTED_FILES,
+            SFTPTransfer.REMOTE_POLL_BATCH_SIZE, SFTPTransfer.STRICT_HOST_KEY_CHECKING, SFTPTransfer.HOST_KEY_FILE,
+            SFTPTransfer.CONNECTION_TIMEOUT, SFTPTransfer.DATA_TIMEOUT, SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT,
+            TARGET_SYSTEM_TIMESTAMP_PRECISION, SFTPTransfer.USE_COMPRESSION, SFTPTransfer.PROXY_CONFIGURATION_SERVICE,
+            FTPTransfer.PROXY_TYPE, FTPTransfer.PROXY_HOST, FTPTransfer.PROXY_PORT, FTPTransfer.HTTP_PROXY_USERNAME,
+            FTPTransfer.HTTP_PROXY_PASSWORD, ListedEntityTracker.TRACKING_STATE_CACHE,
+            ListedEntityTracker.TRACKING_TIME_WINDOW, ListedEntityTracker.INITIAL_LISTING_TARGET,
+            ListFile.MIN_AGE, ListFile.MAX_AGE, ListFile.MIN_SIZE, ListFile.MAX_SIZE, SFTPTransfer.CIPHERS_ALLOWED,
+            SFTPTransfer.KEY_ALGORITHMS_ALLOWED, SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED,
+            SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED
+    );
+
     private volatile Predicate<FileInfo> fileFilter;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(FILE_TRANSFER_LISTING_STRATEGY);
-        properties.add(SFTPTransfer.HOSTNAME);
-        properties.add(SFTPTransfer.PORT);
-        properties.add(SFTPTransfer.USERNAME);
-        properties.add(SFTPTransfer.PASSWORD);
-        properties.add(SFTPTransfer.PRIVATE_KEY_PATH);
-        properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);
-        properties.add(REMOTE_PATH);
-        properties.add(RECORD_WRITER);
-        properties.add(DISTRIBUTED_CACHE_SERVICE);
-        properties.add(SFTPTransfer.RECURSIVE_SEARCH);
-        properties.add(SFTPTransfer.FOLLOW_SYMLINK);
-        properties.add(SFTPTransfer.FILE_FILTER_REGEX);
-        properties.add(SFTPTransfer.PATH_FILTER_REGEX);
-        properties.add(SFTPTransfer.IGNORE_DOTTED_FILES);
-        properties.add(SFTPTransfer.REMOTE_POLL_BATCH_SIZE);
-        properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
-        properties.add(SFTPTransfer.HOST_KEY_FILE);
-        properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
-        properties.add(SFTPTransfer.DATA_TIMEOUT);
-        properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
-        properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
-        properties.add(SFTPTransfer.USE_COMPRESSION);
-        properties.add(SFTPTransfer.PROXY_CONFIGURATION_SERVICE);
-        properties.add(FTPTransfer.PROXY_TYPE);
-        properties.add(FTPTransfer.PROXY_HOST);
-        properties.add(FTPTransfer.PROXY_PORT);
-        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
-        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
-        properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
-        properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
-        properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
-        properties.add(ListFile.MIN_AGE);
-        properties.add(ListFile.MAX_AGE);
-        properties.add(ListFile.MIN_SIZE);
-        properties.add(ListFile.MAX_SIZE);
-        properties.add(SFTPTransfer.CIPHERS_ALLOWED);
-        properties.add(SFTPTransfer.KEY_ALGORITHMS_ALLOWED);
-        properties.add(SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED);
-        properties.add(SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

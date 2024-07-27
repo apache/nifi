@@ -16,26 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -56,6 +36,23 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 @SideEffectFree
 @SupportsBatching
 @Tags({"count", "text", "line", "word", "character"})
@@ -70,13 +67,14 @@ import org.apache.nifi.util.StringUtils;
 })
 @SeeAlso(SplitText.class)
 public class CountText extends AbstractProcessor {
-    private static final List<Charset> STANDARD_CHARSETS = Arrays.asList(
+    private static final List<Charset> STANDARD_CHARSETS = List.of(
             StandardCharsets.UTF_8,
             StandardCharsets.US_ASCII,
             StandardCharsets.ISO_8859_1,
             StandardCharsets.UTF_16,
             StandardCharsets.UTF_16LE,
-            StandardCharsets.UTF_16BE);
+            StandardCharsets.UTF_16BE
+    );
 
     private static final Pattern SYMBOL_PATTERN = Pattern.compile("[\\s-\\._]");
     private static final Pattern WHITESPACE_ONLY_PATTERN = Pattern.compile("\\s");
@@ -152,9 +150,11 @@ public class CountText extends AbstractProcessor {
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
-    private static Set<String> getStandardCharsetNames() {
-        return STANDARD_CHARSETS.stream().map(c -> c.displayName()).collect(Collectors.toSet());
-    }
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            TEXT_LINE_COUNT_PD, TEXT_LINE_NONEMPTY_COUNT_PD, TEXT_WORD_COUNT_PD, TEXT_CHARACTER_COUNT_PD,
+            SPLIT_WORDS_ON_SYMBOLS_PD, CHARACTER_ENCODING_PD, ADJUST_IMMEDIATELY
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -165,20 +165,10 @@ public class CountText extends AbstractProcessor {
             .description("If the flowfile text cannot be counted for some reason, the original file will be routed to this destination and nothing will be routed elsewhere")
             .build();
 
-    private static final List<PropertyDescriptor> properties;
-    private static final Set<Relationship> relationships;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
-    static {
-        properties = Collections.unmodifiableList(Arrays.asList(TEXT_LINE_COUNT_PD,
-                TEXT_LINE_NONEMPTY_COUNT_PD,
-                TEXT_WORD_COUNT_PD,
-                TEXT_CHARACTER_COUNT_PD,
-                SPLIT_WORDS_ON_SYMBOLS_PD,
-                CHARACTER_ENCODING_PD,
-                ADJUST_IMMEDIATELY));
-
-        relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS,
-                REL_FAILURE)));
+    private static Set<String> getStandardCharsetNames() {
+        return STANDARD_CHARSETS.stream().map(Charset::displayName).collect(Collectors.toSet());
     }
 
     private volatile boolean countLines;
@@ -191,7 +181,7 @@ public class CountText extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnScheduled
@@ -240,7 +230,7 @@ public class CountText extends AbstractProcessor {
                     }
 
                     if (countLinesNonEmpty) {
-                        if (line.trim().length() > 0) {
+                        if (!line.isBlank()) {
                             lineNonEmptyCount.incrementAndGet();
                         }
                     }
@@ -316,7 +306,7 @@ public class CountText extends AbstractProcessor {
     }
 
     int countWordsInLine(String line, boolean splitWordsOnSymbols) throws IOException {
-        if (line == null || line.trim().length() == 0) {
+        if (line == null || line.isBlank()) {
             return 0;
         } else {
             Pattern regex = splitWordsOnSymbols ? SYMBOL_PATTERN : WHITESPACE_ONLY_PATTERN;
@@ -333,6 +323,6 @@ public class CountText extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 }

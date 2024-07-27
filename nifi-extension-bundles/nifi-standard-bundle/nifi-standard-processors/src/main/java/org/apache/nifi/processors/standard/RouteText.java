@@ -44,7 +44,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
@@ -131,7 +130,6 @@ public class RouteText extends AbstractProcessor {
     private static final String containsRegularExpressionValue = "Contains Regular Expression";
     private static final String satisfiesExpression = "Satisfies Expression";
 
-
     public static final AllowableValue ROUTE_TO_MATCHING_PROPERTY_NAME = new AllowableValue(routePropertyNameValue, routePropertyNameValue,
         "Lines will be routed to each relationship whose corresponding expression evaluates to 'true'");
     public static final AllowableValue ROUTE_TO_MATCHED_WHEN_ALL_PROPERTIES_MATCH = new AllowableValue(routeAllMatchValue, routeAllMatchValue,
@@ -212,6 +210,9 @@ public class RouteText extends AbstractProcessor {
         .defaultValue("UTF-8")
         .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES =
+            List.of(ROUTE_STRATEGY, MATCH_STRATEGY, CHARACTER_SET, TRIM_WHITESPACE, IGNORE_CASE, GROUPING_REGEX);
+
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")
         .description("The original input file will be routed to this destination when the lines have been successfully routed to 1 or more relationships")
@@ -225,10 +226,10 @@ public class RouteText extends AbstractProcessor {
         .description("Data that satisfies the required user-defined rules will be routed to this Relationship")
         .build();
 
-    private static Group EMPTY_GROUP = new Group(Collections.emptyList());
+    private static final Group EMPTY_GROUP = new Group(Collections.emptyList());
 
-    private AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
-    private List<PropertyDescriptor> properties;
+    private final AtomicReference<Set<Relationship>> relationships =
+            new AtomicReference<>(Set.of(REL_ORIGINAL, REL_NO_MATCH));
     private volatile String configuredRouteStrategy = ROUTE_STRATEGY.getDefaultValue();
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
 
@@ -256,30 +257,13 @@ public class RouteText extends AbstractProcessor {
     }
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> set = new HashSet<>();
-        set.add(REL_ORIGINAL);
-        set.add(REL_NO_MATCH);
-        relationships = new AtomicReference<>(set);
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(ROUTE_STRATEGY);
-        properties.add(MATCH_STRATEGY);
-        properties.add(CHARACTER_SET);
-        properties.add(TRIM_WHITESPACE);
-        properties.add(IGNORE_CASE);
-        properties.add(GROUPING_REGEX);
-        this.properties = Collections.unmodifiableList(properties);
-    }
-
-    @Override
     public Set<Relationship> getRelationships() {
         return relationships.get();
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -309,7 +293,7 @@ public class RouteText extends AbstractProcessor {
                 newDynamicPropertyNames.add(descriptor.getName());
             }
 
-            this.dynamicPropertyNames = Collections.unmodifiableSet(newDynamicPropertyNames);
+            this.dynamicPropertyNames = Set.copyOf(newDynamicPropertyNames);
         }
 
         // formulate the new set of Relationships
@@ -535,12 +519,11 @@ public class RouteText extends AbstractProcessor {
                 final Group group = flowFileEntry.getKey();
                 final FlowFile flowFile = flowFileEntry.getValue();
 
-                final Map<String, String> attributes = new HashMap<>(2);
-                attributes.put(ROUTE_ATTRIBUTE_KEY, relationship.getName());
-                attributes.put(GROUP_ATTRIBUTE_KEY, StringUtils.join(group.getCapturedValues(), ", "));
-
                 logger.info("Created {} from {}; routing to relationship {}", flowFile, originalFlowFile, relationship.getName());
-                FlowFile updatedFlowFile = session.putAllAttributes(flowFile, attributes);
+                FlowFile updatedFlowFile = session.putAllAttributes(flowFile, Map.of(
+                        ROUTE_ATTRIBUTE_KEY, relationship.getName(),
+                        GROUP_ATTRIBUTE_KEY, StringUtils.join(group.getCapturedValues(), ", ")
+                ));
                 session.getProvenanceReporter().route(updatedFlowFile, entry.getKey());
                 session.transfer(updatedFlowFile, entry.getKey());
             }

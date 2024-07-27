@@ -32,7 +32,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -44,8 +43,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -98,13 +95,8 @@ public class ScanAttribute extends AbstractProcessor {
             .addValidator(StandardValidators.createRegexValidator(0, 1, false))
             .build();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
-
-    private volatile Pattern dictionaryFilterPattern = null;
-    private volatile Pattern attributePattern = null;
-    private volatile Set<String> dictionaryTerms = null;
-    private volatile SynchronousFileWatcher fileWatcher = null;
+    private static final List<PropertyDescriptor> PROPERTIES =
+            List.of(DICTIONARY_FILE, ATTRIBUTE_PATTERN, MATCHING_CRITERIA, DICTIONARY_FILTER);
 
     public static final Relationship REL_MATCHED = new Relationship.Builder()
             .name("matched")
@@ -115,29 +107,21 @@ public class ScanAttribute extends AbstractProcessor {
             .description("FlowFiles whose attributes are not found in the dictionary will be routed to this relationship")
             .build();
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DICTIONARY_FILE);
-        properties.add(ATTRIBUTE_PATTERN);
-        properties.add(MATCHING_CRITERIA);
-        properties.add(DICTIONARY_FILTER);
-        this.properties = Collections.unmodifiableList(properties);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCHED, REL_UNMATCHED);
 
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_MATCHED);
-        relationships.add(REL_UNMATCHED);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
+    private volatile Pattern dictionaryFilterPattern = null;
+    private volatile Pattern attributePattern = null;
+    private volatile Set<String> dictionaryTerms = null;
+    private volatile SynchronousFileWatcher fileWatcher = null;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnScheduled
@@ -184,7 +168,7 @@ public class ScanAttribute extends AbstractProcessor {
             }
         }
 
-        return Collections.unmodifiableSet(terms);
+        return Set.copyOf(terms);
     }
 
     @Override

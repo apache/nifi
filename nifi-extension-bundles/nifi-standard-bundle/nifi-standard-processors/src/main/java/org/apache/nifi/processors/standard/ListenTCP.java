@@ -41,7 +41,6 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -62,9 +61,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -144,48 +141,32 @@ public class ListenTCP extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            ListenerProperties.NETWORK_INTF_NAME, ListenerProperties.PORT, ListenerProperties.RECV_BUFFER_SIZE,
+            ListenerProperties.MAX_MESSAGE_QUEUE_SIZE, ListenerProperties.MAX_SOCKET_BUFFER_SIZE,
+            ListenerProperties.CHARSET, ListenerProperties.WORKER_THREADS, ListenerProperties.MAX_BATCH_SIZE,
+            ListenerProperties.MESSAGE_DELIMITER, IDLE_CONNECTION_TIMEOUT,
+            // Deprecated
+            MAX_RECV_THREAD_POOL_SIZE, POOL_RECV_BUFFERS, SSL_CONTEXT_SERVICE, CLIENT_AUTH
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Messages received successfully will be sent out this relationship.")
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+
     private static final long TRACKING_LOG_INTERVAL = 60000;
     private final AtomicLong nextTrackingLog = new AtomicLong();
     private int eventsCapacity;
 
-    protected List<PropertyDescriptor> descriptors;
-    protected Set<Relationship> relationships;
     protected volatile int port;
     protected volatile TrackingLinkedBlockingQueue<ByteArrayMessage> events;
     protected volatile BlockingQueue<ByteArrayMessage> errorEvents;
     protected volatile EventServer eventServer;
     protected volatile byte[] messageDemarcatorBytes;
     protected volatile EventBatcher<ByteArrayMessage> eventBatcher;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ListenerProperties.NETWORK_INTF_NAME);
-        descriptors.add(ListenerProperties.PORT);
-        descriptors.add(ListenerProperties.RECV_BUFFER_SIZE);
-        descriptors.add(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE);
-        descriptors.add(ListenerProperties.MAX_SOCKET_BUFFER_SIZE);
-        descriptors.add(ListenerProperties.CHARSET);
-        descriptors.add(ListenerProperties.WORKER_THREADS);
-        descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
-        descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
-        descriptors.add(IDLE_CONNECTION_TIMEOUT);
-        // Deprecated
-        descriptors.add(MAX_RECV_THREAD_POOL_SIZE);
-        descriptors.add(POOL_RECV_BUFFERS);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(CLIENT_AUTH);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
 
     @OnScheduled
     public void onScheduled(ProcessContext context) throws IOException {
@@ -245,14 +226,14 @@ public class ListenTCP extends AbstractProcessor {
             FlowFile flowFile = entry.getValue().getFlowFile();
             final List<ByteArrayMessage> events = entry.getValue().getEvents();
 
-            if (flowFile.getSize() == 0L || events.size() == 0) {
+            if (flowFile.getSize() == 0L || events.isEmpty()) {
                 session.remove(flowFile);
                 getLogger().debug("No data written to FlowFile from batch {}; removing FlowFile", entry.getKey());
                 continue;
             }
 
             final Map<String, String> attributes = getAttributes(entry.getValue());
-            addClientCertificateAttributes(attributes, events.get(0));
+            addClientCertificateAttributes(attributes, events.getFirst());
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             getLogger().debug("Transferring {} to success", flowFile);
@@ -290,7 +271,7 @@ public class ListenTCP extends AbstractProcessor {
 
     protected Map<String, String> getAttributes(final FlowFileEventBatch<ByteArrayMessage> batch) {
         final List<ByteArrayMessage> events = batch.getEvents();
-        final String sender = events.get(0).getSender();
+        final String sender = events.getFirst().getSender();
         final Map<String, String> attributes = new HashMap<>(3);
         attributes.put("tcp.sender", sender);
         attributes.put("tcp.port", String.valueOf(port));
@@ -299,19 +280,19 @@ public class ListenTCP extends AbstractProcessor {
 
     protected String getTransitUri(final FlowFileEventBatch<ByteArrayMessage> batch) {
         final List<ByteArrayMessage> events = batch.getEvents();
-        final String sender = events.get(0).getSender();
+        final String sender = events.getFirst().getSender();
         final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
         return String.format("tcp://%s:%d", senderHost, port);
     }
 
     @Override
     public final Set<Relationship> getRelationships() {
-        return this.relationships;
+        return this.RELATIONSHIPS;
     }
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     private String getMessageDemarcator(final ProcessContext context) {

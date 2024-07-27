@@ -131,7 +131,7 @@ public class ValidateJson extends AbstractProcessor {
             .displayName("Schema Access Strategy")
             .description("Specifies how to obtain the schema that is to be used for interpreting the data.")
             .allowableValues(JsonSchemaStrategy.class)
-            .defaultValue(JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY.getValue())
+            .defaultValue(JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY)
             .required(true)
             .build();
 
@@ -229,15 +229,15 @@ public class ValidateJson extends AbstractProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         Collection<ValidationResult> validationResults = new ArrayList<>();
-        final String schemaAccessStrategy = getSchemaAccessStrategy(validationContext);
 
-        if (isNameStrategy(validationContext) && !validationContext.getProperty(SCHEMA_REGISTRY).isSet()) {
+        final JsonSchemaStrategy schemaAccessStrategy = getSchemaAccessStrategy(validationContext);
+        if (schemaAccessStrategy.equals(JsonSchemaStrategy.SCHEMA_NAME_PROPERTY) && !validationContext.getProperty(SCHEMA_REGISTRY).isSet()) {
             validationResults.add(new ValidationResult.Builder()
                     .subject(SCHEMA_REGISTRY.getDisplayName())
                     .explanation(getPropertyValidateMessage(schemaAccessStrategy, SCHEMA_REGISTRY))
                     .valid(false)
                     .build());
-        } else if (isContentStrategy(validationContext) && !validationContext.getProperty(SCHEMA_CONTENT).isSet()) {
+        } else if (schemaAccessStrategy.equals(JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY) && !validationContext.getProperty(SCHEMA_CONTENT).isSet()) {
             validationResults.add(new ValidationResult.Builder()
                     .subject(SCHEMA_CONTENT.getDisplayName())
                     .explanation(getPropertyValidateMessage(schemaAccessStrategy, SCHEMA_CONTENT))
@@ -250,13 +250,15 @@ public class ValidateJson extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        if (isNameStrategy(context)) {
-            jsonSchemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(JsonSchemaRegistry.class);
-        } else if (isContentStrategy(context)) {
-            try (final InputStream inputStream = context.getProperty(SCHEMA_CONTENT).asResource().read()) {
-                final SchemaVersion schemaVersion = SchemaVersion.valueOf(context.getProperty(SCHEMA_VERSION).getValue());
-                final JsonSchemaFactory factory = schemaFactories.get(schemaVersion);
-                schema = factory.getSchema(inputStream);
+        switch (getSchemaAccessStrategy(context)) {
+            case SCHEMA_NAME_PROPERTY ->
+                    jsonSchemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(JsonSchemaRegistry.class);
+            case SCHEMA_CONTENT_PROPERTY -> {
+                try (final InputStream inputStream = context.getProperty(SCHEMA_CONTENT).asResource().read()) {
+                    final SchemaVersion schemaVersion = SchemaVersion.valueOf(context.getProperty(SCHEMA_VERSION).getValue());
+                    final JsonSchemaFactory factory = schemaFactories.get(schemaVersion);
+                    schema = factory.getSchema(inputStream);
+                }
             }
         }
     }
@@ -268,7 +270,8 @@ public class ValidateJson extends AbstractProcessor {
             return;
         }
 
-        if (isNameStrategy(context)) {
+        final JsonSchemaStrategy schemaAccessStrategy = getSchemaAccessStrategy(context);
+        if (schemaAccessStrategy.equals(JsonSchemaStrategy.SCHEMA_NAME_PROPERTY)) {
             try {
                 final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
                 final JsonSchema jsonSchema = jsonSchemaRegistry.retrieveSchema(schemaName);
@@ -304,21 +307,11 @@ public class ValidateJson extends AbstractProcessor {
         }
     }
 
-    private String getPropertyValidateMessage(String schemaAccessStrategy, PropertyDescriptor property) {
-        return "The '" + schemaAccessStrategy + "' Schema Access Strategy requires that the " + property.getDisplayName() + " property be set.";
+    private String getPropertyValidateMessage(JsonSchemaStrategy schemaAccessStrategy, PropertyDescriptor property) {
+        return "The '" + schemaAccessStrategy.getValue() + "' Schema Access Strategy requires that the " + property.getDisplayName() + " property be set.";
     }
 
-    private boolean isNameStrategy(PropertyContext context) {
-        final String schemaAccessStrategy = getSchemaAccessStrategy(context);
-        return JsonSchemaStrategy.SCHEMA_NAME_PROPERTY.getValue().equals(schemaAccessStrategy);
-    }
-
-    private String getSchemaAccessStrategy(PropertyContext context) {
-        return context.getProperty(SCHEMA_ACCESS_STRATEGY).getValue();
-    }
-
-    private boolean isContentStrategy(PropertyContext context) {
-        final String schemaAccessStrategy = getSchemaAccessStrategy(context);
-        return JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY.getValue().equals(schemaAccessStrategy);
+    private JsonSchemaStrategy getSchemaAccessStrategy(PropertyContext context) {
+        return context.getProperty(SCHEMA_ACCESS_STRATEGY).asAllowableValue(JsonSchemaStrategy.class);
     }
 }

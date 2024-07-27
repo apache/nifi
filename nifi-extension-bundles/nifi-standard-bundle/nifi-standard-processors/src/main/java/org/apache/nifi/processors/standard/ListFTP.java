@@ -34,15 +34,14 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processor.util.file.transfer.ListFileTransfer;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
-import org.apache.nifi.processor.util.file.transfer.FileTransfer;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -71,42 +70,24 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListFTP extends ListFileTransfer {
 
+    private static final PropertyDescriptor PORT =
+            new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("21").build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            FILE_TRANSFER_LISTING_STRATEGY, HOSTNAME, PORT, USERNAME, FTPTransfer.PASSWORD, REMOTE_PATH, RECORD_WRITER,
+            DISTRIBUTED_CACHE_SERVICE, FTPTransfer.RECURSIVE_SEARCH, FTPTransfer.FOLLOW_SYMLINK,
+            FTPTransfer.FILE_FILTER_REGEX, FTPTransfer.PATH_FILTER_REGEX, FTPTransfer.IGNORE_DOTTED_FILES,
+            FTPTransfer.REMOTE_POLL_BATCH_SIZE, FTPTransfer.CONNECTION_TIMEOUT, FTPTransfer.DATA_TIMEOUT,
+            FTPTransfer.CONNECTION_MODE, FTPTransfer.TRANSFER_MODE, FTPTransfer.PROXY_CONFIGURATION_SERVICE,
+            FTPTransfer.PROXY_TYPE, FTPTransfer.PROXY_HOST, FTPTransfer.PROXY_PORT, FTPTransfer.HTTP_PROXY_USERNAME,
+            FTPTransfer.HTTP_PROXY_PASSWORD, FTPTransfer.BUFFER_SIZE, TARGET_SYSTEM_TIMESTAMP_PRECISION,
+            ListedEntityTracker.TRACKING_STATE_CACHE, ListedEntityTracker.TRACKING_TIME_WINDOW,
+            ListedEntityTracker.INITIAL_LISTING_TARGET, FTPTransfer.UTF8_ENCODING
+    );
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("21").build();
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(FILE_TRANSFER_LISTING_STRATEGY);
-        properties.add(HOSTNAME);
-        properties.add(port);
-        properties.add(USERNAME);
-        properties.add(FTPTransfer.PASSWORD);
-        properties.add(REMOTE_PATH);
-        properties.add(RECORD_WRITER);
-        properties.add(DISTRIBUTED_CACHE_SERVICE);
-        properties.add(FTPTransfer.RECURSIVE_SEARCH);
-        properties.add(FTPTransfer.FOLLOW_SYMLINK);
-        properties.add(FTPTransfer.FILE_FILTER_REGEX);
-        properties.add(FTPTransfer.PATH_FILTER_REGEX);
-        properties.add(FTPTransfer.IGNORE_DOTTED_FILES);
-        properties.add(FTPTransfer.REMOTE_POLL_BATCH_SIZE);
-        properties.add(FTPTransfer.CONNECTION_TIMEOUT);
-        properties.add(FTPTransfer.DATA_TIMEOUT);
-        properties.add(FTPTransfer.CONNECTION_MODE);
-        properties.add(FTPTransfer.TRANSFER_MODE);
-        properties.add(FTPTransfer.PROXY_CONFIGURATION_SERVICE);
-        properties.add(FTPTransfer.PROXY_TYPE);
-        properties.add(FTPTransfer.PROXY_HOST);
-        properties.add(FTPTransfer.PROXY_PORT);
-        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
-        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
-        properties.add(FTPTransfer.BUFFER_SIZE);
-        properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
-        properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
-        properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
-        properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
-        properties.add(FTPTransfer.UTF8_ENCODING);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -130,5 +111,4 @@ public class ListFTP extends ListFileTransfer {
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
         FTPTransfer.validateProxySpec(validationContext, results);
     }
-
 }

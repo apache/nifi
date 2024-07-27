@@ -41,7 +41,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
@@ -52,7 +51,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -126,6 +124,10 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             .dependsOn(DESTINATION, DESTINATION_ATTRIBUTE)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DESTINATION, RETURN_TYPE, PATH_NOT_FOUND, NULL_VALUE_DEFAULT_REPRESENTATION, MAX_STRING_LENGTH
+    );
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles are routed to this relationship when the JsonPath is successfully evaluated and the FlowFile is modified as a result")
@@ -140,8 +142,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                     + "FlowFile; for instance, if the FlowFile is not valid JSON")
             .build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> properties;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCH, REL_NO_MATCH, REL_FAILURE);
 
     private final ConcurrentMap<String, JsonPath> cachedJsonPathMap = new ConcurrentHashMap<>();
 
@@ -151,23 +152,6 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     private volatile String pathNotFound;
     private volatile String nullDefaultValue;
     private volatile Configuration jsonPathConfiguration;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_MATCH);
-        rels.add(REL_NO_MATCH);
-        rels.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(rels);
-
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(DESTINATION);
-        props.add(RETURN_TYPE);
-        props.add(PATH_NOT_FOUND);
-        props.add(NULL_VALUE_DEFAULT_REPRESENTATION);
-        props.add(MAX_STRING_LENGTH);
-        this.properties = Collections.unmodifiableList(props);
-    }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
@@ -194,12 +178,12 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

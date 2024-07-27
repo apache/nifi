@@ -45,7 +45,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -87,6 +86,8 @@ public class CalculateRecordStats extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
+    static final List<PropertyDescriptor> PROPERTIES = List.of(RECORD_READER, LIMIT);
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("If a flowfile is successfully processed, it goes here.")
@@ -96,21 +97,9 @@ public class CalculateRecordStats extends AbstractProcessor {
         .description("If a flowfile fails to be processed, it goes here.")
         .build();
 
+    static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+
     private RecordPathCache cache;
-
-    static final Set RELATIONSHIPS;
-    static final List<PropertyDescriptor> PROPERTIES;
-
-    static {
-        Set _rels = new HashSet();
-        _rels.add(REL_SUCCESS);
-        _rels.add(REL_FAILURE);
-        RELATIONSHIPS = Collections.unmodifiableSet(_rels);
-        List<PropertyDescriptor> _temp = new ArrayList<>();
-        _temp.add(RECORD_READER);
-        _temp.add(LIMIT);
-        PROPERTIES = Collections.unmodifiableList(_temp);
-    }
 
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
@@ -160,7 +149,7 @@ public class CalculateRecordStats extends AbstractProcessor {
 
     protected Map<String, RecordPath> getRecordPaths(ProcessContext context, FlowFile flowFile) {
         return context.getProperties().keySet()
-            .stream().filter(p -> p.isDynamic())
+            .stream().filter(PropertyDescriptor::isDynamic)
             .collect(Collectors.toMap(
                 e -> e.getName(),
                 e ->  {
@@ -189,7 +178,7 @@ public class CalculateRecordStats extends AbstractProcessor {
                         String approxValue = value.get().getValue().toString();
                         String baseKey = String.format("recordStats.%s", entry.getKey());
                         String key = String.format("%s.%s", baseKey, approxValue);
-                        Integer stat = retVal.containsKey(key) ? retVal.get(key) : 0;
+                        Integer stat = retVal.getOrDefault(key, 0);
                         Integer baseStat = retVal.getOrDefault(baseKey, 0);
                         stat++;
                         baseStat++;
@@ -224,10 +213,10 @@ public class CalculateRecordStats extends AbstractProcessor {
     protected Map filterBySize(Map<String, Integer> values, Integer limit, List<String> baseKeys) {
         Map<String, Integer> toFilter = values.entrySet().stream()
             .filter(e -> !baseKeys.contains(e.getKey()))
-            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         Map<String, Integer> retVal = values.entrySet().stream()
             .filter((e -> baseKeys.contains(e.getKey())))
-            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         List<Map.Entry<String, Integer>> _flat = new ArrayList<>(toFilter.entrySet());
         _flat.sort(Map.Entry.comparingByValue());

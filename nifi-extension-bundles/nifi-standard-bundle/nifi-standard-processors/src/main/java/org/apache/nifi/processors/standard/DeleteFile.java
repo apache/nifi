@@ -85,7 +85,7 @@ public class DeleteFile extends AbstractProcessor {
             .description("All FlowFiles, for which an existing file could not be deleted, are routed to this relationship")
             .build();
 
-    private final static Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_NOT_FOUND, REL_FAILURE);
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_NOT_FOUND, REL_FAILURE);
 
     public static final PropertyDescriptor DIRECTORY_PATH = new PropertyDescriptor.Builder()
             .name("Directory Path")
@@ -105,16 +105,16 @@ public class DeleteFile extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    private final static List<PropertyDescriptor> properties = List.of(DIRECTORY_PATH, FILENAME);
+    private final static List<PropertyDescriptor> PROPERTIES = List.of(DIRECTORY_PATH, FILENAME);
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

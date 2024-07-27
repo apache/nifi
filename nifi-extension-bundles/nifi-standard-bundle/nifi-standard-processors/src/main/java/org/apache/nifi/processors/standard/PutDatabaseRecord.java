@@ -78,7 +78,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
@@ -89,12 +88,11 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
+import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
-import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"sql", "record", "jdbc", "put", "database", "update", "insert", "delete"})
@@ -156,7 +154,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     + "such as an invalid query or an integrity constraint violation")
             .build();
 
-    protected static Set<Relationship> relationships;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY);
 
     // Properties
     static final PropertyDescriptor RECORD_READER_FACTORY = new Builder()
@@ -387,7 +385,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     static final PropertyDescriptor DB_TYPE;
 
     protected static final Map<String, DatabaseAdapter> dbAdapters;
-    protected static List<PropertyDescriptor> propDescriptors;
+    protected static List<PropertyDescriptor> properties;
     private Cache<SchemaKey, TableSchema> schemaCache;
 
     static {
@@ -410,53 +408,27 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .required(false)
             .build();
 
-        final Set<Relationship> r = new HashSet<>();
-        r.add(REL_SUCCESS);
-        r.add(REL_FAILURE);
-        r.add(REL_RETRY);
-        relationships = Collections.unmodifiableSet(r);
-
-        final List<PropertyDescriptor> pds = new ArrayList<>();
-        pds.add(RECORD_READER_FACTORY);
-        pds.add(DB_TYPE);
-        pds.add(STATEMENT_TYPE);
-        pds.add(STATEMENT_TYPE_RECORD_PATH);
-        pds.add(DATA_RECORD_PATH);
-        pds.add(DBCP_SERVICE);
-        pds.add(CATALOG_NAME);
-        pds.add(SCHEMA_NAME);
-        pds.add(TABLE_NAME);
-        pds.add(BINARY_STRING_FORMAT);
-        pds.add(TRANSLATE_FIELD_NAMES);
-        pds.add(UNMATCHED_FIELD_BEHAVIOR);
-        pds.add(UNMATCHED_COLUMN_BEHAVIOR);
-        pds.add(UPDATE_KEYS);
-        pds.add(FIELD_CONTAINING_SQL);
-        pds.add(ALLOW_MULTIPLE_STATEMENTS);
-        pds.add(QUOTE_IDENTIFIERS);
-        pds.add(QUOTE_TABLE_IDENTIFIER);
-        pds.add(QUERY_TIMEOUT);
-        pds.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
-        pds.add(TABLE_SCHEMA_CACHE_SIZE);
-        pds.add(MAX_BATCH_SIZE);
-        pds.add(AUTO_COMMIT);
-
-        propDescriptors = Collections.unmodifiableList(pds);
+        properties = List.of(
+                RECORD_READER_FACTORY, DB_TYPE, STATEMENT_TYPE, STATEMENT_TYPE_RECORD_PATH, DATA_RECORD_PATH,
+                DBCP_SERVICE, CATALOG_NAME, SCHEMA_NAME, TABLE_NAME, BINARY_STRING_FORMAT, TRANSLATE_FIELD_NAMES,
+                UNMATCHED_FIELD_BEHAVIOR, UNMATCHED_COLUMN_BEHAVIOR, UPDATE_KEYS, FIELD_CONTAINING_SQL,
+                ALLOW_MULTIPLE_STATEMENTS, QUOTE_IDENTIFIERS, QUOTE_TABLE_IDENTIFIER, QUERY_TIMEOUT,
+                RollbackOnFailure.ROLLBACK_ON_FAILURE, TABLE_SCHEMA_CACHE_SIZE, MAX_BATCH_SIZE, AUTO_COMMIT
+        );
     }
 
     private DatabaseAdapter databaseAdapter;
     private volatile Function<Record, String> recordPathOperationType;
     private volatile RecordPath dataRecordPath;
 
-
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propDescriptors;
+        return properties;
     }
 
     @Override
@@ -898,9 +870,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                                 dest[j] = (Byte) src[j];
                                             }
                                             currentValue = dest;
-                                        } else if (currentValue instanceof String) {
-                                            final String stringValue = (String) currentValue;
-
+                                        } else if (currentValue instanceof String stringValue) {
                                             if (BINARY_STRING_FORMAT_BASE64.getValue().equals(binaryStringFormat)) {
                                                 currentValue = Base64.getDecoder().decode(stringValue);
                                             } else if (BINARY_STRING_FORMAT_HEXADECIMAL.getValue().equals(binaryStringFormat)) {
@@ -1062,11 +1032,11 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     private List<Record> getDataRecords(final Record outerRecord) {
         if (dataRecordPath == null) {
-            return Collections.singletonList(outerRecord);
+            return List.of(outerRecord);
         }
 
         final RecordPathResult result = dataRecordPath.evaluate(outerRecord);
-        final List<FieldValue> fieldValues = result.getSelectedFields().collect(Collectors.toList());
+        final List<FieldValue> fieldValues = result.getSelectedFields().toList();
         if (fieldValues.isEmpty()) {
             throw new ProcessException("RecordPath " + dataRecordPath.getPath() + " evaluated against Record yielded no results.");
         }
@@ -1692,7 +1662,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         @Override
         public String apply(final Record record) {
             final RecordPathResult recordPathResult = recordPath.evaluate(record);
-            final List<FieldValue> resultList = recordPathResult.getSelectedFields().distinct().collect(Collectors.toList());
+            final List<FieldValue> resultList = recordPathResult.getSelectedFields().distinct().toList();
             if (resultList.isEmpty()) {
                 throw new ProcessException("Evaluated RecordPath " + recordPath.getPath() + " against Record but got no results");
             }
@@ -1701,23 +1671,16 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 throw new ProcessException("Evaluated RecordPath " + recordPath.getPath() + " against Record and received multiple distinct results (" + resultList + ")");
             }
 
-            final String resultValue = String.valueOf(resultList.get(0).getValue()).toUpperCase();
-            switch (resultValue) {
-                case INSERT_TYPE:
-                case UPDATE_TYPE:
-                case DELETE_TYPE:
-                case UPSERT_TYPE:
-                    return resultValue;
-                case "C":
-                case "R":
-                    return INSERT_TYPE;
-                case "U":
-                    return UPDATE_TYPE;
-                case "D":
-                    return DELETE_TYPE;
-            }
+            final String resultValue = String.valueOf(resultList.getFirst().getValue()).toUpperCase();
 
-            throw new ProcessException("Evaluated RecordPath " + recordPath.getPath() + " against Record to determine Statement Type but found invalid value: " + resultValue);
+            return switch (resultValue) {
+                case INSERT_TYPE, UPDATE_TYPE, DELETE_TYPE, UPSERT_TYPE -> resultValue;
+                case "C", "R" -> INSERT_TYPE;
+                case "U" -> UPDATE_TYPE;
+                case "D" -> DELETE_TYPE;
+                default ->
+                        throw new ProcessException("Evaluated RecordPath " + recordPath.getPath() + " against Record to determine Statement Type but found invalid value: " + resultValue);
+            };
         }
     }
 

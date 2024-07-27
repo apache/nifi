@@ -24,7 +24,6 @@ import java.sql.JDBCType;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -159,7 +158,7 @@ public final class PhoenixDatabaseAdapter implements DatabaseAdapter {
         }
 
         StringBuilder alterTableStatement = new StringBuilder();
-        return Collections.singletonList(alterTableStatement.append("ALTER TABLE ")
+        return List.of(alterTableStatement.append("ALTER TABLE ")
                 .append(quoteTableName ? getTableQuoteString() : "")
                 .append(tableName)
                 .append(quoteTableName ? getTableQuoteString() : "")

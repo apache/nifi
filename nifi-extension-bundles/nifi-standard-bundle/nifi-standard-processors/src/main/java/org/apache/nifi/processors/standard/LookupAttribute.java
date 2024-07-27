@@ -16,20 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -52,10 +39,20 @@ import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @SideEffectFree
 @SupportsBatching
@@ -88,6 +85,8 @@ public class LookupAttribute extends AbstractProcessor {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(LOOKUP_SERVICE, INCLUDE_EMPTY_VALUES);
+
     public static final Relationship REL_MATCHED = new Relationship.Builder()
             .description("FlowFiles with matching lookups are routed to this relationship")
             .name("matched")
@@ -103,9 +102,7 @@ public class LookupAttribute extends AbstractProcessor {
             .name("failure")
             .build();
 
-    private List<PropertyDescriptor> descriptors;
-
-    private Set<Relationship> relationships;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCHED, REL_UNMATCHED, REL_FAILURE);
 
     private Map<PropertyDescriptor, PropertyValue> dynamicProperties;
 
@@ -114,10 +111,10 @@ public class LookupAttribute extends AbstractProcessor {
         final List<ValidationResult> errors = new ArrayList<>(super.customValidate(validationContext));
 
         final Set<PropertyDescriptor> dynamicProperties = validationContext.getProperties().keySet().stream()
-            .filter(prop -> prop.isDynamic())
+            .filter(PropertyDescriptor::isDynamic)
             .collect(Collectors.toSet());
 
-        if (dynamicProperties == null || dynamicProperties.size() < 1) {
+        if (dynamicProperties.isEmpty()) {
             errors.add(new ValidationResult.Builder()
                 .subject("User-Defined Properties")
                 .valid(false)
@@ -139,7 +136,7 @@ public class LookupAttribute extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override
@@ -156,21 +153,7 @@ public class LookupAttribute extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
-    }
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
-        descriptors.add(LOOKUP_SERVICE);
-        descriptors.add(INCLUDE_EMPTY_VALUES);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<Relationship>();
-        relationships.add(REL_MATCHED);
-        relationships.add(REL_UNMATCHED);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        return RELATIONSHIPS;
     }
 
     @OnScheduled
@@ -184,7 +167,7 @@ public class LookupAttribute extends AbstractProcessor {
                 dynamicProperties.put(descriptor, value);
             }
         }
-        this.dynamicProperties = Collections.unmodifiableMap(dynamicProperties);
+        this.dynamicProperties = Map.copyOf(dynamicProperties);
     }
 
     @Override
@@ -236,7 +219,6 @@ public class LookupAttribute extends AbstractProcessor {
             logger.error(e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
         }
-
     }
 
     private boolean putAttribute(final String attributeName, final Optional<String> attributeValue, final Map<String, String> attributes, final boolean includeEmptyValues, final ComponentLog logger) {
@@ -250,5 +232,4 @@ public class LookupAttribute extends AbstractProcessor {
         }
         return matched;
     }
-
 }

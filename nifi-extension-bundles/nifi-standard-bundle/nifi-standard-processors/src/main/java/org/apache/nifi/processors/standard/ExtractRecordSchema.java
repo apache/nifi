@@ -42,8 +42,6 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,6 +77,8 @@ public class ExtractRecordSchema extends AbstractProcessor {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(RECORD_READER, SCHEMA_CACHE_SIZE);
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles whose record schemas are successfully extracted will be routed to this relationship")
@@ -89,21 +89,18 @@ public class ExtractRecordSchema extends AbstractProcessor {
                     + "the FlowFile will be routed to this relationship")
             .build();
 
-    static final List<PropertyDescriptor> properties = Arrays.asList(RECORD_READER, SCHEMA_CACHE_SIZE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
     private LoadingCache<RecordSchema, String> avroSchemaTextCache;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnScheduled

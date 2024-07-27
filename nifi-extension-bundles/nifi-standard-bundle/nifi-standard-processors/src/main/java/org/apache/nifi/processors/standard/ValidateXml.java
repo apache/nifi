@@ -39,14 +39,13 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
 import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
-import org.apache.nifi.xml.processing.validation.StandardSchemaValidator;
 import org.apache.nifi.xml.processing.validation.SchemaValidator;
+import org.apache.nifi.xml.processing.validation.StandardSchemaValidator;
 import org.xml.sax.SAXException;
 
 import javax.xml.stream.XMLStreamException;
@@ -60,9 +59,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -111,6 +107,8 @@ public class ValidateXml extends AbstractProcessor {
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(SCHEMA_FILE, XML_SOURCE_ATTRIBUTE);
+
     public static final Relationship REL_VALID = new Relationship.Builder()
             .name("valid")
             .description("FlowFiles that are successfully validated against the schema, if provided, or verified to be well-formed XML are routed to this relationship")
@@ -120,37 +118,22 @@ public class ValidateXml extends AbstractProcessor {
             .description("FlowFiles that are not valid according to the specified schema or contain invalid XML are routed to this relationship")
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_VALID, REL_INVALID);
+
     private static final String SCHEMA_LANGUAGE = "http://www.w3.org/2001/XMLSchema";
-
     private static final SchemaValidator SCHEMA_VALIDATOR = new StandardSchemaValidator();
-
     private static final XMLStreamReaderProvider READER_PROVIDER = new StandardXMLStreamReaderProvider();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
     private final AtomicReference<Schema> schemaRef = new AtomicReference<>();
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(SCHEMA_FILE);
-        properties.add(XML_SOURCE_ATTRIBUTE);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_VALID);
-        relationships.add(REL_INVALID);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @OnScheduled
@@ -188,7 +171,7 @@ public class ValidateXml extends AbstractProcessor {
                     validate(inputStream);
                 } else {
                     // If XML source attribute is not set, validate flowfile content
-                    session.read(flowFile, inputStream -> validate(inputStream));
+                    session.read(flowFile, this::validate);
                 }
             } catch (final RuntimeException e) {
                 valid.set(false);

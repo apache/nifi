@@ -42,16 +42,12 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -93,6 +89,9 @@ public class SplitJson extends AbstractJsonPathProcessor {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES =
+            List.of(ARRAY_JSON_PATH_EXPRESSION, NULL_VALUE_DEFAULT_REPRESENTATION, MAX_STRING_LENGTH);
+
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
             .description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to "
@@ -108,36 +107,20 @@ public class SplitJson extends AbstractJsonPathProcessor {
                     + "path does not exist), it will be routed to this relationship")
             .build();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_SPLIT, REL_FAILURE);
 
     private final AtomicReference<JsonPath> JSON_PATH_REF = new AtomicReference<>();
     private volatile String nullDefaultValue;
     private volatile Configuration jsonPathConfiguration;
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(ARRAY_JSON_PATH_EXPRESSION);
-        properties.add(NULL_VALUE_DEFAULT_REPRESENTATION);
-        properties.add(MAX_STRING_LENGTH);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_ORIGINAL);
-        relationships.add(REL_SPLIT);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -165,7 +148,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
         };
 
         String value = validationContext.getProperty(ARRAY_JSON_PATH_EXPRESSION).getValue();
-        return Collections.singleton(validator.validate(ARRAY_JSON_PATH_EXPRESSION.getName(), value, validationContext));
+        return Set.of(validator.validate(ARRAY_JSON_PATH_EXPRESSION.getName(), value, validationContext));
     }
 
     @OnScheduled

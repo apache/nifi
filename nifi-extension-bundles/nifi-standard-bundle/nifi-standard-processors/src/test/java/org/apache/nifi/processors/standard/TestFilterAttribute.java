@@ -89,7 +89,7 @@ class TestFilterAttribute {
 
             @BeforeEach
             void setUp() {
-                runner.setProperty(FilterAttribute.FILTER_MODE, FilterAttribute.FilterMode.REMOVE.getValue());
+                runner.setProperty(FilterAttribute.FILTER_MODE, FilterAttribute.FilterMode.REMOVE);
             }
 
             @Test
@@ -198,7 +198,7 @@ class TestFilterAttribute {
         }
 
         private void runTestWith(Map<String, String> attributes, String attributeSet, Set<String> expectedAttributes) {
-            runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MatchingStrategy.ENUMERATION.getValue());
+            runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MatchingStrategy.ENUMERATION);
             runner.setProperty(FilterAttribute.ATTRIBUTE_ENUMERATION, attributeSet);
 
             final MockFlowFile input = runner.enqueue(exampleContent, attributes);
@@ -267,7 +267,7 @@ class TestFilterAttribute {
 
             @BeforeEach
             void setUp() {
-                runner.setProperty(FilterAttribute.FILTER_MODE, FilterAttribute.FilterMode.REMOVE.getValue());
+                runner.setProperty(FilterAttribute.FILTER_MODE, FilterAttribute.FilterMode.REMOVE);
             }
 
             @Test
@@ -320,7 +320,7 @@ class TestFilterAttribute {
         }
 
         private void runTestWith(Map<String, String> attributes, String regexPattern, Set<String> expectedAttributes) {
-            runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MatchingStrategy.PATTERN.getValue());
+            runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MatchingStrategy.PATTERN);
             runner.setProperty(FilterAttribute.ATTRIBUTE_PATTERN, regexPattern);
 
             final MockFlowFile input = runner.enqueue(exampleContent, attributes);

@@ -66,7 +66,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -142,6 +141,9 @@ public class ForkRecord extends AbstractProcessor {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES =
+            List.of(RECORD_READER, RECORD_WRITER, MODE, INCLUDE_PARENT_FIELDS);
+
     public static final Relationship REL_FORK = new Relationship.Builder()
             .name("fork")
             .description("The FlowFiles containing the forked records will be routed to this relationship")
@@ -155,23 +157,16 @@ public class ForkRecord extends AbstractProcessor {
             .description("In case a FlowFile generates an error during the fork operation, it will be routed to this relationship")
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_FORK);
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(RECORD_READER);
-        properties.add(RECORD_WRITER);
-        properties.add(MODE);
-        properties.add(INCLUDE_PARENT_FIELDS);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_ORIGINAL);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_FORK);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

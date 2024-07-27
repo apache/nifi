@@ -34,8 +34,8 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 import org.apache.nifi.expression.AttributeExpression;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -51,13 +51,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @SupportsBatching
 @Tags({"map", "cache", "fetch", "distributed"})
@@ -121,6 +119,11 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             .defaultValue("UTF-8")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            PROP_CACHE_ENTRY_IDENTIFIER, PROP_DISTRIBUTED_CACHE_SERVICE, PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE,
+            PROP_PUT_ATTRIBUTE_MAX_LENGTH, PROP_CHARACTER_SET
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("If the cache was successfully communicated with it will be routed to this relationship")
@@ -133,33 +136,20 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             .name("failure")
             .description("If unable to communicate with the cache or if the cache entry is evaluated to be blank, the FlowFile will be penalized and routed to this relationship")
             .build();
-    private final Set<Relationship> relationships;
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_NOT_FOUND, REL_FAILURE);
 
     private final Serializer<String> keySerializer = new StringSerializer();
     private final Deserializer<byte[]> valueDeserializer = new CacheValueDeserializer();
 
-    public FetchDistributedMapCache() {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_NOT_FOUND);
-        rels.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(rels);
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(PROP_CACHE_ENTRY_IDENTIFIER);
-        descriptors.add(PROP_DISTRIBUTED_CACHE_SERVICE);
-        descriptors.add(PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE);
-        descriptors.add(PROP_PUT_ATTRIBUTE_MAX_LENGTH);
-        descriptors.add(PROP_CHARACTER_SET);
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -207,7 +197,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-        List<String> cacheKeys = Arrays.stream(cacheKey.split(",")).filter(path -> !StringUtils.isEmpty(path)).map(String::trim).collect(Collectors.toList());
+        List<String> cacheKeys = Arrays.stream(cacheKey.split(",")).filter(path -> !StringUtils.isEmpty(path)).map(String::trim).toList();
         for (int i = 0; i < cacheKeys.size(); i++) {
             if (StringUtils.isBlank(cacheKeys.get(i))) {
                 // Log first missing identifier, route to failure, and return
@@ -225,7 +215,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             final boolean singleKey = cacheKeys.size() == 1;
             if (singleKey) {
                 cacheValues = new HashMap<>(1);
-                cacheValues.put(cacheKeys.get(0), cache.get(cacheKey, keySerializer, valueDeserializer));
+                cacheValues.put(cacheKeys.getFirst(), cache.get(cacheKey, keySerializer, valueDeserializer));
             } else {
                 cacheValues = cache.subMap(new HashSet<>(cacheKeys), keySerializer, valueDeserializer);
             }

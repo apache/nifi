@@ -21,7 +21,6 @@ import org.apache.nifi.processors.standard.db.ColumnDescription;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -125,7 +124,7 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
         }
 
         StringBuilder alterTableStatement = new StringBuilder();
-        return Collections.singletonList(alterTableStatement.append("ALTER TABLE ")
+        return List.of(alterTableStatement.append("ALTER TABLE ")
                 .append(quoteTableName ? getTableQuoteString() : "")
                 .append(tableName)
                 .append(quoteTableName ? getTableQuoteString() : "")

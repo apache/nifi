@@ -53,7 +53,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -156,10 +155,16 @@ public class ExecuteProcess extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            COMMAND, COMMAND_ARGUMENTS, BATCH_DURATION, REDIRECT_ERROR_STREAM, WORKING_DIR, ARG_DELIMITER, MIME_TYPE
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
     .name("success")
     .description("All created FlowFiles are routed to this relationship")
     .build();
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     private volatile Process externalProcess;
 
@@ -170,20 +175,12 @@ public class ExecuteProcess extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(COMMAND);
-        properties.add(COMMAND_ARGUMENTS);
-        properties.add(BATCH_DURATION);
-        properties.add(REDIRECT_ERROR_STREAM);
-        properties.add(WORKING_DIR);
-        properties.add(ARG_DELIMITER);
-        properties.add(MIME_TYPE);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

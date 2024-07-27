@@ -43,7 +43,6 @@ import org.apache.nifi.processors.standard.ftp.filesystem.VirtualFileSystemFacto
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.File;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -213,9 +212,9 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
         private User createUser(String username, String password, String homeDirectory) {
             boolean anonymousLoginEnabled = (username == null);
             if (anonymousLoginEnabled) {
-                return createAnonymousUser(homeDirectory, Collections.singletonList(new WritePermission()));
+                return createAnonymousUser(homeDirectory, List.of(new WritePermission()));
             } else {
-                return createNamedUser(username, password, homeDirectory, Collections.singletonList(new WritePermission()));
+                return createNamedUser(username, password, homeDirectory, List.of(new WritePermission()));
             }
         }
 

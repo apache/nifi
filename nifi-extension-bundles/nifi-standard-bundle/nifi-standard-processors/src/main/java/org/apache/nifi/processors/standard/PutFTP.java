@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -42,10 +31,19 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.file.transfer.PutFileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -71,49 +69,25 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
     private final AtomicReference<List<PropertyDescriptor>> preSendDescriptorRef = new AtomicReference<>();
     private final AtomicReference<List<PropertyDescriptor>> postSendDescriptorRef = new AtomicReference<>();
 
-    private List<PropertyDescriptor> properties;
-
     // PutFileTransfer.onTrigger() uses FlowFile attributes
     public static final PropertyDescriptor REMOTE_PATH = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(FTPTransfer.REMOTE_PATH)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(FTPTransfer.HOSTNAME);
-        properties.add(FTPTransfer.PORT);
-        properties.add(FTPTransfer.USERNAME);
-        properties.add(FTPTransfer.PASSWORD);
-        properties.add(REMOTE_PATH);
-        properties.add(FTPTransfer.CREATE_DIRECTORY);
-        properties.add(FTPTransfer.BATCH_SIZE);
-        properties.add(FTPTransfer.CONNECTION_TIMEOUT);
-        properties.add(FTPTransfer.DATA_TIMEOUT);
-        properties.add(FTPTransfer.CONFLICT_RESOLUTION);
-        properties.add(FTPTransfer.DOT_RENAME);
-        properties.add(FTPTransfer.TEMP_FILENAME);
-        properties.add(FTPTransfer.TRANSFER_MODE);
-        properties.add(FTPTransfer.CONNECTION_MODE);
-        properties.add(FTPTransfer.REJECT_ZERO_BYTE);
-        properties.add(FTPTransfer.LAST_MODIFIED_TIME);
-        properties.add(FTPTransfer.PERMISSIONS);
-        properties.add(FTPTransfer.USE_COMPRESSION);
-        properties.add(FTPTransfer.PROXY_CONFIGURATION_SERVICE);
-        properties.add(FTPTransfer.PROXY_TYPE);
-        properties.add(FTPTransfer.PROXY_HOST);
-        properties.add(FTPTransfer.PROXY_PORT);
-        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
-        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
-        properties.add(FTPTransfer.BUFFER_SIZE);
-        properties.add(FTPTransfer.UTF8_ENCODING);
-
-        this.properties = Collections.unmodifiableList(properties);
-    }
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            FTPTransfer.HOSTNAME, FTPTransfer.PORT, FTPTransfer.USERNAME, FTPTransfer.PASSWORD, REMOTE_PATH,
+            FTPTransfer.CREATE_DIRECTORY, FTPTransfer.BATCH_SIZE, FTPTransfer.CONNECTION_TIMEOUT,
+            FTPTransfer.DATA_TIMEOUT, FTPTransfer.CONFLICT_RESOLUTION, FTPTransfer.DOT_RENAME, FTPTransfer.TEMP_FILENAME,
+            FTPTransfer.TRANSFER_MODE, FTPTransfer.CONNECTION_MODE, FTPTransfer.REJECT_ZERO_BYTE,
+            FTPTransfer.LAST_MODIFIED_TIME, FTPTransfer.PERMISSIONS, FTPTransfer.USE_COMPRESSION,
+            FTPTransfer.PROXY_CONFIGURATION_SERVICE, FTPTransfer.PROXY_TYPE, FTPTransfer.PROXY_HOST,
+            FTPTransfer.PROXY_PORT, FTPTransfer.HTTP_PROXY_USERNAME, FTPTransfer.HTTP_PROXY_PASSWORD,
+            FTPTransfer.BUFFER_SIZE, FTPTransfer.UTF8_ENCODING
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

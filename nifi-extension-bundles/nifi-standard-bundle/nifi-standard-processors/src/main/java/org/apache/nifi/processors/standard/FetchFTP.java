@@ -17,9 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -34,8 +31,12 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.file.transfer.FetchFileTransfer;
-import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processor.util.file.transfer.FileTransfer;
+import org.apache.nifi.processors.standard.util.FTPTransfer;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 // Note that we do not use @SupportsBatching annotation. This processor cannot support batching because it must ensure that session commits happen before remote files are deleted.
 
@@ -83,34 +84,20 @@ import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 )
 public class FetchFTP extends FetchFileTransfer {
 
+    private static final PropertyDescriptor PORT =
+            new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("21").build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            HOSTNAME, PORT, USERNAME, FTPTransfer.PASSWORD, REMOTE_FILENAME, COMPLETION_STRATEGY, MOVE_DESTINATION_DIR,
+            MOVE_CREATE_DIRECTORY, FTPTransfer.CONNECTION_TIMEOUT, FTPTransfer.DATA_TIMEOUT, FTPTransfer.USE_COMPRESSION,
+            FTPTransfer.CONNECTION_MODE, FTPTransfer.TRANSFER_MODE, FTPTransfer.PROXY_CONFIGURATION_SERVICE,
+            FTPTransfer.PROXY_TYPE, FTPTransfer.PROXY_HOST, FTPTransfer.PROXY_PORT, FTPTransfer.HTTP_PROXY_USERNAME,
+            FTPTransfer.HTTP_PROXY_PASSWORD, FTPTransfer.BUFFER_SIZE, FILE_NOT_FOUND_LOG_LEVEL, FTPTransfer.UTF8_ENCODING
+    );
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("21").build();
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(HOSTNAME);
-        properties.add(port);
-        properties.add(USERNAME);
-        properties.add(FTPTransfer.PASSWORD);
-        properties.add(REMOTE_FILENAME);
-        properties.add(COMPLETION_STRATEGY);
-        properties.add(MOVE_DESTINATION_DIR);
-        properties.add(MOVE_CREATE_DIRECTORY);
-        properties.add(FTPTransfer.CONNECTION_TIMEOUT);
-        properties.add(FTPTransfer.DATA_TIMEOUT);
-        properties.add(FTPTransfer.USE_COMPRESSION);
-        properties.add(FTPTransfer.CONNECTION_MODE);
-        properties.add(FTPTransfer.TRANSFER_MODE);
-        properties.add(FTPTransfer.PROXY_CONFIGURATION_SERVICE);
-        properties.add(FTPTransfer.PROXY_TYPE);
-        properties.add(FTPTransfer.PROXY_HOST);
-        properties.add(FTPTransfer.PROXY_PORT);
-        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
-        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
-        properties.add(FTPTransfer.BUFFER_SIZE);
-        properties.add(FILE_NOT_FOUND_LOG_LEVEL);
-        properties.add(FTPTransfer.UTF8_ENCODING);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

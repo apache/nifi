@@ -27,8 +27,8 @@ import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.URLValidator;
 import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
-import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.http.CookieStrategy;
+import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.http.HttpHeader;
 import org.apache.nifi.processors.standard.http.HttpMethod;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -46,6 +46,13 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Answers;
 
 import javax.net.ssl.SSLContext;
@@ -67,19 +74,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import static java.net.HttpURLConnection.HTTP_OK;
-import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
+import static java.net.HttpURLConnection.HTTP_OK;
+import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -315,7 +314,7 @@ public class InvokeHTTPTest {
 
         assertRelationshipStatusCodeEquals(InvokeHTTP.ORIGINAL, HTTP_OK);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.ORIGINAL).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.ORIGINAL).getFirst();
         flowFile.assertAttributeEquals(outputAttributeKey, body);
     }
 
@@ -715,7 +714,7 @@ public class InvokeHTTPTest {
     @Test
     public void testRunPostHttp200SuccessContentEncodingGzip() throws InterruptedException, IOException {
         runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.POST.name());
-        runner.setProperty(InvokeHTTP.REQUEST_CONTENT_ENCODING, ContentEncodingStrategy.GZIP.getValue());
+        runner.setProperty(InvokeHTTP.REQUEST_CONTENT_ENCODING, ContentEncodingStrategy.GZIP);
         runner.setProperty(InvokeHTTP.REQUEST_BODY_ENABLED, Boolean.TRUE.toString());
 
         enqueueResponseCodeAndRun(HTTP_OK);
@@ -809,7 +808,7 @@ public class InvokeHTTPTest {
 
         runner.run();
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.RESPONSE).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.RESPONSE).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), expectedFileName);
     }
 
@@ -940,15 +939,15 @@ public class InvokeHTTPTest {
     }
 
     private MockFlowFile getFailureFlowFile() {
-        return runner.getFlowFilesForRelationship(InvokeHTTP.FAILURE).iterator().next();
+        return runner.getFlowFilesForRelationship(InvokeHTTP.FAILURE).getFirst();
     }
 
     private MockFlowFile getRequestFlowFile() {
-        return runner.getFlowFilesForRelationship(InvokeHTTP.ORIGINAL).iterator().next();
+        return runner.getFlowFilesForRelationship(InvokeHTTP.ORIGINAL).getFirst();
     }
 
     private MockFlowFile getResponseFlowFile() {
-        return runner.getFlowFilesForRelationship(InvokeHTTP.RESPONSE).iterator().next();
+        return runner.getFlowFilesForRelationship(InvokeHTTP.RESPONSE).getFirst();
     }
 
     private void assertRequestMethodSuccess(final HttpMethod httpMethod) throws InterruptedException {
@@ -965,7 +964,7 @@ public class InvokeHTTPTest {
         final List<MockFlowFile> responseFlowFiles = runner.getFlowFilesForRelationship(relationship);
         final String message = String.format("FlowFiles not found for Relationship [%s]", relationship);
         assertFalse(responseFlowFiles.isEmpty(), message);
-        final MockFlowFile responseFlowFile = responseFlowFiles.iterator().next();
+        final MockFlowFile responseFlowFile = responseFlowFiles.getFirst();
         assertStatusCodeEquals(responseFlowFile, statusCode);
     }
 
@@ -1000,7 +999,7 @@ public class InvokeHTTPTest {
         assertResponseSuccessRelationships();
         assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.RESPONSE).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.RESPONSE).getFirst();
         flowFile.assertAttributeExists(InvokeHTTP.REMOTE_DN);
     }
 

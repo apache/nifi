@@ -62,7 +62,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -186,7 +185,6 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             + "will be grouped together. All FlowFiles in this group must have the same value for the \"fragment.count\" attribute. The ordering of "
             + "the Records that are output is not guaranteed.");
 
-
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("record-reader")
         .displayName("Record Reader")
@@ -277,7 +275,10 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
 
-
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER, RECORD_WRITER, MERGE_STRATEGY, CORRELATION_ATTRIBUTE_NAME, AttributeStrategyUtil.ATTRIBUTE_STRATEGY,
+            MIN_RECORDS, MAX_RECORDS, MIN_SIZE, MAX_SIZE, MAX_BIN_AGE, MAX_BIN_COUNT
+    );
 
     public static final Relationship REL_MERGED = new Relationship.Builder()
         .name("merged")
@@ -292,36 +293,19 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .description("If the bundle cannot be created, all FlowFiles that would have been used to created the bundle will be transferred to failure")
         .build();
 
-    private final AtomicReference<RecordBinManager> binManager = new AtomicReference<>();
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_MERGED);
 
+    private final AtomicReference<RecordBinManager> binManager = new AtomicReference<>();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(RECORD_READER);
-        properties.add(RECORD_WRITER);
-        properties.add(MERGE_STRATEGY);
-        properties.add(CORRELATION_ATTRIBUTE_NAME);
-        properties.add(AttributeStrategyUtil.ATTRIBUTE_STRATEGY);
-        properties.add(MIN_RECORDS);
-        properties.add(MAX_RECORDS);
-        properties.add(MIN_SIZE);
-        properties.add(MAX_SIZE);
-        properties.add(MAX_BIN_AGE);
-        properties.add(MAX_BIN_COUNT);
-        return properties;
+        return PROPERTIES;
     }
-
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_ORIGINAL);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_MERGED);
-        return relationships;
+        return RELATIONSHIPS;
     }
-
 
     @OnStopped
     public final void resetState() {
@@ -475,7 +459,6 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             throw new ProcessException(e);
         }
     }
-
 
     protected String getGroupId(final ProcessContext context, final FlowFile flowFile, final RecordSchema schema, final ProcessSession session) {
         final String mergeStrategy = context.getProperty(MERGE_STRATEGY).getValue();

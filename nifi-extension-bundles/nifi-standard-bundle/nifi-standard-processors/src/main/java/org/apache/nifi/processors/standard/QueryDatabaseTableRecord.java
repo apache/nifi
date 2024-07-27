@@ -36,16 +36,13 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.sql.RecordSqlWriter;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.db.JdbcCommon;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -170,6 +167,11 @@ import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFA
 )
 public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
 
+    public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AbstractDatabaseFetchProcessor.TABLE_NAME)
+            .description("The name of the database table to be queried. When a custom query is used, this property is used to alias the query and appears as an attribute on the FlowFile.")
+            .build();
+
     public static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
             .name("qdbtr-record-writer")
             .displayName("Record Writer")
@@ -189,35 +191,14 @@ public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
             .build();
 
     public QueryDatabaseTableRecord() {
-        final Set<Relationship> r = new HashSet<>();
-        r.add(REL_SUCCESS);
-        relationships = Collections.unmodifiableSet(r);
+        relationships = Set.of(REL_SUCCESS);
 
-        final List<PropertyDescriptor> pds = new ArrayList<>();
-        pds.add(DBCP_SERVICE);
-        pds.add(DB_TYPE);
-        pds.add(new PropertyDescriptor.Builder()
-                .fromPropertyDescriptor(TABLE_NAME)
-                .description("The name of the database table to be queried. When a custom query is used, this property is used to alias the query and appears as an attribute on the FlowFile.")
-                .build());
-        pds.add(COLUMN_NAMES);
-        pds.add(WHERE_CLAUSE);
-        pds.add(SQL_QUERY);
-        pds.add(RECORD_WRITER_FACTORY);
-        pds.add(MAX_VALUE_COLUMN_NAMES);
-        pds.add(INITIAL_LOAD_STRATEGY);
-        pds.add(QUERY_TIMEOUT);
-        pds.add(FETCH_SIZE);
-        pds.add(AUTO_COMMIT);
-        pds.add(MAX_ROWS_PER_FLOW_FILE);
-        pds.add(OUTPUT_BATCH_SIZE);
-        pds.add(MAX_FRAGMENTS);
-        pds.add(NORMALIZE_NAMES);
-        pds.add(USE_AVRO_LOGICAL_TYPES);
-        pds.add(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION);
-        pds.add(VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE);
-
-        propDescriptors = Collections.unmodifiableList(pds);
+        propDescriptors = List.of(
+                DBCP_SERVICE, DB_TYPE, TABLE_NAME, COLUMN_NAMES, WHERE_CLAUSE, SQL_QUERY, RECORD_WRITER_FACTORY,
+                MAX_VALUE_COLUMN_NAMES, INITIAL_LOAD_STRATEGY, QUERY_TIMEOUT, FETCH_SIZE, AUTO_COMMIT,
+                MAX_ROWS_PER_FLOW_FILE, OUTPUT_BATCH_SIZE, MAX_FRAGMENTS, NORMALIZE_NAMES, USE_AVRO_LOGICAL_TYPES,
+                VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION, VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE
+        );
     }
 
     @Override

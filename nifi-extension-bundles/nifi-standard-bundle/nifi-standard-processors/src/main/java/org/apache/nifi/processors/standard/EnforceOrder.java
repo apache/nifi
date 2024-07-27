@@ -43,10 +43,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,7 +53,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
@@ -181,6 +178,10 @@ public class EnforceOrder extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            GROUP_IDENTIFIER, ORDER_ATTRIBUTE, INITIAL_ORDER, MAX_ORDER, BATCH_COUNT, WAIT_TIMEOUT, INACTIVE_TIMEOUT
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("A FlowFile with a matching order number will be routed to this relationship.")
@@ -206,36 +207,18 @@ public class EnforceOrder extends AbstractProcessor {
         .description("A FlowFile that has an order younger than current, which means arrived too late and skipped, will be routed to this relationship.")
         .build();
 
-    private final Set<Relationship> relationships;
-
-    public EnforceOrder() {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_WAIT);
-        rels.add(REL_OVERTOOK);
-        rels.add(REL_FAILURE);
-        rels.add(REL_SKIPPED);
-        relationships = Collections.unmodifiableSet(rels);
-    }
+    private static final Set<Relationship> RELATIONSHIPS =
+            Set.of(REL_SUCCESS, REL_WAIT, REL_OVERTOOK, REL_FAILURE, REL_SKIPPED);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(GROUP_IDENTIFIER);
-        descriptors.add(ORDER_ATTRIBUTE);
-        descriptors.add(INITIAL_ORDER);
-        descriptors.add(MAX_ORDER);
-        descriptors.add(BATCH_COUNT);
-        descriptors.add(WAIT_TIMEOUT);
-        descriptors.add(INACTIVE_TIMEOUT);
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
-
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
@@ -445,53 +428,55 @@ public class EnforceOrder extends AbstractProcessor {
         }
 
         private void transferFlowFiles() {
-            flowFileGroups.entrySet().stream().filter(entry -> !entry.getValue().isEmpty()).map(entry -> {
-                // Sort flow files within each group.
-                final List<FlowFile> groupedFlowFiles = entry.getValue();
-                groupedFlowFiles.sort(Comparator.comparing(getOrder));
-                return entry;
-            }).forEach(entry -> {
-                // Check current state.
-                final String groupId = entry.getKey();
-                final String stateKeyOrder = STATE_TARGET_ORDER.apply(groupId);
-                final int previousTargetOrder = Integer.parseInt(groupStates.get(stateKeyOrder));
-                final AtomicInteger targetOrder = new AtomicInteger(previousTargetOrder);
-                final List<FlowFile> groupedFlowFiles = entry.getValue();
-                final String maxOrderStr = groupStates.get(STATE_MAX_ORDER.apply(groupId));
+            flowFileGroups.entrySet().stream()
+                    .filter(entry -> !entry.getValue().isEmpty())
+                    .peek(entry -> {
+                        // Sort flow files within each group.
+                        final List<FlowFile> groupedFlowFiles = entry.getValue();
+                        groupedFlowFiles.sort(Comparator.comparing(getOrder));
+                    })
+                    .forEach(entry -> {
+                        // Check current state.
+                        final String groupId = entry.getKey();
+                        final String stateKeyOrder = STATE_TARGET_ORDER.apply(groupId);
+                        final int previousTargetOrder = Integer.parseInt(groupStates.get(stateKeyOrder));
+                        final AtomicInteger targetOrder = new AtomicInteger(previousTargetOrder);
+                        final List<FlowFile> groupedFlowFiles = entry.getValue();
+                        final String maxOrderStr = groupStates.get(STATE_MAX_ORDER.apply(groupId));
 
-                groupedFlowFiles.forEach(f -> {
-                    final Integer order = getOrder.apply(f);
-                    final boolean isMaxOrder = !isBlank(maxOrderStr) && order.equals(Integer.parseInt(maxOrderStr));
+                        groupedFlowFiles.forEach(f -> {
+                            final Integer order = getOrder.apply(f);
+                            final boolean isMaxOrder = !isBlank(maxOrderStr) && order.equals(Integer.parseInt(maxOrderStr));
 
-                    if (order == targetOrder.get()) {
-                        transferResult(f, REL_SUCCESS, null, null);
-                        if (!isMaxOrder) {
-                            // If max order is specified and this FlowFile has the max order, don't increment target anymore.
-                            targetOrder.incrementAndGet();
+                            if (order == targetOrder.get()) {
+                                transferResult(f, REL_SUCCESS, null, null);
+                                if (!isMaxOrder) {
+                                    // If max order is specified and this FlowFile has the max order, don't increment target anymore.
+                                    targetOrder.incrementAndGet();
+                                }
+
+                            } else if (order > targetOrder.get()) {
+
+                                if (now - Long.parseLong(f.getAttribute(ATTR_STARTED_AT)) > waitTimeoutMillis) {
+                                    transferResult(f, REL_OVERTOOK, null, targetOrder.get());
+                                    targetOrder.set(isMaxOrder ? order : order + 1);
+                                } else {
+                                    transferResult(f, REL_WAIT, null, targetOrder.get());
+                                }
+
+                            } else {
+                                final String msg = String.format("Skipped, FlowFile order was %d but current target is %d", order, targetOrder.get());
+                                logger.warn("{}. {}", msg, f);
+                                transferResult(f, REL_SKIPPED, msg, targetOrder.get());
+                            }
+
+                        });
+
+                        if (previousTargetOrder != targetOrder.get()) {
+                            groupStates.put(stateKeyOrder, String.valueOf(targetOrder.get()));
+                            groupStates.put(STATE_UPDATED_AT.apply(groupId), String.valueOf(now));
                         }
-
-                    } else if (order > targetOrder.get()) {
-
-                        if (now - Long.parseLong(f.getAttribute(ATTR_STARTED_AT)) > waitTimeoutMillis) {
-                            transferResult(f, REL_OVERTOOK, null, targetOrder.get());
-                            targetOrder.set(isMaxOrder ? order : order + 1);
-                        } else {
-                            transferResult(f, REL_WAIT, null, targetOrder.get());
-                        }
-
-                    } else {
-                        final String msg = String.format("Skipped, FlowFile order was %d but current target is %d", order, targetOrder.get());
-                        logger.warn("{}. {}", msg, f);
-                        transferResult(f, REL_SKIPPED, msg, targetOrder.get());
-                    }
-
-                });
-
-                if (previousTargetOrder != targetOrder.get()) {
-                    groupStates.put(stateKeyOrder, String.valueOf(targetOrder.get()));
-                    groupStates.put(STATE_UPDATED_AT.apply(groupId), String.valueOf(now));
-                }
-            });
+                    });
         }
 
         private void transferResult(final FlowFile flowFile, final Relationship result, final String detail, final Integer expectedOrder) {
@@ -533,7 +518,7 @@ public class EnforceOrder extends AbstractProcessor {
             final List<String> inactiveGroups = groupStates.keySet().stream()
                     .filter(k -> k.endsWith(STATE_SUFFIX_UPDATED_AT) && (now - Long.parseLong(groupStates.get(k)) > inactiveTimeout))
                     .map(k -> k.substring(0, k.length() - STATE_SUFFIX_UPDATED_AT.length()))
-                    .collect(Collectors.toList());
+                    .toList();
             inactiveGroups.forEach(groupId -> {
                 groupStates.remove(STATE_TARGET_ORDER.apply(groupId));
                 groupStates.remove(STATE_UPDATED_AT.apply(groupId));

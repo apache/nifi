@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -31,11 +26,14 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processor.util.file.transfer.PutFileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
-import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -44,51 +42,24 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
 @SeeAlso(GetSFTP.class)
 public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
 
-    private List<PropertyDescriptor> properties;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(FileTransfer.HOSTNAME);
-        properties.add(SFTPTransfer.PORT);
-        properties.add(FileTransfer.USERNAME);
-        properties.add(FileTransfer.PASSWORD);
-        properties.add(SFTPTransfer.PRIVATE_KEY_PATH);
-        properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);
-        properties.add(FileTransfer.REMOTE_PATH);
-        properties.add(FileTransfer.CREATE_DIRECTORY);
-        properties.add(SFTPTransfer.DISABLE_DIRECTORY_LISTING);
-        properties.add(FileTransfer.BATCH_SIZE);
-        properties.add(FileTransfer.CONNECTION_TIMEOUT);
-        properties.add(FileTransfer.DATA_TIMEOUT);
-        properties.add(FileTransfer.CONFLICT_RESOLUTION);
-        properties.add(FileTransfer.REJECT_ZERO_BYTE);
-        properties.add(FileTransfer.DOT_RENAME);
-        properties.add(FileTransfer.TEMP_FILENAME);
-        properties.add(SFTPTransfer.HOST_KEY_FILE);
-        properties.add(FileTransfer.LAST_MODIFIED_TIME);
-        properties.add(FileTransfer.PERMISSIONS);
-        properties.add(FileTransfer.REMOTE_OWNER);
-        properties.add(FileTransfer.REMOTE_GROUP);
-        properties.add(SFTPTransfer.STRICT_HOST_KEY_CHECKING);
-        properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
-        properties.add(FileTransfer.USE_COMPRESSION);
-        properties.add(SFTPTransfer.PROXY_CONFIGURATION_SERVICE);
-        properties.add(FTPTransfer.PROXY_TYPE);
-        properties.add(FTPTransfer.PROXY_HOST);
-        properties.add(FTPTransfer.PROXY_PORT);
-        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
-        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
-        properties.add(SFTPTransfer.CIPHERS_ALLOWED);
-        properties.add(SFTPTransfer.KEY_ALGORITHMS_ALLOWED);
-        properties.add(SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED);
-        properties.add(SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED);
-        this.properties = Collections.unmodifiableList(properties);
-    }
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            FileTransfer.HOSTNAME, SFTPTransfer.PORT, FileTransfer.USERNAME, FileTransfer.PASSWORD,
+            SFTPTransfer.PRIVATE_KEY_PATH, SFTPTransfer.PRIVATE_KEY_PASSPHRASE, FileTransfer.REMOTE_PATH,
+            FileTransfer.CREATE_DIRECTORY, SFTPTransfer.DISABLE_DIRECTORY_LISTING, FileTransfer.BATCH_SIZE,
+            FileTransfer.CONNECTION_TIMEOUT, FileTransfer.DATA_TIMEOUT, FileTransfer.CONFLICT_RESOLUTION,
+            FileTransfer.REJECT_ZERO_BYTE, FileTransfer.DOT_RENAME, FileTransfer.TEMP_FILENAME,
+            SFTPTransfer.HOST_KEY_FILE, FileTransfer.LAST_MODIFIED_TIME, FileTransfer.PERMISSIONS,
+            FileTransfer.REMOTE_OWNER, FileTransfer.REMOTE_GROUP, SFTPTransfer.STRICT_HOST_KEY_CHECKING,
+            SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT, FileTransfer.USE_COMPRESSION,
+            SFTPTransfer.PROXY_CONFIGURATION_SERVICE, FTPTransfer.PROXY_TYPE, FTPTransfer.PROXY_HOST,
+            FTPTransfer.PROXY_PORT, FTPTransfer.HTTP_PROXY_USERNAME, FTPTransfer.HTTP_PROXY_PASSWORD,
+            SFTPTransfer.CIPHERS_ALLOWED, SFTPTransfer.KEY_ALGORITHMS_ALLOWED,
+            SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED, SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

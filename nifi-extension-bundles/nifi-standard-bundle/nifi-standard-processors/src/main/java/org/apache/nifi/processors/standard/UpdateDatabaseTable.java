@@ -65,7 +65,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -233,7 +232,9 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    protected static final Map<String, DatabaseAdapter> dbAdapters;
     static final PropertyDescriptor DB_TYPE;
+    private static final List<PropertyDescriptor> properties;
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -246,9 +247,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .description("A FlowFile containing records routed to this relationship if the record could not be transmitted to the database.")
             .build();
 
-    protected static final Map<String, DatabaseAdapter> dbAdapters;
-    private static final List<PropertyDescriptor> propertyDescriptors;
-    protected static Set<Relationship> relationships;
+    protected static Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
 
     static {
         dbAdapters = new HashMap<>();
@@ -270,32 +269,16 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 .required(false)
                 .build();
 
-        final Set<Relationship> r = new HashSet<>();
-        r.add(REL_SUCCESS);
-        r.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(r);
-
-        final List<PropertyDescriptor> pds = new ArrayList<>();
-        pds.add(RECORD_READER);
-        pds.add(DBCP_SERVICE);
-        pds.add(DB_TYPE);
-        pds.add(CATALOG_NAME);
-        pds.add(SCHEMA_NAME);
-        pds.add(TABLE_NAME);
-        pds.add(CREATE_TABLE);
-        pds.add(PRIMARY_KEY_FIELDS);
-        pds.add(TRANSLATE_FIELD_NAMES);
-        pds.add(UPDATE_FIELD_NAMES);
-        pds.add(RECORD_WRITER_FACTORY);
-        pds.add(QUOTE_TABLE_IDENTIFIER);
-        pds.add(QUOTE_COLUMN_IDENTIFIERS);
-        pds.add(QUERY_TIMEOUT);
-        propertyDescriptors = Collections.unmodifiableList(pds);
+        properties = List.of(
+                RECORD_READER, DBCP_SERVICE, DB_TYPE, CATALOG_NAME, SCHEMA_NAME, TABLE_NAME, CREATE_TABLE,
+                PRIMARY_KEY_FIELDS, TRANSLATE_FIELD_NAMES, UPDATE_FIELD_NAMES, RECORD_WRITER_FACTORY,
+                QUOTE_TABLE_IDENTIFIER, QUOTE_COLUMN_IDENTIFIERS, QUERY_TIMEOUT
+        );
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return properties;
     }
 
     @Override
