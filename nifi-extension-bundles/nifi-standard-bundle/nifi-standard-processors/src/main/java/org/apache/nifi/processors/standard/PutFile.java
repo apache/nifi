@@ -37,7 +37,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -52,9 +51,6 @@ import java.nio.file.attribute.UserPrincipalLookupService;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -167,6 +163,17 @@ public class PutFile extends AbstractProcessor {
             .defaultValue("true")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DIRECTORY,
+            CONFLICT_RESOLUTION,
+            CREATE_DIRS,
+            MAX_DESTINATION_FILES,
+            CHANGE_LAST_MODIFIED_TIME,
+            CHANGE_PERMISSIONS,
+            CHANGE_OWNER,
+            CHANGE_GROUP
+    );
+
     public static final int MAX_FILE_LOCK_ATTEMPTS = 10;
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -177,38 +184,19 @@ public class PutFile extends AbstractProcessor {
             .description("Files that could not be written to the output directory for some reason are transferred to this relationship")
             .build();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        // relationships
-        final Set<Relationship> procRels = new HashSet<>();
-        procRels.add(REL_SUCCESS);
-        procRels.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(procRels);
-
-        // descriptors
-        final List<PropertyDescriptor> supDescriptors = new ArrayList<>();
-        supDescriptors.add(DIRECTORY);
-        supDescriptors.add(CONFLICT_RESOLUTION);
-        supDescriptors.add(CREATE_DIRS);
-        supDescriptors.add(MAX_DESTINATION_FILES);
-        supDescriptors.add(CHANGE_LAST_MODIFIED_TIME);
-        supDescriptors.add(CHANGE_PERMISSIONS);
-        supDescriptors.add(CHANGE_OWNER);
-        supDescriptors.add(CHANGE_GROUP);
-        properties = Collections.unmodifiableList(supDescriptors);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

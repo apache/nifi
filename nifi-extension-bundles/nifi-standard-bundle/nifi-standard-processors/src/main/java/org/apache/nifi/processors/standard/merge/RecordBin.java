@@ -34,11 +34,11 @@ import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -146,7 +146,7 @@ public class RecordBin {
             // here because it needs to be closed before we are able to migrate the FlowFile
             // to a new Session.
             recordReader.close();
-            flowFileSession.migrate(this.session, Collections.singleton(flowFile));
+            flowFileSession.migrate(this.session, Set.of(flowFile));
             flowFileMigrated = true;
             this.flowFiles.add(flowFile);
 
@@ -184,7 +184,7 @@ public class RecordBin {
                 }
 
                 if (!flowFileMigrated) {
-                    flowFileSession.migrate(this.session, Collections.singleton(flowFile));
+                    flowFileSession.migrate(this.session, Set.of(flowFile));
                     this.flowFiles.add(flowFile);
                 }
             } finally {

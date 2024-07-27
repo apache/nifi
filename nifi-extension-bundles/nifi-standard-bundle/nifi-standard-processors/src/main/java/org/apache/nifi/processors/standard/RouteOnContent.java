@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -46,11 +33,22 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 @SideEffectFree
 @SupportsBatching
@@ -96,30 +94,22 @@ public class RouteOnContent extends AbstractProcessor {
             .defaultValue("UTF-8")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            MATCH_REQUIREMENT,
+            CHARACTER_SET,
+            BUFFER_SIZE
+    );
+
     public static final Relationship REL_NO_MATCH = new Relationship.Builder()
             .name("unmatched")
             .description("FlowFiles that do not match any of the user-supplied regular expressions will be routed to this relationship")
             .build();
 
-    private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
-    private List<PropertyDescriptor> properties;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_NO_MATCH);
-        this.relationships.set(Collections.unmodifiableSet(relationships));
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(MATCH_REQUIREMENT);
-        properties.add(CHARACTER_SET);
-        properties.add(BUFFER_SIZE);
-        this.properties = Collections.unmodifiableList(properties);
-    }
+    private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>(Set.of(REL_NO_MATCH));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

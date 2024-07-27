@@ -41,10 +41,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -76,11 +73,6 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
                     + "supports TLSv1.3.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
-            .build();
-
-    public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Relationship for successfully received files.")
             .build();
 
     public static final PropertyDescriptor BIND_ADDRESS = new PropertyDescriptor.Builder()
@@ -125,17 +117,20 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             .sensitive(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             BIND_ADDRESS,
             PORT,
             USERNAME,
             PASSWORD,
             SSL_CONTEXT_SERVICE
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Collections.singletonList(
-            RELATIONSHIP_SUCCESS
-    )));
+    public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Relationship for successfully received files.")
+            .build();
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(RELATIONSHIP_SUCCESS);
 
     private volatile FtpServer ftpServer;
     private volatile CountDownLatch sessionFactorySetSignal;

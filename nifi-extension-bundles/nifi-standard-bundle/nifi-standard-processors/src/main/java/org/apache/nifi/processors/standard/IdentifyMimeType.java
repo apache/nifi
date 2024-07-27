@@ -38,7 +38,6 @@ import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -60,9 +59,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -134,13 +131,19 @@ public class IdentifyMimeType extends AbstractProcessor {
             .dependsOn(CONFIG_STRATEGY, REPLACE, MERGE)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            USE_FILENAME_IN_DETECTION,
+            CONFIG_STRATEGY,
+            MIME_CONFIG_BODY,
+            MIME_CONFIG_FILE
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles are routed to success")
             .build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> properties;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     private final TikaConfig config;
     private Detector detector;
@@ -149,21 +152,6 @@ public class IdentifyMimeType extends AbstractProcessor {
 
     public IdentifyMimeType() {
         this.config = TikaConfig.getDefaultConfig();
-    }
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(USE_FILENAME_IN_DETECTION);
-        properties.add(CONFIG_STRATEGY);
-        properties.add(MIME_CONFIG_BODY);
-        properties.add(MIME_CONFIG_FILE);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(rels);
     }
 
     @Override
@@ -212,12 +200,12 @@ public class IdentifyMimeType extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

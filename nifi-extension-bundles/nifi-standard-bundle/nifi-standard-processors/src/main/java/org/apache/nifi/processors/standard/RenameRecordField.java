@@ -17,12 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -47,6 +41,14 @@ import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathPropertyNameValidator;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @SideEffectFree
 @SupportsBatching
@@ -147,7 +149,7 @@ public class RenameRecordField extends AbstractRecordProcessor {
             return Collections.emptyList();
         }
 
-        return Collections.singleton(new ValidationResult.Builder()
+        return Set.of(new ValidationResult.Builder()
             .subject("User-defined Properties")
             .valid(false)
             .explanation("At least one RecordPath must be specified")

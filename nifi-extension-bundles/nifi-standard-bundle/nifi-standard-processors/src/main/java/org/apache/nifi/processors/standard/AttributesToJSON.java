@@ -36,16 +36,13 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.BufferedOutputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -157,7 +154,7 @@ public class AttributesToJSON extends AbstractProcessor {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(JsonHandlingStrategy.class)
-            .defaultValue(AttributesToJSON.JsonHandlingStrategy.ESCAPED.getValue())
+            .defaultValue(AttributesToJSON.JsonHandlingStrategy.ESCAPED)
             .build();
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
@@ -170,14 +167,27 @@ public class AttributesToJSON extends AbstractProcessor {
             .dependsOn(DESTINATION, DESTINATION_CONTENT)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            ATTRIBUTES_LIST,
+            ATTRIBUTES_REGEX,
+            DESTINATION,
+            INCLUDE_CORE_ATTRIBUTES,
+            NULL_VALUE_FOR_EMPTY_STRING,
+            JSON_HANDLING_STRATEGY,
+            PRETTY_PRINT
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Successfully converted attributes to JSON").build();
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Failed to convert attributes to JSON").build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
     private volatile Set<String> attributesToRemove;
     private volatile Set<String> attributes;
     private volatile Boolean nullValueForEmptyString;
@@ -187,31 +197,13 @@ public class AttributesToJSON extends AbstractProcessor {
     private volatile JsonHandlingStrategy jsonHandlingStrategy;
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(ATTRIBUTES_LIST);
-        properties.add(ATTRIBUTES_REGEX);
-        properties.add(DESTINATION);
-        properties.add(INCLUDE_CORE_ATTRIBUTES);
-        properties.add(NULL_VALUE_FOR_EMPTY_STRING);
-        properties.add(JSON_HANDLING_STRATEGY);
-        properties.add(PRETTY_PRINT);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     /**
@@ -272,7 +264,7 @@ public class AttributesToJSON extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        attributesToRemove = context.getProperty(INCLUDE_CORE_ATTRIBUTES).asBoolean() ? Collections.EMPTY_SET : Arrays.stream(CoreAttributes.values())
+        attributesToRemove = context.getProperty(INCLUDE_CORE_ATTRIBUTES).asBoolean() ? Set.of() : Arrays.stream(CoreAttributes.values())
                 .map(CoreAttributes::key)
                 .collect(Collectors.toSet());
         attributes = buildAtrs(context.getProperty(ATTRIBUTES_LIST).getValue());
@@ -280,7 +272,7 @@ public class AttributesToJSON extends AbstractProcessor {
         destinationContent = DESTINATION_CONTENT.equals(context.getProperty(DESTINATION).getValue());
         final boolean prettyPrint = context.getProperty(PRETTY_PRINT).asBoolean();
         objectWriter = destinationContent && prettyPrint ? OBJECT_MAPPER.writerWithDefaultPrettyPrinter() : OBJECT_MAPPER.writer();
-        jsonHandlingStrategy = JsonHandlingStrategy.valueOf(context.getProperty(JSON_HANDLING_STRATEGY).getValue());
+        jsonHandlingStrategy = context.getProperty(JSON_HANDLING_STRATEGY).asAllowableValue(JsonHandlingStrategy.class);
 
         if (context.getProperty(ATTRIBUTES_REGEX).isSet()) {
             pattern = Pattern.compile(context.getProperty(ATTRIBUTES_REGEX).evaluateAttributeExpressions().getValue());

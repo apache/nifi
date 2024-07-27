@@ -31,7 +31,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
@@ -52,8 +51,6 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -89,6 +86,11 @@ public class ScanContent extends AbstractProcessor {
             .defaultValue(TEXT_ENCODING)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DICTIONARY,
+            DICTIONARY_ENCODING
+    );
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles that match at least one "
@@ -100,36 +102,25 @@ public class ScanContent extends AbstractProcessor {
                     + "term in the dictionary are routed to this relationship")
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_MATCH,
+            REL_NO_MATCH
+    );
+
     public static final Charset UTF8 = StandardCharsets.UTF_8;
 
     private final AtomicReference<SynchronousFileWatcher> fileWatcherRef = new AtomicReference<>();
     private final AtomicReference<Search<byte[]>> searchRef = new AtomicReference<>();
     private final ReentrantLock dictionaryUpdateLock = new ReentrantLock();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DICTIONARY);
-        properties.add(DICTIONARY_ENCODING);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_MATCH);
-        relationships.add(REL_NO_MATCH);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -263,7 +254,7 @@ public class ScanContent extends AbstractProcessor {
             if (nextLine == null || nextLine.isEmpty()) {
                 return null;
             }
-            return new SearchTerm<>(nextLine.getBytes("UTF-8"));
+            return new SearchTerm<>(nextLine.getBytes(StandardCharsets.UTF_8));
         }
 
         @Override

@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -44,9 +34,15 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 @SideEffectFree
 @SupportsBatching
@@ -82,6 +78,8 @@ public class SegmentContent extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(SIZE);
+
     public static final Relationship REL_SEGMENTS = new Relationship.Builder()
             .name("segments")
             .description("All segments will be sent to this relationship. If the file was small enough that it was not segmented, "
@@ -92,29 +90,19 @@ public class SegmentContent extends AbstractProcessor {
             .description("The original FlowFile will be sent to this relationship")
             .build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> propertyDescriptors;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SEGMENTS);
-        relationships.add(REL_ORIGINAL);
-        this.relationships = Collections.unmodifiableSet(relationships);
-
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(SIZE);
-        this.propertyDescriptors = Collections.unmodifiableList(descriptors);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SEGMENTS,
+            REL_ORIGINAL
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     @Override

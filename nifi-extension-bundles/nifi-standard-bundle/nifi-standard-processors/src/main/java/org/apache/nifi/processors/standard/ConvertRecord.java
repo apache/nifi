@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.serialization.record.Record;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @SupportsBatching
@@ -60,12 +61,11 @@ public class ConvertRecord extends AbstractRecordProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(INCLUDE_ZERO_RECORD_FLOWFILES);
-        return properties;
+        return Collections.unmodifiableList(properties);
     }
 
     @Override
     protected Record process(final Record record, final FlowFile flowFile, final ProcessContext context, final long count) {
         return record;
     }
-
 }

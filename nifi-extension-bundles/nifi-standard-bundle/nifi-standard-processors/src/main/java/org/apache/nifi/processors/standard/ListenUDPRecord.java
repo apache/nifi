@@ -61,7 +61,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -142,11 +141,22 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> ADDITIONAL_PROPERTIES = List.of(
+            POLL_TIMEOUT,
+            BATCH_SIZE,
+            RECORD_READER,
+            RECORD_WRITER,
+            SENDING_HOST,
+            SENDING_HOST_PORT
+    );
+
     public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse.failure")
             .description("If a datagram cannot be parsed using the configured Record Reader, the contents of the "
                     + "message will be routed to this Relationship as its own individual FlowFile.")
             .build();
+
+    private static final List<Relationship> ADDITIONAL_RELATIONSHIPS = List.of(REL_PARSE_FAILURE);
 
     public static final String UDP_PORT_ATTR = "udp.port";
     public static final String UDP_SENDER_ATTR = "udp.sender";
@@ -156,19 +166,12 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
 
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
-        return Arrays.asList(
-                POLL_TIMEOUT,
-                BATCH_SIZE,
-                RECORD_READER,
-                RECORD_WRITER,
-                SENDING_HOST,
-                SENDING_HOST_PORT
-        );
+        return ADDITIONAL_PROPERTIES;
     }
 
     @Override
     protected List<Relationship> getAdditionalRelationships() {
-        return Arrays.asList(REL_PARSE_FAILURE);
+        return ADDITIONAL_RELATIONSHIPS;
     }
 
     @Override
@@ -255,7 +258,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
                 continue;
             }
 
-            if (records.size() == 0) {
+            if (records.isEmpty()) {
                 handleParseFailure(event, session, null);
                 continue;
             }
@@ -396,9 +399,8 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
 
     private String getTransitUri(final String sender) {
         final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
-        final String transitUri = new StringBuilder().append("udp").append("://").append(senderHost).append(":")
+        return new StringBuilder().append("udp").append("://").append(senderHost).append(":")
                 .append(port).toString();
-        return transitUri;
     }
 
     /**

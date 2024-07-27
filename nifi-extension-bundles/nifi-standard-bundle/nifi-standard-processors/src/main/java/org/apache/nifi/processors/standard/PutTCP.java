@@ -50,8 +50,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -74,17 +72,17 @@ public class PutTCP extends AbstractPutEventProcessor<InputStream> {
             .description("Specifies the strategy used for reading input FlowFiles and transmitting messages to the destination socket address")
             .required(true)
             .allowableValues(TransmissionStrategy.class)
-            .defaultValue(TransmissionStrategy.FLOWFILE_ORIENTED.getValue())
+            .defaultValue(TransmissionStrategy.FLOWFILE_ORIENTED)
             .build();
 
     static final PropertyDescriptor DEPENDENT_CHARSET = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(CHARSET)
-            .dependsOn(TRANSMISSION_STRATEGY, TransmissionStrategy.FLOWFILE_ORIENTED.getValue())
+            .dependsOn(TRANSMISSION_STRATEGY, TransmissionStrategy.FLOWFILE_ORIENTED)
             .build();
 
     static final PropertyDescriptor DEPENDENT_OUTGOING_MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(OUTGOING_MESSAGE_DELIMITER)
-            .dependsOn(TRANSMISSION_STRATEGY, TransmissionStrategy.FLOWFILE_ORIENTED.getValue())
+            .dependsOn(TRANSMISSION_STRATEGY, TransmissionStrategy.FLOWFILE_ORIENTED)
             .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -93,7 +91,7 @@ public class PutTCP extends AbstractPutEventProcessor<InputStream> {
             .description("Specifies the Controller Service to use for reading Records from input FlowFiles")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
-            .dependsOn(TRANSMISSION_STRATEGY, TransmissionStrategy.RECORD_ORIENTED.getValue())
+            .dependsOn(TRANSMISSION_STRATEGY, TransmissionStrategy.RECORD_ORIENTED)
             .build();
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
@@ -102,10 +100,10 @@ public class PutTCP extends AbstractPutEventProcessor<InputStream> {
             .description("Specifies the Controller Service to use for writing Records to the configured socket address")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
-            .dependsOn(TRANSMISSION_STRATEGY, TransmissionStrategy.RECORD_ORIENTED.getValue())
+            .dependsOn(TRANSMISSION_STRATEGY, TransmissionStrategy.RECORD_ORIENTED)
             .build();
 
-    private static final List<PropertyDescriptor> ADDITIONAL_PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> ADDITIONAL_PROPERTIES = List.of(
             CONNECTION_PER_FLOWFILE,
             SSL_CONTEXT_SERVICE,
             TRANSMISSION_STRATEGY,
@@ -113,7 +111,7 @@ public class PutTCP extends AbstractPutEventProcessor<InputStream> {
             DEPENDENT_CHARSET,
             RECORD_READER,
             RECORD_WRITER
-    ));
+    );
 
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
@@ -128,7 +126,7 @@ public class PutTCP extends AbstractPutEventProcessor<InputStream> {
             return;
         }
 
-        final TransmissionStrategy transmissionStrategy = TransmissionStrategy.valueOf(context.getProperty(TRANSMISSION_STRATEGY).getValue());
+        final TransmissionStrategy transmissionStrategy = context.getProperty(TRANSMISSION_STRATEGY).asAllowableValue(TransmissionStrategy.class);
         final StopWatch stopWatch = new StopWatch(true);
         try {
             final int recordCount;

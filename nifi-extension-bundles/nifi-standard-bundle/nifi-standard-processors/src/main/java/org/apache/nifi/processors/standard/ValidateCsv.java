@@ -16,20 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -49,7 +35,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
@@ -82,6 +67,17 @@ import org.supercsv.io.CsvListReader;
 import org.supercsv.prefs.CsvPreference;
 import org.supercsv.util.CsvContext;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -96,19 +92,20 @@ import org.supercsv.util.CsvContext;
 })
 public class ValidateCsv extends AbstractProcessor {
 
-    private final static List<String> allowedOperators = Arrays.asList("ParseBigDecimal", "ParseBool", "ParseChar", "ParseDate",
-            "ParseDouble", "ParseInt", "ParseLong", "Optional", "DMinMax", "Equals", "ForbidSubStr", "LMinMax", "NotNull", "Null",
-            "RequireHashCode", "RequireSubStr", "Strlen", "StrMinMax", "StrNotNullOrEmpty", "StrRegEx", "Unique",
-            "UniqueHashCode", "IsIncludedIn");
+    private final static List<String> ALLOWED_OPERATORS = List.of(
+            "ParseBigDecimal", "ParseBool", "ParseChar", "ParseDate", "ParseDouble", "ParseInt", "ParseLong",
+            "Optional", "DMinMax", "Equals", "ForbidSubStr", "LMinMax", "NotNull", "Null", "RequireHashCode", "RequireSubStr",
+            "Strlen", "StrMinMax", "StrNotNullOrEmpty", "StrRegEx", "Unique", "UniqueHashCode", "IsIncludedIn"
+    );
 
-    private static final String routeWholeFlowFile = "FlowFile validation";
-    private static final String routeLinesIndividually = "Line by line validation";
+    private static final String ROUTE_WHOLE_FLOW_FILE = "FlowFile validation";
+    private static final String ROUTE_LINES_INDIVIDUALLY = "Line by line validation";
 
-    public static final AllowableValue VALIDATE_WHOLE_FLOWFILE = new AllowableValue(routeWholeFlowFile, routeWholeFlowFile,
+    public static final AllowableValue VALIDATE_WHOLE_FLOWFILE = new AllowableValue(ROUTE_WHOLE_FLOW_FILE, ROUTE_WHOLE_FLOW_FILE,
             "As soon as an error is found in the CSV file, the validation will stop and the whole flow file will be routed to the 'invalid'"
                     + " relationship. This option offers best performances.");
 
-    public static final AllowableValue VALIDATE_LINES_INDIVIDUALLY = new AllowableValue(routeLinesIndividually, routeLinesIndividually,
+    public static final AllowableValue VALIDATE_LINES_INDIVIDUALLY = new AllowableValue(ROUTE_LINES_INDIVIDUALLY, ROUTE_LINES_INDIVIDUALLY,
             "In case an error is found, the input CSV file will be split into two FlowFiles: one routed to the 'valid' "
                     + "relationship containing all the correct lines and one routed to the 'invalid' relationship containing all "
                     + "the incorrect lines. Take care if choosing this option while using Unique cell processors in schema definition:"
@@ -119,7 +116,7 @@ public class ValidateCsv extends AbstractProcessor {
             .displayName("Schema")
             .description("The schema to be used for validation. Is expected a comma-delimited string representing the cell "
                     + "processors to apply. The following cell processors are allowed in the schema definition: "
-                    + allowedOperators.toString() + ". Note: cell processors cannot be nested except with Optional.")
+                    + ALLOWED_OPERATORS + ". Note: cell processors cannot be nested except with Optional.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -188,6 +185,16 @@ public class ValidateCsv extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            SCHEMA,
+            HEADER,
+            DELIMITER_CHARACTER,
+            QUOTE_CHARACTER,
+            END_OF_LINE_CHARACTER,
+            VALIDATION_STRATEGY,
+            INCLUDE_ALL_VIOLATIONS
+    );
+
     public static final Relationship REL_VALID = new Relationship.Builder()
             .name("valid")
             .description("FlowFiles that are successfully validated against the schema are routed to this relationship")
@@ -197,35 +204,19 @@ public class ValidateCsv extends AbstractProcessor {
             .description("FlowFiles that are not valid according to the specified schema are routed to this relationship")
             .build();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(SCHEMA);
-        properties.add(HEADER);
-        properties.add(DELIMITER_CHARACTER);
-        properties.add(QUOTE_CHARACTER);
-        properties.add(END_OF_LINE_CHARACTER);
-        properties.add(VALIDATION_STRATEGY);
-        properties.add(INCLUDE_ALL_VIOLATIONS);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_VALID);
-        relationships.add(REL_INVALID);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_VALID,
+            REL_INVALID
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -236,7 +227,7 @@ public class ValidateCsv extends AbstractProcessor {
         String subject = SCHEMA.getName();
 
         if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(schema)) {
-            return Collections.singletonList(new ValidationResult.Builder().subject(subject).input(schema).explanation("Expression Language Present").valid(true).build());
+            return List.of(new ValidationResult.Builder().subject(subject).input(schema).explanation("Expression Language Present").valid(true).build());
         }
         // If no Expression Language is present, try parsing the schema
         try {
@@ -272,15 +263,15 @@ public class ValidateCsv extends AbstractProcessor {
         List<CellProcessor> processorsList = new ArrayList<>();
 
         String remaining = schema;
-        while (remaining.length() > 0) {
+        while (!remaining.isEmpty()) {
             remaining = setProcessor(remaining, processorsList);
         }
 
-        return processorsList.toArray(new CellProcessor[processorsList.size()]);
+        return processorsList.toArray(new CellProcessor[0]);
     }
 
     private String setProcessor(String remaining, List<CellProcessor> processorsList) {
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         String inputString = remaining;
         int i = 0;
         int opening = 0;

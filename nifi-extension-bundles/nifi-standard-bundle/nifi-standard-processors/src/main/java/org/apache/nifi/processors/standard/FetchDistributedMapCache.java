@@ -34,8 +34,8 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 import org.apache.nifi.expression.AttributeExpression;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -51,13 +51,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @SupportsBatching
 @Tags({"map", "cache", "fetch", "distributed"})
@@ -75,14 +73,14 @@ import java.util.stream.Collectors;
         "org.apache.nifi.processors.standard.PutDistributedMapCache"})
 public class FetchDistributedMapCache extends AbstractProcessor {
 
-    public static final PropertyDescriptor PROP_DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
             .name("Distributed Cache Service")
             .description("The Controller Service that is used to get the cached values.")
             .required(true)
             .identifiesControllerService(DistributedMapCacheClient.class)
             .build();
 
-    public static final PropertyDescriptor PROP_CACHE_ENTRY_IDENTIFIER = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor CACHE_ENTRY_IDENTIFIER = new PropertyDescriptor.Builder()
             .name("Cache Entry Identifier")
             .description("A comma-delimited list of FlowFile attributes, or the results of Attribute Expression Language statements, which will be evaluated "
                     + "against a FlowFile in order to determine the value(s) used to identify duplicates; it is these values that are cached. NOTE: Only a single "
@@ -94,7 +92,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final PropertyDescriptor PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PUT_CACHE_VALUE_IN_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("Put Cache Value In Attribute")
             .description("If set, the cache value received will be put into an attribute of the FlowFile instead of a the content of the"
                     + "FlowFile. The attribute key to put to is determined by evaluating value of this property. If multiple Cache Entry Identifiers are selected, "
@@ -103,7 +101,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final PropertyDescriptor PROP_PUT_ATTRIBUTE_MAX_LENGTH = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PUT_ATTRIBUTE_MAX_LENGTH = new PropertyDescriptor.Builder()
             .name("Max Length To Put In Attribute")
             .description("If routing the cache value to an attribute of the FlowFile (by setting the \"Put Cache Value in attribute\" "
                     + "property), the number of characters put to the attribute value will be at most this amount. This is important because "
@@ -113,13 +111,21 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             .defaultValue("256")
             .build();
 
-    public static final PropertyDescriptor PROP_CHARACTER_SET = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
             .name("Character Set")
             .description("The Character Set in which the cached value is encoded. This will only be used when routing to an attribute.")
             .required(false)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .defaultValue("UTF-8")
             .build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            CACHE_ENTRY_IDENTIFIER,
+            DISTRIBUTED_CACHE_SERVICE,
+            PUT_CACHE_VALUE_IN_ATTRIBUTE,
+            PUT_ATTRIBUTE_MAX_LENGTH,
+            CHARACTER_SET
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -133,40 +139,31 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             .name("failure")
             .description("If unable to communicate with the cache or if the cache entry is evaluated to be blank, the FlowFile will be penalized and routed to this relationship")
             .build();
-    private final Set<Relationship> relationships;
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_NOT_FOUND,
+            REL_FAILURE
+    );
 
     private final Serializer<String> keySerializer = new StringSerializer();
     private final Deserializer<byte[]> valueDeserializer = new CacheValueDeserializer();
 
-    public FetchDistributedMapCache() {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_NOT_FOUND);
-        rels.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(rels);
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(PROP_CACHE_ENTRY_IDENTIFIER);
-        descriptors.add(PROP_DISTRIBUTED_CACHE_SERVICE);
-        descriptors.add(PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE);
-        descriptors.add(PROP_PUT_ATTRIBUTE_MAX_LENGTH);
-        descriptors.add(PROP_CHARACTER_SET);
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
-        PropertyValue cacheEntryIdentifier = validationContext.getProperty(PROP_CACHE_ENTRY_IDENTIFIER);
+        PropertyValue cacheEntryIdentifier = validationContext.getProperty(CACHE_ENTRY_IDENTIFIER);
         boolean elPresent = false;
         try {
             elPresent = cacheEntryIdentifier.isExpressionLanguagePresent();
@@ -180,7 +177,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             // or a single EL statement with commas inside it but that evaluates to a single item.
             results.add(new ValidationResult.Builder().valid(true).explanation("Contains Expression Language").build());
         } else {
-            if (!validationContext.getProperty(FetchDistributedMapCache.PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE).isSet()) {
+            if (!validationContext.getProperty(FetchDistributedMapCache.PUT_CACHE_VALUE_IN_ATTRIBUTE).isSet()) {
                 String identifierString = cacheEntryIdentifier.getValue();
                 if (identifierString.contains(",")) {
                     results.add(new ValidationResult.Builder().valid(false)
@@ -199,7 +196,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
         }
 
         final ComponentLog logger = getLogger();
-        final String cacheKey = context.getProperty(PROP_CACHE_ENTRY_IDENTIFIER).evaluateAttributeExpressions(flowFile).getValue();
+        final String cacheKey = context.getProperty(CACHE_ENTRY_IDENTIFIER).evaluateAttributeExpressions(flowFile).getValue();
         // This block retains the previous behavior when only one Cache Entry Identifier was allowed, so as not to change the expected error message
         if (StringUtils.isBlank(cacheKey)) {
             logger.error("FlowFile {} has no attribute for given Cache Entry Identifier", flowFile);
@@ -207,7 +204,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-        List<String> cacheKeys = Arrays.stream(cacheKey.split(",")).filter(path -> !StringUtils.isEmpty(path)).map(String::trim).collect(Collectors.toList());
+        List<String> cacheKeys = Arrays.stream(cacheKey.split(",")).filter(path -> !StringUtils.isEmpty(path)).map(String::trim).toList();
         for (int i = 0; i < cacheKeys.size(); i++) {
             if (StringUtils.isBlank(cacheKeys.get(i))) {
                 // Log first missing identifier, route to failure, and return
@@ -218,14 +215,14 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             }
         }
 
-        final DistributedMapCacheClient cache = context.getProperty(PROP_DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
+        final DistributedMapCacheClient cache = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
 
         try {
             final Map<String, byte[]> cacheValues;
             final boolean singleKey = cacheKeys.size() == 1;
             if (singleKey) {
                 cacheValues = new HashMap<>(1);
-                cacheValues.put(cacheKeys.get(0), cache.get(cacheKey, keySerializer, valueDeserializer));
+                cacheValues.put(cacheKeys.getFirst(), cache.get(cacheKey, keySerializer, valueDeserializer));
             } else {
                 cacheValues = cache.subMap(new HashSet<>(cacheKeys), keySerializer, valueDeserializer);
             }
@@ -238,16 +235,16 @@ public class FetchDistributedMapCache extends AbstractProcessor {
                     notFound = true;
                     break;
                 } else {
-                    boolean putInAttribute = context.getProperty(PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE).isSet();
+                    boolean putInAttribute = context.getProperty(PUT_CACHE_VALUE_IN_ATTRIBUTE).isSet();
                     if (putInAttribute) {
-                        String attributeName = context.getProperty(PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
+                        String attributeName = context.getProperty(PUT_CACHE_VALUE_IN_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
                         if (!singleKey) {
                             // Append key to attribute name if multiple keys
                             attributeName += "." + cacheValueEntry.getKey();
                         }
-                        String attributeValue = new String(cacheValue, context.getProperty(PROP_CHARACTER_SET).getValue());
+                        String attributeValue = new String(cacheValue, context.getProperty(CHARACTER_SET).getValue());
 
-                        int maxLength = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
+                        int maxLength = context.getProperty(PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
                         if (maxLength < attributeValue.length()) {
                             attributeValue = attributeValue.substring(0, maxLength);
                         }

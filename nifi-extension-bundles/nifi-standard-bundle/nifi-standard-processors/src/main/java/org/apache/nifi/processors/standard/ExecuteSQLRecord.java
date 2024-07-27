@@ -39,9 +39,7 @@ import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.db.JdbcCommon;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -152,28 +150,31 @@ public class ExecuteSQLRecord extends AbstractExecuteSQL {
             .required(true)
             .build();
 
-    public ExecuteSQLRecord() {
-        final Set<Relationship> r = new HashSet<>();
-        r.add(REL_SUCCESS);
-        r.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(r);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DBCP_SERVICE,
+            SQL_PRE_QUERY,
+            SQL_SELECT_QUERY,
+            SQL_POST_QUERY,
+            QUERY_TIMEOUT,
+            RECORD_WRITER_FACTORY,
+            NORMALIZE_NAMES,
+            USE_AVRO_LOGICAL_TYPES,
+            DEFAULT_PRECISION,
+            DEFAULT_SCALE,
+            MAX_ROWS_PER_FLOW_FILE,
+            OUTPUT_BATCH_SIZE,
+            FETCH_SIZE,
+            AUTO_COMMIT
+    );
 
-        final List<PropertyDescriptor> pds = new ArrayList<>();
-        pds.add(DBCP_SERVICE);
-        pds.add(SQL_PRE_QUERY);
-        pds.add(SQL_SELECT_QUERY);
-        pds.add(SQL_POST_QUERY);
-        pds.add(QUERY_TIMEOUT);
-        pds.add(RECORD_WRITER_FACTORY);
-        pds.add(NORMALIZE_NAMES);
-        pds.add(USE_AVRO_LOGICAL_TYPES);
-        pds.add(DEFAULT_PRECISION);
-        pds.add(DEFAULT_SCALE);
-        pds.add(MAX_ROWS_PER_FLOW_FILE);
-        pds.add(OUTPUT_BATCH_SIZE);
-        pds.add(FETCH_SIZE);
-        pds.add(AUTO_COMMIT);
-        propDescriptors = Collections.unmodifiableList(pds);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+
+    public ExecuteSQLRecord() {
+        relationships = RELATIONSHIPS;
+        propDescriptors = PROPERTIES;
     }
 
     @Override

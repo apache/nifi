@@ -23,7 +23,6 @@ import java.sql.JDBCType;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -72,8 +71,7 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
             throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
-        String columns = columnNames.stream()
-                .collect(Collectors.joining(", "));
+        String columns = String.join(", ", columnNames);
 
         String parameterizedInsertValues = columnNames.stream()
                 .map(__ -> "?")
@@ -83,7 +81,7 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
                 .map(columnName -> "EXCLUDED." + columnName)
                 .collect(Collectors.joining(", "));
 
-        String conflictClause = "(" + uniqueKeyColumnNames.stream().collect(Collectors.joining(", ")) + ")";
+        String conflictClause = "(" + String.join(", ", uniqueKeyColumnNames) + ")";
 
         StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
                 .append(table)
@@ -112,14 +110,13 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
             throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
-        String columns = columnNames.stream()
-                .collect(Collectors.joining(", "));
+        String columns = String.join(", ", columnNames);
 
         String parameterizedInsertValues = columnNames.stream()
                 .map(__ -> "?")
                 .collect(Collectors.joining(", "));
 
-        String conflictClause = "(" + uniqueKeyColumnNames.stream().collect(Collectors.joining(", ")) + ")";
+        String conflictClause = "(" + String.join(", ", uniqueKeyColumnNames) + ")";
 
         StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
                 .append(table)
@@ -152,7 +149,7 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
         }
 
         StringBuilder alterTableStatement = new StringBuilder();
-        return Collections.singletonList(alterTableStatement.append("ALTER TABLE ")
+        return List.of(alterTableStatement.append("ALTER TABLE ")
                 .append(quoteTableName ? getTableQuoteString() : "")
                 .append(tableName)
                 .append(quoteTableName ? getTableQuoteString() : "")

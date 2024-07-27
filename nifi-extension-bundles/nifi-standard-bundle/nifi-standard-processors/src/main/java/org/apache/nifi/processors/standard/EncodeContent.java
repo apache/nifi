@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base32InputStream;
 import org.apache.commons.codec.binary.Base32OutputStream;
@@ -52,6 +44,14 @@ import org.apache.nifi.processors.standard.util.ValidatingBase32InputStream;
 import org.apache.nifi.processors.standard.util.ValidatingBase64InputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @SideEffectFree
 @SupportsBatching
@@ -101,6 +101,13 @@ public class EncodeContent extends AbstractProcessor {
             .dependsOn(LINE_OUTPUT_MODE, LineOutputMode.MULTIPLE_LINES)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            MODE,
+            ENCODING,
+            LINE_OUTPUT_MODE,
+            ENCODED_LINE_LENGTH
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Any FlowFile that is successfully encoded or decoded will be routed to success")
@@ -111,27 +118,23 @@ public class EncodeContent extends AbstractProcessor {
             .description("Any FlowFile that cannot be encoded or decoded will be routed to failure")
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+
     private static final int BUFFER_SIZE = 8192;
 
     private static final String LINE_FEED_SEPARATOR = "\n";
 
-    private static final List<PropertyDescriptor> properties = List.of(
-            MODE,
-            ENCODING,
-            LINE_OUTPUT_MODE,
-            ENCODED_LINE_LENGTH
-    );
-
-    private static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
-
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -141,9 +144,9 @@ public class EncodeContent extends AbstractProcessor {
             return;
         }
 
-        final boolean encode = context.getProperty(MODE).getValue().equals(EncodingMode.ENCODE.getValue());
-        final EncodingType encoding = getEncodingType(context.getProperty(ENCODING).getValue());
-        final boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).getValue().equals(LineOutputMode.SINGLE_LINE.getValue());
+        final boolean encode = context.getProperty(MODE).asAllowableValue(EncodingMode.class).equals(EncodingMode.ENCODE);
+        final EncodingType encoding = context.getProperty(ENCODING).asAllowableValue(EncodingType.class);
+        final boolean singleLineOutput = context.getProperty(LINE_OUTPUT_MODE).asAllowableValue(LineOutputMode.class).equals(LineOutputMode.SINGLE_LINE);
         final int lineLength = singleLineOutput ? -1 : context.getProperty(ENCODED_LINE_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
 
         final StreamCallback callback = getStreamCallback(encode, encoding, lineLength);
@@ -277,16 +280,6 @@ public class EncodeContent extends AbstractProcessor {
                 }
             }
             out.flush();
-        }
-    }
-
-    private static EncodingType getEncodingType(final String encodingTypeValue) {
-        if (EncodingType.BASE64.getValue().equals(encodingTypeValue)) {
-            return EncodingType.BASE64;
-        } else if (EncodingType.BASE32.getValue().equals(encodingTypeValue)) {
-            return EncodingType.BASE32;
-        } else {
-            return EncodingType.HEXADECIMAL;
         }
     }
 }

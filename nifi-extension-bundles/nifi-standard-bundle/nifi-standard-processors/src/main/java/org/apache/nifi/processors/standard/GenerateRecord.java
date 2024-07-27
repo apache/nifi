@@ -65,7 +65,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -153,25 +152,26 @@ public class GenerateRecord extends AbstractProcessor {
             .required(false)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_WRITER,
+            NUM_RECORDS,
+            NULLABLE_FIELDS,
+            NULL_PERCENTAGE,
+            SCHEMA_TEXT
+    );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that are successfully created will be routed to this relationship")
             .build();
 
-    static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
+    static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     private volatile Faker faker = new Faker();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(RECORD_WRITER);
-        properties.add(NUM_RECORDS);
-        properties.add(NULLABLE_FIELDS);
-        properties.add(NULL_PERCENTAGE);
-        properties.add(SCHEMA_TEXT);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

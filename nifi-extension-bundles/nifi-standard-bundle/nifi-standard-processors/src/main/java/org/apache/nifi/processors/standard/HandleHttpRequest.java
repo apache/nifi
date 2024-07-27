@@ -16,7 +16,15 @@
  */
 package org.apache.nifi.processors.standard;
 
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.MultipartConfigElement;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -59,14 +67,6 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.net.ssl.SSLContext;
-import jakarta.servlet.AsyncContext;
-import jakarta.servlet.DispatcherType;
-import jakarta.servlet.MultipartConfigElement;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -74,7 +74,6 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -90,10 +89,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
-import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 import static jakarta.servlet.http.HttpServletResponse.SC_METHOD_NOT_ALLOWED;
 import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
-import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
+import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"http", "https", "request", "listen", "ingress", "web service"})
@@ -197,7 +196,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .description("HTTP Protocols supported for Application Layer Protocol Negotiation with TLS")
             .required(true)
             .allowableValues(HttpProtocolStrategy.class)
-            .defaultValue(HttpProtocolStrategy.HTTP_1_1.getValue())
+            .defaultValue(HttpProtocolStrategy.HTTP_1_1)
             .dependsOn(SSL_CONTEXT)
             .build();
     public static final PropertyDescriptor URL_CHARACTER_SET = new PropertyDescriptor.Builder()
@@ -312,37 +311,36 @@ public class HandleHttpRequest extends AbstractProcessor {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("512 KB")
             .build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            PORT,
+            HOSTNAME,
+            SSL_CONTEXT,
+            HTTP_PROTOCOL_STRATEGY,
+            HTTP_CONTEXT_MAP,
+            PATH_REGEX,
+            URL_CHARACTER_SET,
+            ALLOW_GET,
+            ALLOW_POST,
+            ALLOW_PUT,
+            ALLOW_DELETE,
+            ALLOW_HEAD,
+            ALLOW_OPTIONS,
+            MAXIMUM_THREADS,
+            ADDITIONAL_METHODS,
+            CLIENT_AUTH,
+            CONTAINER_QUEUE_SIZE,
+            MULTIPART_REQUEST_MAX_SIZE,
+            MULTIPART_READ_BUFFER_SIZE,
+            PARAMETERS_TO_ATTRIBUTES
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All content that is received is routed to the 'success' relationship")
             .build();
 
-    private static final List<PropertyDescriptor> propertyDescriptors;
-
-    static {
-        List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(PORT);
-        descriptors.add(HOSTNAME);
-        descriptors.add(SSL_CONTEXT);
-        descriptors.add(HTTP_PROTOCOL_STRATEGY);
-        descriptors.add(HTTP_CONTEXT_MAP);
-        descriptors.add(PATH_REGEX);
-        descriptors.add(URL_CHARACTER_SET);
-        descriptors.add(ALLOW_GET);
-        descriptors.add(ALLOW_POST);
-        descriptors.add(ALLOW_PUT);
-        descriptors.add(ALLOW_DELETE);
-        descriptors.add(ALLOW_HEAD);
-        descriptors.add(ALLOW_OPTIONS);
-        descriptors.add(MAXIMUM_THREADS);
-        descriptors.add(ADDITIONAL_METHODS);
-        descriptors.add(CLIENT_AUTH);
-        descriptors.add(CONTAINER_QUEUE_SIZE);
-        descriptors.add(MULTIPART_REQUEST_MAX_SIZE);
-        descriptors.add(MULTIPART_READ_BUFFER_SIZE);
-        descriptors.add(PARAMETERS_TO_ATTRIBUTES);
-        propertyDescriptors = Collections.unmodifiableList(descriptors);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     private volatile Server server;
     private volatile boolean ready;
@@ -354,12 +352,12 @@ public class HandleHttpRequest extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
+        return RELATIONSHIPS;
     }
 
     @OnScheduled
@@ -389,7 +387,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         serverConnectorFactory.setWantClientAuth(wantClientAuth);
         final SSLContext sslContext = sslService == null ? null : sslService.createContext();
         serverConnectorFactory.setSslContext(sslContext);
-        final HttpProtocolStrategy httpProtocolStrategy = HttpProtocolStrategy.valueOf(context.getProperty(HTTP_PROTOCOL_STRATEGY).getValue());
+        final HttpProtocolStrategy httpProtocolStrategy = context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
         serverConnectorFactory.setApplicationLayerProtocols(httpProtocolStrategy.getApplicationLayerProtocols());
 
         final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
@@ -606,7 +604,7 @@ public class HandleHttpRequest extends AbstractProcessor {
           request.setAttribute(ServletContextRequest.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
           List<Part> parts = null;
           try {
-            parts = Collections.unmodifiableList(new ArrayList<>(request.getParts()));
+            parts = List.copyOf(request.getParts());
             int allPartsCount = parts.size();
             final String contextIdentifier = UUID.randomUUID().toString();
             for (int i = 0; i < allPartsCount; i++) {

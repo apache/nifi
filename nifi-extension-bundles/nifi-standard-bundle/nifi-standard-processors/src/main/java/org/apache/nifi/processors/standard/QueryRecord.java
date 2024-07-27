@@ -228,6 +228,15 @@ public class QueryRecord extends AbstractProcessor {
         .required(true)
         .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER_FACTORY,
+            RECORD_WRITER_FACTORY,
+            INCLUDE_ZERO_RECORD_FLOWFILES,
+            CACHE_SCHEMA,
+            DEFAULT_PRECISION,
+            DEFAULT_SCALE
+    );
+
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")
         .description("The original FlowFile is routed to this relationship")
@@ -239,7 +248,6 @@ public class QueryRecord extends AbstractProcessor {
             + "be routed to this relationship")
         .build();
 
-    private List<PropertyDescriptor> properties;
     private final Set<Relationship> relationships = Collections.synchronizedSet(new HashSet<>());
 
     private final Cache<Tuple<String, RecordSchema>, BlockingQueue<CachedStatement>> statementQueues = Caffeine.newBuilder()
@@ -249,14 +257,6 @@ public class QueryRecord extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        this.properties = List.of(
-            RECORD_READER_FACTORY,
-            RECORD_WRITER_FACTORY,
-            INCLUDE_ZERO_RECORD_FLOWFILES,
-            CACHE_SCHEMA,
-            DEFAULT_PRECISION,
-            DEFAULT_SCALE);
-
         relationships.add(REL_FAILURE);
         relationships.add(REL_ORIGINAL);
     }
@@ -268,7 +268,7 @@ public class QueryRecord extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

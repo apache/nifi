@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
@@ -52,6 +41,16 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @SideEffectFree
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
@@ -83,8 +82,6 @@ public class DistributeLoad extends AbstractProcessor {
     public static final AllowableValue STRATEGY_OVERFLOW = new AllowableValue(OVERFLOW, OVERFLOW,
             "Relationship selection is the first available relationship without further distribution among all relationships; at least one relationship must be available.");
 
-
-
     public static final PropertyDescriptor NUM_RELATIONSHIPS = new PropertyDescriptor.Builder()
             .name("Number of Relationships")
             .description("Determines the number of Relationships to which the load should be distributed")
@@ -99,9 +96,14 @@ public class DistributeLoad extends AbstractProcessor {
             .allowableValues(STRATEGY_ROUND_ROBIN, STRATEGY_NEXT_AVAILABLE, STRATEGY_OVERFLOW)
             .defaultValue(ROUND_ROBIN)
             .build();
+
+    private List<PropertyDescriptor> properties = List.of(
+            NUM_RELATIONSHIPS,
+            DISTRIBUTION_STRATEGY
+    );
+
     public static final String RELATIONSHIP_ATTRIBUTE = "distribute.load.relationship";
 
-    private List<PropertyDescriptor> properties;
     private final AtomicReference<Set<Relationship>> relationshipsRef = new AtomicReference<>();
     private final AtomicReference<DistributionStrategy> strategyRef = new AtomicReference<>(new RoundRobinStrategy());
     private final AtomicReference<List<Relationship>> weightedRelationshipListRef = new AtomicReference<>();
@@ -109,14 +111,7 @@ public class DistributeLoad extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(createRelationship(1));
-        relationshipsRef.set(Collections.unmodifiableSet(relationships));
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(NUM_RELATIONSHIPS);
-        properties.add(DISTRIBUTION_STRATEGY);
-        this.properties = Collections.unmodifiableList(properties);
+        relationshipsRef.set(Set.of(createRelationship(1)));
     }
 
     private static Relationship createRelationship(final int num) {
@@ -136,7 +131,7 @@ public class DistributeLoad extends AbstractProcessor {
             for (int i = 1; i <= Integer.parseInt(newValue); i++) {
                 relationships.add(createRelationship(i));
             }
-            this.relationshipsRef.set(Collections.unmodifiableSet(relationships));
+            this.relationshipsRef.set(Set.copyOf(relationships));
         } else if (descriptor.equals(DISTRIBUTION_STRATEGY)) {
             switch (newValue.toLowerCase()) {
                 case ROUND_ROBIN:
@@ -158,10 +153,7 @@ public class DistributeLoad extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
        if (doSetProps.getAndSet(false)) {
-            final List<PropertyDescriptor> props = new ArrayList<>();
-            props.add(NUM_RELATIONSHIPS);
-            props.add(DISTRIBUTION_STRATEGY);
-            this.properties = Collections.unmodifiableList(props);
+           this.properties = List.of(NUM_RELATIONSHIPS, DISTRIBUTION_STRATEGY);
         }
         return properties;
     }
@@ -215,7 +207,7 @@ public class DistributeLoad extends AbstractProcessor {
             }
         }
 
-        this.weightedRelationshipListRef.set(Collections.unmodifiableList(relationshipList));
+        this.weightedRelationshipListRef.set(List.copyOf(relationshipList));
     }
 
     @Override
@@ -291,8 +283,7 @@ public class DistributeLoad extends AbstractProcessor {
             final List<Relationship> relationshipList = DistributeLoad.this.weightedRelationshipListRef.get();
             final long counterValue = counter.getAndIncrement();
             final int idx = (int) (counterValue % relationshipList.size());
-            final Relationship relationship = relationshipList.get(idx);
-            return relationship;
+            return relationshipList.get(idx);
         }
 
         @Override

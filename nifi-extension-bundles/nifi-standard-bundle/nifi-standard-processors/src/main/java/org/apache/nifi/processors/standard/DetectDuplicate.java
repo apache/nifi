@@ -16,33 +16,23 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -51,6 +41,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 @Tags({"hash", "dupe", "duplicate", "dedupe"})
@@ -111,6 +108,14 @@ public class DetectDuplicate extends AbstractProcessor {
             .defaultValue("true")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            CACHE_ENTRY_IDENTIFIER,
+            FLOWFILE_DESCRIPTION,
+            AGE_OFF_DURATION,
+            DISTRIBUTED_CACHE_SERVICE,
+            CACHE_IDENTIFIER
+    );
+
     public static final Relationship REL_DUPLICATE = new Relationship.Builder()
             .name("duplicate")
             .description("If a FlowFile has been detected to be a duplicate, it will be routed to this relationship")
@@ -123,34 +128,25 @@ public class DetectDuplicate extends AbstractProcessor {
             .name("failure")
             .description("If unable to communicate with the cache, the FlowFile will be penalized and routed to this relationship")
             .build();
-    private final Set<Relationship> relationships;
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_DUPLICATE,
+            REL_NON_DUPLICATE,
+            REL_FAILURE
+    );
 
     private final Serializer<String> keySerializer = new StringSerializer();
     private final Serializer<CacheValue> valueSerializer = new CacheValueSerializer();
     private final Deserializer<CacheValue> valueDeserializer = new CacheValueDeserializer();
 
-    public DetectDuplicate() {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_DUPLICATE);
-        rels.add(REL_NON_DUPLICATE);
-        rels.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(rels);
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(CACHE_ENTRY_IDENTIFIER);
-        descriptors.add(FLOWFILE_DESCRIPTION);
-        descriptors.add(AGE_OFF_DURATION);
-        descriptors.add(DISTRIBUTED_CACHE_SERVICE);
-        descriptors.add(CACHE_IDENTIFIER);
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -272,8 +268,7 @@ public class DetectDuplicate extends AbstractProcessor {
                     + ((input[6] & 255) << 8)
                     + ((input[7] & 255));
             String description = new String(input, 8, input.length - 8, StandardCharsets.UTF_8);
-            CacheValue value = new CacheValue(description, time);
-            return value;
+            return new CacheValue(description, time);
         }
     }
 

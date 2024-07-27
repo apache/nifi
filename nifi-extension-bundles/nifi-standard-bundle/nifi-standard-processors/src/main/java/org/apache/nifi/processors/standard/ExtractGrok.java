@@ -56,9 +56,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -156,6 +154,16 @@ public class ExtractGrok extends AbstractProcessor {
         .defaultValue("false")
         .build();
 
+    private final static List<PropertyDescriptor> PROPERTIES = List.of(
+            GROK_EXPRESSION,
+            GROK_PATTERNS,
+            DESTINATION,
+            CHARACTER_SET,
+            MAX_BUFFER_SIZE,
+            NAMED_CAPTURES_ONLY,
+            KEEP_EMPTY_CAPTURES
+    );
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles are routed to this relationship when the Grok Expression is successfully evaluated and the FlowFile is modified as a result")
@@ -166,39 +174,24 @@ public class ExtractGrok extends AbstractProcessor {
             .description("FlowFiles are routed to this relationship when no provided Grok Expression matches the content of the FlowFile")
             .build();
 
-    private final static List<PropertyDescriptor> descriptors;
-    private final static Set<Relationship> relationships;
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_MATCH,
+            REL_NO_MATCH
+    );
 
     private volatile Grok grok;
     private final BlockingQueue<byte[]> bufferQueue = new LinkedBlockingQueue<>();
 
     private final AtomicBoolean keepEmptyCaputures = new AtomicBoolean(true);
 
-    static {
-        final Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_MATCH);
-        _relationships.add(REL_NO_MATCH);
-        relationships = Collections.unmodifiableSet(_relationships);
-
-        final List<PropertyDescriptor> _descriptors = new ArrayList<>();
-        _descriptors.add(GROK_EXPRESSION);
-        _descriptors.add(GROK_PATTERNS);
-        _descriptors.add(DESTINATION);
-        _descriptors.add(CHARACTER_SET);
-        _descriptors.add(MAX_BUFFER_SIZE);
-        _descriptors.add(NAMED_CAPTURES_ONLY);
-        _descriptors.add(KEEP_EMPTY_CAPTURES);
-        descriptors = Collections.unmodifiableList(_descriptors);
-    }
-
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     @OnStopped

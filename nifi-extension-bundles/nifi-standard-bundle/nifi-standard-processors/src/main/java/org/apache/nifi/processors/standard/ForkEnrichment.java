@@ -34,10 +34,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.enrichment.EnrichmentRole;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -68,14 +65,14 @@ public class ForkEnrichment extends AbstractProcessor {
         .description("A clone of the incoming FlowFile will be routed to this relationship, after adding appropriate attributes.")
         .build();
 
-    private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_ORIGINAL,
-        REL_ENRICHMENT
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_ENRICHMENT
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

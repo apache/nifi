@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XQueryCompiler;
@@ -63,7 +45,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -72,6 +53,23 @@ import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.w3c.dom.Document;
+
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 @SideEffectFree
 @SupportsBatching
@@ -151,6 +149,14 @@ public class EvaluateXQuery extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DESTINATION,
+            XML_OUTPUT_METHOD,
+            XML_OUTPUT_OMIT_XML_DECLARATION,
+            XML_OUTPUT_INDENT,
+            VALIDATE_DTD
+    );
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles are routed to this relationship when the XQuery is successfully evaluated and the FlowFile "
@@ -169,25 +175,11 @@ public class EvaluateXQuery extends AbstractProcessor {
                     + "the FlowFile.")
             .build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> properties;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_MATCH);
-        relationships.add(REL_NO_MATCH);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DESTINATION);
-        properties.add(XML_OUTPUT_METHOD);
-        properties.add(XML_OUTPUT_OMIT_XML_DECLARATION);
-        properties.add(XML_OUTPUT_INDENT);
-        properties.add(VALIDATE_DTD);
-        this.properties = Collections.unmodifiableList(properties);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_MATCH,
+            REL_NO_MATCH,
+            REL_FAILURE
+    );
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
@@ -211,12 +203,12 @@ public class EvaluateXQuery extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -303,7 +295,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                             xQueryResults.put(attributeName, value);
                         }
                     } else { // if (DESTINATION_CONTENT.equals(destination)){
-                        if (result.size() == 0) {
+                        if (result.isEmpty()) {
                             logger.info("No XQuery results found {}", flowFile);
                             session.transfer(flowFile, REL_NO_MATCH);
                             continue flowFileLoop;

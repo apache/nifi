@@ -280,7 +280,6 @@ public class MergeContent extends BinFiles {
         MERGE_FORMAT_AVRO_VALUE,
         "The Avro contents of all FlowFiles will be concatenated together into a single FlowFile");
 
-
     public static final String TAR_PERMISSIONS_ATTRIBUTE = "tar.permissions";
     public static final String MERGE_COUNT_ATTRIBUTE = "merge.count";
     public static final String MERGE_BIN_AGE_ATTRIBUTE = "merge.bin.age";
@@ -398,46 +397,50 @@ public class MergeContent extends BinFiles {
         .dependsOn(MERGE_FORMAT, MERGE_FORMAT_TAR)
         .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            MERGE_STRATEGY,
+            MERGE_FORMAT,
+            AttributeStrategyUtil.ATTRIBUTE_STRATEGY,
+            CORRELATION_ATTRIBUTE_NAME,
+            METADATA_STRATEGY,
+            addBinPackingDependency(MIN_ENTRIES),
+            addBinPackingDependency(MAX_ENTRIES),
+            addBinPackingDependency(MIN_SIZE),
+            addBinPackingDependency(MAX_SIZE),
+            MAX_BIN_AGE,
+            MAX_BIN_COUNT,
+            DELIMITER_STRATEGY,
+            HEADER,
+            FOOTER,
+            DEMARCATOR,
+            COMPRESSION_LEVEL,
+            KEEP_PATH,
+            TAR_MODIFIED_TIME
+    );
+
     public static final Relationship REL_MERGED = new Relationship.Builder().name("merged").description("The FlowFile containing the merged content").build();
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_FAILURE,
+            REL_MERGED
+    );
 
     public static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 
+    // Convenience method to make creation of property descriptors cleaner
+    private static PropertyDescriptor addBinPackingDependency(final PropertyDescriptor original) {
+        return new PropertyDescriptor.Builder().fromPropertyDescriptor(original).dependsOn(MERGE_STRATEGY, MERGE_STRATEGY_BIN_PACK).build();
+    }
+
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_ORIGINAL);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_MERGED);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(MERGE_STRATEGY);
-        descriptors.add(MERGE_FORMAT);
-        descriptors.add(AttributeStrategyUtil.ATTRIBUTE_STRATEGY);
-        descriptors.add(CORRELATION_ATTRIBUTE_NAME);
-        descriptors.add(METADATA_STRATEGY);
-        descriptors.add(addBinPackingDependency(MIN_ENTRIES));
-        descriptors.add(addBinPackingDependency(MAX_ENTRIES));
-        descriptors.add(addBinPackingDependency(MIN_SIZE));
-        descriptors.add(addBinPackingDependency(MAX_SIZE));
-        descriptors.add(MAX_BIN_AGE);
-        descriptors.add(MAX_BIN_COUNT);
-        descriptors.add(DELIMITER_STRATEGY);
-        descriptors.add(HEADER);
-        descriptors.add(FOOTER);
-        descriptors.add(DEMARCATOR);
-        descriptors.add(COMPRESSION_LEVEL);
-        descriptors.add(KEEP_PATH);
-        descriptors.add(TAR_MODIFIED_TIME);
-        return descriptors;
-    }
-
-    // Convenience method to make creation of property descriptors cleaner
-    private PropertyDescriptor addBinPackingDependency(final PropertyDescriptor original) {
-        return new PropertyDescriptor.Builder().fromPropertyDescriptor(original).dependsOn(MERGE_STRATEGY, MERGE_STRATEGY_BIN_PACK).build();
+        return PROPERTIES;
     }
 
     @Override
@@ -501,32 +504,19 @@ public class MergeContent extends BinFiles {
     protected BinProcessingResult processBin(final Bin bin, final ProcessContext context) throws ProcessException {
         final BinProcessingResult binProcessingResult = new BinProcessingResult(true);
         final String mergeFormat = context.getProperty(MERGE_FORMAT).getValue();
-        MergeBin merger;
-        switch (mergeFormat) {
-            case MERGE_FORMAT_TAR_VALUE:
-                merger = new TarMerge();
-                break;
-            case MERGE_FORMAT_ZIP_VALUE:
-                merger = new ZipMerge(context.getProperty(COMPRESSION_LEVEL).asInteger());
-                break;
-            case MERGE_FORMAT_FLOWFILE_STREAM_V3_VALUE:
-                merger = new FlowFileStreamMerger(new FlowFilePackagerV3(), StandardFlowFileMediaType.VERSION_3.getMediaType());
-                break;
-            case MERGE_FORMAT_FLOWFILE_STREAM_V2_VALUE:
-                merger = new FlowFileStreamMerger(new FlowFilePackagerV2(), StandardFlowFileMediaType.VERSION_2.getMediaType());
-                break;
-            case MERGE_FORMAT_FLOWFILE_TAR_V1_VALUE:
-                merger = new FlowFileStreamMerger(new FlowFilePackagerV1(), StandardFlowFileMediaType.VERSION_1.getMediaType());
-                break;
-            case MERGE_FORMAT_CONCAT_VALUE:
-                merger = new BinaryConcatenationMerge();
-                break;
-            case MERGE_FORMAT_AVRO_VALUE:
-                merger = new AvroMerge();
-                break;
-            default:
-                throw new AssertionError();
-        }
+        MergeBin merger = switch (mergeFormat) {
+            case MERGE_FORMAT_TAR_VALUE -> new TarMerge();
+            case MERGE_FORMAT_ZIP_VALUE -> new ZipMerge(context.getProperty(COMPRESSION_LEVEL).asInteger());
+            case MERGE_FORMAT_FLOWFILE_STREAM_V3_VALUE ->
+                    new FlowFileStreamMerger(new FlowFilePackagerV3(), StandardFlowFileMediaType.VERSION_3.getMediaType());
+            case MERGE_FORMAT_FLOWFILE_STREAM_V2_VALUE ->
+                    new FlowFileStreamMerger(new FlowFilePackagerV2(), StandardFlowFileMediaType.VERSION_2.getMediaType());
+            case MERGE_FORMAT_FLOWFILE_TAR_V1_VALUE ->
+                    new FlowFileStreamMerger(new FlowFilePackagerV1(), StandardFlowFileMediaType.VERSION_1.getMediaType());
+            case MERGE_FORMAT_CONCAT_VALUE -> new BinaryConcatenationMerge();
+            case MERGE_FORMAT_AVRO_VALUE -> new AvroMerge();
+            default -> throw new AssertionError();
+        };
 
         final AttributeStrategy attributeStrategy = AttributeStrategyUtil.strategyFor(context);
 
@@ -546,7 +536,7 @@ public class MergeContent extends BinFiles {
                 return binProcessingResult;
             }
 
-            Collections.sort(contents, new FragmentComparator());
+            contents.sort(new FragmentComparator());
         }
 
         FlowFile bundle = merger.merge(bin, context);
@@ -736,8 +726,8 @@ public class MergeContent extends BinFiles {
         private byte[] getDelimiterFileContent(final ProcessContext context, final List<FlowFile> flowFiles, final PropertyDescriptor descriptor)
             throws IOException {
             byte[] property = null;
-            if (flowFiles != null && flowFiles.size() > 0) {
-                final FlowFile flowFile = flowFiles.get(0);
+            if (flowFiles != null && !flowFiles.isEmpty()) {
+                final FlowFile flowFile = flowFiles.getFirst();
                 if (flowFile != null) {
                     final String value = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
                     if (value != null) {
@@ -750,8 +740,8 @@ public class MergeContent extends BinFiles {
 
         private byte[] getDelimiterTextContent(final ProcessContext context, final List<FlowFile> flowFiles, final PropertyDescriptor descriptor) {
             byte[] property = null;
-            if (flowFiles != null && flowFiles.size() > 0) {
-                final FlowFile flowFile = flowFiles.get(0);
+            if (flowFiles != null && !flowFiles.isEmpty()) {
+                final FlowFile flowFile = flowFiles.getFirst();
                 if (flowFile != null) {
                     final String value = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
                     if (value != null) {
@@ -784,14 +774,14 @@ public class MergeContent extends BinFiles {
             path = path.getNameCount() == 1 ? null : path.subpath(1, path.getNameCount());
         }
 
-        return path == null ? "" : path.toString() + "/";
+        return path == null ? "" : path + "/";
     }
 
     private String createFilename(final List<FlowFile> flowFiles) {
         if (flowFiles.size() == 1) {
-            return flowFiles.get(0).getAttribute(CoreAttributes.FILENAME.key());
+            return flowFiles.getFirst().getAttribute(CoreAttributes.FILENAME.key());
         } else {
-            final FlowFile ff = flowFiles.get(0);
+            final FlowFile ff = flowFiles.getFirst();
             final String origFilename = ff.getAttribute(SEGMENT_ORIGINAL_FILENAME);
             if (origFilename != null) {
                 return origFilename;
@@ -870,7 +860,7 @@ public class MergeContent extends BinFiles {
         private long getMaxEntrySize(final List<FlowFile> contents) {
             final OptionalLong maxSize = contents.stream()
                 .parallel()
-                .mapToLong(ff -> ff.getSize())
+                .mapToLong(FlowFile::getSize)
                 .max();
             return maxSize.orElse(0L);
         }
@@ -1029,7 +1019,7 @@ public class MergeContent extends BinFiles {
             final Map<String, byte[]> metadata = new TreeMap<>();
             final AtomicReference<Schema> schema = new AtomicReference<>(null);
             final AtomicReference<String> inputCodec = new AtomicReference<>(null);
-            final DataFileWriter<GenericRecord> writer = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>());
+            final DataFileWriter<GenericRecord> writer = new DataFileWriter<>(new GenericDatumWriter<>());
 
             // we don't pass the parents to the #create method because the parents belong to different sessions
             FlowFile bundle = session.create(contents);

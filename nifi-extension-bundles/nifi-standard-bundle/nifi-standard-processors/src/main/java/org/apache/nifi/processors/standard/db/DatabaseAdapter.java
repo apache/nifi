@@ -19,7 +19,6 @@ package org.apache.nifi.processors.standard.db;
 import java.sql.JDBCType;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -209,7 +208,7 @@ public interface DatabaseAdapter {
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");
 
-        return Collections.singletonList(createTableStatement.toString());
+        return List.of(createTableStatement.toString());
     }
 
     /**

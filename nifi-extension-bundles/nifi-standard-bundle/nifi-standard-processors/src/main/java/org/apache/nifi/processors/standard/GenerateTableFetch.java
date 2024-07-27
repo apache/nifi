@@ -60,7 +60,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -165,31 +164,34 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DBCP_SERVICE,
+            DB_TYPE,
+            TABLE_NAME,
+            COLUMN_NAMES,
+            MAX_VALUE_COLUMN_NAMES,
+            QUERY_TIMEOUT,
+            PARTITION_SIZE,
+            COLUMN_FOR_VALUE_PARTITIONING,
+            WHERE_CLAUSE,
+            CUSTOM_ORDERBY_COLUMN,
+            OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS
+    );
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
                     + "If no incoming connection(s) are specified, this relationship is unused.")
             .build();
 
-    public GenerateTableFetch() {
-        final Set<Relationship> r = new HashSet<>();
-        r.add(REL_SUCCESS);
-        r.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(r);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
-        final List<PropertyDescriptor> pds = new ArrayList<>();
-        pds.add(DBCP_SERVICE);
-        pds.add(DB_TYPE);
-        pds.add(TABLE_NAME);
-        pds.add(COLUMN_NAMES);
-        pds.add(MAX_VALUE_COLUMN_NAMES);
-        pds.add(QUERY_TIMEOUT);
-        pds.add(PARTITION_SIZE);
-        pds.add(COLUMN_FOR_VALUE_PARTITIONING);
-        pds.add(WHERE_CLAUSE);
-        pds.add(CUSTOM_ORDERBY_COLUMN);
-        pds.add(OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS);
-        propDescriptors = Collections.unmodifiableList(pds);
+    public GenerateTableFetch() {
+        propDescriptors = PROPERTIES;
+        relationships = RELATIONSHIPS;
     }
 
     @Override

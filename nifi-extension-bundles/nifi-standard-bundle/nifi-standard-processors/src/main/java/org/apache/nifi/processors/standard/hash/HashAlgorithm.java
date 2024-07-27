@@ -46,7 +46,7 @@ public enum HashAlgorithm {
     private final int digestBytesLength;
     private final String description;
 
-    private static final List<String> BROKEN_ALGORITHMS = Arrays.asList(MD2.name, MD5.name, SHA1.name);
+    private static final List<String> BROKEN_ALGORITHMS = List.of(MD2.name, MD5.name, SHA1.name);
 
     HashAlgorithm(String name, int digestBytesLength, String description) {
         this.name = name;
@@ -68,9 +68,9 @@ public enum HashAlgorithm {
 
     /**
      * Returns {@code true} if this algorithm is considered cryptographically secure. These determinations were made as of 2018-08-30.
-     *
+     * <p>
      * Current strong algorithms:
-     *
+     * <p>
      * * SHA-224 (SHA2)
      * * SHA-256 (SHA2)
      * * SHA-384 (SHA2)
@@ -85,9 +85,9 @@ public enum HashAlgorithm {
      * * Blake2b-256
      * * Blake2b-384
      * * Blake2b-512
-     *
+     * <p>
      * Current broken algorithms:
-     *
+     * <p>
      * * MD2
      * * MD5
      * * SHA-1
@@ -114,9 +114,9 @@ public enum HashAlgorithm {
 
     /**
      * Returns a more complete description of the algorithm for {@link org.apache.nifi.components.AllowableValue} construction.
-     *
+     * <p>
      * Ex:
-     *
+     * <p>
      * {@code description} -- Cryptographically broken due to collisions
      * {@code buildAllowableValueDescription} -- SHA-1 (20 byte output) [WARNING -- Cryptographically broken] Cryptographically broken due to collisions
      *

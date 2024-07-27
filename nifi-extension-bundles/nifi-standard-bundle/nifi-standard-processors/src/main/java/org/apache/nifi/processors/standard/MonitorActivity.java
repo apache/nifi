@@ -16,20 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static java.util.Collections.singletonMap;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -54,10 +40,21 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static java.util.Collections.singletonMap;
 
 @SideEffectFree
 @TriggerSerially
@@ -165,6 +162,18 @@ public class MonitorActivity extends AbstractProcessor {
             .defaultValue(REPORT_NODE_ALL.getValue())
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            THRESHOLD,
+            CONTINUALLY_SEND_MESSAGES,
+            INACTIVITY_MESSAGE,
+            ACTIVITY_RESTORED_MESSAGE,
+            WAIT_FOR_ACTIVITY,
+            RESET_STATE_ON_RESTART,
+            COPY_ATTRIBUTES,
+            MONITORING_SCOPE,
+            REPORTING_NODE
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All incoming FlowFiles are routed to success")
@@ -180,8 +189,11 @@ public class MonitorActivity extends AbstractProcessor {
                     + "period of inactivity")
             .build();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_INACTIVE,
+            REL_ACTIVITY_RESTORED
+    );
 
     private final AtomicBoolean connectedWhenLastTriggered = new AtomicBoolean(false);
     private final AtomicLong lastInactiveMessage = new AtomicLong();
@@ -191,34 +203,13 @@ public class MonitorActivity extends AbstractProcessor {
     private volatile LocalFlowActivityInfo localFlowActivityInfo;
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(THRESHOLD);
-        properties.add(CONTINUALLY_SEND_MESSAGES);
-        properties.add(INACTIVITY_MESSAGE);
-        properties.add(ACTIVITY_RESTORED_MESSAGE);
-        properties.add(WAIT_FOR_ACTIVITY);
-        properties.add(RESET_STATE_ON_RESTART);
-        properties.add(COPY_ATTRIBUTES);
-        properties.add(MONITORING_SCOPE);
-        properties.add(REPORTING_NODE);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_INACTIVE);
-        relationships.add(REL_ACTIVITY_RESTORED);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @OnScheduled
@@ -277,7 +268,7 @@ public class MonitorActivity extends AbstractProcessor {
             final boolean firstKnownTransfer = !localFlowActivityInfo.hasSuccessfulTransfer();
             final boolean flowStateMustBecomeActive = !wasActive || firstKnownTransfer;
 
-            localFlowActivityInfo.update(flowFiles.get(0));
+            localFlowActivityInfo.update(flowFiles.getFirst());
 
             if (isClusterScope && flowStateMustBecomeActive) {
                 localFlowActivityInfo.forceSync();
