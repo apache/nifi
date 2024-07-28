@@ -55,7 +55,7 @@ public class MockSchemaRegistry extends AbstractControllerService implements Sch
     RecordSchema retrieveSchemaByName(final SchemaIdentifier schemaIdentifier) throws SchemaNotFoundException {
         final Optional<String> schemaName = schemaIdentifier.getName();
         if (schemaName.isEmpty()) {
-            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Name is empty");
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present");
         }
 
         final String schemaBranch = schemaIdentifier.getBranch().orElse(null);
@@ -66,12 +66,12 @@ public class MockSchemaRegistry extends AbstractControllerService implements Sch
     private RecordSchema retrieveSchemaByIdAndVersion(final SchemaIdentifier schemaIdentifier) throws SchemaNotFoundException {
         final OptionalLong schemaId = schemaIdentifier.getIdentifier();
         if (schemaId.isEmpty()) {
-            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Id is empty or null");
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Id is not present");
         }
 
         final OptionalInt version = schemaIdentifier.getVersion();
         if (version.isEmpty()) {
-            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Version is empty or null");
+            throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Version is not present");
         }
 
         final Tuple<Long, Integer> tuple = new Tuple<>(schemaId.getAsLong(), version.getAsInt());
