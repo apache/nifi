@@ -513,13 +513,20 @@ public class UnpackContent extends AbstractProcessor {
                         attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
                         attributes.put(FILE_ENCRYPTION_METHOD_ATTRIBUTE, metadata.encryptionMethod().toString());
                         attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(metadata.uncompressedSize()));
-                        String timeAsString = DATE_TIME_FORMATTER.format(metadata.lastModifiedDate());
-                        attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, timeAsString);
+
+                        String timeAsString = null;
+                        if (metadata.lastModifiedDate() != null) {
+                            timeAsString = DATE_TIME_FORMATTER.format(metadata.lastModifiedDate());
+                            attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, timeAsString);
+                        }
 
                         if (metadata.creationTime() != null) {
                             timeAsString = DATE_TIME_FORMATTER.format(metadata.creationTime());
                         }
-                        attributes.put(FILE_CREATION_TIME_ATTRIBUTE, timeAsString);
+
+                        if (timeAsString != null) {
+                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, timeAsString);
+                        }
 
                         if (metadata.lastAccessDate() != null) {
                             timeAsString = DATE_TIME_FORMATTER.format(metadata.lastAccessDate());
@@ -606,7 +613,7 @@ public class UnpackContent extends AbstractProcessor {
                         //NOTE: LocalFileHeader has no methods to return creation time and the mode.
                         Instant lastModifiedDate = zipEntry.getLastModifiedTime() > 0 ? new Date(zipEntry.getLastModifiedTime()).toInstant() : null;
                         ZipInputStreamMetadata zipInputStreamMetadata = new ZipInputStreamMetadata(zipEntry.isDirectory(), zipEntry.getFileName(),
-                                zipEntry.getEncryptionMethod(), null, lastModifiedDate, null, -1, zipEntry.getUncompressedSize());
+                                zipEntry.getEncryptionMethod(), lastModifiedDate, lastModifiedDate, null, -1, zipEntry.getUncompressedSize());
                         processEntry(zipInputStream, zipInputStreamMetadata);
                     }
                 }
