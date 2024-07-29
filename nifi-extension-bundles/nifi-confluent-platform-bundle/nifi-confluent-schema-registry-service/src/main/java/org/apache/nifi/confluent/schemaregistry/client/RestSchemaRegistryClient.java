@@ -25,7 +25,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.apache.nifi.web.util.WebUtils;
+import org.apache.nifi.web.util.WebClientUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -86,7 +86,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         final ClientConfig clientConfig = new ClientConfig();
         clientConfig.property(ClientProperties.CONNECT_TIMEOUT, timeoutMillis);
         clientConfig.property(ClientProperties.READ_TIMEOUT, timeoutMillis);
-        client = WebUtils.createClient(clientConfig, sslContext);
+        client = WebClientUtils.createClient(clientConfig, sslContext);
 
         if (StringUtils.isNoneBlank(username, password)) {
             client.register(HttpAuthenticationFeature.basic(username, password));

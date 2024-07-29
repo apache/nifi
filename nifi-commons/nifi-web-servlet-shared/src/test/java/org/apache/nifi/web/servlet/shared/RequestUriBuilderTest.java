@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.util;
+package org.apache.nifi.web.servlet.shared;
 
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -24,8 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -41,9 +40,13 @@ public class RequestUriBuilderTest {
 
     private static final String HOST = "localhost.local";
 
+    private static final String FRAGMENT = "section";
+
     private static final int PORT = 443;
 
     private static final String CONTEXT_PATH = "/context-path";
+
+    private static final String EMPTY = "";
 
     @Mock
     private HttpServletRequest httpServletRequest;
@@ -61,7 +64,7 @@ public class RequestUriBuilderTest {
         assertEquals(SCHEME, uri.getScheme());
         assertEquals(HOST, uri.getHost());
         assertEquals(PORT, uri.getPort());
-        assertEquals(StringUtils.EMPTY, uri.getPath());
+        assertEquals(EMPTY, uri.getPath());
     }
 
     @Test
@@ -71,7 +74,7 @@ public class RequestUriBuilderTest {
         lenient().when(httpServletRequest.getHeader(eq(HOST_HEADER))).thenReturn(HOST);
 
         final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, Collections.emptyList());
-        builder.path(CONTEXT_PATH);
+        builder.fragment(FRAGMENT).path(CONTEXT_PATH);
         final URI uri = builder.build();
 
         assertNotNull(uri);
@@ -79,16 +82,17 @@ public class RequestUriBuilderTest {
         assertEquals(HOST, uri.getHost());
         assertEquals(PORT, uri.getPort());
         assertEquals(CONTEXT_PATH, uri.getPath());
+        assertEquals(FRAGMENT, uri.getFragment());
     }
 
     @Test
     public void testFromHttpServletRequestProxyHeadersBuild() {
-        when(httpServletRequest.getHeader(eq(WebUtils.PROXY_SCHEME_HTTP_HEADER))).thenReturn(SCHEME);
-        when(httpServletRequest.getHeader(eq(WebUtils.PROXY_HOST_HTTP_HEADER))).thenReturn(HOST);
-        when(httpServletRequest.getHeader(eq(WebUtils.PROXY_PORT_HTTP_HEADER))).thenReturn(Integer.toString(PORT));
-        when(httpServletRequest.getHeader(eq(WebUtils.PROXY_CONTEXT_PATH_HTTP_HEADER))).thenReturn(CONTEXT_PATH);
+        when(httpServletRequest.getHeader(eq(ProxyHeader.PROXY_SCHEME.getHeader()))).thenReturn(SCHEME);
+        when(httpServletRequest.getHeader(eq(ProxyHeader.PROXY_HOST.getHeader()))).thenReturn(HOST);
+        when(httpServletRequest.getHeader(eq(ProxyHeader.PROXY_PORT.getHeader()))).thenReturn(Integer.toString(PORT));
+        when(httpServletRequest.getHeader(eq(ProxyHeader.PROXY_CONTEXT_PATH.getHeader()))).thenReturn(CONTEXT_PATH);
 
-        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, Arrays.asList(CONTEXT_PATH));
+        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, List.of(CONTEXT_PATH));
         final URI uri = builder.build();
 
         assertNotNull(uri);

@@ -45,7 +45,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.x509.ocsp.OcspStatus.ValidationStatus;
 import org.apache.nifi.web.security.x509.ocsp.OcspStatus.VerificationStatus;
-import org.apache.nifi.web.util.WebUtils;
+import org.apache.nifi.web.util.WebClientUtils;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
 import org.bouncycastle.asn1.x509.Extension;
@@ -101,7 +101,7 @@ public class OcspCertificateValidator {
                 clientConfig.property(ClientProperties.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
 
                 // initialize the client
-                client = WebUtils.createClient(clientConfig);
+                client = WebClientUtils.createClient(clientConfig);
 
                 // get the trusted CAs
                 trustedCAs = getTrustedCAs(properties);

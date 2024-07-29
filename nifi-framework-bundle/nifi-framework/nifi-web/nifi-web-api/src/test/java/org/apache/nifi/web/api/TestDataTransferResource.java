@@ -30,6 +30,7 @@ import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
+import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -46,9 +47,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -204,9 +202,9 @@ public class TestDataTransferResource {
         uriInfoField.set(resource, uriInfo);
 
         final HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getHeader(PROXY_SCHEME_HTTP_HEADER)).thenReturn("https");
-        when(request.getHeader(PROXY_HOST_HTTP_HEADER)).thenReturn("nifi2.example.com");
-        when(request.getHeader(PROXY_PORT_HTTP_HEADER)).thenReturn("443");
+        when(request.getHeader(ProxyHeader.PROXY_SCHEME.getHeader())).thenReturn("https");
+        when(request.getHeader(ProxyHeader.PROXY_HOST.getHeader())).thenReturn("nifi2.example.com");
+        when(request.getHeader(ProxyHeader.PROXY_PORT.getHeader())).thenReturn("443");
         final Field httpServletRequestField = resource.getClass().getSuperclass().getSuperclass()
                 .getDeclaredField("httpServletRequest");
         httpServletRequestField.setAccessible(true);

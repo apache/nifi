@@ -17,7 +17,7 @@
 package org.apache.nifi.web.security;
 
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
-import org.apache.nifi.web.util.WebUtils;
+import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -142,7 +142,7 @@ class StandardAuthenticationEntryPointTest {
         final ServletContext servletContext = request.getServletContext();
         servletContext.setInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER, FORWARDED_PATH);
 
-        request.addHeader(WebUtils.FORWARDED_PREFIX_HTTP_HEADER, FORWARDED_PATH);
+        request.addHeader(ProxyHeader.FORWARDED_PREFIX.getHeader(), FORWARDED_PATH);
 
         final Cookie cookie = new Cookie(ApplicationCookieName.AUTHORIZATION_BEARER.getCookieName(), BEARER_TOKEN);
         request.setCookies(cookie);
