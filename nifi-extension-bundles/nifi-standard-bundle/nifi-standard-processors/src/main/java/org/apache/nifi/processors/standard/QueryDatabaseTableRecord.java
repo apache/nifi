@@ -36,6 +36,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.sql.RecordSqlWriter;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -190,30 +191,33 @@ public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
             .required(true)
             .build();
 
-    public QueryDatabaseTableRecord() {
-        relationships = Set.of(REL_SUCCESS);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DBCP_SERVICE,
+            DB_TYPE,
+            TABLE_NAME,
+            COLUMN_NAMES,
+            WHERE_CLAUSE,
+            SQL_QUERY,
+            RECORD_WRITER_FACTORY,
+            MAX_VALUE_COLUMN_NAMES,
+            INITIAL_LOAD_STRATEGY,
+            QUERY_TIMEOUT,
+            FETCH_SIZE,
+            AUTO_COMMIT,
+            MAX_ROWS_PER_FLOW_FILE,
+            OUTPUT_BATCH_SIZE,
+            MAX_FRAGMENTS,
+            NORMALIZE_NAMES,
+            USE_AVRO_LOGICAL_TYPES,
+            VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION,
+            VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE
+    );
 
-        propDescriptors = List.of(
-                DBCP_SERVICE,
-                DB_TYPE,
-                TABLE_NAME,
-                COLUMN_NAMES,
-                WHERE_CLAUSE,
-                SQL_QUERY,
-                RECORD_WRITER_FACTORY,
-                MAX_VALUE_COLUMN_NAMES,
-                INITIAL_LOAD_STRATEGY,
-                QUERY_TIMEOUT,
-                FETCH_SIZE,
-                AUTO_COMMIT,
-                MAX_ROWS_PER_FLOW_FILE,
-                OUTPUT_BATCH_SIZE,
-                MAX_FRAGMENTS,
-                NORMALIZE_NAMES,
-                USE_AVRO_LOGICAL_TYPES,
-                VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION,
-                VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE
-        );
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+
+    public QueryDatabaseTableRecord() {
+        relationships = RELATIONSHIPS;
+        propDescriptors = PROPERTIES;
     }
 
     @Override

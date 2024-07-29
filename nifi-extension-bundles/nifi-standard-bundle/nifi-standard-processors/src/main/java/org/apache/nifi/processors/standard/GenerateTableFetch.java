@@ -164,30 +164,34 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DBCP_SERVICE,
+            DB_TYPE,
+            TABLE_NAME,
+            COLUMN_NAMES,
+            MAX_VALUE_COLUMN_NAMES,
+            QUERY_TIMEOUT,
+            PARTITION_SIZE,
+            COLUMN_FOR_VALUE_PARTITIONING,
+            WHERE_CLAUSE,
+            CUSTOM_ORDERBY_COLUMN,
+            OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS
+    );
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
                     + "If no incoming connection(s) are specified, this relationship is unused.")
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+
     public GenerateTableFetch() {
-        propDescriptors = List.of(
-                DBCP_SERVICE,
-                DB_TYPE,
-                TABLE_NAME,
-                COLUMN_NAMES,
-                MAX_VALUE_COLUMN_NAMES,
-                QUERY_TIMEOUT,
-                PARTITION_SIZE,
-                COLUMN_FOR_VALUE_PARTITIONING,
-                WHERE_CLAUSE,
-                CUSTOM_ORDERBY_COLUMN,
-                OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS
-        );
-        relationships = Set.of(
-                REL_SUCCESS,
-                REL_FAILURE
-        );
+        propDescriptors = PROPERTIES;
+        relationships = RELATIONSHIPS;
     }
 
     @Override

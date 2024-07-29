@@ -33,6 +33,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.sql.DefaultAvroSqlWriter;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -91,30 +92,33 @@ public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
             .description("The name of the database table to be queried. When a custom query is used, this property is used to alias the query and appears as an attribute on the FlowFile.")
             .build();
 
-    public QueryDatabaseTable() {
-        relationships = Set.of(REL_SUCCESS);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DBCP_SERVICE,
+            DB_TYPE,
+            TABLE_NAME,
+            COLUMN_NAMES,
+            WHERE_CLAUSE,
+            SQL_QUERY,
+            MAX_VALUE_COLUMN_NAMES,
+            INITIAL_LOAD_STRATEGY,
+            QUERY_TIMEOUT,
+            FETCH_SIZE,
+            AUTO_COMMIT,
+            MAX_ROWS_PER_FLOW_FILE,
+            OUTPUT_BATCH_SIZE,
+            MAX_FRAGMENTS,
+            NORMALIZE_NAMES_FOR_AVRO,
+            TRANS_ISOLATION_LEVEL,
+            USE_AVRO_LOGICAL_TYPES,
+            VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION,
+            VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE
+    );
 
-        propDescriptors = List.of(
-                DBCP_SERVICE,
-                DB_TYPE,
-                TABLE_NAME,
-                COLUMN_NAMES,
-                WHERE_CLAUSE,
-                SQL_QUERY,
-                MAX_VALUE_COLUMN_NAMES,
-                INITIAL_LOAD_STRATEGY,
-                QUERY_TIMEOUT,
-                FETCH_SIZE,
-                AUTO_COMMIT,
-                MAX_ROWS_PER_FLOW_FILE,
-                OUTPUT_BATCH_SIZE,
-                MAX_FRAGMENTS,
-                NORMALIZE_NAMES_FOR_AVRO,
-                TRANS_ISOLATION_LEVEL,
-                USE_AVRO_LOGICAL_TYPES,
-                VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION,
-                VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE
-        );
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+
+    public QueryDatabaseTable() {
+        relationships = RELATIONSHIPS;
+        propDescriptors = PROPERTIES;
     }
 
     @Override

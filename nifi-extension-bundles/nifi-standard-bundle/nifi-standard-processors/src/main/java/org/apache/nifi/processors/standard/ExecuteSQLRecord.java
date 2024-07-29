@@ -32,6 +32,7 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.sql.RecordSqlWriter;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
@@ -149,27 +150,31 @@ public class ExecuteSQLRecord extends AbstractExecuteSQL {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DBCP_SERVICE,
+            SQL_PRE_QUERY,
+            SQL_SELECT_QUERY,
+            SQL_POST_QUERY,
+            QUERY_TIMEOUT,
+            RECORD_WRITER_FACTORY,
+            NORMALIZE_NAMES,
+            USE_AVRO_LOGICAL_TYPES,
+            DEFAULT_PRECISION,
+            DEFAULT_SCALE,
+            MAX_ROWS_PER_FLOW_FILE,
+            OUTPUT_BATCH_SIZE,
+            FETCH_SIZE,
+            AUTO_COMMIT
+    );
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+
     public ExecuteSQLRecord() {
-        relationships = Set.of(
-                REL_SUCCESS,
-                REL_FAILURE
-        );
-        propDescriptors = List.of(
-                DBCP_SERVICE,
-                SQL_PRE_QUERY,
-                SQL_SELECT_QUERY,
-                SQL_POST_QUERY,
-                QUERY_TIMEOUT,
-                RECORD_WRITER_FACTORY,
-                NORMALIZE_NAMES,
-                USE_AVRO_LOGICAL_TYPES,
-                DEFAULT_PRECISION,
-                DEFAULT_SCALE,
-                MAX_ROWS_PER_FLOW_FILE,
-                OUTPUT_BATCH_SIZE,
-                FETCH_SIZE,
-                AUTO_COMMIT
-        );
+        relationships = RELATIONSHIPS;
+        propDescriptors = PROPERTIES;
     }
 
     @Override
