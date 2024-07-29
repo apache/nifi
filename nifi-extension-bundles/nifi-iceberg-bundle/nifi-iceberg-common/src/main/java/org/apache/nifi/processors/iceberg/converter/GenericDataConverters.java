@@ -189,6 +189,11 @@ public class GenericDataConverters {
                 return null;
             }
             if (data instanceof BigDecimal bigDecimal) {
+
+                if (bigDecimal.scale() < scale) {
+                    bigDecimal = bigDecimal.setScale(scale);
+                }
+
                 Validate.isTrue(bigDecimal.scale() == scale, "Cannot write value as decimal(%s,%s), wrong scale %s for value: %s", precision, scale, bigDecimal.scale(), data);
                 Validate.isTrue(bigDecimal.precision() <= precision, "Cannot write value as decimal(%s,%s), invalid precision %s for value: %s",
                         precision, scale, bigDecimal.precision(), data);
