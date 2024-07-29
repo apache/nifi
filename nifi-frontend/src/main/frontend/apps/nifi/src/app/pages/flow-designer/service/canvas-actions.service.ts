@@ -525,6 +525,8 @@ export class CanvasActionsService {
     }
 
     toggleFlowAnalysisDrawer() {
-        return this.flowAnalaysisDrawerOpen$.value === true ? this.flowAnalaysisDrawerOpen$.next(false) : this.flowAnalaysisDrawerOpen$.next(true);
+        return this.flowAnalaysisDrawerOpen$.value === true
+            ? this.flowAnalaysisDrawerOpen$.next(false)
+            : this.flowAnalaysisDrawerOpen$.next(true);
     }
 }

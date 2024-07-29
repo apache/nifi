@@ -45,7 +45,7 @@ export class FlowStatus {
     @Input() loadingStatus = false;
     @Input() set flowAnalysisState(state: FlowAnalysisState) {
         if (!state.ruleViolations.length) {
-            this.flowAnalysisNotificationClass = '';
+            this.flowAnalysisNotificationClass = 'primary-color';
         } else {
             const isEnforcedRuleViolated = state.ruleViolations.find((v) => {
                 return v.enforcementPolicy === 'ENFORCE';
@@ -68,9 +68,7 @@ export class FlowStatus {
 
     protected readonly BulletinsTip = BulletinsTip;
 
-    constructor(private canvasActionsService: CanvasActionsService) {
-
-    }
+    constructor(private canvasActionsService: CanvasActionsService) {}
 
     hasTerminatedThreads(): boolean {
         return this.controllerStatus.terminatedThreadCount > 0;
