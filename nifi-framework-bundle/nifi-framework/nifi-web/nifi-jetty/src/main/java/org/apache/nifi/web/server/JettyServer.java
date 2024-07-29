@@ -153,6 +153,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String CONTEXT_PATH_NIFI_API = "/nifi-api";
     private static final String CONTEXT_PATH_NIFI_CONTENT_VIEWER = "/nifi-content-viewer";
     private static final String CONTEXT_PATH_NIFI_DOCS = "/nifi-docs";
+    private static final Set<String> REQUIRED_CONTEXT_PATHS = Set.of(
+            CONTEXT_PATH_NIFI,
+            CONTEXT_PATH_NIFI_API,
+            CONTEXT_PATH_NIFI_CONTENT_VIEWER,
+            CONTEXT_PATH_NIFI_DOCS
+    );
 
     private static final RequestFilterProvider REQUEST_FILTER_PROVIDER = new StandardRequestFilterProvider();
     private static final RequestFilterProvider REST_API_REQUEST_FILTER_PROVIDER = new RestApiRequestFilterProvider();
@@ -630,7 +636,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webappContext.setAttribute(MetaInfConfiguration.CONTAINER_JAR_PATTERN, CONTAINER_JAR_PATTERN);
         webappContext.setErrorHandler(getErrorHandler());
         webappContext.setTempDirectory(getWebAppTempDirectory(warFile));
-        webappContext.setThrowUnavailableOnStartupException(true);
+
+        final boolean throwUnavailableOnStartupException = REQUIRED_CONTEXT_PATHS.contains(contextPath);
+        webappContext.setThrowUnavailableOnStartupException(throwUnavailableOnStartupException);
 
         final List<FilterHolder> requestFilters = CONTEXT_PATH_NIFI_API.equals(contextPath)
                 ? REST_API_REQUEST_FILTER_PROVIDER.getFilters(props)
