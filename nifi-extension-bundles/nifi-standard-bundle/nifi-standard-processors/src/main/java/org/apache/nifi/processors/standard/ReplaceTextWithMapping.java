@@ -118,7 +118,11 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            REGEX, MATCHING_GROUP_FOR_LOOKUP_KEY, MAPPING_FILE, MAPPING_FILE_REFRESH_INTERVAL, CHARACTER_SET,
+            REGEX,
+            MATCHING_GROUP_FOR_LOOKUP_KEY,
+            MAPPING_FILE,
+            MAPPING_FILE_REFRESH_INTERVAL,
+            CHARACTER_SET,
             MAX_BUFFER_SIZE
     );
 
@@ -131,7 +135,10 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .description("FlowFiles that could not be updated are routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private final Pattern backReferencePattern = Pattern.compile("[^\\\\]\\$(\\d+)");
 

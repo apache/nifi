@@ -75,7 +75,11 @@ public class LogMessage extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(LOG_LEVEL, LOG_PREFIX, LOG_MESSAGE);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            LOG_LEVEL,
+            LOG_PREFIX,
+            LOG_MESSAGE
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")

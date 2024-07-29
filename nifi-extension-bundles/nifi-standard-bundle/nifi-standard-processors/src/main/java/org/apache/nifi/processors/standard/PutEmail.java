@@ -288,9 +288,28 @@ public class PutEmail extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            SMTP_HOSTNAME, SMTP_PORT, AUTHORIZATION_MODE, OAUTH2_ACCESS_TOKEN_PROVIDER, SMTP_USERNAME, SMTP_PASSWORD,
-            SMTP_AUTH, SMTP_TLS, SMTP_SOCKET_FACTORY, HEADER_XMAILER, ATTRIBUTE_NAME_REGEX, CONTENT_TYPE, FROM,
-            TO, CC, BCC, SUBJECT, MESSAGE, CONTENT_AS_MESSAGE, INPUT_CHARACTER_SET, ATTACH_FILE, INCLUDE_ALL_ATTRIBUTES
+            SMTP_HOSTNAME,
+            SMTP_PORT,
+            AUTHORIZATION_MODE,
+            OAUTH2_ACCESS_TOKEN_PROVIDER,
+            SMTP_USERNAME,
+            SMTP_PASSWORD,
+            SMTP_AUTH,
+            SMTP_TLS,
+            SMTP_SOCKET_FACTORY,
+            HEADER_XMAILER,
+            ATTRIBUTE_NAME_REGEX,
+            CONTENT_TYPE,
+            FROM,
+            TO,
+            CC,
+            BCC,
+            SUBJECT,
+            MESSAGE,
+            CONTENT_AS_MESSAGE,
+            INPUT_CHARACTER_SET,
+            ATTACH_FILE,
+            INCLUDE_ALL_ATTRIBUTES
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -302,7 +321,10 @@ public class PutEmail extends AbstractProcessor {
             .description("FlowFiles that fail to send will be routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     /**
      * Mapping of the mail properties to the NiFi PropertyDescriptors that will be evaluated at runtime

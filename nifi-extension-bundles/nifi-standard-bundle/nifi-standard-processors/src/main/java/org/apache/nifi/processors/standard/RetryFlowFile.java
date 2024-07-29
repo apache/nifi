@@ -140,8 +140,13 @@ public class RetryFlowFile extends AbstractProcessor {
             .defaultValue(FAIL_ON_REUSE.getValue())
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(RETRY_ATTRIBUTE, MAXIMUM_RETRIES, PENALIZE_RETRIED, FAIL_ON_OVERWRITE, REUSE_MODE);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RETRY_ATTRIBUTE,
+            MAXIMUM_RETRIES,
+            PENALIZE_RETRIED,
+            FAIL_ON_OVERWRITE,
+            REUSE_MODE
+    );
 
     public static final Relationship RETRY = new Relationship.Builder()
             .name("retry")
@@ -162,7 +167,11 @@ public class RetryFlowFile extends AbstractProcessor {
             .autoTerminateDefault(true)
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(RETRY, RETRIES_EXCEEDED, FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            RETRY,
+            RETRIES_EXCEEDED,
+            FAILURE
+    );
 
     private String retryAttribute;
     private Boolean penalizeRetried;

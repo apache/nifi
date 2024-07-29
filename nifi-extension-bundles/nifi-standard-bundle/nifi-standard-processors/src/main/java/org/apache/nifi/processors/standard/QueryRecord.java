@@ -229,8 +229,12 @@ public class QueryRecord extends AbstractProcessor {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            RECORD_READER_FACTORY, RECORD_WRITER_FACTORY, INCLUDE_ZERO_RECORD_FLOWFILES, CACHE_SCHEMA,
-            DEFAULT_PRECISION, DEFAULT_SCALE
+            RECORD_READER_FACTORY,
+            RECORD_WRITER_FACTORY,
+            INCLUDE_ZERO_RECORD_FLOWFILES,
+            CACHE_SCHEMA,
+            DEFAULT_PRECISION,
+            DEFAULT_SCALE
     );
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()

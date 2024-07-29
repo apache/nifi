@@ -272,12 +272,28 @@ public class DebugFlow extends AbstractProcessor {
         synchronized (properties) {
             if (properties.get() == null) {
                 List<PropertyDescriptor> properties = List.of(
-                        FF_SUCCESS_ITERATIONS, FF_FAILURE_ITERATIONS, FF_ROLLBACK_ITERATIONS, FF_ROLLBACK_YIELD_ITERATIONS,
-                        FF_ROLLBACK_PENALTY_ITERATIONS, FF_EXCEPTION_ITERATIONS, FF_EXCEPTION_CLASS, NO_FF_SKIP_ITERATIONS,
-                        NO_FF_EXCEPTION_ITERATIONS, NO_FF_YIELD_ITERATIONS, NO_FF_EXCEPTION_CLASS, WRITE_ITERATIONS,
-                        CONTENT_SIZE, ON_SCHEDULED_SLEEP_TIME, ON_SCHEDULED_FAIL, ON_UNSCHEDULED_SLEEP_TIME,
-                        ON_UNSCHEDULED_FAIL, ON_STOPPED_SLEEP_TIME, ON_STOPPED_FAIL, ON_TRIGGER_SLEEP_TIME,
-                        CUSTOM_VALIDATE_SLEEP_TIME, IGNORE_INTERRUPTS
+                        FF_SUCCESS_ITERATIONS,
+                        FF_FAILURE_ITERATIONS,
+                        FF_ROLLBACK_ITERATIONS,
+                        FF_ROLLBACK_YIELD_ITERATIONS,
+                        FF_ROLLBACK_PENALTY_ITERATIONS,
+                        FF_EXCEPTION_ITERATIONS,
+                        FF_EXCEPTION_CLASS,
+                        NO_FF_SKIP_ITERATIONS,
+                        NO_FF_EXCEPTION_ITERATIONS,
+                        NO_FF_YIELD_ITERATIONS,
+                        NO_FF_EXCEPTION_CLASS,
+                        WRITE_ITERATIONS,
+                        CONTENT_SIZE,
+                        ON_SCHEDULED_SLEEP_TIME,
+                        ON_SCHEDULED_FAIL,
+                        ON_UNSCHEDULED_SLEEP_TIME,
+                        ON_UNSCHEDULED_FAIL,
+                        ON_STOPPED_SLEEP_TIME,
+                        ON_STOPPED_FAIL,
+                        ON_TRIGGER_SLEEP_TIME,
+                        CUSTOM_VALIDATE_SLEEP_TIME,
+                        IGNORE_INTERRUPTS
                 );
 
                 this.properties.compareAndSet(null, properties);

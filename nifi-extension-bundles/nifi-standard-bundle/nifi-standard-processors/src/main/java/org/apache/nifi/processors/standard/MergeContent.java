@@ -398,15 +398,33 @@ public class MergeContent extends BinFiles {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            MERGE_STRATEGY, MERGE_FORMAT, AttributeStrategyUtil.ATTRIBUTE_STRATEGY, CORRELATION_ATTRIBUTE_NAME,
-            METADATA_STRATEGY, addBinPackingDependency(MIN_ENTRIES), addBinPackingDependency(MAX_ENTRIES),
-            addBinPackingDependency(MIN_SIZE), addBinPackingDependency(MAX_SIZE), MAX_BIN_AGE, MAX_BIN_COUNT,
-            DELIMITER_STRATEGY, HEADER, FOOTER, DEMARCATOR, COMPRESSION_LEVEL, KEEP_PATH, TAR_MODIFIED_TIME
+            MERGE_STRATEGY,
+            MERGE_FORMAT,
+            AttributeStrategyUtil.ATTRIBUTE_STRATEGY,
+            CORRELATION_ATTRIBUTE_NAME,
+            METADATA_STRATEGY,
+            addBinPackingDependency(MIN_ENTRIES),
+            addBinPackingDependency(MAX_ENTRIES),
+            addBinPackingDependency(MIN_SIZE),
+            addBinPackingDependency(MAX_SIZE),
+            MAX_BIN_AGE,
+            MAX_BIN_COUNT,
+            DELIMITER_STRATEGY,
+            HEADER,
+            FOOTER,
+            DEMARCATOR,
+            COMPRESSION_LEVEL,
+            KEEP_PATH,
+            TAR_MODIFIED_TIME
     );
 
     public static final Relationship REL_MERGED = new Relationship.Builder().name("merged").description("The FlowFile containing the merged content").build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_MERGED);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_FAILURE,
+            REL_MERGED
+    );
 
     public static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 

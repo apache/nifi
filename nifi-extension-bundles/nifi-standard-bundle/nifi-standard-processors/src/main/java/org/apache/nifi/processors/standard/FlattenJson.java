@@ -158,8 +158,14 @@ public class FlattenJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(SEPARATOR, FLATTEN_MODE, IGNORE_RESERVED_CHARACTERS, RETURN_TYPE, CHARACTER_SET, PRETTY_PRINT);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            SEPARATOR,
+            FLATTEN_MODE,
+            IGNORE_RESERVED_CHARACTERS,
+            RETURN_TYPE,
+            CHARACTER_SET,
+            PRETTY_PRINT
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .description("Successfully flattened/unflattened files go to this relationship.")
@@ -171,7 +177,10 @@ public class FlattenJson extends AbstractProcessor {
             .name("failure")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

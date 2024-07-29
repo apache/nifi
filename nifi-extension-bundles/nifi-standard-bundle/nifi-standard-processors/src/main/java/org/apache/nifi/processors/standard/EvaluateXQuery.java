@@ -150,7 +150,11 @@ public class EvaluateXQuery extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            DESTINATION, XML_OUTPUT_METHOD, XML_OUTPUT_OMIT_XML_DECLARATION, XML_OUTPUT_INDENT, VALIDATE_DTD
+            DESTINATION,
+            XML_OUTPUT_METHOD,
+            XML_OUTPUT_OMIT_XML_DECLARATION,
+            XML_OUTPUT_INDENT,
+            VALIDATE_DTD
     );
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
@@ -171,7 +175,11 @@ public class EvaluateXQuery extends AbstractProcessor {
                     + "the FlowFile.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCH, REL_NO_MATCH, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_MATCH,
+            REL_NO_MATCH,
+            REL_FAILURE
+    );
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {

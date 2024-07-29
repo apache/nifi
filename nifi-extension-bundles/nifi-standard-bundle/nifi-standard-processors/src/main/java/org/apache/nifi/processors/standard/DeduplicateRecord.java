@@ -265,8 +265,17 @@ public class DeduplicateRecord extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            DEDUPLICATION_STRATEGY, DISTRIBUTED_MAP_CACHE, CACHE_IDENTIFIER, PUT_CACHE_IDENTIFIER, RECORD_READER, RECORD_WRITER,
-            INCLUDE_ZERO_RECORD_FLOWFILES, RECORD_HASHING_ALGORITHM, FILTER_TYPE, FILTER_CAPACITY_HINT, BLOOM_FILTER_FPP
+            DEDUPLICATION_STRATEGY,
+            DISTRIBUTED_MAP_CACHE,
+            CACHE_IDENTIFIER,
+            PUT_CACHE_IDENTIFIER,
+            RECORD_READER,
+            RECORD_WRITER,
+            INCLUDE_ZERO_RECORD_FLOWFILES,
+            RECORD_HASHING_ALGORITHM,
+            FILTER_TYPE,
+            FILTER_CAPACITY_HINT,
+            BLOOM_FILTER_FPP
     );
 
     static final Relationship REL_DUPLICATE = new Relationship.Builder()
@@ -289,8 +298,12 @@ public class DeduplicateRecord extends AbstractProcessor {
             .description("If unable to communicate with the cache, the FlowFile will be penalized and routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS =
-            Set.of(REL_DUPLICATE, REL_NON_DUPLICATE, REL_ORIGINAL, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_DUPLICATE,
+            REL_NON_DUPLICATE,
+            REL_ORIGINAL,
+            REL_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

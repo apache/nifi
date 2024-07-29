@@ -90,7 +90,10 @@ public class SegmentContent extends AbstractProcessor {
             .description("The original FlowFile will be sent to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SEGMENTS, REL_ORIGINAL);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SEGMENTS,
+            REL_ORIGINAL
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

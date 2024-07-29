@@ -155,8 +155,13 @@ public class ExtractGrok extends AbstractProcessor {
         .build();
 
     private final static List<PropertyDescriptor> PROPERTIES = List.of(
-            GROK_EXPRESSION, GROK_PATTERNS, DESTINATION, CHARACTER_SET,
-            MAX_BUFFER_SIZE, NAMED_CAPTURES_ONLY, KEEP_EMPTY_CAPTURES
+            GROK_EXPRESSION,
+            GROK_PATTERNS,
+            DESTINATION,
+            CHARACTER_SET,
+            MAX_BUFFER_SIZE,
+            NAMED_CAPTURES_ONLY,
+            KEEP_EMPTY_CAPTURES
     );
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
@@ -169,7 +174,10 @@ public class ExtractGrok extends AbstractProcessor {
             .description("FlowFiles are routed to this relationship when no provided Grok Expression matches the content of the FlowFile")
             .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCH, REL_NO_MATCH);
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_MATCH,
+            REL_NO_MATCH
+    );
 
     private volatile Grok grok;
     private final BlockingQueue<byte[]> bufferQueue = new LinkedBlockingQueue<>();

@@ -179,7 +179,13 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            GROUP_IDENTIFIER, ORDER_ATTRIBUTE, INITIAL_ORDER, MAX_ORDER, BATCH_COUNT, WAIT_TIMEOUT, INACTIVE_TIMEOUT
+            GROUP_IDENTIFIER,
+            ORDER_ATTRIBUTE,
+            INITIAL_ORDER,
+            MAX_ORDER,
+            BATCH_COUNT,
+            WAIT_TIMEOUT,
+            INACTIVE_TIMEOUT
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -207,8 +213,13 @@ public class EnforceOrder extends AbstractProcessor {
         .description("A FlowFile that has an order younger than current, which means arrived too late and skipped, will be routed to this relationship.")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS =
-            Set.of(REL_SUCCESS, REL_WAIT, REL_OVERTOOK, REL_FAILURE, REL_SKIPPED);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_WAIT,
+            REL_OVERTOOK,
+            REL_FAILURE,
+            REL_SKIPPED
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

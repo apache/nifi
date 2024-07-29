@@ -77,8 +77,11 @@ public class PutRecord extends AbstractProcessor {
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(RECORD_READER, RECORD_SINK, INCLUDE_ZERO_RECORD_RESULTS);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER,
+            RECORD_SINK,
+            INCLUDE_ZERO_RECORD_RESULTS
+    );
 
     // Relationships
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -95,7 +98,11 @@ public class PutRecord extends AbstractProcessor {
             .description("A FlowFile is routed to this relationship if the records could not be transmitted and retrying the operation will also fail")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_RETRY
+    );
 
     private volatile RecordSinkService recordSinkService;
 

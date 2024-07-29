@@ -228,8 +228,14 @@ public class ListDatabaseTables extends AbstractProcessor {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            DBCP_SERVICE, CATALOG, SCHEMA_PATTERN, TABLE_NAME_PATTERN, TABLE_TYPES, INCLUDE_COUNT,
-            RECORD_WRITER, REFRESH_INTERVAL
+            DBCP_SERVICE,
+            CATALOG,
+            SCHEMA_PATTERN,
+            TABLE_NAME_PATTERN,
+            TABLE_TYPES,
+            INCLUDE_COUNT,
+            RECORD_WRITER,
+            REFRESH_INTERVAL
     );
 
     // Relationships

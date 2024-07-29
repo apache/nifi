@@ -187,8 +187,16 @@ public class JoinEnrichment extends BinFiles {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            ORIGINAL_RECORD_READER, ENRICHMENT_RECORD_READER, RECORD_WRITER, JOIN_STRATEGY, SQL, DEFAULT_PRECISION,
-            DEFAULT_SCALE, INSERTION_RECORD_PATH, MAX_BIN_COUNT, TIMEOUT
+            ORIGINAL_RECORD_READER,
+            ENRICHMENT_RECORD_READER,
+            RECORD_WRITER,
+            JOIN_STRATEGY,
+            SQL,
+            DEFAULT_PRECISION,
+            DEFAULT_SCALE,
+            INSERTION_RECORD_PATH,
+            MAX_BIN_COUNT,
+            TIMEOUT
     );
 
     // Relationships
@@ -212,7 +220,12 @@ public class JoinEnrichment extends BinFiles {
             "relationship.")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_JOINED, REL_ORIGINAL, REL_TIMEOUT, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_JOINED,
+            REL_ORIGINAL,
+            REL_TIMEOUT,
+            REL_FAILURE
+    );
 
     private final SqlJoinCache sqlJoinCache = new SqlJoinCache(getLogger());
 

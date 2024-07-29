@@ -177,8 +177,12 @@ public class FetchFile extends AbstractProcessor {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            FILENAME, COMPLETION_STRATEGY, MOVE_DESTINATION_DIR, CONFLICT_STRATEGY,
-            FILE_NOT_FOUND_LOG_LEVEL, PERM_DENIED_LOG_LEVEL
+            FILENAME,
+            COMPLETION_STRATEGY,
+            MOVE_DESTINATION_DIR,
+            CONFLICT_STRATEGY,
+            FILE_NOT_FOUND_LOG_LEVEL,
+            PERM_DENIED_LOG_LEVEL
     );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -199,8 +203,12 @@ public class FetchFile extends AbstractProcessor {
             "Any FlowFile that could not be fetched from the file system for any reason other than insufficient permissions or the file not existing will be transferred to this Relationship.")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS =
-            Set.of(REL_SUCCESS, REL_NOT_FOUND, REL_PERMISSION_DENIED, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_NOT_FOUND,
+            REL_PERMISSION_DENIED,
+            REL_FAILURE
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

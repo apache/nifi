@@ -70,7 +70,10 @@ public class CryptographicHashContent extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(FAIL_WHEN_EMPTY, HASH_ALGORITHM);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            FAIL_WHEN_EMPTY,
+            HASH_ALGORITHM
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -82,7 +85,10 @@ public class CryptographicHashContent extends AbstractProcessor {
             .description("Used for flowfiles that have no content if the 'fail on empty' setting is enabled")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_FAILURE, REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_FAILURE,
+            REL_SUCCESS
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

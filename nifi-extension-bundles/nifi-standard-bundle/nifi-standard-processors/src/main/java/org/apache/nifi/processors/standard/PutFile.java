@@ -164,8 +164,14 @@ public class PutFile extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            DIRECTORY, CONFLICT_RESOLUTION, CREATE_DIRS, MAX_DESTINATION_FILES, CHANGE_LAST_MODIFIED_TIME,
-            CHANGE_PERMISSIONS, CHANGE_OWNER, CHANGE_GROUP
+            DIRECTORY,
+            CONFLICT_RESOLUTION,
+            CREATE_DIRS,
+            MAX_DESTINATION_FILES,
+            CHANGE_LAST_MODIFIED_TIME,
+            CHANGE_PERMISSIONS,
+            CHANGE_OWNER,
+            CHANGE_GROUP
     );
 
     public static final int MAX_FILE_LOCK_ATTEMPTS = 10;
@@ -178,7 +184,10 @@ public class PutFile extends AbstractProcessor {
             .description("Files that could not be written to the output directory for some reason are transferred to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

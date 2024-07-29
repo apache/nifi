@@ -268,12 +268,28 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            DIRECTORY, LISTING_STRATEGY, RECURSE, RECORD_WRITER, DIRECTORY_LOCATION, FILE_FILTER, PATH_FILTER,
-            INCLUDE_FILE_ATTRIBUTES, MIN_AGE, MAX_AGE, MIN_SIZE, MAX_SIZE, IGNORE_HIDDEN_FILES,
-            TARGET_SYSTEM_TIMESTAMP_PRECISION, ListedEntityTracker.TRACKING_STATE_CACHE,
-            ListedEntityTracker.TRACKING_TIME_WINDOW, ListedEntityTracker.INITIAL_LISTING_TARGET,
-            ListedEntityTracker.NODE_IDENTIFIER, TRACK_PERFORMANCE, MAX_TRACKED_FILES,
-            MAX_DISK_OPERATION_TIME, MAX_LISTING_TIME
+            DIRECTORY,
+            LISTING_STRATEGY,
+            RECURSE,
+            RECORD_WRITER,
+            DIRECTORY_LOCATION,
+            FILE_FILTER,
+            PATH_FILTER,
+            INCLUDE_FILE_ATTRIBUTES,
+            MIN_AGE,
+            MAX_AGE,
+            MIN_SIZE,
+            MAX_SIZE,
+            IGNORE_HIDDEN_FILES,
+            TARGET_SYSTEM_TIMESTAMP_PRECISION,
+            ListedEntityTracker.TRACKING_STATE_CACHE,
+            ListedEntityTracker.TRACKING_TIME_WINDOW,
+            ListedEntityTracker.INITIAL_LISTING_TARGET,
+            ListedEntityTracker.NODE_IDENTIFIER,
+            TRACK_PERFORMANCE,
+            MAX_TRACKED_FILES,
+            MAX_DISK_OPERATION_TIME,
+            MAX_LISTING_TIME
     );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);

@@ -276,8 +276,17 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            RECORD_READER, RECORD_WRITER, MERGE_STRATEGY, CORRELATION_ATTRIBUTE_NAME, AttributeStrategyUtil.ATTRIBUTE_STRATEGY,
-            MIN_RECORDS, MAX_RECORDS, MIN_SIZE, MAX_SIZE, MAX_BIN_AGE, MAX_BIN_COUNT
+            RECORD_READER,
+            RECORD_WRITER,
+            MERGE_STRATEGY,
+            CORRELATION_ATTRIBUTE_NAME,
+            AttributeStrategyUtil.ATTRIBUTE_STRATEGY,
+            MIN_RECORDS,
+            MAX_RECORDS,
+            MIN_SIZE,
+            MAX_SIZE,
+            MAX_BIN_AGE,
+            MAX_BIN_COUNT
     );
 
     public static final Relationship REL_MERGED = new Relationship.Builder()
@@ -293,7 +302,11 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .description("If the bundle cannot be created, all FlowFiles that would have been used to created the bundle will be transferred to failure")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_MERGED);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_FAILURE,
+            REL_MERGED
+    );
 
     private final AtomicReference<RecordBinManager> binManager = new AtomicReference<>();
 

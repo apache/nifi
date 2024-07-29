@@ -275,8 +275,15 @@ public class ReplaceText extends AbstractProcessor {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            REPLACEMENT_STRATEGY, SEARCH_VALUE, REPLACEMENT_VALUE, PREPEND_TEXT, APPEND_TEXT, CHARACTER_SET,
-            MAX_BUFFER_SIZE, EVALUATION_MODE, LINE_BY_LINE_EVALUATION_MODE
+            REPLACEMENT_STRATEGY,
+            SEARCH_VALUE,
+            REPLACEMENT_VALUE,
+            PREPEND_TEXT,
+            APPEND_TEXT,
+            CHARACTER_SET,
+            MAX_BUFFER_SIZE,
+            EVALUATION_MODE,
+            LINE_BY_LINE_EVALUATION_MODE
     );
 
     // Relationships
@@ -290,7 +297,10 @@ public class ReplaceText extends AbstractProcessor {
         .description("FlowFiles that could not be updated are routed to this relationship")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private ReplacementStrategyExecutor replacementStrategyExecutor;
 

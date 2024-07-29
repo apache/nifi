@@ -117,8 +117,13 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             .sensitive(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(BIND_ADDRESS, PORT, USERNAME, PASSWORD, SSL_CONTEXT_SERVICE);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            BIND_ADDRESS,
+            PORT,
+            USERNAME,
+            PASSWORD,
+            SSL_CONTEXT_SERVICE
+    );
 
     public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
             .name("success")

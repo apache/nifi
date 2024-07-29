@@ -81,7 +81,10 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    private static final List<PropertyDescriptor> ADDITIONAL_PROPERTIES = List.of(SENDING_HOST, SENDING_HOST_PORT);
+    private static final List<PropertyDescriptor> ADDITIONAL_PROPERTIES = List.of(
+            SENDING_HOST,
+            SENDING_HOST_PORT
+    );
 
     public static final String UDP_PORT_ATTR = "udp.port";
     public static final String UDP_SENDER_ATTR = "udp.sender";

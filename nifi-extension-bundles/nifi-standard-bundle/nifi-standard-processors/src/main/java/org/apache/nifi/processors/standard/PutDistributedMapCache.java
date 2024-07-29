@@ -105,8 +105,12 @@ public class PutDistributedMapCache extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(CACHE_ENTRY_IDENTIFIER, DISTRIBUTED_CACHE_SERVICE, CACHE_UPDATE_STRATEGY, CACHE_ENTRY_MAX_BYTES);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            CACHE_ENTRY_IDENTIFIER,
+            DISTRIBUTED_CACHE_SERVICE,
+            CACHE_UPDATE_STRATEGY,
+            CACHE_ENTRY_MAX_BYTES
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -118,7 +122,10 @@ public class PutDistributedMapCache extends AbstractProcessor {
         .description("Any FlowFile that cannot be inserted into the cache will be routed to this relationship")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private final Serializer<String> keySerializer = new StringSerializer();
     private final Serializer<byte[]> valueSerializer = new CacheValueSerializer();

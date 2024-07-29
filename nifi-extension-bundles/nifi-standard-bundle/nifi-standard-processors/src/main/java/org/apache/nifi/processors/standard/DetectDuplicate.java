@@ -109,7 +109,11 @@ public class DetectDuplicate extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            CACHE_ENTRY_IDENTIFIER, FLOWFILE_DESCRIPTION, AGE_OFF_DURATION, DISTRIBUTED_CACHE_SERVICE, CACHE_IDENTIFIER
+            CACHE_ENTRY_IDENTIFIER,
+            FLOWFILE_DESCRIPTION,
+            AGE_OFF_DURATION,
+            DISTRIBUTED_CACHE_SERVICE,
+            CACHE_IDENTIFIER
     );
 
     public static final Relationship REL_DUPLICATE = new Relationship.Builder()
@@ -125,7 +129,11 @@ public class DetectDuplicate extends AbstractProcessor {
             .description("If unable to communicate with the cache, the FlowFile will be penalized and routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_DUPLICATE, REL_NON_DUPLICATE, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_DUPLICATE,
+            REL_NON_DUPLICATE,
+            REL_FAILURE
+    );
 
     private final Serializer<String> keySerializer = new StringSerializer();
     private final Serializer<CacheValue> valueSerializer = new CacheValueSerializer();

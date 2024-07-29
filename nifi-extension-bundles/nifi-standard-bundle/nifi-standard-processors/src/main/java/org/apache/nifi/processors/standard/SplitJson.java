@@ -89,8 +89,11 @@ public class SplitJson extends AbstractJsonPathProcessor {
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(ARRAY_JSON_PATH_EXPRESSION, NULL_VALUE_DEFAULT_REPRESENTATION, MAX_STRING_LENGTH);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            ARRAY_JSON_PATH_EXPRESSION,
+            NULL_VALUE_DEFAULT_REPRESENTATION,
+            MAX_STRING_LENGTH
+    );
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
@@ -107,7 +110,11 @@ public class SplitJson extends AbstractJsonPathProcessor {
                     + "path does not exist), it will be routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_SPLIT, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_SPLIT,
+            REL_FAILURE
+    );
 
     private final AtomicReference<JsonPath> JSON_PATH_REF = new AtomicReference<>();
     private volatile String nullDefaultValue;

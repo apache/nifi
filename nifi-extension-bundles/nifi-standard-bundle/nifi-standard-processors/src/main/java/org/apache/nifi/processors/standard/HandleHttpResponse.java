@@ -82,8 +82,11 @@ public class HandleHttpResponse extends AbstractProcessor {
             .required(false)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(STATUS_CODE, HTTP_CONTEXT_MAP, ATTRIBUTES_AS_HEADERS_REGEX);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            STATUS_CODE,
+            HTTP_CONTEXT_MAP,
+            ATTRIBUTES_AS_HEADERS_REGEX
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")

@@ -160,7 +160,12 @@ public class TransformXml extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            XSLT_FILE_NAME, XSLT_CONTROLLER, XSLT_CONTROLLER_KEY, INDENT_OUTPUT, SECURE_PROCESSING, CACHE_SIZE,
+            XSLT_FILE_NAME,
+            XSLT_CONTROLLER,
+            XSLT_CONTROLLER_KEY,
+            INDENT_OUTPUT,
+            SECURE_PROCESSING,
+            CACHE_SIZE,
             CACHE_TTL_AFTER_LAST_ACCESS
     );
 
@@ -174,7 +179,10 @@ public class TransformXml extends AbstractProcessor {
             .description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid XML), it will be routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private LoadingCache<String, Templates> cache;
 

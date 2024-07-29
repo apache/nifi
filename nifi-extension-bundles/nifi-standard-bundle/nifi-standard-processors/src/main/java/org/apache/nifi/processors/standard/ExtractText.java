@@ -232,9 +232,21 @@ public class ExtractText extends AbstractProcessor {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            CHARACTER_SET, MAX_BUFFER_SIZE, MAX_CAPTURE_GROUP_LENGTH, CANON_EQ, CASE_INSENSITIVE, COMMENTS, DOTALL,
-            LITERAL, MULTILINE, UNICODE_CASE, UNICODE_CHARACTER_CLASS, UNIX_LINES, INCLUDE_CAPTURE_GROUP_ZERO,
-            ENABLE_REPEATING_CAPTURE_GROUP, ENABLE_NAMED_GROUPS
+            CHARACTER_SET,
+            MAX_BUFFER_SIZE,
+            MAX_CAPTURE_GROUP_LENGTH,
+            CANON_EQ,
+            CASE_INSENSITIVE,
+            COMMENTS,
+            DOTALL,
+            LITERAL,
+            MULTILINE,
+            UNICODE_CASE,
+            UNICODE_CHARACTER_CLASS,
+            UNIX_LINES,
+            INCLUDE_CAPTURE_GROUP_ZERO,
+            ENABLE_REPEATING_CAPTURE_GROUP,
+            ENABLE_NAMED_GROUPS
     );
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
@@ -247,7 +259,10 @@ public class ExtractText extends AbstractProcessor {
             .description("FlowFiles are routed to this relationship when no provided Regular Expression matches the content of the FlowFile")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCH, REL_NO_MATCH);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_MATCH,
+            REL_NO_MATCH
+    );
 
     private final BlockingQueue<byte[]> bufferQueue = new LinkedBlockingQueue<>();
     private final AtomicReference<Map<String, Pattern>> compiledPattersMapRef = new AtomicReference<>();

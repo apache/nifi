@@ -94,7 +94,10 @@ public class ConvertCharacterSet extends AbstractProcessor {
             .required(true)
             .build();
 
-    private final List<PropertyDescriptor> PROPERTIES = List.of(INPUT_CHARSET, OUTPUT_CHARSET);
+    private final List<PropertyDescriptor> PROPERTIES = List.of(
+            INPUT_CHARSET,
+            OUTPUT_CHARSET
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("").build();
 

@@ -163,8 +163,15 @@ public class MonitorActivity extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            THRESHOLD, CONTINUALLY_SEND_MESSAGES, INACTIVITY_MESSAGE, ACTIVITY_RESTORED_MESSAGE, WAIT_FOR_ACTIVITY,
-            RESET_STATE_ON_RESTART, COPY_ATTRIBUTES, MONITORING_SCOPE, REPORTING_NODE
+            THRESHOLD,
+            CONTINUALLY_SEND_MESSAGES,
+            INACTIVITY_MESSAGE,
+            ACTIVITY_RESTORED_MESSAGE,
+            WAIT_FOR_ACTIVITY,
+            RESET_STATE_ON_RESTART,
+            COPY_ATTRIBUTES,
+            MONITORING_SCOPE,
+            REPORTING_NODE
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -182,7 +189,11 @@ public class MonitorActivity extends AbstractProcessor {
                     + "period of inactivity")
             .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_INACTIVE, REL_ACTIVITY_RESTORED);
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_INACTIVE,
+            REL_ACTIVITY_RESTORED
+    );
 
     private final AtomicBoolean connectedWhenLastTriggered = new AtomicBoolean(false);
     private final AtomicLong lastInactiveMessage = new AtomicLong();

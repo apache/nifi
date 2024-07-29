@@ -141,8 +141,14 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> ADDITIONAL_PROPERTIES =
-            List.of(POLL_TIMEOUT, BATCH_SIZE, RECORD_READER, RECORD_WRITER, SENDING_HOST, SENDING_HOST_PORT);
+    private static final List<PropertyDescriptor> ADDITIONAL_PROPERTIES = List.of(
+            POLL_TIMEOUT,
+            BATCH_SIZE,
+            RECORD_READER,
+            RECORD_WRITER,
+            SENDING_HOST,
+            SENDING_HOST_PORT
+    );
 
     public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse.failure")

@@ -189,8 +189,18 @@ public class GetFile extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            DIRECTORY, FILE_FILTER, PATH_FILTER, BATCH_SIZE, KEEP_SOURCE_FILE, RECURSE, POLLING_INTERVAL,
-            IGNORE_HIDDEN_FILES, MIN_AGE, MAX_AGE, MIN_SIZE, MAX_SIZE
+            DIRECTORY,
+            FILE_FILTER,
+            PATH_FILTER,
+            BATCH_SIZE,
+            KEEP_SOURCE_FILE,
+            RECURSE,
+            POLLING_INTERVAL,
+            IGNORE_HIDDEN_FILES,
+            MIN_AGE,
+            MAX_AGE,
+            MIN_SIZE,
+            MAX_SIZE
     );
 
     public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";

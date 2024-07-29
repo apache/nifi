@@ -296,9 +296,20 @@ public class TailFile extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            MODE, FILENAME, ROLLING_FILENAME_PATTERN, POST_ROLLOVER_TAIL_PERIOD, BASE_DIRECTORY, START_POSITION,
-            STATE_LOCATION, RECURSIVE, LOOKUP_FREQUENCY, MAXIMUM_AGE, REREAD_ON_NUL, LINE_START_PATTERN,
-            PRE_ALLOCATED_BUFFER_SIZE, MAX_BUFFER_LENGTH
+            MODE,
+            FILENAME,
+            ROLLING_FILENAME_PATTERN,
+            POST_ROLLOVER_TAIL_PERIOD,
+            BASE_DIRECTORY,
+            START_POSITION,
+            STATE_LOCATION,
+            RECURSIVE,
+            LOOKUP_FREQUENCY,
+            MAXIMUM_AGE,
+            REREAD_ON_NUL,
+            LINE_START_PATTERN,
+            PRE_ALLOCATED_BUFFER_SIZE,
+            MAX_BUFFER_LENGTH
     );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()

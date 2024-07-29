@@ -95,10 +95,25 @@ public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
         relationships = Set.of(REL_SUCCESS);
 
         propDescriptors = List.of(
-                DBCP_SERVICE, DB_TYPE, TABLE_NAME, COLUMN_NAMES, WHERE_CLAUSE, SQL_QUERY, MAX_VALUE_COLUMN_NAMES,
-                INITIAL_LOAD_STRATEGY, QUERY_TIMEOUT, FETCH_SIZE, AUTO_COMMIT, MAX_ROWS_PER_FLOW_FILE,
-                OUTPUT_BATCH_SIZE, MAX_FRAGMENTS, NORMALIZE_NAMES_FOR_AVRO, TRANS_ISOLATION_LEVEL,
-                USE_AVRO_LOGICAL_TYPES, VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION, VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE
+                DBCP_SERVICE,
+                DB_TYPE,
+                TABLE_NAME,
+                COLUMN_NAMES,
+                WHERE_CLAUSE,
+                SQL_QUERY,
+                MAX_VALUE_COLUMN_NAMES,
+                INITIAL_LOAD_STRATEGY,
+                QUERY_TIMEOUT,
+                FETCH_SIZE,
+                AUTO_COMMIT,
+                MAX_ROWS_PER_FLOW_FILE,
+                OUTPUT_BATCH_SIZE,
+                MAX_FRAGMENTS,
+                NORMALIZE_NAMES_FOR_AVRO,
+                TRANS_ISOLATION_LEVEL,
+                USE_AVRO_LOGICAL_TYPES,
+                VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION,
+                VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE
         );
     }
 

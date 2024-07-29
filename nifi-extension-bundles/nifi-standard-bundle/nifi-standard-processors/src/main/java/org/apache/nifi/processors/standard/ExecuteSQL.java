@@ -143,11 +143,25 @@ public class ExecuteSQL extends AbstractExecuteSQL {
             .build();
 
     public ExecuteSQL() {
-        relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+        relationships = Set.of(
+                REL_SUCCESS,
+                REL_FAILURE
+        );
         propDescriptors = List.of(
-                DBCP_SERVICE, SQL_PRE_QUERY, SQL_SELECT_QUERY, SQL_POST_QUERY, QUERY_TIMEOUT,
-                NORMALIZE_NAMES_FOR_AVRO, USE_AVRO_LOGICAL_TYPES, COMPRESSION_FORMAT,
-                DEFAULT_PRECISION, DEFAULT_SCALE, MAX_ROWS_PER_FLOW_FILE, OUTPUT_BATCH_SIZE, FETCH_SIZE, AUTO_COMMIT
+                DBCP_SERVICE,
+                SQL_PRE_QUERY,
+                SQL_SELECT_QUERY,
+                SQL_POST_QUERY,
+                QUERY_TIMEOUT,
+                NORMALIZE_NAMES_FOR_AVRO,
+                USE_AVRO_LOGICAL_TYPES,
+                COMPRESSION_FORMAT,
+                DEFAULT_PRECISION,
+                DEFAULT_SCALE,
+                MAX_ROWS_PER_FLOW_FILE,
+                OUTPUT_BATCH_SIZE,
+                FETCH_SIZE,
+                AUTO_COMMIT
         );
     }
 

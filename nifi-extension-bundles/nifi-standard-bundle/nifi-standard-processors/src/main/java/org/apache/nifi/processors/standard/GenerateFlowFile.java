@@ -129,8 +129,15 @@ public class GenerateFlowFile extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(FILE_SIZE, BATCH_SIZE, DATA_FORMAT, UNIQUE_FLOWFILES, CUSTOM_TEXT, CHARSET, MIME_TYPE);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            FILE_SIZE,
+            BATCH_SIZE,
+            DATA_FORMAT,
+            UNIQUE_FLOWFILES,
+            CUSTOM_TEXT,
+            CHARSET,
+            MIME_TYPE
+    );
 
     public static final Relationship SUCCESS = new Relationship.Builder()
             .name("success")

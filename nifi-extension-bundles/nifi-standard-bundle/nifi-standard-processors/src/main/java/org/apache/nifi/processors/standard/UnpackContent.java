@@ -196,7 +196,11 @@ public class UnpackContent extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            PACKAGING_FORMAT, ZIP_FILENAME_CHARSET, FILE_FILTER, PASSWORD, ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR
+            PACKAGING_FORMAT,
+            ZIP_FILENAME_CHARSET,
+            FILE_FILTER,
+            PASSWORD,
+            ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -212,7 +216,11 @@ public class UnpackContent extends AbstractProcessor {
             .description("The original FlowFile is sent to this relationship when it cannot be unpacked for some reason")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_ORIGINAL);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_ORIGINAL
+    );
 
     private Pattern fileFilter;
 

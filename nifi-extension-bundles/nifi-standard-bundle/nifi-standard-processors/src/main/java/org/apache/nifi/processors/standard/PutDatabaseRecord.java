@@ -154,7 +154,11 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     + "such as an invalid query or an integrity constraint violation")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_RETRY
+    );
 
     // Properties
     static final PropertyDescriptor RECORD_READER_FACTORY = new Builder()
@@ -409,11 +413,29 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
         properties = List.of(
-                RECORD_READER_FACTORY, DB_TYPE, STATEMENT_TYPE, STATEMENT_TYPE_RECORD_PATH, DATA_RECORD_PATH,
-                DBCP_SERVICE, CATALOG_NAME, SCHEMA_NAME, TABLE_NAME, BINARY_STRING_FORMAT, TRANSLATE_FIELD_NAMES,
-                UNMATCHED_FIELD_BEHAVIOR, UNMATCHED_COLUMN_BEHAVIOR, UPDATE_KEYS, FIELD_CONTAINING_SQL,
-                ALLOW_MULTIPLE_STATEMENTS, QUOTE_IDENTIFIERS, QUOTE_TABLE_IDENTIFIER, QUERY_TIMEOUT,
-                RollbackOnFailure.ROLLBACK_ON_FAILURE, TABLE_SCHEMA_CACHE_SIZE, MAX_BATCH_SIZE, AUTO_COMMIT
+                RECORD_READER_FACTORY,
+                DB_TYPE,
+                STATEMENT_TYPE,
+                STATEMENT_TYPE_RECORD_PATH,
+                DATA_RECORD_PATH,
+                DBCP_SERVICE,
+                CATALOG_NAME,
+                SCHEMA_NAME,
+                TABLE_NAME,
+                BINARY_STRING_FORMAT,
+                TRANSLATE_FIELD_NAMES,
+                UNMATCHED_FIELD_BEHAVIOR,
+                UNMATCHED_COLUMN_BEHAVIOR,
+                UPDATE_KEYS,
+                FIELD_CONTAINING_SQL,
+                ALLOW_MULTIPLE_STATEMENTS,
+                QUOTE_IDENTIFIERS,
+                QUOTE_TABLE_IDENTIFIER,
+                QUERY_TIMEOUT,
+                RollbackOnFailure.ROLLBACK_ON_FAILURE,
+                TABLE_SCHEMA_CACHE_SIZE,
+                MAX_BATCH_SIZE,
+                AUTO_COMMIT
         );
     }
 

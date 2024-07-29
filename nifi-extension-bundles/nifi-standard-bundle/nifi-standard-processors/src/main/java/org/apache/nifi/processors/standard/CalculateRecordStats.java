@@ -86,7 +86,10 @@ public class CalculateRecordStats extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
-    static final List<PropertyDescriptor> PROPERTIES = List.of(RECORD_READER, LIMIT);
+    static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER,
+            LIMIT
+    );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -97,7 +100,10 @@ public class CalculateRecordStats extends AbstractProcessor {
         .description("If a flowfile fails to be processed, it goes here.")
         .build();
 
-    static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private RecordPathCache cache;
 

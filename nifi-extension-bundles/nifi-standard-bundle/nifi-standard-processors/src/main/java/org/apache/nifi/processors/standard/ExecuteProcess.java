@@ -156,7 +156,13 @@ public class ExecuteProcess extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            COMMAND, COMMAND_ARGUMENTS, BATCH_DURATION, REDIRECT_ERROR_STREAM, WORKING_DIR, ARG_DELIMITER, MIME_TYPE
+            COMMAND,
+            COMMAND_ARGUMENTS,
+            BATCH_DURATION,
+            REDIRECT_ERROR_STREAM,
+            WORKING_DIR,
+            ARG_DELIMITER,
+            MIME_TYPE
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

@@ -247,7 +247,10 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .description("A FlowFile containing records routed to this relationship if the record could not be transmitted to the database.")
             .build();
 
-    protected static Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+    protected static Set<Relationship> relationships = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     static {
         dbAdapters = new HashMap<>();
@@ -270,9 +273,20 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 .build();
 
         properties = List.of(
-                RECORD_READER, DBCP_SERVICE, DB_TYPE, CATALOG_NAME, SCHEMA_NAME, TABLE_NAME, CREATE_TABLE,
-                PRIMARY_KEY_FIELDS, TRANSLATE_FIELD_NAMES, UPDATE_FIELD_NAMES, RECORD_WRITER_FACTORY,
-                QUOTE_TABLE_IDENTIFIER, QUOTE_COLUMN_IDENTIFIERS, QUERY_TIMEOUT
+                RECORD_READER,
+                DBCP_SERVICE,
+                DB_TYPE,
+                CATALOG_NAME,
+                SCHEMA_NAME,
+                TABLE_NAME,
+                CREATE_TABLE,
+                PRIMARY_KEY_FIELDS,
+                TRANSLATE_FIELD_NAMES,
+                UPDATE_FIELD_NAMES,
+                RECORD_WRITER_FACTORY,
+                QUOTE_TABLE_IDENTIFIER,
+                QUOTE_COLUMN_IDENTIFIERS,
+                QUERY_TIMEOUT
         );
     }
 

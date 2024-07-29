@@ -131,8 +131,12 @@ public class IdentifyMimeType extends AbstractProcessor {
             .dependsOn(CONFIG_STRATEGY, REPLACE, MERGE)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(USE_FILENAME_IN_DETECTION, CONFIG_STRATEGY, MIME_CONFIG_BODY, MIME_CONFIG_FILE);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            USE_FILENAME_IN_DETECTION,
+            CONFIG_STRATEGY,
+            MIME_CONFIG_BODY,
+            MIME_CONFIG_FILE
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")

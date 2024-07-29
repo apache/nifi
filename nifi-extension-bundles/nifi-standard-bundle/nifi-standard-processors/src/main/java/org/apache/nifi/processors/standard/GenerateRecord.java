@@ -152,8 +152,13 @@ public class GenerateRecord extends AbstractProcessor {
             .required(false)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(RECORD_WRITER, NUM_RECORDS, NULLABLE_FIELDS, NULL_PERCENTAGE, SCHEMA_TEXT);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_WRITER,
+            NUM_RECORDS,
+            NULLABLE_FIELDS,
+            NULL_PERCENTAGE,
+            SCHEMA_TEXT
+    );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")

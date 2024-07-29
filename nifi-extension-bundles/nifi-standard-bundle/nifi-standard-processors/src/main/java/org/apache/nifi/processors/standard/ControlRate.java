@@ -233,9 +233,15 @@ public class ControlRate extends AbstractProcessor {
             "Strategy is configured to use this Relationship.")
         .build();
 
-    private static final Set<Relationship> DEFAULT_RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
-    private static final Set<Relationship> RATE_EXCEEDED_RELATIONSHIPS =
-            Set.of(REL_SUCCESS, REL_FAILURE, REL_RATE_EXCEEDED);
+    private static final Set<Relationship> DEFAULT_RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+    private static final Set<Relationship> RATE_EXCEEDED_RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_RATE_EXCEEDED
+    );
 
     private static final Pattern POSITIVE_LONG_PATTERN = Pattern.compile("0*[1-9][0-9]*");
     private static final String DEFAULT_GROUP_ATTRIBUTE = ControlRate.class.getName() + "###____DEFAULT_GROUP_ATTRIBUTE___###";

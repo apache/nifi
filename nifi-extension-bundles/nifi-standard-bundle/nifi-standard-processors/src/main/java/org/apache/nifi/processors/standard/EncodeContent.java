@@ -118,7 +118,10 @@ public class EncodeContent extends AbstractProcessor {
             .description("Any FlowFile that cannot be encoded or decoded will be routed to failure")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private static final int BUFFER_SIZE = 8192;
 

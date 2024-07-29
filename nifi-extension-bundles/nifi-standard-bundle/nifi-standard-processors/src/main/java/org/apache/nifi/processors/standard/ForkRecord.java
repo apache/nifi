@@ -141,8 +141,12 @@ public class ForkRecord extends AbstractProcessor {
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(RECORD_READER, RECORD_WRITER, MODE, INCLUDE_PARENT_FIELDS);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER,
+            RECORD_WRITER,
+            MODE,
+            INCLUDE_PARENT_FIELDS
+    );
 
     public static final Relationship REL_FORK = new Relationship.Builder()
             .name("fork")
@@ -157,7 +161,11 @@ public class ForkRecord extends AbstractProcessor {
             .description("In case a FlowFile generates an error during the fork operation, it will be routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_FORK);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_FAILURE,
+            REL_FORK
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

@@ -150,8 +150,20 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            HOSTNAME, PROTOCOL, PORT, MAX_SOCKET_SEND_BUFFER_SIZE, SSL_CONTEXT_SERVICE, IDLE_EXPIRATION, TIMEOUT,
-            BATCH_SIZE, CHARSET, MSG_PRIORITY, MSG_VERSION, MSG_TIMESTAMP, MSG_HOSTNAME, MSG_BODY
+            HOSTNAME,
+            PROTOCOL,
+            PORT,
+            MAX_SOCKET_SEND_BUFFER_SIZE,
+            SSL_CONTEXT_SERVICE,
+            IDLE_EXPIRATION,
+            TIMEOUT,
+            BATCH_SIZE,
+            CHARSET,
+            MSG_PRIORITY,
+            MSG_VERSION,
+            MSG_TIMESTAMP,
+            MSG_HOSTNAME,
+            MSG_BODY
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -167,7 +179,11 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .description("FlowFiles that do not form a valid Syslog message are sent out this relationship.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_INVALID);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_INVALID
+    );
 
     private EventSender<String> eventSender;
     private String transitUri;

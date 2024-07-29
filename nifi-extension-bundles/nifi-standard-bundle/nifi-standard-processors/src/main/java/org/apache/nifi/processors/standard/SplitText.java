@@ -138,8 +138,13 @@ public class SplitText extends AbstractProcessor {
             .defaultValue("true")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(LINE_SPLIT_COUNT, FRAGMENT_MAX_SIZE, HEADER_LINE_COUNT, HEADER_MARKER, REMOVE_TRAILING_NEWLINES);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            LINE_SPLIT_COUNT,
+            FRAGMENT_MAX_SIZE,
+            HEADER_LINE_COUNT,
+            HEADER_MARKER,
+            REMOVE_TRAILING_NEWLINES
+    );
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
@@ -154,7 +159,11 @@ public class SplitText extends AbstractProcessor {
             .description("If a file cannot be split for some reason, the original file will be routed to this destination and nothing will be routed elsewhere")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_SPLITS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_SPLITS,
+            REL_FAILURE
+    );
 
     private volatile boolean removeTrailingNewLines;
 

@@ -97,7 +97,10 @@ public class DistributeLoad extends AbstractProcessor {
             .defaultValue(ROUND_ROBIN)
             .build();
 
-    private List<PropertyDescriptor> properties = List.of(NUM_RELATIONSHIPS, DISTRIBUTION_STRATEGY);
+    private List<PropertyDescriptor> properties = List.of(
+            NUM_RELATIONSHIPS,
+            DISTRIBUTION_STRATEGY
+    );
 
     public static final String RELATIONSHIP_ATTRIBUTE = "distribute.load.relationship";
 

@@ -313,10 +313,26 @@ public class HandleHttpRequest extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            PORT, HOSTNAME, SSL_CONTEXT, HTTP_PROTOCOL_STRATEGY, HTTP_CONTEXT_MAP, PATH_REGEX, URL_CHARACTER_SET,
-            ALLOW_GET, ALLOW_POST, ALLOW_PUT, ALLOW_DELETE, ALLOW_HEAD, ALLOW_OPTIONS, MAXIMUM_THREADS,
-            ADDITIONAL_METHODS, CLIENT_AUTH, CONTAINER_QUEUE_SIZE, MULTIPART_REQUEST_MAX_SIZE,
-            MULTIPART_READ_BUFFER_SIZE, PARAMETERS_TO_ATTRIBUTES
+            PORT,
+            HOSTNAME,
+            SSL_CONTEXT,
+            HTTP_PROTOCOL_STRATEGY,
+            HTTP_CONTEXT_MAP,
+            PATH_REGEX,
+            URL_CHARACTER_SET,
+            ALLOW_GET,
+            ALLOW_POST,
+            ALLOW_PUT,
+            ALLOW_DELETE,
+            ALLOW_HEAD,
+            ALLOW_OPTIONS,
+            MAXIMUM_THREADS,
+            ADDITIONAL_METHODS,
+            CLIENT_AUTH,
+            CONTAINER_QUEUE_SIZE,
+            MULTIPART_REQUEST_MAX_SIZE,
+            MULTIPART_READ_BUFFER_SIZE,
+            PARAMETERS_TO_ATTRIBUTES
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

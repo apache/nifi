@@ -213,8 +213,17 @@ public class ValidateRecord extends AbstractProcessor {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            RECORD_READER, RECORD_WRITER, INVALID_RECORD_WRITER, SCHEMA_ACCESS_STRATEGY, SCHEMA_REGISTRY, SCHEMA_NAME,
-            SCHEMA_TEXT, ALLOW_EXTRA_FIELDS, STRICT_TYPE_CHECKING, COERCE_TYPES, VALIDATION_DETAILS_ATTRIBUTE_NAME,
+            RECORD_READER,
+            RECORD_WRITER,
+            INVALID_RECORD_WRITER,
+            SCHEMA_ACCESS_STRATEGY,
+            SCHEMA_REGISTRY,
+            SCHEMA_NAME,
+            SCHEMA_TEXT,
+            ALLOW_EXTRA_FIELDS,
+            STRICT_TYPE_CHECKING,
+            COERCE_TYPES,
+            VALIDATION_DETAILS_ATTRIBUTE_NAME,
             MAX_VALIDATION_DETAILS_LENGTH
     );
 
@@ -231,7 +240,11 @@ public class ValidateRecord extends AbstractProcessor {
         .description("If the records cannot be read, validated, or written, for any reason, the original FlowFile will be routed to this relationship")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_VALID, REL_INVALID, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_VALID,
+            REL_INVALID,
+            REL_FAILURE
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

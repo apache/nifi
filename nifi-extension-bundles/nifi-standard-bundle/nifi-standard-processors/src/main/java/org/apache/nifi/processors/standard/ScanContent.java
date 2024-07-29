@@ -86,7 +86,10 @@ public class ScanContent extends AbstractProcessor {
             .defaultValue(TEXT_ENCODING)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(DICTIONARY, DICTIONARY_ENCODING);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DICTIONARY,
+            DICTIONARY_ENCODING
+    );
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
@@ -99,7 +102,10 @@ public class ScanContent extends AbstractProcessor {
                     + "term in the dictionary are routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCH, REL_NO_MATCH);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_MATCH,
+            REL_NO_MATCH
+    );
 
     public static final Charset UTF8 = StandardCharsets.UTF_8;
 

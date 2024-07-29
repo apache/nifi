@@ -144,8 +144,16 @@ public class LogAttribute extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            LOG_LEVEL, LOG_PAYLOAD, ATTRIBUTES_TO_LOG_CSV, ATTRIBUTES_TO_LOG_REGEX, ATTRIBUTES_TO_IGNORE_CSV,
-            ATTRIBUTES_TO_IGNORE_REGEX, LOG_FLOWFILE_PROPERTIES, OUTPUT_FORMAT, LOG_PREFIX, CHARSET
+            LOG_LEVEL,
+            LOG_PAYLOAD,
+            ATTRIBUTES_TO_LOG_CSV,
+            ATTRIBUTES_TO_LOG_REGEX,
+            ATTRIBUTES_TO_IGNORE_CSV,
+            ATTRIBUTES_TO_IGNORE_REGEX,
+            LOG_FLOWFILE_PROPERTIES,
+            OUTPUT_FORMAT,
+            LOG_PREFIX,
+            CHARSET
     );
 
     public static final String FIFTY_DASHES = "--------------------------------------------------";

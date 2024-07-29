@@ -141,7 +141,10 @@ public class PartitionRecord extends AbstractProcessor {
         .required(true)
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(RECORD_READER, RECORD_WRITER);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER,
+            RECORD_WRITER
+    );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -157,7 +160,11 @@ public class PartitionRecord extends AbstractProcessor {
             + "the unchanged FlowFile will be routed to this relationship")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_ORIGINAL);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_ORIGINAL
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

@@ -88,7 +88,10 @@ public class ParseSyslog extends AbstractProcessor {
         .description("Any FlowFile that is successfully parsed as a Syslog message will be to this Relationship.")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_FAILURE, REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_FAILURE,
+            REL_SUCCESS
+    );
 
     private SyslogParser parser;
 

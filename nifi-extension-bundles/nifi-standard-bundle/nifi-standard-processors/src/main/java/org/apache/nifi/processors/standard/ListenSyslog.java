@@ -194,9 +194,20 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            PROTOCOL, PORT, NETWORK_INTF_NAME, SOCKET_KEEP_ALIVE, SSL_CONTEXT_SERVICE, CLIENT_AUTH, RECV_BUFFER_SIZE,
-            MAX_MESSAGE_QUEUE_SIZE, MAX_SOCKET_BUFFER_SIZE, MAX_CONNECTIONS, MAX_BATCH_SIZE, MESSAGE_DELIMITER,
-            PARSE_MESSAGES, CHARSET
+            PROTOCOL,
+            PORT,
+            NETWORK_INTF_NAME,
+            SOCKET_KEEP_ALIVE,
+            SSL_CONTEXT_SERVICE,
+            CLIENT_AUTH,
+            RECV_BUFFER_SIZE,
+            MAX_MESSAGE_QUEUE_SIZE,
+            MAX_SOCKET_BUFFER_SIZE,
+            MAX_CONNECTIONS,
+            MAX_BATCH_SIZE,
+            MESSAGE_DELIMITER,
+            PARSE_MESSAGES,
+            CHARSET
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -208,7 +219,10 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .description("Syslog messages that do not match one of the expected formats will be sent out this relationship as a FlowFile per message.")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_INVALID);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_INVALID
+    );
 
     protected static final String RECEIVED_COUNTER = "Messages Received";
     protected static final String SUCCESS_COUNTER = "FlowFiles Transferred to Success";

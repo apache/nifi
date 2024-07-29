@@ -99,7 +99,11 @@ public class SplitRecord extends AbstractProcessor {
         .required(true)
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(RECORD_READER, RECORD_WRITER, RECORDS_PER_SPLIT);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER,
+            RECORD_WRITER,
+            RECORDS_PER_SPLIT
+    );
 
     static final Relationship REL_SPLITS = new Relationship.Builder()
         .name("splits")
@@ -115,7 +119,11 @@ public class SplitRecord extends AbstractProcessor {
             + "the unchanged FlowFile will be routed to this relationship.")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SPLITS, REL_ORIGINAL, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SPLITS,
+            REL_ORIGINAL,
+            REL_FAILURE
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

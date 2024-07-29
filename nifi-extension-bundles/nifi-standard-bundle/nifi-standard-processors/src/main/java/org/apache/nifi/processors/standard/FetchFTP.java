@@ -88,11 +88,28 @@ public class FetchFTP extends FetchFileTransfer {
             new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("21").build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            HOSTNAME, PORT, USERNAME, FTPTransfer.PASSWORD, REMOTE_FILENAME, COMPLETION_STRATEGY, MOVE_DESTINATION_DIR,
-            MOVE_CREATE_DIRECTORY, FTPTransfer.CONNECTION_TIMEOUT, FTPTransfer.DATA_TIMEOUT, FTPTransfer.USE_COMPRESSION,
-            FTPTransfer.CONNECTION_MODE, FTPTransfer.TRANSFER_MODE, FTPTransfer.PROXY_CONFIGURATION_SERVICE,
-            FTPTransfer.PROXY_TYPE, FTPTransfer.PROXY_HOST, FTPTransfer.PROXY_PORT, FTPTransfer.HTTP_PROXY_USERNAME,
-            FTPTransfer.HTTP_PROXY_PASSWORD, FTPTransfer.BUFFER_SIZE, FILE_NOT_FOUND_LOG_LEVEL, FTPTransfer.UTF8_ENCODING
+            HOSTNAME,
+            PORT,
+            USERNAME,
+            FTPTransfer.PASSWORD,
+            REMOTE_FILENAME,
+            COMPLETION_STRATEGY,
+            MOVE_DESTINATION_DIR,
+            MOVE_CREATE_DIRECTORY,
+            FTPTransfer.CONNECTION_TIMEOUT,
+            FTPTransfer.DATA_TIMEOUT,
+            FTPTransfer.USE_COMPRESSION,
+            FTPTransfer.CONNECTION_MODE,
+            FTPTransfer.TRANSFER_MODE,
+            FTPTransfer.PROXY_CONFIGURATION_SERVICE,
+            FTPTransfer.PROXY_TYPE,
+            FTPTransfer.PROXY_HOST,
+            FTPTransfer.PROXY_PORT,
+            FTPTransfer.HTTP_PROXY_USERNAME,
+            FTPTransfer.HTTP_PROXY_PASSWORD,
+            FTPTransfer.BUFFER_SIZE,
+            FILE_NOT_FOUND_LOG_LEVEL,
+            FTPTransfer.UTF8_ENCODING
     );
 
     @Override

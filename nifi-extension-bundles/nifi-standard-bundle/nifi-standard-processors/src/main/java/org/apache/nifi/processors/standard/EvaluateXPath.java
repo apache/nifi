@@ -131,7 +131,11 @@ public class EvaluateXPath extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(DESTINATION, RETURN_TYPE, VALIDATE_DTD);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DESTINATION,
+            RETURN_TYPE,
+            VALIDATE_DTD
+    );
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
@@ -150,7 +154,11 @@ public class EvaluateXPath extends AbstractProcessor {
                     + "Type is 'nodeset' and the XPath evaluates to multiple nodes")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCH, REL_NO_MATCH, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_MATCH,
+            REL_NO_MATCH,
+            REL_FAILURE
+    );
 
     private final AtomicReference<XPathFactory> factoryRef = new AtomicReference<>();
 

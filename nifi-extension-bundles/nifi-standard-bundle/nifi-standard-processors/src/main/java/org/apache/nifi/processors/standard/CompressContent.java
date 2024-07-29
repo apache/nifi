@@ -187,8 +187,12 @@ public class CompressContent extends AbstractProcessor {
         .defaultValue("false")
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(MODE, COMPRESSION_FORMAT, COMPRESSION_LEVEL, UPDATE_FILENAME);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            MODE,
+            COMPRESSION_FORMAT,
+            COMPRESSION_LEVEL,
+            UPDATE_FILENAME
+    );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -199,7 +203,10 @@ public class CompressContent extends AbstractProcessor {
         .description("FlowFiles will be transferred to the failure relationship if they fail to compress/decompress")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private final Map<String, String> compressionFormatMimeTypeMap = Map.ofEntries(
         Map.entry("application/gzip", COMPRESSION_FORMAT_GZIP),

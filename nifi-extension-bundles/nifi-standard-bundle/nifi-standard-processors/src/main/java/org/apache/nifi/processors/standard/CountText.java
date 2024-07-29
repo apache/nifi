@@ -152,8 +152,13 @@ public class CountText extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            TEXT_LINE_COUNT_PD, TEXT_LINE_NONEMPTY_COUNT_PD, TEXT_WORD_COUNT_PD, TEXT_CHARACTER_COUNT_PD,
-            SPLIT_WORDS_ON_SYMBOLS_PD, CHARACTER_ENCODING_PD, ADJUST_IMMEDIATELY
+            TEXT_LINE_COUNT_PD,
+            TEXT_LINE_NONEMPTY_COUNT_PD,
+            TEXT_WORD_COUNT_PD,
+            TEXT_CHARACTER_COUNT_PD,
+            SPLIT_WORDS_ON_SYMBOLS_PD,
+            CHARACTER_ENCODING_PD,
+            ADJUST_IMMEDIATELY
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -165,7 +170,10 @@ public class CountText extends AbstractProcessor {
             .description("If the flowfile text cannot be counted for some reason, the original file will be routed to this destination and nothing will be routed elsewhere")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private static Set<String> getStandardCharsetNames() {
         return STANDARD_CHARSETS.stream().map(Charset::displayName).collect(Collectors.toSet());

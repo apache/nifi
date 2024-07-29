@@ -181,8 +181,14 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            CONNECTION_POOL, SQL_STATEMENT, SUPPORT_TRANSACTIONS, AUTO_COMMIT, TRANSACTION_TIMEOUT, BATCH_SIZE,
-            OBTAIN_GENERATED_KEYS, RollbackOnFailure.ROLLBACK_ON_FAILURE
+            CONNECTION_POOL,
+            SQL_STATEMENT,
+            SUPPORT_TRANSACTIONS,
+            AUTO_COMMIT,
+            TRANSACTION_TIMEOUT,
+            BATCH_SIZE,
+            OBTAIN_GENERATED_KEYS,
+            RollbackOnFailure.ROLLBACK_ON_FAILURE
     );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -199,7 +205,11 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     + "such as an invalid query or an integrity constraint violation")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_RETRY, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_RETRY,
+            REL_FAILURE
+    );
 
     private static final String FRAGMENT_ID_ATTR = FragmentAttributes.FRAGMENT_ID.key();
     private static final String FRAGMENT_INDEX_ATTR = FragmentAttributes.FRAGMENT_INDEX.key();

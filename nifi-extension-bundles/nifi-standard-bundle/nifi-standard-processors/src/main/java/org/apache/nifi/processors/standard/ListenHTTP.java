@@ -270,10 +270,23 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .build();
 
     protected static final List<PropertyDescriptor> PROPERTIES = List.of(
-            BASE_PATH, PORT, HEALTH_CHECK_PORT, MAX_DATA_RATE, SSL_CONTEXT_SERVICE, HTTP_PROTOCOL_STRATEGY,
-            CLIENT_AUTHENTICATION, AUTHORIZED_DN_PATTERN, AUTHORIZED_ISSUER_DN_PATTERN, MAX_UNCONFIRMED_TIME,
-            HEADERS_AS_ATTRIBUTES_REGEX, RETURN_CODE, MULTIPART_REQUEST_MAX_SIZE, MULTIPART_READ_BUFFER_SIZE,
-            MAX_THREAD_POOL_SIZE, RECORD_READER, RECORD_WRITER
+            BASE_PATH,
+            PORT,
+            HEALTH_CHECK_PORT,
+            MAX_DATA_RATE,
+            SSL_CONTEXT_SERVICE,
+            HTTP_PROTOCOL_STRATEGY,
+            CLIENT_AUTHENTICATION,
+            AUTHORIZED_DN_PATTERN,
+            AUTHORIZED_ISSUER_DN_PATTERN,
+            MAX_UNCONFIRMED_TIME,
+            HEADERS_AS_ATTRIBUTES_REGEX,
+            RETURN_CODE,
+            MULTIPART_REQUEST_MAX_SIZE,
+            MULTIPART_READ_BUFFER_SIZE,
+            MAX_THREAD_POOL_SIZE,
+            RECORD_READER,
+            RECORD_WRITER
     );
 
     public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()

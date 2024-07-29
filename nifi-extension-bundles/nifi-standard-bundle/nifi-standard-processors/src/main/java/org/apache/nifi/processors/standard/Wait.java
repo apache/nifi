@@ -238,8 +238,15 @@ public class Wait extends AbstractProcessor {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            RELEASE_SIGNAL_IDENTIFIER, TARGET_SIGNAL_COUNT, SIGNAL_COUNTER_NAME, WAIT_BUFFER_COUNT,
-            RELEASABLE_FLOWFILE_COUNT, EXPIRATION_DURATION, DISTRIBUTED_CACHE_SERVICE, ATTRIBUTE_COPY_MODE, WAIT_MODE,
+            RELEASE_SIGNAL_IDENTIFIER,
+            TARGET_SIGNAL_COUNT,
+            SIGNAL_COUNTER_NAME,
+            WAIT_BUFFER_COUNT,
+            RELEASABLE_FLOWFILE_COUNT,
+            EXPIRATION_DURATION,
+            DISTRIBUTED_CACHE_SERVICE,
+            ATTRIBUTE_COPY_MODE,
+            WAIT_MODE,
             WAIT_PENALTY_DURATION
     );
 
@@ -263,7 +270,12 @@ public class Wait extends AbstractProcessor {
             .description("A FlowFile that has exceeded the configured Expiration Duration will be routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_WAIT, REL_EXPIRED, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_WAIT,
+            REL_EXPIRED,
+            REL_FAILURE
+    );
 
     private final Map<String, Long> signalIdPenalties = new HashMap<>();
 

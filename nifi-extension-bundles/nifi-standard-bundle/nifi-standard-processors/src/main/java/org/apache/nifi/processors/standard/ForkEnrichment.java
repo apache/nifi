@@ -65,7 +65,10 @@ public class ForkEnrichment extends AbstractProcessor {
         .description("A clone of the incoming FlowFile will be routed to this relationship, after adding appropriate attributes.")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_ENRICHMENT);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_ENRICHMENT
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

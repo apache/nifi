@@ -94,7 +94,11 @@ public class RouteOnContent extends AbstractProcessor {
             .defaultValue("UTF-8")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(MATCH_REQUIREMENT, CHARACTER_SET, BUFFER_SIZE);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            MATCH_REQUIREMENT,
+            CHARACTER_SET,
+            BUFFER_SIZE
+    );
 
     public static final Relationship REL_NO_MATCH = new Relationship.Builder()
             .name("unmatched")

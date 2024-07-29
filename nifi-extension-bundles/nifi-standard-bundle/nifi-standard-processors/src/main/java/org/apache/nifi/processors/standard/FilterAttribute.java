@@ -113,8 +113,12 @@ public class FilterAttribute extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    private final static List<PropertyDescriptor> PROPERTIES =
-            List.of(FILTER_MODE, MATCHING_STRATEGY, ATTRIBUTE_ENUMERATION, ATTRIBUTE_PATTERN);
+    private final static List<PropertyDescriptor> PROPERTIES = List.of(
+            FILTER_MODE,
+            MATCHING_STRATEGY,
+            ATTRIBUTE_ENUMERATION,
+            ATTRIBUTE_PATTERN
+    );
 
     private final static String DELIMITER_VALUE = ",";
 

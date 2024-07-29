@@ -85,7 +85,10 @@ public class LookupAttribute extends AbstractProcessor {
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(LOOKUP_SERVICE, INCLUDE_EMPTY_VALUES);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            LOOKUP_SERVICE,
+            INCLUDE_EMPTY_VALUES
+    );
 
     public static final Relationship REL_MATCHED = new Relationship.Builder()
             .description("FlowFiles with matching lookups are routed to this relationship")
@@ -102,7 +105,11 @@ public class LookupAttribute extends AbstractProcessor {
             .name("failure")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCHED, REL_UNMATCHED, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_MATCHED,
+            REL_UNMATCHED,
+            REL_FAILURE
+    );
 
     private Map<PropertyDescriptor, PropertyValue> dynamicProperties;
 

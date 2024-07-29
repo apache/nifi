@@ -142,12 +142,21 @@ public class ListenTCP extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            ListenerProperties.NETWORK_INTF_NAME, ListenerProperties.PORT, ListenerProperties.RECV_BUFFER_SIZE,
-            ListenerProperties.MAX_MESSAGE_QUEUE_SIZE, ListenerProperties.MAX_SOCKET_BUFFER_SIZE,
-            ListenerProperties.CHARSET, ListenerProperties.WORKER_THREADS, ListenerProperties.MAX_BATCH_SIZE,
-            ListenerProperties.MESSAGE_DELIMITER, IDLE_CONNECTION_TIMEOUT,
+            ListenerProperties.NETWORK_INTF_NAME,
+            ListenerProperties.PORT,
+            ListenerProperties.RECV_BUFFER_SIZE,
+            ListenerProperties.MAX_MESSAGE_QUEUE_SIZE,
+            ListenerProperties.MAX_SOCKET_BUFFER_SIZE,
+            ListenerProperties.CHARSET,
+            ListenerProperties.WORKER_THREADS,
+            ListenerProperties.MAX_BATCH_SIZE,
+            ListenerProperties.MESSAGE_DELIMITER,
+            IDLE_CONNECTION_TIMEOUT,
             // Deprecated
-            MAX_RECV_THREAD_POOL_SIZE, POOL_RECV_BUFFERS, SSL_CONTEXT_SERVICE, CLIENT_AUTH
+            MAX_RECV_THREAD_POOL_SIZE,
+            POOL_RECV_BUFFERS,
+            SSL_CONTEXT_SERVICE,
+            CLIENT_AUTH
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

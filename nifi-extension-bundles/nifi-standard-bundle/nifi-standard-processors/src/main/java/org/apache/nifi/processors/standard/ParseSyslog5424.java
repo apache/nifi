@@ -111,7 +111,11 @@ public class ParseSyslog5424 extends AbstractProcessor {
         .defaultValue("true")
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(CHARSET, NIL_POLICY, INCLUDE_BODY_IN_ATTRIBUTES);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            CHARSET,
+            NIL_POLICY,
+            INCLUDE_BODY_IN_ATTRIBUTES
+    );
 
     static final Relationship REL_FAILURE = new Relationship.Builder()
         .name("failure")
@@ -122,7 +126,10 @@ public class ParseSyslog5424 extends AbstractProcessor {
         .description("Any FlowFile that is successfully parsed as a Syslog message will be to this Relationship.")
         .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_FAILURE, REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_FAILURE,
+            REL_SUCCESS
+    );
 
     private volatile StrictSyslog5424Parser parser;
 

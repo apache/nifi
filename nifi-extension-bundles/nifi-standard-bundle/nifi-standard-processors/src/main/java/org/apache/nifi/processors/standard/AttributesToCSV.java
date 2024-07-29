@@ -147,8 +147,12 @@ public class AttributesToCSV extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            ATTRIBUTES_LIST, ATTRIBUTES_REGEX, DESTINATION,
-            INCLUDE_CORE_ATTRIBUTES, NULL_VALUE_FOR_EMPTY_STRING, INCLUDE_SCHEMA
+            ATTRIBUTES_LIST,
+            ATTRIBUTES_REGEX,
+            DESTINATION,
+            INCLUDE_CORE_ATTRIBUTES,
+            NULL_VALUE_FOR_EMPTY_STRING,
+            INCLUDE_SCHEMA
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -156,7 +160,10 @@ public class AttributesToCSV extends AbstractProcessor {
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Failed to convert attributes to CSV").build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private volatile Boolean includeCoreAttributes;
     private volatile Set<String> coreAttributes;

@@ -60,7 +60,10 @@ public class UpdateCounter extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(COUNTER_NAME, DELTA);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            COUNTER_NAME,
+            DELTA
+    );
 
     static final Relationship SUCCESS = new Relationship.Builder()
             .name("success")

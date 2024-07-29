@@ -85,7 +85,11 @@ public class ModifyBytes extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(START_OFFSET, END_OFFSET, REMOVE_ALL);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            START_OFFSET,
+            END_OFFSET,
+            REMOVE_ALL
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

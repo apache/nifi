@@ -75,14 +75,32 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            FTPTransfer.HOSTNAME, FTPTransfer.PORT, FTPTransfer.USERNAME, FTPTransfer.PASSWORD, REMOTE_PATH,
-            FTPTransfer.CREATE_DIRECTORY, FTPTransfer.BATCH_SIZE, FTPTransfer.CONNECTION_TIMEOUT,
-            FTPTransfer.DATA_TIMEOUT, FTPTransfer.CONFLICT_RESOLUTION, FTPTransfer.DOT_RENAME, FTPTransfer.TEMP_FILENAME,
-            FTPTransfer.TRANSFER_MODE, FTPTransfer.CONNECTION_MODE, FTPTransfer.REJECT_ZERO_BYTE,
-            FTPTransfer.LAST_MODIFIED_TIME, FTPTransfer.PERMISSIONS, FTPTransfer.USE_COMPRESSION,
-            FTPTransfer.PROXY_CONFIGURATION_SERVICE, FTPTransfer.PROXY_TYPE, FTPTransfer.PROXY_HOST,
-            FTPTransfer.PROXY_PORT, FTPTransfer.HTTP_PROXY_USERNAME, FTPTransfer.HTTP_PROXY_PASSWORD,
-            FTPTransfer.BUFFER_SIZE, FTPTransfer.UTF8_ENCODING
+            FTPTransfer.HOSTNAME,
+            FTPTransfer.PORT,
+            FTPTransfer.USERNAME,
+            FTPTransfer.PASSWORD,
+            REMOTE_PATH,
+            FTPTransfer.CREATE_DIRECTORY,
+            FTPTransfer.BATCH_SIZE,
+            FTPTransfer.CONNECTION_TIMEOUT,
+            FTPTransfer.DATA_TIMEOUT,
+            FTPTransfer.CONFLICT_RESOLUTION,
+            FTPTransfer.DOT_RENAME,
+            FTPTransfer.TEMP_FILENAME,
+            FTPTransfer.TRANSFER_MODE,
+            FTPTransfer.CONNECTION_MODE,
+            FTPTransfer.REJECT_ZERO_BYTE,
+            FTPTransfer.LAST_MODIFIED_TIME,
+            FTPTransfer.PERMISSIONS,
+            FTPTransfer.USE_COMPRESSION,
+            FTPTransfer.PROXY_CONFIGURATION_SERVICE,
+            FTPTransfer.PROXY_TYPE,
+            FTPTransfer.PROXY_HOST,
+            FTPTransfer.PROXY_PORT,
+            FTPTransfer.HTTP_PROXY_USERNAME,
+            FTPTransfer.HTTP_PROXY_PASSWORD,
+            FTPTransfer.BUFFER_SIZE,
+            FTPTransfer.UTF8_ENCODING
     );
 
     @Override

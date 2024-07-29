@@ -77,7 +77,10 @@ public class ExtractRecordSchema extends AbstractProcessor {
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(RECORD_READER, SCHEMA_CACHE_SIZE);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER,
+            SCHEMA_CACHE_SIZE
+    );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -89,7 +92,10 @@ public class ExtractRecordSchema extends AbstractProcessor {
                     + "the FlowFile will be routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private LoadingCache<RecordSchema, String> avroSchemaTextCache;
 

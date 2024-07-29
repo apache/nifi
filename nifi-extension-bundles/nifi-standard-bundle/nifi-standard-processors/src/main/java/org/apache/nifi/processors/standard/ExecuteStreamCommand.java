@@ -185,8 +185,11 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .build();
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
 
-    private final static Set<Relationship> OUTPUT_STREAM_RELATIONSHIP_SET =
-            Set.of(OUTPUT_STREAM_RELATIONSHIP, ORIGINAL_RELATIONSHIP, NONZERO_STATUS_RELATIONSHIP);
+    private final static Set<Relationship> OUTPUT_STREAM_RELATIONSHIP_SET = Set.of(
+            OUTPUT_STREAM_RELATIONSHIP,
+            ORIGINAL_RELATIONSHIP,
+            NONZERO_STATUS_RELATIONSHIP
+    );
     private final static Set<Relationship> ATTRIBUTE_RELATIONSHIP_SET = Set.of(ORIGINAL_RELATIONSHIP);
 
     private static final Pattern COMMAND_ARGUMENT_PATTERN = Pattern.compile("command\\.argument\\.(?<commandIndex>[0-9]+)$");
@@ -285,8 +288,15 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            WORKING_DIR, EXECUTION_COMMAND, ARGUMENTS_STRATEGY, EXECUTION_ARGUMENTS, ARG_DELIMITER,
-            IGNORE_STDIN, PUT_OUTPUT_IN_ATTRIBUTE, PUT_ATTRIBUTE_MAX_LENGTH, MIME_TYPE
+            WORKING_DIR,
+            EXECUTION_COMMAND,
+            ARGUMENTS_STRATEGY,
+            EXECUTION_ARGUMENTS,
+            ARG_DELIMITER,
+            IGNORE_STDIN,
+            PUT_OUTPUT_IN_ATTRIBUTE,
+            PUT_ATTRIBUTE_MAX_LENGTH,
+            MIME_TYPE
     );
 
     private static final String MASKED_ARGUMENT = "********";

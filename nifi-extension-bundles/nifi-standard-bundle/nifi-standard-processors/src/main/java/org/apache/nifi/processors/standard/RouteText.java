@@ -210,8 +210,14 @@ public class RouteText extends AbstractProcessor {
         .defaultValue("UTF-8")
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(ROUTE_STRATEGY, MATCH_STRATEGY, CHARACTER_SET, TRIM_WHITESPACE, IGNORE_CASE, GROUPING_REGEX);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            ROUTE_STRATEGY,
+            MATCH_STRATEGY,
+            CHARACTER_SET,
+            TRIM_WHITESPACE,
+            IGNORE_CASE,
+            GROUPING_REGEX
+    );
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")

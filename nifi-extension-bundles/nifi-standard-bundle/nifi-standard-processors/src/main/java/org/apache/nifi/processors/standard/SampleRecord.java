@@ -175,8 +175,14 @@ public class SampleRecord extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            RECORD_READER_FACTORY, RECORD_WRITER_FACTORY, SAMPLING_STRATEGY, SAMPLING_INTERVAL, SAMPLING_RANGE,
-            SAMPLING_PROBABILITY, RESERVOIR_SIZE, RANDOM_SEED
+            RECORD_READER_FACTORY,
+            RECORD_WRITER_FACTORY,
+            SAMPLING_STRATEGY,
+            SAMPLING_INTERVAL,
+            SAMPLING_RANGE,
+            SAMPLING_PROBABILITY,
+            RESERVOIR_SIZE,
+            RANDOM_SEED
     );
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
@@ -195,7 +201,11 @@ public class SampleRecord extends AbstractProcessor {
                     + "is not valid), the original FlowFile will be routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_ORIGINAL);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_ORIGINAL
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

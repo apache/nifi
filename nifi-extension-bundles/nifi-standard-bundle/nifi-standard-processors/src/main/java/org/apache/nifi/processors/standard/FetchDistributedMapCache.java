@@ -120,8 +120,11 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            PROP_CACHE_ENTRY_IDENTIFIER, PROP_DISTRIBUTED_CACHE_SERVICE, PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE,
-            PROP_PUT_ATTRIBUTE_MAX_LENGTH, PROP_CHARACTER_SET
+            PROP_CACHE_ENTRY_IDENTIFIER,
+            PROP_DISTRIBUTED_CACHE_SERVICE,
+            PROP_PUT_CACHE_VALUE_IN_ATTRIBUTE,
+            PROP_PUT_ATTRIBUTE_MAX_LENGTH,
+            PROP_CHARACTER_SET
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -137,7 +140,11 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             .description("If unable to communicate with the cache or if the cache entry is evaluated to be blank, the FlowFile will be penalized and routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_NOT_FOUND, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_NOT_FOUND,
+            REL_FAILURE
+    );
 
     private final Serializer<String> keySerializer = new StringSerializer();
     private final Deserializer<byte[]> valueDeserializer = new CacheValueDeserializer();

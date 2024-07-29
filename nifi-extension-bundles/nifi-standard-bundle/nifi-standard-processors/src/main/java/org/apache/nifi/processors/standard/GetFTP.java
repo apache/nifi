@@ -56,15 +56,33 @@ import java.util.List;
 public class GetFTP extends GetFileTransfer {
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            FTPTransfer.HOSTNAME, FTPTransfer.PORT, FTPTransfer.USERNAME, FTPTransfer.PASSWORD,
-            FTPTransfer.CONNECTION_MODE, FTPTransfer.TRANSFER_MODE, FTPTransfer.REMOTE_PATH,
-            FTPTransfer.FILE_FILTER_REGEX, FTPTransfer.PATH_FILTER_REGEX, FTPTransfer.POLLING_INTERVAL,
-            FTPTransfer.RECURSIVE_SEARCH, FTPTransfer.FOLLOW_SYMLINK, FTPTransfer.IGNORE_DOTTED_FILES,
-            FTPTransfer.DELETE_ORIGINAL, FTPTransfer.CONNECTION_TIMEOUT, FTPTransfer.DATA_TIMEOUT,
-            FTPTransfer.MAX_SELECTS, FTPTransfer.REMOTE_POLL_BATCH_SIZE, FTPTransfer.USE_NATURAL_ORDERING,
-            FTPTransfer.PROXY_CONFIGURATION_SERVICE, FTPTransfer.PROXY_TYPE, FTPTransfer.PROXY_HOST,
-            FTPTransfer.PROXY_PORT, FTPTransfer.HTTP_PROXY_USERNAME, FTPTransfer.HTTP_PROXY_PASSWORD,
-            FTPTransfer.BUFFER_SIZE, FTPTransfer.UTF8_ENCODING
+            FTPTransfer.HOSTNAME,
+            FTPTransfer.PORT,
+            FTPTransfer.USERNAME,
+            FTPTransfer.PASSWORD,
+            FTPTransfer.CONNECTION_MODE,
+            FTPTransfer.TRANSFER_MODE,
+            FTPTransfer.REMOTE_PATH,
+            FTPTransfer.FILE_FILTER_REGEX,
+            FTPTransfer.PATH_FILTER_REGEX,
+            FTPTransfer.POLLING_INTERVAL,
+            FTPTransfer.RECURSIVE_SEARCH,
+            FTPTransfer.FOLLOW_SYMLINK,
+            FTPTransfer.IGNORE_DOTTED_FILES,
+            FTPTransfer.DELETE_ORIGINAL,
+            FTPTransfer.CONNECTION_TIMEOUT,
+            FTPTransfer.DATA_TIMEOUT,
+            FTPTransfer.MAX_SELECTS,
+            FTPTransfer.REMOTE_POLL_BATCH_SIZE,
+            FTPTransfer.USE_NATURAL_ORDERING,
+            FTPTransfer.PROXY_CONFIGURATION_SERVICE,
+            FTPTransfer.PROXY_TYPE,
+            FTPTransfer.PROXY_HOST,
+            FTPTransfer.PROXY_PORT,
+            FTPTransfer.HTTP_PROXY_USERNAME,
+            FTPTransfer.HTTP_PROXY_PASSWORD,
+            FTPTransfer.BUFFER_SIZE,
+            FTPTransfer.UTF8_ENCODING
     );
 
     @Override

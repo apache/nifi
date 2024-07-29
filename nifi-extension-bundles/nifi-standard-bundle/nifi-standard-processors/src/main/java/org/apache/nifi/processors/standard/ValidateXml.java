@@ -107,7 +107,10 @@ public class ValidateXml extends AbstractProcessor {
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(SCHEMA_FILE, XML_SOURCE_ATTRIBUTE);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            SCHEMA_FILE,
+            XML_SOURCE_ATTRIBUTE
+    );
 
     public static final Relationship REL_VALID = new Relationship.Builder()
             .name("valid")
@@ -118,7 +121,10 @@ public class ValidateXml extends AbstractProcessor {
             .description("FlowFiles that are not valid according to the specified schema or contain invalid XML are routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_VALID, REL_INVALID);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_VALID,
+            REL_INVALID
+    );
 
     private static final String SCHEMA_LANGUAGE = "http://www.w3.org/2001/XMLSchema";
     private static final SchemaValidator SCHEMA_VALIDATOR = new StandardSchemaValidator();

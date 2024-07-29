@@ -74,15 +74,36 @@ public class ListFTP extends ListFileTransfer {
             new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("21").build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            FILE_TRANSFER_LISTING_STRATEGY, HOSTNAME, PORT, USERNAME, FTPTransfer.PASSWORD, REMOTE_PATH, RECORD_WRITER,
-            DISTRIBUTED_CACHE_SERVICE, FTPTransfer.RECURSIVE_SEARCH, FTPTransfer.FOLLOW_SYMLINK,
-            FTPTransfer.FILE_FILTER_REGEX, FTPTransfer.PATH_FILTER_REGEX, FTPTransfer.IGNORE_DOTTED_FILES,
-            FTPTransfer.REMOTE_POLL_BATCH_SIZE, FTPTransfer.CONNECTION_TIMEOUT, FTPTransfer.DATA_TIMEOUT,
-            FTPTransfer.CONNECTION_MODE, FTPTransfer.TRANSFER_MODE, FTPTransfer.PROXY_CONFIGURATION_SERVICE,
-            FTPTransfer.PROXY_TYPE, FTPTransfer.PROXY_HOST, FTPTransfer.PROXY_PORT, FTPTransfer.HTTP_PROXY_USERNAME,
-            FTPTransfer.HTTP_PROXY_PASSWORD, FTPTransfer.BUFFER_SIZE, TARGET_SYSTEM_TIMESTAMP_PRECISION,
-            ListedEntityTracker.TRACKING_STATE_CACHE, ListedEntityTracker.TRACKING_TIME_WINDOW,
-            ListedEntityTracker.INITIAL_LISTING_TARGET, FTPTransfer.UTF8_ENCODING
+            FILE_TRANSFER_LISTING_STRATEGY,
+            HOSTNAME,
+            PORT,
+            USERNAME,
+            FTPTransfer.PASSWORD,
+            REMOTE_PATH,
+            RECORD_WRITER,
+            DISTRIBUTED_CACHE_SERVICE,
+            FTPTransfer.RECURSIVE_SEARCH,
+            FTPTransfer.FOLLOW_SYMLINK,
+            FTPTransfer.FILE_FILTER_REGEX,
+            FTPTransfer.PATH_FILTER_REGEX,
+            FTPTransfer.IGNORE_DOTTED_FILES,
+            FTPTransfer.REMOTE_POLL_BATCH_SIZE,
+            FTPTransfer.CONNECTION_TIMEOUT,
+            FTPTransfer.DATA_TIMEOUT,
+            FTPTransfer.CONNECTION_MODE,
+            FTPTransfer.TRANSFER_MODE,
+            FTPTransfer.PROXY_CONFIGURATION_SERVICE,
+            FTPTransfer.PROXY_TYPE,
+            FTPTransfer.PROXY_HOST,
+            FTPTransfer.PROXY_PORT,
+            FTPTransfer.HTTP_PROXY_USERNAME,
+            FTPTransfer.HTTP_PROXY_PASSWORD,
+            FTPTransfer.BUFFER_SIZE,
+            TARGET_SYSTEM_TIMESTAMP_PRECISION,
+            ListedEntityTracker.TRACKING_STATE_CACHE,
+            ListedEntityTracker.TRACKING_TIME_WINDOW,
+            ListedEntityTracker.INITIAL_LISTING_TARGET,
+            FTPTransfer.UTF8_ENCODING
     );
 
     @Override

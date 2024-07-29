@@ -109,7 +109,11 @@ public class SplitXml extends AbstractProcessor {
             .description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid XML), it will be routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_SPLIT, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_SPLIT,
+            REL_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

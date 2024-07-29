@@ -104,8 +104,13 @@ public class PutTCP extends AbstractPutEventProcessor<InputStream> {
             .build();
 
     private static final List<PropertyDescriptor> ADDITIONAL_PROPERTIES = List.of(
-            CONNECTION_PER_FLOWFILE, SSL_CONTEXT_SERVICE, TRANSMISSION_STRATEGY, DEPENDENT_OUTGOING_MESSAGE_DELIMITER,
-            DEPENDENT_CHARSET, RECORD_READER, RECORD_WRITER
+            CONNECTION_PER_FLOWFILE,
+            SSL_CONTEXT_SERVICE,
+            TRANSMISSION_STRATEGY,
+            DEPENDENT_OUTGOING_MESSAGE_DELIMITER,
+            DEPENDENT_CHARSET,
+            RECORD_READER,
+            RECORD_WRITER
     );
 
     @Override

@@ -186,7 +186,12 @@ public class ValidateCsv extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            SCHEMA, HEADER, DELIMITER_CHARACTER, QUOTE_CHARACTER, END_OF_LINE_CHARACTER, VALIDATION_STRATEGY,
+            SCHEMA,
+            HEADER,
+            DELIMITER_CHARACTER,
+            QUOTE_CHARACTER,
+            END_OF_LINE_CHARACTER,
+            VALIDATION_STRATEGY,
             INCLUDE_ALL_VIOLATIONS
     );
 
@@ -199,7 +204,10 @@ public class ValidateCsv extends AbstractProcessor {
             .description("FlowFiles that are not valid according to the specified schema are routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_VALID, REL_INVALID);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_VALID,
+            REL_INVALID
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

@@ -117,8 +117,12 @@ public class SplitContent extends AbstractProcessor {
             .defaultValue(TRAILING_POSITION.getValue())
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES =
-            List.of(FORMAT, BYTE_SEQUENCE, KEEP_SEQUENCE, BYTE_SEQUENCE_LOCATION);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            FORMAT,
+            BYTE_SEQUENCE,
+            KEEP_SEQUENCE,
+            BYTE_SEQUENCE_LOCATION
+    );
 
     public static final Relationship REL_SPLITS = new Relationship.Builder()
             .name("splits")
@@ -129,7 +133,10 @@ public class SplitContent extends AbstractProcessor {
             .description("The original file")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SPLITS, REL_ORIGINAL);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SPLITS,
+            REL_ORIGINAL
+    );
 
     private final AtomicReference<byte[]> byteSequence = new AtomicReference<>();
 

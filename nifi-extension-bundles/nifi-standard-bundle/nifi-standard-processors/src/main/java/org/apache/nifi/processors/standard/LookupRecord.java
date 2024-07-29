@@ -223,8 +223,15 @@ public class LookupRecord extends AbstractProcessor {
         .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            RECORD_READER, RECORD_WRITER, LOOKUP_SERVICE, ROOT_RECORD_PATH, ROUTING_STRATEGY, RESULT_CONTENTS,
-            REPLACEMENT_STRATEGY, RESULT_RECORD_PATH, CACHE_SIZE
+            RECORD_READER,
+            RECORD_WRITER,
+            LOOKUP_SERVICE,
+            ROOT_RECORD_PATH,
+            ROUTING_STRATEGY,
+            RESULT_CONTENTS,
+            REPLACEMENT_STRATEGY,
+            RESULT_RECORD_PATH,
+            CACHE_SIZE
     );
 
     static final Relationship REL_MATCHED = new Relationship.Builder()
@@ -248,7 +255,10 @@ public class LookupRecord extends AbstractProcessor {
     private static final Set<Relationship> UNMATCHED_COLLECTION = Set.of(REL_UNMATCHED);
     private static final Set<Relationship> SUCCESS_COLLECTION = Set.of(REL_SUCCESS);
 
-    private volatile Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+    private volatile Set<Relationship> relationships = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
     private volatile boolean routeToMatchedUnmatched = false;
 
     @OnScheduled

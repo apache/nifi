@@ -172,10 +172,22 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     public GenerateTableFetch() {
         propDescriptors = List.of(
-                DBCP_SERVICE, DB_TYPE, TABLE_NAME, COLUMN_NAMES, MAX_VALUE_COLUMN_NAMES, QUERY_TIMEOUT, PARTITION_SIZE,
-                COLUMN_FOR_VALUE_PARTITIONING, WHERE_CLAUSE, CUSTOM_ORDERBY_COLUMN, OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS
+                DBCP_SERVICE,
+                DB_TYPE,
+                TABLE_NAME,
+                COLUMN_NAMES,
+                MAX_VALUE_COLUMN_NAMES,
+                QUERY_TIMEOUT,
+                PARTITION_SIZE,
+                COLUMN_FOR_VALUE_PARTITIONING,
+                WHERE_CLAUSE,
+                CUSTOM_ORDERBY_COLUMN,
+                OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS
         );
-        relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+        relationships = Set.of(
+                REL_SUCCESS,
+                REL_FAILURE
+        );
     }
 
     @Override

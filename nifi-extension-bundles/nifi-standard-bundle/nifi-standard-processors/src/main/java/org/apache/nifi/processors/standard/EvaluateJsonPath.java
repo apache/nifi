@@ -125,7 +125,11 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            DESTINATION, RETURN_TYPE, PATH_NOT_FOUND, NULL_VALUE_DEFAULT_REPRESENTATION, MAX_STRING_LENGTH
+            DESTINATION,
+            RETURN_TYPE,
+            PATH_NOT_FOUND,
+            NULL_VALUE_DEFAULT_REPRESENTATION,
+            MAX_STRING_LENGTH
     );
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
@@ -142,7 +146,11 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                     + "FlowFile; for instance, if the FlowFile is not valid JSON")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_MATCH, REL_NO_MATCH, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_MATCH,
+            REL_NO_MATCH,
+            REL_FAILURE
+    );
 
     private final ConcurrentMap<String, JsonPath> cachedJsonPathMap = new ConcurrentHashMap<>();
 
