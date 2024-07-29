@@ -78,4 +78,36 @@
             background-color: $material-theme-warn-palette-darker;
         }
     }
+
+    .flow-analysis-notification-icon {
+        &.warn {
+            background-color: if(
+                $is-dark,
+                $material-theme-primary-palette-lighter,
+                $material-theme-primary-palette-default
+            );
+        }
+
+        &.warn.fa {
+            // invert the contrast colors since the surface is dark in light mode and light in dark mode
+            color: if(
+                $is-dark,
+                $supplemental-theme-surface-palette-lighter-contrast,
+                $supplemental-theme-surface-palette-darker-contrast
+            );
+        }
+
+        &.enforce {
+            background-color: $material-theme-warn-palette-darker;
+        }
+
+        &.enforce.fa {
+            // invert the contrast colors since the surface is dark in light mode and light in dark mode
+            color: if(
+                $is-dark,
+                $supplemental-theme-surface-palette-lighter-contrast,
+                $supplemental-theme-surface-palette-darker-contrast
+            );
+        }
+    }
 }

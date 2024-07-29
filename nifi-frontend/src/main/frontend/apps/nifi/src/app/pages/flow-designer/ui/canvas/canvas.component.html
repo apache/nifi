@@ -18,12 +18,16 @@
 <div class="flex flex-col h-full">
     <fd-header></fd-header>
     <div class="flex-1">
-        <mat-drawer-container #flowAnalysisDrawer class="flex-1" style="position: unset;">
-            <mat-drawer #sidenav mode="side" [opened]="isFlowAnalysisDrawerOpened()" position="end" style="top: 98px; width: 341px;">
+        <mat-drawer-container #flowAnalysisDrawer class="flex-1" style="position: unset">
+            <mat-drawer
+                #sidenav
+                mode="side"
+                [opened]="isFlowAnalysisDrawerOpened()"
+                position="end"
+                style="top: 98px; width: 341px">
                 <flow-analysis-drawer></flow-analysis-drawer>
             </mat-drawer>
-            <mat-drawer-content class="flex-1">
-            </mat-drawer-content>
+            <mat-drawer-content class="flex-1"> </mat-drawer-content>
         </mat-drawer-container>
         <graph-controls></graph-controls>
         <div

@@ -48,7 +48,7 @@ describe('EditableBehaviorService', () => {
         [controllerServicesFeatureKey]: fromControllerServices.initialState,
         [parameterFeatureKey]: fromParameter.initialState,
         [queueFeatureKey]: fromQueue.initialState,
-        [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState,
+        [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState
     };
 
     beforeEach(() => {
