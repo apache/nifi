@@ -42,6 +42,8 @@ import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.apache.nifi.web.dao.ParameterContextDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,6 +55,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+@Repository
 public class StandardParameterContextDAO implements ParameterContextDAO {
     private FlowManager flowManager;
     private Authorizer authorizer;
@@ -433,6 +436,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         });
     }
 
+    @Autowired
     public void setFlowController(final FlowController flowController) {
         this.flowManager = flowController.getFlowManager();
     }
@@ -442,6 +446,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         return rootGroup.findAllProcessGroups(group -> group.getParameterContext() != null && group.getParameterContext().getIdentifier().equals(parameterContextId));
     }
 
+    @Autowired
     public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }

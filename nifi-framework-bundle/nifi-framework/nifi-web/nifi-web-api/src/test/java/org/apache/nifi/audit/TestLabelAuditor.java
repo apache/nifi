@@ -60,6 +60,8 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -78,13 +80,13 @@ public class TestLabelAuditor {
 
     private static final String UPDATED_LABEL = "updated-label";
 
-    @Mock
+    @Autowired
     AuditService auditService;
 
     @Mock
     Authentication authentication;
 
-    @Mock
+    @Autowired
     FlowController flowController;
 
     @Mock
@@ -104,6 +106,9 @@ public class TestLabelAuditor {
 
     @BeforeEach
     void setAuditor() {
+        reset(flowController);
+        reset(auditService);
+
         final SecurityContext securityContext = SecurityContextHolder.getContext();
         securityContext.setAuthentication(authentication);
         final NiFiUser user = new StandardNiFiUser.Builder().identity(USER_IDENTITY).build();
@@ -226,6 +231,16 @@ public class TestLabelAuditor {
         @Bean
         public ProcessGroupDAO processGroupDAO() {
             return new StandardProcessGroupDAO();
+        }
+
+        @Bean
+        public AuditService auditService() {
+            return mock(AuditService.class);
+        }
+
+        @Bean
+        public FlowController flowController() {
+            return mock(FlowController.class);
         }
     }
 }

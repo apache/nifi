@@ -49,10 +49,12 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 /**
  * Audits remote process group creation/removal and configuration changes.
  */
+@Service
 @Aspect
 public class RemoteProcessGroupAuditor extends NiFiAuditor {
 

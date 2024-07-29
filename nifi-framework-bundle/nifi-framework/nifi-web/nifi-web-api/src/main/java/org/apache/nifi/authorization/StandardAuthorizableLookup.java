@@ -70,14 +70,17 @@ import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-
-class StandardAuthorizableLookup implements AuthorizableLookup {
+@Component
+public class StandardAuthorizableLookup implements AuthorizableLookup {
 
     private static final TenantAuthorizable TENANT_AUTHORIZABLE = new TenantAuthorizable();
 
@@ -1300,70 +1303,89 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     }
 
+    @Autowired
     public void setProcessorDAO(ProcessorDAO processorDAO) {
         this.processorDAO = processorDAO;
     }
 
+    @Autowired
     public void setProcessGroupDAO(ProcessGroupDAO processGroupDAO) {
         this.processGroupDAO = processGroupDAO;
     }
 
+    @Autowired
     public void setRemoteProcessGroupDAO(RemoteProcessGroupDAO remoteProcessGroupDAO) {
         this.remoteProcessGroupDAO = remoteProcessGroupDAO;
     }
 
+    @Autowired
     public void setLabelDAO(LabelDAO labelDAO) {
         this.labelDAO = labelDAO;
     }
 
+    @Autowired
     public void setFunnelDAO(FunnelDAO funnelDAO) {
         this.funnelDAO = funnelDAO;
     }
 
+    @Autowired
     public void setSnippetDAO(SnippetDAO snippetDAO) {
         this.snippetDAO = snippetDAO;
     }
 
+    @Qualifier("standardInputPortDAO")
+    @Autowired
     public void setInputPortDAO(PortDAO inputPortDAO) {
         this.inputPortDAO = inputPortDAO;
     }
 
+    @Qualifier("standardOutputPortDAO")
+    @Autowired
     public void setOutputPortDAO(PortDAO outputPortDAO) {
         this.outputPortDAO = outputPortDAO;
     }
 
+    @Autowired
     public void setConnectionDAO(ConnectionDAO connectionDAO) {
         this.connectionDAO = connectionDAO;
     }
 
+    @Autowired
     public void setControllerServiceDAO(ControllerServiceDAO controllerServiceDAO) {
         this.controllerServiceDAO = controllerServiceDAO;
     }
 
+    @Autowired
     public void setReportingTaskDAO(ReportingTaskDAO reportingTaskDAO) {
         this.reportingTaskDAO = reportingTaskDAO;
     }
 
+    @Autowired
     public void setFlowAnalysisRuleDAO(FlowAnalysisRuleDAO flowAnalysisRuleDAO) {
         this.flowAnalysisRuleDAO = flowAnalysisRuleDAO;
     }
 
+    @Autowired
     public void setParameterProviderDAO(final ParameterProviderDAO parameterProviderDAO) {
         this.parameterProviderDAO = parameterProviderDAO;
     }
 
+    @Autowired
     public void setFlowRegistryDAO(FlowRegistryDAO flowRegistryDAO) {
         this.flowRegistryDAO = flowRegistryDAO;
     }
 
+    @Autowired
     public void setAccessPolicyDAO(AccessPolicyDAO accessPolicyDAO) {
         this.accessPolicyDAO = accessPolicyDAO;
     }
 
+    @Autowired
     public void setParameterContextDAO(ParameterContextDAO parameterContextDAO) {
         this.parameterContextDAO = parameterContextDAO;
     }
 
+    @Autowired
     public void setControllerFacade(ControllerFacade controllerFacade) {
         this.controllerFacade = controllerFacade;
     }

@@ -28,9 +28,12 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.dao.ComponentStateDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
 
+@Repository
 public class StandardComponentStateDAO implements ComponentStateDAO {
 
     private StateManagerProvider stateManagerProvider;
@@ -118,8 +121,7 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
         return getState(remoteProcessGroup.getIdentifier(), scope);
     }
 
-    /* setters */
-
+    @Autowired
     public void setStateManagerProvider(final StateManagerProvider stateManagerProvider) {
         this.stateManagerProvider = stateManagerProvider;
     }

@@ -49,7 +49,9 @@ import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.support.CronExpression;
+import org.springframework.stereotype.Repository;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -61,6 +63,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
+@Repository
 public class StandardReportingTaskDAO extends ComponentDAO implements ReportingTaskDAO {
 
     private ReportingTaskProvider reportingTaskProvider;
@@ -411,19 +414,22 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         componentStateDAO.clearState(reportingTask);
     }
 
-    /* setters */
+    @Autowired
     public void setReportingTaskProvider(ReportingTaskProvider reportingTaskProvider) {
         this.reportingTaskProvider = reportingTaskProvider;
     }
 
+    @Autowired
     public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
     }
 
+    @Autowired
     public void setReloadComponent(ReloadComponent reloadComponent) {
         this.reloadComponent = reloadComponent;
     }
 
+    @Autowired
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
     }

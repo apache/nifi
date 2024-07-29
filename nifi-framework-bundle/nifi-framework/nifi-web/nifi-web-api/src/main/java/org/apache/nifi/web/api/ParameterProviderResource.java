@@ -43,6 +43,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.ServletContext;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -125,10 +126,14 @@ import org.apache.nifi.web.util.LifecycleManagementException;
 import org.apache.nifi.web.util.ParameterUpdateManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing a Parameter Provider.
  */
+@Controller
 @Path("/parameter-providers")
 @Tag(name = "ParameterProviders")
 public class ParameterProviderResource extends AbstractParameterResource {
@@ -152,6 +157,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
     @Context
     private ServletContext servletContext;
 
+    @PostConstruct
     public void init() {
         parameterUpdateManager = new ParameterUpdateManager(serviceFacade, dtoFactory, authorizer, this);
     }
@@ -1687,28 +1693,24 @@ public class ParameterProviderResource extends AbstractParameterResource {
         }
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
-    public ComponentLifecycle getClusterComponentLifecycle() {
-        return clusterComponentLifecycle;
-    }
-
+    @Qualifier("clusterComponentLifecycle")
+    @Autowired(required = false)
     public void setClusterComponentLifecycle(final ComponentLifecycle clusterComponentLifecycle) {
         this.clusterComponentLifecycle = clusterComponentLifecycle;
     }
 
-    public ComponentLifecycle getLocalComponentLifecycle() {
-        return localComponentLifecycle;
-    }
-
+    @Qualifier("localComponentLifecycle")
+    @Autowired
     public void setLocalComponentLifecycle(final ComponentLifecycle localComponentLifecycle) {
         this.localComponentLifecycle = localComponentLifecycle;
     }
@@ -1717,6 +1719,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
         return dtoFactory;
     }
 
+    @Autowired
     public void setDtoFactory(DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
     }

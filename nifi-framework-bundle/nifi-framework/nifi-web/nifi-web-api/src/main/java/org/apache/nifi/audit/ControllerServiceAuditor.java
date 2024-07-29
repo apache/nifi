@@ -41,6 +41,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,6 +54,7 @@ import java.util.Set;
 /**
  * Audits controller service creation/removal and configuration changes.
  */
+@Service
 @Aspect
 public class ControllerServiceAuditor extends NiFiAuditor {
 

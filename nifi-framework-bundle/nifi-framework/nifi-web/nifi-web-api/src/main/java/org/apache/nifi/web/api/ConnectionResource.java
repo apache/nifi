@@ -54,10 +54,13 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing a Connection.
  */
+@Controller
 @Path("/connections")
 @Tag(name = "Connections")
 public class ConnectionResource extends ApplicationResource {
@@ -362,10 +365,12 @@ public class ConnectionResource extends ApplicationResource {
         );
     }
 
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

@@ -57,10 +57,13 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for querying dataflow snippets.
  */
+@Controller
 @Path("/snippets")
 @Tag(name = "Snippets")
 public class SnippetResource extends ApplicationResource {
@@ -367,12 +370,12 @@ public class SnippetResource extends ApplicationResource {
         );
     }
 
-    /* setters */
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

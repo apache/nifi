@@ -150,6 +150,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.nifi.web.util.PaginationHelper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 import java.text.Collator;
 import java.time.OffsetDateTime;
@@ -177,6 +179,7 @@ import static org.apache.nifi.web.api.entity.ScheduleComponentsEntity.STATE_ENAB
 /**
  * RESTful endpoint for managing a Flow.
  */
+@Controller
 @Path("/flow")
 @Tag(name = "Flow")
 public class FlowResource extends ApplicationResource {
@@ -3527,56 +3530,67 @@ public class FlowResource extends ApplicationResource {
         return noCache(Response.ok(results)).build();
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setProcessorResource(ProcessorResource processorResource) {
         this.processorResource = processorResource;
     }
 
+    @Autowired
     public void setInputPortResource(InputPortResource inputPortResource) {
         this.inputPortResource = inputPortResource;
     }
 
+    @Autowired
     public void setOutputPortResource(OutputPortResource outputPortResource) {
         this.outputPortResource = outputPortResource;
     }
 
+    @Autowired
     public void setFunnelResource(FunnelResource funnelResource) {
         this.funnelResource = funnelResource;
     }
 
+    @Autowired
     public void setLabelResource(LabelResource labelResource) {
         this.labelResource = labelResource;
     }
 
+    @Autowired
     public void setRemoteProcessGroupResource(RemoteProcessGroupResource remoteProcessGroupResource) {
         this.remoteProcessGroupResource = remoteProcessGroupResource;
     }
 
+    @Autowired
     public void setConnectionResource(ConnectionResource connectionResource) {
         this.connectionResource = connectionResource;
     }
 
+    @Autowired
     public void setProcessGroupResource(ProcessGroupResource processGroupResource) {
         this.processGroupResource = processGroupResource;
     }
 
+    @Autowired
     public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
     }
 
+    @Autowired
     public void setReportingTaskResource(ReportingTaskResource reportingTaskResource) {
         this.reportingTaskResource = reportingTaskResource;
     }
 
+    @Autowired
     public void setParameterProviderResource(final ParameterProviderResource parameterProviderResource) {
         this.parameterProviderResource = parameterProviderResource;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

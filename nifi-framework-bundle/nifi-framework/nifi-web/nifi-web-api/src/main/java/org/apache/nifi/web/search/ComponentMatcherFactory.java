@@ -33,7 +33,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ComponentMatcherFactory {
-    public ComponentMatcher<Connectable> getInstanceForConnectable(final List<AttributeMatcher<Connectable>> attributeMatchers) {
+    public <T extends Connectable> ComponentMatcher<T> getInstanceForConnectable(final List<AttributeMatcher<T>> attributeMatchers) {
         return new AttributeBasedComponentMatcher<>(attributeMatchers, component -> component.getIdentifier(), component -> component.getName());
     }
 

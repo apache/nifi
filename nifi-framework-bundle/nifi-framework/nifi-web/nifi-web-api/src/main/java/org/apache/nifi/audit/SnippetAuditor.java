@@ -59,6 +59,9 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,9 +69,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- *
- */
+@Service
 @Aspect
 public class SnippetAuditor extends NiFiAuditor {
 
@@ -459,59 +460,74 @@ public class SnippetAuditor extends NiFiAuditor {
         }
     }
 
-    /* setters */
+    @Autowired
     public void setFunnelDAO(FunnelDAO funnelDAO) {
         this.funnelDAO = funnelDAO;
     }
 
+    @Qualifier("standardInputPortDAO")
+    @Autowired
     public void setInputPortDAO(PortDAO inputPortDAO) {
         this.inputPortDAO = inputPortDAO;
     }
 
+    @Qualifier("standardOutputPortDAO")
+    @Autowired
     public void setOutputPortDAO(PortDAO outputPortDAO) {
         this.outputPortDAO = outputPortDAO;
     }
 
+    @Autowired
     public void setPortAuditor(PortAuditor portAuditor) {
         this.portAuditor = portAuditor;
     }
 
+    @Autowired
     public void setFunnelAuditor(FunnelAuditor funnelAuditor) {
         this.funnelAuditor = funnelAuditor;
     }
 
+    @Autowired
     public void setProcessGroupAuditor(ProcessGroupAuditor processGroupAuditor) {
         this.processGroupAuditor = processGroupAuditor;
     }
 
+    @Autowired
     public void setRemoteProcessGroupAuditor(RemoteProcessGroupAuditor remoteProcessGroupAuditor) {
         this.remoteProcessGroupAuditor = remoteProcessGroupAuditor;
     }
 
+    @Autowired
     public void setLabelAuditor(LabelAuditor labelAuditor) {
         this.labelAuditor = labelAuditor;
     }
 
+    @Autowired
     public void setRemoteProcessGroupDAO(RemoteProcessGroupDAO remoteProcessGroupDAO) {
         this.remoteProcessGroupDAO = remoteProcessGroupDAO;
     }
 
+    @Autowired
     public void setConnectionDAO(ConnectionDAO connectionDAO) {
         this.connectionDAO = connectionDAO;
     }
 
+    @Autowired
     public void setProcessorAuditor(ProcessorAuditor processorAuditor) {
         this.processorAuditor = processorAuditor;
     }
 
+    @Autowired
     public void setProcessorDAO(ProcessorDAO processorDAO) {
         this.processorDAO = processorDAO;
     }
 
+    @Autowired
     public void setLabelDAO(LabelDAO labelDAO) {
         this.labelDAO = labelDAO;
     }
 
+    @Autowired
     public void setRelationshipAuditor(RelationshipAuditor relationshipAuditor) {
         this.relationshipAuditor = relationshipAuditor;
     }

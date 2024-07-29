@@ -23,9 +23,9 @@ import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,7 +38,7 @@ public abstract class NiFiAuditor {
     protected static final String SENSITIVE_VALUE_PLACEHOLDER = "********";
 
     private AuditService auditService;
-    private NiFiServiceFacade serviceFacade;
+
     private ProcessGroupDAO processGroupDAO;
 
     /**
@@ -123,15 +123,12 @@ public abstract class NiFiAuditor {
         return String.format("%s from %s", formattedType, formattedBundle);
     }
 
-    /* setters / getters */
+    @Autowired
     public void setAuditService(AuditService auditService) {
         this.auditService = auditService;
     }
 
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
-        this.serviceFacade = serviceFacade;
-    }
-
+    @Autowired
     public void setProcessGroupDAO(ProcessGroupDAO processGroupDAO) {
         this.processGroupDAO = processGroupDAO;
     }
@@ -139,5 +136,4 @@ public abstract class NiFiAuditor {
     public ProcessGroupDAO getProcessGroupDAO() {
         return processGroupDAO;
     }
-
 }

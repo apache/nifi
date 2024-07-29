@@ -39,10 +39,13 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.entity.ResourcesEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for retrieving system diagnostics.
  */
+@Controller
 @Path("/resources")
 @Tag(name = "Resources")
 public class ResourceResource extends ApplicationResource {
@@ -96,12 +99,12 @@ public class ResourceResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
