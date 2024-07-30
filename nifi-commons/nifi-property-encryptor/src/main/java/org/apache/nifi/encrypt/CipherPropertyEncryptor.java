@@ -16,20 +16,20 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
-
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 
 /**
  * Cipher Property Encryptor provides hexadecimal encoding and decoding around cipher operations
  */
 abstract class CipherPropertyEncryptor implements PropertyEncryptor {
     private static final Charset PROPERTY_CHARSET = StandardCharsets.UTF_8;
+
+    private static final HexFormat HEX_FORMAT = HexFormat.of();
 
     /**
      * Encrypt property and encode as a hexadecimal string
@@ -45,7 +45,7 @@ abstract class CipherPropertyEncryptor implements PropertyEncryptor {
         final Cipher cipher = getEncryptionCipher(encodedParameters);
         try {
             final byte[] encrypted = cipher.doFinal(binary);
-            return Hex.encodeHexString(getConcatenatedBinary(encodedParameters, encrypted));
+            return HEX_FORMAT.formatHex(getConcatenatedBinary(encodedParameters, encrypted));
         } catch (final BadPaddingException | IllegalBlockSizeException e) {
             final String message = String.format("Encryption Failed with Algorithm [%s]", cipher.getAlgorithm());
             throw new EncryptionException(message, e);
@@ -74,8 +74,8 @@ abstract class CipherPropertyEncryptor implements PropertyEncryptor {
 
     private byte[] getDecodedBinary(final String encryptedProperty) {
         try {
-            return Hex.decodeHex(encryptedProperty);
-        } catch (final DecoderException e) {
+            return HEX_FORMAT.parseHex(encryptedProperty);
+        } catch (final IllegalArgumentException e) {
             throw new EncryptionException("Hexadecimal decoding failed", e);
         }
     }
