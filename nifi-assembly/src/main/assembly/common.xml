@@ -176,7 +176,7 @@
     </fileSets>
     <files>
         <file>
-            <source>${project.parent.basedir}/README.md</source>
+            <source>./README.md</source>
             <outputDirectory>./</outputDirectory>
             <destName>README</destName>
             <fileMode>0644</fileMode>
