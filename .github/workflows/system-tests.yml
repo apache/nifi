@@ -16,9 +16,6 @@
 name: system-tests
 
 on:
-  # Run every day at 00:00
-  schedule:
-    - cron: "0 0 * * *"
   push:
     paths:
       - '.github/workflows/system-tests.yml'
