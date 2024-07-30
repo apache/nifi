@@ -25,7 +25,6 @@ language governing permissions and limitations under the License. -->
     </properties>
 
     <dependencies>
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
@@ -78,10 +77,9 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-utils</artifactId>
+            <artifactId>nifi-web-servlet-shared</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-frontend</artifactId>

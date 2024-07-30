@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.web.standard.filter;
+package org.apache.nifi.web.servlet.filter;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -24,7 +24,7 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.apache.nifi.web.util.RequestUriBuilder;
+import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 
 import java.io.IOException;
 import java.net.URI;
@@ -37,7 +37,7 @@ public class QueryStringToFragmentFilter implements Filter {
         final String queryString = httpServletRequest.getQueryString();
 
         if (queryString != null) {
-            // The JoltTransformJSON UI uses hash based routing so the UI doesn't need to know the baseHref. With hash based
+            // Some NiFi front ends use hash based routing, so they don't need to know the baseHref. With hash based
             // routing query parameters are implemented within the URL fragment. Because of this any query parameters on the
             // original URL are not considered. This filter captures those and adds them to the fragment.
             final RequestUriBuilder requestUriBuilder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).path(httpServletRequest.getContextPath()).fragment("/?" + queryString);

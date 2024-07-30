@@ -38,7 +38,7 @@
     <!-- login filter -->
     <filter>
         <filter-name>FragmentFilter</filter-name>
-        <filter-class>org.apache.nifi.web.standard.filter.QueryStringToFragmentFilter</filter-class>
+        <filter-class>org.apache.nifi.web.servlet.filter.QueryStringToFragmentFilter</filter-class>
     </filter>
     <filter-mapping>
         <filter-name>FragmentFilter</filter-name>
