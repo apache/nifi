@@ -59,6 +59,7 @@ jobs:
           ./mvnw --fail-fast --no-snapshot-updates --no-transfer-progress --show-version
           -D include-python-integration-tests=true
           -P integration-tests
+          -P nifi-registry-integration-tests
           -P report-code-coverage
           jacoco:prepare-agent
           verify

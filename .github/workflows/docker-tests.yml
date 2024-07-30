@@ -16,6 +16,9 @@
 name: docker-tests
 
 on:
+  # Run at 00:00 on Monday
+  schedule:
+    - cron: "0 0 * * 1"
   push:
     paths:
       - '.github/workflows/docker-tests.yml'
