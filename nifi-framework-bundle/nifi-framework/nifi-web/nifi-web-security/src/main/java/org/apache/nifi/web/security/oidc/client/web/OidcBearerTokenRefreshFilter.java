@@ -24,7 +24,7 @@ import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.jwt.provider.SupportedClaim;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.apache.nifi.web.util.RequestUriBuilder;
+import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;

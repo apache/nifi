@@ -34,7 +34,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AuthenticationConfigurationDTO;
 import org.apache.nifi.web.api.entity.AuthenticationConfigurationEntity;
 import org.apache.nifi.web.configuration.AuthenticationConfiguration;
-import org.apache.nifi.web.util.RequestUriBuilder;
+import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 

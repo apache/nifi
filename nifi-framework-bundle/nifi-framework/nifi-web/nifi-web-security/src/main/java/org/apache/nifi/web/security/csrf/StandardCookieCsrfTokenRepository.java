@@ -21,7 +21,7 @@ import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
 import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.apache.nifi.web.security.http.SecurityHeader;
-import org.apache.nifi.web.util.RequestUriBuilder;
+import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;

@@ -28,7 +28,7 @@ import org.apache.nifi.web.security.oidc.revocation.TokenRevocationResponse;
 import org.apache.nifi.web.security.oidc.revocation.TokenRevocationResponseClient;
 import org.apache.nifi.web.security.oidc.revocation.TokenTypeHint;
 import org.apache.nifi.web.security.token.LogoutAuthenticationToken;
-import org.apache.nifi.web.util.RequestUriBuilder;
+import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;

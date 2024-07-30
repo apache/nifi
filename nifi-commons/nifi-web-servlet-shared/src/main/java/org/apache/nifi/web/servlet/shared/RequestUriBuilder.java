@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.util;
-
-import org.apache.commons.lang3.StringUtils;
+package org.apache.nifi.web.servlet.shared;
 
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
@@ -72,12 +70,9 @@ public class RequestUriBuilder {
      * @return Request URI Builder
      */
     public static RequestUriBuilder fromHttpServletRequest(final HttpServletRequest httpServletRequest, final List<String> allowedContextPaths) {
-        final String scheme = StringUtils.defaultIfEmpty(WebUtils.determineProxiedScheme(httpServletRequest), httpServletRequest.getScheme());
-        final String host = WebUtils.determineProxiedHost(httpServletRequest);
-        final int port = WebUtils.getServerPort(httpServletRequest);
-        final String contextPath = WebUtils.determineContextPath(httpServletRequest);
-        WebUtils.verifyContextPath(allowedContextPaths, contextPath);
-        return new RequestUriBuilder(scheme, host, port, contextPath);
+        final RequestUriProvider requestUriProvider = new StandardRequestUriProvider(allowedContextPaths);
+        final URI requestUri = requestUriProvider.getRequestUri(httpServletRequest);
+        return new RequestUriBuilder(requestUri.getScheme(), requestUri.getHost(), requestUri.getPort(), requestUri.getPath());
     }
 
     /**
@@ -109,7 +104,7 @@ public class RequestUriBuilder {
      * @throws IllegalArgumentException Thrown on URI syntax exceptions
      */
     public URI build() {
-        final String resourcePath = StringUtils.join(contextPath, path);
+        final String resourcePath = getResourcePath();
         try {
             return new URI(scheme, null, host, port, resourcePath, null, fragment);
         } catch (final URISyntaxException e) {
@@ -118,9 +113,29 @@ public class RequestUriBuilder {
     }
 
     private static List<String> getAllowedContextPathsConfigured(final HttpServletRequest httpServletRequest) {
+        final List<String> allowedContextPathsConfigured;
+
         final ServletContext servletContext = httpServletRequest.getServletContext();
         final String allowedContextPathsParameter = servletContext.getInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER);
-        final String[] allowedContextPathsParsed = StringUtils.split(allowedContextPathsParameter, COMMA_SEPARATOR);
-        return allowedContextPathsParsed == null ? Collections.emptyList() : Arrays.asList(allowedContextPathsParsed);
+        if (allowedContextPathsParameter == null) {
+            allowedContextPathsConfigured = Collections.emptyList();
+        } else {
+            final String[] allowedContextPathsParsed = allowedContextPathsParameter.split(COMMA_SEPARATOR);
+            allowedContextPathsConfigured = Arrays.asList(allowedContextPathsParsed);
+        }
+
+        return allowedContextPathsConfigured;
+    }
+
+    private String getResourcePath() {
+        final String resourcePath;
+
+        if (path == null) {
+            resourcePath = contextPath;
+        } else {
+            resourcePath = contextPath + path;
+        }
+
+        return resourcePath;
     }
 }

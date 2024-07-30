@@ -63,8 +63,8 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.util.CacheKey;
-import org.apache.nifi.web.util.RequestUriBuilder;
-import org.apache.nifi.web.util.WebUtils;
+import org.apache.nifi.web.servlet.shared.ProxyHeader;
+import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,12 +100,6 @@ import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_HOST_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_PORT_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER;
 
 /**
  * Base class for controllers.
@@ -300,21 +294,21 @@ public abstract class ApplicationResource {
         }
 
         // if the scheme is not set by the client, include the details from this request but don't override
-        final String proxyScheme = getFirstHeaderValue(PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
+        final String proxyScheme = getFirstHeaderValue(ProxyHeader.PROXY_SCHEME.getHeader(), ProxyHeader.FORWARDED_PROTO.getHeader());
         if (proxyScheme == null) {
-            result.put(PROXY_SCHEME_HTTP_HEADER, httpServletRequest.getScheme());
+            result.put(ProxyHeader.PROXY_SCHEME.getHeader(), httpServletRequest.getScheme());
         }
 
         // if the host is not set by the client, include the details from this request but don't override
-        final String proxyHost = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
+        final String proxyHost = getFirstHeaderValue(ProxyHeader.PROXY_HOST.getHeader(), ProxyHeader.FORWARDED_HOST.getHeader());
         if (proxyHost == null) {
-            result.put(PROXY_HOST_HTTP_HEADER, httpServletRequest.getServerName());
+            result.put(ProxyHeader.PROXY_HOST.getHeader(), httpServletRequest.getServerName());
         }
 
         // if the port is not set by the client, include the details from this request but don't override
-        final String proxyPort = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
+        final String proxyPort = getFirstHeaderValue(ProxyHeader.PROXY_PORT.getHeader(), ProxyHeader.FORWARDED_PORT.getHeader());
         if (proxyPort == null) {
-            result.put(PROXY_PORT_HTTP_HEADER, String.valueOf(httpServletRequest.getServerPort()));
+            result.put(ProxyHeader.PROXY_PORT.getHeader(), String.valueOf(httpServletRequest.getServerPort()));
         }
 
         return result;
@@ -328,7 +322,19 @@ public abstract class ApplicationResource {
      * @return the value for the first key found
      */
     private String getFirstHeaderValue(final String... keys) {
-        return WebUtils.getFirstHeaderValue(httpServletRequest, keys);
+        if (keys == null) {
+            return null;
+        }
+
+        for (final String key : keys) {
+            final String value = httpServletRequest.getHeader(key);
+
+            if (value != null) {
+                return value;
+            }
+        }
+
+        return null;
     }
 
     /**
