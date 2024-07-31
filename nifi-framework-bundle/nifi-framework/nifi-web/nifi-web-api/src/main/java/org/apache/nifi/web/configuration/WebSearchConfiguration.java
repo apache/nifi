@@ -58,16 +58,19 @@ public class WebSearchConfiguration {
 
     private final FlowController flowController;
 
-    private final ComponentSearchResultEnricherFactory resultEnricherFactory;
-
     public WebSearchConfiguration(
             final Authorizer authorizer,
-            final FlowController flowController,
-            final ComponentSearchResultEnricherFactory resultEnricherFactory
+            final FlowController flowController
     ) {
         this.authorizer = authorizer;
         this.flowController = flowController;
-        this.resultEnricherFactory = resultEnricherFactory;
+    }
+
+    @Bean
+    public ComponentSearchResultEnricherFactory resultEnricherFactory() {
+        final ComponentSearchResultEnricherFactory factory = new ComponentSearchResultEnricherFactory();
+        factory.setAuthorizer(authorizer);
+        return factory;
     }
 
     @Bean
@@ -76,7 +79,7 @@ public class WebSearchConfiguration {
 
         controllerSearchService.setAuthorizer(authorizer);
         controllerSearchService.setFlowController(flowController);
-        controllerSearchService.setResultEnricherFactory(resultEnricherFactory);
+        controllerSearchService.setResultEnricherFactory(resultEnricherFactory());
         final ComponentMatcherFactory factory = new ComponentMatcherFactory();
 
         controllerSearchService.setMatcherForConnection(factory.getInstanceForConnection(
