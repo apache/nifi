@@ -1216,8 +1216,20 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 isSeparator: true
             },
             {
-                condition: () => {
-                    return this.canvasUtils.isNotRootGroup();
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    if (selection.empty()) {
+                        return false;
+                    }
+
+                    if (!this.canvasUtils.canModify(selection)) {
+                        return false;
+                    }
+
+                    return (
+                        this.canvasUtils.isNotRootGroup() &&
+                        this.canvasUtils.canModifyParentGroup() &&
+                        this.canvasUtils.isDisconnected(selection)
+                    );
                 },
                 clazz: 'fa fa-arrows',
                 text: 'Move To Parent Group',

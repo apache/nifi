@@ -22,35 +22,39 @@
         </div>
     } @else {
         <div class="flex flex-col h-full gap-y-2">
-            <div class="flex justify-end">
-                <button mat-icon-button color="primary" (click)="openNewParameterContextDialog()">
-                    <i class="fa fa-plus"></i>
-                </button>
-            </div>
-            <div class="flex-1">
-                <parameter-context-table
-                    [parameterContexts]="parameterContextListingState.parameterContexts"
-                    [selectedParameterContextId]="selectedParameterContextId$ | async"
-                    [currentUser]="(currentUser$ | async)!"
-                    [flowConfiguration]="(flowConfiguration$ | async)!"
-                    (selectParameterContext)="selectParameterContext($event)"
-                    (editParameterContext)="editParameterContext($event)"
-                    (deleteParameterContext)="deleteParameterContext($event)"
-                    (manageAccessPolicies)="navigateToManageComponentPolicies($event)"></parameter-context-table>
-            </div>
-            <div class="flex justify-between">
-                <div class="text-sm flex items-center gap-x-2">
-                    <button mat-icon-button color="primary" (click)="refreshParameterContextListing()">
-                        <i
-                            class="fa fa-refresh"
-                            [class.fa-spin]="parameterContextListingState.status === 'loading'"></i>
-                    </button>
-                    <div>Last updated:</div>
-                    <div class="accent-color font-medium">
-                        {{ parameterContextListingState.loadedTimestamp }}
+            @if (currentUser$ | async; as currentUser) {
+                @if (currentUser.parameterContextPermissions.canWrite) {
+                    <div class="flex justify-end">
+                        <button mat-icon-button color="primary" (click)="openNewParameterContextDialog()">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+                }
+                <div class="flex-1">
+                    <parameter-context-table
+                        [parameterContexts]="parameterContextListingState.parameterContexts"
+                        [selectedParameterContextId]="selectedParameterContextId$ | async"
+                        [currentUser]="currentUser"
+                        [flowConfiguration]="(flowConfiguration$ | async)!"
+                        (selectParameterContext)="selectParameterContext($event)"
+                        (editParameterContext)="editParameterContext($event)"
+                        (deleteParameterContext)="deleteParameterContext($event)"
+                        (manageAccessPolicies)="navigateToManageComponentPolicies($event)"></parameter-context-table>
+                </div>
+                <div class="flex justify-between">
+                    <div class="text-sm flex items-center gap-x-2">
+                        <button mat-icon-button color="primary" (click)="refreshParameterContextListing()">
+                            <i
+                                class="fa fa-refresh"
+                                [class.fa-spin]="parameterContextListingState.status === 'loading'"></i>
+                        </button>
+                        <div>Last updated:</div>
+                        <div class="accent-color font-medium">
+                            {{ parameterContextListingState.loadedTimestamp }}
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
         </div>
     }
 }
