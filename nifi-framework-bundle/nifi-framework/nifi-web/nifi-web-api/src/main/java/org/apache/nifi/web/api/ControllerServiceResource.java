@@ -156,7 +156,7 @@ public class ControllerServiceResource extends ApplicationResource {
             final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(controllerService.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
             for (final UiExtension uiExtension : uiExtensions) {
                 if (UiExtensionType.ControllerServiceConfiguration.equals(uiExtension.getExtensionType())) {
-                    controllerService.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
+                    controllerService.setCustomUiUrl(generateExternalUiUri(uiExtension.getContextPath(), "configure"));
                 }
             }
         }

@@ -154,6 +154,21 @@ public abstract class ApplicationResource {
         return buildResourceUri(uriBuilder.replacePath(ROOT_PATH).build());
     }
 
+    /**
+     * Generate a URI to an external UI.
+     *
+     * @param paths paths for the external UI
+     * @return the full external UI
+     */
+    protected String generateExternalUiUri(final String... paths) {
+        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, properties.getAllowedContextPathsAsList());
+
+        final String path = String.join("/", paths);
+        builder.path(path);
+
+        return builder.build().toString();
+    }
+
     private URI buildResourceUri(final String... path) {
         final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
         return buildResourceUri(uriBuilder.segment(path).build());
