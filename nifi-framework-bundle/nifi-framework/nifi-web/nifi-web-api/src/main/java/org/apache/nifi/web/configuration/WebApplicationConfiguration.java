@@ -50,7 +50,6 @@ import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.impl.ComponentDAO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.search.query.RegexSearchQueryParser;
-import org.apache.nifi.web.search.resultenrichment.ComponentSearchResultEnricherFactory;
 import org.apache.nifi.web.util.ClusterReplicationComponentLifecycle;
 import org.apache.nifi.web.util.LocalComponentLifecycle;
 import org.apache.nifi.web.util.ParameterContextNameCollisionResolver;
@@ -97,6 +96,8 @@ public class WebApplicationConfiguration {
 
     private final RuntimeManifestService runtimeManifestService;
 
+    private final ControllerSearchService controllerSearchService;
+
     private ClusterCoordinator clusterCoordinator;
 
     private RequestReplicator requestReplicator;
@@ -113,7 +114,8 @@ public class WebApplicationConfiguration {
             final FlowService flowService,
             final NiFiProperties properties,
             final RevisionManager revisionManager,
-            final RuntimeManifestService runtimeManifestService
+            final RuntimeManifestService runtimeManifestService,
+            final ControllerSearchService controllerSearchService
     ) {
         this.authorizer = authorizer;
         this.accessPolicyDao = accessPolicyDao;
@@ -125,6 +127,7 @@ public class WebApplicationConfiguration {
         this.properties = properties;
         this.revisionManager = revisionManager;
         this.runtimeManifestService = runtimeManifestService;
+        this.controllerSearchService = controllerSearchService;
     }
 
     @Autowired(required = false)
@@ -233,24 +236,8 @@ public class WebApplicationConfiguration {
     }
 
     @Bean
-    public ComponentSearchResultEnricherFactory resultEnricherFactory() {
-        final ComponentSearchResultEnricherFactory factory = new ComponentSearchResultEnricherFactory();
-        factory.setAuthorizer(authorizer);
-        return factory;
-    }
-
-    @Bean
     public StandardReloadComponent reloadComponent() {
         return new StandardReloadComponent(flowController);
-    }
-
-    @Bean
-    public ControllerSearchService controllerSearchService() {
-        final ControllerSearchService controllerSearchService = new ControllerSearchService();
-        controllerSearchService.setAuthorizer(authorizer);
-        controllerSearchService.setFlowController(flowController);
-        controllerSearchService.setResultEnricherFactory(resultEnricherFactory());
-        return controllerSearchService;
     }
 
     @Bean
@@ -276,6 +263,7 @@ public class WebApplicationConfiguration {
         controllerFacade.setProperties(properties);
         controllerFacade.setFlowService(flowService);
         controllerFacade.setRuntimeManifestService(runtimeManifestService);
+        controllerFacade.setControllerSearchService(controllerSearchService);
         controllerFacade.setSearchQueryParser(searchQueryParser());
         return controllerFacade;
     }
