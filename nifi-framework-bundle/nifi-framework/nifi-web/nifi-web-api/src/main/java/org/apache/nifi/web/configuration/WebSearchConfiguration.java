@@ -142,6 +142,9 @@ public class WebSearchConfiguration {
                         new PortScheduledStateMatcher()
                 )
         ));
+
+        final SearchableMatcher searchableMatcher = new SearchableMatcher();
+        searchableMatcher.setFlowController(flowController);
         controllerSearchService.setMatcherForProcessor(factory.getInstanceForConnectable(
                 List.of(
                         new ExtendedMatcher<>(),
@@ -151,7 +154,7 @@ public class WebSearchConfiguration {
                         new RelationshipMatcher<>(),
                         new ProcessorMetadataMatcher(),
                         new PropertyMatcher<>(),
-                        new SearchableMatcher()
+                        searchableMatcher
                 )
         ));
 
