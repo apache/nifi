@@ -38,16 +38,21 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TestApplicationResource {
     private static final String PROXY_CONTEXT_PATH_PROP = NiFiProperties.WEB_PROXY_CONTEXT_PATH;
-    private static final String BASE_URI = "https://nifi.apache.org";
+    private static final String SCHEME = "https";
+    private static final String HOST = "nifi.apache.org";
+    private static final int PORT = 8081;
+    private static final String BASE_URI = SCHEME + "://" + HOST;
     private static final String ALLOWED_PATH = "/some/context/path";
     private static final String FORWARD_SLASH = "/";
+    private static final String CUSTOM_UI_PATH = "/my-custom-ui-1.0.0";
     private static final String ACTUAL_RESOURCE = "actualResource";
-    private static final String EXPECTED_URI = BASE_URI + ":8081" + ALLOWED_PATH + FORWARD_SLASH + ACTUAL_RESOURCE;
+    private static final String EXPECTED_URI = BASE_URI + ":" + PORT + ALLOWED_PATH + FORWARD_SLASH + ACTUAL_RESOURCE;
     private static final String MULTIPLE_ALLOWED_PATHS = String.join(",", ALLOWED_PATH, "another/path", "a/third/path");
 
     @Mock
@@ -57,8 +62,12 @@ public class TestApplicationResource {
 
     @BeforeEach
     public void setUp(@Mock UriInfo uriInfo) throws Exception {
-        when(uriInfo.getBaseUriBuilder()).thenReturn(new JerseyUriBuilder().uri(new URI(BASE_URI + FORWARD_SLASH)));
-        when(request.getScheme()).thenReturn("https");
+        // this stubbing is lenient because it is unnecessary in some tests
+        lenient().when(uriInfo.getBaseUriBuilder()).thenReturn(new JerseyUriBuilder().uri(new URI(BASE_URI + FORWARD_SLASH)));
+
+        when(request.getScheme()).thenReturn(SCHEME);
+        when(request.getServerName()).thenReturn(HOST);
+        when(request.getServerPort()).thenReturn(PORT);
 
         resource = new MockApplicationResource();
         resource.setHttpServletRequest(request);
@@ -130,6 +139,19 @@ public class TestApplicationResource {
         setNiFiProperties(Collections.singletonMap(PROXY_CONTEXT_PATH_PROP, MULTIPLE_ALLOWED_PATHS));
 
         assertEquals(EXPECTED_URI, resource.generateResourceUri(ACTUAL_RESOURCE));
+    }
+
+    @Test
+    public void testGenerateExternalUiUri() {
+        assertEquals(SCHEME + "://" + HOST + ":" + PORT + CUSTOM_UI_PATH, resource.generateExternalUiUri(CUSTOM_UI_PATH));
+    }
+
+    @Test
+    public void testGenerateExternalUiUriWithProxy() {
+        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(ProxyHeader.FORWARDED_CONTEXT.getHeader()));
+        setNiFiProperties(Collections.singletonMap(PROXY_CONTEXT_PATH_PROP, ALLOWED_PATH));
+
+        assertEquals(SCHEME + "://" + HOST + ":" + PORT + ALLOWED_PATH + CUSTOM_UI_PATH, resource.generateExternalUiUri(CUSTOM_UI_PATH));
     }
 
     private void setNiFiProperties(Map<String, String> props) {

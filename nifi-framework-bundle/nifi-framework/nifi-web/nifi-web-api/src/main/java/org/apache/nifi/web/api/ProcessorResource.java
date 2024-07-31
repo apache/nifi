@@ -165,21 +165,15 @@ public class ProcessorResource extends ApplicationResource {
         // get the config details and see if there is a custom ui for this processor type
         ProcessorConfigDTO config = processor.getConfig();
         if (config != null) {
-            // consider legacy custom ui fist
-            String customUiUrl = servletContext.getInitParameter(processor.getType());
-            if (StringUtils.isNotBlank(customUiUrl)) {
-                config.setCustomUiUrl(customUiUrl);
-            } else {
-                final BundleDTO bundle = processor.getBundle();
+            final BundleDTO bundle = processor.getBundle();
 
-                // see if this processor has any ui extensions
-                final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
-                if (uiExtensionMapping.hasUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion())) {
-                    final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
-                    for (final UiExtension uiExtension : uiExtensions) {
-                        if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
-                            config.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
-                        }
+            // see if this processor has any ui extensions
+            final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
+            if (uiExtensionMapping.hasUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion())) {
+                final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+                for (final UiExtension uiExtension : uiExtensions) {
+                    if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
+                        config.setCustomUiUrl(generateExternalUiUri(uiExtension.getContextPath(), "configure"));
                     }
                 }
             }

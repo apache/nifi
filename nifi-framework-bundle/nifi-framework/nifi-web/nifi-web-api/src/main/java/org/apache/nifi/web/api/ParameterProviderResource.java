@@ -217,7 +217,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
             final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(parameterProvider.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
             for (final UiExtension uiExtension : uiExtensions) {
                 if (UiExtensionType.ParameterProviderConfiguration.equals(uiExtension.getExtensionType())) {
-                    parameterProvider.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
+                    parameterProvider.setCustomUiUrl(generateExternalUiUri(uiExtension.getContextPath(), "configure"));
                 }
             }
         }
