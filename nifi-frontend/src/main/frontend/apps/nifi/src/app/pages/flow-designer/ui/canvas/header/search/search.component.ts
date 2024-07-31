@@ -18,7 +18,7 @@
 import { Component, DestroyRef, ElementRef, inject, Input, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { initialState } from '../../../../state/flow/flow.reducer';
-import { debounceTime, filter, switchMap, tap } from 'rxjs';
+import { debounceTime, filter, take, tap } from 'rxjs';
 import { ComponentSearchResult, SearchService } from '../../../../service/search.service';
 import {
     CdkConnectedOverlay,
@@ -35,10 +35,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { CanvasState } from '../../../../state';
 import { Store } from '@ngrx/store';
+import * as FlowActions from '../../../../state/flow/flow.actions';
 import { centerSelectedComponents, setAllowTransition } from '../../../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NifiTooltipDirective, selectCurrentRoute } from '@nifi/shared';
 import { SearchMatchTip } from '../../../../../../ui/common/tooltips/search-match-tip/search-match-tip.component';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../../../service/error-helper.service';
 
 @Component({
     selector: 'search',
@@ -100,7 +103,8 @@ export class Search implements OnInit {
     constructor(
         private formBuilder: FormBuilder,
         private searchService: SearchService,
-        private store: Store<CanvasState>
+        private store: Store<CanvasState>,
+        private errorHelper: ErrorHelper
     ) {
         this.searchForm = this.formBuilder.group({ searchBar: '' });
 
@@ -122,27 +126,38 @@ export class Search implements OnInit {
                 takeUntilDestroyed(this.destroyRef),
                 filter((data) => data?.trim().length > 0),
                 debounceTime(500),
-                tap(() => (this.searching = true)),
-                switchMap((query: string) => this.searchService.search(query, this.currentProcessGroupId))
+                tap(() => (this.searching = true))
             )
-            .subscribe((response) => {
-                const results = response.searchResultsDTO;
+            .subscribe((query) => {
+                this.searchService
+                    .search(query, this.currentProcessGroupId)
+                    .pipe(take(1))
+                    .subscribe({
+                        next: (response) => {
+                            const results = response.searchResultsDTO;
 
-                this.processorResults = results.processorResults;
-                this.connectionResults = results.connectionResults;
-                this.processGroupResults = results.processGroupResults;
-                this.inputPortResults = results.inputPortResults;
-                this.outputPortResults = results.outputPortResults;
-                this.remoteProcessGroupResults = results.remoteProcessGroupResults;
-                this.funnelResults = results.funnelResults;
-                this.labelResults = results.labelResults;
-                this.controllerServiceNodeResults = results.controllerServiceNodeResults;
-                this.parameterContextResults = results.parameterContextResults;
-                this.parameterProviderNodeResults = results.parameterProviderNodeResults;
-                this.parameterResults = results.parameterResults;
+                            this.processorResults = results.processorResults;
+                            this.connectionResults = results.connectionResults;
+                            this.processGroupResults = results.processGroupResults;
+                            this.inputPortResults = results.inputPortResults;
+                            this.outputPortResults = results.outputPortResults;
+                            this.remoteProcessGroupResults = results.remoteProcessGroupResults;
+                            this.funnelResults = results.funnelResults;
+                            this.labelResults = results.labelResults;
+                            this.controllerServiceNodeResults = results.controllerServiceNodeResults;
+                            this.parameterContextResults = results.parameterContextResults;
+                            this.parameterProviderNodeResults = results.parameterProviderNodeResults;
+                            this.parameterResults = results.parameterResults;
 
-                this.searchingResultsVisible = true;
-                this.searching = false;
+                            this.searchingResultsVisible = true;
+                            this.searching = false;
+                        },
+                        error: (errorResponse: HttpErrorResponse) => {
+                            this.searchingResultsVisible = false;
+                            this.searching = false;
+                            this.snackBarOrFullScreenError(errorResponse);
+                        }
+                    });
             });
     }
 
@@ -205,6 +220,22 @@ export class Search implements OnInit {
             this.store.dispatch(centerSelectedComponents({ request: { allowTransition: true } }));
         } else {
             this.store.dispatch(setAllowTransition({ allowTransition: true }));
+        }
+    }
+
+    onKeydown(event: KeyboardEvent): void {
+        if (event.key === 'Escape') {
+            this.searchingResultsVisible = false;
+        }
+    }
+
+    private snackBarOrFullScreenError(errorResponse: HttpErrorResponse) {
+        if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+            this.store.dispatch(
+                FlowActions.flowSnackbarError({ error: this.errorHelper.getErrorString(errorResponse) })
+            );
+        } else {
+            this.store.dispatch(this.errorHelper.fullScreenError(errorResponse));
         }
     }
 }
