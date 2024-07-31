@@ -32,9 +32,11 @@
                         <breadcrumbs
                             [entity]="serviceState.breadcrumb"
                             [currentProcessGroupId]="serviceState.processGroupId"></breadcrumbs>
-                        <button mat-icon-button color="primary" (click)="openNewControllerServiceDialog()">
-                            <i class="fa fa-plus"></i>
-                        </button>
+                        @if (serviceState.breadcrumb.permissions.canWrite) {
+                            <button mat-icon-button color="primary" (click)="openNewControllerServiceDialog()">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        }
                     </div>
                     @if (flowConfiguration$ | async; as flowConfiguration) {
                         <div class="flex-1">
