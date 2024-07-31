@@ -144,7 +144,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -341,20 +340,19 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
+        final CurrentUserEntity entity;
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
+            try (Response replicatedResponse = replicate(HttpMethod.GET)) {
+                final CurrentUserEntity replicatedCurrentUserEntity = (CurrentUserEntity) replicatedResponse.getEntity();
+                final CurrentUserEntity currentUserEntity = serviceFacade.getCurrentUser();
+                // Set Logout Supported based on local client information instead of replicated and merged responses
+                replicatedCurrentUserEntity.setLogoutSupported(currentUserEntity.isLogoutSupported());
+                entity = replicatedCurrentUserEntity;
+            }
+        } else {
+            entity = serviceFacade.getCurrentUser();
         }
 
-        // note that the cluster manager will handle this request directly
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user == null) {
-            throw new WebApplicationException(new Throwable("Unable to access details for current user."));
-        }
-
-        // create the response entity
-        final CurrentUserEntity entity = serviceFacade.getCurrentUser();
-
-        // generate the response
         return generateOkResponse(entity).build();
     }
 
