@@ -139,7 +139,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             .dynamicallyModifiesClasspath(true)
             .build();
 
-    static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
             .name("kerberos-user-service")
             .displayName("Kerberos User Service")
             .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
