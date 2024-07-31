@@ -20,6 +20,7 @@
     <form [formGroup]="searchForm">
         <ng-template
             cdkConnectedOverlay
+            [cdkConnectedOverlayDisableClose]="true"
             [cdkConnectedOverlayOrigin]="searchInput"
             [cdkConnectedOverlayOpen]="searching || searchingResultsVisible"
             [cdkConnectedOverlayPositions]="positions"
@@ -180,6 +181,7 @@
             matInput
             placeholder="Search"
             class="search-input surface-contrast"
+            (keydown)="onKeydown($event)"
             [class.open]="searchInputVisible"
             cdkOverlayOrigin
             #searchInput="cdkOverlayOrigin"
