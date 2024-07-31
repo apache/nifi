@@ -40,6 +40,11 @@
         color: if($is-dark, $material-theme-primary-palette-lighter, $material-theme-primary-palette-default);
     }
 
+    .recommendation-list-item-name::before,
+    .warning-list-item-name::before {
+        border-color: if($is-dark, $material-theme-primary-palette-lighter, $material-theme-primary-palette-default);
+    }
+
     .violation-list-item-name::before,
     .rule-violations-list-item-wrapper:before {
         background-color: $material-theme-warn-palette-darker;

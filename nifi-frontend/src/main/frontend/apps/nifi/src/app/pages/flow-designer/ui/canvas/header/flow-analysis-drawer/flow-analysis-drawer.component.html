@@ -40,7 +40,7 @@
         <div class="flow-analysis-flow-guide-breadcrumb text-sm">NiFi Flow</div>
     </div>
     <div class="flow-analysis-rules-accordion mt-2 pb-5" [hidden]="showEnforcedViolations() || showWarningViolations()">
-        <mat-accordion>
+        <mat-accordion multi>
             <mat-expansion-panel hideToggle>
                 <mat-expansion-panel-header>
                     <mat-panel-title>
@@ -56,7 +56,7 @@
                             <li>
                                 <div class="flex justify-between">
                                     <div class="flex items-center">{{ rule.name }}</div>
-                                    <button mat-icon-button type="button" [matMenuTriggerFor]="menu">
+                                    <button mat-icon-button type="button" [matMenuTriggerFor]="menu" class="w-5">
                                         <i class="fa fa-ellipsis-v"></i>
                                     </button>
                                     <mat-menu #menu="matMenu">
@@ -77,7 +77,7 @@
                                     </mat-menu>
                                 </div>
                                 @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
-                                    <div class="rule-violations-count text-sm ml-2">
+                                    <div class="rule-violations-count text-sm mt-2">
                                         <ng-container [ngPlural]="violationsMap.get(rule.id).length">
                                             <ng-template ngPluralCase="=1"
                                                 >{{ violationsMap.get(rule.id).length }} violation</ng-template
@@ -93,14 +93,14 @@
                                                 class="flex align-center relative py-2.5 pl-3.5 pr-0 border-b border-white last-of-type:border-0">
                                                 <div class="flex flex-col items-start ml-1 w-[calc(100%-5px)]">
                                                     <div
-                                                        class="violation-list-item-name text-sm"
+                                                        class="violation-list-item-name text-sm before:content-[''] before:h-1.5 before:w-1.5 before:absolute before:top-4 before:left-2 before:rounded"
                                                         *ngIf="
                                                             violation.subjectPermissionDto.canRead;
                                                             else unauthorized
                                                         ">
                                                         {{ violation.subjectDisplayName }}
                                                     </div>
-                                                    <span class="violation-list-item-id text-sm">
+                                                    <span class="violation-list-item-id text-xs">
                                                         {{ violation.subjectId }}
                                                     </span>
                                                 </div>
@@ -132,7 +132,7 @@
                             <li>
                                 <div class="flex justify-between">
                                     <div class="flex items-center">{{ rule.name }}</div>
-                                    <button mat-icon-button type="button" [matMenuTriggerFor]="menu">
+                                    <button mat-icon-button type="button" [matMenuTriggerFor]="menu" class="w-5">
                                         <i class="fa fa-ellipsis-v"></i>
                                     </button>
                                     <mat-menu #menu="matMenu" class="rule-menu w-52 shadow-lg">
@@ -142,7 +142,7 @@
                                                     <i
                                                         class="fa fa-book mr-2 primary-color rule-menu-option-icon"
                                                         aria-hidden="true"></i
-                                                    >>View Documentation
+                                                    >View Documentation
                                                 </button>
                                             </li>
                                             <li>
@@ -157,7 +157,7 @@
                                     </mat-menu>
                                 </div>
                                 @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
-                                    <div class="rule-recommendations-count text-sm ml-2">
+                                    <div class="rule-recommendations-count text-sm mt-2">
                                         <ng-container [ngPlural]="violationsMap.get(rule.id).length">
                                             <ng-template ngPluralCase="=1"
                                                 >{{ violationsMap.get(rule.id).length }} violation</ng-template
@@ -173,14 +173,14 @@
                                                 class="flex align-center relative py-2.5 pl-3.5 pr-0 border-b border-white last-of-type:border-0">
                                                 <div class="flex flex-col items-start ml-1 w-[calc(100%-5px)]">
                                                     <div
-                                                        class="recommendation-list-item-name"
+                                                        class="recommendation-list-item-name text-sm before:content-[''] before:h-1.5 before:w-1.5 before:absolute before:top-4 before:left-2 before:rounded before:border"
                                                         *ngIf="
                                                             violation.subjectPermissionDto.canRead;
                                                             else unauthorized
                                                         ">
                                                         {{ violation.subjectDisplayName }}
                                                     </div>
-                                                    <span class="recommendation-list-item-id">
+                                                    <span class="recommendation-list-item-id text-xs">
                                                         {{ violation.subjectId }}
                                                     </span>
                                                 </div>
@@ -201,7 +201,7 @@
     </div>
 
     <div class="rule-violations mt-2 pb-5" [hidden]="!showEnforcedViolations()">
-        <div class="rules-violations-header border-b text-sm">
+        <div class="rules-violations-header border-b text-sm pb-2">
             <div>
                 Enforced Violations
                 <span class="rule-violation-count">({{ enforcedViolations.length }})</span>
@@ -215,11 +215,11 @@
                     <div class="flex align-center justify-between relative py-2.5 pl-3.5 pr-0">
                         <div class="flex flex-col items-start ml-1 w-[calc(100%-5px)]">
                             <div
-                                class="violation-list-item-name"
+                                class="violation-list-item-name text-sm before:content-[''] before:h-1.5 before:w-1.5 before:absolute before:top-4 before:left-2 before:rounded"
                                 *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">
                                 {{ violation.subjectDisplayName }}
                             </div>
-                            <span class="violation-list-item-id">{{ violation.subjectId }}</span>
+                            <span class="violation-list-item-id text-xs">{{ violation.subjectId }}</span>
                         </div>
 
                         <ng-template
@@ -232,7 +232,7 @@
     </div>
 
     <div class="rule-warnings mt-2 pb-5" [hidden]="!showWarningViolations()">
-        <div class="rules-warnings-header border-b text-sm">
+        <div class="rules-warnings-header border-b text-sm pb-2">
             <div>
                 Warning Violations
                 <span class="rule-violation-count">({{ warningViolations.length }})</span>
@@ -246,11 +246,11 @@
                     <div class="flex align-center relative py-2.5 pl-3.5 pr-0">
                         <div class="flex flex-col items-start ml-1 w-[calc(100%-5px)]">
                             <div
-                                class="warning-list-item-name"
+                                class="warning-list-item-name text-sm before:content-[''] before:h-1.5 before:w-1.5 before:absolute before:top-4 before:left-2 before:rounded before:border"
                                 *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">
                                 {{ violation.subjectDisplayName }}
                             </div>
-                            <span class="warning-list-item-id">{{ violation.subjectId }}</span>
+                            <span class="warning-list-item-id text-xs">{{ violation.subjectId }}</span>
                         </div>
 
                         <ng-template
@@ -264,7 +264,7 @@
 </div>
 
 <ng-template #violationMenuTemplate let-violation="violation">
-    <button mat-icon-button type="button" [matMenuTriggerFor]="violationMenu">
+    <button mat-icon-button type="button" [matMenuTriggerFor]="violationMenu" class="w-5">
         <i class="fa fa-ellipsis-v"></i>
     </button>
     <mat-menu #violationMenu="matMenu" class="rule-menu w-52 shadow-lg" id="rule-menu">
@@ -273,9 +273,8 @@
                 <button
                     mat-menu-item
                     (click)="viewViolationDetails(violation)"
-                    class=""
                     [disabled]="!violation.subjectPermissionDto.canRead">
-                    <i class="fa mr-2 primary-color rule-menu-option-icon" aria-hidden="true"></i>Violation details
+                    <i class="fa fa-info-circle mr-2 primary-color rule-menu-option-icon" aria-hidden="true"></i>Violation details
                 </button>
             </li>
             <li
