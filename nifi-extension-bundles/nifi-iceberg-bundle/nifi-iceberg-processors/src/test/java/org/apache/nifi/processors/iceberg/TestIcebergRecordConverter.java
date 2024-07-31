@@ -156,7 +156,7 @@ public class TestIcebergRecordConverter {
             Types.NestedField.optional(3, "long", Types.LongType.get()),
             Types.NestedField.optional(4, "double", Types.DoubleType.get()),
             Types.NestedField.optional(5, "decimal", Types.DecimalType.of(10, 2)),
-            Types.NestedField.optional(6, "decimalLessScore", Types.DecimalType.of(10, 2)),
+            Types.NestedField.optional(6, "decimalLowerScore", Types.DecimalType.of(10, 2)),
             Types.NestedField.optional(7, "boolean", Types.BooleanType.get()),
             Types.NestedField.optional(8, "fixed", Types.FixedType.ofLength(5)),
             Types.NestedField.optional(9, "binary", Types.BinaryType.get()),
@@ -285,7 +285,7 @@ public class TestIcebergRecordConverter {
         fields.add(new RecordField("long", RecordFieldType.LONG.getDataType()));
         fields.add(new RecordField("double", RecordFieldType.DOUBLE.getDataType()));
         fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(10, 2)));
-        fields.add(new RecordField("decimalLessScore", RecordFieldType.DECIMAL.getDecimalDataType(10, 2)));
+        fields.add(new RecordField("decimalLowerScore", RecordFieldType.DECIMAL.getDecimalDataType(10, 2)));
         fields.add(new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType()));
         fields.add(new RecordField("fixed", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
         fields.add(new RecordField("binary", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
@@ -462,7 +462,7 @@ public class TestIcebergRecordConverter {
         values.put("long", 42L);
         values.put("double", 3.14159D);
         values.put("decimal", new BigDecimal("12345678.12"));
-        values.put("decimalLessScore", new BigDecimal("12345678.1"));
+        values.put("decimalLowerScore", 12345678.1);
         values.put("boolean", true);
         values.put("fixed", "hello".getBytes());
         values.put("binary", "hello".getBytes());
