@@ -16,10 +16,24 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.spy;
+
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.db.DatabaseAdapter;
+import org.apache.nifi.db.DerbyDatabaseAdapter;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.db.impl.DerbyDatabaseAdapter;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordField;
@@ -32,19 +46,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
-import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUpdateDatabaseTable {
 
@@ -124,7 +125,10 @@ public class TestUpdateDatabaseTable {
         runner.setProperty(UpdateDatabaseTable.CREATE_TABLE, UpdateDatabaseTable.CREATE_IF_NOT_EXISTS);
         runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "false");
         runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "true");
-        runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
+        final DatabaseAdapter dbAdapter = spy(new DerbyDatabaseAdapter());
+        runner.addControllerService("dbAdapter", dbAdapter);
+        runner.enableControllerService(dbAdapter);
+        runner.setProperty(UpdateDatabaseTable.DATABASE_ADAPTER, "dbAdapter");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
@@ -191,7 +195,10 @@ public class TestUpdateDatabaseTable {
             runner.setProperty(UpdateDatabaseTable.CREATE_TABLE, UpdateDatabaseTable.FAIL_IF_NOT_EXISTS);
             runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "true");
             runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "false");
-            runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
+            final DatabaseAdapter dbAdapter = spy(new DerbyDatabaseAdapter());
+            runner.addControllerService("dbAdapter", dbAdapter);
+            runner.enableControllerService(dbAdapter);
+            runner.setProperty(UpdateDatabaseTable.DATABASE_ADAPTER, "dbAdapter");
             runner.addControllerService("dbcp", service);
             runner.enableControllerService(service);
             runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
@@ -260,7 +267,10 @@ public class TestUpdateDatabaseTable {
             runner.setProperty(UpdateDatabaseTable.TRANSLATE_FIELD_NAMES, "true");
             runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "true");
             runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "false");
-            runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
+            final DatabaseAdapter dbAdapter = spy(new DerbyDatabaseAdapter());
+            runner.addControllerService("dbAdapter", dbAdapter);
+            runner.enableControllerService(dbAdapter);
+            runner.setProperty(UpdateDatabaseTable.DATABASE_ADAPTER, "dbAdapter");
             runner.addControllerService("dbcp", service);
             runner.enableControllerService(service);
             runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
@@ -325,7 +335,10 @@ public class TestUpdateDatabaseTable {
             runner.setProperty(UpdateDatabaseTable.TRANSLATE_FIELD_NAMES, "false");
             runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "true");
             runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "false");
-            runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
+            final DatabaseAdapter dbAdapter = spy(new DerbyDatabaseAdapter());
+            runner.addControllerService("dbAdapter", dbAdapter);
+            runner.enableControllerService(dbAdapter);
+            runner.setProperty(UpdateDatabaseTable.DATABASE_ADAPTER, "dbAdapter");
             runner.addControllerService("dbcp", service);
             runner.enableControllerService(service);
             runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
@@ -406,7 +419,10 @@ public class TestUpdateDatabaseTable {
             runner.enableControllerService(writerFactory);
             runner.setProperty(UpdateDatabaseTable.RECORD_WRITER_FACTORY, "mock-writer-factory");
 
-            runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
+            final DatabaseAdapter dbAdapter = spy(new DerbyDatabaseAdapter());
+            runner.addControllerService("dbAdapter", dbAdapter);
+            runner.enableControllerService(dbAdapter);
+            runner.setProperty(UpdateDatabaseTable.DATABASE_ADAPTER, "dbAdapter");
             runner.addControllerService("dbcp", service);
             runner.enableControllerService(service);
             runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
@@ -449,7 +465,10 @@ public class TestUpdateDatabaseTable {
         runner.setProperty(UpdateDatabaseTable.CREATE_TABLE, UpdateDatabaseTable.CREATE_IF_NOT_EXISTS);
         runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "false");
         runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "true");
-        runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
+        final DatabaseAdapter dbAdapter = spy(new DerbyDatabaseAdapter());
+        runner.addControllerService("dbAdapter", dbAdapter);
+        runner.enableControllerService(dbAdapter);
+        runner.setProperty(UpdateDatabaseTable.DATABASE_ADAPTER, "dbAdapter");
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
         runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");

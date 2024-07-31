@@ -16,34 +16,21 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.dbcp2.DelegatingConnection;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
-import org.apache.nifi.processors.standard.db.ColumnDescription;
-import org.apache.nifi.processors.standard.db.TableSchema;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.MockRecordFailureType;
-import org.apache.nifi.serialization.record.MockRecordParser;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentMatchers;
-import org.mockito.stubbing.Answer;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -72,22 +59,36 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.apache.commons.dbcp2.DelegatingConnection;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.db.ColumnDescription;
+import org.apache.nifi.db.DatabaseAdapter;
+import org.apache.nifi.db.GenericDatabaseAdapter;
+import org.apache.nifi.db.TableSchema;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.MockRecordFailureType;
+import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentMatchers;
+import org.mockito.stubbing.Answer;
 
 public class PutDatabaseRecordTest {
 
@@ -193,12 +194,16 @@ public class PutDatabaseRecordTest {
 
     private void setRunner(TestCase testCase) throws InitializationException {
         processor = new PutDatabaseRecord();
+        final DatabaseAdapter dbAdapter = new GenericDatabaseAdapter();
         //Mock the DBCP Controller Service so we can control the Results
         dbcp = spy(new DBCPServiceSimpleImpl(DB_LOCATION));
 
         final Map<String, String> dbcpProperties = new HashMap<>();
 
         runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("dbAdapter", dbAdapter);
+        runner.enableControllerService(dbAdapter);
+        runner.setProperty(PutDatabaseRecord.DATABASE_ADAPTER, "dbAdapter");
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
@@ -238,6 +243,10 @@ public class PutDatabaseRecordTest {
         dbcp = new DBCPServiceAutoCommitTest(DB_LOCATION);
         final Map<String, String> dbcpProperties = new HashMap<>();
         runner = TestRunners.newTestRunner(processor);
+        final DatabaseAdapter dbAdapter = new GenericDatabaseAdapter();
+        runner.addControllerService("dbAdapter", dbAdapter);
+        runner.enableControllerService(dbAdapter);
+        runner.setProperty(PutDatabaseRecord.DATABASE_ADAPTER, dbAdapter.getIdentifier());
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
@@ -277,6 +286,10 @@ public class PutDatabaseRecordTest {
         dbcp = new DBCPServiceThrowConnectionException(new SQLTransientException("connection failed"));
         final Map<String, String> dbcpProperties = new HashMap<>();
         runner = TestRunners.newTestRunner(processor);
+        final DatabaseAdapter dbAdapter = new GenericDatabaseAdapter();
+        runner.addControllerService("dbAdapter", dbAdapter);
+        runner.enableControllerService(dbAdapter);
+        runner.setProperty(PutDatabaseRecord.DATABASE_ADAPTER, dbAdapter.getIdentifier());
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
@@ -303,6 +316,10 @@ public class PutDatabaseRecordTest {
         dbcp = new DBCPServiceThrowConnectionException(new NullPointerException("connection is null"));
         final Map<String, String> dbcpProperties = new HashMap<>();
         runner = TestRunners.newTestRunner(processor);
+        final DatabaseAdapter dbAdapter = new GenericDatabaseAdapter();
+        runner.addControllerService("dbAdapter", dbAdapter);
+        runner.enableControllerService(dbAdapter);
+        runner.setProperty(PutDatabaseRecord.DATABASE_ADAPTER, dbAdapter.getIdentifier());
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
@@ -332,6 +349,10 @@ public class PutDatabaseRecordTest {
         final Map<String, String> dbcpProperties = new HashMap<>();
 
         runner = TestRunners.newTestRunner(processor);
+        final DatabaseAdapter dbAdapter = new GenericDatabaseAdapter();
+        runner.addControllerService("dbAdapter", dbAdapter);
+        runner.enableControllerService(dbAdapter);
+        runner.setProperty(PutDatabaseRecord.DATABASE_ADAPTER, dbAdapter.getIdentifier());
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
@@ -2219,6 +2240,10 @@ public class PutDatabaseRecordTest {
 
         dbcp = spy(new DBCPServiceSimpleImpl(DB_LOCATION, false)); // Use H2
         runner = TestRunners.newTestRunner(processor);
+        final DatabaseAdapter dbAdapter = new GenericDatabaseAdapter();
+        runner.addControllerService("dbAdapter", dbAdapter);
+        runner.enableControllerService(dbAdapter);
+        runner.setProperty(PutDatabaseRecord.DATABASE_ADAPTER, dbAdapter.getIdentifier());
         runner.addControllerService(DBCP_SERVICE_ID, dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
         runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);

@@ -16,45 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processor.util.pattern.DiscontinuedException;
-import org.apache.nifi.processors.standard.db.ColumnDescription;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
-import org.apache.nifi.processors.standard.db.TableNotFoundException;
-import org.apache.nifi.processors.standard.db.TableSchema;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.WriteResult;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.util.StringUtils;
+import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,10 +32,49 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
 import java.util.Set;
-
-import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.db.ColumnDescription;
+import org.apache.nifi.db.DatabaseAdapter;
+import org.apache.nifi.db.TableNotFoundException;
+import org.apache.nifi.db.TableSchema;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.DatabaseAdapterMigration;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.pattern.DiscontinuedException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.util.StringUtils;
 
 @Tags({"metadata", "jdbc", "database", "table", "update", "alter"})
 @CapabilityDescription("This processor uses a JDBC connection and incoming records to generate any database table changes needed to support the incoming records. It expects a 'flat' record layout, "
@@ -233,7 +234,12 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    static final PropertyDescriptor DB_TYPE;
+    static final PropertyDescriptor DATABASE_ADAPTER = new Builder()
+            .name("Database Adapter")
+            .description("The service, that is used for generating database-specific code.")
+            .identifiesControllerService(DatabaseAdapter.class)
+            .required(true)
+            .build();
 
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -246,30 +252,10 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .description("A FlowFile containing records routed to this relationship if the record could not be transmitted to the database.")
             .build();
 
-    protected static final Map<String, DatabaseAdapter> dbAdapters;
     private static final List<PropertyDescriptor> propertyDescriptors;
     protected static Set<Relationship> relationships;
 
     static {
-        dbAdapters = new HashMap<>();
-        ArrayList<AllowableValue> dbAdapterValues = new ArrayList<>();
-
-        ServiceLoader<DatabaseAdapter> dbAdapterLoader = ServiceLoader.load(DatabaseAdapter.class);
-        dbAdapterLoader.forEach(databaseAdapter -> {
-            dbAdapters.put(databaseAdapter.getName(), databaseAdapter);
-            dbAdapterValues.add(new AllowableValue(databaseAdapter.getName(), databaseAdapter.getName(), databaseAdapter.getDescription()));
-        });
-
-        DB_TYPE = new PropertyDescriptor.Builder()
-                .name("db-type")
-                .displayName("Database Type")
-                .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
-                        + "should suffice, but some databases (such as Oracle) require custom SQL clauses.")
-                .allowableValues(dbAdapterValues.toArray(new AllowableValue[0]))
-                .defaultValue("Generic")
-                .required(false)
-                .build();
-
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
         r.add(REL_FAILURE);
@@ -278,7 +264,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(RECORD_READER);
         pds.add(DBCP_SERVICE);
-        pds.add(DB_TYPE);
+        pds.add(DATABASE_ADAPTER);
         pds.add(CATALOG_NAME);
         pds.add(SCHEMA_NAME);
         pds.add(TABLE_NAME);
@@ -291,6 +277,12 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         pds.add(QUOTE_COLUMN_IDENTIFIERS);
         pds.add(QUERY_TIMEOUT);
         propertyDescriptors = Collections.unmodifiableList(pds);
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        super.migrateProperties(config);
+        DatabaseAdapterMigration.migrateProperties(config, DATABASE_ADAPTER, "db-type");
     }
 
     @Override
@@ -314,7 +306,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                     .explanation("Record Writer must be set if 'Update Field Names' is true").valid(false).build());
         }
 
-        final DatabaseAdapter databaseAdapter = dbAdapters.get(validationContext.getProperty(DB_TYPE).getValue());
+        final DatabaseAdapter databaseAdapter = validationContext.getProperty(DATABASE_ADAPTER).asControllerService(DatabaseAdapter.class);
         final boolean createIfNotExists = CREATE_IF_NOT_EXISTS.getValue().equals(validationContext.getProperty(CREATE_TABLE).getValue());
         if (createIfNotExists && !databaseAdapter.supportsCreateTableIfNotExists()) {
             validationResults.add(new ValidationResult.Builder().subject(CREATE_TABLE.getDisplayName())
@@ -378,7 +370,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 throw new ProcessException("Record Writer must be set if 'Update Field Names' is true");
             }
             final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-            final DatabaseAdapter databaseAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
+            final DatabaseAdapter databaseAdapter = context.getProperty(DATABASE_ADAPTER).asControllerService(DatabaseAdapter.class);
             try (final Connection connection = dbcpService.getConnection(flowFile.getAttributes())) {
                 final boolean quoteTableName = context.getProperty(QUOTE_TABLE_IDENTIFIER).asBoolean();
                 final boolean quoteColumnNames = context.getProperty(QUOTE_COLUMN_IDENTIFIERS).asBoolean();

@@ -195,7 +195,7 @@ public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
 
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(DBCP_SERVICE);
-        pds.add(DB_TYPE);
+        pds.add(DATABASE_ADAPTER);
         pds.add(new PropertyDescriptor.Builder()
                 .fromPropertyDescriptor(TABLE_NAME)
                 .description("The name of the database table to be queried. When a custom query is used, this property is used to alias the query and appears as an attribute on the FlowFile.")

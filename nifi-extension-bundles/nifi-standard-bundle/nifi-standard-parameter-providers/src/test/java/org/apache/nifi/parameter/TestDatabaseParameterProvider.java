@@ -15,19 +15,17 @@ package org.apache.nifi.parameter; /*
  * limitations under the License.
  */
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockConfigurationContext;
-import org.apache.nifi.util.MockParameterProviderInitializationContext;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
-import org.mockito.ArgumentMatchers;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.mockito.stubbing.OngoingStubbing;
+import static org.apache.nifi.parameter.DatabaseParameterProvider.DATABASE_ADAPTER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -41,17 +39,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.db.DatabaseAdapter;
+import org.apache.nifi.db.GenericDatabaseAdapter;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.MockParameterProviderInitializationContext;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.mockito.stubbing.OngoingStubbing;
 
 public class TestDatabaseParameterProvider {
 
@@ -74,6 +76,8 @@ public class TestDatabaseParameterProvider {
         final DatabaseParameterProvider rawProvider = new DatabaseParameterProvider();
         initializationContext = new MockParameterProviderInitializationContext("id", "name", mock(ComponentLog.class));
         initializationContext.addControllerService(dbcpService, DBCP_SERVICE);
+        final DatabaseAdapter dbAdapter = new GenericDatabaseAdapter();
+        initializationContext.addControllerService(dbAdapter, DATABASE_ADAPTER.getName());
         rawProvider.initialize(initializationContext);
         parameterProvider = spy(rawProvider);
         // Return the table name
@@ -82,7 +86,7 @@ public class TestDatabaseParameterProvider {
         columnBasedProperties = new HashMap<>();
 
         columnBasedProperties.put(DatabaseParameterProvider.DBCP_SERVICE, DBCP_SERVICE);
-        columnBasedProperties.put(DatabaseParameterProvider.DB_TYPE, "Generic");
+        columnBasedProperties.put(DATABASE_ADAPTER, dbAdapter.getIdentifier());
         columnBasedProperties.put(DatabaseParameterProvider.PARAMETER_GROUPING_STRATEGY, DatabaseParameterProvider.GROUPING_BY_COLUMN.getValue());
         columnBasedProperties.put(DatabaseParameterProvider.PARAMETER_GROUP_NAME_COLUMN, "group");
         columnBasedProperties.put(DatabaseParameterProvider.PARAMETER_NAME_COLUMN, "name");
@@ -91,7 +95,7 @@ public class TestDatabaseParameterProvider {
 
         nonColumnBasedProperties = new HashMap<>();
         nonColumnBasedProperties.put(DatabaseParameterProvider.DBCP_SERVICE, DBCP_SERVICE);
-        nonColumnBasedProperties.put(DatabaseParameterProvider.DB_TYPE, "Generic");
+        nonColumnBasedProperties.put(DATABASE_ADAPTER, dbAdapter.getIdentifier());
         nonColumnBasedProperties.put(DatabaseParameterProvider.PARAMETER_GROUPING_STRATEGY, DatabaseParameterProvider.GROUPING_BY_TABLE_NAME.getValue());
         nonColumnBasedProperties.put(DatabaseParameterProvider.PARAMETER_NAME_COLUMN, "name");
         nonColumnBasedProperties.put(DatabaseParameterProvider.PARAMETER_VALUE_COLUMN, "value");
