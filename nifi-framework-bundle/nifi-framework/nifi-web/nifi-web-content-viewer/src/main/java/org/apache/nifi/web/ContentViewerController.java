@@ -35,6 +35,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.ViewableContent.DisplayMode;
+import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
@@ -57,11 +58,7 @@ public class ContentViewerController extends HttpServlet {
     // 1.5kb - multiple of 12 (3 bytes = 4 base 64 encoded chars)
     private final static int BUFFER_LENGTH = 1536;
 
-    private static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
-    private static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
-    private static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
-
-  /**
+    /**
      * Gets the content and defers to registered viewers to generate the markup.
      *
      * @param request servlet request
@@ -263,23 +260,11 @@ public class ContentViewerController extends HttpServlet {
      */
     private ContentRequestContext getContentRequest(final HttpServletRequest request) {
         final String ref = request.getParameter("ref");
+        final URI inputRefUri = UriBuilder.fromUri(ref).build();
+        final URI dataUri = RequestUriBuilder.fromHttpServletRequest(request).path(inputRefUri.getPath()).build();
+
         final String clientId = request.getParameter("clientId");
-
-        final UriBuilder refUriBuilder = UriBuilder.fromUri(ref);
-
-        // base the data ref on the request parameter but ensure the scheme is based off the incoming request...
-        // this is necessary for scenario's where the NiFi instance is behind a proxy running a different scheme
-        refUriBuilder.scheme(request.getScheme());
-
-        // If there is path context from a proxy, remove it since this request will be used inside the cluster
-        final String proxyContextPath = getFirstHeaderValue(request, PROXY_CONTEXT_PATH_HTTP_HEADER, FORWARDED_CONTEXT_HTTP_HEADER, FORWARDED_PREFIX_HTTP_HEADER);
-        if (StringUtils.isNotBlank(proxyContextPath)) {
-            refUriBuilder.replacePath(StringUtils.substringAfter(UriBuilder.fromUri(ref).build().getPath(), proxyContextPath));
-        }
-
-        final URI refUri = refUriBuilder.build();
-
-        final String query = refUri.getQuery();
+        final String query = inputRefUri.getQuery();
 
         String rawClusterNodeId = null;
         if (query != null) {
@@ -296,7 +281,7 @@ public class ContentViewerController extends HttpServlet {
         return new ContentRequestContext() {
             @Override
             public String getDataUri() {
-                return refUri.toString();
+                return dataUri.toString();
             }
 
             @Override
@@ -309,30 +294,5 @@ public class ContentViewerController extends HttpServlet {
                 return clientId;
             }
         };
-    }
-
-    /**
-     * Returns the value for the first key discovered when inspecting the current request. Will
-     * return null if there are no keys specified or if none of the specified keys are found.
-     *
-     * @param keys http header keys
-     * @return the value for the first key found
-     */
-    private String getFirstHeaderValue(HttpServletRequest httpServletRequest, final String... keys) {
-        if (keys == null) {
-            return null;
-        }
-
-        for (final String key : keys) {
-            final String value = httpServletRequest.getHeader(key);
-
-            // if we found an entry for this key, return the value
-            if (value != null) {
-                return value;
-            }
-        }
-
-        // unable to find any matching keys
-        return null;
     }
 }

@@ -73,6 +73,11 @@
             <artifactId>jakarta.ws.rs-api</artifactId>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-servlet-shared</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
