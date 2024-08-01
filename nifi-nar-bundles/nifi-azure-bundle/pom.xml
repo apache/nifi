@@ -29,8 +29,6 @@
     <properties>
         <microsoft.azure-storage.version>8.6.6</microsoft.azure-storage.version>
         <azure.sdk.bom.version>1.2.25</azure.sdk.bom.version>
-        <!-- msal4j:1.16.x compatible with msal4j:1.14, msal4j:1.15 APIs -->
-        <!-- https://github.com/AzureAD/microsoft-authentication-library-for-java/pull/828 -->
         <msal4j.version>1.16.1</msal4j.version>
         <qpid.proton.version>0.34.1</qpid.proton.version>
     </properties>
