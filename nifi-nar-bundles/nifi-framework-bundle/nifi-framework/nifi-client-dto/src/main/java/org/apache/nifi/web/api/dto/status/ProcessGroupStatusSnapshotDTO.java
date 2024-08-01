@@ -80,6 +80,9 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     private Integer terminatedThreadCount = 0;
     private Long processingNanos = 0L;
 
+    @ApiModelProperty("Represents the processing performance for all the processors in the given process group.")
+    private ProcessingPerformanceStatusDTO processingPerformanceStatus;
+
     /**
      * The id for the process group.
      *
@@ -507,6 +510,14 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.processingNanos = processingNanos;
     }
 
+    public ProcessingPerformanceStatusDTO getProcessingPerformanceStatus() {
+        return processingPerformanceStatus;
+    }
+
+    public void setProcessingPerformanceStatus(ProcessingPerformanceStatusDTO processingPerformanceStatus) {
+        this.processingPerformanceStatus = processingPerformanceStatus;
+    }
+
     @Override
     public ProcessGroupStatusSnapshotDTO clone() {
         final ProcessGroupStatusSnapshotDTO other = new ProcessGroupStatusSnapshotDTO();
@@ -583,6 +594,8 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
             }
             other.setProcessGroupStatusSnapshots(childGroups);
         }
+
+        other.setProcessingPerformanceStatus(getProcessingPerformanceStatus());
 
         return other;
     }
