@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.web.client;
 
-import okhttp3.Call;
-import okhttp3.Credentials;
-import okhttp3.Headers;
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
-
 import org.apache.nifi.web.client.api.HttpEntityHeaders;
 import org.apache.nifi.web.client.api.HttpRequestBodySpec;
 import org.apache.nifi.web.client.api.HttpRequestHeadersSpec;
@@ -37,21 +27,31 @@ import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.api.WebClientServiceException;
 import org.apache.nifi.web.client.proxy.ProxyContext;
 import org.apache.nifi.web.client.redirect.RedirectHandling;
-import org.apache.nifi.web.client.ssl.SSLSocketFactoryProvider;
-import org.apache.nifi.web.client.ssl.StandardSSLSocketFactoryProvider;
+import org.apache.nifi.web.client.ssl.SSLContextProvider;
+import org.apache.nifi.web.client.ssl.StandardSSLContextProvider;
 import org.apache.nifi.web.client.ssl.TlsContext;
 
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.SSLContext;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Authenticator;
+import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.concurrent.Flow;
 
 /**
  * Standard implementation of Web Client Service using OkHttp
@@ -59,15 +59,25 @@ import java.util.OptionalLong;
 public class StandardWebClientService implements WebClientService {
     private static final byte[] EMPTY_BYTES = new byte[0];
 
-    private static final SSLSocketFactoryProvider sslSocketFactoryProvider = new StandardSSLSocketFactoryProvider();
+    private static final SSLContextProvider sslContextProvider = new StandardSSLContextProvider();
 
-    private OkHttpClient okHttpClient;
+    private HttpClient httpClient;
+
+    private Duration connectTimeout;
+
+    private Duration readTimeout;
+
+    private RedirectHandling redirectHandling;
+
+    private ProxyContext proxyContext;
+
+    private TlsContext tlsContext;
 
     /**
-     * Standard Web Client Service constructor creates OkHttpClient using default settings
+     * Standard Web Client Service constructor creates a Java HttpClient using default settings
      */
     public StandardWebClientService() {
-        okHttpClient = new OkHttpClient.Builder().build();
+        httpClient = HttpClient.newBuilder().build();
     }
 
     /**
@@ -77,7 +87,8 @@ public class StandardWebClientService implements WebClientService {
      */
     public void setConnectTimeout(final Duration connectTimeout) {
         Objects.requireNonNull(connectTimeout, "Connect Timeout required");
-        okHttpClient = okHttpClient.newBuilder().connectTimeout(connectTimeout).build();
+        this.connectTimeout = connectTimeout;
+        this.httpClient = buildHttpClient();
     }
 
     /**
@@ -87,17 +98,16 @@ public class StandardWebClientService implements WebClientService {
      */
     public void setReadTimeout(final Duration readTimeout) {
         Objects.requireNonNull(readTimeout, "Read Timeout required");
-        okHttpClient = okHttpClient.newBuilder().readTimeout(readTimeout).build();
+        this.readTimeout = readTimeout;
     }
 
     /**
-     * Set timeout for writing requests to socket connection
+     * Set timeout for writing requests to socket connection is not supported with current HTTP Client implementation
      *
      * @param writeTimeout Write Timeout
      */
     public void setWriteTimeout(final Duration writeTimeout) {
         Objects.requireNonNull(writeTimeout, "Write Timeout required");
-        okHttpClient = okHttpClient.newBuilder().writeTimeout(writeTimeout).build();
     }
 
     /**
@@ -107,17 +117,9 @@ public class StandardWebClientService implements WebClientService {
      */
     public void setProxyContext(final ProxyContext proxyContext) {
         Objects.requireNonNull(proxyContext, "Proxy Context required");
-        final Proxy proxy = Objects.requireNonNull(proxyContext.getProxy(), "Proxy required");
-        okHttpClient = okHttpClient.newBuilder().proxy(proxy).build();
-
-        final Optional<String> proxyUsername = proxyContext.getUsername();
-        if (proxyUsername.isPresent()) {
-            final String username = proxyUsername.get();
-            final String password = proxyContext.getPassword().orElseThrow(() -> new IllegalArgumentException("Proxy password required"));
-            final String credentials = Credentials.basic(username, password);
-            final BasicProxyAuthenticator proxyAuthenticator = new BasicProxyAuthenticator(credentials);
-            okHttpClient = okHttpClient.newBuilder().proxyAuthenticator(proxyAuthenticator).build();
-        }
+        Objects.requireNonNull(proxyContext.getProxy(), "Proxy required");
+        this.proxyContext = proxyContext;
+        this.httpClient = buildHttpClient();
     }
 
     /**
@@ -127,8 +129,8 @@ public class StandardWebClientService implements WebClientService {
      */
     public void setRedirectHandling(final RedirectHandling redirectHandling) {
         Objects.requireNonNull(redirectHandling, "Redirect Handling required");
-        final boolean followRedirects = RedirectHandling.FOLLOWED == redirectHandling;
-        okHttpClient = okHttpClient.newBuilder().followRedirects(followRedirects).followSslRedirects(followRedirects).build();
+        this.redirectHandling = redirectHandling;
+        this.httpClient = buildHttpClient();
     }
 
     /**
@@ -138,9 +140,9 @@ public class StandardWebClientService implements WebClientService {
      */
     public void setTlsContext(final TlsContext tlsContext) {
         Objects.requireNonNull(tlsContext, "TLS Context required");
-        final X509TrustManager trustManager = Objects.requireNonNull(tlsContext.getTrustManager(), "Trust Manager required");
-        final SSLSocketFactory sslSocketFactory = sslSocketFactoryProvider.getSocketFactory(tlsContext);
-        okHttpClient = okHttpClient.newBuilder().sslSocketFactory(sslSocketFactory, trustManager).build();
+        Objects.requireNonNull(tlsContext.getTrustManager(), "Trust Manager required");
+        this.tlsContext = tlsContext;
+        this.httpClient = buildHttpClient();
     }
 
     /**
@@ -203,6 +205,64 @@ public class StandardWebClientService implements WebClientService {
         return method(StandardHttpRequestMethod.PUT);
     }
 
+    private HttpClient buildHttpClient() {
+        final HttpClient.Builder builder = HttpClient.newBuilder();
+
+        if (connectTimeout != null) {
+            builder.connectTimeout(connectTimeout);
+        }
+        if (tlsContext != null) {
+            final SSLContext sslContext = sslContextProvider.getSslContext(tlsContext);
+            builder.sslContext(sslContext);
+        }
+        if (RedirectHandling.FOLLOWED == redirectHandling) {
+            builder.followRedirects(HttpClient.Redirect.ALWAYS);
+        } else if (RedirectHandling.IGNORED == redirectHandling) {
+            builder.followRedirects(HttpClient.Redirect.NEVER);
+        }
+        if (proxyContext != null) {
+            final Proxy proxy = proxyContext.getProxy();
+            final SocketAddress proxyAddress = proxy.address();
+            if (proxyAddress instanceof InetSocketAddress proxySocketAddress) {
+                final ProxySelector proxySelector = ProxySelector.of(proxySocketAddress);
+                builder.proxy(proxySelector);
+
+                final Optional<String> proxyUsername = proxyContext.getUsername();
+                if (proxyUsername.isPresent()) {
+                    final ProxyPasswordAuthenticator passwordAuthenticator = getProxyPasswordAuthenticator(proxyUsername.get());
+                    builder.authenticator(passwordAuthenticator);
+                }
+            }
+        }
+
+        return builder.build();
+    }
+
+    private ProxyPasswordAuthenticator getProxyPasswordAuthenticator(final String proxyUsername) {
+        final char[] password;
+        final Optional<String> proxyPassword = proxyContext.getPassword();
+        if (proxyPassword.isPresent()) {
+            password = proxyPassword.get().toCharArray();
+        } else {
+            throw new IllegalArgumentException("Proxy Password not configured");
+        }
+        final PasswordAuthentication passwordAuthentication = new PasswordAuthentication(proxyUsername, password);
+        return new ProxyPasswordAuthenticator(passwordAuthentication);
+    }
+
+    static class ProxyPasswordAuthenticator extends Authenticator {
+        private final PasswordAuthentication passwordAuthentication;
+
+        ProxyPasswordAuthenticator(final PasswordAuthentication passwordAuthentication) {
+            this.passwordAuthentication = passwordAuthentication;
+        }
+
+        @Override
+        protected PasswordAuthentication getPasswordAuthentication() {
+            return passwordAuthentication;
+        }
+    }
+
     class StandardHttpRequestUriSpec implements HttpRequestUriSpec {
         private final HttpRequestMethod httpRequestMethod;
 
@@ -224,7 +284,7 @@ public class StandardWebClientService implements WebClientService {
 
         private final URI uri;
 
-        private final Headers.Builder headersBuilder;
+        private final HttpRequest.Builder requestBuilder;
 
         private long contentLength = UNKNOWN_CONTENT_LENGTH;
 
@@ -233,7 +293,7 @@ public class StandardWebClientService implements WebClientService {
         StandardHttpRequestBodySpec(final HttpRequestMethod httpRequestMethod, final URI uri) {
             this.httpRequestMethod = httpRequestMethod;
             this.uri = uri;
-            this.headersBuilder = new Headers.Builder();
+            this.requestBuilder = HttpRequest.newBuilder();
         }
 
         @Override
@@ -247,57 +307,69 @@ public class StandardWebClientService implements WebClientService {
         public HttpRequestBodySpec header(final String headerName, final String headerValue) {
             Objects.requireNonNull(headerName, "Header Name required");
             Objects.requireNonNull(headerValue, "Header Value required");
-            headersBuilder.add(headerName, headerValue);
+            requestBuilder.header(headerName, headerValue);
             return this;
         }
 
         @Override
         public HttpResponseEntity retrieve() {
-            final Request request = getRequest();
-            final Call call = okHttpClient.newCall(request);
-            final Response response = execute(call);
+            final HttpRequest request = getRequest();
+            final HttpResponse<InputStream> response = getResponse(request);
 
-            final int code = response.code();
-            final Headers responseHeaders = response.headers();
-            final HttpEntityHeaders headers = new StandardHttpEntityHeaders(responseHeaders.toMultimap());
-            final ResponseBody responseBody = response.body();
-            final InputStream body = responseBody == null ? new ByteArrayInputStream(EMPTY_BYTES) : responseBody.byteStream();
+            final int code = response.statusCode();
+
+            final HttpHeaders responseHeaders = response.headers();
+            final HttpEntityHeaders headers = new StandardHttpEntityHeaders(responseHeaders.map());
+
+            final InputStream responseBody = response.body();
+            final InputStream body = responseBody == null ? new ByteArrayInputStream(EMPTY_BYTES) : responseBody;
 
             return new StandardHttpResponseEntity(code, headers, body);
         }
 
-        private Response execute(final Call call) {
+        private HttpResponse<InputStream> getResponse(final HttpRequest request) {
             try {
-                return call.execute();
+                return httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             } catch (final IOException e) {
                 throw new WebClientServiceException("Request execution failed", e, uri, httpRequestMethod);
+            } catch (final InterruptedException e) {
+                throw new WebClientServiceException("Request execution interrupted", e, uri, httpRequestMethod);
             }
         }
 
-        private Request getRequest() {
-            final HttpUrl url = HttpUrl.get(uri);
-            Objects.requireNonNull(url, "HTTP Request URI required");
+        private HttpRequest getRequest() {
+            if (readTimeout != null) {
+                requestBuilder.timeout(readTimeout);
+            }
 
-            final Headers headers = headersBuilder.build();
-            final RequestBody requestBody = getRequestBody();
+            final HttpRequest.BodyPublisher bodyPublisher = getBodyPublisher();
 
-            return new Request.Builder()
-                    .method(httpRequestMethod.getMethod(), requestBody)
-                    .url(url)
-                    .headers(headers)
+            return requestBuilder.method(httpRequestMethod.getMethod(), bodyPublisher)
+                    .uri(uri)
                     .build();
         }
 
-        private RequestBody getRequestBody() {
-            final RequestBody requestBody;
+        private HttpRequest.BodyPublisher getBodyPublisher() {
+            final HttpRequest.BodyPublisher bodyPublisher;
 
             if (body == null) {
-                requestBody = null;
+                bodyPublisher = HttpRequest.BodyPublishers.noBody();
             } else {
-                requestBody = new InputStreamRequestBody(body, contentLength);
+                final HttpRequest.BodyPublisher inputStreamPublisher = HttpRequest.BodyPublishers.ofInputStream(() -> body);
+                bodyPublisher = new HttpRequest.BodyPublisher() {
+                    @Override
+                    public long contentLength() {
+                        return contentLength;
+                    }
+
+                    @Override
+                    public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
+                        inputStreamPublisher.subscribe(subscriber);
+                    }
+                };
             }
 
-            return requestBody;
+            return bodyPublisher;
         }
     }
 }

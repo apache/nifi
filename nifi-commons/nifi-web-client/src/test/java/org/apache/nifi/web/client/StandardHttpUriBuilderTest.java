@@ -33,23 +33,69 @@ class StandardHttpUriBuilderTest {
 
     private static final String ENCODED_PATH = "/resources/search";
 
+    private static final String PATH_WITH_SPACES_ENCODED = "/resources/%20separated%20search";
+
     private static final String RESOURCES_PATH_SEGMENT = "resources";
+
+    private static final String RESOURCES_PATH_SEGMENT_SEPARATED = "resources|separated";
+
+    private static final String RESOURCES_PATH_SEGMENT_SEPARATED_ENCODED = "resources%7Cseparated";
 
     private static final String PARAMETER_NAME = "search";
 
     private static final String PARAMETER_VALUE = "terms";
 
-    private static final URI HTTP_LOCALHOST_URI = URI.create(String.format("%s://%s/", HTTP_SCHEME, LOCALHOST));
+    private static final String SECOND_PARAMETER_NAME = "refresh";
 
-    private static final URI HTTP_LOCALHOST_PORT_URI = URI.create(String.format("%s://%s:%d/", HTTP_SCHEME, LOCALHOST, PORT));
+    private static final String SECOND_PARAMETER_VALUE = "{0}";
 
-    private static final URI HTTP_LOCALHOST_PORT_ENCODED_PATH_URI = URI.create(String.format("%s://%s:%d%s", HTTP_SCHEME, LOCALHOST, PORT, ENCODED_PATH));
+    private static final String SECOND_PARAMETER_VALUE_ENCODED = "%7B0%7D";
 
-    private static final URI HTTP_LOCALHOST_RESOURCES_URI = URI.create(String.format("%s%s", HTTP_LOCALHOST_URI, RESOURCES_PATH_SEGMENT));
+    private static final String PARAMETER_NAME_AND_VALUE = String.format("%s=%s", PARAMETER_NAME, PARAMETER_VALUE);
 
-    private static final URI HTTP_LOCALHOST_QUERY_URI = URI.create(String.format("%s?%s=%s", HTTP_LOCALHOST_RESOURCES_URI, PARAMETER_NAME, PARAMETER_VALUE));
+    private static final URI HTTP_LOCALHOST_URI = URI.create(
+            String.format("%s://%s/", HTTP_SCHEME, LOCALHOST)
+    );
 
-    private static final URI HTTP_LOCALHOST_QUERY_EMPTY_VALUE_URI = URI.create(String.format("%s?%s", HTTP_LOCALHOST_RESOURCES_URI, PARAMETER_NAME));
+    private static final URI HTTP_LOCALHOST_PORT_URI = URI.create(
+            String.format("%s://%s:%d/", HTTP_SCHEME, LOCALHOST, PORT)
+    );
+
+    private static final URI HTTP_LOCALHOST_PORT_ENCODED_PATH_URI = URI.create(
+            String.format("%s://%s:%d%s", HTTP_SCHEME, LOCALHOST, PORT, ENCODED_PATH)
+    );
+
+    private static final URI HTTP_LOCALHOST_PORT_ENCODED_PATH_WITH_SPACES_URI = URI.create(
+            String.format("%s://%s:%d%s", HTTP_SCHEME, LOCALHOST, PORT, PATH_WITH_SPACES_ENCODED)
+    );
+
+    private static final URI HTTP_LOCALHOST_RESOURCES_URI = URI.create(
+            String.format("%s%s", HTTP_LOCALHOST_URI, RESOURCES_PATH_SEGMENT)
+    );
+
+    private static final URI HTTP_LOCALHOST_RESOURCES_SEPARATED_URI = URI.create(
+            String.format("%s%s", HTTP_LOCALHOST_URI, RESOURCES_PATH_SEGMENT_SEPARATED_ENCODED)
+    );
+
+    private static final URI HTTP_LOCALHOST_QUERY_URI = URI.create(
+            String.format("%s?%s", HTTP_LOCALHOST_RESOURCES_URI, PARAMETER_NAME_AND_VALUE)
+    );
+
+    private static final URI HTTP_LOCALHOST_QUERY_REPEATED_URI = URI.create(
+            String.format("%s?%s&%s", HTTP_LOCALHOST_RESOURCES_URI, PARAMETER_NAME_AND_VALUE, PARAMETER_NAME_AND_VALUE)
+    );
+
+    private static final URI HTTP_LOCALHOST_QUERY_SECOND_PARAMETER_URI = URI.create(
+            String.format("%s?%s&%s", HTTP_LOCALHOST_RESOURCES_URI, PARAMETER_NAME_AND_VALUE, SECOND_PARAMETER_NAME)
+    );
+
+    private static final URI HTTP_LOCALHOST_QUERY_PARAMETER_VALUE_URI = URI.create(
+            String.format("%s?%s=%s", HTTP_LOCALHOST_RESOURCES_URI, SECOND_PARAMETER_NAME, SECOND_PARAMETER_VALUE_ENCODED)
+    );
+
+    private static final URI HTTP_LOCALHOST_QUERY_EMPTY_VALUE_URI = URI.create(
+            String.format("%s?%s", HTTP_LOCALHOST_RESOURCES_URI, PARAMETER_NAME)
+    );
 
     @Test
     void testBuildIllegalStateException() {
@@ -67,6 +113,21 @@ class StandardHttpUriBuilderTest {
         final URI uri = builder.build();
 
         assertEquals(HTTP_LOCALHOST_URI, uri);
+    }
+
+    @Test
+    void testBuildSchemeInvalid() {
+        assertThrows(IllegalArgumentException.class, () -> new StandardHttpUriBuilder().scheme(String.class.getSimpleName()));
+    }
+
+    @Test
+    void testBuildPortInvalidMaximum() {
+        assertThrows(IllegalArgumentException.class, () -> new StandardHttpUriBuilder().port(Integer.MAX_VALUE));
+    }
+
+    @Test
+    void testBuildPortInvalidMinimum() {
+        assertThrows(IllegalArgumentException.class, () -> new StandardHttpUriBuilder().port(Integer.MIN_VALUE));
     }
 
     @Test
@@ -95,6 +156,19 @@ class StandardHttpUriBuilderTest {
     }
 
     @Test
+    void testBuildSchemeHostPortEncodedPathWithSpaces() {
+        final HttpUriBuilder builder = new StandardHttpUriBuilder()
+                .scheme(HTTP_SCHEME)
+                .host(LOCALHOST)
+                .port(PORT)
+                .encodedPath(PATH_WITH_SPACES_ENCODED);
+
+        final URI uri = builder.build();
+
+        assertEquals(HTTP_LOCALHOST_PORT_ENCODED_PATH_WITH_SPACES_URI, uri);
+    }
+
+    @Test
     void testBuildSchemeHostPathSegment() {
         final HttpUriBuilder builder = new StandardHttpUriBuilder()
                 .scheme(HTTP_SCHEME)
@@ -104,6 +178,18 @@ class StandardHttpUriBuilderTest {
         final URI uri = builder.build();
 
         assertEquals(HTTP_LOCALHOST_RESOURCES_URI, uri);
+    }
+
+    @Test
+    void testBuildSchemeHostPathSegmentSeparated() {
+        final HttpUriBuilder builder = new StandardHttpUriBuilder()
+                .scheme(HTTP_SCHEME)
+                .host(LOCALHOST)
+                .addPathSegment(RESOURCES_PATH_SEGMENT_SEPARATED);
+
+        final URI uri = builder.build();
+
+        assertEquals(HTTP_LOCALHOST_RESOURCES_SEPARATED_URI, uri);
     }
 
     @Test
@@ -117,6 +203,47 @@ class StandardHttpUriBuilderTest {
         final URI uri = builder.build();
 
         assertEquals(HTTP_LOCALHOST_QUERY_URI, uri);
+    }
+
+    @Test
+    void testBuildSchemeHostPathSegmentQueryParameterRepeated() {
+        final HttpUriBuilder builder = new StandardHttpUriBuilder()
+                .scheme(HTTP_SCHEME)
+                .host(LOCALHOST)
+                .addPathSegment(RESOURCES_PATH_SEGMENT)
+                .addQueryParameter(PARAMETER_NAME, PARAMETER_VALUE)
+                .addQueryParameter(PARAMETER_NAME, PARAMETER_VALUE);
+
+        final URI uri = builder.build();
+
+        assertEquals(HTTP_LOCALHOST_QUERY_REPEATED_URI, uri);
+    }
+
+    @Test
+    void testBuildSchemeHostPathSegmentSecondQueryParameter() {
+        final HttpUriBuilder builder = new StandardHttpUriBuilder()
+                .scheme(HTTP_SCHEME)
+                .host(LOCALHOST)
+                .addPathSegment(RESOURCES_PATH_SEGMENT)
+                .addQueryParameter(PARAMETER_NAME, PARAMETER_VALUE)
+                .addQueryParameter(SECOND_PARAMETER_NAME, null);
+
+        final URI uri = builder.build();
+
+        assertEquals(HTTP_LOCALHOST_QUERY_SECOND_PARAMETER_URI, uri);
+    }
+
+    @Test
+    void testBuildSchemeHostPathSegmentQueryParameterValueEncoded() {
+        final HttpUriBuilder builder = new StandardHttpUriBuilder()
+                .scheme(HTTP_SCHEME)
+                .host(LOCALHOST)
+                .addPathSegment(RESOURCES_PATH_SEGMENT)
+                .addQueryParameter(SECOND_PARAMETER_NAME, SECOND_PARAMETER_VALUE);
+
+        final URI uri = builder.build();
+
+        assertEquals(HTTP_LOCALHOST_QUERY_PARAMETER_VALUE_URI, uri);
     }
 
     @Test
