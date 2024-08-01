@@ -114,12 +114,7 @@ public class ProcessorStatusEnumerator implements Enumerator<Object> {
                 status.getInvocations(),
                 status.getProcessingNanos(),
                 status.getRunStatus().name(),
-                status.getExecutionNode() == null ? null : status.getExecutionNode().name(),
-                status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getCpuDuration(),
-                status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getContentReadDuration(),
-                status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getContentWriteDuration(),
-                status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getSessionCommitDuration(),
-                status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getGarbageCollectionDuration()
+                status.getExecutionNode() == null ? null : status.getExecutionNode().name()
         };
 
         // If we want no fields just return null

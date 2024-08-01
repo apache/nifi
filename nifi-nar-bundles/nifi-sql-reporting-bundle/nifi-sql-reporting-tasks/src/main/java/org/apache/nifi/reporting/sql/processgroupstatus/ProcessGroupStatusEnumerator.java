@@ -112,12 +112,7 @@ public class ProcessGroupStatusEnumerator implements Enumerator<Object> {
                 status.getTerminatedThreadCount(),
                 status.getQueuedCount(),
                 status.getVersionedFlowState() == null ? null : status.getVersionedFlowState().name(),
-                status.getProcessingNanos(),
-                status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getCpuDuration(),
-                status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getContentReadDuration(),
-                status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getContentWriteDuration(),
-                status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getSessionCommitDuration(),
-                status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getGarbageCollectionDuration()
+                status.getProcessingNanos()
         };
 
         // If we want no fields just return null

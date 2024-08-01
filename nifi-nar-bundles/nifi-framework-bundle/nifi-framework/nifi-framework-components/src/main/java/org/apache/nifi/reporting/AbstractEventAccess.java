@@ -40,7 +40,6 @@ import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.LoadBalanceStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.controller.status.ProcessingPerformanceStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
@@ -159,8 +158,6 @@ public abstract class AbstractEventAccess implements EventAccess {
         int flowFilesTransferred = 0;
         long bytesTransferred = 0;
         long processingNanos = 0;
-        final ProcessingPerformanceStatus performanceStatus = new ProcessingPerformanceStatus();
-        performanceStatus.setIdentifier(group.getIdentifier());
 
         final boolean populateChildStatuses = currentDepth <= recursiveStatusDepth;
 
@@ -183,16 +180,6 @@ public abstract class AbstractEventAccess implements EventAccess {
             bytesSent += procStat.getBytesSent();
 
             processingNanos += procStat.getProcessingNanos();
-
-            final ProcessingPerformanceStatus processorPerformanceStatus = procStat.getProcessingPerformanceStatus();
-
-            if (processorPerformanceStatus != null) {
-                performanceStatus.setCpuDuration(performanceStatus.getCpuDuration() + processorPerformanceStatus.getCpuDuration());
-                performanceStatus.setContentReadDuration(performanceStatus.getContentReadDuration() + processorPerformanceStatus.getContentReadDuration());
-                performanceStatus.setContentWriteDuration(performanceStatus.getContentWriteDuration() + processorPerformanceStatus.getContentWriteDuration());
-                performanceStatus.setSessionCommitDuration(performanceStatus.getSessionCommitDuration() + processorPerformanceStatus.getSessionCommitDuration());
-                performanceStatus.setGarbageCollectionDuration(performanceStatus.getGarbageCollectionDuration() + processorPerformanceStatus.getGarbageCollectionDuration());
-            }
         }
 
         // set status for local child groups
@@ -227,16 +214,6 @@ public abstract class AbstractEventAccess implements EventAccess {
             bytesTransferred += childGroupStatus.getBytesTransferred();
 
             processingNanos += childGroupStatus.getProcessingNanos();
-
-            final ProcessingPerformanceStatus childGroupPerformanceStatus = childGroupStatus.getProcessingPerformanceStatus();
-
-            if (childGroupPerformanceStatus != null) {
-                performanceStatus.setCpuDuration(performanceStatus.getCpuDuration() + childGroupPerformanceStatus.getCpuDuration());
-                performanceStatus.setContentReadDuration(performanceStatus.getContentReadDuration() + childGroupPerformanceStatus.getContentReadDuration());
-                performanceStatus.setContentWriteDuration(performanceStatus.getContentWriteDuration() + childGroupPerformanceStatus.getContentWriteDuration());
-                performanceStatus.setSessionCommitDuration(performanceStatus.getSessionCommitDuration() + childGroupPerformanceStatus.getSessionCommitDuration());
-                performanceStatus.setGarbageCollectionDuration(performanceStatus.getGarbageCollectionDuration() + childGroupPerformanceStatus.getGarbageCollectionDuration());
-            }
         }
 
         // set status for remote child groups
@@ -516,8 +493,6 @@ public abstract class AbstractEventAccess implements EventAccess {
         status.setBytesTransferred(bytesTransferred);
         status.setProcessingNanos(processingNanos);
 
-        status.setProcessingPerformanceStatus(performanceStatus);
-
         final VersionControlInformation vci = group.getVersionControlInformation();
         if (vci != null) {
             try {
@@ -664,10 +639,6 @@ public abstract class AbstractEventAccess implements EventAccess {
             if (isProcessorAuthorized) {
                 status.setCounters(flowFileEvent.getCounters());
             }
-
-
-            final ProcessingPerformanceStatus performanceStatus = PerformanceMetricsUtil.getPerformanceMetrics(flowFileEvent, procNode);
-            status.setProcessingPerformanceStatus(performanceStatus);
         }
 
         // Determine the run status and get any validation error... only validating while STOPPED
