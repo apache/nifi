@@ -42,6 +42,17 @@ public class C2OperationState implements Serializable {
     @Schema(description = "Additional details about the state")
     private String details;
 
+    @Schema(description = "Additional details cause of the failure")
+    private Exception failureCause;
+
+    public Exception getFailureCause() {
+        return failureCause;
+    }
+
+    public void setFailureCause(Exception failureCause) {
+        this.failureCause = failureCause;
+    }
+
     public String getDetails() {
         return details;
     }
@@ -76,12 +87,12 @@ public class C2OperationState implements Serializable {
             return false;
         }
         C2OperationState that = (C2OperationState) o;
-        return state == that.state && Objects.equals(details, that.details);
+        return state == that.state && Objects.equals(details, that.details) && Objects.equals(failureCause, that.failureCause);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(state, details);
+        return Objects.hash(state, details, failureCause);
     }
 
     @Override

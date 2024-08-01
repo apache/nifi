@@ -79,11 +79,16 @@ public interface C2OperationHandler {
      * @param details        additional status info to detail the state
      * @return the created state
      */
-    default C2OperationState operationState(C2OperationState.OperationState operationState, String details) {
+    default C2OperationState operationState(C2OperationState.OperationState operationState, String details, Exception e) {
         C2OperationState state = new C2OperationState();
         state.setState(operationState);
         state.setDetails(details);
+        state.setFailureCause(e);
         return state;
+    }
+
+    default C2OperationState operationState(C2OperationState.OperationState operationState, String details) {
+        return operationState(operationState, details, null);
     }
 
     /**

@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.protocol.api.C2Operation;
@@ -81,7 +82,7 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleFlowIdInArg() {
-        UpdateConfigurationStrategy successUpdate = flow -> true;
+        UpdateConfigurationStrategy successUpdate = (UpdateConfigurationStrategy) Function.identity();
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
         when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(INCORRECT_LOCATION));
@@ -116,7 +117,7 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleReturnsNotAppliedWithContentApplyIssues() {
-        UpdateConfigurationStrategy failedToUpdate = flow -> false;
+        UpdateConfigurationStrategy failedToUpdate = flow -> {};
         when(flowIdHolder.getFlowId()).thenReturn("previous_flow_id");
         when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
         when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(CORRECT_LOCATION));
@@ -133,7 +134,7 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleReturnsFullyApplied() {
-        UpdateConfigurationStrategy successUpdate = flow -> true;
+        UpdateConfigurationStrategy successUpdate = flow -> {};
         when(flowIdHolder.getFlowId()).thenReturn("previous_flow_id");
         when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(CORRECT_LOCATION));
         when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
