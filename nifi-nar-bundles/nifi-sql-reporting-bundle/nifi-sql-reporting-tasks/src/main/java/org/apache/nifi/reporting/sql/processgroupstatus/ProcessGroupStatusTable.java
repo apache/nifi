@@ -172,7 +172,12 @@ public class ProcessGroupStatusTable extends AbstractTable implements QueryableT
                 "terminatedThreadCount",
                 "queuedCount",
                 "versionedFlowState",
-                "processingNanos"
+                "processingNanos",
+                "cpuDuration",
+                "contentReadDuration",
+                "contentWriteDuration",
+                "sessionCommitDuration",
+                "garbageCollectionDuration"
         );
         final List<RelDataType> types = Arrays.asList(
                 typeFactory.createJavaType(String.class),
@@ -195,6 +200,11 @@ public class ProcessGroupStatusTable extends AbstractTable implements QueryableT
                 typeFactory.createJavaType(int.class),
                 typeFactory.createJavaType(int.class),
                 typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(long.class)
         );
 

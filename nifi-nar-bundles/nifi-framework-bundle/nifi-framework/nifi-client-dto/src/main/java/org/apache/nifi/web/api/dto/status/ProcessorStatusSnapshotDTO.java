@@ -53,6 +53,9 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     private Integer activeThreadCount = 0;
     private Integer terminatedThreadCount = 0;
 
+    @ApiModelProperty("Represents the processor's processing performance.")
+    private ProcessingPerformanceStatusDTO processingPerformanceStatus;
+
     /* getters / setters */
     /**
      * @return The processor id
@@ -297,6 +300,14 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         this.tasksDurationNanos = taskNanos;
     }
 
+    public ProcessingPerformanceStatusDTO getProcessingPerformanceStatus() {
+        return processingPerformanceStatus;
+    }
+
+    public void setProcessingPerformanceStatus(ProcessingPerformanceStatusDTO processingPerformanceStatus) {
+        this.processingPerformanceStatus = processingPerformanceStatus;
+    }
+
     @Override
     public ProcessorStatusSnapshotDTO clone() {
         final ProcessorStatusSnapshotDTO other = new ProcessorStatusSnapshotDTO();
@@ -323,6 +334,8 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         other.setRead(getRead());
         other.setWritten(getWritten());
         other.setTasks(getTasks());
+
+        other.setProcessingPerformanceStatus(getProcessingPerformanceStatus());
 
         return other;
     }
