@@ -174,6 +174,9 @@ public class StatusMerger {
         target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
 
         target.setProcessingNanos(target.getProcessingNanos() + toMerge.getProcessingNanos());
+
+        ProcessingPerformanceStatusMerger.mergeStatus(target.getProcessingPerformanceStatus(), toMerge.getProcessingPerformanceStatus());
+
         updatePrettyPrintedFields(target);
 
         // connection status
@@ -451,6 +454,10 @@ public class StatusMerger {
         target.setTasksDurationNanos(target.getTasksDurationNanos() + toMerge.getTasksDurationNanos());
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
         target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
+
+
+        ProcessingPerformanceStatusMerger.mergeStatus(target.getProcessingPerformanceStatus(), toMerge.getProcessingPerformanceStatus());
+
         updatePrettyPrintedFields(target);
     }
 
