@@ -266,12 +266,16 @@ public class TestHttpRecordSink {
             String requestBody = recordedRequest.getBody().readString(StandardCharsets.UTF_8);
             Person[] people =
                     (maxBatchSize == 1)
-                            ? new Person[] { mapper.readValue(requestBody, Person.class) } // single person not in Json array
+                            ? new Person[] {
+                                    // For maxBatchSize 1, person is not in a Json array
+                                    mapper.readValue(requestBody, Person.class)
+                                  }
                             : mapper.readValue(requestBody, Person[].class); // Otherwise the body is a json array
 
             for (int personIndex = 0; personIndex < people.length; personIndex++) {
                 final int compareIndex = i * maxBatchSize + personIndex;
-                assertTrue(people[personIndex].equals(records[compareIndex]), "Mismatch - Expected: " + records[compareIndex].toMap().toString() + " Actual: {" + people[personIndex].toString() + "} order of fields can be ignored.");
+                assertTrue(people[personIndex].equals(records[compareIndex]), "Mismatch - Expected: " + records[compareIndex].toMap().toString() +
+                        " Actual: {" + people[personIndex].toString() + "} order of fields can be ignored.");
             }
             String actualContentTypeHeader = recordedRequest.getHeader(HttpHeader.CONTENT_TYPE.toString());
             assertEquals(expectedContentType != null ? expectedContentType : "application/json", actualContentTypeHeader);
