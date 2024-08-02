@@ -100,6 +100,7 @@ import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
 import org.apache.nifi.web.server.connector.FrameworkServerConnectorFactory;
 import org.apache.nifi.web.server.filter.FilterParameter;
+import org.apache.nifi.web.server.filter.LogoutCompleteRedirectFilter;
 import org.apache.nifi.web.server.filter.RequestFilterProvider;
 import org.apache.nifi.web.server.filter.RestApiRequestFilterProvider;
 import org.apache.nifi.web.server.filter.StandardRequestFilterProvider;
@@ -226,21 +227,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         configureConnectors(server);
 
         final ContextHandlerCollection handlerCollection = new ContextHandlerCollection();
-
-        // Only restrict the host header if running in HTTPS mode
-        if (props.isHTTPSConfigured()) {
-            final HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(props);
-            handlerCollection.addHandler(hostHeaderHandler);
-        }
-
-        final Handler warHandlers = loadInitialWars(bundles);
-        handlerCollection.addHandler(warHandlers);
-
-        final RewriteHandler logoutCompleteRewriteHandler = new RewriteHandler();
-        final RedirectPatternRule redirectLogoutComplete = new RedirectPatternRule("/nifi/logout-complete", "/nifi/#/logout-complete");
-        logoutCompleteRewriteHandler.addRule(redirectLogoutComplete);
-        logoutCompleteRewriteHandler.setHandler(handlerCollection);
-        server.setHandler(logoutCompleteRewriteHandler);
+        final Handler standardHandler = getStandardHandler(handlerCollection);
+        server.setHandler(standardHandler);
 
         final RewriteHandler defaultRewriteHandler = new RewriteHandler();
         final RedirectPatternRule redirectDefault = new RedirectPatternRule("/*", "/nifi");
@@ -254,6 +242,18 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final RequestLogProvider requestLogProvider = new StandardRequestLogProvider(requestLogFormat);
         final RequestLog requestLog = requestLogProvider.getRequestLog();
         server.setRequestLog(requestLog);
+    }
+
+    private Handler getStandardHandler(final ContextHandlerCollection handlerCollection) {
+        // Only restrict the host header if running in HTTPS mode
+        if (props.isHTTPSConfigured()) {
+            final HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(props);
+            handlerCollection.addHandler(hostHeaderHandler);
+        }
+
+        final Handler warHandlers = loadInitialWars(bundles);
+        handlerCollection.addHandler(warHandlers);
+        return handlerCollection;
     }
 
     private Handler loadInitialWars(final Set<Bundle> bundles) {
@@ -643,6 +643,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final List<FilterHolder> requestFilters = CONTEXT_PATH_NIFI_API.equals(contextPath)
                 ? REST_API_REQUEST_FILTER_PROVIDER.getFilters(props)
                 : REQUEST_FILTER_PROVIDER.getFilters(props);
+
+        // Add Logout Complete Filter for web user interface integration
+        if (CONTEXT_PATH_NIFI.equals(contextPath)) {
+            final FilterHolder logoutCompleteFilterHolder = new FilterHolder(LogoutCompleteRedirectFilter.class);
+            logoutCompleteFilterHolder.setName(LogoutCompleteRedirectFilter.class.getSimpleName());
+            requestFilters.add(logoutCompleteFilterHolder);
+        }
 
         requestFilters.forEach(filter -> {
             final String pathSpecification = filter.getInitParameter(FilterParameter.PATH_SPECIFICATION.name());
