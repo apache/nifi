@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Standard HTTP URI Builder based on OkHttp HttpUrl
+ * Standard HTTP URI Builder based using java.net.URI
  */
 public class StandardHttpUriBuilder implements HttpUriBuilder {
     private static final String HTTP_SCHEME = "http";

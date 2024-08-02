@@ -54,7 +54,7 @@ import java.util.OptionalLong;
 import java.util.concurrent.Flow;
 
 /**
- * Standard implementation of Web Client Service using OkHttp
+ * Standard implementation of Web Client Service using Java HttpClient
  */
 public class StandardWebClientService implements WebClientService {
     private static final byte[] EMPTY_BYTES = new byte[0];
