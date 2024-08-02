@@ -539,4 +539,14 @@
         <packageUrl regex="true">^pkg:maven/com\.jayway\.jsonpath/json\-path@2.9.0$</packageUrl>
         <vulnerabilityName>CVE-2023-51074</vulnerabilityName>
     </suppress>
+    <suppress>
+        <notes>CVE-2024-23081 applies to threetenbp 1.6.8 and earlier not 1.6.9</notes>
+        <packageUrl regex="true">^pkg:maven/org\.threeten/threetenbp@.*$</packageUrl>
+        <vulnerabilityName>CVE-2024-23081</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2024-23082 applies to threetenbp 1.6.8 and earlier not 1.6.9</notes>
+        <packageUrl regex="true">^pkg:maven/org\.threeten/threetenbp@.*$</packageUrl>
+        <vulnerabilityName>CVE-2024-23082</vulnerabilityName>
+    </suppress>
 </suppressions>
