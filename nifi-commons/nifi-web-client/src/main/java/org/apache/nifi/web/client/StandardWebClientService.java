@@ -33,6 +33,7 @@ import org.apache.nifi.web.client.ssl.TlsContext;
 
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Authenticator;
@@ -56,7 +57,7 @@ import java.util.concurrent.Flow;
 /**
  * Standard implementation of Web Client Service using Java HttpClient
  */
-public class StandardWebClientService implements WebClientService {
+public class StandardWebClientService implements WebClientService, Closeable {
     private static final byte[] EMPTY_BYTES = new byte[0];
 
     private static final SSLContextProvider sslContextProvider = new StandardSSLContextProvider();
@@ -66,6 +67,8 @@ public class StandardWebClientService implements WebClientService {
     private Duration connectTimeout;
 
     private Duration readTimeout;
+
+    private Duration writeTimeout;
 
     private RedirectHandling redirectHandling;
 
@@ -92,7 +95,7 @@ public class StandardWebClientService implements WebClientService {
     }
 
     /**
-     * Set timeout for reading responses from socket connection
+     * Set timeout for reading responses from socket connection takes precedence over write timeout
      *
      * @param readTimeout Read Timeout
      */
@@ -102,12 +105,13 @@ public class StandardWebClientService implements WebClientService {
     }
 
     /**
-     * Set timeout for writing requests to socket connection is not supported with current HTTP Client implementation
+     * Set timeout for writing requests to socket connection when read timeout is not specified
      *
      * @param writeTimeout Write Timeout
      */
     public void setWriteTimeout(final Duration writeTimeout) {
         Objects.requireNonNull(writeTimeout, "Write Timeout required");
+        this.writeTimeout = writeTimeout;
     }
 
     /**
@@ -192,6 +196,7 @@ public class StandardWebClientService implements WebClientService {
      *
      * @return HTTP Request URI Specification builder
      */
+    @Override
     public HttpRequestUriSpec post() {
         return method(StandardHttpRequestMethod.POST);
     }
@@ -201,8 +206,17 @@ public class StandardWebClientService implements WebClientService {
      *
      * @return HTTP Request URI Specification builder
      */
+    @Override
     public HttpRequestUriSpec put() {
         return method(StandardHttpRequestMethod.PUT);
+    }
+
+    /**
+     * Close configured HttpClient and shutdown executor resources
+     */
+    @Override
+    public void close() {
+        httpClient.close();
     }
 
     private HttpClient buildHttpClient() {
@@ -338,6 +352,10 @@ public class StandardWebClientService implements WebClientService {
         }
 
         private HttpRequest getRequest() {
+            if (writeTimeout != null) {
+                requestBuilder.timeout(writeTimeout);
+            }
+            // Prefer Read Timeout over Write Timeout when specified
             if (readTimeout != null) {
                 requestBuilder.timeout(readTimeout);
             }
