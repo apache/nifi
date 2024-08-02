@@ -18,6 +18,7 @@ package org.apache.nifi.web.client.provider.service;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -106,7 +107,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
 
     private static final KeyManagerProvider keyManagerProvider = new StandardKeyManagerProvider();
 
-    private WebClientService webClientService;
+    private StandardWebClientService webClientService;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
@@ -141,6 +142,11 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
         }
 
         webClientService = standardWebClientService;
+    }
+
+    @OnDisabled
+    public void onDisabled() {
+        webClientService.close();
     }
 
     @Override
