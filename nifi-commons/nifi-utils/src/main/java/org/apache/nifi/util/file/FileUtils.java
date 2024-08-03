@@ -598,11 +598,14 @@ public class FileUtils {
      * @return sanitized filename
      */
     public static String sanitizeFilename(String filename) {
-        if (filename == null || filename.isEmpty()) {
-            return filename;
+        if (filename == null) {
+            return null;
         }
-        int codePointCount = filename.codePointCount(0, filename.length());
+        if (filename.isEmpty()) {
+            return "";
+        }
 
+        int codePointCount = filename.codePointCount(0, filename.length());
         final StringBuilder cleanName = new StringBuilder();
         for (int i = 0; i < codePointCount; i++) {
             int c = filename.codePointAt(i);
