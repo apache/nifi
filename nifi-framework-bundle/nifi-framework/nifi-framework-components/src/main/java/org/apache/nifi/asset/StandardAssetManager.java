@@ -26,6 +26,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HexFormat;
@@ -159,7 +161,10 @@ public class StandardAssetManager implements AssetManager {
     }
 
     private File getFile(final String paramContextId, final String assetName) {
-        return new File(assetStorageLocation, paramContextId + "/" + assetName);
+        final Path parentPath = assetStorageLocation.toPath().normalize();
+        final Path assetPath = Paths.get(paramContextId, assetName).normalize();
+        final Path fullPath = parentPath.resolve(assetPath);
+        return fullPath.toFile();
     }
 
     private String getStorageLocation(final AssetManagerInitializationContext initializationContext) {

@@ -406,14 +406,13 @@ public class ParameterContextResource extends AbstractParameterResource {
             }
         }
 
+        // Get the context or throw ResourceNotFoundException
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(contextId, false, user);
+        final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(Collections.singletonList(contextEntity.getComponent()));
+
         // Authorize the request
         serviceFacade.authorizeAccess(lookup -> {
-            final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-            // Get the context or throw ResourceNotFoundException
-            final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(contextId, false, NiFiUserUtils.getNiFiUser());
-            final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(Collections.singletonList(contextEntity.getComponent()));
-
             // Verify READ and WRITE permissions for user, for the Parameter Context itself
             final ParameterContext parameterContext = lookup.getParameterContext(contextId);
             parameterContext.authorize(authorizer, RequestAction.READ, user);
@@ -447,8 +446,9 @@ public class ParameterContextResource extends AbstractParameterResource {
                     .build();
             assetEntity = uploadRequestReplicator.upload(uploadRequest);
         } else {
+            final String existingContextId = contextEntity.getId();
             final String sanitizedAssetName = FileUtils.sanitizeFilename(assetName);
-            final Asset asset = assetManager.createAsset(contextId, sanitizedAssetName, maxLengthInputStream);
+            final Asset asset = assetManager.createAsset(existingContextId, sanitizedAssetName, maxLengthInputStream);
             assetEntity = dtoFactory.createAssetEntity(asset);
         }
 
