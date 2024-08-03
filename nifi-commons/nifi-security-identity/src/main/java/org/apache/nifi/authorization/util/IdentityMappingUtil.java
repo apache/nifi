@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.util.NiFiProperties.SECURITY_GROUP_MAPPING_PATTERN_PREFIX;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_GROUP_MAPPING_TRANSFORM_PREFIX;
@@ -140,8 +141,12 @@ public class IdentityMappingUtil {
      * @return the mapped identity, or the same identity if no mappings matched
      */
     public static String mapIdentity(final String identity, List<IdentityMapping> mappings) {
-        for (IdentityMapping mapping : mappings) {
-            Matcher m = mapping.getPattern().matcher(identity);
+        final List<String> keys = mappings.stream().map(m -> m.getKey()).collect(Collectors.toList());
+        Collections.sort(keys);
+
+        for (final String key : keys) {
+            final IdentityMapping mapping = mappings.stream().filter(m -> m.getKey().equals(key)).findFirst().orElseThrow();
+            final Matcher m = mapping.getPattern().matcher(identity);
             if (m.matches()) {
                 final String pattern = mapping.getPattern().pattern();
                 final String replacementValue = escapeLiteralBackReferences(mapping.getReplacementValue(), m.groupCount());
