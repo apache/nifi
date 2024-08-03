@@ -123,10 +123,12 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
             revert(backupRawFlowConfigurationFile, rawFlowConfigurationFile);
             try {
                 reloadFlow(originalConnectionIds);
-            } catch (Exception ex) {
+            } catch (ValidationException ex) {
                 LOGGER.error("Unable to reload the reverted flow", ex);
+            } catch (Exception exception) {
+                throw new RuntimeException(exception);
             }
-            throw new RuntimeException(e);
+            throw e;
         } catch (Exception e) {
             LOGGER.error("Configuration update failed. Reverting to previous flow, no reload is necessary", e);
             revert(backupFlowConfigurationFile, flowConfigurationFile);
@@ -148,7 +150,7 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         List<ValidationResult> validationErrors = validate(flowController.getFlowManager());
         if (!validationErrors.isEmpty()) {
             LOGGER.error("Validation errors found when reloading the flow: {}", validationErrors);
-            throw new ValidationException("Unable to start flow due to validation errors", validationErrors);
+            throw new ValidationException(validationErrors);
         }
 
         flowController.getFlowManager().getRootGroup().startProcessing();

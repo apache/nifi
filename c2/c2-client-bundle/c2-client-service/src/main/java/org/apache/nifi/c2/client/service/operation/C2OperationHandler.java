@@ -25,9 +25,11 @@ import java.util.Optional;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
+import org.apache.nifi.c2.protocol.api.FailureCause;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 import org.apache.nifi.c2.serializer.C2Serializer;
+import org.apache.nifi.minifi.validator.ValidationException;
 
 /**
  * Handler interface for the different operation types
@@ -83,7 +85,13 @@ public interface C2OperationHandler {
         C2OperationState state = new C2OperationState();
         state.setState(operationState);
         state.setDetails(details);
-        state.setFailureCause(e);
+        FailureCause failureCause = new FailureCause();
+        failureCause.setExceptionMessage(e.getMessage());
+        Optional.ofNullable(e.getCause()).ifPresent(cause -> failureCause.setCausedByMessage(cause.getMessage()));
+        if (e instanceof ValidationException) {
+            failureCause.setValidationResults(((ValidationException) e).getValidationResults());
+        }
+        state.setFailureCause(failureCause);
         return state;
     }
 

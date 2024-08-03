@@ -15,18 +15,15 @@
  *  limitations under the License.
  */
 
-package org.apache.nifi.minifi.validator;
+package org.apache.nifi.c2.protocol.api;
 
 import java.util.List;
-import java.util.Objects;
 import org.apache.nifi.components.ValidationResult;
 
-public class ValidationException extends IllegalStateException {
+public class FailureCause {
     private List<ValidationResult> validationResults;
-
-    public ValidationException(List<ValidationResult> details) {
-        this.validationResults = details;
-    }
+    private String exceptionMessage;
+    private String causedByMessage;
 
     public List<ValidationResult> getValidationResults() {
         return validationResults;
@@ -36,23 +33,19 @@ public class ValidationException extends IllegalStateException {
         this.validationResults = validationResults;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ValidationException that = (ValidationException) o;
-        return Objects.equals(validationResults, that.validationResults);
+    public String getExceptionMessage() {
+        return exceptionMessage;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(validationResults);
+    public void setExceptionMessage(String exceptionMessage) {
+        this.exceptionMessage = exceptionMessage;
     }
 
-    @Override
-    public String toString() {
-        return "Validation Errors: [" +
-                ", details=" + validationResults +
-                ']';
+    public String getCausedByMessage() {
+        return causedByMessage;
+    }
+
+    public void setCausedByMessage(String causedByMessage) {
+        this.causedByMessage = causedByMessage;
     }
 }

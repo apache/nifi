@@ -43,13 +43,13 @@ public class C2OperationState implements Serializable {
     private String details;
 
     @Schema(description = "Additional details cause of the failure")
-    private Exception failureCause;
+    private FailureCause failureCause;
 
-    public Exception getFailureCause() {
+    public FailureCause getFailureCause() {
         return failureCause;
     }
 
-    public void setFailureCause(Exception failureCause) {
+    public void setFailureCause(FailureCause failureCause) {
         this.failureCause = failureCause;
     }
 
@@ -100,6 +100,7 @@ public class C2OperationState implements Serializable {
         return "C2OperationState{" +
             "state=" + state +
             ", details='" + details + '\'' +
+            ", failureCause='" + failureCause + '\'' +
             '}';
     }
 
