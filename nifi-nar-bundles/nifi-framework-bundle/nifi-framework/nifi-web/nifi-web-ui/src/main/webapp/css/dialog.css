@@ -307,7 +307,7 @@ div.progress-label {
     height: 350px;
 }
 
-#revert-local-changes-filter, #show-local-changes-filter {
+#revert-local-changes-filter, #show-local-changes-filter, #show-flow-changes-dialog {
     width: 173px;
 }
 
@@ -522,4 +522,42 @@ div.fetch-parameters-step {
     height: 16px;
     background-color: transparent;
     float: right;
+}
+
+.show-flow-changes-table {
+    height: 300px;
+    overflow-y: scroll;
+}
+
+#show-flow-changes-filter-controls {
+    display: flex;
+}
+
+#show-flow-changes-filter-controls > *:not(:last-child) {
+    margin-right: 3px;
+}
+
+#show-flow-changes-filter-controls setting-field {
+    max-width: 200px;
+    width: 173px;
+}
+
+#show-flow-changes-filter,
+#show-flow-changes-filter-controls .show-flow-changes-current-version-combo-container,
+#show-flow-changes-filter-controls .show-flow-changes-selected-version-combo-container {
+    width: 173px;
+}
+
+.show-flow-changes-current-version-combo,
+.show-flow-changes-selected-version-combo {
+    width: 153px;
+}
+
+.show-flow-changes-empty-message {
+    color: #262626;
+    font-family: Roboto Slab;
+    font-size: 12px;
+    font-weight: 500;
+    padding-bottom: 4px;
+    text-transform: capitalize;
 }
