@@ -19,16 +19,25 @@ package org.apache.nifi.processors.iceberg.catalog;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
+import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.apache.iceberg.hive.HiveCatalog;
+import org.apache.iceberg.io.FileIO;
+import org.apache.iceberg.jdbc.JdbcCatalog;
+import org.apache.iceberg.jdbc.JdbcClientPool;
+import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.services.iceberg.IcebergCatalogProperty;
 import org.apache.nifi.services.iceberg.IcebergCatalogService;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFromFiles;
+import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.CATALOG_NAME;
+import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.FILE_IO_IMPLEMENTATION;
+import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.CLIENT_POOL_SERVICE;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.METASTORE_URI;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.WAREHOUSE_LOCATION;
 
@@ -44,6 +53,7 @@ public class IcebergCatalogFactory {
         return switch (catalogService.getCatalogType()) {
             case HIVE -> initHiveCatalog(catalogService);
             case HADOOP -> initHadoopCatalog(catalogService);
+            case JDBC -> initJdbcCatalog(catalogService);
         };
     }
 
@@ -55,15 +65,15 @@ public class IcebergCatalogFactory {
             catalog.setConf(configuration);
         }
 
-        final Map<IcebergCatalogProperty, String> catalogProperties = catalogService.getCatalogProperties();
-        final Map <String, String> properties = new HashMap<>();
+        final Map<IcebergCatalogProperty, Object> catalogProperties = catalogService.getCatalogProperties();
+        final Map<String, String> properties = new HashMap<>();
 
         if (catalogProperties.containsKey(METASTORE_URI)) {
-            properties.put(CatalogProperties.URI, catalogProperties.get(METASTORE_URI));
+            properties.put(CatalogProperties.URI, (String) catalogProperties.get(METASTORE_URI));
         }
 
         if (catalogProperties.containsKey(WAREHOUSE_LOCATION)) {
-            properties.put(CatalogProperties.WAREHOUSE_LOCATION, catalogProperties.get(WAREHOUSE_LOCATION));
+            properties.put(CatalogProperties.WAREHOUSE_LOCATION, (String) catalogProperties.get(WAREHOUSE_LOCATION));
         }
 
         catalog.initialize("hive-catalog", properties);
@@ -71,13 +81,31 @@ public class IcebergCatalogFactory {
     }
 
     private Catalog initHadoopCatalog(IcebergCatalogService catalogService) {
-        final Map<IcebergCatalogProperty, String> catalogProperties = catalogService.getCatalogProperties();
-        final String warehousePath = catalogProperties.get(WAREHOUSE_LOCATION);
+        final Map<IcebergCatalogProperty, Object> catalogProperties = catalogService.getCatalogProperties();
+        final String warehousePath = (String) catalogProperties.get(WAREHOUSE_LOCATION);
 
         if (catalogService.getConfigFilePaths() != null) {
             return new HadoopCatalog(getConfigurationFromFiles(catalogService.getConfigFilePaths()), warehousePath);
         } else {
             return new HadoopCatalog(new Configuration(), warehousePath);
         }
+    }
+
+    private Catalog initJdbcCatalog(IcebergCatalogService catalogService) {
+        final Map<IcebergCatalogProperty, Object> catalogProperties = catalogService.getCatalogProperties();
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(CatalogProperties.URI, "");
+        properties.put(CatalogProperties.WAREHOUSE_LOCATION, (String) catalogProperties.get(WAREHOUSE_LOCATION));
+
+        final Configuration configuration = getConfigurationFromFiles(catalogService.getConfigFilePaths());
+        final DBCPService dbcpService = (DBCPService) catalogProperties.get(CLIENT_POOL_SERVICE);
+
+        final Function<Map<String, String>, JdbcClientPool> clientPoolBuilder = props -> new IcebergJdbcClientPool(props, dbcpService);
+        final Function<Map<String, String>, FileIO> ioBuilder = props -> CatalogUtil.loadFileIO((String) catalogProperties.get(FILE_IO_IMPLEMENTATION), props, configuration);
+
+        JdbcCatalog catalog = new JdbcCatalog(ioBuilder, clientPoolBuilder, false);
+        catalog.setConf(configuration);
+        catalog.initialize((String) catalogProperties.get(CATALOG_NAME), properties);
+        return catalog;
     }
 }
