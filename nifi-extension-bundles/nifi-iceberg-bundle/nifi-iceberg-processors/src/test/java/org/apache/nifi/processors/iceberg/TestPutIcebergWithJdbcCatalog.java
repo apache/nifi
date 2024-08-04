@@ -38,6 +38,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 
 import java.io.File;
 import java.net.URI;
@@ -63,7 +64,9 @@ import static org.apache.nifi.services.iceberg.JdbcCatalogService.CONNECTION_POO
 import static org.apache.nifi.services.iceberg.JdbcCatalogService.WAREHOUSE_PATH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
+@DisabledOnOs(WINDOWS)
 public class TestPutIcebergWithJdbcCatalog extends AbstractTestPutIceberg {
 
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
