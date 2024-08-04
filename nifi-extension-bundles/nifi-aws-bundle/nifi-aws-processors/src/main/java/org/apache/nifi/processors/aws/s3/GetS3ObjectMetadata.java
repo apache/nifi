@@ -156,7 +156,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
-            Relationship route;
+            Relationship relationship;
 
             try {
                 ObjectMetadata metadata = s3.getObjectMetadata(bucket, key);
