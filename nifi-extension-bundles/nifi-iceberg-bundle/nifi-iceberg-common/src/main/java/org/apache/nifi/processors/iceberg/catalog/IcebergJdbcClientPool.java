@@ -15,21 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.services.iceberg;
+package org.apache.nifi.processors.iceberg.catalog;
 
-import org.apache.nifi.controller.ControllerService;
+import org.apache.iceberg.jdbc.JdbcClientPool;
+import org.apache.nifi.dbcp.DBCPService;
 
-import java.util.List;
+import java.sql.Connection;
 import java.util.Map;
 
-/**
- * Provides a basic connector to Iceberg catalog services.
- */
-public interface IcebergCatalogService extends ControllerService {
+public class IcebergJdbcClientPool extends JdbcClientPool {
 
-    IcebergCatalogType getCatalogType();
+    private final DBCPService dbcpService;
 
-    Map<IcebergCatalogProperty, Object> getCatalogProperties();
+    public IcebergJdbcClientPool(Map<String, String> properties, DBCPService dbcpService) {
+        super("", properties);
+        this.dbcpService = dbcpService;
+    }
 
-    List<String> getConfigFilePaths();
+    @Override
+    protected Connection newClient() {
+        return dbcpService.getConnection();
+    }
+
 }

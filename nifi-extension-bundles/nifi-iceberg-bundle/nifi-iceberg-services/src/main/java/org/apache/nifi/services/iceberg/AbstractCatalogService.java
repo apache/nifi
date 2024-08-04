@@ -23,6 +23,7 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.w3c.dom.Document;
 
@@ -36,17 +37,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 /**
  * Abstract class holding common properties and methods for Catalog Service implementations.
  */
 public abstract class AbstractCatalogService extends AbstractControllerService implements IcebergCatalogService {
 
-    protected Map<IcebergCatalogProperty, String> catalogProperties = new HashMap<>();
+    protected Map<IcebergCatalogProperty, Object> catalogProperties = new HashMap<>();
 
     protected List<String> configFilePaths;
 
-    static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("hadoop-config-resources")
             .displayName("Hadoop Configuration Resources")
             .description("A file, or comma separated list of files, which contain the Hadoop configuration (core-site.xml, etc.). Without this, default configuration will be used.")
@@ -54,6 +54,15 @@ public abstract class AbstractCatalogService extends AbstractControllerService i
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .dynamicallyModifiesClasspath(true)
+            .build();
+
+    public static final PropertyDescriptor WAREHOUSE_PATH = new PropertyDescriptor.Builder()
+            .name("warehouse-path")
+            .displayName("Warehouse Path")
+            .description("Path to the location of the warehouse.")
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     protected List<Document> parseConfigFilePaths(String configFilePaths) {
@@ -82,7 +91,7 @@ public abstract class AbstractCatalogService extends AbstractControllerService i
     }
 
     @Override
-    public Map<IcebergCatalogProperty, String> getCatalogProperties() {
+    public Map<IcebergCatalogProperty, Object> getCatalogProperties() {
         return catalogProperties;
     }
 

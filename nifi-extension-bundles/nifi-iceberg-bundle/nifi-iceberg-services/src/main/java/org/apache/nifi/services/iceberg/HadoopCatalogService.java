@@ -22,11 +22,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.WAREHOUSE_LOCATION;
@@ -35,19 +31,7 @@ import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.WAREHOUSE_
 @CapabilityDescription("Catalog service that can use HDFS or similar file systems that support atomic rename.")
 public class HadoopCatalogService extends AbstractCatalogService {
 
-    static final PropertyDescriptor WAREHOUSE_PATH = new PropertyDescriptor.Builder()
-            .name("warehouse-path")
-            .displayName("Warehouse Path")
-            .description("Path to the location of the warehouse.")
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .build();
-
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            WAREHOUSE_PATH,
-            HADOOP_CONFIGURATION_RESOURCES
-    ));
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(WAREHOUSE_PATH, HADOOP_CONFIGURATION_RESOURCES);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

@@ -17,25 +17,24 @@
  */
 package org.apache.nifi.processors.iceberg;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.AppendFiles;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.Table;
-import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.exceptions.CommitFailedException;
+import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.apache.iceberg.io.TaskWriter;
 import org.apache.iceberg.io.WriteResult;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
-import org.apache.nifi.processors.iceberg.catalog.TestHadoopCatalogService;
 import org.apache.nifi.processors.iceberg.converter.IcebergRecordConverter;
 import org.apache.nifi.processors.iceberg.writer.IcebergTaskWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -52,6 +51,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.mockito.Mockito;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -64,6 +64,7 @@ import static org.apache.nifi.processors.iceberg.PutIceberg.MAXIMUM_COMMIT_DURAT
 import static org.apache.nifi.processors.iceberg.PutIceberg.MAXIMUM_COMMIT_WAIT_TIME;
 import static org.apache.nifi.processors.iceberg.PutIceberg.MINIMUM_COMMIT_WAIT_TIME;
 import static org.apache.nifi.processors.iceberg.PutIceberg.NUMBER_OF_COMMIT_RETRIES;
+import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.createTemporaryDirectory;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.condition.OS.WINDOWS;
 import static org.mockito.Mockito.doThrow;
@@ -196,10 +197,9 @@ public class TestDataFileActions {
         verify(appender, times(2)).commit();
     }
 
-    private Table initCatalog() throws IOException {
-        TestHadoopCatalogService catalogService = new TestHadoopCatalogService();
-        IcebergCatalogFactory catalogFactory = new IcebergCatalogFactory(catalogService);
-        Catalog catalog = catalogFactory.create();
+    private Table initCatalog() {
+        final File warehousePath = createTemporaryDirectory();
+        final HadoopCatalog catalog = new HadoopCatalog(new Configuration(), warehousePath.getAbsolutePath());
 
         return catalog.createTable(TABLE_IDENTIFIER, ABORT_SCHEMA, PartitionSpec.unpartitioned());
     }
