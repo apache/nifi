@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRingBufferEventRepository {
 
@@ -45,9 +45,10 @@ public class TestRingBufferEventRepository {
         final long queryStart = System.nanoTime();
         final StandardRepositoryStatusReport report = repo.reportTransferEvents(System.currentTimeMillis());
         final long queryNanos = System.nanoTime() - queryStart;
-        System.out.println(report);
-        System.out.println("Insert: " + TimeUnit.MILLISECONDS.convert(insertNanos, TimeUnit.NANOSECONDS));
-        System.out.println("Query: " + TimeUnit.MILLISECONDS.convert(queryNanos, TimeUnit.NANOSECONDS));
+        assertNotNull(report);
+        assertTrue(TimeUnit.MILLISECONDS.convert(insertNanos, TimeUnit.NANOSECONDS) > 0L);
+        assertTrue(TimeUnit.MILLISECONDS.convert(queryNanos, TimeUnit.NANOSECONDS) >= 0L);
+
         repo.close();
     }
 

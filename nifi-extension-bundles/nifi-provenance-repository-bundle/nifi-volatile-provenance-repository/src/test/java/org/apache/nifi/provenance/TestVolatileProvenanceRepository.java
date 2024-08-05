@@ -116,9 +116,6 @@ public class TestVolatileProvenanceRepository {
         }
 
         assertEquals(10, submission.getResult().getMatchingEvents().size());
-        for (final ProvenanceEventRecord match : submission.getResult().getMatchingEvents()) {
-            System.out.println(match);
-        }
     }
 
     @Test

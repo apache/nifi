@@ -905,7 +905,6 @@ public class TestQueryRecord {
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
         out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
-        System.out.println(new String(out.toByteArray()));
         out.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"49\"\n");
     }
 
@@ -941,7 +940,6 @@ public class TestQueryRecord {
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
         out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
-        System.out.println(new String(out.toByteArray()));
         out.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"49\"\n\"Alice\",\n,\"36\"\n");
     }
 
@@ -975,7 +973,6 @@ public class TestQueryRecord {
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
         out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
-        System.out.println(new String(out.toByteArray()));
         out.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"49\"\n");
     }
 
@@ -1004,7 +1001,6 @@ public class TestQueryRecord {
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
         out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
-        System.out.println(new String(out.toByteArray()));
         out.assertContentEquals("\"name\",\"age\"\n");
     }
 
@@ -1244,9 +1240,7 @@ public class TestQueryRecord {
 
                     // Iterate over the rest of the records to ensure that we read the entire stream. If we don't
                     // do this, we won't consume all of the data and as a result we will not close the stream properly
-                    Record record;
-                    while ((record = rs.next()) != null) {
-                        System.out.println(record);
+                    while (rs.next() != null) {
                     }
 
                     return WriteResult.of(0, Collections.emptyMap());

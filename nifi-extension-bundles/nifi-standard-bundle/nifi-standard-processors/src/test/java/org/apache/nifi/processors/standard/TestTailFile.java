@@ -34,8 +34,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -65,7 +63,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @DisabledOnOs({ OS.WINDOWS })
 public class TestTailFile {
-    private static final Logger logger = LoggerFactory.getLogger(TestTailFile.class);
 
     private File file;
     private File existingFile;
@@ -79,7 +76,6 @@ public class TestTailFile {
 
     @BeforeEach
     public void setup() throws IOException {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "TRACE");
         clean();
 
         file = new File("target/log.txt");
@@ -352,8 +348,6 @@ public class TestTailFile {
         assertTrue(renamed);
         raf.getChannel().force(true);
 
-        System.out.println("Wrote d\\n and rolled file");
-
         // Create the new file
         final RandomAccessFile newFile = new RandomAccessFile(new File("target/log.txt"), "rw");
         newFile.write("new file\n".getBytes()); // This should not get consumed until the old file's last modified date indicates it's complete
@@ -367,7 +361,6 @@ public class TestTailFile {
 
         // Write to the file and trigger again.
         raf.write("e\nf".getBytes());
-        System.out.println("Wrote e\\nf");
         runner.run(1, false, false);
 
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
@@ -379,7 +372,6 @@ public class TestTailFile {
         raf.write(0);
         raf.write(0);
         raf.write(0);
-        System.out.println("Wrote \\n\\0\\0\\0");
 
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
@@ -389,7 +381,6 @@ public class TestTailFile {
         // Truncate the NUL bytes and replace with additional data, ending with a new line. This should ingest the entire line of text.
         raf.setLength(raf.length() - 3);
         raf.write("g\nh".getBytes());
-        System.out.println("Truncated the NUL bytes and replaced with g\\nh");
 
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
@@ -405,7 +396,6 @@ public class TestTailFile {
 
         // Set last modified time so that processor believes file to have not been modified in a very long time, then run again.
         assertTrue(rolledFile.setLastModified(500L));
-        System.out.println("Set lastModified on " + rolledFile + " to 500");
         runner.run(1, false, false);
 
         // Verify results
@@ -429,14 +419,12 @@ public class TestTailFile {
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
-        System.out.println("Ingested 6 bytes");
         runner.clearTransferState();
 
         // roll over the file
         raf.close();
         file.renameTo(new File(file.getParentFile(), file.getName() + ".previous"));
         raf = new RandomAccessFile(file, "rw");
-        System.out.println("Rolled over file to " + file.getName() + ".previous");
 
         // truncate file
         raf.setLength(0L);
@@ -447,7 +435,6 @@ public class TestTailFile {
         Thread.sleep(1000L); // we need to wait at least one second because of the granularity of timestamps on many file systems.
         raf.write("HELLO\n".getBytes());
 
-        System.out.println("Wrote out 6 bytes to tailed file");
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("HELLO\n");
@@ -876,7 +863,6 @@ public class TestTailFile {
         runner.clearTransferState();
 
         for (int i = 0; i < 10; i++) {
-            logger.info("i = {}", i);
             raf.write(String.valueOf(i).getBytes());
             raf.write("\n".getBytes());
 

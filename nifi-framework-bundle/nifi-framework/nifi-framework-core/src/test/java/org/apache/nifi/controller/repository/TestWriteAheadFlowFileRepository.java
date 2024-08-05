@@ -51,6 +51,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wali.WriteAheadRepository;
 
 import java.io.File;
@@ -79,7 +81,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 public class TestWriteAheadFlowFileRepository {
-
+    private static final Logger logger = LoggerFactory.getLogger(TestWriteAheadFlowFileRepository.class);
     private static NiFiProperties niFiProperties;
 
     @BeforeEach
@@ -408,9 +410,11 @@ public class TestWriteAheadFlowFileRepository {
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             if (j == 0) {
-                System.out.println(millis + " ms to insert " + updateCountPerThread * numThreads + " updates using " + numPartitions + " partitions and " + numThreads + " threads, *as a warmup!*");
+                logger.info("{} ms to insert {} updates using {} partitions and {} threads, *as a warmup!*",
+                        millis, updateCountPerThread * numThreads, numPartitions, numThreads);
             } else {
-                System.out.println(millis + " ms to insert " + updateCountPerThread * numThreads + " updates using " + numPartitions + " partitions and " + numThreads + " threads");
+                logger.info("{} ms to insert {} updates using {} partitions and {} threads",
+                        millis, updateCountPerThread * numThreads, numPartitions, numThreads);
             }
         }
     }

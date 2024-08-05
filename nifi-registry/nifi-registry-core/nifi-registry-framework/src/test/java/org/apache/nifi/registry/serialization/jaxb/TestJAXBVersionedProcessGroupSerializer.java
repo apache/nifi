@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -47,9 +46,6 @@ public class TestJAXBVersionedProcessGroupSerializer {
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         serializer.serialize(1, processGroup1, out);
-
-        final String snapshotStr = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        //System.out.println(snapshotStr);
 
         final ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
         in.mark(1024);

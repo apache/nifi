@@ -89,10 +89,6 @@ public class TestHL7Query {
         possibleValueMap.put("C", valuesC);
         possibleValueMap.put("D", valuesD);
 
-        for (int i = 0; i < valuesA.size() * valuesB.size() * valuesC.size() * valuesD.size(); i++) {
-            System.out.println(i + " : " + HL7Query.assignAliases(possibleValueMap, i));
-        }
-
         verifyAssignments(HL7Query.assignAliases(possibleValueMap, 0), "a", "d", "e", "g");
         verifyAssignments(HL7Query.assignAliases(possibleValueMap, 1), "b", "d", "e", "g");
         verifyAssignments(HL7Query.assignAliases(possibleValueMap, 2), "c", "d", "e", "g");

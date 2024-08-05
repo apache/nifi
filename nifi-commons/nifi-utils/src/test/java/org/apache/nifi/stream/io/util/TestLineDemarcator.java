@@ -19,6 +19,8 @@ package org.apache.nifi.stream.io.util;
 import org.apache.nifi.stream.io.RepeatingInputStream;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -35,6 +37,8 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 
 public class TestLineDemarcator {
+
+    private static final Logger logger = LoggerFactory.getLogger(TestLineDemarcator.class);
 
     @Test
     public void testSingleCharacterLines() throws IOException {
@@ -120,7 +124,7 @@ public class TestLineDemarcator {
             }
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            System.out.println("Took " + millis + " millis to demarcate " + count + " lines");
+            logger.info("Took {} millis to demarcate {} lines", millis, count);
         }
     }
 

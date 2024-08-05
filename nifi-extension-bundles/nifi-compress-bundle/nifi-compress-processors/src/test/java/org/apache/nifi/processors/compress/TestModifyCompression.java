@@ -248,7 +248,6 @@ class TestModifyCompression {
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
-        System.err.println(new String(flowFile.toByteArray()));
         flowFile.assertContentEquals(getSamplePath("SampleFile.txt"));
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt");
     }

@@ -30,6 +30,8 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.condition.OS;
 import org.opentest4j.AssertionFailedError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -44,8 +46,9 @@ import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindo
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AttributeRollingWindowIT {
-
+    private static final Logger logger = LoggerFactory.getLogger(AttributeRollingWindowIT.class);
     private static final double EPSILON = 0.000001d; // "Error" threshold for floating-point arithmetic
+
     @Test
     public void testFailureDueToBadAttribute() {
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
@@ -238,7 +241,7 @@ public class AttributeRollingWindowIT {
             try {
                 assertTrue(Precision.equals(variance.getResult(), Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_VARIANCE_KEY)), EPSILON));
             } catch (AssertionFailedError ae) {
-                System.err.println("Error at " + i + ": " + variance.getResult() + " != " + Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_VARIANCE_KEY)));
+                logger.error("Error at {}: {} != {}", i, variance.getResult(), Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_VARIANCE_KEY)));
             }
             assertTrue(Precision.equals(Math.sqrt(variance.getResult()), Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_STDDEV_KEY)), EPSILON));
             Thread.sleep(10L);

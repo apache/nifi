@@ -240,24 +240,8 @@ public class TestJdbcCommon {
 
         final byte[] serializedBytes = outStream.toByteArray();
         assertNotNull(serializedBytes);
-        System.out.println("Avro serialized result size in bytes: " + serializedBytes.length);
 
         st.close();
-
-        // Deserialize bytes to records
-        final InputStream instream = new ByteArrayInputStream(serializedBytes);
-
-        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
-        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
-            GenericRecord record = null;
-            while (dataFileReader.hasNext()) {
-                // Reuse record object by passing it to next(). This saves us from
-                // allocating and garbage collecting many objects for files with
-                // many items.
-                record = dataFileReader.next(record);
-                System.out.println(record);
-            }
-        }
     }
 
 

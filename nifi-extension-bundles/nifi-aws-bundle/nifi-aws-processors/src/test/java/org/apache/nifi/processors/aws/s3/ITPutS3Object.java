@@ -44,6 +44,8 @@ import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -81,7 +83,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
     final static Pattern reS3ETag = Pattern.compile("[0-9a-fA-f]{32}(-[0-9]+)?");
 
-
+    private static final Logger logger = LoggerFactory.getLogger(ITPutS3Object.class);
     private static String kmsKeyId = "";
     private static String randomKeyMaterial = "";
 
@@ -710,7 +712,7 @@ public class ITPutS3Object extends AbstractS3IT {
             tempByteCount += megabyte.length;
         }
         tempOut.close();
-        System.out.println("file size: " + tempByteCount);
+        logger.info("file size: {}", tempByteCount);
         assertTrue(tempByteCount < S3_MINIMUM_PART_SIZE);
 
         assertTrue(megabyte.length < S3_MINIMUM_PART_SIZE);
@@ -754,7 +756,7 @@ public class ITPutS3Object extends AbstractS3IT {
             tempByteCount += megabyte.length;
         }
         tempOut.close();
-        System.out.println("file size: " + tempByteCount);
+        logger.info("file size: {}", tempByteCount);
         assertTrue(tempByteCount > S3_MINIMUM_PART_SIZE && tempByteCount < S3_MAXIMUM_OBJECT_SIZE);
         assertTrue(tempByteCount > TEST_PARTSIZE_LONG);
 
@@ -806,7 +808,7 @@ public class ITPutS3Object extends AbstractS3IT {
         List<Tag> objectTags = result.getTagSet();
 
         for (Tag tag : objectTags) {
-            System.out.println("Tag Key : " + tag.getKey() + ", Tag Value : " + tag.getValue());
+            logger.info("Tag Key : {}, Tag Value : {}", tag.getKey(), tag.getValue());
         }
 
         assertEquals(1, objectTags.size());

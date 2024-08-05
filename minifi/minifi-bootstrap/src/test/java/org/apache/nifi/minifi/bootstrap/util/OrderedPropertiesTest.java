@@ -50,8 +50,6 @@ public class OrderedPropertiesTest {
                 String actualLine = actualReader.readLine();
                 if (!"#Tue Feb 21 11:03:08 EST 2017".equals(expectedLine)) {
                     assertEquals(expectedLine, actualLine);
-                } else {
-                    System.out.println("Skipping timestamp comment line");
                 }
             }
             assertNull(actualReader.readLine());

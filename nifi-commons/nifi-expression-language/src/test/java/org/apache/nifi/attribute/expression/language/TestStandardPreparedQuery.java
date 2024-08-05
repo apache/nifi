@@ -21,6 +21,8 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +40,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestStandardPreparedQuery {
+
+    private static final Logger logger = LoggerFactory.getLogger(TestStandardPreparedQuery.class);
 
     @Test
     public void testSimpleReference() {
@@ -69,7 +73,7 @@ public class TestStandardPreparedQuery {
             assertEquals("world", prepared.evaluateExpressions(new StandardEvaluationContext(attrs), null));
         }
         final long nanos = System.nanoTime() - start;
-        System.out.println(TimeUnit.NANOSECONDS.toMillis(nanos));
+        logger.info("{}", TimeUnit.NANOSECONDS.toMillis(nanos));
     }
 
     @Test
@@ -83,8 +87,7 @@ public class TestStandardPreparedQuery {
             assertEquals("world", Query.evaluateExpressions("${xx}", attrs, ParameterLookup.EMPTY));
         }
         final long nanos = System.nanoTime() - start;
-        System.out.println(TimeUnit.NANOSECONDS.toMillis(nanos));
-
+        logger.info("{}", TimeUnit.NANOSECONDS.toMillis(nanos));
     }
 
     @Test

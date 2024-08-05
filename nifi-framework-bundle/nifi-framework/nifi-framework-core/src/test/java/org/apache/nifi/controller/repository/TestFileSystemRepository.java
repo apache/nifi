@@ -33,6 +33,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -70,6 +72,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestFileSystemRepository {
 
     public static final File helloWorldFile = new File("src/test/resources/hello.txt");
+    private static final Logger logger = LoggerFactory.getLogger(TestFileSystemRepository.class);
 
     private FileSystemRepository repository = null;
     private StandardResourceClaimManager claimManager = null;
@@ -117,8 +120,8 @@ public class TestFileSystemRepository {
         final long mb = bytesToWrite / (1024 * 1024);
         final long seconds = millis / 1000L;
         final double mbps = (double) mb / (double) seconds;
-        System.out.println("Took " + millis + " millis to write " + contentSize + " bytes " + iterations + " times (total of "
-                + NumberFormat.getNumberInstance(Locale.US).format(bytesToWrite) + " bytes) for a write rate of " + mbps + " MB/s");
+        logger.info("Took {} millis to write {} bytes {} times (total of {} bytes) for a write rate of {} MB/s",
+                millis, contentSize, iterations, NumberFormat.getNumberInstance(Locale.US).format(bytesToWrite), mbps);
     }
 
     @Test

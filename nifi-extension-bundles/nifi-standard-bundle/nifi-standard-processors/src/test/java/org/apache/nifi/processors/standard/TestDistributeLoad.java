@@ -106,7 +106,6 @@ public class TestDistributeLoad {
         testRunner.assertQueueEmpty();
 
         for (int i = 1; i <= 100; i++) {
-            System.out.println(i);
             testRunner.assertTransferCount(String.valueOf(i), (i == 50) ? 0 : 1);
         }
     }

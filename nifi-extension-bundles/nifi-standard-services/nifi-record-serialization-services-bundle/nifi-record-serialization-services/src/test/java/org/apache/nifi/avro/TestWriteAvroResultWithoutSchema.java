@@ -39,6 +39,8 @@ import org.apache.nifi.stream.io.NullOutputStream;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestWriteAvroResultWithoutSchema.class);
     private final BlockingQueue<BinaryEncoder> encoderPool = new LinkedBlockingQueue<>(32);
 
     @Override
@@ -121,6 +124,6 @@ public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
         }
 
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-        System.out.println(millis);
+        LOGGER.info("{}", millis);
     }
 }

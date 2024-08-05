@@ -97,8 +97,6 @@ public class TestExecuteProcess {
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         for (final MockFlowFile flowFile : flowFiles) {
-            System.out.println(flowFile);
-            System.out.println(new String(flowFile.toByteArray()));
             flowFile.assertAttributeNotExists(CoreAttributes.MIME_TYPE.key());
         }
     }
@@ -145,14 +143,12 @@ public class TestExecuteProcess {
         runner.setProperty(ExecuteProcess.WORKING_DIR, workingDirName);
 
         File inFile = new File(workingDirName, testFile);
-        System.out.println(inFile.getAbsolutePath());
 
         runner.run();
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         long totalFlowFilesSize = 0;
         for (final MockFlowFile flowFile : flowFiles) {
-            System.out.println(flowFile);
             totalFlowFilesSize += flowFile.getSize();
         }
 
@@ -175,9 +171,6 @@ public class TestExecuteProcess {
         runner.setProperty(ExecuteProcess.BATCH_DURATION, "150 millis");
 
         File inFile = new File(workingDirName, testFile);
-        System.out.println(inFile.getAbsolutePath());
-
-        // runner.run(1,false,true);
 
         ProcessContext processContext = runner.getProcessContext();
 

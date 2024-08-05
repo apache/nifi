@@ -34,6 +34,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,6 +56,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestSwappablePriorityQueue {
+    private static final Logger logger = LoggerFactory.getLogger(TestSwappablePriorityQueue.class);
 
     private MockSwapManager swapManager;
     private final List<String> events = new ArrayList<>();
@@ -136,7 +139,7 @@ public class TestSwappablePriorityQueue {
         queue.setPriorities(Collections.singletonList(iAttributePrioritizer));
 
         for (final int queueSize : new int[] {1, 9999, 10_000, 10_001, 19_999, 20_000, 20_001}) {
-            System.out.println("Queue Size: " + queueSize);
+            logger.info("Queue Size: {}", queueSize);
 
             for (int i = 0; i < queueSize; i++) {
                 final MockFlowFileRecord flowFile = new MockFlowFileRecord(Map.of("i", String.valueOf(i)), i);
@@ -253,7 +256,7 @@ public class TestSwappablePriorityQueue {
         }
 
         ffs.forEach(queue::put);
-        System.out.println(StringUtils.join(attrs, ", "));
+        logger.info(StringUtils.join(attrs, ", "));
     }
 
 

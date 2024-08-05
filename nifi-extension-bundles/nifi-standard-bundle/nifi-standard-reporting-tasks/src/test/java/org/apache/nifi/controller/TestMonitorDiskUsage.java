@@ -33,8 +33,6 @@ public class TestMonitorDiskUsage {
 
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
         Mockito.doAnswer(invocation -> {
-            final String message = (String) invocation.getArguments()[0];
-            System.out.println(message);
             callCounter.incrementAndGet();
             return null;
         }).when(logger).warn(Mockito.anyString());

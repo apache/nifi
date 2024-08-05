@@ -22,6 +22,8 @@ import com.google.cloud.storage.BlobId;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -32,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Integration tests for {@link PutGCSObject} which actually use Google Cloud resources.
  */
 public class PutGCSObjectIT extends AbstractGCSIT {
+    private static final Logger logger = LoggerFactory.getLogger(PutGCSObjectIT.class);
     private static final String KEY = "delete-me";
     private static final byte[] CONTENT = {12, 13, 14};
 
@@ -52,7 +55,7 @@ public class PutGCSObjectIT extends AbstractGCSIT {
         flowFile.assertAttributeNotExists(ENCRYPTION_ALGORITHM_ATTR);
 
         for (Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
-            System.out.println(entry.getKey() + ":" + entry.getValue());
+           logger.info("{}:{}", entry.getKey(), entry.getValue());
         }
     }
 
@@ -74,7 +77,7 @@ public class PutGCSObjectIT extends AbstractGCSIT {
         flowFile.assertAttributeExists(ENCRYPTION_ALGORITHM_ATTR);
 
         for (Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
-            System.out.println(entry.getKey() + ":" + entry.getValue());
+            logger.info("{}:{}", entry.getKey(), entry.getValue());
         }
     }
 

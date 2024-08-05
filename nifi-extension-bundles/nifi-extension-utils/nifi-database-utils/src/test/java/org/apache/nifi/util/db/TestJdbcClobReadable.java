@@ -125,7 +125,6 @@ public class TestJdbcClobReadable {
 
         final byte[] serializedBytes = outStream.toByteArray();
         assertNotNull(serializedBytes);
-        System.out.println("Avro serialized result size in bytes: " + serializedBytes.length);
 
         st.close();
         con.close();
@@ -140,7 +139,6 @@ public class TestJdbcClobReadable {
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
                 assertEquals(someClob, record.get("SOMECLOB").toString(), "Unreadable code for this Clob value.");
-                System.out.println(record);
             }
         }
     }

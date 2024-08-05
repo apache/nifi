@@ -162,7 +162,6 @@ public abstract class AbstractTestRecordReaderWriter {
             final RecordReader reader = createReader(fis, journalFile.getName(), tocReader, 2048)) {
             for (int i = 0; i < 10; i++) {
                 final StandardProvenanceEventRecord recovered = reader.nextRecord();
-                System.out.println(recovered);
                 assertNotNull(recovered);
                 assertEquals(i, recovered.getEventId());
                 assertEquals("nifi://unit-test", recovered.getTransitUri());
@@ -204,8 +203,6 @@ public abstract class AbstractTestRecordReaderWriter {
             final RecordReader reader = createReader(fis, journalFile.getName(), tocReader, 2048)) {
 
             for (int i = 0; i < numEvents; i++) {
-                System.out.println(i);
-
                 final Optional<ProvenanceEventRecord> eventOption = reader.skipToEvent(i);
                 assertTrue(eventOption.isPresent());
                 assertEquals(i, eventOption.get().getEventId());

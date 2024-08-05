@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -89,8 +88,6 @@ public class TestModifyBytes {
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println(outContent);
         out.assertContentEquals(noHeaderFile);
     }
 
@@ -107,8 +104,6 @@ public class TestModifyBytes {
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println(outContent);
         out.assertContentEquals(noHeaderFile);
     }
 
@@ -123,8 +118,6 @@ public class TestModifyBytes {
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println(outContent);
         out.assertContentEquals("<<<FOOTER>>>".getBytes("UTF-8"));
     }
 
@@ -169,8 +162,6 @@ public class TestModifyBytes {
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println(outContent);
         out.assertContentEquals(noFooterFile);
     }
 
@@ -185,8 +176,6 @@ public class TestModifyBytes {
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println(outContent);
         out.assertContentEquals(noFooterNoHeaderFile);
     }
 
@@ -215,8 +204,6 @@ public class TestModifyBytes {
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println(outContent);
         out.assertContentEquals("Dew".getBytes("UTF-8"));
     }
 

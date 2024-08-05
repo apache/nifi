@@ -38,6 +38,8 @@ import org.apache.nifi.util.EqualsWrapper;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -69,6 +71,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class TestJsonTreeRowRecordReader {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestJsonTreeRowRecordReader.class);
     private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
     private final String timeFormat = RecordFieldType.TIME.getDefaultFormat();
     private final String timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
@@ -155,7 +158,7 @@ class TestJsonTreeRowRecordReader {
             }
             final long nanos = System.nanoTime() - start;
             final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
-            System.out.println("Took " + millis + " millis to read " + recordCount + " records");
+            LOGGER.info("Took {} millis to read {} records", millis, recordCount);
         }
     }
 
@@ -184,7 +187,7 @@ class TestJsonTreeRowRecordReader {
             }
             final long nanos = System.nanoTime() - start;
             final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
-            System.out.println("Took " + millis + " millis to read " + recordCount + " records");
+            LOGGER.info("Took {} millis to read {} records", millis, recordCount);
         }
     }
 

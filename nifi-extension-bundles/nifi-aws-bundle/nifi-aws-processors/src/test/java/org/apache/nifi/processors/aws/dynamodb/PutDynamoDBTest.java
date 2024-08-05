@@ -169,7 +169,6 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (final MockFlowFile flowFile : flowFiles) {
-            System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
         }
     }
@@ -191,14 +190,12 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         final List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (final MockFlowFile flowFile : flowFilesFailed) {
-            System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
             assertEquals(item.length, flowFile.getSize());
         }
 
         final List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (final MockFlowFile flowFile : flowFilesSuccessful) {
-            System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
         }
     }
@@ -221,14 +218,12 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         final List<MockFlowFile> flowFilesFailed = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         for (final MockFlowFile flowFile : flowFilesFailed) {
-            System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
             assertEquals(item.length, flowFile.getSize());
         }
 
         final List<MockFlowFile> flowFilesSuccessful = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_SUCCESS);
         for (final MockFlowFile flowFile : flowFilesSuccessful) {
-            System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
         }
     }
@@ -250,7 +245,6 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         final List<MockFlowFile> flowFiles = putRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
         assertEquals(1, flowFiles.size());
         for (final MockFlowFile flowFile : flowFiles) {
-            System.out.println(flowFile.getAttributes());
             flowFile.assertAttributeExists(PutDynamoDB.AWS_DYNAMO_DB_ITEM_SIZE_ERROR);
             assertEquals(item.length, flowFile.getSize());
         }

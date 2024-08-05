@@ -68,6 +68,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -123,6 +125,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class StandardProcessSessionIT {
+    private static final Logger logger = LoggerFactory.getLogger(StandardProcessSessionIT.class);
     private static final Relationship FAKE_RELATIONSHIP = new Relationship.Builder().name("FAKE").build();
 
     private StandardProcessSession session;
@@ -1793,11 +1796,11 @@ public class StandardProcessSessionIT {
             try {
                 standardProcessSessions[i].read(flowFile, in -> StreamUtils.fillBuffer(in, buff));
             } catch (Exception e) {
-                System.out.println("Failed at file:" + i);
+                logger.error("Failed at file:{}", i);
                 throw e;
             }
             if (i % 1000 == 0) {
-                System.out.println("i:" + i);
+                logger.info("i:{}", i);
             }
         }
     }

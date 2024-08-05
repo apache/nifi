@@ -25,11 +25,15 @@ import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class StatelessPerformanceIT extends StatelessSystemIT {
+    private static final Logger logger = LoggerFactory.getLogger(StatelessPerformanceIT.class);
+
     @Test
     @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     public void testCreateDestroyPerf() throws InterruptedException {
@@ -58,7 +62,7 @@ public class StatelessPerformanceIT extends StatelessSystemIT {
                             result.acknowledge();
                         }
                         final long millis = System.currentTimeMillis() - start;
-                        System.out.println("Took " + millis + " millis to run " + iterations + " iterations");
+                        logger.info("Took {} millis to run {} iterations", millis, iterations);
                     } catch (final Exception e) {
                         e.printStackTrace();
                     }

@@ -62,8 +62,11 @@ import org.apache.nifi.stream.io.NullOutputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter {
+    private static final Logger logger = LoggerFactory.getLogger(TestSchemaRecordReaderWriter.class);
     private final AtomicLong idGenerator = new AtomicLong(0L);
     private File journalFile;
     private File tocFile;
@@ -110,7 +113,7 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
             }
 
             final long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            System.out.println(ms + " ms total");
+            logger.info("{} ms total", ms);
         }
     }
 
@@ -307,7 +310,7 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
 
         final long nanos = System.nanoTime() - startNanos;
         final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
-        System.out.println("Took " + millis + " millis to write " + numEvents + " events");
+        logger.info("Took {} millis to write {} events", millis, numEvents);
     }
 
     @Test
@@ -358,7 +361,7 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
         final double seconds = millis / 1000D;
         final long bytesPerSecond = (long) (totalRecordBytes / seconds);
         final long megaBytesPerSecond = bytesPerSecond / 1024 / 1024;
-        System.out.println("Took " + millis + " millis to read " + numEvents + " events or " + megaBytesPerSecond + " MB/sec");
+        logger.info("Took {} millis to read {} events or {} MB/sec", millis, numEvents, megaBytesPerSecond);
     }
 
 

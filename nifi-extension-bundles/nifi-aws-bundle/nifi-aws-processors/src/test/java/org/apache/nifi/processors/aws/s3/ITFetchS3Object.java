@@ -23,6 +23,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,6 +37,8 @@ import java.util.Map;
  * Provides integration level testing with actual AWS S3 resources for {@link FetchS3Object} and requires additional configuration and resources to work.
  */
 public class ITFetchS3Object extends AbstractS3IT {
+    private static final Logger logger = LoggerFactory.getLogger(ITFetchS3Object.class);
+
     @Test
     public void testSimpleGet() throws IOException {
         putTestFile("test-file", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
@@ -125,7 +129,7 @@ public class ITFetchS3Object extends AbstractS3IT {
         out.assertContentEquals(new String(expectedBytes));
 
         for (final Map.Entry<String, String> entry : out.getAttributes().entrySet()) {
-            System.out.println(entry.getKey() + " : " + entry.getValue());
+            logger.info("{}:{}", entry.getKey(), entry.getValue());
         }
     }
 
