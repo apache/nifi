@@ -280,7 +280,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
             if (queryTimeout > 0) {
                 Statement statement = new SimpleStatement(selectQuery);
-                statement.setReadTimeoutMillis((int) queryTimeout);
+                statement.setReadTimeoutMillis(queryTimeout);
                 resultSet = connectionSession.execute(statement);
             }else{
                 resultSet = connectionSession.execute(selectQuery);
