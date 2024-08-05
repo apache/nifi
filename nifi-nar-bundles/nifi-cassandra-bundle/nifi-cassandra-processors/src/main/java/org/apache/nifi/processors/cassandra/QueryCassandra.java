@@ -79,6 +79,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import com.datastax.driver.core.*;
 
 @Tags({"cassandra", "cql", "select"})
 @EventDriven
@@ -125,7 +126,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .name("Max Wait Time")
             .description("The maximum amount of time allowed for a running CQL select query. Must be of format "
                     + "<duration> <TimeUnit> where <duration> is a non-negative integer and TimeUnit is a supported "
-                    + "Time Unit, such as: nanos, millis, secs, mins, hrs, days. A value of zero means there is no limit. ")
+                    + "Time Unit, such as:millis, secs, mins, hrs, days. A value of zero means there is no limit. ")
             .defaultValue("0 seconds")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -277,7 +278,9 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             final ResultSet resultSet;
 
             if (queryTimeout > 0) {
-                resultSet = connectionSession.execute(selectQuery, queryTimeout, TimeUnit.MILLISECONDS);
+                Statement statement = new SimpleStatement(selectQuery);
+                statement.setReadTimeoutMillis((int) queryTimeout);
+                resultSet = connectionSession.execute(statement);
             }else{
                 resultSet = connectionSession.execute(selectQuery);
             }
