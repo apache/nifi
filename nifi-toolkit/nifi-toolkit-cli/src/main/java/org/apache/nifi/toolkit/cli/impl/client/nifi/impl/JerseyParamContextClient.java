@@ -243,4 +243,31 @@ public class JerseyParamContextClient extends AbstractJerseyClient implements Pa
             }
         });
     }
+
+    @Override
+    public AssetEntity deleteAsset(final String contextId, final String assetId) throws NiFiClientException, IOException {
+        return deleteAsset(contextId, assetId, false);
+    }
+
+    @Override
+    public AssetEntity deleteAsset(final String contextId, final String assetId, final boolean disconnectedNodeAcknowledged)
+            throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(contextId)) {
+            throw new IllegalArgumentException("Parameter context id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(assetId)) {
+            throw new IllegalArgumentException("Asset id cannot be null or blank");
+        }
+        return executeAction("Error deleting asset", () -> {
+            WebTarget target = paramContextTarget.path("{context-id}/assets/{asset-id}")
+                    .resolveTemplate("context-id", contextId)
+                    .resolveTemplate("asset-id", assetId);
+
+            if (disconnectedNodeAcknowledged) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
+
+            return getRequestBuilder(target).delete(AssetEntity.class);
+        });
+    }
 }

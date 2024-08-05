@@ -60,6 +60,7 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.params.AddAssetReference;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.CreateAsset;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.CreateParamContext;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.CreateParamProvider;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.params.DeleteAsset;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.GetAsset;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.ListAssets;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.RemoveAssetReference;
@@ -220,6 +221,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new CreateAsset());
         commands.add(new ListAssets());
         commands.add(new GetAsset());
+        commands.add(new DeleteAsset());
         commands.add(new AddAssetReference());
         commands.add(new RemoveAssetReference());
         return new ArrayList<>(commands);

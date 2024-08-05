@@ -49,4 +49,7 @@ public interface ParamContextClient {
 
     File getAssetContent(String contextId, String assetId, File outputDirectory) throws NiFiClientException, IOException;
 
+    AssetEntity deleteAsset(String contextId, String assetId) throws NiFiClientException, IOException;
+
+    AssetEntity deleteAsset(String contextId, String assetId, boolean disconnectedNodeAcknowledged) throws NiFiClientException, IOException;
 }

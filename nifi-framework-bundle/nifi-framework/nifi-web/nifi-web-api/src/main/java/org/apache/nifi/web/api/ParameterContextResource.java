@@ -419,6 +419,7 @@ public class ParameterContextResource extends AbstractParameterResource {
             parameterContext.authorize(authorizer, RequestAction.WRITE, user);
 
             // Verify READ and WRITE permissions for user, for every component that is affected
+            // This is necessary because this end-point may be called to replace the content of an asset that is referenced in a parameter that is already in use
             affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
         });
 
@@ -553,6 +554,86 @@ public class ParameterContextResource extends AbstractParameterResource {
         return generateOkResponse(streamingOutput)
                 .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", asset.getName()))
                 .build();
+    }
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{contextId}/assets/{assetId}")
+    @Operation(
+            summary = "Deletes an Asset from the given Parameter Context",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AssetEntity.class))),
+            description = "This endpoint will create a new Asset in the given Parameter Context. The Asset will be created with the given name and the contents of the file that is uploaded. " +
+                    "The Asset will be created in the given Parameter Context, and will be available for use by any component that references the Parameter Context.",
+            security = {
+                    @SecurityRequirement(name = "Read - /parameter-contexts/{parameterContextId}"),
+                    @SecurityRequirement(name = "Write - /parameter-contexts/{parameterContextId}"),
+                    @SecurityRequirement(name = "Read - for every component that is affected by the update"),
+                    @SecurityRequirement(name = "Write - for every component that is affected by the update"),
+                    @SecurityRequirement(name = "Read - for every currently inherited parameter context")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response deleteAsset(
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false")
+            final Boolean disconnectedNodeAcknowledged,
+            @Parameter(description = "The ID of the Parameter Context")
+            @PathParam("contextId")
+            final String parameterContextId,
+            @Parameter(description = "The ID of the Asset")
+            @PathParam("assetId")
+            final String assetId
+    ) {
+        if (StringUtils.isBlank(parameterContextId)) {
+            throw new IllegalArgumentException("Parameter context id is required");
+        }
+        if (StringUtils.isBlank(assetId)) {
+            throw new IllegalArgumentException("Asset id is required");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
+        // Get the context or throw ResourceNotFoundException
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextId, false, user);
+
+        final AssetDTO assetDTO = new AssetDTO();
+        assetDTO.setId(assetId);
+
+        final AssetEntity assetEntity = new AssetEntity();
+        assetEntity.setAsset(assetDTO);
+
+        // Need to call into service facade with a lock to ensure that the parameter context can't be updated to
+        // reference the asset being deleted at the same time that we are verifying no parameters reference it
+        return withWriteLock(
+                serviceFacade,
+                assetEntity,
+                lookup -> {
+                    // Deletion of an asset will only be allowed when it is not referenced by any parameters, so we only need to
+                    // authorize that the user has access to modify the context which is READ and WRITE on the context itself
+                    final ParameterContext parameterContext = lookup.getParameterContext(contextEntity.getId());
+                    parameterContext.authorize(authorizer, RequestAction.READ, user);
+                    parameterContext.authorize(authorizer, RequestAction.WRITE, user);
+                },
+                () -> serviceFacade.verifyDeleteAsset(contextEntity.getId(), assetId),
+                requestEntity -> {
+                    final String requestAssetId = requestEntity.getAsset().getId();
+                    final AssetEntity deletedAsset = serviceFacade.deleteAsset(contextEntity.getId(), requestAssetId);
+                    return generateOkResponse(deletedAsset).build();
+                }
+        );
     }
 
     @POST
@@ -727,9 +808,11 @@ public class ParameterContextResource extends AbstractParameterResource {
                     if (StringUtils.isBlank(referencedAsset.getId())) {
                         throw new IllegalArgumentException("Asset reference id cannot be blank");
                     }
-                    final Optional<Asset> asset = assetManager.getAsset(referencedAsset.getId());
-                    if (asset.isEmpty()) {
-                        throw new IllegalArgumentException("Request contains a reference to an Asset (%s) that does not exist".formatted(referencedAsset));
+                    final Asset asset = assetManager.getAsset(referencedAsset.getId())
+                            .orElseThrow(() -> new IllegalArgumentException("Request contains a reference to an Asset (%s) that does not exist".formatted(referencedAsset)));
+                    if (!asset.getParameterContextIdentifier().equals(parameterContextDto.getId())) {
+                        throw new IllegalArgumentException("Request contains a reference to an Asset (%s) that does not exist in Parameter Context (%s)"
+                                .formatted(referencedAsset, parameterContextDto.getId()));
                     }
                 }
 

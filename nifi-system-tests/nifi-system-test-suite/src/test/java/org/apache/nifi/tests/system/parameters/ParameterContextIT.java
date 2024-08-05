@@ -725,11 +725,20 @@ public class ParameterContextIT extends NiFiSystemIT {
         final AssetsEntity assetListing = assertAssetListing(paramContext.getId(), 1);
         assertAssetExists(asset, assetListing);
 
+        // Attempt to delete the asset should be prevented since it is still referenced
+        assertThrows(NiFiClientException.class, () -> getNifiClient().getParamContextClient().deleteAsset(paramContext.getId(), asset.getAsset().getId()));
+
         // Change the parameter so that it no longer references the asset
         final ParameterContextUpdateRequestEntity removeAssetUpdateRequest = getClientUtil().updateParameterContext(paramContext, Map.of("fileToIngest", "invalid"));
 
         // Wait for the update to complete
         getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), removeAssetUpdateRequest.getRequest().getRequestId());
+
+        // Attempt to delete the asset should now succeed since no longer referenced
+        final AssetEntity deletedAssetEntity = getNifiClient().getParamContextClient().deleteAsset(paramContext.getId(), asset.getAsset().getId());
+        assertNotNull(deletedAssetEntity);
+        assertNotNull(deletedAssetEntity.getAsset());
+        assertEquals(asset.getAsset().getId(), deletedAssetEntity.getAsset().getId());
 
         // Ensure that the directories no longer exist
         waitFor(() -> !node1ContextDir.exists());
@@ -805,7 +814,7 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testAssetsRemovedWhenRemovingReference() throws NiFiClientException, IOException, InterruptedException {
+    public void testAssetsRemainWhenRemovingReference() throws NiFiClientException, IOException, InterruptedException {
         // Create context
         final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testAssetsRemovedWhenDeletingParameterContext",
                 Map.of("name", "foo", "fileToIngest", ""));
@@ -836,10 +845,10 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ParameterContextUpdateRequestEntity removeReferenceUpdateRequest = getClientUtil().updateParameterAssetReferences(paramContext, Map.of("fileToIngest", List.of()));
         getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), removeReferenceUpdateRequest.getRequest().getRequestId());
 
-        // Verify the directory for the context's assets was removed
-        assertFalse(node1ContextDir.exists());
+        // Verify the directory for the context's assets was not removed
+        assertTrue(node1ContextDir.exists());
         if (node2ContextDir != null) {
-            assertFalse(node2ContextDir.exists());
+            assertTrue(node2ContextDir.exists());
         }
     }
 

@@ -30,7 +30,7 @@ public interface AssetManager {
     void initialize(AssetManagerInitializationContext context);
 
     /**
-     * Creates a new Asset with the given name and contents. If the replicate flag is set to true, the asset will be replicated to all nodes in the cluster.
+     * Creates a new Asset with the given name and contents.
      * @param parameterContextId the id of the parameter context
      * @param assetName the name of the asset
      * @param contents the contents of the asset

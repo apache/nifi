@@ -446,8 +446,8 @@ public class FlowControllerConfiguration {
      * @return Asset Manager
      */
     @Bean
-    public AssetManager assetManager(@Autowired final FlowController flowController) {
-        return flowController.getAssetManager();
+    public AssetManager assetManager() throws Exception {
+        return flowController().getAssetManager();
     }
 
     /**

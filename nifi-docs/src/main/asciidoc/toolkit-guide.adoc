@@ -149,6 +149,7 @@ The following are available commands:
  nifi create-asset
  nifi list-assets
  nifi get-asset
+ nifi delete-asset
  nifi add-asset-reference
  nifi remove-asset-reference
  registry current-user

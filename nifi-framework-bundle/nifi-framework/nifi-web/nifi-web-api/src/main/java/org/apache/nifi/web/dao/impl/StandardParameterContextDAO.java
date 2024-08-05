@@ -285,7 +285,6 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         verifyUpdate(parameterContextDto, true);
 
         final ParameterContext context = getParameterContext(parameterContextDto.getId());
-        final Set<String> originalReferencedAssets = getReferencedAssetIds(context);
 
         if (parameterContextDto.getName() != null) {
             verifyNoNamingConflict(parameterContextDto.getName(), parameterContextDto.getId());
@@ -304,14 +303,6 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         if (parameterContextDto.getInheritedParameterContexts() != null) {
             final List<ParameterContext> inheritedParameterContexts = getInheritedParameterContexts(parameterContextDto);
             context.setInheritedParameterContexts(inheritedParameterContexts);
-        }
-
-        final Set<String> updatedReferencedAssets = getReferencedAssetIds(context);
-        final Set<String> removedReferences = new HashSet<>(originalReferencedAssets);
-        removedReferences.removeAll(updatedReferencedAssets);
-        for (final String removedReference : removedReferences) {
-            assetManager.deleteAsset(removedReference);
-            logger.info("Removed Asset {} because it is no longer being referenced", removedReference);
         }
 
         return context;
@@ -336,7 +327,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         if (parameterContextDto.getInheritedParameterContexts() != null) {
             inheritedParameterContexts.addAll(parameterContextDto.getInheritedParameterContexts().stream()
                     .map(entity -> flowManager.getParameterContextManager().getParameterContext(entity.getComponent().getId()))
-                    .collect(Collectors.toList()));
+                    .toList());
         }
 
         return inheritedParameterContexts;
