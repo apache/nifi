@@ -17,13 +17,13 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.commons.text.StringEscapeUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -34,23 +34,19 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.List;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.Collections;
-import java.util.Arrays;
-import java.util.ArrayList;
 
 @SideEffectFree
 @SupportsBatching
@@ -150,13 +146,25 @@ public class AttributesToCSV extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            ATTRIBUTES_LIST,
+            ATTRIBUTES_REGEX,
+            DESTINATION,
+            INCLUDE_CORE_ATTRIBUTES,
+            NULL_VALUE_FOR_EMPTY_STRING,
+            INCLUDE_SCHEMA
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Successfully converted attributes to CSV").build();
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Failed to convert attributes to CSV").build();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+
     private volatile Boolean includeCoreAttributes;
     private volatile Set<String> coreAttributes;
     private volatile boolean destinationContent;
@@ -165,30 +173,13 @@ public class AttributesToCSV extends AbstractProcessor {
     private volatile Boolean includeSchema;
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(ATTRIBUTES_LIST);
-        properties.add(ATTRIBUTES_REGEX);
-        properties.add(DESTINATION);
-        properties.add(INCLUDE_CORE_ATTRIBUTES);
-        properties.add(NULL_VALUE_FOR_EMPTY_STRING);
-        properties.add(INCLUDE_SCHEMA);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
 
@@ -311,7 +302,7 @@ public class AttributesToCSV extends AbstractProcessor {
             if (destinationContent) {
                 FlowFile conFlowfile = session.write(original, (in, out) -> {
                         if (includeSchema) {
-                            sbNames.append(System.getProperty("line.separator"));
+                            sbNames.append(System.lineSeparator());
                             out.write(sbNames.toString().getBytes());
                         }
                         out.write(sbValues.toString().getBytes());

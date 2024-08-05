@@ -18,7 +18,7 @@
 import { JoltTransformJsonUi } from './jolt-transform-json-ui.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../state/jolt-transform-json-ui/jolt-transform-json-ui.reducer';
+import { initialState } from '../state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.reducer';
 import { joltTransformJsonUiFeatureKey } from '../state';
 
 describe('jolt-transform-json-ui', () => {

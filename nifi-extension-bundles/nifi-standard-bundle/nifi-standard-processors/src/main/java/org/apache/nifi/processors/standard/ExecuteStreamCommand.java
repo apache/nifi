@@ -20,16 +20,15 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -66,9 +65,7 @@ import java.io.OutputStream;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -188,8 +185,12 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .build();
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
 
-    private final static Set<Relationship> OUTPUT_STREAM_RELATIONSHIP_SET;
-    private final static Set<Relationship> ATTRIBUTE_RELATIONSHIP_SET;
+    private final static Set<Relationship> OUTPUT_STREAM_RELATIONSHIP_SET = Set.of(
+            OUTPUT_STREAM_RELATIONSHIP,
+            ORIGINAL_RELATIONSHIP,
+            NONZERO_STATUS_RELATIONSHIP
+    );
+    private final static Set<Relationship> ATTRIBUTE_RELATIONSHIP_SET = Set.of(ORIGINAL_RELATIONSHIP);
 
     private static final Pattern COMMAND_ARGUMENT_PATTERN = Pattern.compile("command\\.argument\\.(?<commandIndex>[0-9]+)$");
 
@@ -286,32 +287,19 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES;
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            WORKING_DIR,
+            EXECUTION_COMMAND,
+            ARGUMENTS_STRATEGY,
+            EXECUTION_ARGUMENTS,
+            ARG_DELIMITER,
+            IGNORE_STDIN,
+            PUT_OUTPUT_IN_ATTRIBUTE,
+            PUT_ATTRIBUTE_MAX_LENGTH,
+            MIME_TYPE
+    );
+
     private static final String MASKED_ARGUMENT = "********";
-
-    static {
-        List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(WORKING_DIR);
-        props.add(EXECUTION_COMMAND);
-        props.add(ARGUMENTS_STRATEGY);
-        props.add(EXECUTION_ARGUMENTS);
-        props.add(ARG_DELIMITER);
-        props.add(IGNORE_STDIN);
-        props.add(PUT_OUTPUT_IN_ATTRIBUTE);
-        props.add(PUT_ATTRIBUTE_MAX_LENGTH);
-        props.add(MIME_TYPE);
-        PROPERTIES = Collections.unmodifiableList(props);
-
-        Set<Relationship> outputStreamRelationships = new HashSet<>();
-        outputStreamRelationships.add(OUTPUT_STREAM_RELATIONSHIP);
-        outputStreamRelationships.add(ORIGINAL_RELATIONSHIP);
-        outputStreamRelationships.add(NONZERO_STATUS_RELATIONSHIP);
-        OUTPUT_STREAM_RELATIONSHIP_SET = Collections.unmodifiableSet(outputStreamRelationships);
-
-        Set<Relationship> attributeRelationships = new HashSet<>();
-        attributeRelationships.add(ORIGINAL_RELATIONSHIP);
-        ATTRIBUTE_RELATIONSHIP_SET = Collections.unmodifiableSet(attributeRelationships);
-    }
 
     private ComponentLog logger;
 

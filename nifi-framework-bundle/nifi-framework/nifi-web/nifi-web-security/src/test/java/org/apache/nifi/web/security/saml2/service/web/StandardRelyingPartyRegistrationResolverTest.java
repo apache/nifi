@@ -17,7 +17,7 @@
 package org.apache.nifi.web.security.saml2.service.web;
 
 import org.apache.nifi.web.security.saml2.registration.Saml2RegistrationProperty;
-import org.apache.nifi.web.util.WebUtils;
+import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -100,7 +100,7 @@ class StandardRelyingPartyRegistrationResolverTest {
         final RelyingPartyRegistration registration = getSingleLogoutRegistration();
         when(repository.findByRegistrationId(eq(REGISTRATION_ID))).thenReturn(registration);
 
-        request.addHeader(WebUtils.PROXY_CONTEXT_PATH_HTTP_HEADER, FORWARDED_PATH);
+        request.addHeader(ProxyHeader.PROXY_CONTEXT_PATH.getHeader(), FORWARDED_PATH);
 
         final RelyingPartyRegistration resolved = resolver.resolve(request, REGISTRATION_ID);
 

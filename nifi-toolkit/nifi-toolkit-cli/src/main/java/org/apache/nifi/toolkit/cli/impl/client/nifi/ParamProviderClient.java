@@ -32,6 +32,8 @@ public interface ParamProviderClient {
 
     ParameterProviderEntity deleteParamProvider(String id, String version) throws NiFiClientException, IOException;
 
+    ParameterProviderEntity deleteParamProvider(String id, String version, boolean disconnectedNodeAcknowledged) throws NiFiClientException, IOException;
+
     ParameterProviderEntity fetchParameters(ParameterProviderParameterFetchEntity parameterFetchEntity) throws NiFiClientException, IOException;
 
     ParameterProviderApplyParametersRequestEntity applyParameters(ParameterProviderParameterApplicationEntity parameterApplicationEntity) throws NiFiClientException, IOException;

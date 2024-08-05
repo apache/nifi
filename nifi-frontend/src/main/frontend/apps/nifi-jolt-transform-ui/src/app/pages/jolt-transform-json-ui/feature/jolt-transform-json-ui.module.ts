@@ -23,7 +23,7 @@ import { StoreModule } from '@ngrx/store';
 import { joltTransformJsonUiFeatureKey, reducers } from '../state';
 import { EffectsModule } from '@ngrx/effects';
 import { MatDialogModule } from '@angular/material/dialog';
-import { JoltTransformJsonUiEffects } from '../state/jolt-transform-json-ui/jolt-transform-json-ui.effects';
+import { JoltTransformJsonProcessorDetailsEffects } from '../state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.effects';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -36,6 +36,9 @@ import { MatSelect } from '@angular/material/select';
 import { NifiTooltipDirective, ComponentContext, MapTable } from '@nifi/shared';
 import { MatInput } from '@angular/material/input';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { JoltTransformJsonTransformEffects } from '../state/jolt-transform-json-transform/jolt-transform-json-transform.effects';
+import { JoltTransformJsonValidateEffects } from '../state/jolt-transform-json-validate/jolt-transform-json-validate.effects';
+import { JoltTransformJsonPropertyEffects } from '../state/jolt-transform-json-property/jolt-transform-json-property.effects';
 
 @NgModule({
     declarations: [JoltTransformJsonUi],
@@ -44,7 +47,12 @@ import { MatExpansionModule } from '@angular/material/expansion';
         CommonModule,
         JoltTransformJsonUiRoutingModule,
         StoreModule.forFeature(joltTransformJsonUiFeatureKey, reducers),
-        EffectsModule.forFeature(JoltTransformJsonUiEffects),
+        EffectsModule.forFeature(
+            JoltTransformJsonProcessorDetailsEffects,
+            JoltTransformJsonTransformEffects,
+            JoltTransformJsonValidateEffects,
+            JoltTransformJsonPropertyEffects
+        ),
         MatDialogModule,
         CodemirrorModule,
         ReactiveFormsModule,

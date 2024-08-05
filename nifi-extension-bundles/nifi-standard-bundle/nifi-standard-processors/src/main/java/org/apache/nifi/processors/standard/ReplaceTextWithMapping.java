@@ -36,7 +36,6 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
@@ -54,9 +53,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -120,6 +117,15 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .defaultValue("1 MB")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            REGEX,
+            MATCHING_GROUP_FOR_LOOKUP_KEY,
+            MAPPING_FILE,
+            MAPPING_FILE_REFRESH_INTERVAL,
+            CHARACTER_SET,
+            MAX_BUFFER_SIZE
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that have been successfully updated are routed to this relationship, as well as FlowFiles whose content does not match the given Regular Expression")
@@ -129,10 +135,12 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .description("FlowFiles that could not be updated are routed to this relationship")
             .build();
 
-    private final Pattern backReferencePattern = Pattern.compile("[^\\\\]\\$(\\d+)");
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
+    private final Pattern backReferencePattern = Pattern.compile("[^\\\\]\\$(\\d+)");
 
     private final ReentrantLock processorLock = new ReentrantLock();
     private final AtomicLong lastModified = new AtomicLong(0L);
@@ -159,30 +167,13 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
     }
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(REGEX);
-        properties.add(MATCHING_GROUP_FOR_LOOKUP_KEY);
-        properties.add(MAPPING_FILE);
-        properties.add(MAPPING_FILE_REFRESH_INTERVAL);
-        properties.add(CHARACTER_SET);
-        properties.add(MAX_BUFFER_SIZE);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -303,7 +294,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
         }
 
         public Map<String, String> getMapping() {
-            return Collections.unmodifiableMap(mapping);
+            return Map.copyOf(mapping);
         }
 
         public boolean isConfigured() {

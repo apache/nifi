@@ -19,7 +19,7 @@ package org.apache.nifi.web.security.saml2.web.authentication.logout;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
-import org.apache.nifi.web.util.RequestUriBuilder;
+import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;

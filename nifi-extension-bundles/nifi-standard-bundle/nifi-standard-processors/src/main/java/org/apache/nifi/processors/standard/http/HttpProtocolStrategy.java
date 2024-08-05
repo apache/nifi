@@ -19,21 +19,15 @@ package org.apache.nifi.processors.standard.http;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.jetty.configuration.connector.ApplicationLayerProtocol;
 
-import java.util.LinkedHashSet;
 import java.util.Set;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.singleton;
 
 /**
  * HTTP protocol configuration strategy
  */
 public enum HttpProtocolStrategy implements DescribedValue {
-    HTTP_1_1("http/1.1", "HTTP/1.1", singleton(ApplicationLayerProtocol.HTTP_1_1)),
-
-    H2_HTTP_1_1("h2 http/1.1", "HTTP/2 and HTTP/1.1 negotiated based on requested protocols", new LinkedHashSet<>(asList(ApplicationLayerProtocol.HTTP_1_1, ApplicationLayerProtocol.H2))),
-
-    H2("h2", "HTTP/2", singleton(ApplicationLayerProtocol.H2));
+    HTTP_1_1("http/1.1", "HTTP/1.1", Set.of(ApplicationLayerProtocol.HTTP_1_1)),
+    H2_HTTP_1_1("h2 http/1.1", "HTTP/2 and HTTP/1.1 negotiated based on requested protocols", Set.of(ApplicationLayerProtocol.HTTP_1_1, ApplicationLayerProtocol.H2)),
+    H2("h2", "HTTP/2", Set.of(ApplicationLayerProtocol.H2));
 
     private final String displayName;
 

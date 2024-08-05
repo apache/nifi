@@ -30,7 +30,7 @@ import java.util.Set;
 
 import static org.apache.nifi.web.search.attributematchers.AttributeMatcher.addIfMatching;
 
-public class PropertyMatcher implements AttributeMatcher<ComponentNode> {
+public class PropertyMatcher<T extends ComponentNode> implements AttributeMatcher<T> {
     private static final String LABEL_NAME = "Property name";
     private static final String LABEL_VALUE = "Property value";
     private static final String LABEL_DESCRIPTION = "Property description";
@@ -39,7 +39,7 @@ public class PropertyMatcher implements AttributeMatcher<ComponentNode> {
     private final static Set<String> FILTER_VALUES_PROPERTIES_EXCLUSION = new HashSet<>(Arrays.asList("no", "none", "false", "exclude", "0"));
 
     @Override
-    public void match(final ComponentNode component, final SearchQuery query, final List<String> matches) {
+    public void match(final T component, final SearchQuery query, final List<String> matches) {
         final String searchTerm = query.getTerm();
 
         if (!propertiesAreFilteredOut(query)) {

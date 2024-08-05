@@ -38,7 +38,6 @@ import org.apache.nifi.util.StringUtils;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,15 +52,13 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
 
-    static final Map<String, String> NULL_REPRESENTATION_MAP = new HashMap<>();
-
     static final String EMPTY_STRING_OPTION = "empty string";
     static final String NULL_STRING_OPTION = "the string 'null'";
 
-    static {
-        NULL_REPRESENTATION_MAP.put(EMPTY_STRING_OPTION, "");
-        NULL_REPRESENTATION_MAP.put(NULL_STRING_OPTION, "null");
-    }
+    static final Map<String, String> NULL_REPRESENTATION_MAP = Map.of(
+            EMPTY_STRING_OPTION, "",
+            NULL_STRING_OPTION, "null"
+    );
 
     public static final PropertyDescriptor NULL_VALUE_DEFAULT_REPRESENTATION = new PropertyDescriptor.Builder()
             .name("Null Value Representation")

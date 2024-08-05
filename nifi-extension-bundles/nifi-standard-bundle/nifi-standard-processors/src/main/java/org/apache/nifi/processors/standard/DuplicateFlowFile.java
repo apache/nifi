@@ -16,13 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -36,6 +32,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.util.List;
+import java.util.Set;
 
 @SupportsBatching
 @Tags({"test", "load", "duplicate"})
@@ -60,19 +59,23 @@ public class DuplicateFlowFile extends AbstractProcessor {
     .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
     .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(NUM_COPIES);
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
     .name("success")
     .description("The original FlowFile and all copies will be sent to this relationship")
     .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.singletonList(NUM_COPIES);
+        return PROPERTIES;
     }
 
     @Override

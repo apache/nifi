@@ -47,10 +47,13 @@ import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.entity.JmxMetricsResultsEntity;
 import org.apache.nifi.web.api.entity.SystemDiagnosticsEntity;
 import org.apache.nifi.web.api.metrics.jmx.JmxMetricsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for retrieving system diagnostics.
  */
+@Controller
 @Path("/system-diagnostics")
 @Tag(name = "SystemDiagnostics")
 public class SystemDiagnosticsResource extends ApplicationResource {
@@ -192,14 +195,17 @@ public class SystemDiagnosticsResource extends ApplicationResource {
         });
     }
 
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
+    @Autowired
     public void setJmxMetricsService(final JmxMetricsService jmxMetricsService) {
         this.jmxMetricsService = jmxMetricsService;
     }

@@ -33,7 +33,6 @@ import net.schmizz.sshj.userauth.method.AuthPublickey;
 import net.schmizz.sshj.userauth.method.PasswordResponseProvider;
 import net.schmizz.sshj.userauth.password.PasswordFinder;
 import net.schmizz.sshj.userauth.password.PasswordUtils;
-
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.standard.socket.ClientAuthenticationException;
 import org.apache.nifi.processors.standard.socket.ClientConfigurationException;
@@ -49,34 +48,33 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.Proxy;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
-import static org.apache.nifi.processors.standard.util.SFTPTransfer.DATA_TIMEOUT;
 import static org.apache.nifi.processors.standard.util.SFTPTransfer.CONNECTION_TIMEOUT;
-import static org.apache.nifi.processors.standard.util.SFTPTransfer.PORT;
-import static org.apache.nifi.processors.standard.util.SFTPTransfer.USERNAME;
-import static org.apache.nifi.processors.standard.util.SFTPTransfer.PASSWORD;
+import static org.apache.nifi.processors.standard.util.SFTPTransfer.DATA_TIMEOUT;
 import static org.apache.nifi.processors.standard.util.SFTPTransfer.HOSTNAME;
 import static org.apache.nifi.processors.standard.util.SFTPTransfer.HOST_KEY_FILE;
+import static org.apache.nifi.processors.standard.util.SFTPTransfer.PASSWORD;
+import static org.apache.nifi.processors.standard.util.SFTPTransfer.PORT;
 import static org.apache.nifi.processors.standard.util.SFTPTransfer.PRIVATE_KEY_PASSPHRASE;
 import static org.apache.nifi.processors.standard.util.SFTPTransfer.PRIVATE_KEY_PATH;
 import static org.apache.nifi.processors.standard.util.SFTPTransfer.STRICT_HOST_KEY_CHECKING;
+import static org.apache.nifi.processors.standard.util.SFTPTransfer.USERNAME;
 import static org.apache.nifi.processors.standard.util.SFTPTransfer.USE_COMPRESSION;
 
 /**
  * Standard implementation of SSH Client Provider
  */
 public class StandardSSHClientProvider implements SSHClientProvider {
-    private static final SSHConfigProvider SSH_CONFIG_PROVIDER = new StandardSSHConfigProvider();
 
+    private static final SSHConfigProvider SSH_CONFIG_PROVIDER = new StandardSSHConfigProvider();
     private static final SocketFactoryProvider SOCKET_FACTORY_PROVIDER = new StandardSocketFactoryProvider();
 
-    private static final List<Proxy.Type> SUPPORTED_PROXY_TYPES = Arrays.asList(Proxy.Type.HTTP, Proxy.Type.SOCKS);
+    private static final List<Proxy.Type> SUPPORTED_PROXY_TYPES = List.of(Proxy.Type.HTTP, Proxy.Type.SOCKS);
 
     private static final String ADDRESS_FORMAT = "%s:%d";
 

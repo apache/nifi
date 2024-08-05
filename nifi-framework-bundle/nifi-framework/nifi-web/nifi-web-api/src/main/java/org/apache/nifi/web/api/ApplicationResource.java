@@ -63,8 +63,8 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.util.CacheKey;
-import org.apache.nifi.web.util.RequestUriBuilder;
-import org.apache.nifi.web.util.WebUtils;
+import org.apache.nifi.web.servlet.shared.ProxyHeader;
+import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +79,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.ResponseBuilder;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -99,12 +100,6 @@ import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_HOST_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_PORT_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER;
 
 /**
  * Base class for controllers.
@@ -157,6 +152,21 @@ public abstract class ApplicationResource {
     protected URI getCookieResourceUri() {
         final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
         return buildResourceUri(uriBuilder.replacePath(ROOT_PATH).build());
+    }
+
+    /**
+     * Generate a URI to an external UI.
+     *
+     * @param pathSegments path segments for the external UI
+     * @return the full external UI
+     */
+    protected String generateExternalUiUri(final String... pathSegments) {
+        final RequestUriBuilder builder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, properties.getAllowedContextPathsAsList());
+
+        final String path = String.join("/", pathSegments);
+        builder.path(path);
+
+        return builder.build().toString();
     }
 
     private URI buildResourceUri(final String... path) {
@@ -244,16 +254,6 @@ public abstract class ApplicationResource {
     }
 
     /**
-     * Generates a 401 Not Authorized response with no content.
-     *
-     * @return The response to be built
-     */
-    protected ResponseBuilder generateNotAuthorizedResponse() {
-        // generate the response builder
-        return Response.status(HttpServletResponse.SC_UNAUTHORIZED);
-    }
-
-    /**
      * Generates a 202 Accepted (Node Continue) response to be used within the cluster request handshake.
      *
      * @return a 202 Accepted (Node Continue) response to be used within the cluster request handshake
@@ -309,21 +309,21 @@ public abstract class ApplicationResource {
         }
 
         // if the scheme is not set by the client, include the details from this request but don't override
-        final String proxyScheme = getFirstHeaderValue(PROXY_SCHEME_HTTP_HEADER, FORWARDED_PROTO_HTTP_HEADER);
+        final String proxyScheme = getFirstHeaderValue(ProxyHeader.PROXY_SCHEME.getHeader(), ProxyHeader.FORWARDED_PROTO.getHeader());
         if (proxyScheme == null) {
-            result.put(PROXY_SCHEME_HTTP_HEADER, httpServletRequest.getScheme());
+            result.put(ProxyHeader.PROXY_SCHEME.getHeader(), httpServletRequest.getScheme());
         }
 
         // if the host is not set by the client, include the details from this request but don't override
-        final String proxyHost = getFirstHeaderValue(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER);
+        final String proxyHost = getFirstHeaderValue(ProxyHeader.PROXY_HOST.getHeader(), ProxyHeader.FORWARDED_HOST.getHeader());
         if (proxyHost == null) {
-            result.put(PROXY_HOST_HTTP_HEADER, httpServletRequest.getServerName());
+            result.put(ProxyHeader.PROXY_HOST.getHeader(), httpServletRequest.getServerName());
         }
 
         // if the port is not set by the client, include the details from this request but don't override
-        final String proxyPort = getFirstHeaderValue(PROXY_PORT_HTTP_HEADER, FORWARDED_PORT_HTTP_HEADER);
+        final String proxyPort = getFirstHeaderValue(ProxyHeader.PROXY_PORT.getHeader(), ProxyHeader.FORWARDED_PORT.getHeader());
         if (proxyPort == null) {
-            result.put(PROXY_PORT_HTTP_HEADER, String.valueOf(httpServletRequest.getServerPort()));
+            result.put(ProxyHeader.PROXY_PORT.getHeader(), String.valueOf(httpServletRequest.getServerPort()));
         }
 
         return result;
@@ -337,7 +337,19 @@ public abstract class ApplicationResource {
      * @return the value for the first key found
      */
     private String getFirstHeaderValue(final String... keys) {
-        return WebUtils.getFirstHeaderValue(httpServletRequest, keys);
+        if (keys == null) {
+            return null;
+        }
+
+        for (final String key : keys) {
+            final String value = httpServletRequest.getHeader(key);
+
+            if (value != null) {
+                return value;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -1057,6 +1069,7 @@ public abstract class ApplicationResource {
         }
     }
 
+    @Autowired
     public void setRequestReplicator(final RequestReplicator requestReplicator) {
         this.requestReplicator = requestReplicator;
     }
@@ -1067,10 +1080,12 @@ public abstract class ApplicationResource {
         return requestReplicator;
     }
 
+    @Autowired
     public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 
+    @Autowired
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
     }
@@ -1079,6 +1094,7 @@ public abstract class ApplicationResource {
         return clusterCoordinator;
     }
 
+    @Autowired
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }

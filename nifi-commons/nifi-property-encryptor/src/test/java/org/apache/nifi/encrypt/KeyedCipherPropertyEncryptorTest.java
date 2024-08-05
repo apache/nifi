@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,8 +23,10 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -60,16 +60,23 @@ public class KeyedCipherPropertyEncryptorTest {
     }
 
     @Test
-    public void testEncryptHexadecimalEncoded() throws DecoderException {
+    public void testEncryptHexadecimalEncoded() {
         final String encrypted = encryptor.encrypt(PROPERTY);
-        final byte[] decoded = Hex.decodeHex(encrypted);
+        final byte[] decoded = HexFormat.of().parseHex(encrypted);
         assertEquals(ENCRYPTED_BINARY_LENGTH, decoded.length);
     }
 
     @Test
     public void testDecryptEncryptionException() {
-        final String encodedProperty = Hex.encodeHexString(PROPERTY.getBytes(DEFAULT_CHARSET));
+        final String encodedProperty = HexFormat.of().formatHex(PROPERTY.getBytes(DEFAULT_CHARSET));
         assertThrows(Exception.class, () -> encryptor.decrypt(encodedProperty));
+    }
+
+    @Test
+    public void testDecryptHexadecimalInvalid() {
+        final String invalidProperty = String.class.getName();
+        final EncryptionException exception = assertThrows(EncryptionException.class, () -> encryptor.decrypt(invalidProperty));
+        assertInstanceOf(IllegalArgumentException.class, exception.getCause());
     }
 
     @Test

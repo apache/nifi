@@ -100,6 +100,7 @@ import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
 import org.apache.nifi.web.server.connector.FrameworkServerConnectorFactory;
 import org.apache.nifi.web.server.filter.FilterParameter;
+import org.apache.nifi.web.server.filter.LogoutCompleteRedirectFilter;
 import org.apache.nifi.web.server.filter.RequestFilterProvider;
 import org.apache.nifi.web.server.filter.RestApiRequestFilterProvider;
 import org.apache.nifi.web.server.filter.StandardRequestFilterProvider;
@@ -153,6 +154,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String CONTEXT_PATH_NIFI_API = "/nifi-api";
     private static final String CONTEXT_PATH_NIFI_CONTENT_VIEWER = "/nifi-content-viewer";
     private static final String CONTEXT_PATH_NIFI_DOCS = "/nifi-docs";
+    private static final Set<String> REQUIRED_CONTEXT_PATHS = Set.of(
+            CONTEXT_PATH_NIFI,
+            CONTEXT_PATH_NIFI_API,
+            CONTEXT_PATH_NIFI_CONTENT_VIEWER,
+            CONTEXT_PATH_NIFI_DOCS
+    );
 
     private static final RequestFilterProvider REQUEST_FILTER_PROVIDER = new StandardRequestFilterProvider();
     private static final RequestFilterProvider REST_API_REQUEST_FILTER_PROVIDER = new RestApiRequestFilterProvider();
@@ -202,7 +209,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private UiExtensionMapping componentUiExtensions;
     private Collection<WebAppContext> componentUiExtensionWebContexts;
 
-    private Map<BundleCoordinate, List<App>> appsByBundleCoordinate = new ConcurrentHashMap<>();
+    private final Map<BundleCoordinate, List<App>> appsByBundleCoordinate = new ConcurrentHashMap<>();
 
     /**
      * Default no-arg constructor for ServiceLoader
@@ -220,21 +227,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         configureConnectors(server);
 
         final ContextHandlerCollection handlerCollection = new ContextHandlerCollection();
-
-        // Only restrict the host header if running in HTTPS mode
-        if (props.isHTTPSConfigured()) {
-            final HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(props);
-            handlerCollection.addHandler(hostHeaderHandler);
-        }
-
-        final Handler warHandlers = loadInitialWars(bundles);
-        handlerCollection.addHandler(warHandlers);
-
-        final RewriteHandler logoutCompleteRewriteHandler = new RewriteHandler();
-        final RedirectPatternRule redirectLogoutComplete = new RedirectPatternRule("/nifi/logout-complete", "/nifi/#/logout-complete");
-        logoutCompleteRewriteHandler.addRule(redirectLogoutComplete);
-        logoutCompleteRewriteHandler.setHandler(handlerCollection);
-        server.setHandler(logoutCompleteRewriteHandler);
+        final Handler standardHandler = getStandardHandler(handlerCollection);
+        server.setHandler(standardHandler);
 
         final RewriteHandler defaultRewriteHandler = new RewriteHandler();
         final RedirectPatternRule redirectDefault = new RedirectPatternRule("/*", "/nifi");
@@ -248,6 +242,18 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final RequestLogProvider requestLogProvider = new StandardRequestLogProvider(requestLogFormat);
         final RequestLog requestLog = requestLogProvider.getRequestLog();
         server.setRequestLog(requestLog);
+    }
+
+    private Handler getStandardHandler(final ContextHandlerCollection handlerCollection) {
+        // Only restrict the host header if running in HTTPS mode
+        if (props.isHTTPSConfigured()) {
+            final HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(props);
+            handlerCollection.addHandler(hostHeaderHandler);
+        }
+
+        final Handler warHandlers = loadInitialWars(bundles);
+        handlerCollection.addHandler(warHandlers);
+        return handlerCollection;
     }
 
     private Handler loadInitialWars(final Set<Bundle> bundles) {
@@ -631,9 +637,19 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webappContext.setErrorHandler(getErrorHandler());
         webappContext.setTempDirectory(getWebAppTempDirectory(warFile));
 
+        final boolean throwUnavailableOnStartupException = REQUIRED_CONTEXT_PATHS.contains(contextPath);
+        webappContext.setThrowUnavailableOnStartupException(throwUnavailableOnStartupException);
+
         final List<FilterHolder> requestFilters = CONTEXT_PATH_NIFI_API.equals(contextPath)
                 ? REST_API_REQUEST_FILTER_PROVIDER.getFilters(props)
                 : REQUEST_FILTER_PROVIDER.getFilters(props);
+
+        // Add Logout Complete Filter for web user interface integration
+        if (CONTEXT_PATH_NIFI.equals(contextPath)) {
+            final FilterHolder logoutCompleteFilterHolder = new FilterHolder(LogoutCompleteRedirectFilter.class);
+            logoutCompleteFilterHolder.setName(LogoutCompleteRedirectFilter.class.getSimpleName());
+            requestFilters.add(logoutCompleteFilterHolder);
+        }
 
         requestFilters.forEach(filter -> {
             final String pathSpecification = filter.getInitParameter(FilterParameter.PATH_SPECIFICATION.name());
@@ -833,7 +849,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             // Additionally loaded NARs and collected flow resources must be in place before starting the flows
             narProviderService = new ExternalResourceProviderServiceBuilder("NAR Auto-Loader Provider", extensionManager)
-                    .providers(buildExternalResourceProviders(sslContext, extensionManager, NAR_PROVIDER_PREFIX, descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar")))
+                    .providers(buildExternalResourceProviders(sslContext, extensionManager, descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar")))
                     .targetDirectory(new File(props.getProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, NiFiProperties.DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR)))
                     .conflictResolutionStrategy(props.getProperty(NAR_PROVIDER_CONFLICT_RESOLUTION, DEFAULT_NAR_PROVIDER_CONFLICT_RESOLUTION))
                     .pollInterval(props.getProperty(NAR_PROVIDER_POLL_INTERVAL_PROPERTY, DEFAULT_NAR_PROVIDER_POLL_INTERVAL))
@@ -859,20 +875,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             narAutoLoader = new NarAutoLoader(props, narLoader);
             narAutoLoader.start();
 
-            // start the server
             server.start();
-
-            // ensure everything started successfully
-            for (Handler handler : server.getHandlers()) {
-                // see if the handler is a web app
-                if (handler instanceof final WebAppContext context) {
-                    // see if this webapp had any exceptions that would
-                    // cause it to be unavailable
-                    if (context.getUnavailableException() != null) {
-                        startUpFailure(context.getUnavailableException());
-                    }
-                }
-            }
 
             // ensure the appropriate wars deployed successfully before injecting the NiFi context and security filters
             // this must be done after starting the server (and ensuring there were no start up failures)
@@ -977,22 +980,21 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private Map<String, ExternalResourceProvider> buildExternalResourceProviders(
             final SSLContext sslContext,
             final ExtensionManager extensionManager,
-            final String providerPropertyPrefix,
             final Predicate<ExternalResourceDescriptor> filter
     )
         throws ClassNotFoundException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
 
         final Map<String, ExternalResourceProvider> result = new HashMap<>();
-        final Set<String> externalSourceNames = props.getDirectSubsequentTokens(providerPropertyPrefix);
+        final Set<String> externalSourceNames = props.getDirectSubsequentTokens(NAR_PROVIDER_PREFIX);
 
         for (final String externalSourceName : externalSourceNames) {
             logger.info("External resource provider '{}' found in configuration", externalSourceName);
 
-            final String providerClass = props.getProperty(providerPropertyPrefix + externalSourceName + "." + NAR_PROVIDER_IMPLEMENTATION_PROPERTY);
+            final String providerClass = props.getProperty(NAR_PROVIDER_PREFIX + externalSourceName + "." + NAR_PROVIDER_IMPLEMENTATION_PROPERTY);
             final String providerId = UUID.randomUUID().toString();
 
             final ExternalResourceProviderInitializationContext context
-                    = new PropertyBasedExternalResourceProviderInitializationContext(sslContext, props, providerPropertyPrefix + externalSourceName + ".", filter);
+                    = new PropertyBasedExternalResourceProviderInitializationContext(sslContext, props, NAR_PROVIDER_PREFIX + externalSourceName + ".", filter);
             result.put(providerId, createProviderInstance(extensionManager, providerClass, providerId, context));
         }
 
@@ -1071,10 +1073,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }
     }
 
-    private void startUpFailure(Throwable t) {
-        System.err.println("Failed to start web server: " + t.getMessage());
-        System.err.println("Shutting down...");
-        logger.error("Failed to start web server... shutting down.", t);
+    private void startUpFailure(final Throwable t) {
+        logger.error("Failed to start Server", t);
         System.exit(1);
     }
 
@@ -1092,8 +1092,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     public void stop() {
         try {
             server.stop();
-        } catch (Exception ex) {
-            logger.warn("Failed to stop web server", ex);
+        } catch (final Exception e) {
+            logger.warn("Failed to stop Server", e);
         }
 
         try {

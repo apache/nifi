@@ -16,7 +16,7 @@
  */
 
 import { js_beautify } from 'js-beautify';
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, Renderer2 } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiJoltTransformJsonUiState } from '../../../state';
 import { TextTip, isDefinedAndNotNull, MapTableHelperService, MapTableEntry } from '@nifi/shared';
@@ -24,23 +24,38 @@ import {
     selectClientIdFromRoute,
     selectDisconnectedNodeAcknowledgedFromRoute,
     selectEditableFromRoute,
-    selectJoltTransformJsonUiState,
+    selectJoltTransformJsonProcessorDetailsState,
     selectProcessorDetails,
     selectProcessorIdFromRoute,
     selectRevisionFromRoute
-} from '../state/jolt-transform-json-ui/jolt-transform-json-ui.selectors';
+} from '../state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.selectors';
 import { Observable, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     loadProcessorDetails,
-    resetJoltTransformJsonUiState,
-    resetValidateJoltSpecState,
-    saveProperties,
-    transformJoltSpec,
-    validateJoltSpec
-} from '../state/jolt-transform-json-ui/jolt-transform-json-ui.actions';
-import { SavePropertiesRequest, ValidateJoltSpecRequest } from '../state/jolt-transform-json-ui';
+    resetJoltTransformJsonProcessorDetailsState
+} from '../state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.actions';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
+import { Editor, EditorChange, EditorFromTextArea } from 'codemirror';
+import { CodemirrorComponent } from '@ctrl/ngx-codemirror/codemirror.component';
+import {
+    resetJoltTransformJsonTransformState,
+    transformJoltSpec
+} from '../state/jolt-transform-json-transform/jolt-transform-json-transform.actions';
+import {
+    resetJoltTransformJsonValidateState,
+    resetValidateJoltSpecState,
+    validateJoltSpec
+} from '../state/jolt-transform-json-validate/jolt-transform-json-validate.actions';
+import {
+    resetJoltTransformJsonPropertyState,
+    saveProperties
+} from '../state/jolt-transform-json-property/jolt-transform-json-property.actions';
+import { SavePropertiesRequest } from '../state/jolt-transform-json-property';
+import { ValidateJoltSpecRequest } from '../state/jolt-transform-json-validate';
+import { selectJoltTransformJsonPropertyState } from '../state/jolt-transform-json-property/jolt-transform-json-property.selectors';
+import { selectJoltTransformJsonValidateState } from '../state/jolt-transform-json-validate/jolt-transform-json-validate.selectors';
+import { selectJoltTransformJsonTransformState } from '../state/jolt-transform-json-transform/jolt-transform-json-transform.selectors';
 
 const JS_BEAUTIFY_OPTIONS = {
     indent_size: 2,
@@ -62,7 +77,12 @@ export class JoltTransformJsonUi implements OnDestroy {
 
     editJoltTransformJSONProcessorForm: FormGroup;
     step = 0;
-    joltState = this.store.selectSignal(selectJoltTransformJsonUiState);
+    joltState = {
+        processorDetails: this.store.selectSignal(selectJoltTransformJsonProcessorDetailsState),
+        properties: this.store.selectSignal(selectJoltTransformJsonPropertyState),
+        validate: this.store.selectSignal(selectJoltTransformJsonValidateState),
+        transform: this.store.selectSignal(selectJoltTransformJsonTransformState)
+    };
     processorDetails$ = this.store.select(selectProcessorDetails);
     editable: boolean = false;
     createNew: (existingEntries: string[]) => Observable<MapTableEntry> =
@@ -71,7 +91,8 @@ export class JoltTransformJsonUi implements OnDestroy {
     constructor(
         private formBuilder: FormBuilder,
         private store: Store<NiFiJoltTransformJsonUiState>,
-        private mapTableHelperService: MapTableHelperService
+        private mapTableHelperService: MapTableHelperService,
+        private renderer: Renderer2
     ) {
         // Select the processor id from the query params and GET processor details
         this.store
@@ -123,26 +144,20 @@ export class JoltTransformJsonUi implements OnDestroy {
 
         // build the form
         this.editJoltTransformJSONProcessorForm = this.formBuilder.group({
-            input: new FormControl('', Validators.required),
+            input: new FormControl(''),
             specification: new FormControl('', Validators.required),
             transform: new FormControl('', Validators.required),
             customClass: new FormControl(''),
             expressionLanguageAttributes: new FormControl([]),
             modules: new FormControl('')
         });
-
-        // listen to value changes
-        this.editJoltTransformJSONProcessorForm.controls['specification'].valueChanges.subscribe(() => {
-            this.store.dispatch(resetValidateJoltSpecState());
-        });
-
-        this.editJoltTransformJSONProcessorForm.controls['transform'].valueChanges.subscribe(() => {
-            this.store.dispatch(resetValidateJoltSpecState());
-        });
     }
 
     ngOnDestroy(): void {
-        this.store.dispatch(resetJoltTransformJsonUiState());
+        this.store.dispatch(resetJoltTransformJsonTransformState());
+        this.store.dispatch(resetJoltTransformJsonValidateState());
+        this.store.dispatch(resetJoltTransformJsonProcessorDetailsState());
+        this.store.dispatch(resetJoltTransformJsonPropertyState());
     }
 
     getJoltSpecOptions(): any {
@@ -166,7 +181,7 @@ export class JoltTransformJsonUi implements OnDestroy {
             lineNumbers: true,
             gutters: ['CodeMirror-lint-markers'],
             mode: 'application/json',
-            lint: true,
+            lint: false,
             extraKeys: {
                 'Shift-Ctrl-F': () => {
                     this.formatInput();
@@ -179,7 +194,6 @@ export class JoltTransformJsonUi implements OnDestroy {
         return {
             theme: 'nifi',
             lineNumbers: true,
-            gutters: ['CodeMirror-lint-markers'],
             mode: 'application/json',
             lint: false,
             readOnly: true
@@ -325,5 +339,95 @@ export class JoltTransformJsonUi implements OnDestroy {
             attributeArray.forEach((attriubte) => (result[attriubte.name] = attriubte.value));
         }
         return result;
+    }
+
+    initSpecEditor(codeEditor: CodemirrorComponent): void {
+        if (codeEditor.codeMirror) {
+            codeEditor.codeMirror.on('change', (cm: Editor, changeObj: EditorChange) => {
+                const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
+
+                if (!(transform == 'jolt-transform-sort' && changeObj.text.toString() == '')) {
+                    this.clearMessages();
+                }
+            });
+
+            // listen to value changes
+            this.editJoltTransformJSONProcessorForm.controls['specification'].valueChanges.subscribe(() => {
+                this.toggleSpecEditorEnabled(codeEditor.codeMirror);
+            });
+
+            this.editJoltTransformJSONProcessorForm.controls['transform'].valueChanges.subscribe(() => {
+                this.toggleSpecEditorEnabled(codeEditor.codeMirror);
+            });
+        }
+    }
+
+    initInputEditor(codeEditor: any): void {
+        codeEditor.codeMirror.on('change', () => {
+            this.clearMessages();
+        });
+
+        this.editJoltTransformJSONProcessorForm.controls['input'].valueChanges.subscribe(() => {
+            codeEditor.codeMirror.setOption('lint', true);
+        });
+    }
+
+    private clearMessages() {
+        this.store.dispatch(resetValidateJoltSpecState());
+    }
+
+    private toggleSpecEditorEnabled(specEditor: EditorFromTextArea | undefined) {
+        if (specEditor) {
+            const transform = this.editJoltTransformJSONProcessorForm.get('transform')?.value;
+            const display: HTMLElement = specEditor.getWrapperElement();
+
+            if (transform == 'jolt-transform-sort') {
+                specEditor.setOption('readOnly', 'nocursor');
+                this.renderer.addClass(display, 'disabled');
+                this.toggleDisplayEditorErrors(specEditor, true);
+            } else {
+                specEditor.setOption('readOnly', false);
+                this.renderer.removeClass(display, 'disabled');
+                this.toggleDisplayEditorErrors(specEditor);
+            }
+
+            this.clearMessages();
+        }
+    }
+
+    private toggleDisplayEditorErrors(specEditor: EditorFromTextArea | undefined, hideErrors: boolean = false) {
+        if (specEditor) {
+            const display: HTMLElement = specEditor.getWrapperElement();
+            const errors: Element[] = Array.from(display.getElementsByClassName('CodeMirror-lint-marker-error'));
+
+            if (hideErrors) {
+                errors.forEach((error: Element) => {
+                    this.renderer.addClass(error, 'hidden');
+                });
+
+                const markErrors: Element[] = Array.from(display.getElementsByClassName('CodeMirror-lint-mark-error'));
+                markErrors.forEach((markError: Element) => {
+                    this.renderer.addClass(markError, 'CodeMirror-lint-mark-error-hide');
+                    this.renderer.removeClass(markError, 'CodeMirror-lint-mark-error');
+                });
+            } else {
+                errors.forEach((error: Element) => {
+                    this.renderer.removeClass(error, 'hidden');
+                });
+
+                const markErrors: Element[] = Array.from(
+                    display.getElementsByClassName('CodeMirror-lint-mark-error-hide')
+                );
+                markErrors.forEach((markError: Element) => {
+                    this.renderer.addClass(markError, 'CodeMirror-lint-mark-error');
+                    this.renderer.removeClass(markError, 'CodeMirror-lint-mark-error-hide');
+                });
+            }
+        }
+    }
+
+    getFormatTooltip() {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        return 'Format JSON:    ⇧' + (isMac ? '⌘' : '⌃') + 'F';
     }
 }

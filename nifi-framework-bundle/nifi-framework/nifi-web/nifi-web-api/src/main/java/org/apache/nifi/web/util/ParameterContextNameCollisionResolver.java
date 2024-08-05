@@ -25,7 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-class ParameterContextNameCollisionResolver {
+public class ParameterContextNameCollisionResolver {
     private static final String PATTERN_GROUP_NAME = "name";
     private static final String PATTERN_GROUP_INDEX = "index";
 

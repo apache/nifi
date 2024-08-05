@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.commons.lang3.Range;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -59,6 +46,18 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @SideEffectFree
 @SupportsBatching
@@ -95,7 +94,6 @@ public class SampleRecord extends AbstractProcessor {
     private static final String RANGE_SEPARATOR = ",";
     private static final Pattern RANGE_PATTERN = Pattern.compile("^([0-9]+)?(-)?([0-9]+)?");
     private static final Pattern INTERVAL_PATTERN = Pattern.compile("([0-9]+)?(-)?([0-9]+)?(?:,|$)");
-
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("record-reader")
@@ -176,6 +174,17 @@ public class SampleRecord extends AbstractProcessor {
             .dependsOn(SAMPLING_STRATEGY, PROBABILISTIC_SAMPLING, RESERVOIR_SAMPLING)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER_FACTORY,
+            RECORD_WRITER_FACTORY,
+            SAMPLING_STRATEGY,
+            SAMPLING_INTERVAL,
+            SAMPLING_RANGE,
+            SAMPLING_PROBABILITY,
+            RESERVOIR_SIZE,
+            RANDOM_SEED
+    );
+
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
             .description("The original FlowFile is routed to this relationship if sampling is successful")
@@ -192,36 +201,20 @@ public class SampleRecord extends AbstractProcessor {
                     + "is not valid), the original FlowFile will be routed to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> properties;
-    private static final Set<Relationship> relationships;
-
-    static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(RECORD_READER_FACTORY);
-        props.add(RECORD_WRITER_FACTORY);
-        props.add(SAMPLING_STRATEGY);
-        props.add(SAMPLING_INTERVAL);
-        props.add(SAMPLING_RANGE);
-        props.add(SAMPLING_PROBABILITY);
-        props.add(RESERVOIR_SIZE);
-        props.add(RANDOM_SEED);
-        properties = Collections.unmodifiableList(props);
-
-        final Set<Relationship> r = new HashSet<>();
-        r.add(REL_SUCCESS);
-        r.add(REL_FAILURE);
-        r.add(REL_ORIGINAL);
-        relationships = Collections.unmodifiableSet(r);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_ORIGINAL
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

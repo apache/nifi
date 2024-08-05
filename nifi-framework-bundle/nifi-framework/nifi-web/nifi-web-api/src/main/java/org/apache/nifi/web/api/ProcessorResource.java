@@ -91,10 +91,13 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing a Processor.
  */
+@Controller
 @Path("/processors")
 @Tag(name = "Processors")
 public class ProcessorResource extends ApplicationResource {
@@ -162,21 +165,15 @@ public class ProcessorResource extends ApplicationResource {
         // get the config details and see if there is a custom ui for this processor type
         ProcessorConfigDTO config = processor.getConfig();
         if (config != null) {
-            // consider legacy custom ui fist
-            String customUiUrl = servletContext.getInitParameter(processor.getType());
-            if (StringUtils.isNotBlank(customUiUrl)) {
-                config.setCustomUiUrl(customUiUrl);
-            } else {
-                final BundleDTO bundle = processor.getBundle();
+            final BundleDTO bundle = processor.getBundle();
 
-                // see if this processor has any ui extensions
-                final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
-                if (uiExtensionMapping.hasUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion())) {
-                    final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
-                    for (final UiExtension uiExtension : uiExtensions) {
-                        if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
-                            config.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
-                        }
+            // see if this processor has any ui extensions
+            final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
+            if (uiExtensionMapping.hasUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion())) {
+                final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(processor.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+                for (final UiExtension uiExtension : uiExtensions) {
+                    if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
+                        config.setCustomUiUrl(generateExternalUiUri(uiExtension.getContextPath(), "configure"));
                     }
                 }
             }
@@ -1134,12 +1131,12 @@ public class ProcessorResource extends ApplicationResource {
         return entity;
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

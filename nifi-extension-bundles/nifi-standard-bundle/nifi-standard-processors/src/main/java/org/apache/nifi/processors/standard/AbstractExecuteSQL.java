@@ -517,13 +517,13 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
      * Extract list of queries from config property
      */
     protected List<String> getQueries(final String value) {
-        if (value == null || value.length() == 0 || value.trim().length() == 0) {
+        if (value == null || value.isEmpty() || value.isBlank()) {
             return null;
         }
         final List<String> queries = new LinkedList<>();
         for (String query : value.split("(?<!\\\\);")) {
             query = query.replaceAll("\\\\;", ";");
-            if (query.trim().length() > 0) {
+            if (!query.isBlank()) {
                 queries.add(query.trim());
             }
         }

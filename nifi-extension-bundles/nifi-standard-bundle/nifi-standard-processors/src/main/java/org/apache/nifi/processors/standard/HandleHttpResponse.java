@@ -16,16 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-
 import jakarta.servlet.http.HttpServletResponse;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -46,6 +37,12 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.util.StopWatch;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"http", "https", "response", "egress", "web service"})
@@ -85,6 +82,12 @@ public class HandleHttpResponse extends AbstractProcessor {
             .required(false)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            STATUS_CODE,
+            HTTP_CONTEXT_MAP,
+            ATTRIBUTES_AS_HEADERS_REGEX
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles will be routed to this Relationship after the response has been successfully sent to the requestor")
@@ -95,21 +98,16 @@ public class HandleHttpResponse extends AbstractProcessor {
                     + "for instance, if the connection times out or if NiFi is restarted before responding to the HTTP Request.")
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(STATUS_CODE);
-        properties.add(HTTP_CONTEXT_MAP);
-        properties.add(ATTRIBUTES_AS_HEADERS_REGEX);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -217,7 +215,7 @@ public class HandleHttpResponse extends AbstractProcessor {
     }
 
     private static boolean isNumber(final String value) {
-        if (value.length() == 0) {
+        if (value.isEmpty()) {
             return false;
         }
 

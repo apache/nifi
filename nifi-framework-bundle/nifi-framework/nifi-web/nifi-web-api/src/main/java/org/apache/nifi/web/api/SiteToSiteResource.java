@@ -63,12 +63,15 @@ import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.apache.nifi.web.api.entity.PeersEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 /**
  * RESTful endpoint for managing a SiteToSite connection.
  */
+@Controller
 @Path("/site-to-site")
 @Tag(name = "SiteToSite")
 public class SiteToSiteResource extends ApplicationResource {
@@ -304,14 +307,17 @@ public class SiteToSiteResource extends ApplicationResource {
         return isEmpty(remoteInputHost) ? localName : remoteInputHost;
     }
 
+    @Autowired
     public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
+    @Autowired
     @Override
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         super.setClusterCoordinator(clusterCoordinator);

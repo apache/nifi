@@ -414,6 +414,19 @@ export class CanvasUtils {
     }
 
     /**
+     * Returns whether the user can write the parent process group, false otherwise.
+     */
+    public canModifyParentGroup(): boolean {
+        if (this.breadcrumbs) {
+            if (this.breadcrumbs.parentBreadcrumb) {
+                return this.breadcrumbs.parentBreadcrumb.permissions.canWrite;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Determines whether the specified selection is configurable.
      *
      * @param selection

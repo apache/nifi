@@ -81,6 +81,8 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_COUNT;
@@ -96,6 +98,7 @@ import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERT
 /**
  * RESTful endpoint for managing a SiteToSite connection.
  */
+@Controller
 @Path("/data-transfer")
 @Tag(name = "DataTransfer")
 public class DataTransferResource extends ApplicationResource {
@@ -836,6 +839,7 @@ public class DataTransferResource extends ApplicationResource {
         return result;
     }
 
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

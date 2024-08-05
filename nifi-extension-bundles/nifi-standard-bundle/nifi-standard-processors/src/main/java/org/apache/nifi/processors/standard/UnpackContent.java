@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.nio.charset.Charset;
 import net.lingala.zip4j.io.inputstream.ZipInputStream;
 import net.lingala.zip4j.model.LocalFileHeader;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
@@ -66,11 +65,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -196,6 +195,14 @@ public class UnpackContent extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            PACKAGING_FORMAT,
+            ZIP_FILENAME_CHARSET,
+            FILE_FILTER,
+            PASSWORD,
+            ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Unpacked FlowFiles are sent to this relationship")
@@ -209,18 +216,10 @@ public class UnpackContent extends AbstractProcessor {
             .description("The original FlowFile is sent to this relationship when it cannot be unpacked for some reason")
             .build();
 
-    private static final Set<Relationship> relationships = Set.of(
-        REL_SUCCESS,
-        REL_FAILURE,
-        REL_ORIGINAL
-    );
-
-    private static final List<PropertyDescriptor> properties = List.of(
-        PACKAGING_FORMAT,
-        ZIP_FILENAME_CHARSET,
-        FILE_FILTER,
-        PASSWORD,
-        ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_ORIGINAL
     );
 
     private Pattern fileFilter;
@@ -228,15 +227,14 @@ public class UnpackContent extends AbstractProcessor {
     private Unpacker tarUnpacker;
     private Unpacker zipUnpacker;
 
-
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @OnStopped
@@ -389,23 +387,23 @@ public class UnpackContent extends AbstractProcessor {
 
                         FlowFile unpackedFile = session.create(source);
                         try {
-                            final Map<String, String> attributes = new HashMap<>();
-                            attributes.put(CoreAttributes.FILENAME.key(), file.getName());
-                            attributes.put(CoreAttributes.PATH.key(), filePathString);
-                            attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
-
-                            attributes.put(FILE_PERMISSIONS_ATTRIBUTE, FileInfo.permissionToString(tarEntry.getMode()));
-                            attributes.put(FILE_OWNER_ATTRIBUTE, String.valueOf(tarEntry.getUserName()));
-                            attributes.put(FILE_GROUP_ATTRIBUTE, String.valueOf(tarEntry.getGroupName()));
-
                             final String timeAsString = DATE_TIME_FORMATTER.format(tarEntry.getModTime().toInstant());
-                            attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, timeAsString);
-                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, timeAsString);
 
-                            attributes.put(FRAGMENT_ID, fragmentId);
-                            attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentCount));
+                            unpackedFile = session.putAllAttributes(unpackedFile, Map.of(
+                                    CoreAttributes.FILENAME.key(), file.getName(),
+                                    CoreAttributes.PATH.key(), filePathString,
+                                    CoreAttributes.MIME_TYPE.key(), OCTET_STREAM,
 
-                            unpackedFile = session.putAllAttributes(unpackedFile, attributes);
+                                    FILE_PERMISSIONS_ATTRIBUTE, FileInfo.permissionToString(tarEntry.getMode()),
+                                    FILE_OWNER_ATTRIBUTE, String.valueOf(tarEntry.getUserName()),
+                                    FILE_GROUP_ATTRIBUTE, String.valueOf(tarEntry.getGroupName()),
+
+                                    FILE_LAST_MODIFIED_TIME_ATTRIBUTE, timeAsString,
+                                    FILE_CREATION_TIME_ATTRIBUTE, timeAsString,
+
+                                    FRAGMENT_ID, fragmentId,
+                                    FRAGMENT_INDEX, String.valueOf(++fragmentCount)
+                            ));
 
                             final long fileSize = tarEntry.getSize();
                             unpackedFile = session.write(unpackedFile, outputStream -> StreamUtils.copy(tarIn, outputStream, fileSize));
@@ -479,16 +477,15 @@ public class UnpackContent extends AbstractProcessor {
 
                     FlowFile unpackedFile = session.create(sourceFlowFile);
                     try {
-                        final Map<String, String> attributes = new HashMap<>();
-                        attributes.put(CoreAttributes.FILENAME.key(), file.getName());
-                        attributes.put(CoreAttributes.PATH.key(), parentDirectory);
-                        attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
-                        attributes.put(FILE_ENCRYPTION_METHOD_ATTRIBUTE, encryptionMethod.toString());
+                        unpackedFile = session.putAllAttributes(unpackedFile, Map.of(
+                                CoreAttributes.FILENAME.key(), file.getName(),
+                                CoreAttributes.PATH.key(), parentDirectory,
+                                CoreAttributes.MIME_TYPE.key(), OCTET_STREAM,
+                                FILE_ENCRYPTION_METHOD_ATTRIBUTE, encryptionMethod.toString(),
 
-                        attributes.put(FRAGMENT_ID, fragmentId);
-                        attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentIndex));
-
-                        unpackedFile = session.putAllAttributes(unpackedFile, attributes);
+                                FRAGMENT_ID, fragmentId,
+                                FRAGMENT_INDEX, String.valueOf(++fragmentIndex)
+                        ));
                         unpackedFile = session.write(unpackedFile, outputStream -> StreamUtils.copy(zipInputStream, outputStream));
                     } finally {
                         unpacked.add(unpackedFile);
@@ -627,10 +624,10 @@ public class UnpackContent extends AbstractProcessor {
         ArrayList<FlowFile> newList = new ArrayList<>(unpacked);
         unpacked.clear();
         for (FlowFile ff : newList) {
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put(FRAGMENT_COUNT, String.valueOf(fragmentCount));
-            attributes.put(SEGMENT_ORIGINAL_FILENAME, originalFilename);
-            FlowFile newFF = session.putAllAttributes(ff, attributes);
+            FlowFile newFF = session.putAllAttributes(ff, Map.of(
+                    FRAGMENT_COUNT, String.valueOf(fragmentCount),
+                    SEGMENT_ORIGINAL_FILENAME, originalFilename
+            ));
             unpacked.add(newFF);
         }
     }

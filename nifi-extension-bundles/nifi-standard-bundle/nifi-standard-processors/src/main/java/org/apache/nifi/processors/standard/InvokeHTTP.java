@@ -109,7 +109,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -177,7 +176,7 @@ public class InvokeHTTP extends AbstractProcessor {
     private static final Pattern FORM_DATA_NAME_PARAMETER_PATTERN = Pattern.compile("post:form:(?<formDataName>.*)$");
     private static final String FORM_DATA_NAME_GROUP = "formDataName";
 
-    private static final Set<String> IGNORED_REQUEST_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final Set<String> IGNORED_REQUEST_ATTRIBUTES = Set.of(
             STATUS_CODE,
             STATUS_MESSAGE,
             RESPONSE_BODY,
@@ -189,7 +188,7 @@ public class InvokeHTTP extends AbstractProcessor {
             EXCEPTION_MESSAGE,
             CoreAttributes.UUID.key(),
             CoreAttributes.PATH.key()
-    )));
+    );
 
     public static final PropertyDescriptor HTTP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
@@ -345,7 +344,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .name("Request Content-Encoding")
             .description("HTTP Content-Encoding applied to request body during transmission. The receiving server must support the selected encoding to avoid request failures.")
             .required(true)
-            .defaultValue(ContentEncodingStrategy.DISABLED.getValue())
+            .defaultValue(ContentEncodingStrategy.DISABLED)
             .allowableValues(ContentEncodingStrategy.class)
             .dependsOn(HTTP_METHOD, HttpMethod.PATCH.name(), HttpMethod.POST.name(), HttpMethod.PUT.name())
             .build();
@@ -656,7 +655,7 @@ public class InvokeHTTP extends AbstractProcessor {
             } else if (oldValue == null) {    // new property
                 newDynamicPropertyNames.add(descriptor.getName());
             }
-            this.dynamicPropertyNames = Collections.unmodifiableSet(newDynamicPropertyNames);
+            this.dynamicPropertyNames = Set.copyOf(newDynamicPropertyNames);
         } else {
             // compile the attributes-to-send filter pattern
             if (REQUEST_HEADER_ATTRIBUTES_PATTERN.getName().equalsIgnoreCase(descriptor.getName())) {
@@ -753,7 +752,7 @@ public class InvokeHTTP extends AbstractProcessor {
         }
 
         if (context.getProperty(HTTP2_DISABLED).asBoolean()) {
-            okHttpClientBuilder.protocols(Collections.singletonList(Protocol.HTTP_1_1));
+            okHttpClientBuilder.protocols(List.of(Protocol.HTTP_1_1));
         }
 
         okHttpClientBuilder.followRedirects(context.getProperty(RESPONSE_REDIRECTS_ENABLED).asBoolean());
@@ -1033,8 +1032,8 @@ public class InvokeHTTP extends AbstractProcessor {
             }
         }
 
-        final String contentEncoding = context.getProperty(REQUEST_CONTENT_ENCODING).getValue();
-        final ContentEncodingStrategy contentEncodingStrategy = ContentEncodingStrategy.valueOf(contentEncoding);
+        final ContentEncodingStrategy contentEncodingStrategy =
+                context.getProperty(REQUEST_CONTENT_ENCODING).asAllowableValue(ContentEncodingStrategy.class);
         if (ContentEncodingStrategy.GZIP == contentEncodingStrategy) {
             requestBuilder.addHeader(HttpHeader.CONTENT_ENCODING.getHeader(), ContentEncodingStrategy.GZIP.getValue().toLowerCase());
         }
@@ -1111,7 +1110,7 @@ public class InvokeHTTP extends AbstractProcessor {
             }
         };
 
-        if (propertyDescriptors.size() > 0 || StringUtils.isNotEmpty(formDataName)) {
+        if (!propertyDescriptors.isEmpty() || StringUtils.isNotEmpty(formDataName)) {
             // we have form data
             MultipartBody.Builder builder = new Builder().setType(MultipartBody.FORM);
             boolean useFileName = context.getProperty(REQUEST_FORM_DATA_FILENAME_ENABLED).asBoolean();
@@ -1248,7 +1247,7 @@ public class InvokeHTTP extends AbstractProcessor {
                 sb.append(entry.getKey());
                 sb.append(": ");
                 if (list.size() == 1) {
-                    sb.append(list.get(0));
+                    sb.append(list.getFirst());
                 } else {
                     sb.append(list);
                 }

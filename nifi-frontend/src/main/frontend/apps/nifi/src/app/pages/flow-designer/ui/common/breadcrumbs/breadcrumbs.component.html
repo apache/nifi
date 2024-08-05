@@ -16,7 +16,7 @@
   -->
 
 <div class="px-4 flex justify-start items-center overflow-x-auto breadcrumbs">
-    @for (breadcrumb of prepareBreadcrumbs(); track breadcrumb) {
+    @for (breadcrumb of prepareBreadcrumbs(); track breadcrumb.id) {
         <div class="h-8 flex items-center">
             @if (breadcrumb.parentBreadcrumb) {
                 <div class="mx-3.5">&raquo;</div>

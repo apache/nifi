@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.Map.Entry;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -78,6 +77,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -88,9 +88,8 @@ import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.Checksum;
 
-import static java.util.stream.Collectors.toList;
-import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.expression.ExpressionLanguageScope.ENVIRONMENT;
+import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.REGULAR_EXPRESSION_VALIDATOR;
 
@@ -296,44 +295,48 @@ public class TailFile extends AbstractProcessor {
             .defaultValue("65536 B")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            MODE,
+            FILENAME,
+            ROLLING_FILENAME_PATTERN,
+            POST_ROLLOVER_TAIL_PERIOD,
+            BASE_DIRECTORY,
+            START_POSITION,
+            STATE_LOCATION,
+            RECURSIVE,
+            LOOKUP_FREQUENCY,
+            MAXIMUM_AGE,
+            REREAD_ON_NUL,
+            LINE_START_PATTERN,
+            PRE_ALLOCATED_BUFFER_SIZE,
+            MAX_BUFFER_LENGTH
+    );
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles are routed to this Relationship.")
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+
     private volatile Map<String, TailFileObject> states = new HashMap<>();
-    private volatile AtomicLong lastLookup = new AtomicLong(0L);
-    private volatile AtomicBoolean isMultiChanging = new AtomicBoolean(false);
+    private final AtomicLong lastLookup = new AtomicLong(0L);
+    private final AtomicBoolean isMultiChanging = new AtomicBoolean(false);
     private volatile boolean requireStateLookup = true;
 
-    private volatile ByteArrayOutputStream linesBuffer = new ByteArrayOutputStream();
+    private final ByteArrayOutputStream linesBuffer = new ByteArrayOutputStream();
     private volatile Pattern lineStartPattern;
     private volatile long maxBufferBytes;
     private volatile int preAllocatedBufferSize;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(MODE);
-        properties.add(FILENAME);
-        properties.add(ROLLING_FILENAME_PATTERN);
-        properties.add(POST_ROLLOVER_TAIL_PERIOD);
-        properties.add(BASE_DIRECTORY);
-        properties.add(START_POSITION);
-        properties.add(STATE_LOCATION);
-        properties.add(RECURSIVE);
-        properties.add(LOOKUP_FREQUENCY);
-        properties.add(MAXIMUM_AGE);
-        properties.add(REREAD_ON_NUL);
-        properties.add(LINE_START_PATTERN);
-        properties.add(PRE_ALLOCATED_BUFFER_SIZE);
-        properties.add(MAX_BUFFER_LENGTH);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -414,7 +417,7 @@ public class TailFile extends AbstractProcessor {
 
         final String startPosition = context.getProperty(START_POSITION).getValue();
 
-        if (!stateMap.getStateVersion().isPresent() || stateMap.toMap().isEmpty()) {
+        if (stateMap.getStateVersion().isEmpty() || stateMap.toMap().isEmpty()) {
             //state has been cleared or never stored so recover as 'empty state'
             initStates(filesToTail, Collections.emptyMap(), true, startPosition);
             recoverState(context, filesToTail, Collections.emptyMap());
@@ -424,7 +427,7 @@ public class TailFile extends AbstractProcessor {
         Map<String, String> statesMap = stateMap.toMap();
 
         if (statesMap.containsKey(TailFileState.StateKeys.FILENAME)
-                && !statesMap.keySet().stream().anyMatch(key -> key.startsWith(MAP_PREFIX))) {
+                && statesMap.keySet().stream().noneMatch(key -> key.startsWith(MAP_PREFIX))) {
             // If statesMap contains "filename" key without "file.0." prefix,
             // and there's no key with "file." prefix, then
             // it indicates that the statesMap is created with earlier version of NiFi.
@@ -437,7 +440,7 @@ public class TailFile extends AbstractProcessor {
             // LENGTH is added from NiFi 1.1.0. Set the value with using the last position so that we can use existing state
             // to avoid sending duplicated log data after updating NiFi.
             migratedStatesMap.put(MAP_PREFIX + "0." + TailFileState.StateKeys.LENGTH, statesMap.get(TailFileState.StateKeys.POSITION));
-            statesMap = Collections.unmodifiableMap(migratedStatesMap);
+            statesMap = Map.copyOf(migratedStatesMap);
 
             getLogger().info("statesMap has been migrated. {}", migratedStatesMap);
         }
@@ -466,7 +469,7 @@ public class TailFile extends AbstractProcessor {
             }
 
             // first, we remove the files that are no longer present
-            final List<String> toBeRemoved = new ArrayList<String>();
+            final List<String> toBeRemoved = new ArrayList<>();
             for (String file : states.keySet()) {
                 if (!filesToTail.contains(file)) {
                     toBeRemoved.add(file);
@@ -738,7 +741,6 @@ public class TailFile extends AbstractProcessor {
         } catch (IOException e) {
             getLogger().error("Exception raised while attempting to cleanup session's state map", e);
             context.yield();
-            return;
         }
     }
 
@@ -746,9 +748,9 @@ public class TailFile extends AbstractProcessor {
         List<String> keysToRemove = new ArrayList<>();
         List<String> filesToRemove = sessionStates.entrySet().stream()
                 .filter(entry -> entry.getKey().endsWith("filename")
-                        && !states.keySet().contains(entry.getValue()))
+                        && !states.containsKey(entry.getValue()))
                 .map(Entry::getKey)
-                .collect(toList());
+                .toList();
 
         for (String key : filesToRemove) {
             final String prefix = StringUtils.substringBefore(key, "filename");
@@ -949,12 +951,11 @@ public class TailFile extends AbstractProcessor {
                 flowFileName = baseName + "." + position + "-" + positionHolder.get();
             }
 
-            final Map<String, String> attributes = new HashMap<>(3);
-            attributes.put(CoreAttributes.FILENAME.key(), flowFileName);
-            attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
-            attributes.put("tailfile.original.path", tailFile);
-            flowFile = session.putAllAttributes(flowFile, attributes);
-
+            flowFile = session.putAllAttributes(flowFile, Map.of(
+                    CoreAttributes.FILENAME.key(), flowFileName,
+                    CoreAttributes.MIME_TYPE.key(), "text/plain",
+                    "tailfile.original.path", tailFile
+            ));
             session.getProvenanceReporter().receive(flowFile, file.toURI().toString(), "FlowFile contains bytes " + position + " through " + positionHolder.get() + " of source file",
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
             session.transfer(flowFile, REL_SUCCESS);
@@ -1195,7 +1196,7 @@ public class TailFile extends AbstractProcessor {
         // Sort files based on last modified timestamp. If same timestamp, use filename as a secondary sort, as often
         // files that are rolled over are given a naming scheme that is lexicographically sort in the same order as the
         // timestamp, such as yyyy-MM-dd-HH-mm-ss
-        rolledOffFiles.sort(new Comparator<File>() {
+        rolledOffFiles.sort(new Comparator<>() {
             @Override
             public int compare(final File o1, final File o2) {
                 final int lastModifiedComp = Long.compare(o1.lastModified(), o2.lastModified());
@@ -1274,7 +1275,7 @@ public class TailFile extends AbstractProcessor {
             try {
                 reader.close();
                 getLogger().debug("Closed FileChannel {}", reader);
-            } catch (final IOException ioe2) {
+            } catch (final IOException ignored) {
             }
 
             return null;
@@ -1362,7 +1363,7 @@ public class TailFile extends AbstractProcessor {
 
             final boolean tailFirstFile;
             if (rolloverOccurred) {
-                final File firstFile = rolledOffFiles.get(0);
+                final File firstFile = rolledOffFiles.getFirst();
                 final long millisSinceModified = getCurrentTimeMs() - firstFile.lastModified();
                 final boolean fileGrew = firstFile.length() >= position;
                 final boolean tailRolledFile = postRolloverTailMillis == 0 || millisSinceModified < postRolloverTailMillis;
@@ -1372,7 +1373,7 @@ public class TailFile extends AbstractProcessor {
             }
 
             if (tailFirstFile) {
-                final File firstFile = rolledOffFiles.get(0);
+                final File firstFile = rolledOffFiles.getFirst();
 
                 final boolean consumed;
                 if (shouldTailPostRollover) {
@@ -1387,14 +1388,14 @@ public class TailFile extends AbstractProcessor {
                 }
 
                 if (consumed) {
-                    rolledOffFiles.remove(0);
+                    rolledOffFiles.removeFirst();
                 }
             } else if (tailingPostRollover && shouldTailPostRollover) {
                 // This condition is encountered when we are tailing a file post-rollover, and we've now reached the point where the rolled file
                 // has not changed.
                 final List<File> allRolledFiles = getRolledOffFiles(context, 0L, tailFile);
                 allRolledFiles.sort(Comparator.comparing(File::lastModified).reversed());
-                final File newestFile = allRolledFiles.get(0);
+                final File newestFile = allRolledFiles.getFirst();
 
                 // If we don't notice that the file has been modified, per the checks above, then we want to keep checking until the last modified
                 // date has eclipsed the configured value for the Post-Rollover Tail Period. Until then, return false. Once that occurs, we will
@@ -1480,11 +1481,11 @@ public class TailFile extends AbstractProcessor {
             if (flowFile.getSize() == 0L) {
                 session.remove(flowFile);
             } else {
-                final Map<String, String> attributes = new HashMap<>(3);
-                attributes.put(CoreAttributes.FILENAME.key(), fileToTail.getName());
-                attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
-                attributes.put("tailfile.original.path", tailFile);
-                flowFile = session.putAllAttributes(flowFile, attributes);
+                flowFile = session.putAllAttributes(flowFile, Map.of(
+                        CoreAttributes.FILENAME.key(), fileToTail.getName(),
+                        CoreAttributes.MIME_TYPE.key(), "text/plain",
+                        "tailfile.original.path", tailFile
+                ));
 
                 session.getProvenanceReporter().receive(flowFile, fileToTail.toURI().toString(), "FlowFile contains bytes 0 through " + position + " of source file",
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
@@ -1552,11 +1553,11 @@ public class TailFile extends AbstractProcessor {
         if (flowFile.getSize() == 0L) {
             session.remove(flowFile);
         } else {
-            final Map<String, String> attributes = new HashMap<>(3);
-            attributes.put(CoreAttributes.FILENAME.key(), file.getName());
-            attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
-            attributes.put("tailfile.original.path", tfo.getState().getFilename());
-            flowFile = session.putAllAttributes(flowFile, attributes);
+            flowFile = session.putAllAttributes(flowFile, Map.of(
+                    CoreAttributes.FILENAME.key(), file.getName(),
+                    CoreAttributes.MIME_TYPE.key(), "text/plain",
+                    "tailfile.original.path", tfo.getState().getFilename())
+            );
             session.getProvenanceReporter().receive(flowFile, file.toURI().toString());
             session.transfer(flowFile, REL_SUCCESS);
             getLogger().debug("Created {} from {} and routed to success", flowFile, file);
@@ -1580,7 +1581,7 @@ public class TailFile extends AbstractProcessor {
 
         private TailFileState state;
         private Long expectedRecoveryChecksum;
-        private int filenameIndex;
+        private final int filenameIndex;
         private boolean tailFileChanged = true;
 
         public TailFileObject(final int index, final TailFileState fileState) {

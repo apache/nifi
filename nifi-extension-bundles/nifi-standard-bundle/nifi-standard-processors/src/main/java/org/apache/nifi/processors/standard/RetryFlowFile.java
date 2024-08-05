@@ -34,15 +34,11 @@ import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -74,13 +70,6 @@ import java.util.Set;
                 "the 'retries_exceeded' relationship",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 public class RetryFlowFile extends AbstractProcessor {
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
-    private String retryAttribute;
-    private Boolean penalizeRetried;
-    private Boolean failOnOverwrite;
-    private String reuseMode;
-    private String lastRetriedBy;
 
     public static final PropertyDescriptor RETRY_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("retry-attribute")
@@ -151,6 +140,14 @@ public class RetryFlowFile extends AbstractProcessor {
             .defaultValue(FAIL_ON_REUSE.getValue())
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RETRY_ATTRIBUTE,
+            MAXIMUM_RETRIES,
+            PENALIZE_RETRIED,
+            FAIL_ON_OVERWRITE,
+            REUSE_MODE
+    );
+
     public static final Relationship RETRY = new Relationship.Builder()
             .name("retry")
             .description("Input FlowFile has not exceeded the configured maximum retry count, pass this " +
@@ -170,26 +167,21 @@ public class RetryFlowFile extends AbstractProcessor {
             .autoTerminateDefault(true)
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            RETRY,
+            RETRIES_EXCEEDED,
+            FAILURE
+    );
+
+    private String retryAttribute;
+    private Boolean penalizeRetried;
+    private Boolean failOnOverwrite;
+    private String reuseMode;
+    private String lastRetriedBy;
+
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
-    }
-
-    @Override
-    protected void init(ProcessorInitializationContext context) {
-        List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(RETRY_ATTRIBUTE);
-        props.add(MAXIMUM_RETRIES);
-        props.add(PENALIZE_RETRIED);
-        props.add(FAIL_ON_OVERWRITE);
-        props.add(REUSE_MODE);
-        this.properties = Collections.unmodifiableList(props);
-
-        Set<Relationship> rels = new HashSet<>();
-        rels.add(RETRY);
-        rels.add(RETRIES_EXCEEDED);
-        rels.add(FAILURE);
-        this.relationships = Collections.unmodifiableSet(rels);
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -207,7 +199,7 @@ public class RetryFlowFile extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @OnScheduled
@@ -231,7 +223,7 @@ public class RetryFlowFile extends AbstractProcessor {
         try {
             currentRetry = (null == retryAttributeValue)
                     ? 1
-                    : Integer.valueOf(retryAttributeValue.trim()) + 1;
+                    : Integer.parseInt(retryAttributeValue.trim()) + 1;
         } catch (NumberFormatException ex) {
             // Configured to fail if this was not a number
             if (failOnOverwrite) {

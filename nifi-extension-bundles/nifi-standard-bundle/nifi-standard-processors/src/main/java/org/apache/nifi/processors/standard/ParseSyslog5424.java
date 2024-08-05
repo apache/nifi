@@ -38,17 +38,15 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.syslog.attributes.SyslogAttributes;
+import org.apache.nifi.syslog.events.Syslog5424Event;
 import org.apache.nifi.syslog.keyproviders.SyslogPrefixedKeyProvider;
+import org.apache.nifi.syslog.parsers.StrictSyslog5424Parser;
 import org.apache.nifi.syslog.utils.NifiStructuredDataPolicy;
 import org.apache.nifi.syslog.utils.NilHandlingPolicy;
-import org.apache.nifi.syslog.parsers.StrictSyslog5424Parser;
-import org.apache.nifi.syslog.events.Syslog5424Event;
-import org.apache.nifi.syslog.attributes.SyslogAttributes;
 
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -113,6 +111,12 @@ public class ParseSyslog5424 extends AbstractProcessor {
         .defaultValue("true")
         .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            CHARSET,
+            NIL_POLICY,
+            INCLUDE_BODY_IN_ATTRIBUTES
+    );
+
     static final Relationship REL_FAILURE = new Relationship.Builder()
         .name("failure")
         .description("Any FlowFile that could not be parsed as a Syslog message will be transferred to this Relationship without any attributes being added")
@@ -122,25 +126,23 @@ public class ParseSyslog5424 extends AbstractProcessor {
         .description("Any FlowFile that is successfully parsed as a Syslog message will be to this Relationship.")
         .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_FAILURE,
+            REL_SUCCESS
+    );
+
     private volatile StrictSyslog5424Parser parser;
 
     private volatile Charset charset;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(2);
-        properties.add(CHARSET);
-        properties.add(NIL_POLICY);
-        properties.add(INCLUDE_BODY_IN_ATTRIBUTES);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_SUCCESS);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnScheduled

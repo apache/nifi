@@ -33,7 +33,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
@@ -43,9 +42,7 @@ import org.eclipse.jetty.util.StringUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -146,6 +143,19 @@ public class LogAttribute extends AbstractProcessor {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            LOG_LEVEL,
+            LOG_PAYLOAD,
+            ATTRIBUTES_TO_LOG_CSV,
+            ATTRIBUTES_TO_LOG_REGEX,
+            ATTRIBUTES_TO_IGNORE_CSV,
+            ATTRIBUTES_TO_IGNORE_REGEX,
+            LOG_FLOWFILE_PROPERTIES,
+            OUTPUT_FORMAT,
+            LOG_PREFIX,
+            CHARSET
+    );
+
     public static final String FIFTY_DASHES = "--------------------------------------------------";
 
     public static enum DebugLevels {
@@ -153,43 +163,22 @@ public class LogAttribute extends AbstractProcessor {
     }
 
     public static final long ONE_MB = 1024 * 1024;
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> supportedDescriptors;
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles are routed to this relationship")
             .build();
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> procRels = new HashSet<>();
-        procRels.add(REL_SUCCESS);
-        relationships = Collections.unmodifiableSet(procRels);
-
-        // descriptors
-        final List<PropertyDescriptor> supDescriptors = new ArrayList<>();
-        supDescriptors.add(LOG_LEVEL);
-        supDescriptors.add(LOG_PAYLOAD);
-        supDescriptors.add(ATTRIBUTES_TO_LOG_CSV);
-        supDescriptors.add(ATTRIBUTES_TO_LOG_REGEX);
-        supDescriptors.add(ATTRIBUTES_TO_IGNORE_CSV);
-        supDescriptors.add(ATTRIBUTES_TO_IGNORE_REGEX);
-        supDescriptors.add(LOG_FLOWFILE_PROPERTIES);
-        supDescriptors.add(OUTPUT_FORMAT);
-        supDescriptors.add(LOG_PREFIX);
-        supDescriptors.add(CHARSET);
-        supportedDescriptors = Collections.unmodifiableList(supDescriptors);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return supportedDescriptors;
+        return PROPERTIES;
     }
 
     protected String processFlowFile(final ComponentLog logger, final DebugLevels logLevel, final FlowFile flowFile, final ProcessSession session, final ProcessContext context) {
@@ -331,24 +320,13 @@ public class LogAttribute extends AbstractProcessor {
         }
 
         final ComponentLog LOG = getLogger();
-        boolean isLogLevelEnabled = false;
-        switch (logLevel) {
-            case trace:
-                isLogLevelEnabled = LOG.isTraceEnabled();
-                break;
-            case debug:
-                isLogLevelEnabled = LOG.isDebugEnabled();
-                break;
-            case info:
-                isLogLevelEnabled = LOG.isInfoEnabled();
-                break;
-            case warn:
-                isLogLevelEnabled = LOG.isWarnEnabled();
-                break;
-            case error:
-                isLogLevelEnabled = LOG.isErrorEnabled();
-                break;
-        }
+        boolean isLogLevelEnabled = switch (logLevel) {
+            case trace -> LOG.isTraceEnabled();
+            case debug -> LOG.isDebugEnabled();
+            case info -> LOG.isInfoEnabled();
+            case warn -> LOG.isWarnEnabled();
+            case error -> LOG.isErrorEnabled();
+        };
 
         if (!isLogLevelEnabled) {
             transferChunk(session);
@@ -367,7 +345,7 @@ public class LogAttribute extends AbstractProcessor {
     protected static class FlowFilePayloadCallback implements InputStreamCallback {
 
         private String contents = "";
-        private Charset charset;
+        private final Charset charset;
 
         public FlowFilePayloadCallback(Charset charset) {
             this.charset = charset;
@@ -382,6 +360,4 @@ public class LogAttribute extends AbstractProcessor {
             return contents;
         }
     }
-
-
 }

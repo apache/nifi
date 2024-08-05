@@ -208,6 +208,17 @@ public class ControlRate extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RATE_CONTROL_CRITERIA,
+            TIME_PERIOD,
+            MAX_RATE,
+            MAX_DATA_RATE,
+            MAX_COUNT_RATE,
+            RATE_EXCEEDED_STRATEGY,
+            RATE_CONTROL_ATTRIBUTE_NAME,
+            GROUPING_ATTRIBUTE_NAME
+    );
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles are transferred to this relationship under normal conditions")
@@ -222,23 +233,20 @@ public class ControlRate extends AbstractProcessor {
             "Strategy is configured to use this Relationship.")
         .build();
 
+    private static final Set<Relationship> DEFAULT_RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+    private static final Set<Relationship> RATE_EXCEEDED_RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_RATE_EXCEEDED
+    );
+
     private static final Pattern POSITIVE_LONG_PATTERN = Pattern.compile("0*[1-9][0-9]*");
     private static final String DEFAULT_GROUP_ATTRIBUTE = ControlRate.class.getName() + "###____DEFAULT_GROUP_ATTRIBUTE___###";
 
-    private static final List<PropertyDescriptor> properties = List.of(
-        RATE_CONTROL_CRITERIA,
-        TIME_PERIOD,
-        MAX_RATE,
-        MAX_DATA_RATE,
-        MAX_COUNT_RATE,
-        RATE_EXCEEDED_STRATEGY,
-        RATE_CONTROL_ATTRIBUTE_NAME,
-        GROUPING_ATTRIBUTE_NAME
-    );
-
-    private static final Set<Relationship> defaultRelationships = Set.of(REL_SUCCESS, REL_FAILURE);
-    private static final Set<Relationship> rateExceededRelationships = Set.of(REL_SUCCESS, REL_FAILURE, REL_RATE_EXCEEDED);
-    private volatile Set<Relationship> relationships = defaultRelationships;
+    private volatile Set<Relationship> relationships = DEFAULT_RELATIONSHIPS;
 
     private final ConcurrentMap<String, Throttle> dataThrottleMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Throttle> countThrottleMap = new ConcurrentHashMap<>();
@@ -253,7 +261,7 @@ public class ControlRate extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -300,9 +308,9 @@ public class ControlRate extends AbstractProcessor {
 
         if (descriptor.equals(RATE_EXCEEDED_STRATEGY)) {
             if (ROUTE_TO_RATE_EXCEEDED.getValue().equalsIgnoreCase(newValue)) {
-                this.relationships = rateExceededRelationships;
+                this.relationships = RATE_EXCEEDED_RELATIONSHIPS;
             } else {
-                this.relationships = defaultRelationships;
+                this.relationships = DEFAULT_RELATIONSHIPS;
             }
         }
 

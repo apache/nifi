@@ -33,6 +33,8 @@ import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -42,6 +44,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
+@Repository
 public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistryDAO {
     private FlowController flowController;
 
@@ -223,6 +226,7 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
         return flowRegistry;
     }
 
+    @Autowired
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }

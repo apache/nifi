@@ -32,10 +32,12 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.Objects;
 
+@Service
 @Aspect
 public class LabelAuditor extends NiFiAuditor {
     private static final Logger logger = LoggerFactory.getLogger(LabelAuditor.class);

@@ -394,7 +394,10 @@ import org.apache.nifi.web.util.PredictionBasedParallelProcessingService;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.oauth2.core.OAuth2Token;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -426,6 +429,7 @@ import static org.apache.commons.lang3.StringUtils.containsIgnoreCase;
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
  */
+@Service
 public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiServiceFacade.class);
     private static final int VALIDATION_WAIT_MILLIS = 50;
@@ -6830,139 +6834,174 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return new NiFiRegistryFlowMapper(extensionManager);
     }
 
-    /* setters */
+    @Autowired
     public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 
+    @Autowired
     public void setControllerFacade(final ControllerFacade controllerFacade) {
         this.controllerFacade = controllerFacade;
     }
 
+    @Autowired
     public void setRemoteProcessGroupDAO(final RemoteProcessGroupDAO remoteProcessGroupDAO) {
         this.remoteProcessGroupDAO = remoteProcessGroupDAO;
     }
 
+    @Autowired
     public void setLabelDAO(final LabelDAO labelDAO) {
         this.labelDAO = labelDAO;
     }
 
+    @Autowired
     public void setFunnelDAO(final FunnelDAO funnelDAO) {
         this.funnelDAO = funnelDAO;
     }
 
+    @Autowired
     public void setSnippetDAO(final SnippetDAO snippetDAO) {
         this.snippetDAO = snippetDAO;
     }
 
+    @Autowired
     public void setProcessorDAO(final ProcessorDAO processorDAO) {
         this.processorDAO = processorDAO;
     }
 
+    @Autowired
     public void setConnectionDAO(final ConnectionDAO connectionDAO) {
         this.connectionDAO = connectionDAO;
     }
 
+    @Autowired
     public void setAuditService(final AuditService auditService) {
         this.auditService = auditService;
     }
 
+    @Autowired
     public void setRevisionManager(final RevisionManager revisionManager) {
         this.revisionManager = revisionManager;
     }
 
+    @Autowired
     public void setDtoFactory(final DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
     }
 
+    @Autowired
     public void setEntityFactory(final EntityFactory entityFactory) {
         this.entityFactory = entityFactory;
     }
 
+    @Qualifier("standardInputPortDAO")
+    @Autowired
     public void setInputPortDAO(final PortDAO inputPortDAO) {
         this.inputPortDAO = inputPortDAO;
     }
 
+    @Qualifier("standardOutputPortDAO")
+    @Autowired
     public void setOutputPortDAO(final PortDAO outputPortDAO) {
         this.outputPortDAO = outputPortDAO;
     }
 
+    @Autowired
     public void setProcessGroupDAO(final ProcessGroupDAO processGroupDAO) {
         this.processGroupDAO = processGroupDAO;
     }
 
+    @Autowired
     public void setControllerServiceDAO(final ControllerServiceDAO controllerServiceDAO) {
         this.controllerServiceDAO = controllerServiceDAO;
     }
 
+    @Autowired
     public void setReportingTaskDAO(final ReportingTaskDAO reportingTaskDAO) {
         this.reportingTaskDAO = reportingTaskDAO;
     }
 
+    @Autowired
     public void setFlowAnalysisRuleDAO(FlowAnalysisRuleDAO flowAnalysisRuleDAO) {
         this.flowAnalysisRuleDAO = flowAnalysisRuleDAO;
     }
 
+    @Autowired
     public void setParameterProviderDAO(final ParameterProviderDAO parameterProviderDAO) {
         this.parameterProviderDAO = parameterProviderDAO;
     }
 
+    @Autowired
     public void setParameterContextDAO(final ParameterContextDAO parameterContextDAO) {
         this.parameterContextDAO = parameterContextDAO;
     }
 
+    @Autowired
     public void setSnippetUtils(final SnippetUtils snippetUtils) {
         this.snippetUtils = snippetUtils;
     }
 
+    @Autowired
     public void setAuthorizableLookup(final AuthorizableLookup authorizableLookup) {
         this.authorizableLookup = authorizableLookup;
     }
 
+    @Autowired
     public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
+    @Autowired
     public void setUserDAO(final UserDAO userDAO) {
         this.userDAO = userDAO;
     }
 
+    @Autowired
     public void setUserGroupDAO(final UserGroupDAO userGroupDAO) {
         this.userGroupDAO = userGroupDAO;
     }
 
+    @Autowired
     public void setAccessPolicyDAO(final AccessPolicyDAO accessPolicyDAO) {
         this.accessPolicyDAO = accessPolicyDAO;
     }
 
+    @Autowired
     public void setClusterCoordinator(final ClusterCoordinator coordinator) {
         this.clusterCoordinator = coordinator;
     }
 
+    @Autowired
     public void setHeartbeatMonitor(final HeartbeatMonitor heartbeatMonitor) {
         this.heartbeatMonitor = heartbeatMonitor;
     }
 
+    @Autowired
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
     }
 
+    @Autowired
     public void setLeaderElectionManager(final LeaderElectionManager leaderElectionManager) {
         this.leaderElectionManager = leaderElectionManager;
     }
 
+    @Autowired
     public void setFlowRegistryDAO(FlowRegistryDAO flowRegistryDao) {
         this.flowRegistryDAO = flowRegistryDao;
     }
 
+    @Autowired
     public void setRuleViolationsManager(RuleViolationsManager ruleViolationsManager) {
         this.ruleViolationsManager = ruleViolationsManager;
     }
 
+    @Autowired
     public void setParallelProcessingService(PredictionBasedParallelProcessingService parallelProcessingService) {
         this.parallelProcessingService = parallelProcessingService;
     }
 
+    @Autowired
     public void setNarManager(final NarManager narManager) {
         this.narManager = narManager;
     }

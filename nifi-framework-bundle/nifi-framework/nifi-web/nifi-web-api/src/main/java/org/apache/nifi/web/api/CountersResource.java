@@ -48,10 +48,13 @@ import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.CounterEntity;
 import org.apache.nifi.web.api.entity.CountersEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing Counters.
  */
+@Controller
 @Path("/counters")
 @Tag(name = "Counters")
 public class CountersResource extends ApplicationResource {
@@ -213,10 +216,12 @@ public class CountersResource extends ApplicationResource {
         );
     }
 
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

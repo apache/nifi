@@ -50,7 +50,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -67,18 +66,18 @@ import static java.sql.Types.BINARY;
 import static java.sql.Types.BIT;
 import static java.sql.Types.BLOB;
 import static java.sql.Types.BOOLEAN;
+import static java.sql.Types.CHAR;
 import static java.sql.Types.CLOB;
+import static java.sql.Types.DATE;
 import static java.sql.Types.DECIMAL;
 import static java.sql.Types.DOUBLE;
 import static java.sql.Types.FLOAT;
 import static java.sql.Types.INTEGER;
-import static java.sql.Types.LONGVARBINARY;
-import static java.sql.Types.NUMERIC;
-import static java.sql.Types.CHAR;
-import static java.sql.Types.DATE;
 import static java.sql.Types.LONGNVARCHAR;
+import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
+import static java.sql.Types.NUMERIC;
 import static java.sql.Types.NVARCHAR;
 import static java.sql.Types.REAL;
 import static java.sql.Types.ROWID;
@@ -283,10 +282,10 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                         columnTypeMap.clear();
                     }
 
-                    final List<String> maxValueColumnNameList = Arrays.asList(maxValueColumnNames.toLowerCase().split(","));
+                    final String[] maxValueColumnNameList = maxValueColumnNames.toLowerCase().split(",");
                     final List<String> maxValueQualifiedColumnNameList = new ArrayList<>();
 
-                    for (String maxValueColumn:maxValueColumnNameList) {
+                    for (String maxValueColumn : maxValueColumnNameList) {
                         String colKey = getStateKey(tableName, maxValueColumn.trim(), dbAdapter);
                         maxValueQualifiedColumnNameList.add(colKey);
                     }
@@ -304,7 +303,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                         columnTypeMap.putIfAbsent(colKey, colType);
                     }
 
-                    for (String maxValueColumn:maxValueColumnNameList) {
+                    for (String maxValueColumn : maxValueColumnNameList) {
                         String colKey = getStateKey(tableName, maxValueColumn.trim().toLowerCase(), dbAdapter);
                         if (!columnTypeMap.containsKey(colKey)) {
                             throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);

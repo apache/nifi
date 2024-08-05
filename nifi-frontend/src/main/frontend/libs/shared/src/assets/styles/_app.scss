@@ -113,15 +113,6 @@
 
     /* overriding 3rd party styles */
 
-    /* Codemirror begin */
-
-    .CodeMirror-hints {
-        z-index: 1000 !important;
-        overflow-y: scroll !important;
-    }
-
-    /* Codemirror end */
-
     /* material typography begin */
 
     .mat-h2,
@@ -150,10 +141,6 @@
     .mat-expansion-panel-header-title,
     .mat-expansion-panel-header-description {
         margin-right: 0 !important;
-    }
-
-    .mat-expansion-panel-body {
-        overflow-y: auto;
     }
 
     .mat-content.mat-content-hide-toggle {

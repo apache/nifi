@@ -55,7 +55,9 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.support.CronExpression;
+import org.springframework.stereotype.Repository;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -69,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
+@Repository
 public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
     private FlowController flowController;
@@ -612,11 +615,12 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         componentStateDAO.clearState(processor);
     }
 
-    /* setters */
+    @Autowired
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
     }
 
+    @Autowired
     public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
     }

@@ -42,8 +42,7 @@ public class FakerUtils {
     private static final int RANDOM_DATE_DAYS = 365;
     private static final Map<String, FakerMethodHolder> datatypeFunctionMap = new LinkedHashMap<>();
 
-    private static final List<String> providerPackages = Arrays.asList("base", "entertainment", "food", "sport", "videogame");
-
+    private static final List<String> PROVIDER_PACKAGES = List.of("base", "entertainment", "food", "sport", "videogame");
 
     // Additional Faker datatypes that don't use predetermined data files (i.e. they generate data or have non-String types)
     static final AllowableValue FT_BOOL = new AllowableValue("Boolean.bool", "Boolean - bool (true/false)", "A value of 'true' or 'false'");
@@ -66,7 +65,7 @@ public class FakerUtils {
             try {
                 // The providers are in different sub-packages, try them all until one succeeds
                 Class<?> fakerTypeClass = null;
-                for (String subPackage : providerPackages) {
+                for (String subPackage : PROVIDER_PACKAGES) {
                     try {
                         fakerTypeClass = Class.forName(PACKAGE_PREFIX + '.' + subPackage + "." + className);
                         break;
@@ -91,7 +90,7 @@ public class FakerUtils {
                             Modifier.isPublic(method.getModifiers())
                                     && method.getParameterCount() == 0
                                     && method.getReturnType() == String.class)
-                    .collect(Collectors.toList());
+                    .toList();
             try {
                 final Object methodObject = faker.getClass().getMethod(normalizeMethodName(entry.getKey())).invoke(faker);
                 for (Method method : fakerMethods) {
@@ -146,8 +145,7 @@ public class FakerUtils {
         // If not a special circumstance, use the map to call the associated Faker method and return the value
         try {
             final FakerMethodHolder fakerMethodHolder = datatypeFunctionMap.get(type);
-            Object returnObject = fakerMethodHolder.getMethod().invoke(fakerMethodHolder.getMethodObject());
-            return returnObject;
+            return fakerMethodHolder.getMethod().invoke(fakerMethodHolder.getMethodObject());
         } catch (InvocationTargetException | IllegalAccessException e) {
             throw new ProcessException(type + " is not a valid value", e);
         }
@@ -178,17 +176,15 @@ public class FakerUtils {
     // This method identifies "segments" by splitting the given name on underscores, then capitalizes each segment and removes the underscores. Ex: 'game_of_thrones' = 'GameOfThrones'
     private static String normalizeClassName(String name) {
         String[] segments = name.split("_");
-        String newName = Arrays.stream(segments)
+
+        return Arrays.stream(segments)
                 .map(s -> s.substring(0, 1).toUpperCase() + s.substring(1))
                 .collect(Collectors.joining());
-        return newName;
     }
 
     // This method lowercases the first letter of the given name in order to match the name to a Faker method
     private static String normalizeMethodName(String name) {
-
-        String newName = name.substring(0, 1).toLowerCase() + name.substring(1);
-        return newName;
+        return name.substring(0, 1).toLowerCase() + name.substring(1);
     }
 
     // This method splits the given name on uppercase letters, ensures the first letter is capitalized, then joins the segments using a space. Ex. 'gameOfThrones' = 'Game Of Thrones'

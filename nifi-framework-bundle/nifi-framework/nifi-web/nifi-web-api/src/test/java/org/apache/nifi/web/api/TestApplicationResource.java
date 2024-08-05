@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api;
 
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.glassfish.jersey.uri.internal.JerseyUriBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.UriBuilderException;
 import jakarta.ws.rs.core.UriInfo;
 import java.net.URI;
 import java.util.Arrays;
@@ -35,28 +35,24 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_CONTEXT_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_HOST_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_PORT_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_PREFIX_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_CONTEXT_PATH_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TestApplicationResource {
     private static final String PROXY_CONTEXT_PATH_PROP = NiFiProperties.WEB_PROXY_CONTEXT_PATH;
-    private static final String BASE_URI = "https://nifi.apache.org";
+    private static final String SCHEME = "https";
+    private static final String HOST = "nifi.apache.org";
+    private static final int PORT = 8081;
+    private static final String BASE_URI = SCHEME + "://" + HOST;
     private static final String ALLOWED_PATH = "/some/context/path";
     private static final String FORWARD_SLASH = "/";
+    private static final String CUSTOM_UI_PATH = "/my-custom-ui-1.0.0";
     private static final String ACTUAL_RESOURCE = "actualResource";
-    private static final String EXPECTED_URI = BASE_URI + ":8081" + ALLOWED_PATH + FORWARD_SLASH + ACTUAL_RESOURCE;
+    private static final String EXPECTED_URI = BASE_URI + ":" + PORT + ALLOWED_PATH + FORWARD_SLASH + ACTUAL_RESOURCE;
     private static final String MULTIPLE_ALLOWED_PATHS = String.join(",", ALLOWED_PATH, "another/path", "a/third/path");
 
     @Mock
@@ -66,8 +62,12 @@ public class TestApplicationResource {
 
     @BeforeEach
     public void setUp(@Mock UriInfo uriInfo) throws Exception {
-        when(uriInfo.getBaseUriBuilder()).thenReturn(new JerseyUriBuilder().uri(new URI(BASE_URI + FORWARD_SLASH)));
-        when(request.getScheme()).thenReturn("https");
+        // this stubbing is lenient because it is unnecessary in some tests
+        lenient().when(uriInfo.getBaseUriBuilder()).thenReturn(new JerseyUriBuilder().uri(new URI(BASE_URI + FORWARD_SLASH)));
+
+        when(request.getScheme()).thenReturn(SCHEME);
+        when(request.getServerName()).thenReturn(HOST);
+        when(request.getServerPort()).thenReturn(PORT);
 
         resource = new MockApplicationResource();
         resource.setHttpServletRequest(request);
@@ -78,7 +78,7 @@ public class TestApplicationResource {
     @Test
     public void testGenerateUriShouldBlockProxyContextPathHeaderIfNotInAllowList() {
         when(request.getHeader(anyString())).thenAnswer(new RequestAnswer());
-        assertThrows(UriBuilderException.class, () -> resource.generateResourceUri(ACTUAL_RESOURCE));
+        assertThrows(IllegalArgumentException.class, () -> resource.generateResourceUri(ACTUAL_RESOURCE));
     }
 
     @Test
@@ -99,19 +99,19 @@ public class TestApplicationResource {
 
     @Test
     public void testGenerateUriShouldBlockForwardedContextHeaderIfNotInAllowList() {
-        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(FORWARDED_CONTEXT_HTTP_HEADER));
-        assertThrows(UriBuilderException.class, () -> resource.generateResourceUri(ACTUAL_RESOURCE));
+        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(ProxyHeader.FORWARDED_CONTEXT.getHeader()));
+        assertThrows(IllegalArgumentException.class, () -> resource.generateResourceUri(ACTUAL_RESOURCE));
     }
 
     @Test
     public void testGenerateUriShouldBlockForwardedPrefixHeaderIfNotInAllowList() {
-        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(FORWARDED_PREFIX_HTTP_HEADER));
-        assertThrows(UriBuilderException.class, () -> resource.generateResourceUri(ACTUAL_RESOURCE));
+        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(ProxyHeader.FORWARDED_PREFIX.getHeader()));
+        assertThrows(IllegalArgumentException.class, () -> resource.generateResourceUri(ACTUAL_RESOURCE));
     }
 
     @Test
     public void testGenerateUriShouldAllowForwardedContextHeaderIfInAllowList() {
-        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(FORWARDED_CONTEXT_HTTP_HEADER));
+        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(ProxyHeader.FORWARDED_CONTEXT.getHeader()));
         setNiFiProperties(Collections.singletonMap(PROXY_CONTEXT_PATH_PROP, ALLOWED_PATH));
 
         assertEquals(EXPECTED_URI, resource.generateResourceUri(ACTUAL_RESOURCE));
@@ -119,7 +119,7 @@ public class TestApplicationResource {
 
     @Test
     public void testGenerateUriShouldAllowForwardedPrefixHeaderIfInAllowList() {
-        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(FORWARDED_PREFIX_HTTP_HEADER));
+        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(ProxyHeader.FORWARDED_PREFIX.getHeader()));
         setNiFiProperties(Collections.singletonMap(PROXY_CONTEXT_PATH_PROP, ALLOWED_PATH));
 
         assertEquals(EXPECTED_URI, resource.generateResourceUri(ACTUAL_RESOURCE));
@@ -127,7 +127,7 @@ public class TestApplicationResource {
 
     @Test
     public void testGenerateUriShouldAllowForwardedContextHeaderIfElementInMultipleAllowList() {
-        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(FORWARDED_CONTEXT_HTTP_HEADER));
+        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(ProxyHeader.FORWARDED_CONTEXT.getHeader()));
         setNiFiProperties(Collections.singletonMap(PROXY_CONTEXT_PATH_PROP, MULTIPLE_ALLOWED_PATHS));
 
         assertEquals(EXPECTED_URI, resource.generateResourceUri(ACTUAL_RESOURCE));
@@ -135,10 +135,23 @@ public class TestApplicationResource {
 
     @Test
     public void testGenerateUriShouldAllowForwardedPrefixHeaderIfElementInMultipleAllowList() {
-        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(FORWARDED_PREFIX_HTTP_HEADER));
+        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(ProxyHeader.FORWARDED_PREFIX.getHeader()));
         setNiFiProperties(Collections.singletonMap(PROXY_CONTEXT_PATH_PROP, MULTIPLE_ALLOWED_PATHS));
 
         assertEquals(EXPECTED_URI, resource.generateResourceUri(ACTUAL_RESOURCE));
+    }
+
+    @Test
+    public void testGenerateExternalUiUri() {
+        assertEquals(SCHEME + "://" + HOST + ":" + PORT + CUSTOM_UI_PATH, resource.generateExternalUiUri(CUSTOM_UI_PATH));
+    }
+
+    @Test
+    public void testGenerateExternalUiUriWithProxy() {
+        when(request.getHeader(anyString())).thenAnswer(new RequestAnswer(ProxyHeader.FORWARDED_CONTEXT.getHeader()));
+        setNiFiProperties(Collections.singletonMap(PROXY_CONTEXT_PATH_PROP, ALLOWED_PATH));
+
+        assertEquals(SCHEME + "://" + HOST + ":" + PORT + ALLOWED_PATH + CUSTOM_UI_PATH, resource.generateExternalUiUri(CUSTOM_UI_PATH));
     }
 
     private void setNiFiProperties(Map<String, String> props) {
@@ -159,7 +172,7 @@ public class TestApplicationResource {
         private final List<String> proxyHeaders;
 
         public RequestAnswer() {
-            this(FORWARDED_PREFIX_HTTP_HEADER, FORWARDED_CONTEXT_HTTP_HEADER, PROXY_CONTEXT_PATH_HTTP_HEADER);
+            this(ProxyHeader.FORWARDED_PREFIX.getHeader(), ProxyHeader.FORWARDED_CONTEXT.getHeader(), ProxyHeader.PROXY_CONTEXT_PATH.getHeader());
         }
 
         public RequestAnswer(String... proxyHeaders) {
@@ -175,11 +188,11 @@ public class TestApplicationResource {
             String argument = invocationOnMock.getArgument(0);
             if (proxyHeaders.contains(argument)) {
                 return ALLOWED_PATH;
-            } else if (Arrays.asList(FORWARDED_PORT_HTTP_HEADER, PROXY_PORT_HTTP_HEADER).contains(argument)) {
+            } else if (Arrays.asList(ProxyHeader.FORWARDED_PORT.getHeader(), ProxyHeader.FORWARDED_PREFIX.getHeader()).contains(argument)) {
                 return "8081";
-            } else if (Arrays.asList(FORWARDED_PROTO_HTTP_HEADER, PROXY_SCHEME_HTTP_HEADER).contains(argument)) {
+            } else if (Arrays.asList(ProxyHeader.FORWARDED_PROTO.getHeader(), ProxyHeader.PROXY_SCHEME.getHeader()).contains(argument)) {
                 return "https";
-            }  else if (Arrays.asList(PROXY_HOST_HTTP_HEADER, FORWARDED_HOST_HTTP_HEADER).contains(argument)) {
+            }  else if (Arrays.asList(ProxyHeader.PROXY_HOST.getHeader(), ProxyHeader.FORWARDED_HOST.getHeader()).contains(argument)) {
                 return "nifi.apache.org:8081";
             } else {
                 return "";

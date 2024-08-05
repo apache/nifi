@@ -50,7 +50,12 @@ public class ProcessGroupStatusDataSource implements ResettableDataSource {
         new ColumnSchema("activeThreadCount", int.class, false),
         new ColumnSchema("terminatedThreadCount", int.class, false),
         new ColumnSchema("versionedFlowState", String.class, false),
-        new ColumnSchema("processingNanos", long.class, false)
+        new ColumnSchema("processingNanos", long.class, false),
+        new ColumnSchema("cpuDuration", long.class, false),
+        new ColumnSchema("contentReadDuration", long.class, false),
+        new ColumnSchema("contentWriteDuration", long.class, false),
+        new ColumnSchema("sessionCommitDuration", long.class, false),
+        new ColumnSchema("garbageCollectionDuration", long.class, false)
     ));
 
 
@@ -123,7 +128,12 @@ public class ProcessGroupStatusDataSource implements ResettableDataSource {
             status.getTerminatedThreadCount(),
             status.getQueuedCount(),
             status.getVersionedFlowState() == null ? null : status.getVersionedFlowState().name(),
-            status.getProcessingNanos()
+            status.getProcessingNanos(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getCpuDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getContentReadDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getContentWriteDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getSessionCommitDuration(),
+            status.getProcessingPerformanceStatus() == null ? -1 : status.getProcessingPerformanceStatus().getGarbageCollectionDuration()
         };
     }
 

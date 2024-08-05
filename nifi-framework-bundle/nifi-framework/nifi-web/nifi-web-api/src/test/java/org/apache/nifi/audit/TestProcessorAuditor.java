@@ -41,7 +41,9 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
+import org.apache.nifi.web.dao.impl.StandardComponentStateDAO;
 import org.apache.nifi.web.dao.impl.StandardProcessGroupDAO;
 import org.apache.nifi.web.dao.impl.StandardProcessorDAO;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,6 +75,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -94,7 +97,7 @@ class TestProcessorAuditor {
     @Autowired
     private ProcessorAuditor processorAuditor;
 
-    @Mock
+    @Autowired
     private AuditService auditService;
     @Mock
     private Authentication authentication;
@@ -104,7 +107,7 @@ class TestProcessorAuditor {
     private ExtensionManager extensionManager;
     @Mock
     private FlowController flowController;
-    @Mock
+    @Autowired
     private FlowManager flowManager;
     @Mock
     private ProcessGroup processGroup;
@@ -122,6 +125,9 @@ class TestProcessorAuditor {
 
     @BeforeEach
     void init() {
+        reset(flowController);
+        reset(auditService);
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
         final NiFiUser user = new StandardNiFiUser.Builder().identity(USER_IDENTITY).build();
         userDetail = new NiFiUserDetails(user);
@@ -358,6 +364,31 @@ class TestProcessorAuditor {
         @Bean
         public ProcessGroupDAO processGroupDAO() {
             return new StandardProcessGroupDAO();
+        }
+
+        @Bean
+        public ComponentStateDAO componentStateDAO() {
+            return new StandardComponentStateDAO();
+        }
+
+        @Bean
+        public StateManagerProvider stateManagerProvider() {
+            return mock(StateManagerProvider.class);
+        }
+
+        @Bean
+        public FlowManager flowManager() {
+            return mock(FlowManager.class);
+        }
+
+        @Bean
+        public AuditService auditService() {
+            return mock(AuditService.class);
+        }
+
+        @Bean
+        public FlowController flowController() {
+            return mock(FlowController.class);
         }
     }
 }

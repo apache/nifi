@@ -83,10 +83,13 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing a Reporting Task.
  */
+@Controller
 @Path("/reporting-tasks")
 @Tag(name = "ReportingTasks")
 public class ReportingTaskResource extends ApplicationResource {
@@ -146,7 +149,7 @@ public class ReportingTaskResource extends ApplicationResource {
             final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(reportingTask.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
             for (final UiExtension uiExtension : uiExtensions) {
                 if (UiExtensionType.ReportingTaskConfiguration.equals(uiExtension.getExtensionType())) {
-                    reportingTask.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
+                    reportingTask.setCustomUiUrl(generateExternalUiUri(uiExtension.getContextPath(), "configure"));
                 }
             }
         }
@@ -935,12 +938,12 @@ public class ReportingTaskResource extends ApplicationResource {
         return dto;
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

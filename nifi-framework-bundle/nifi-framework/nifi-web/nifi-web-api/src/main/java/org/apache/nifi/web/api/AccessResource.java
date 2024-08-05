@@ -59,11 +59,14 @@ import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing access.
  */
+@Controller
 @Path("/access")
 @Tag(name = "Access")
 public class AccessResource extends ApplicationResource {
@@ -260,23 +263,27 @@ public class AccessResource extends ApplicationResource {
         return applicationCookieService.getCookieValue(httpServletRequest, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);
     }
 
-    // setters
+    @Autowired(required = false)
     public void setLoginIdentityProvider(LoginIdentityProvider loginIdentityProvider) {
         this.loginIdentityProvider = loginIdentityProvider;
     }
 
+    @Autowired
     public void setBearerTokenProvider(final BearerTokenProvider bearerTokenProvider) {
         this.bearerTokenProvider = bearerTokenProvider;
     }
 
+    @Autowired
     public void setBearerTokenResolver(final BearerTokenResolver bearerTokenResolver) {
         this.bearerTokenResolver = bearerTokenResolver;
     }
 
+    @Autowired
     public void setJwtLogoutListener(final JwtLogoutListener jwtLogoutListener) {
         this.jwtLogoutListener = jwtLogoutListener;
     }
 
+    @Autowired
     public void setLogoutRequestManager(LogoutRequestManager logoutRequestManager) {
         this.logoutRequestManager = logoutRequestManager;
     }

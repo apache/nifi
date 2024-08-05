@@ -17,10 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -44,6 +40,11 @@ import org.apache.nifi.record.path.RecordFieldRemover;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.serialization.record.Record;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 
 @SideEffectFree
@@ -117,7 +118,7 @@ public class RemoveRecordField extends AbstractRecordProcessor {
             return validationResults;
         }
 
-        return Collections.singleton(new ValidationResult.Builder()
+        return Set.of(new ValidationResult.Builder()
                 .subject("User-defined Properties")
                 .valid(false)
                 .explanation("at least one RecordPath must be specified")

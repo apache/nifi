@@ -67,6 +67,8 @@ import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -804,24 +806,29 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         }
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
+    @Autowired
     public void setDtoFactory(DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
     }
 
+    @Qualifier("clusterComponentLifecycle")
+    @Autowired(required = false)
     public void setClusterComponentLifecycle(ComponentLifecycle componentLifecycle) {
         this.clusterComponentLifecycle = componentLifecycle;
     }
 
+    @Qualifier("localComponentLifecycle")
+    @Autowired
     public void setLocalComponentLifecycle(ComponentLifecycle componentLifecycle) {
         this.localComponentLifecycle = componentLifecycle;
     }

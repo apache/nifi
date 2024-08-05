@@ -64,7 +64,9 @@ import org.apache.nifi.web.api.entity.UsersEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
+import org.springframework.stereotype.Controller;
 
+@Controller
 @Path("tenants")
 @Tag(name = "Tenants")
 public class TenantsResource extends ApplicationResource {

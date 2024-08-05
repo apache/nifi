@@ -24,9 +24,11 @@ import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
+import org.springframework.stereotype.Repository;
 
 import java.util.Set;
 
+@Repository
 public class StandardOutputPortDAO extends AbstractPortDAO implements PortDAO {
 
     protected Port locatePort(final String portId) {

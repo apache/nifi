@@ -37,6 +37,8 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.util.SnippetUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -44,6 +46,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+@Repository
 public class StandardSnippetDAO implements SnippetDAO {
 
     private FlowController flowController;
@@ -350,11 +353,12 @@ public class StandardSnippetDAO implements SnippetDAO {
         }
     }
 
-    /* setters */
+    @Autowired
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
     }
 
+    @Autowired
     public void setSnippetUtils(SnippetUtils snippetUtils) {
         this.snippetUtils = snippetUtils;
     }

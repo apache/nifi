@@ -40,6 +40,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.PostConstruct;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -97,7 +98,11 @@ import org.apache.nifi.web.util.ComponentLifecycle;
 import org.apache.nifi.web.util.ParameterUpdateManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Controller;
 
+@Controller
 @Path("/parameter-contexts")
 @Tag(name = "ParameterContexts")
 public class ParameterContextResource extends AbstractParameterResource {
@@ -116,6 +121,7 @@ public class ParameterContextResource extends AbstractParameterResource {
     private RequestManager<ParameterContextValidationRequestEntity, ComponentValidationResultsEntity> validationRequestManager = new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L),
             "Parameter Context Validation Thread");
 
+    @PostConstruct
     public void init() {
         parameterUpdateManager = new ParameterUpdateManager(serviceFacade, dtoFactory, authorizer, this);
     }
@@ -1084,23 +1090,29 @@ public class ParameterContextResource extends AbstractParameterResource {
         }
     }
 
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
+    @Qualifier("clusterComponentLifecycle")
+    @Autowired(required = false)
     public void setClusterComponentLifecycle(ComponentLifecycle componentLifecycle) {
         this.clusterComponentLifecycle = componentLifecycle;
     }
 
+    @Qualifier("localComponentLifecycle")
+    @Autowired
     public void setLocalComponentLifecycle(ComponentLifecycle componentLifecycle) {
         this.localComponentLifecycle = componentLifecycle;
     }
 
+    @Autowired
     public void setDtoFactory(final DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
     }

@@ -24,12 +24,12 @@ import com.github.wnameless.json.flattener.PrintMode;
 import com.github.wnameless.json.unflattener.JsonUnflattener;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.text.StringEscapeUtils;
-import org.apache.nifi.annotation.behavior.SideEffectFree;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -39,16 +39,12 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -162,6 +158,15 @@ public class FlattenJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            SEPARATOR,
+            FLATTEN_MODE,
+            IGNORE_RESERVED_CHARACTERS,
+            RETURN_TYPE,
+            CHARACTER_SET,
+            PRETTY_PRINT
+    );
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .description("Successfully flattened/unflattened files go to this relationship.")
             .name("success")
@@ -172,35 +177,19 @@ public class FlattenJson extends AbstractProcessor {
             .name("failure")
             .build();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(SEPARATOR);
-        props.add(FLATTEN_MODE);
-        props.add(IGNORE_RESERVED_CHARACTERS);
-        props.add(RETURN_TYPE);
-        props.add(CHARACTER_SET);
-        props.add(PRETTY_PRINT);
-        properties = Collections.unmodifiableList(props);
-
-        Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_FAILURE);
-
-        relationships = Collections.unmodifiableSet(rels);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

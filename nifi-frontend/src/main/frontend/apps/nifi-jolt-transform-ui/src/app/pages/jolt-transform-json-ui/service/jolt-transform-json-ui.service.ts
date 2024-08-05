@@ -18,7 +18,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { SavePropertiesRequest, ValidateJoltSpecRequest } from '../state/jolt-transform-json-ui';
+import { SavePropertiesRequest } from '../state/jolt-transform-json-property';
+import { ValidateJoltSpecRequest } from '../state/jolt-transform-json-validate';
 
 @Injectable({ providedIn: 'root' })
 export class JoltTransformJsonUiService {

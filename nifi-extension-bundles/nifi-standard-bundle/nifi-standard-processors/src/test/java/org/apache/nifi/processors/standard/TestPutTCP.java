@@ -244,7 +244,7 @@ public class TestPutTCP {
         runner.setProperty(PutTCP.HOSTNAME, TCP_SERVER_ADDRESS);
         runner.setProperty(PutTCP.PORT, String.valueOf(eventServer.getListeningPort()));
 
-        runner.setProperty(PutTCP.TRANSMISSION_STRATEGY, TransmissionStrategy.RECORD_ORIENTED.getValue());
+        runner.setProperty(PutTCP.TRANSMISSION_STRATEGY, TransmissionStrategy.RECORD_ORIENTED);
 
         when(writerFactory.getIdentifier()).thenReturn(WRITER_SERVICE_ID);
         runner.addControllerService(WRITER_SERVICE_ID, writerFactory);

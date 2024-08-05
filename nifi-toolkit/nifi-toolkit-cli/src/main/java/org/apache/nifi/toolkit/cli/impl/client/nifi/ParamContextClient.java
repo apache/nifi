@@ -32,6 +32,8 @@ public interface ParamContextClient {
 
     ParameterContextEntity deleteParamContext(String id, String version) throws NiFiClientException, IOException;
 
+    ParameterContextEntity deleteParamContext(String id, String version, boolean disconnectedNodeAcknowledged) throws NiFiClientException, IOException;
+
     ParameterContextUpdateRequestEntity updateParamContext(ParameterContextEntity paramContext) throws NiFiClientException, IOException;
 
     ParameterContextUpdateRequestEntity getParamContextUpdateRequest(String contextId, String updateRequestId) throws NiFiClientException, IOException;

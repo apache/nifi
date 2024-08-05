@@ -65,7 +65,6 @@ import org.apache.nifi.serialization.record.validation.ValidationError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -192,6 +191,23 @@ public class ValidateRecord extends AbstractProcessor {
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER,
+            RECORD_WRITER,
+            INVALID_RECORD_WRITER,
+            SCHEMA_ACCESS_STRATEGY,
+            SCHEMA_REGISTRY,
+            SCHEMA_NAME,
+            SCHEMA_BRANCH_NAME,
+            SCHEMA_VERSION,
+            SCHEMA_TEXT,
+            ALLOW_EXTRA_FIELDS,
+            STRICT_TYPE_CHECKING,
+            COERCE_TYPES,
+            VALIDATION_DETAILS_ATTRIBUTE_NAME,
+            MAX_VALIDATION_DETAILS_LENGTH
+    );
+
     static final Relationship REL_VALID = new Relationship.Builder()
         .name("valid")
         .description("Records that are valid according to the schema will be routed to this relationship")
@@ -205,34 +221,20 @@ public class ValidateRecord extends AbstractProcessor {
         .description("If the records cannot be read, validated, or written, for any reason, the original FlowFile will be routed to this relationship")
         .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_VALID,
+            REL_INVALID,
+            REL_FAILURE
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(RECORD_READER);
-        properties.add(RECORD_WRITER);
-        properties.add(INVALID_RECORD_WRITER);
-        properties.add(SCHEMA_ACCESS_STRATEGY);
-        properties.add(SCHEMA_REGISTRY);
-        properties.add(SCHEMA_NAME);
-        properties.add(SCHEMA_BRANCH_NAME);
-        properties.add(SCHEMA_VERSION);
-        properties.add(SCHEMA_TEXT);
-        properties.add(ALLOW_EXTRA_FIELDS);
-        properties.add(STRICT_TYPE_CHECKING);
-        properties.add(COERCE_TYPES);
-        properties.add(VALIDATION_DETAILS_ATTRIBUTE_NAME);
-        properties.add(MAX_VALIDATION_DETAILS_LENGTH);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_VALID);
-        relationships.add(REL_INVALID);
-        relationships.add(REL_FAILURE);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -251,7 +253,7 @@ public class ValidateRecord extends AbstractProcessor {
         final String schemaAccessStrategy = validationContext.getProperty(SCHEMA_ACCESS_STRATEGY).getValue();
         if (schemaAccessStrategy.equals(SCHEMA_NAME_PROPERTY.getValue())) {
             if (!validationContext.getProperty(SCHEMA_REGISTRY).isSet()) {
-                return Collections.singleton(new ValidationResult.Builder()
+                return Set.of(new ValidationResult.Builder()
                     .subject("Schema Registry")
                     .valid(false)
                     .explanation("If the Schema Access Strategy is set to \"Use 'Schema Name' Property\", the Schema Registry property must also be set")
@@ -260,7 +262,7 @@ public class ValidateRecord extends AbstractProcessor {
 
             final SchemaRegistry registry = validationContext.getProperty(SCHEMA_REGISTRY).asControllerService(SchemaRegistry.class);
             if (!registry.getSuppliedSchemaFields().contains(SchemaField.SCHEMA_NAME)) {
-                return Collections.singleton(new ValidationResult.Builder()
+                return Set.of(new ValidationResult.Builder()
                     .subject("Schema Registry")
                     .valid(false)
                     .explanation("The configured Schema Registry does not support accessing schemas by name")

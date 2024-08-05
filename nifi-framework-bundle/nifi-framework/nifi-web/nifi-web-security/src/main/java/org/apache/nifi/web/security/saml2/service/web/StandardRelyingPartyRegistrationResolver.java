@@ -17,7 +17,7 @@
 package org.apache.nifi.web.security.saml2.service.web;
 
 import org.apache.nifi.web.security.saml2.registration.Saml2RegistrationProperty;
-import org.apache.nifi.web.util.RequestUriBuilder;
+import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.converter.Converter;

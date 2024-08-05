@@ -27,9 +27,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -68,7 +66,7 @@ public class TestLookupAttribute {
         runner.run(1, false);
         runner.assertAllFlowFilesTransferred(LookupAttribute.REL_MATCHED, 1);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(LookupAttribute.REL_MATCHED).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(LookupAttribute.REL_MATCHED).getFirst();
 
         assertNotNull(flowFile);
 
@@ -109,7 +107,7 @@ public class TestLookupAttribute {
         runner.run(1, false);
         runner.assertAllFlowFilesTransferred(LookupAttribute.REL_UNMATCHED, 1);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(LookupAttribute.REL_UNMATCHED).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(LookupAttribute.REL_UNMATCHED).getFirst();
 
         assertNotNull(flowFile);
 
@@ -172,10 +170,7 @@ public class TestLookupAttribute {
 
       @Override
       public Set<String> getRequiredKeys() {
-          final Set<String> requiredKeys = new HashSet<>();
-          requiredKeys.add("key1");
-          requiredKeys.add("key2");
-          return Collections.unmodifiableSet(requiredKeys);
+          return Set.of("key1", "key2");
       }
     }
 
@@ -191,7 +186,7 @@ public class TestLookupAttribute {
         }
 
         @Override
-        public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+        public Optional<String> lookup(Map<String, Object> coordinates) {
             return Optional.empty();
         }
 
@@ -202,9 +197,7 @@ public class TestLookupAttribute {
 
         @Override
         public Set<String> getRequiredKeys() {
-            Set set = new HashSet();
-            set.add("key");
-            return set;
+            return Set.of("key");
         }
     }
 }

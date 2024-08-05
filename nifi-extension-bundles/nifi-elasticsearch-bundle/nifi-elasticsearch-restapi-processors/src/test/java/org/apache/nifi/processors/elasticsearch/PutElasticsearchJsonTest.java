@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -468,7 +467,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
         runner.setProperty(ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH, "1KB");
         runner.assertValid();
 
-        final String val = String.format("{\"large\": \"%s\"}", RandomStringUtils.randomAlphanumeric(10000));
+        final String val = String.format("{\"large\": \"%s\"}", "a".repeat(10000));
         runner.enqueue(val);
         runner.run();
 

@@ -22,7 +22,7 @@ import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.oidc.client.web.OidcRegistrationProperty;
 import org.apache.nifi.web.security.oidc.client.web.converter.StandardOAuth2AuthenticationToken;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.apache.nifi.web.util.WebUtils;
+import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -151,7 +151,7 @@ class OidcAuthenticationSuccessHandlerTest {
     void testDetermineTargetUrlForwardedPath() {
         final ServletContext servletContext = httpServletRequest.getServletContext();
         servletContext.setInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER, FORWARDED_PATH);
-        httpServletRequest.addHeader(WebUtils.FORWARDED_PREFIX_HTTP_HEADER, FORWARDED_PATH);
+        httpServletRequest.addHeader(ProxyHeader.FORWARDED_PREFIX.getHeader(), FORWARDED_PATH);
 
         httpServletRequest.setRequestURI(REQUEST_URI);
 

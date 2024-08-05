@@ -62,10 +62,13 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 /**
  * RESTful endpoint for managing a Remote group.
  */
+@Controller
 @Path("/remote-process-groups")
 @Tag(name = "RemoteProcessGroups")
 public class RemoteProcessGroupResource extends ApplicationResource {
@@ -977,12 +980,12 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         return "TRANSMITTING".equals(requestRemotePortRunStatusEntity.getState());
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

@@ -48,7 +48,9 @@ public class StandardParameterValueMapper implements ParameterValueMapper {
         final ParameterDescriptor descriptor = parameter.getDescriptor();
         final String mapped;
 
-        if (parameter.isProvided()) {
+        if (value == null) {
+            mapped = null;
+        } else if (parameter.isProvided()) {
             mapped = PROVIDED_MAPPING;
         } else if (descriptor.isSensitive()) {
             if (sensitiveValueEncryptor == null) {

@@ -40,10 +40,7 @@ import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -80,6 +77,12 @@ public class PutRecord extends AbstractProcessor {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER,
+            RECORD_SINK,
+            INCLUDE_ZERO_RECORD_RESULTS
+    );
+
     // Relationships
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -95,33 +98,22 @@ public class PutRecord extends AbstractProcessor {
             .description("A FlowFile is routed to this relationship if the records could not be transmitted and retrying the operation will also fail")
             .build();
 
-    private static final List<PropertyDescriptor> properties;
-    private static final Set<Relationship> relationships;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_RETRY
+    );
 
     private volatile RecordSinkService recordSinkService;
 
-    static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(RECORD_READER);
-        props.add(RECORD_SINK);
-        props.add(INCLUDE_ZERO_RECORD_RESULTS);
-        properties = Collections.unmodifiableList(props);
-
-        final Set<Relationship> r = new HashSet<>();
-        r.add(REL_SUCCESS);
-        r.add(REL_FAILURE);
-        r.add(REL_RETRY);
-        relationships = Collections.unmodifiableSet(r);
-    }
-
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @OnScheduled

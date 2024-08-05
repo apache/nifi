@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.processors.standard.hash;
 
+import org.apache.nifi.components.AllowableValue;
+import org.bouncycastle.crypto.digests.Blake2bDigest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -23,13 +28,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
-import org.apache.nifi.components.AllowableValue;
-import org.bouncycastle.crypto.digests.Blake2bDigest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class provides a generic service for cryptographic hashing.
@@ -82,12 +82,14 @@ public class HashService {
      * @return the list of charsets
      */
     public static List<Charset> getSupportedCharsets() {
-        return Arrays.asList(StandardCharsets.US_ASCII,
+        return List.of(
+                StandardCharsets.US_ASCII,
                 StandardCharsets.ISO_8859_1,
                 StandardCharsets.UTF_8,
                 StandardCharsets.UTF_16BE,
                 StandardCharsets.UTF_16LE,
-                StandardCharsets.UTF_16);
+                StandardCharsets.UTF_16
+        );
     }
 
     /**

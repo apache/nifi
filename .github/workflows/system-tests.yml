@@ -16,9 +16,6 @@
 name: system-tests
 
 on:
-  # Run every day at 00:00
-  schedule:
-    - cron: "0 0 * * *"
   push:
     paths:
       - '.github/workflows/system-tests.yml'
@@ -26,7 +23,7 @@ on:
       - 'nifi-system-tests/**'
       - 'nifi-api/**'
       - 'nifi-framework-api/**'
-      - 'nifi-nifi-framework-bundle/**'
+      - 'nifi-framework-bundle/**'
       - 'nifi-extension-bundles/nifi-py4j-bundle/**'
       - 'nifi-stateless/**'
   pull_request:
@@ -36,7 +33,7 @@ on:
       - 'nifi-system-tests/**'
       - 'nifi-api/**'
       - 'nifi-framework-api/**'
-      - 'nifi-nifi-framework-bundle/**'
+      - 'nifi-framework-bundle/**'
       - 'nifi-extension-bundles/nifi-py4j-bundle/**'
       - 'nifi-stateless/**'
 

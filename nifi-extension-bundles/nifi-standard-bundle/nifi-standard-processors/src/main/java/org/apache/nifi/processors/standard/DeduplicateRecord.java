@@ -47,7 +47,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -71,7 +70,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -266,8 +264,19 @@ public class DeduplicateRecord extends AbstractProcessor {
             .required(false)
             .build();
 
-
-    // RELATIONSHIPS
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DEDUPLICATION_STRATEGY,
+            DISTRIBUTED_MAP_CACHE,
+            CACHE_IDENTIFIER,
+            PUT_CACHE_IDENTIFIER,
+            RECORD_READER,
+            RECORD_WRITER,
+            INCLUDE_ZERO_RECORD_FLOWFILES,
+            RECORD_HASHING_ALGORITHM,
+            FILTER_TYPE,
+            FILTER_CAPACITY_HINT,
+            BLOOM_FILTER_FPP
+    );
 
     static final Relationship REL_DUPLICATE = new Relationship.Builder()
             .name("duplicate")
@@ -289,42 +298,21 @@ public class DeduplicateRecord extends AbstractProcessor {
             .description("If unable to communicate with the cache, the FlowFile will be penalized and routed to this relationship")
             .build();
 
-    private List<PropertyDescriptor> descriptors;
-
-    private Set<Relationship> relationships;
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(DEDUPLICATION_STRATEGY);
-        descriptors.add(DISTRIBUTED_MAP_CACHE);
-        descriptors.add(CACHE_IDENTIFIER);
-        descriptors.add(PUT_CACHE_IDENTIFIER);
-        descriptors.add(RECORD_READER);
-        descriptors.add(RECORD_WRITER);
-        descriptors.add(INCLUDE_ZERO_RECORD_FLOWFILES);
-        descriptors.add(RECORD_HASHING_ALGORITHM);
-        descriptors.add(FILTER_TYPE);
-        descriptors.add(FILTER_CAPACITY_HINT);
-        descriptors.add(BLOOM_FILTER_FPP);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_DUPLICATE);
-        relationships.add(REL_NON_DUPLICATE);
-        relationships.add(REL_ORIGINAL);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_DUPLICATE,
+            REL_NON_DUPLICATE,
+            REL_ORIGINAL,
+            REL_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return this.relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override
@@ -552,7 +540,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
             final RecordPath recordPath = recordPathCache.getCompiled(value);
             final RecordPathResult result = recordPath.evaluate(record);
-            final List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
+            final List<FieldValue> selectedFields = result.getSelectedFields().toList();
 
             // Add the name of the dynamic property
             fieldValues.add(propertyDescriptor.getName());
@@ -561,7 +549,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             fieldValues.addAll(selectedFields.stream()
                     .filter(f -> f.getValue() != null)
                     .map(f -> f.getValue().toString())
-                    .collect(Collectors.toList())
+                    .toList()
             );
         }
 

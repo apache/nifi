@@ -17,7 +17,7 @@
 package org.apache.nifi.web.security.csrf;
 
 import org.apache.nifi.web.security.http.SecurityCookieName;
-import org.apache.nifi.web.util.WebUtils;
+import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -125,10 +125,11 @@ public class StandardCookieCsrfTokenRepositoryTest {
 
         final CsrfToken csrfToken = repository.generateToken(request);
 
-        request.addHeader(WebUtils.PROXY_SCHEME_HTTP_HEADER, HTTPS);
-        request.addHeader(WebUtils.PROXY_HOST_HTTP_HEADER, HOST);
-        request.addHeader(WebUtils.PROXY_PORT_HTTP_HEADER, PORT);
-        request.addHeader(WebUtils.PROXY_CONTEXT_PATH_HTTP_HEADER, CONTEXT_PATH);
+        request.addHeader(ProxyHeader.PROXY_SCHEME.getHeader(), HTTPS);
+        request.addHeader(ProxyHeader.PROXY_HOST.getHeader(), HOST);
+        request.addHeader(ProxyHeader.PROXY_PORT.getHeader(), PORT);
+        request.addHeader(ProxyHeader.PROXY_PORT.getHeader(), PORT);
+        request.addHeader(ProxyHeader.PROXY_CONTEXT_PATH.getHeader(), CONTEXT_PATH);
 
         final MockServletContext servletContext = (MockServletContext) request.getServletContext();
         servletContext.setInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER, CONTEXT_PATH);

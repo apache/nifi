@@ -57,6 +57,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -196,7 +197,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
             return Collections.emptyList();
         }
 
-        return Collections.singleton(new ValidationResult.Builder()
+        return Set.of(new ValidationResult.Builder()
             .subject("User-defined Properties")
             .valid(false)
             .explanation("At least one RecordPath must be specified")
@@ -272,14 +273,14 @@ public class UpdateRecord extends AbstractRecordProcessor {
     }
 
     private boolean isReplacingRoot(final List<FieldValue> destinationFields) {
-        return destinationFields.size() == 1 && !destinationFields.get(0).getParentRecord().isPresent();
+        return destinationFields.size() == 1 && destinationFields.getFirst().getParentRecord().isEmpty();
     }
 
     private Record processRelativePath(final RecordPath replacementRecordPath, final Stream<FieldValue> destinationFields, Record record) {
         final List<FieldValue> destinationFieldValues = destinationFields.collect(Collectors.toList());
 
         if (isReplacingRoot(destinationFieldValues)) {
-            final List<FieldValue> selectedFields = getSelectedFields(replacementRecordPath, destinationFieldValues.get(0), record);
+            final List<FieldValue> selectedFields = getSelectedFields(replacementRecordPath, destinationFieldValues.getFirst(), record);
             record = updateRecord(destinationFieldValues, selectedFields, record);
         } else {
             for (final FieldValue fieldVal : destinationFieldValues) {
@@ -326,8 +327,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
     }
 
     private void updateFieldValue(final FieldValue fieldValue, final Object replacement) {
-        if (replacement instanceof FieldValue) {
-            final FieldValue replacementFieldValue = (FieldValue) replacement;
+        if (replacement instanceof FieldValue replacementFieldValue) {
             fieldValue.updateValue(replacementFieldValue.getValue(), replacementFieldValue.getField().getDataType());
         } else {
             fieldValue.updateValue(replacement);
@@ -354,7 +354,7 @@ public class UpdateRecord extends AbstractRecordProcessor {
         if (selectedFields.isEmpty()) {
             return null;
         } else {
-            return selectedFields.get(0);
+            return selectedFields.getFirst();
         }
     }
 }

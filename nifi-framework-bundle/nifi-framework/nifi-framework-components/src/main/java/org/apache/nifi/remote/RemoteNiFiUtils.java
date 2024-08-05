@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.remote;
 
-import org.apache.nifi.web.util.WebUtils;
+import org.apache.nifi.web.util.WebClientUtils;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 
@@ -45,9 +45,9 @@ public class RemoteNiFiUtils {
 
         final Client client;
         if (sslContext == null) {
-            client = WebUtils.createClient(clientConfig);
+            client = WebClientUtils.createClient(clientConfig);
         } else {
-            client = WebUtils.createClient(clientConfig, sslContext);
+            client = WebClientUtils.createClient(clientConfig, sslContext);
         }
 
         return client;

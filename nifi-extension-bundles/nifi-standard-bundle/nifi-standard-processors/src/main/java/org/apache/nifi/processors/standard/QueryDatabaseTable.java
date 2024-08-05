@@ -39,16 +39,13 @@ import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.db.JdbcCommon;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import static org.apache.nifi.util.db.JdbcProperties.NORMALIZE_NAMES_FOR_AVRO;
+import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION;
 import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE;
-import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 
 
 @TriggerSerially
@@ -90,36 +87,38 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
 
+    static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AbstractDatabaseFetchProcessor.TABLE_NAME)
+            .description("The name of the database table to be queried. When a custom query is used, this property is used to alias the query and appears as an attribute on the FlowFile.")
+            .build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DBCP_SERVICE,
+            DB_TYPE,
+            TABLE_NAME,
+            COLUMN_NAMES,
+            WHERE_CLAUSE,
+            SQL_QUERY,
+            MAX_VALUE_COLUMN_NAMES,
+            INITIAL_LOAD_STRATEGY,
+            QUERY_TIMEOUT,
+            FETCH_SIZE,
+            AUTO_COMMIT,
+            MAX_ROWS_PER_FLOW_FILE,
+            OUTPUT_BATCH_SIZE,
+            MAX_FRAGMENTS,
+            NORMALIZE_NAMES_FOR_AVRO,
+            TRANS_ISOLATION_LEVEL,
+            USE_AVRO_LOGICAL_TYPES,
+            VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION,
+            VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE
+    );
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+
     public QueryDatabaseTable() {
-        final Set<Relationship> r = new HashSet<>();
-        r.add(REL_SUCCESS);
-        relationships = Collections.unmodifiableSet(r);
-
-        final List<PropertyDescriptor> pds = new ArrayList<>();
-        pds.add(DBCP_SERVICE);
-        pds.add(DB_TYPE);
-        pds.add(new PropertyDescriptor.Builder()
-                .fromPropertyDescriptor(TABLE_NAME)
-                .description("The name of the database table to be queried. When a custom query is used, this property is used to alias the query and appears as an attribute on the FlowFile.")
-                .build());
-        pds.add(COLUMN_NAMES);
-        pds.add(WHERE_CLAUSE);
-        pds.add(SQL_QUERY);
-        pds.add(MAX_VALUE_COLUMN_NAMES);
-        pds.add(INITIAL_LOAD_STRATEGY);
-        pds.add(QUERY_TIMEOUT);
-        pds.add(FETCH_SIZE);
-        pds.add(AUTO_COMMIT);
-        pds.add(MAX_ROWS_PER_FLOW_FILE);
-        pds.add(OUTPUT_BATCH_SIZE);
-        pds.add(MAX_FRAGMENTS);
-        pds.add(NORMALIZE_NAMES_FOR_AVRO);
-        pds.add(TRANS_ISOLATION_LEVEL);
-        pds.add(USE_AVRO_LOGICAL_TYPES);
-        pds.add(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION);
-        pds.add(VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE);
-
-        propDescriptors = Collections.unmodifiableList(pds);
+        relationships = RELATIONSHIPS;
+        propDescriptors = PROPERTIES;
     }
 
     @Override

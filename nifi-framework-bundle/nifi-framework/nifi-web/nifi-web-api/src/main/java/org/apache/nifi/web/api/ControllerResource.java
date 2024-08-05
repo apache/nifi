@@ -115,6 +115,8 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -130,6 +132,7 @@ import java.util.function.Consumer;
 /**
  * RESTful endpoint for managing a Flow Controller.
  */
+@Controller
 @Path("/controller")
 @Tag(name = "Controller")
 public class ControllerResource extends ApplicationResource {
@@ -2720,28 +2723,32 @@ public class ControllerResource extends ApplicationResource {
                 });
     }
 
-    // setters
-
+    @Autowired
     public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
+    @Autowired
     public void setReportingTaskResource(final ReportingTaskResource reportingTaskResource) {
         this.reportingTaskResource = reportingTaskResource;
     }
 
+    @Autowired
     public void setParameterProviderResource(final ParameterProviderResource parameterProviderResource) {
         this.parameterProviderResource = parameterProviderResource;
     }
 
+    @Autowired
     public void setControllerServiceResource(final ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
     }
 
+    @Autowired
     public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
+    @Autowired(required = false)
     public void setUploadRequestReplicator(final UploadRequestReplicator uploadRequestReplicator) {
         this.uploadRequestReplicator = uploadRequestReplicator;
     }
