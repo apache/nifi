@@ -263,7 +263,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
         final ComponentLog logger = getLogger();
         final String selectQuery = context.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
-        final int queryTimeout = Math.toIntExact(context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.MILLISECONDS));
+        final long queryTimeout =  context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.MILLISECONDS);
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
         final long maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
         final long outputBatchSize = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
@@ -276,11 +276,12 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             // The documentation for the driver recommends the session remain open the entire time the processor is running
             // and states that it is thread-safe. This is why connectionSession is not in a try-with-resources.
             final Session connectionSession = cassandraSession.get();
+
             final ResultSet resultSet;
 
             if (queryTimeout > 0) {
                 Statement statement = new SimpleStatement(selectQuery);
-                statement.setReadTimeoutMillis(queryTimeout);
+                statement.setReadTimeoutMillis((int)queryTimeout);
                 resultSet = connectionSession.execute(statement);
             }else{
                 resultSet = connectionSession.execute(selectQuery);
