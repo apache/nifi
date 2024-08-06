@@ -20,6 +20,8 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class FetchGCSObjectIT extends AbstractGCSIT {
     static final String KEY = "delete-me";
     static final byte[] CONTENT = {10, 11, 12};
+    private static final Logger logger = LoggerFactory.getLogger(FetchGCSObjectIT.class);
 
     @Test
     public void testSimpleFetch() throws Exception {
@@ -60,7 +63,7 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
         ff.assertAttributeNotExists(StorageAttributes.ENCRYPTION_SHA256_ATTR);
 
         for (final Map.Entry<String, String> entry : ff.getAttributes().entrySet()) {
-            System.out.println(entry.getKey() + ":" + entry.getValue());
+            logger.info("{}:{}", entry.getKey(), entry.getValue());
         }
     }
 

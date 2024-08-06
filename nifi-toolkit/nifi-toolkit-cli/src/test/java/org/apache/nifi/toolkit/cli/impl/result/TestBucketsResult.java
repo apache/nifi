@@ -66,7 +66,6 @@ public class TestBucketsResult {
         result.write(printStream);
 
         final String resultOut = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
-        //System.out.println(resultOut);
 
         final String expected = "\n" +
                 "#   Name       Id                                     Description        \n" +

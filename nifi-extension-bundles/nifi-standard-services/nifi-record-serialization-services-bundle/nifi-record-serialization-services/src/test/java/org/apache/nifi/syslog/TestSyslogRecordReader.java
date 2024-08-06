@@ -17,7 +17,6 @@
 
 package org.apache.nifi.syslog;
 
-import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
@@ -188,11 +187,5 @@ public class TestSyslogRecordReader {
             assertNull(deserializer.nextRecord());
             deserializer.close();
         }
-    }
-
-    public void writeSchema() {
-        String s = SyslogReader.createRecordSchema().toString();
-        System.out.println(s);
-        System.out.println(AvroTypeUtil.extractAvroSchema( SyslogReader.createRecordSchema() ).toString(true));
     }
 }

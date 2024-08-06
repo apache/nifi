@@ -28,6 +28,8 @@ import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -47,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter {
+    private static final Logger logger = LoggerFactory.getLogger(TestEventIdFirstSchemaRecordReaderWriter.class);
     private final AtomicLong idGenerator = new AtomicLong(0L);
     private File journalFile;
     private File tocFile;
@@ -452,7 +455,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
             }
 
             final long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            System.out.println(ms + " ms total");
+            logger.info("{} ms total", ms);
         }
     }
 

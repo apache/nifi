@@ -260,7 +260,6 @@ public class TestCompressContent {
 
         runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).get(0);
-        System.err.println(new String(flowFile.toByteArray()));
         flowFile.assertContentEquals(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
         flowFile.assertAttributeEquals("filename", "SampleFile.txt");
     }

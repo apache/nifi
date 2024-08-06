@@ -343,7 +343,6 @@ public class TestStandardSchemaValidator {
         assertEquals(1, validationErrors.size());
         final ValidationError validationError = validationErrors.iterator().next();
         assertEquals("/name", validationError.getFieldName().get());
-        System.out.println(validationError);
     }
 
 

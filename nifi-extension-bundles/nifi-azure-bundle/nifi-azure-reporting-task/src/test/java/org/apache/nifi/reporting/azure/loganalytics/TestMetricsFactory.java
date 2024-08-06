@@ -64,8 +64,6 @@ public class TestMetricsFactory {
     public void testGetVirtualMachineMetrics() {
         JvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
         List<Metric> metrics = AzureLogAnalyticsMetricsFactory.getJvmMetrics(virtualMachineMetrics, "testcase", "tests");
-        String metricsInString = gson.toJson(metrics);
-        System.out.println(metricsInString);
         TestVerification.assertJVMMetrics(metrics);
     }
 

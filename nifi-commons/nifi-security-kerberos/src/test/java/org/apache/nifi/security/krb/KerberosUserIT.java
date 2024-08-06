@@ -21,6 +21,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosPrincipal;
@@ -42,6 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class KerberosUserIT {
+    private static final Logger logger = LoggerFactory.getLogger(KerberosUserIT.class);
+
     private static KDCServer kdc;
 
     private static KerberosPrincipal principal1;
@@ -155,11 +159,11 @@ public class KerberosUserIT {
         boolean performedRelogin = false;
         for (int i = 0; i < 30; i++) {
             Thread.sleep(1000);
-            System.out.println("checkTGTAndRelogin #" + i);
+            logger.info("checkTGTAndRelogin #{}", i);
             performedRelogin = user1.checkTGTAndRelogin();
 
             if (performedRelogin) {
-                System.out.println("Performed relogin!");
+                logger.info("Performed relogin!");
                 break;
             }
         }
@@ -179,7 +183,7 @@ public class KerberosUserIT {
         long currentTimeMillis = System.currentTimeMillis();
         long startMilli = kerberosTicket.getStartTime().toInstant().toEpochMilli();
         long endMilli = kerberosTicket.getEndTime().toInstant().toEpochMilli();
-        System.out.println("New ticket is valid for " + TimeUnit.MILLISECONDS.toSeconds(endMilli - startMilli) + " seconds");
+        logger.info("New ticket is valid for {}", TimeUnit.MILLISECONDS.toSeconds(endMilli - startMilli) + " seconds");
         assertTrue(startMilli < currentTimeMillis);
         assertTrue(endMilli > currentTimeMillis);
     }

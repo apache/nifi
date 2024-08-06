@@ -94,7 +94,7 @@ public class NarUploadPythonIT extends NiFiSystemIT {
         assertNotNull(processorTypeFromUploadedNar);
 
         final BundleDTO processorBundle = processorTypeFromUploadedNar.getBundle();
-        System.out.println(processorBundle.getGroup() + " - " + processorBundle.getArtifact() + " - " + processorBundle.getVersion());
+        logger.info("{} - {} - {}", processorBundle.getGroup(), processorBundle.getArtifact(), processorBundle.getVersion());
 
         // Create instance of the WriteBech32Charset processor, and connect a GenerateFlowFile to it
         final ProcessorEntity generateProcessor = getClientUtil().createProcessor("GenerateFlowFile");

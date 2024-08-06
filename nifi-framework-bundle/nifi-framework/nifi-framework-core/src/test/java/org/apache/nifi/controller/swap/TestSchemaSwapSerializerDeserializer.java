@@ -31,6 +31,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -55,6 +57,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class TestSchemaSwapSerializerDeserializer {
+
+    private static final Logger logger = LoggerFactory.getLogger(TestSchemaSwapSerializerDeserializer.class);
 
     @BeforeEach
     public void setup() {
@@ -194,6 +198,6 @@ public class TestSchemaSwapSerializerDeserializer {
         }
 
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-        System.out.println("Wrote " + iterations + " Swap Files in " + millis + " millis");
+        logger.info("Wrote {} Swap Files in {} millis", iterations, millis);
     }
 }

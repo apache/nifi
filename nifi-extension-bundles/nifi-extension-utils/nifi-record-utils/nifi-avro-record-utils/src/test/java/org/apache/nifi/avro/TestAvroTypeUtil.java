@@ -58,6 +58,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,6 +69,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestAvroTypeUtil {
+    private static final Logger logger = LoggerFactory.getLogger(TestAvroTypeUtil.class);
 
     @Test
     @EnabledIfSystemProperty(
@@ -104,7 +107,7 @@ public class TestAvroTypeUtil {
             }
 
             final long millis = System.currentTimeMillis() - start;
-            System.out.println(millis);
+            logger.info("{}", millis);
         }
     }
 

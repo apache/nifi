@@ -20,7 +20,6 @@ package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -68,11 +67,6 @@ public abstract class RestChangeIngestorCommonTest {
                 throw new IOException("Unexpected code " + response);
             }
 
-            Headers responseHeaders = response.headers();
-            for (int i = 0; i < responseHeaders.size(); i++) {
-                System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
-            }
-
             assertEquals(RestChangeIngestor.GET_TEXT, response.body().string());
             verify(testNotifier, Mockito.never()).notifyListeners(Mockito.any(ByteBuffer.class));
         }
@@ -91,11 +85,6 @@ public abstract class RestChangeIngestorCommonTest {
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
                 throw new IOException("Unexpected code " + response);
-            }
-
-            Headers responseHeaders = response.headers();
-            for (int i = 0; i < responseHeaders.size(); i++) {
-                System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
             }
 
             assertEquals("The result of notifying listeners:\nMockChangeListener successfully handled the configuration change\n", response.body().string());
@@ -117,11 +106,6 @@ public abstract class RestChangeIngestorCommonTest {
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 throw new IOException("Unexpected code " + response);
-            }
-
-            Headers responseHeaders = response.headers();
-            for (int i = 0; i < responseHeaders.size(); i++) {
-                System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
             }
 
             assertEquals("Request received but instance is already running this config.", response.body().string());

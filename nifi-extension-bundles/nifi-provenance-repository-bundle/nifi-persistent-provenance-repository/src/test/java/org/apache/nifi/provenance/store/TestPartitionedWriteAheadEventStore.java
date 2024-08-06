@@ -38,6 +38,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,6 +65,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 public class TestPartitionedWriteAheadEventStore {
+    private static final Logger logger = LoggerFactory.getLogger(TestPartitionedWriteAheadEventStore.class);
     private static final RecordWriterFactory writerFactory = (file, idGen, compress, createToc) -> RecordWriters.newSchemaRecordWriter(file, idGen, compress, createToc);
     private static final RecordReaderFactory readerFactory = (file, logs, maxChars) -> RecordReaders.newRecordReader(file, logs, maxChars);
 
@@ -108,7 +111,7 @@ public class TestPartitionedWriteAheadEventStore {
         task.call();
         final long nanos = System.nanoTime() - start;
         final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
-        System.out.println("Took " + millis + " ms to " + taskDescription);
+        logger.info("Took {} ms to {}", millis, taskDescription);
     }
 
     @Test

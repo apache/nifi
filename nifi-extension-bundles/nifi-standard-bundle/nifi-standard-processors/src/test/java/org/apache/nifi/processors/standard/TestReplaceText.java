@@ -560,7 +560,6 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String actual = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println(actual);
         assertEquals(expected, actual);
     }
 
@@ -831,7 +830,6 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
         assertTrue(outContent.startsWith("abc.txt\t"));
-        System.out.println(outContent);
         assertTrue(outContent.endsWith("13\n"));
     }
 
@@ -852,7 +850,6 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
         assertTrue(outContent.equals("attribute header\n\nabc.txt\n\ndata header\n\nHello\nWorld!\n\nfooter"));
-        System.out.println(outContent);
     }
 
     @Test
@@ -1437,7 +1434,6 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String outContent = translateNewLines(new String(out.toByteArray(), StandardCharsets.UTF_8));
         assertTrue(outContent.startsWith("abc.txt\t"));
-        System.out.println(outContent);
         assertTrue(outContent.endsWith("193\n") || outContent.endsWith("203\r\n"));
     }
 
@@ -1457,7 +1453,6 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println(outContent);
         final String expectedContent = "attribute header\n\nabc.txt\n\ndata header\n\nHello\n\n\nfooter\n"
                 + "attribute header\n\nabc.txt\n\ndata header\n\nWorld!\n\nfooter\n";
         assertEquals(expectedContent, outContent);

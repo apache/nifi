@@ -956,7 +956,6 @@ public class TestLookupRecord {
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED);
         final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
-        System.out.println(out.getContent());
         out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-unmatched.json").toPath());
     }
 

@@ -121,7 +121,6 @@ public class TestJdbcHugeStream {
                         record = dataFileReader.next(record);
                         recordsFromStream += 1;
                     }
-                    System.out.println("total nr of records from stream: " + recordsFromStream);
                     assertEquals(nrOfRows, recordsFromStream);
                 }
             }
@@ -139,10 +138,6 @@ public class TestJdbcHugeStream {
     static String createRelationships = "create table relationships (id integer,name varchar(100), code integer)";
 
     static public void loadTestData2Database(Connection con, int nrOfPersons, int nrOfProducts, int nrOfRels) throws ClassNotFoundException, SQLException {
-
-        System.out.println(createRandomName());
-        System.out.println(createRandomName());
-        System.out.println(createRandomName());
 
         final Statement st = con.createStatement();
 

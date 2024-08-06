@@ -45,8 +45,11 @@ import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestSelectiveRecordReaderEventIterator {
+    private static final Logger logger = LoggerFactory.getLogger(TestSelectiveRecordReaderEventIterator.class);
 
     private RecordWriter createWriter(final File file, final TocWriter tocWriter, final boolean compressed, final int uncompressedBlockSize) throws IOException {
         return new EventIdFirstSchemaRecordWriter(file, new AtomicLong(0L), tocWriter, compressed, uncompressedBlockSize, IdentifierLookup.EMPTY);
@@ -146,7 +149,7 @@ public class TestSelectiveRecordReaderEventIterator {
             }
 
             final long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            System.out.println(ms + " ms total");
+            logger.info("{} ms total", ms);
         }
     }
 
