@@ -18,7 +18,6 @@ package org.apache.nifi.web.security.saml2.registration;
 
 import org.apache.nifi.security.ssl.StandardKeyManagerBuilder;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
-import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -28,7 +27,6 @@ import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.security.auth.x500.X500Principal;
@@ -59,7 +57,7 @@ class StandardRelyingPartyRegistrationRepositoryTest {
     @Test
     void testFindByRegistrationId() {
         final NiFiProperties properties = getProperties();
-        final StandardRelyingPartyRegistrationRepository repository = new StandardRelyingPartyRegistrationRepository(properties, null, null, null);
+        final StandardRelyingPartyRegistrationRepository repository = new StandardRelyingPartyRegistrationRepository(properties, null, null);
 
         final RelyingPartyRegistration registration = repository.findByRegistrationId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());
 
@@ -81,10 +79,9 @@ class StandardRelyingPartyRegistrationRepositoryTest {
         final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
         final X509ExtendedKeyManager keyManager = getKeyManager(tlsConfiguration);
         final X509ExtendedTrustManager trustManager = getTrustManager(tlsConfiguration);
-        final SSLContext sslContext = new StandardSslContextBuilder().keyManager(keyManager).trustManager(trustManager).build();
 
         final NiFiProperties properties = getSingleLogoutProperties(tlsConfiguration);
-        final StandardRelyingPartyRegistrationRepository repository = new StandardRelyingPartyRegistrationRepository(properties, sslContext, keyManager, trustManager);
+        final StandardRelyingPartyRegistrationRepository repository = new StandardRelyingPartyRegistrationRepository(properties, keyManager, trustManager);
 
         final RelyingPartyRegistration registration = repository.findByRegistrationId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());
 
