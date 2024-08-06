@@ -97,7 +97,7 @@
                                         (codeMirrorLoaded)="initSpecEditor($event)"></ngx-codemirror>
                                 </div>
                                 <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                    @if (joltState.validate().saving) {
+                                    @if (joltState.validate().loading) {
                                         <i
                                             class="fa fa-refresh fa-spin mr-2"
                                             nifiTooltip
@@ -293,7 +293,7 @@
                                 </div>
                                 <div class="flex flex-1 mt-2 justify-start">
                                     <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        @if (joltState.transform().saving) {
+                                        @if (joltState.transform().loading) {
                                             <i
                                                 class="fa fa-refresh fa-spin mr-2"
                                                 nifiTooltip

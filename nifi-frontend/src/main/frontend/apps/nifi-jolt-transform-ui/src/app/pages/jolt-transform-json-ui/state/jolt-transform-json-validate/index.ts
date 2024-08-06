@@ -18,7 +18,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
 export interface JoltTransformJsonValidateState {
-    saving: boolean | null;
+    loading: boolean | null;
     validationResponse?: ValidateJoltSpecSuccess | null;
     validationFailureResponse?: HttpErrorResponse | null;
 }
