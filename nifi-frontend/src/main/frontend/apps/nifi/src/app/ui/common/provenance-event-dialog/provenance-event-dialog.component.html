@@ -224,40 +224,42 @@
                 </div>
             </mat-dialog-content>
         </mat-tab>
-        <mat-tab label="Attributes">
-            <mat-dialog-content>
-                <div class="dialog-tab-content">
-                    <div class="flex flex-col gap-y-4">
-                        <div class="flex justify-between">
-                            <div class="mat-body-strong primary-color">Attribute Values</div>
-                            <div class="flex items-center gap-x-1">
-                                <mat-checkbox color="primary" [(ngModel)]="onlyShowModifiedAttributes"></mat-checkbox>
-                                <div>Show modified attributes only</div>
+        @if (request.event.attributes !== undefined) {
+            <mat-tab label="Attributes">
+                <mat-dialog-content>
+                    <div class="dialog-tab-content">
+                        <div class="flex flex-col gap-y-4">
+                            <div class="flex justify-between">
+                                <div class="mat-body-strong primary-color">Attribute Values</div>
+                                <div class="flex items-center gap-x-1">
+                                    <mat-checkbox color="primary" [(ngModel)]="onlyShowModifiedAttributes"></mat-checkbox>
+                                    <div>Show modified attributes only</div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="flex flex-col">
-                            <div *ngFor="let attribute of request.event.attributes">
-                                <div *ngIf="shouldShowAttribute(attribute)" class="mb-4 flex flex-col">
-                                    <div>{{ attribute.name }}</div>
-                                    <ng-container
-                                        *ngTemplateOutlet="
-                                            formatValue;
-                                            context: { $implicit: attribute.value }
-                                        "></ng-container>
-                                    <ng-container *ngIf="attributeValueChanged(attribute)">
+                            <div class="flex flex-col">
+                                @for (attribute of request.event.attributes; track attribute.name) {
+                                    <div *ngIf="shouldShowAttribute(attribute)" class="mb-4 flex flex-col">
+                                        <div>{{ attribute.name }}</div>
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 formatValue;
-                                                context: { $implicit: attribute.previousValue }
+                                                context: { $implicit: attribute.value }
                                             "></ng-container>
-                                    </ng-container>
-                                </div>
+                                        <ng-container *ngIf="attributeValueChanged(attribute)">
+                                            <ng-container
+                                                *ngTemplateOutlet="
+                                                    formatValue;
+                                                    context: { $implicit: attribute.previousValue }
+                                                "></ng-container>
+                                        </ng-container>
+                                    </div>
+                                }
                             </div>
                         </div>
                     </div>
-                </div>
-            </mat-dialog-content>
-        </mat-tab>
+                </mat-dialog-content>
+            </mat-tab>
+        }
         <mat-tab label="Content">
             <mat-dialog-content>
                 <div class="dialog-tab-content">

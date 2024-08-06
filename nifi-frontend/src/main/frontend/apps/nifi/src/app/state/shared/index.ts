@@ -168,7 +168,7 @@ export interface ProvenanceEvent extends ProvenanceEventSummary {
     clusterNodeAddress: string;
     sourceSystemFlowFileId: string;
     alternateIdentifierUri: string;
-    attributes: Attribute[];
+    attributes?: Attribute[];
     parentUuids: string[];
     childUuids: string[];
     transitUri: string;
