@@ -57,7 +57,7 @@ import {
     selectSkipTransform,
     selectViewStatusHistoryComponent
 } from '../../state/flow/flow.selectors';
-import { filter, map, switchMap, take } from 'rxjs';
+import { filter, map, NEVER, switchMap, take } from 'rxjs';
 import { restoreViewport } from '../../state/transform/transform.actions';
 import { initialState } from '../../state/flow/flow.reducer';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
@@ -218,7 +218,8 @@ export class Canvas implements OnInit, OnDestroy {
                             component$ = this.store.select(selectLabel(selectedComponent.id));
                             break;
                         default:
-                            throw 'Unrecognized Component Type';
+                            component$ = NEVER;
+                            break;
                     }
 
                     // combine the original selection with the component

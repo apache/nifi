@@ -1065,18 +1065,15 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.navigateToManageComponentPolicies),
                 map((action) => action.request),
-                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-                tap(([request, processGroupId]) => {
-                    const routeBoundary: string[] = ['/access-policies'];
-                    this.router.navigate([...routeBoundary, 'read', 'component', request.resource, request.id], {
-                        state: {
-                            backNavigation: {
-                                route: ['/process-groups', processGroupId, request.resource, request.id],
-                                routeBoundary,
-                                context: request.backNavigationContext
-                            } as BackNavigation
+                tap((request) => {
+                    this.router.navigate(
+                        [...request.backNavigation.routeBoundary, 'read', 'component', request.resource, request.id],
+                        {
+                            state: {
+                                backNavigation: request.backNavigation
+                            }
                         }
-                    });
+                    );
                 })
             ),
         { dispatch: false }

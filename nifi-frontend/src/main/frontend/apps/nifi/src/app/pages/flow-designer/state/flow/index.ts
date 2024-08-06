@@ -346,7 +346,7 @@ export interface OpenComponentDialogRequest {
 export interface NavigateToManageComponentPoliciesRequest {
     resource: string;
     id: string;
-    backNavigationContext: string;
+    backNavigation: BackNavigation;
 }
 
 export interface EditComponentDialogRequest {
