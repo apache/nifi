@@ -1106,31 +1106,15 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
 
-    protected AssetEntity createAsset(final String paramContextId, final File assetFile) throws NiFiClientException {
+    protected AssetEntity createAsset(final String paramContextId, final File assetFile) throws NiFiClientException, IOException {
         return createAsset(paramContextId, assetFile.getName(), assetFile);
     }
 
-    /**
-     * This method performs multiple attempts of creating the asset due to an intermittent issue with OkHttp client:
-     *   https://github.com/square/okhttp/issues/5390
-     *
-     * This issue happens intermittently during clustered system tests that create an asset which then replicates the asset to the cluster nodes.
-     */
-    protected AssetEntity createAsset(final String paramContextId, final String assetName, final File assetFile) throws NiFiClientException {
-        int count = 0;
-        int numRetries = 3;
-        do {
-            try {
-                final AssetEntity asset = getNifiClient().getParamContextClient().createAsset(paramContextId, assetName, assetFile);
-                logger.info("Created asset [{}] in parameter context [{}] on attempt {}", assetName, paramContextId, count);
-                assertAsset(asset, assetName);
-                return asset;
-            } catch (final NiFiClientException | IOException e) {
-                logger.warn("Failed to create asset [{}] on attempt {}", assetFile.getName(), count, e);
-            }
-        } while (count++ < numRetries);
-
-        throw new NiFiClientException("Failed to create asset [%s] after %s attempts".formatted(assetFile.getName(), numRetries));
+    protected AssetEntity createAsset(final String paramContextId, final String assetName, final File assetFile) throws NiFiClientException, IOException {
+        final AssetEntity asset = getNifiClient().getParamContextClient().createAsset(paramContextId, assetName, assetFile);
+        logger.info("Created asset [{}] in parameter context [{}]", assetName, paramContextId);
+        assertAsset(asset, assetName);
+        return asset;
     }
 
     protected AssetsEntity assertAssetListing(final String paramContextId, final int expectedCount) throws NiFiClientException, IOException {
