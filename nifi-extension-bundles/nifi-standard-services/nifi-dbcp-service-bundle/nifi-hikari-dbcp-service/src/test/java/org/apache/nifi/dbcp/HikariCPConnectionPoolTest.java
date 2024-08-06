@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.dbcp;
 
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.ControllerServiceConfiguration;
+import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -26,14 +30,24 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class HikariCPConnectionPoolTest {
     private final static String SERVICE_ID = HikariCPConnectionPoolTest.class.getSimpleName();
 
     private static final String INVALID_CONNECTION_URL = "jdbc:h2";
+
+    private static final String DB_DRIVERNAME_VALUE = "jdbc:mock";
+
+    private static final String MAX_WAIT_TIME_VALUE = "5 s";
 
     private TestRunner runner;
 
@@ -134,11 +148,44 @@ public class HikariCPConnectionPoolTest {
         }
     }
 
+    @Test
+    void testVerifySuccessful() throws Exception {
+        final HikariCPConnectionPool service = new HikariCPConnectionPool();
+        runner.addControllerService(SERVICE_ID, service);
+        final Connection mockConnection = mock(Connection.class);
+        MockDriver.setConnection(mockConnection);
+        setDatabaseProperties(service);
+        runner.setProperty(service, HikariCPConnectionPool.MAX_TOTAL_CONNECTIONS, "2");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        MockProcessContext processContext = (MockProcessContext) runner.getProcessContext();
+        final ControllerServiceConfiguration configuration = processContext.getConfiguration(service.getIdentifier());
+        final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), processContext, Collections.emptyMap());
+        final List<ConfigVerificationResult> results = service.verify(configContext, runner.getLogger(), configContext.getAllProperties());
+
+        assertOutcomeSuccessful(results);
+    }
+
     private void setDatabaseProperties(final HikariCPConnectionPool service) {
-        runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, "jdbc:mock");
+        runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, DB_DRIVERNAME_VALUE);
         runner.setProperty(service, HikariCPConnectionPool.DB_DRIVERNAME, MockDriver.class.getName());
-        runner.setProperty(service, HikariCPConnectionPool.MAX_WAIT_TIME, "5 s");
+        runner.setProperty(service, HikariCPConnectionPool.MAX_WAIT_TIME, MAX_WAIT_TIME_VALUE);
         runner.setProperty(service, HikariCPConnectionPool.DB_USER, String.class.getSimpleName());
         runner.setProperty(service, HikariCPConnectionPool.DB_PASSWORD, String.class.getName());
+    }
+
+    private void assertOutcomeSuccessful(final List<ConfigVerificationResult> results) {
+        assertNotNull(results);
+        final Iterator<ConfigVerificationResult> resultsFound = results.iterator();
+
+        assertTrue(resultsFound.hasNext());
+        final ConfigVerificationResult firstResult = resultsFound.next();
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, firstResult.getOutcome(), firstResult.getExplanation());
+
+        assertTrue(resultsFound.hasNext());
+        final ConfigVerificationResult secondResult = resultsFound.next();
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, secondResult.getOutcome(), secondResult.getExplanation());
+
+        assertFalse(resultsFound.hasNext());
     }
 }
