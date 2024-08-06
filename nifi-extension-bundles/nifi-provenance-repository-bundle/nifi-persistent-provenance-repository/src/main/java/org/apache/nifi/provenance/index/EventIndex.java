@@ -85,11 +85,12 @@ public interface EventIndex extends Closeable {
     /**
      * Retrieves the list of Provenance Events that are cached for the most recent invocation of the given component
      * @param componentId the ID of the component
+     * @param eventLimit the maximum number of events to return
      *
      * @return an Optional containing the event, or an empty optional if no events are available or none of the available events are accessible by the given user
      * @throws IOException if unable to read from the repository
      */
-    List<ProvenanceEventRecord> getLatestCachedEvents(String componentId) throws IOException;
+    List<ProvenanceEventRecord> getLatestCachedEvents(String componentId, int eventLimit) throws IOException;
 
     /**
      * Asynchronously computes the lineage for the FlowFile that is identified by the Provenance Event with the given ID.

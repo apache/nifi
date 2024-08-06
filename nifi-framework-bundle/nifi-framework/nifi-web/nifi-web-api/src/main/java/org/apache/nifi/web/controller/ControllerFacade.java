@@ -155,6 +155,8 @@ public class ControllerFacade implements Authorizable {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
 
+    private static final int MAX_REPLAY_EVENT_COUNT = 10;
+
     // nifi components
     private FlowController flowController;
     private FlowService flowService;
@@ -1415,7 +1417,7 @@ public class ControllerFacade implements Authorizable {
             }
 
             // lookup the original event
-            final List<ProvenanceEventRecord> latestEvents = flowController.getProvenanceRepository().getLatestCachedEvents(componentId);
+            final List<ProvenanceEventRecord> latestEvents = flowController.getProvenanceRepository().getLatestCachedEvents(componentId, MAX_REPLAY_EVENT_COUNT);
             if (latestEvents.isEmpty()) {
                 return null;
             }
@@ -1537,7 +1539,7 @@ public class ControllerFacade implements Authorizable {
         }
     }
 
-    public LatestProvenanceEventsDTO getLatestProvenanceEvents(final String componentId) {
+    public LatestProvenanceEventsDTO getLatestProvenanceEvents(final String componentId, final int eventLimit) {
         final Authorizable authorizable = flowController.getProvenanceAuthorizableFactory().createProvenanceDataAuthorizable(componentId);
         final Authorizer authorizer = flowController.getAuthorizer();
         if (!authorizable.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
@@ -1545,7 +1547,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         try {
-            final List<ProvenanceEventRecord> events = flowController.getProvenanceRepository().getLatestCachedEvents(componentId);
+            final List<ProvenanceEventRecord> events = flowController.getProvenanceRepository().getLatestCachedEvents(componentId, eventLimit);
             final List<ProvenanceEventDTO> eventDtos = new ArrayList<>();
             for (final ProvenanceEventRecord event : events) {
                 eventDtos.add(createProvenanceEventDto(event, false));

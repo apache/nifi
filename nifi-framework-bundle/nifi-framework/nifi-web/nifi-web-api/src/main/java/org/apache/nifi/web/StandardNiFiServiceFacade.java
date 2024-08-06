@@ -3663,8 +3663,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public LatestProvenanceEventsEntity getLatestProvenanceEvents(final String componentId) {
-        final LatestProvenanceEventsDTO dto = controllerFacade.getLatestProvenanceEvents(componentId);
+    public LatestProvenanceEventsEntity getLatestProvenanceEvents(final String componentId, final int eventLimit) {
+        final LatestProvenanceEventsDTO dto = controllerFacade.getLatestProvenanceEvents(componentId, eventLimit);
 
         final LatestProvenanceEventsEntity entity = new LatestProvenanceEventsEntity();
         entity.setLatestProvenanceEvents(dto);

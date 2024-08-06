@@ -491,7 +491,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getLatestCachedEvents(final String componentId) {
+    public List<ProvenanceEventRecord> getLatestCachedEvents(final String componentId, final int eventLimit) {
         final List<ProvenanceEventRecord> matches = ringBuffer.getSelectedElements(
             event -> componentId.equals(event.getComponentId()), 1);
 

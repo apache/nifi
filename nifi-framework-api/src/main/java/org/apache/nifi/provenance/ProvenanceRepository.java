@@ -96,10 +96,11 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
     /**
      * Retrieves the Provenance Events that are cached for the most recent invocation of the given component.
      * @param componentId the ID of the component
+     * @param eventLimit the maximum number of events to return
      * @return the list of events that are cached for the given component
      * @throws IOException if unable to read from the repository
      */
-    List<ProvenanceEventRecord> getLatestCachedEvents(String componentId) throws IOException;
+    List<ProvenanceEventRecord> getLatestCachedEvents(String componentId, int eventLimit) throws IOException;
 
     /**
      * @param queryIdentifier of the query
