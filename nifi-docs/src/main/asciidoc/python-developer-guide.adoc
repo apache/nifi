@@ -475,6 +475,64 @@ that there are no longer any invocations of the `transform` method running when 
 
 
 
+[[state-manager]]
+=== State Manager
+
+The `context` object that is the parameter of the `transform()`, `create()`, `onScheduled()` and `onStopped()` methods
+provides access to State Manager through the `getStateManager()` method. State Manager is responsible for providing
+a simple API for storing and retrieving state. For information on State Manager, refer to the NiFi Developer's Guide.
+
+The Python StateManager object returned by `context.getStateManager()` provides access to the underlying Java StateManager.
+With the Python StateManager, the state is handled in the form of Python dictionaries (as opposed to Java Maps).
+Just like in Java, StateManager can handle both `LOCAL` and `CLUSTER` state.
+
+Should an error occur accessing the state using the StateManager's methods, a StateException is thrown that can be caught and
+handled in the Python Processor's code. This enables the Python developer to implement the Processor in such a way that
+when a state-related error occurs, the Processor can continue its operation without disruption.
+If a StateException is thrown by StateManager but not caught in the Processor's code, the ProcessSession is rolled back
+and an error is logged.
+
+Below is an example Processor that uses StateManager. This example assumes that the Processor is executed on
+primary node only, and only on one thread.
+----
+from nifiapi.componentstate import Scope, StateManager, StateException
+from nifiapi.flowfilesource import FlowFileSource, FlowFileSourceResult
+
+
+class CreateFlowFile(FlowFileSource):
+    class Java:
+        implements = ['org.apache.nifi.python.processor.FlowFileSource']
+
+    class ProcessorDetails:
+        version = '0.0.1-SNAPSHOT'
+        description = '''A Python processor that creates FlowFiles and uses StateManager.'''
+        tags = ['test', 'python', 'source', 'state']
+
+    def __init__(self, **kwargs):
+        pass
+
+    def onScheduled(self, context):
+        try:
+            self.state = context.getStateManager().getState(Scope.CLUSTER).toMap()
+        except StateException as e:
+            self.logger.warn('Failed to read processor state. ' + str(e))
+            self.state = dict()
+
+    def create(self, context):
+        old_value = int(self.state.get('FlowFileNumber', '0'))
+        new_value = old_value + 1
+        new_state = {'FlowFileNumber': str(new_value)}
+        try:
+            context.getStateManager().setState(new_state, Scope.CLUSTER)
+            self.state = new_state
+        except StateException as e:
+            self.logger.warn('Failed to save state. ' + str(e))
+
+        return FlowFileSourceResult(relationship='success', attributes=new_state, contents=None)
+----
+
+
+
 [[documenting_use_cases]]
 == Documenting Use Cases
 
