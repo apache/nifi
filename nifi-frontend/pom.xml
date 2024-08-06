@@ -152,6 +152,25 @@
                             </resources>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>bundle-built-nifi-jolt-transform-ui-app</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/nifi-jolt-transform-ui</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/${project.build.finalName}/nifi-jolt-transform-ui</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
