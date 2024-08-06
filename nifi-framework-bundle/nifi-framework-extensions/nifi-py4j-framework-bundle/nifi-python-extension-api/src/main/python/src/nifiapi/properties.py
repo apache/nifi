@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from enum import Enum
+from nifiapi.componentstate import StateManager
 from nifiapi.__jvm__ import JvmHolder
 import re
 
@@ -348,6 +349,9 @@ class ProcessContext(PropertyContext):
 
     def yield_resources(self):
         JvmHolder.java_gateway.get_method(self.java_context, "yield")()
+
+    def getStateManager(self):
+        return StateManager(self.java_context.getStateManager())
 
 
 class ValidationContext(PropertyContext):
