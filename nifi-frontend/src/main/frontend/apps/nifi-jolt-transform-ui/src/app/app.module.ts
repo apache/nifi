@@ -17,6 +17,7 @@
 
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import {
@@ -58,7 +59,8 @@ if (disableAnimations !== 'true' && disableAnimations !== 'false') {
             maxAge: 25,
             logOnly: environment.production,
             autoPause: true
-        })
+        }),
+        MatSnackBarModule
     ],
     providers: [
         disableAnimations === 'true' ? provideNoopAnimations() : provideAnimations(),

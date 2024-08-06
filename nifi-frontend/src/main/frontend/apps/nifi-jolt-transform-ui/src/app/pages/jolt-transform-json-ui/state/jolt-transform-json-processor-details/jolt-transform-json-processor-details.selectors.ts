@@ -34,6 +34,11 @@ export const selectProcessorDetails = createSelector(
     (state: JoltTransformJsonProcessorDetailsState) => state.processorDetails
 );
 
+export const selectProcessorDetailsLoading = createSelector(
+    selectJoltTransformJsonProcessorDetailsState,
+    (state: JoltTransformJsonProcessorDetailsState) => state.loading
+);
+
 export const selectSaving = createSelector(
     selectJoltTransformJsonProcessorDetailsState,
     (state: JoltTransformJsonProcessorDetailsState) => state.saving

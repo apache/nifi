@@ -20,15 +20,17 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as JoltTransformJsonUiActions from './jolt-transform-json-processor-details.actions';
 import { JoltTransformJsonUiService } from '../../service/jolt-transform-json-ui.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, from, map, of, switchMap } from 'rxjs';
+import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { loadProcessorDetailsFailure } from './jolt-transform-json-processor-details.actions';
 import { ProcessorDetails } from './index';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Injectable()
 export class JoltTransformJsonProcessorDetailsEffects {
     constructor(
         private actions$: Actions,
-        private joltTransformJsonUiService: JoltTransformJsonUiService
+        private joltTransformJsonUiService: JoltTransformJsonUiService,
+        private snackBar: MatSnackBar
     ) {}
 
     loadProcessorDetails$ = createEffect(() =>
@@ -52,5 +54,36 @@ export class JoltTransformJsonProcessorDetailsEffects {
                 )
             )
         )
+    );
+
+    loadProcessorDetailsFailure$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(JoltTransformJsonUiActions.loadProcessorDetailsFailure),
+            map((action) => action.response),
+            switchMap((errorResponse) => {
+                let errorMessage = 'An unspecified error occurred.';
+                if (errorResponse.status !== 0) {
+                    if (typeof errorResponse.error === 'string') {
+                        errorMessage = errorResponse.error;
+                    } else {
+                        errorMessage = errorResponse.message || `${errorResponse.status}`;
+                    }
+                }
+
+                return of(JoltTransformJsonUiActions.snackbarError({ error: errorMessage }));
+            })
+        )
+    );
+
+    snackBarError$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(JoltTransformJsonUiActions.snackbarError),
+                map((action) => action.error),
+                tap((error) => {
+                    this.snackBar.open(error, 'Dismiss', { duration: 30000 });
+                })
+            ),
+        { dispatch: false }
     );
 }
