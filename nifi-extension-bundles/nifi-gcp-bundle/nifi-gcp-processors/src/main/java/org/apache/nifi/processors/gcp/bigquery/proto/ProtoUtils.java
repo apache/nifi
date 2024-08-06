@@ -48,22 +48,22 @@ public class ProtoUtils {
            switch (field.getType()) {
            case MESSAGE:
                if (field.isRepeated()) {
-                   Collection collection = null;
-                   if (value.getClass().isArray()) {
-                       collection = Arrays.asList((Object[]) value);
-                   } else if (value instanceof HashMap) {
-                       collection = new ArrayList();
-                       for (Object entryObj : ((HashMap<?, ?>) value).entrySet()) {
-                           Map.Entry<?, ?> entry = (Map.Entry<?, ?>) entryObj;
+                   final Collection<Map<String, Object>> valueMaps;
+                   if (value instanceof Object[] arrayValue) {
+                       valueMaps = Arrays.stream(arrayValue)
+                               .map(item -> (Map<String, Object>) item).toList();
+                   } else if (value instanceof HashMap<?, ?> hashMapValue) {
+                       valueMaps = new ArrayList<>();
+                       for (Map.Entry<?, ?> entry : hashMapValue.entrySet()) {
                            Map<String, Object> map = new HashMap<>();
                            map.put("key", entry.getKey());
                            map.put("value", entry.getValue());
-                           collection.add(map);
+                           valueMaps.add(map);
                        }
                    } else {
-                       collection = (Collection) value;
+                       valueMaps = (Collection<Map<String, Object>>) value;
                    }
-                   collection.forEach(act -> builder.addRepeatedField(field, createMessage(field.getMessageType(), (Map<String, Object>) act, tableSchema)));
+                   valueMaps.forEach(act -> builder.addRepeatedField(field, createMessage(field.getMessageType(), act, tableSchema)));
                } else {
                    builder.setField(field, createMessage(field.getMessageType(), (Map<String, Object>) value, tableSchema));
                }
