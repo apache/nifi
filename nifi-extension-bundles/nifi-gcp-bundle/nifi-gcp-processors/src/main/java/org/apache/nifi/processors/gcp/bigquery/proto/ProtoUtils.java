@@ -24,8 +24,10 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -46,7 +48,21 @@ public class ProtoUtils {
            switch (field.getType()) {
            case MESSAGE:
                if (field.isRepeated()) {
-                   Collection collection = value.getClass().isArray() ? Arrays.asList((Object[]) value) : (Collection) value;
+                   Collection collection = null;
+                   if (value.getClass().isArray()) {
+                       collection = Arrays.asList((Object[]) value);
+                   } else if (value instanceof HashMap) {
+                       collection = new ArrayList();
+                       for (Object entryObj : ((HashMap<?, ?>) value).entrySet()) {
+                           Map.Entry<?, ?> entry = (Map.Entry<?, ?>) entryObj;
+                           Map<String, Object> map = new HashMap<>();
+                           map.put("key", entry.getKey());
+                           map.put("value", entry.getValue());
+                           collection.add(map);
+                       }
+                   } else {
+                       collection = (Collection) value;
+                   }
                    collection.forEach(act -> builder.addRepeatedField(field, createMessage(field.getMessageType(), (Map<String, Object>) act, tableSchema)));
                } else {
                    builder.setField(field, createMessage(field.getMessageType(), (Map<String, Object>) value, tableSchema));
