@@ -37,6 +37,7 @@ import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.protocol.api.OperationType;
+import org.apache.nifi.c2.protocol.api.ProcessorBulletin;
 import org.apache.nifi.c2.protocol.api.SupportedOperation;
 import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
 import org.apache.nifi.c2.protocol.component.api.Bundle;
@@ -117,12 +118,14 @@ public class C2HeartbeatFactoryTest {
         AgentRepositories repos = new AgentRepositories();
         RuntimeManifest manifest = createManifest();
         Map<String, FlowQueueStatus> queueStatus = new HashMap<>();
+        Map<String, ProcessorBulletin> processorBulletins = new HashMap<>();
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus));
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus, processorBulletins));
 
         assertEquals(repos, heartbeat.getAgentInfo().getStatus().getRepositories());
         assertEquals(manifest, heartbeat.getAgentInfo().getAgentManifest());
         assertEquals(queueStatus, heartbeat.getFlowInfo().getQueues());
+        assertEquals(processorBulletins, heartbeat.getFlowInfo().getProcessorBulletins());
         assertEquals(RESOURCE_HASH, heartbeat.getResourceInfo().getHash());
     }
 
@@ -134,12 +137,14 @@ public class C2HeartbeatFactoryTest {
         AgentRepositories repos = new AgentRepositories();
         RuntimeManifest manifest = createManifest();
         Map<String, FlowQueueStatus> queueStatus = new HashMap<>();
+        Map<String, ProcessorBulletin> processorBulletins = new HashMap<>();
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus));
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus, processorBulletins));
 
         assertEquals(repos, heartbeat.getAgentInfo().getStatus().getRepositories());
         assertNull(heartbeat.getAgentInfo().getAgentManifest());
         assertEquals(queueStatus, heartbeat.getFlowInfo().getQueues());
+        assertEquals(processorBulletins, heartbeat.getFlowInfo().getProcessorBulletins());
         assertEquals(RESOURCE_HASH, heartbeat.getResourceInfo().getHash());
     }
 
@@ -156,7 +161,7 @@ public class C2HeartbeatFactoryTest {
         when(manifestHashProvider.calculateManifestHash(manifest.getBundles(), Collections.emptySet())).thenReturn(MANIFEST_HASH);
         when(resourcesGlobalHashSupplier.get()).thenReturn(createResourcesGlobalHash());
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>()));
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>(), new HashMap<>()));
 
         assertEquals(MANIFEST_HASH, heartbeat.getAgentInfo().getAgentManifestHash());
         assertEquals(RESOURCE_HASH, heartbeat.getResourceInfo().getHash());
@@ -172,7 +177,7 @@ public class C2HeartbeatFactoryTest {
         when(manifestHashProvider.calculateManifestHash(manifest.getBundles(), supportedOperations)).thenReturn(MANIFEST_HASH);
         when(resourcesGlobalHashSupplier.get()).thenReturn(createResourcesGlobalHash());
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>()));
+        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>(), new HashMap<>()));
 
         assertEquals(MANIFEST_HASH, heartbeat.getAgentInfo().getAgentManifestHash());
         assertEquals(RESOURCE_HASH, heartbeat.getResourceInfo().getHash());

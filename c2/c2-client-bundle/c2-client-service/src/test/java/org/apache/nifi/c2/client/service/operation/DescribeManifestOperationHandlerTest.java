@@ -58,7 +58,7 @@ public class DescribeManifestOperationHandlerTest {
     void testDescribeManifestOperationHandlerPopulatesAckSuccessfully() {
         RuntimeManifest manifest = new RuntimeManifest();
         manifest.setIdentifier("manifestId");
-        RuntimeInfoWrapper runtimeInfoWrapper = new RuntimeInfoWrapper(null, manifest, null);
+        RuntimeInfoWrapper runtimeInfoWrapper = new RuntimeInfoWrapper(null, manifest, null, null);
 
         C2Heartbeat heartbeat = new C2Heartbeat();
         AgentInfo agentInfo = new AgentInfo();
