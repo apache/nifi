@@ -26,6 +26,7 @@ import {
     selectEditableFromRoute,
     selectJoltTransformJsonProcessorDetailsState,
     selectProcessorDetails,
+    selectProcessorDetailsLoading,
     selectProcessorIdFromRoute,
     selectRevisionFromRoute
 } from '../state/jolt-transform-json-processor-details/jolt-transform-json-processor-details.selectors';
@@ -84,6 +85,7 @@ export class JoltTransformJsonUi implements OnDestroy {
         transform: this.store.selectSignal(selectJoltTransformJsonTransformState)
     };
     processorDetails$ = this.store.select(selectProcessorDetails);
+    processorDetailsLoading$ = this.store.select(selectProcessorDetailsLoading);
     editable: boolean = false;
     createNew: (existingEntries: string[]) => Observable<MapTableEntry> =
         this.mapTableHelperService.createNewEntry('Attribute');
