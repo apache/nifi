@@ -16,65 +16,171 @@
  */
 package org.apache.nifi.web.client;
 
-import okhttp3.HttpUrl;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
- * Standard HTTP URI Builder based on OkHttp HttpUrl
+ * Standard HTTP URI Builder based using java.net.URI
  */
 public class StandardHttpUriBuilder implements HttpUriBuilder {
-    private final HttpUrl.Builder builder;
+    private static final String HTTP_SCHEME = "http";
 
-    public StandardHttpUriBuilder() {
-        this.builder = new HttpUrl.Builder();
-    }
+    private static final String HTTPS_SCHEME = "https";
+
+    private static final int UNKNOWN_PORT = -1;
+
+    private static final int MAXIMUM_PORT = 65535;
+
+    private static final String PATH_SEGMENT_SEPARATOR = "/";
+
+    private static final String QUERY_PARAMETER_SEPARATOR = "&";
+
+    private static final String QUERY_PARAMETER_VALUE_SEPARATOR = "=";
+
+    private String scheme = HTTP_SCHEME;
+
+    private String host;
+
+    private int port = UNKNOWN_PORT;
+
+    private String encodedPath;
+
+    private final List<String> pathSegments = new ArrayList<>();
+
+    private final Map<String, List<String>> queryParameters = new LinkedHashMap<>();
 
     @Override
     public URI build() {
-        final HttpUrl httpUrl = builder.build();
-        return httpUrl.uri();
+        if (host == null) {
+            throw new IllegalStateException("Host not specified");
+        }
+
+        final String resolvedPath = getResolvedPath();
+        final String resolvedQuery = getResolvedQuery();
+
+        try {
+            return new URI(scheme, null, host, port, resolvedPath, resolvedQuery, null);
+        } catch (final URISyntaxException e) {
+            throw new IllegalArgumentException("URI construction failed", e);
+        }
     }
 
     @Override
     public HttpUriBuilder scheme(final String scheme) {
         Objects.requireNonNull(scheme, "Scheme required");
-        builder.scheme(scheme);
+        if (HTTP_SCHEME.equals(scheme) || HTTPS_SCHEME.equals(scheme)) {
+            this.scheme = scheme;
+        } else {
+            throw new IllegalArgumentException("Scheme [%s] not supported".formatted(scheme));
+        }
         return this;
     }
 
     @Override
     public HttpUriBuilder host(final String host) {
         Objects.requireNonNull(host, "Host required");
-        builder.host(host);
+        this.host = host;
         return this;
     }
 
     @Override
     public HttpUriBuilder port(int port) {
-        builder.port(port);
+        if (port < UNKNOWN_PORT || port > MAXIMUM_PORT) {
+            throw new IllegalArgumentException("Port [%d] not valid".formatted(port));
+        }
+        this.port = port;
         return this;
     }
 
     @Override
     public HttpUriBuilder encodedPath(final String encodedPath) {
-        builder.encodedPath(encodedPath);
+        this.encodedPath = encodedPath;
         return this;
     }
 
     @Override
     public HttpUriBuilder addPathSegment(final String pathSegment) {
         Objects.requireNonNull(pathSegment, "Path segment required");
-        builder.addPathSegment(pathSegment);
+        pathSegments.add(pathSegment);
         return this;
     }
 
     @Override
     public HttpUriBuilder addQueryParameter(final String name, final String value) {
         Objects.requireNonNull(name, "Parameter name required");
-        builder.addQueryParameter(name, value);
+        final List<String> parameters = queryParameters.computeIfAbsent(name, parameterName -> new ArrayList<>());
+        parameters.add(value);
         return this;
+    }
+
+    private String getResolvedPath() {
+        final StringBuilder pathBuilder = new StringBuilder();
+        if (encodedPath != null) {
+            // Decoded path required for subsequent encoding in java.net.URI construction
+            final String decodedPath = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8);
+            pathBuilder.append(decodedPath);
+        }
+
+        if (!pathSegments.isEmpty()) {
+            final String separatedPath = String.join(PATH_SEGMENT_SEPARATOR, pathSegments);
+            pathBuilder.append(separatedPath);
+        }
+        final String path = pathBuilder.toString();
+
+        final String resolvedPath;
+        if (path.startsWith(PATH_SEGMENT_SEPARATOR)) {
+            resolvedPath = path;
+        } else {
+            resolvedPath = PATH_SEGMENT_SEPARATOR + path;
+        }
+        return resolvedPath;
+    }
+
+    private String getResolvedQuery() {
+        final StringBuilder queryBuilder = new StringBuilder();
+
+        final Iterator<Map.Entry<String, List<String>>> parameters = queryParameters.entrySet().iterator();
+        while (parameters.hasNext()) {
+            final Map.Entry<String, List<String>> parameter = parameters.next();
+
+            final String name = parameter.getKey();
+            queryBuilder.append(name);
+
+            final Iterator<String> values = parameter.getValue().iterator();
+            while (values.hasNext()) {
+                final String value = values.next();
+                if (value != null) {
+                    queryBuilder.append(QUERY_PARAMETER_VALUE_SEPARATOR);
+                    queryBuilder.append(value);
+                }
+
+                if (values.hasNext()) {
+                    queryBuilder.append(QUERY_PARAMETER_SEPARATOR);
+                    queryBuilder.append(name);
+                }
+            }
+
+            if (parameters.hasNext()) {
+                queryBuilder.append(QUERY_PARAMETER_SEPARATOR);
+            }
+        }
+
+        final String query;
+        if (queryBuilder.isEmpty()) {
+            query = null;
+        } else {
+            query = queryBuilder.toString();
+        }
+        return query;
     }
 }

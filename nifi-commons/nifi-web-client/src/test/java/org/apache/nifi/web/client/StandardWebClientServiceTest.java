@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.client;
 
-import okhttp3.Credentials;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -44,11 +43,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
-import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -98,8 +97,6 @@ public class StandardWebClientServiceTest {
 
     private static final String TLS_PROTOCOL_UNSUPPORTED = "TLSv0";
 
-    private static final X509Certificate[] TRUSTED_ISSUERS = new X509Certificate[0];
-
     @Mock
     TlsContext tlsContext;
 
@@ -128,7 +125,6 @@ public class StandardWebClientServiceTest {
     void testSetTlsContext() {
         when(tlsContext.getProtocol()).thenReturn(TLS_PROTOCOL);
         when(tlsContext.getTrustManager()).thenReturn(trustManager);
-        when(trustManager.getAcceptedIssuers()).thenReturn(TRUSTED_ISSUERS);
 
         service.setTlsContext(tlsContext);
     }
@@ -142,7 +138,7 @@ public class StandardWebClientServiceTest {
     }
 
     @Test
-    void testSocketTimeoutException() throws IOException {
+    void testHttpTimeoutException() throws IOException {
         mockWebServer.shutdown();
 
         service.setConnectTimeout(FAILURE_TIMEOUT);
@@ -158,7 +154,7 @@ public class StandardWebClientServiceTest {
                         .retrieve()
         );
 
-        assertInstanceOf(SocketTimeoutException.class, exception.getCause());
+        assertInstanceOf(HttpTimeoutException.class, exception.getCause());
     }
 
     @Test
@@ -180,7 +176,10 @@ public class StandardWebClientServiceTest {
 
         final RecordedRequest proxyAuthorizationRequest = mockWebServer.takeRequest();
         final String proxyAuthorization = proxyAuthorizationRequest.getHeader(PROXY_AUTHORIZATION_HEADER);
-        final String credentials = Credentials.basic(username, password);
+
+        final String formatted = String.format("%s:%s", username, password);
+        final String encoded = Base64.getEncoder().encodeToString(formatted.getBytes(StandardCharsets.UTF_8));
+        final String credentials = String.format("Basic %s", encoded);
         assertEquals(credentials, proxyAuthorization);
     }
 

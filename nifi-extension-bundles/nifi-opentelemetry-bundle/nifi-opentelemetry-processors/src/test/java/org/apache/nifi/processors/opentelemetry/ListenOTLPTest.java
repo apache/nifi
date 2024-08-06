@@ -43,8 +43,8 @@ import org.apache.nifi.web.client.StandardWebClientService;
 import org.apache.nifi.web.client.api.HttpEntityHeaders;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpResponseStatus;
-import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.ssl.TlsContext;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -136,10 +136,10 @@ class ListenOTLPTest {
 
     private static X509KeyManager keyManager;
 
+    private static StandardWebClientService webClientService;
+
     @Mock
     private SSLContextService sslContextService;
-
-    private WebClientService webClientService;
 
     private TestRunner runner;
 
@@ -174,19 +174,13 @@ class ListenOTLPTest {
                 .keyPassword(generated)
                 .trustStore(trustStore)
                 .build();
-    }
 
-    @BeforeEach
-    void setRunner() {
-        processor = new ListenOTLP();
-        runner = TestRunners.newTestRunner(processor);
+        webClientService = new StandardWebClientService();
+        webClientService.setReadTimeout(READ_TIMEOUT);
+        webClientService.setConnectTimeout(CONNECT_TIMEOUT);
+        webClientService.setWriteTimeout(READ_TIMEOUT);
 
-        final StandardWebClientService standardWebClientService = new StandardWebClientService();
-        standardWebClientService.setReadTimeout(READ_TIMEOUT);
-        standardWebClientService.setConnectTimeout(CONNECT_TIMEOUT);
-        standardWebClientService.setWriteTimeout(READ_TIMEOUT);
-
-        standardWebClientService.setTlsContext(new TlsContext() {
+        webClientService.setTlsContext(new TlsContext() {
             @Override
             public String getProtocol() {
                 return TlsPlatform.getLatestProtocol();
@@ -202,8 +196,17 @@ class ListenOTLPTest {
                 return Optional.ofNullable(keyManager);
             }
         });
+    }
 
-        webClientService = standardWebClientService;
+    @AfterAll
+    static void closeWebClientService() {
+        webClientService.close();
+    }
+
+    @BeforeEach
+    void setRunner() {
+        processor = new ListenOTLP();
+        runner = TestRunners.newTestRunner(processor);
     }
 
     @AfterEach

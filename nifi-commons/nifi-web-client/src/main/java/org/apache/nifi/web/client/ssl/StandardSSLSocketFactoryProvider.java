@@ -16,17 +16,9 @@
  */
 package org.apache.nifi.web.client.ssl;
 
-import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509KeyManager;
-import javax.net.ssl.X509TrustManager;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Standard implementation of SSLSocketFactory Provider
@@ -41,30 +33,8 @@ public class StandardSSLSocketFactoryProvider implements SSLSocketFactoryProvide
     @Override
     public SSLSocketFactory getSocketFactory(final TlsContext tlsContext) {
         Objects.requireNonNull(tlsContext, "TLS Context required");
-        final SSLContext sslContext = getSslContext(tlsContext);
-
-        try {
-            final Optional<X509KeyManager> keyManager = tlsContext.getKeyManager();
-            final KeyManager[] keyManagers = keyManager.map(x509KeyManager -> new KeyManager[]{x509KeyManager}).orElse(null);
-
-            final X509TrustManager trustManager = tlsContext.getTrustManager();
-            final TrustManager[] trustManagers = trustManager == null ? null : new TrustManager[]{trustManager};
-
-            final SecureRandom secureRandom = new SecureRandom();
-            sslContext.init(keyManagers, trustManagers, secureRandom);
-
-            return sslContext.getSocketFactory();
-        } catch (final KeyManagementException e) {
-            throw new IllegalArgumentException("SSLContext initialization failed", e);
-        }
-    }
-
-    private SSLContext getSslContext(final TlsContext tlsContext) {
-        final String protocol = Objects.requireNonNull(tlsContext.getProtocol(), "TLS Protocol required");
-        try {
-            return SSLContext.getInstance(protocol);
-        } catch (final NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException(String.format("SSLContext protocol [%s] not supported", protocol), e);
-        }
+        final SSLContextProvider sslContextProvider = new StandardSSLContextProvider();
+        final SSLContext sslContext = sslContextProvider.getSslContext(tlsContext);
+        return sslContext.getSocketFactory();
     }
 }

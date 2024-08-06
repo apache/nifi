@@ -14,30 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.client;
+package org.apache.nifi.web.client.ssl;
 
-import okhttp3.Authenticator;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.Route;
+import javax.net.ssl.SSLContext;
 
 /**
- * OkHttp Authenticator supporting Proxy Authentication using HTTP Basic credentials
+ * SSLContext Provider from TLS Context configured
  */
-class BasicProxyAuthenticator implements Authenticator {
-    private static final String PROXY_AUTHORIZATION_HEADER = "Proxy-Authorization";
-
-    private final String credentials;
-
-    BasicProxyAuthenticator(final String credentials) {
-        this.credentials = credentials;
-    }
-
-    @Override
-    public Request authenticate(final Route route, final Response response) {
-        return response.request()
-                .newBuilder()
-                .header(PROXY_AUTHORIZATION_HEADER, credentials)
-                .build();
-    }
+public interface SSLContextProvider {
+    /**
+     * Get SSL Context
+     *
+     * @param tlsContext TLS Context configured
+     * @return SSL Context
+     */
+    SSLContext getSslContext(TlsContext tlsContext);
 }
