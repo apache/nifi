@@ -257,8 +257,8 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getLatestCachedEvents(final String componentId) throws IOException {
-        return eventIndex.getLatestCachedEvents(componentId);
+    public List<ProvenanceEventRecord> getLatestCachedEvents(final String componentId, final int eventLimit) throws IOException {
+        return eventIndex.getLatestCachedEvents(componentId, eventLimit);
     }
 
     @Override

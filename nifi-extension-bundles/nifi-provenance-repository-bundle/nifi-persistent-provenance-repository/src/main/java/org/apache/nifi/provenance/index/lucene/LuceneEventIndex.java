@@ -643,15 +643,17 @@ public class LuceneEventIndex implements EventIndex {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getLatestCachedEvents(final String componentId) throws IOException {
+    public List<ProvenanceEventRecord> getLatestCachedEvents(final String componentId, final int eventLimit) throws IOException {
         final List<Long> eventIds = latestEventsPerProcessorQuery.getLatestEventIds(componentId);
         if (eventIds.isEmpty()) {
             logger.info("There are no recent Provenance Events cached for Component with ID {}", componentId);
             return List.of();
         }
 
-        final List<ProvenanceEventRecord> latestEvents = new ArrayList<>(eventIds.size());
-        for (final Long eventId : eventIds) {
+        final List<Long> filtered = eventIds.subList(0, Math.min(eventIds.size(), eventLimit));
+
+        final List<ProvenanceEventRecord> latestEvents = new ArrayList<>(filtered.size());
+        for (final Long eventId : filtered) {
             final Optional<ProvenanceEventRecord> latestEvent = eventStore.getEvent(eventId);
             if (latestEvent.isPresent()) {
                 latestEvents.add(latestEvent.get());

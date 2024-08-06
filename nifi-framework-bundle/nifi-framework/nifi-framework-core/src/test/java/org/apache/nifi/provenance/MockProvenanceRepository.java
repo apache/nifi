@@ -91,7 +91,7 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getLatestCachedEvents(final String componentId) {
+    public List<ProvenanceEventRecord> getLatestCachedEvents(final String componentId, final int eventLimit) {
         return List.of();
     }
 

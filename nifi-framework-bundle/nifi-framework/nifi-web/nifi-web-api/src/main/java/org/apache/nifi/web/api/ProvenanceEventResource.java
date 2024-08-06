@@ -26,6 +26,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.POST;
@@ -526,14 +527,19 @@ public class ProvenanceEventResource extends ApplicationResource {
             description = "The ID of the component to retrieve the latest Provenance Events for.",
             required = true
         )
-        @PathParam("componentId") final String componentId
+        @PathParam("componentId") final String componentId,
+        @Parameter(
+                description = "The number of events to limit the response to. Defaults to 10."
+        )
+        @DefaultValue("10")
+        @QueryParam("limit") int limit
     ) {
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
 
         // get the latest provenance events
-        final LatestProvenanceEventsEntity entity = serviceFacade.getLatestProvenanceEvents(componentId);
+        final LatestProvenanceEventsEntity entity = serviceFacade.getLatestProvenanceEvents(componentId, limit);
 
         // generate the response
         return generateOkResponse(entity).build();

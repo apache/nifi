@@ -326,9 +326,10 @@ public interface NiFiServiceFacade {
     /**
      * Gets the latest provenance events for the specified component.
      * @param componentId the ID of the components to retrieve the latest events for
+     * @param eventLimit the maximum number of events to return
      * @return the latest provenance events
      */
-    LatestProvenanceEventsEntity getLatestProvenanceEvents(String componentId);
+    LatestProvenanceEventsEntity getLatestProvenanceEvents(String componentId, int eventLimit);
 
     /**
      * Gets the configuration for this controller.
