@@ -285,7 +285,7 @@
         <cpe>cpe:/a:avro_project:avro</cpe>
     </suppress>
     <suppress>
-        <notes>CVE-2023-4759 is resolved in 6.7.0 which is already upgraded in nifi-registry</notes>
+        <notes>CVE-2023-4759 is resolved in v5.13.3.202401111512 which is already upgraded in nifi-registry</notes>
         <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/.*$</packageUrl>
         <cve>CVE-2023-4759</cve>
     </suppress>
@@ -538,5 +538,15 @@
         <notes>JSON Path 2.9.0 resolves CVE-2023-51074</notes>
         <packageUrl regex="true">^pkg:maven/com\.jayway\.jsonpath/json\-path@2.9.0$</packageUrl>
         <vulnerabilityName>CVE-2023-51074</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2024-23081 applies to threetenbp 1.6.8 and earlier not 1.6.9</notes>
+        <packageUrl regex="true">^pkg:maven/org\.threeten/threetenbp@.*$</packageUrl>
+        <vulnerabilityName>CVE-2024-23081</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2024-23082 applies to threetenbp 1.6.8 and earlier not 1.6.9</notes>
+        <packageUrl regex="true">^pkg:maven/org\.threeten/threetenbp@.*$</packageUrl>
+        <vulnerabilityName>CVE-2024-23082</vulnerabilityName>
     </suppress>
 </suppressions>

@@ -173,7 +173,12 @@ public class ProcessorStatusTable extends AbstractTable implements QueryableTabl
                 "invocations",
                 "processingNanos",
                 "runStatus",
-                "executionNode"
+                "executionNode",
+                "cpuDuration",
+                "contentReadDuration",
+                "contentWriteDuration",
+                "sessionCommitDuration",
+                "garbageCollectionDuration"
         );
         final List<RelDataType> types = Arrays.asList(
                 typeFactory.createJavaType(String.class),
@@ -197,7 +202,12 @@ public class ProcessorStatusTable extends AbstractTable implements QueryableTabl
                 typeFactory.createJavaType(int.class),
                 typeFactory.createJavaType(long.class),
                 typeFactory.createJavaType(String.class),
-                typeFactory.createJavaType(String.class)
+                typeFactory.createJavaType(String.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class),
+                typeFactory.createJavaType(long.class)
         );
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));

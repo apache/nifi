@@ -56,6 +56,8 @@ public class ProcessGroupStatus implements Cloneable {
     private Collection<PortStatus> inputPortStatus = new ArrayList<>();
     private Collection<PortStatus> outputPortStatus = new ArrayList<>();
 
+    private ProcessingPerformanceStatus processingPerformanceStatus;
+
     public String getId() {
         return id;
     }
@@ -264,6 +266,14 @@ public class ProcessGroupStatus implements Cloneable {
         this.processingNanos = processingNanos;
     }
 
+    public ProcessingPerformanceStatus getProcessingPerformanceStatus() {
+        return processingPerformanceStatus;
+    }
+
+    public void setProcessingPerformanceStatus(ProcessingPerformanceStatus processingPerformanceStatus) {
+        this.processingPerformanceStatus = processingPerformanceStatus;
+    }
+
     @Override
     public ProcessGroupStatus clone() {
         final ProcessGroupStatus clonedObj = new ProcessGroupStatus();
@@ -287,6 +297,7 @@ public class ProcessGroupStatus implements Cloneable {
         clonedObj.flowFilesTransferred = flowFilesTransferred;
         clonedObj.bytesTransferred = bytesTransferred;
         clonedObj.processingNanos = processingNanos;
+        clonedObj.processingPerformanceStatus = processingPerformanceStatus;
 
         if (connectionStatus != null) {
             final Collection<ConnectionStatus> statusList = new ArrayList<>();
@@ -408,6 +419,9 @@ public class ProcessGroupStatus implements Cloneable {
             builder.append("\n\t\t");
             builder.append(status);
         }
+
+        builder.append(", processingPerformanceStatus=");
+        builder.append(processingPerformanceStatus);
 
         builder.append("]");
         return builder.toString();
@@ -610,6 +624,20 @@ public class ProcessGroupStatus implements Cloneable {
         }
 
         target.setRemoteProcessGroupStatus(mergedRemoteGroupMap.values());
+
+        final ProcessingPerformanceStatus targetPerformanceStatus = target.getProcessingPerformanceStatus();
+        final ProcessingPerformanceStatus toMergePerformanceStatus = toMerge.getProcessingPerformanceStatus();
+
+        if (targetPerformanceStatus != null && toMergePerformanceStatus != null) {
+            targetPerformanceStatus.setIdentifier(toMergePerformanceStatus.getIdentifier());
+            targetPerformanceStatus.setCpuDuration(targetPerformanceStatus.getCpuDuration() + toMergePerformanceStatus.getCpuDuration());
+            targetPerformanceStatus.setContentReadDuration(targetPerformanceStatus.getContentReadDuration() + toMergePerformanceStatus.getContentReadDuration());
+            targetPerformanceStatus.setContentWriteDuration(targetPerformanceStatus.getContentWriteDuration() + toMergePerformanceStatus.getContentWriteDuration());
+            targetPerformanceStatus.setSessionCommitDuration(targetPerformanceStatus.getSessionCommitDuration() + toMergePerformanceStatus.getSessionCommitDuration());
+            targetPerformanceStatus.setGarbageCollectionDuration(targetPerformanceStatus.getGarbageCollectionDuration() + toMergePerformanceStatus.getGarbageCollectionDuration());
+        } else {
+            target.setProcessingPerformanceStatus(targetPerformanceStatus);
+        }
     }
 
     public static FlowFileAvailability mergeFlowFileAvailability(final FlowFileAvailability availabilityA, final FlowFileAvailability availabilityB) {
