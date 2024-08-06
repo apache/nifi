@@ -405,7 +405,9 @@ public class PutDatabaseRecordTest {
         assertEquals("UPDATE PERSONS SET name = ?, code = ? WHERE id = ?",
                 processor.generateUpdate(schema, "PERSONS", null, tableSchema, settings).getSql());
         assertEquals("DELETE FROM PERSONS WHERE (id = ?) AND (name = ? OR (name is null AND ? is null)) AND (code = ? OR (code is null AND ? is null))",
-                processor.generateDelete(schema, "PERSONS", tableSchema, settings).getSql());
+                processor.generateDelete(schema, "PERSONS", null, tableSchema, settings).getSql());
+        assertEquals("DELETE FROM PERSONS WHERE (id = ?) AND (code = ? OR (code is null AND ? is null))",
+                processor.generateDelete(schema, "PERSONS", "id, code", tableSchema, settings).getSql());
     }
 
     @Test
@@ -450,7 +452,7 @@ public class PutDatabaseRecordTest {
         assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage());
 
         e = assertThrows(SQLDataException.class,
-                () -> processor.generateDelete(schema, "PERSONS", tableSchema, settings),
+                () -> processor.generateDelete(schema, "PERSONS", null, tableSchema, settings),
                 "generateDelete should fail with unmatched fields");
         assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage());
     }
