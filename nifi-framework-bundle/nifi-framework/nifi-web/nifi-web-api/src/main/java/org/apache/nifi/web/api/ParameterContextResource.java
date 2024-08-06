@@ -132,6 +132,7 @@ public class ParameterContextResource extends AbstractParameterResource {
     private static final String FILENAME_HEADER = "Filename";
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String UPLOAD_CONTENT_TYPE = "application/octet-stream";
+    private static final long MAX_ASSET_SIZE_BYTES = (long) DataUnit.GB.toB(1);
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -395,6 +396,11 @@ public class ParameterContextResource extends AbstractParameterResource {
             throw new IllegalArgumentException("Asset contents must be specified.");
         }
 
+        final String sanitizedAssetName = FileUtils.getSanitizedFilename(assetName);
+        if (!assetName.equals(sanitizedAssetName)) {
+            throw new IllegalArgumentException(FILENAME_HEADER + " header contains an invalid file name");
+        }
+
         // If clustered and not all nodes are connected, do not allow creating an asset.
         // Generally, we allow the flow to be modified when nodes are disconnected, but we do not allow creating an asset because
         // the cluster has no mechanism for synchronizing those assets after the upload.
@@ -430,16 +436,16 @@ public class ParameterContextResource extends AbstractParameterResource {
         // different request for each of the two phases.
 
         final long startTime = System.currentTimeMillis();
-        final InputStream maxLengthInputStream = new MaxLengthInputStream(assetContents, (long) DataUnit.GB.toB(1));
+        final InputStream maxLengthInputStream = new MaxLengthInputStream(assetContents, MAX_ASSET_SIZE_BYTES);
 
         final AssetEntity assetEntity;
         if (isReplicateRequest()) {
             final UploadRequest<AssetEntity> uploadRequest = new UploadRequest.Builder<AssetEntity>()
                     .user(NiFiUserUtils.getNiFiUser())
-                    .filename(assetName)
+                    .filename(sanitizedAssetName)
                     .identifier(UUID.randomUUID().toString())
                     .contents(maxLengthInputStream)
-                    .header(FILENAME_HEADER, assetName)
+                    .header(FILENAME_HEADER, sanitizedAssetName)
                     .header(CONTENT_TYPE_HEADER, UPLOAD_CONTENT_TYPE)
                     .exampleRequestUri(getAbsolutePath())
                     .responseClass(AssetEntity.class)
@@ -448,7 +454,6 @@ public class ParameterContextResource extends AbstractParameterResource {
             assetEntity = uploadRequestReplicator.upload(uploadRequest);
         } else {
             final String existingContextId = contextEntity.getId();
-            final String sanitizedAssetName = FileUtils.sanitizeFilename(assetName);
             final Asset asset = assetManager.createAsset(existingContextId, sanitizedAssetName, maxLengthInputStream);
             assetEntity = dtoFactory.createAssetEntity(asset);
         }

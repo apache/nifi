@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 public interface ParamContextClient {
 
@@ -47,7 +48,7 @@ public interface ParamContextClient {
 
     AssetsEntity getAssets(String contextId) throws NiFiClientException, IOException;
 
-    File getAssetContent(String contextId, String assetId, File outputDirectory) throws NiFiClientException, IOException;
+    Path getAssetContent(String contextId, String assetId, File outputDirectory) throws NiFiClientException, IOException;
 
     AssetEntity deleteAsset(String contextId, String assetId) throws NiFiClientException, IOException;
 

@@ -28,6 +28,7 @@ import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Properties;
 
 public class GetAsset extends AbstractNiFiCommand<VoidResult> {
@@ -55,9 +56,9 @@ public class GetAsset extends AbstractNiFiCommand<VoidResult> {
         final String paramContextId = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_ID);
         final String assetId = getRequiredArg(properties, CommandOption.ASSET_ID);
         final File outputDir = new File(getRequiredArg(properties, CommandOption.OUTPUT_DIR));
-        final File assetFile = client.getParamContextClient().getAssetContent(paramContextId, assetId, outputDir);
+        final Path assetFile = client.getParamContextClient().getAssetContent(paramContextId, assetId, outputDir);
         if (isInteractive()) {
-            println(assetFile.getAbsolutePath());
+            println(assetFile.toFile().getAbsolutePath());
         }
         return VoidResult.getInstance();
     }

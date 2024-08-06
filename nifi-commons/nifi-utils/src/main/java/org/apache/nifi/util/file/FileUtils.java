@@ -597,7 +597,7 @@ public class FileUtils {
      * @param filename The filename to clean
      * @return sanitized filename
      */
-    public static String sanitizeFilename(String filename) {
+    public static String getSanitizedFilename(String filename) {
         if (filename == null) {
             return null;
         }

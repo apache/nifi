@@ -36,6 +36,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 public class JerseyParamContextClient extends AbstractJerseyClient implements ParamContextClient {
@@ -217,7 +218,7 @@ public class JerseyParamContextClient extends AbstractJerseyClient implements Pa
     }
 
     @Override
-    public File getAssetContent(final String contextId, final String assetId, final File outputDirectory)
+    public Path getAssetContent(final String contextId, final String assetId, final File outputDirectory)
             throws NiFiClientException, IOException {
         if (StringUtils.isBlank(contextId)) {
             throw new IllegalArgumentException("Parameter context id cannot be null or blank");
@@ -239,7 +240,7 @@ public class JerseyParamContextClient extends AbstractJerseyClient implements Pa
 
             try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
                 Files.copy(responseInputStream, assetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                return assetFile;
+                return assetFile.toPath();
             }
         });
     }
