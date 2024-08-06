@@ -223,60 +223,75 @@ export class CanvasActionsService {
                 return this.canvasUtils.canManagePolicies(selection);
             },
             action: (selection: d3.Selection<any, any, any, any>, extraArgs?) => {
-                if (selection.empty()) {
-                    if (extraArgs?.processGroupId) {
+                const routeBoundary: string[] = ['/access-policies'];
+
+                if (extraArgs?.processGroupId) {
+                    if (selection.empty()) {
                         this.store.dispatch(
                             navigateToManageComponentPolicies({
                                 request: {
                                     resource: 'process-groups',
                                     id: extraArgs.processGroupId,
-                                    backNavigationContext: 'Process Group'
+                                    backNavigation: {
+                                        route: ['/process-groups', extraArgs.processGroupId],
+                                        routeBoundary,
+                                        context: 'Process Group'
+                                    }
+                                }
+                            })
+                        );
+                    } else {
+                        const selectionData = selection.datum();
+                        const componentType: ComponentType = selectionData.type;
+
+                        let resource = 'process-groups';
+                        let context = 'Process Group';
+                        switch (componentType) {
+                            case ComponentType.Processor:
+                                resource = 'processors';
+                                context = 'Processor';
+                                break;
+                            case ComponentType.InputPort:
+                                resource = 'input-ports';
+                                context = 'Input Port';
+                                break;
+                            case ComponentType.OutputPort:
+                                resource = 'output-ports';
+                                context = 'Output Port';
+                                break;
+                            case ComponentType.Funnel:
+                                resource = 'funnels';
+                                context = 'Funnel';
+                                break;
+                            case ComponentType.Label:
+                                resource = 'labels';
+                                context = 'Label';
+                                break;
+                            case ComponentType.RemoteProcessGroup:
+                                resource = 'remote-process-groups';
+                                context = 'Remote Process Group';
+                                break;
+                        }
+
+                        this.store.dispatch(
+                            navigateToManageComponentPolicies({
+                                request: {
+                                    resource,
+                                    id: selectionData.id,
+                                    backNavigation: {
+                                        route: [
+                                            '/process-groups',
+                                            extraArgs.processGroupId,
+                                            componentType,
+                                            selectionData.id
+                                        ],
+                                        routeBoundary,
+                                        context
+                                    }
                                 }
                             })
                         );
                     }
-                } else {
-                    const selectionData = selection.datum();
-                    const componentType: ComponentType = selectionData.type;
-
-                    let resource = 'process-groups';
-                    let backNavigationContext = 'Process Group';
-                    switch (componentType) {
-                        case ComponentType.Processor:
-                            resource = 'processors';
-                            backNavigationContext = 'Processor';
-                            break;
-                        case ComponentType.InputPort:
-                            resource = 'input-ports';
-                            backNavigationContext = 'Input Port';
-                            break;
-                        case ComponentType.OutputPort:
-                            resource = 'output-ports';
-                            backNavigationContext = 'Output Port';
-                            break;
-                        case ComponentType.Funnel:
-                            resource = 'funnels';
-                            backNavigationContext = 'Funnel';
-                            break;
-                        case ComponentType.Label:
-                            resource = 'labels';
-                            backNavigationContext = 'Label';
-                            break;
-                        case ComponentType.RemoteProcessGroup:
-                            resource = 'remote-process-groups';
-                            backNavigationContext = 'Remote Process Group';
-                            break;
-                    }
-
-                    this.store.dispatch(
-                        navigateToManageComponentPolicies({
-                            request: {
-                                resource,
-                                id: selectionData.id,
-                                backNavigationContext
-                            }
-                        })
-                    );
                 }
             }
         },
