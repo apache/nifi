@@ -25,7 +25,6 @@ import {
 } from './jolt-transform-json-processor-details.actions';
 
 export const initialState: JoltTransformJsonProcessorDetailsState = {
-    saving: false,
     loading: false,
     processorDetails: null
 };

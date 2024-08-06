@@ -39,11 +39,6 @@ export const selectProcessorDetailsLoading = createSelector(
     (state: JoltTransformJsonProcessorDetailsState) => state.loading
 );
 
-export const selectSaving = createSelector(
-    selectJoltTransformJsonProcessorDetailsState,
-    (state: JoltTransformJsonProcessorDetailsState) => state.saving
-);
-
 export const selectProcessorIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {
         return route.queryParams.id;
