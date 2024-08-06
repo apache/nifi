@@ -20,6 +20,7 @@ package org.apache.nifi.c2.protocol.api;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 
 public class FlowInfo implements Serializable {
@@ -29,6 +30,7 @@ public class FlowInfo implements Serializable {
     private FlowUri flowUri;
     private Map<String, ComponentStatus> components;
     private Map<String, FlowQueueStatus> queues;
+    private List<ProcessorBulletin> processorBulletins;
 
     @Schema(description = "A unique identifier of the flow currently deployed on the agent")
     public String getFlowId() {
@@ -64,6 +66,15 @@ public class FlowInfo implements Serializable {
 
     public void setQueues(Map<String, FlowQueueStatus> queues) {
         this.queues = queues;
+    }
+
+    @Schema(description = "Bulletins of each processors")
+    public List<ProcessorBulletin> getProcessorBulletins() {
+        return processorBulletins;
+    }
+
+    public void setProcessorBulletins(List<ProcessorBulletin> processorBulletins) {
+        this.processorBulletins = processorBulletins;
     }
 
 }

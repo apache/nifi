@@ -16,20 +16,24 @@
  */
 package org.apache.nifi.c2.client.service.model;
 
+import java.util.List;
 import java.util.Map;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
+import org.apache.nifi.c2.protocol.api.ProcessorBulletin;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 
 public class RuntimeInfoWrapper {
     final AgentRepositories repos;
     final RuntimeManifest manifest;
     final Map<String, FlowQueueStatus> queueStatus;
+    final List<ProcessorBulletin> processorBulletins;
 
-    public RuntimeInfoWrapper(AgentRepositories repos, RuntimeManifest manifest, Map<String, FlowQueueStatus> queueStatus) {
+    public RuntimeInfoWrapper(AgentRepositories repos, RuntimeManifest manifest, Map<String, FlowQueueStatus> queueStatus, List<ProcessorBulletin> processorBulletins) {
         this.repos = repos;
         this.manifest = manifest;
         this.queueStatus = queueStatus;
+        this.processorBulletins = processorBulletins;
     }
 
     public AgentRepositories getAgentRepositories() {
@@ -42,5 +46,9 @@ public class RuntimeInfoWrapper {
 
     public Map<String, FlowQueueStatus> getQueueStatus() {
         return queueStatus;
+    }
+
+    public List<ProcessorBulletin> getProcessorBulletins() {
+        return processorBulletins;
     }
 }
