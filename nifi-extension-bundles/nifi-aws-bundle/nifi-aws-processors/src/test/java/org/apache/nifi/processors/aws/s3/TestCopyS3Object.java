@@ -93,8 +93,8 @@ public class TestCopyS3Object {
     private Map<String, String> setupRun() {
         runner.setProperty(CopyS3Object.SOURCE_BUCKET, "${s3.bucket.source}");
         runner.setProperty(CopyS3Object.SOURCE_KEY, "${s3.key.source}");
-        runner.setProperty(CopyS3Object.TARGET_BUCKET, "${s3.bucket.target}");
-        runner.setProperty(CopyS3Object.TARGET_KEY, "${s3.key.target}");
+        runner.setProperty(CopyS3Object.DESTINATION_BUCKET, "${s3.bucket.target}");
+        runner.setProperty(CopyS3Object.DESTINATION_KEY, "${s3.key.target}");
 
         return Map.of("s3.bucket.source", "dev-bucket",
                 "s3.key.source", "/test.txt",

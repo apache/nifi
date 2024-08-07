@@ -71,8 +71,8 @@ public class CopyS3Object extends AbstractS3Processor {
     public static final List<PropertyDescriptor> properties = List.of(
             SOURCE_BUCKET,
             SOURCE_KEY,
-            TARGET_BUCKET,
-            TARGET_KEY,
+            DESTINATION_BUCKET,
+            DESTINATION_KEY,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             S3_REGION,
             TIMEOUT,
@@ -114,8 +114,8 @@ public class CopyS3Object extends AbstractS3Processor {
 
         final String sourceBucket = context.getProperty(SOURCE_BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String sourceKey = context.getProperty(SOURCE_KEY).evaluateAttributeExpressions(flowFile).getValue();
-        final String targetBucket = context.getProperty(TARGET_BUCKET).evaluateAttributeExpressions(flowFile).getValue();
-        final String targetKey = context.getProperty(TARGET_KEY).evaluateAttributeExpressions(flowFile).getValue();
+        final String targetBucket = context.getProperty(DESTINATION_BUCKET).evaluateAttributeExpressions(flowFile).getValue();
+        final String targetKey = context.getProperty(DESTINATION_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
             CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceKey, targetBucket, targetKey);
@@ -134,7 +134,7 @@ public class CopyS3Object extends AbstractS3Processor {
 
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final AmazonClientException e) {
-            flowFile = extractExceptionDetails(ex, session, flowFile);
+            flowFile = extractExceptionDetails(e, session, flowFile);
             getLogger().error("Failed to copy S3 object", e);
             session.transfer(flowFile, REL_FAILURE);
         }

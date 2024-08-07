@@ -172,20 +172,20 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
                     flowFile = session.write(flowFile, os -> os.write(metadataJson.getBytes(StandardCharsets.UTF_8)));
                 }
 
-                route = REL_FOUND;
+                relationship = REL_FOUND;
             } catch (AmazonS3Exception e) {
                 if (e.getStatusCode() == 404) {
-                    route = REL_NOT_FOUND;
+                    relationship = REL_NOT_FOUND;
                     flowFile = extractExceptionDetails(e, session, flowFile);
                 } else {
                     throw e;
                 }
             }
 
-            session.transfer(flowFile, route);
+            session.transfer(flowFile, relationship);
         } catch (final IOException | AmazonClientException e) {
             getLogger().error("Failed to get S3 Object Metadata from s3://{}{} ", bucket, key, e);
-            flowFile = extractExceptionDetails(ex, session, flowFile);
+            flowFile = extractExceptionDetails(e, session, flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
