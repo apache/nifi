@@ -17,8 +17,10 @@
 package org.apache.nifi.framework.configuration;
 
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.asset.AssetComponentManager;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.asset.AssetSynchronizer;
+import org.apache.nifi.asset.StandardAssetComponentManager;
 import org.apache.nifi.asset.StandardAssetSynchronizer;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -458,5 +460,15 @@ public class FlowControllerConfiguration {
     @Bean
     public AssetSynchronizer assetSynchronizer() throws Exception {
         return new StandardAssetSynchronizer(flowController(), clusterCoordinator, webClientService(), properties);
+    }
+
+    /**
+     * Affected Component Manager depends on FlowController
+     *
+     * @return Affected Component Manager
+     */
+    @Bean
+    public AssetComponentManager affectedComponentManager() throws Exception {
+        return new StandardAssetComponentManager(flowController());
     }
 }

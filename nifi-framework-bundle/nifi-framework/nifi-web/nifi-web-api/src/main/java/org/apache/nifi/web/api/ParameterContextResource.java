@@ -42,6 +42,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.asset.AssetComponentManager;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -140,6 +141,7 @@ public class ParameterContextResource extends AbstractParameterResource {
     private ComponentLifecycle clusterComponentLifecycle;
     private ComponentLifecycle localComponentLifecycle;
     private AssetManager assetManager;
+    private AssetComponentManager assetComponentManager;
     private UploadRequestReplicator uploadRequestReplicator;
 
     private ParameterUpdateManager parameterUpdateManager;
@@ -416,6 +418,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(contextId, false, user);
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(Collections.singletonList(contextEntity.getComponent()));
+        final Optional<Asset> previousAsset = assetManager.getAssets(contextId).stream().filter(asset -> asset.getName().equals(sanitizedAssetName)).findAny();
 
         // Authorize the request
         serviceFacade.authorizeAccess(lookup -> {
@@ -426,7 +429,9 @@ public class ParameterContextResource extends AbstractParameterResource {
 
             // Verify READ and WRITE permissions for user, for every component that is affected
             // This is necessary because this end-point may be called to replace the content of an asset that is referenced in a parameter that is already in use
-            affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
+            if (previousAsset.isPresent()) {
+                affectedComponents.forEach(component -> parameterUpdateManager.authorizeAffectedComponent(component, lookup, user, true, true));
+            }
         });
 
         // If we need to replicate the request, we do so using the Upload Request Replicator, rather than the typical replicate() method.
@@ -456,6 +461,7 @@ public class ParameterContextResource extends AbstractParameterResource {
             final String existingContextId = contextEntity.getId();
             final Asset asset = assetManager.createAsset(existingContextId, sanitizedAssetName, maxLengthInputStream);
             assetEntity = dtoFactory.createAssetEntity(asset);
+            previousAsset.ifPresent(value -> assetComponentManager.restartReferencingComponentsAsync(value));
         }
 
         final AssetDTO assetDTO = assetEntity.getAsset();
@@ -1479,4 +1485,8 @@ public class ParameterContextResource extends AbstractParameterResource {
         this.uploadRequestReplicator = uploadRequestReplicator;
     }
 
+    @Autowired
+    public void setAffectedComponentManager(final AssetComponentManager assetComponentManager) {
+        this.assetComponentManager = assetComponentManager;
+    }
 }

@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.params;
 
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.CommandException;
+import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
@@ -37,6 +38,13 @@ public class DeleteAsset extends AbstractNiFiCommand<VoidResult> {
     @Override
     public String getDescription() {
         return "Deletes an asset from a given parameter context";
+    }
+
+    @Override
+    protected void doInitialize(Context context) {
+        super.doInitialize(context);
+        addOption(CommandOption.PARAM_CONTEXT_ID.createOption());
+        addOption(CommandOption.ASSET_ID.createOption());
     }
 
     @Override
