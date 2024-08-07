@@ -17,8 +17,6 @@
 package org.apache.nifi.processors.opentelemetry.server;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -87,7 +85,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
         if (HttpMethod.POST == httpRequest.method()) {
             handleHttpPostRequest(channelHandlerContext, httpRequest);
         } else {
-            sendCloseResponse(channelHandlerContext, httpRequest, HttpResponseStatus.METHOD_NOT_ALLOWED);
+            sendErrorResponse(channelHandlerContext, httpRequest, HttpResponseStatus.METHOD_NOT_ALLOWED);
         }
     }
 
@@ -96,12 +94,12 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
         final String requestContentType = headers.get(HttpHeaderNames.CONTENT_TYPE);
         final TelemetryContentType telemetryContentType = getTelemetryContentType(requestContentType);
         if (telemetryContentType == null) {
-            sendCloseResponse(channelHandlerContext, httpRequest, HttpResponseStatus.UNSUPPORTED_MEDIA_TYPE);
+            sendErrorResponse(channelHandlerContext, httpRequest, HttpResponseStatus.UNSUPPORTED_MEDIA_TYPE);
         } else {
             final String uri = httpRequest.uri();
             final TelemetryRequestType telemetryRequestType = getTelemetryRequestType(uri, telemetryContentType);
             if (telemetryRequestType == null) {
-                sendCloseResponse(channelHandlerContext, httpRequest, HttpResponseStatus.NOT_FOUND);
+                sendErrorResponse(channelHandlerContext, httpRequest, HttpResponseStatus.NOT_FOUND);
             } else {
                 handleHttpPostRequestTypeSupported(channelHandlerContext, httpRequest, telemetryRequestType, telemetryContentType);
             }
@@ -204,19 +202,18 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
         return grpcStatusCode;
     }
 
-    private void sendCloseResponse(final ChannelHandlerContext channelHandlerContext, final HttpRequest httpRequest, final HttpResponseStatus httpResponseStatus) {
+    private void sendErrorResponse(final ChannelHandlerContext channelHandlerContext, final HttpRequest httpRequest, final HttpResponseStatus httpResponseStatus) {
         final SocketAddress remoteAddress = channelHandlerContext.channel().remoteAddress();
         final HttpMethod method = httpRequest.method();
         final String uri = httpRequest.uri();
         final HttpVersion httpVersion = httpRequest.protocolVersion();
 
-        log.debug("HTTP Request Closed: Client Address [{}] Method [{}] URI [{}] Version [{}] HTTP {}", remoteAddress, method, uri, httpVersion, httpResponseStatus.code());
+        log.debug("HTTP Request Failed: Client Address [{}] Method [{}] URI [{}] Version [{}] HTTP {}", remoteAddress, method, uri, httpVersion, httpResponseStatus.code());
 
         final FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, httpResponseStatus);
         setStreamId(httpRequest.headers(), response);
 
-        final ChannelFuture future = channelHandlerContext.writeAndFlush(response);
-        future.addListener(ChannelFutureListener.CLOSE);
+        channelHandlerContext.writeAndFlush(response);
     }
 
     private void sendResponse(
