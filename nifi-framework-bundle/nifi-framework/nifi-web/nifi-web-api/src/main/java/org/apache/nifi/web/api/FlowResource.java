@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
 import io.swagger.v3.oas.annotations.Operation;
@@ -152,6 +153,9 @@ import org.apache.nifi.web.util.PaginationHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.text.Collator;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -187,6 +191,8 @@ public class FlowResource extends ApplicationResource {
 
     private static final String VERSIONED_REPORTING_TASK_SNAPSHOT_FILENAME_PATTERN = "VersionedReportingTaskSnapshot-%s.json";
     private static final String VERSIONED_REPORTING_TASK_SNAPSHOT_DATE_FORMAT = "yyyyMMddHHmmss";
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -343,7 +349,7 @@ public class FlowResource extends ApplicationResource {
         final CurrentUserEntity entity;
         if (isReplicateRequest()) {
             try (Response replicatedResponse = replicate(HttpMethod.GET)) {
-                final CurrentUserEntity replicatedCurrentUserEntity = (CurrentUserEntity) replicatedResponse.getEntity();
+                final CurrentUserEntity replicatedCurrentUserEntity = readReplicatedCurrentUserEntity(replicatedResponse);
                 final CurrentUserEntity currentUserEntity = serviceFacade.getCurrentUser();
                 // Set Logout Supported based on local client information instead of replicated and merged responses
                 replicatedCurrentUserEntity.setLogoutSupported(currentUserEntity.isLogoutSupported());
@@ -354,6 +360,25 @@ public class FlowResource extends ApplicationResource {
         }
 
         return generateOkResponse(entity).build();
+    }
+
+    private CurrentUserEntity readReplicatedCurrentUserEntity(final Response replicatedResponse) {
+        final Object entity = replicatedResponse.getEntity();
+        if (entity instanceof CurrentUserEntity replicatedCurrentUserEntity) {
+            return replicatedCurrentUserEntity;
+        } else if (entity instanceof StreamingOutput streamingOutput) {
+            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            try {
+                streamingOutput.write(outputStream);
+
+                final byte[] bytes = outputStream.toByteArray();
+                return objectMapper.readValue(bytes, CurrentUserEntity.class);
+            } catch (final IOException e) {
+                throw new UncheckedIOException("Read Current User Entity failed", e);
+            }
+        } else {
+            throw new IllegalStateException("Current User Entity not expected [%s]".formatted(entity));
+        }
     }
 
     /**
