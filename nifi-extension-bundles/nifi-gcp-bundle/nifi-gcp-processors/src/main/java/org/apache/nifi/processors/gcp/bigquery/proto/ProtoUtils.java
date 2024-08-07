@@ -24,10 +24,8 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -52,14 +50,12 @@ public class ProtoUtils {
                    if (value instanceof Object[] arrayValue) {
                        valueMaps = Arrays.stream(arrayValue)
                                .map(item -> (Map<String, Object>) item).toList();
-                   } else if (value instanceof HashMap<?, ?> hashMapValue) {
-                       valueMaps = new ArrayList<>();
-                       for (Map.Entry<?, ?> entry : hashMapValue.entrySet()) {
-                           Map<String, Object> map = new HashMap<>();
-                           map.put("key", entry.getKey());
-                           map.put("value", entry.getValue());
-                           valueMaps.add(map);
-                       }
+                   } else if (value instanceof Map<?, ?> mapValue) {
+                       valueMaps = mapValue.entrySet().stream()
+                               .map(entry -> Map.of(
+                                       "key", entry.getKey(),
+                                       "value", entry.getValue()
+                               )).toList();
                    } else {
                        valueMaps = (Collection<Map<String, Object>>) value;
                    }
