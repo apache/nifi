@@ -1056,6 +1056,15 @@ public interface NiFiServiceFacade {
     ProcessGroupEntity getProcessGroup(String groupId);
 
     /**
+     * Returns the process group.
+     *
+     * @param groupId group
+     * @param recurse boolean
+     * @return ProcessGroup transfer object
+     */
+    ProcessGroupEntity getProcessGroup(String groupId, boolean recurse);
+
+    /**
      * Verifies that a Parameter Context matching the given DTO can be created
      * @param parameterContext the DTO that represents the Parameter Context
      * @throws IllegalStateException if a ParameterContext cannot be created for the given DTO
@@ -2098,6 +2107,16 @@ public interface NiFiServiceFacade {
      * @return The controller service DTO
      */
     ControllerServiceEntity updateControllerService(Revision revision, ControllerServiceDTO controllerServiceDTO);
+
+    /**
+     * Moves the specified controller service.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param controllerServiceDTO The controller service DTO
+     * @param newProcessGroupID The id of the process group the controller service is being moved to
+     * @return The controller service DTO
+     */
+    ControllerServiceEntity moveControllerService(final Revision revision, final ControllerServiceDTO controllerServiceDTO, final String newProcessGroupID);
 
     /**
      * Performs verification of the given Configuration for the Controller Service with the given ID

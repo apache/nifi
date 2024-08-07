@@ -2971,6 +2971,41 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ControllerServiceEntity moveControllerService(final Revision revision, final ControllerServiceDTO controllerServiceDTO, final String newProcessGroupID) {
+        // get the component, ensure we have access to it, and perform the move request
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceDTO.getId());
+        final RevisionUpdate<ControllerServiceDTO> snapshot = updateComponent(revision,
+                controllerService,
+                () -> {
+                    final ProcessGroup oldParentGroup = controllerService.getProcessGroup();
+                    controllerService.setMoving(true);
+                    oldParentGroup.removeControllerService(controllerService);
+                    if (!oldParentGroup.isRootGroup() && oldParentGroup.getParent().getIdentifier().equals(newProcessGroupID)) {
+                        // move to parent process group
+                        oldParentGroup.getParent().addControllerService(controllerService);
+                    } else {
+                        // move to child process group
+                        oldParentGroup.getProcessGroup(newProcessGroupID).addControllerService(controllerService);
+                    }
+                    return controllerService;
+                },
+                cs -> {
+                    final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(cs);
+                    final ControllerServiceReference ref = controllerService.getReferences();
+                    final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref);
+                    dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
+                    return dto;
+                });
+
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(controllerService);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(controllerService));
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(controllerServiceDTO.getId()));
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        controllerService.performValidation();
+        return entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions, bulletinEntities);
+    }
+
+    @Override
     public List<ConfigVerificationResultDTO> performControllerServiceConfigVerification(final String controllerServiceId, final Map<String, String> properties, final Map<String, String> variables) {
         return controllerServiceDAO.verifyConfiguration(controllerServiceId, properties, variables);
     }
@@ -4674,11 +4709,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private ProcessGroupEntity createProcessGroupEntity(final ProcessGroup group) {
+        return createProcessGroupEntity(group, false);
+    }
+    private ProcessGroupEntity createProcessGroupEntity(final ProcessGroup group, final boolean recurse) {
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(group.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(group);
         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(group.getIdentifier()));
         final List<BulletinEntity> bulletins = getProcessGroupBulletins(group);
-        return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(group), revision, permissions, status, bulletins);
+        return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(group, recurse), revision, permissions, status, bulletins);
     }
 
     private List<BulletinEntity> getProcessGroupBulletins(final ProcessGroup group) {
@@ -4858,8 +4896,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ProcessGroupEntity getProcessGroup(final String groupId) {
+        return getProcessGroup(groupId, false);
+    }
+
+    @Override
+    public ProcessGroupEntity getProcessGroup(final String groupId, final boolean recurse) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
-        return createProcessGroupEntity(processGroup);
+        return createProcessGroupEntity(processGroup, recurse);
     }
 
     private ControllerServiceEntity createControllerServiceEntity(final ControllerServiceNode serviceNode, final boolean includeReferencingComponents) {
