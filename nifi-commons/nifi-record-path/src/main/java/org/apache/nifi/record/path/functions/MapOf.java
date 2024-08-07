@@ -17,21 +17,16 @@
 
 package org.apache.nifi.record.path.functions;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
 
 public class MapOf extends RecordPathSegment {
     private final RecordPathSegment[] valuePaths;
@@ -43,22 +38,17 @@ public class MapOf extends RecordPathSegment {
 
     @Override
     public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
-
-        final List<RecordField> fields = new ArrayList<>();
-        final java.util.Map<String, Object> values = new HashMap<>();
+        final Map<String, Object> values = new HashMap<>();
 
         for (int i = 0; i + 1 < valuePaths.length; i += 2) {
             final String key = valuePaths[i].evaluate(context).findFirst().get().toString();
             final String value = valuePaths[i + 1].evaluate(context).findFirst().get().toString();
-            fields.add(new RecordField(key, RecordFieldType.STRING.getDataType()));
             values.put(key, value);
         }
 
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Record record = new MapRecord(schema, values);
         final RecordField field = new RecordField("mapOf", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
+        final FieldValue responseValue = new StandardFieldValue(values, field, null);
 
-        final FieldValue responseValue = new StandardFieldValue(record, field, null);
         return Stream.of(responseValue);
     }
 
