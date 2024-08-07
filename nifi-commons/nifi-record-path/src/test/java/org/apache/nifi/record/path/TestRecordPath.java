@@ -1391,23 +1391,24 @@ public class TestRecordPath {
         return new MapRecord(schema, values);
     }
 
-
     @Test
     public void testMapOf() {
         final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("fullName", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("firstName", RecordFieldType.LONG.getDataType()));
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+        fields.add(new RecordField("missing", RecordFieldType.STRING.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         final Map<String, Object> values = new HashMap<>();
-        values.put("lastName", "Doe");
-        values.put("firstName", "John");
+        values.put("id", 83);
+        values.put("name", "John Doe");
+        values.put("balance", 123.45);
         final Record record = new MapRecord(schema, values);
-        final FieldValue fv = RecordPath.compile("mapOf('firstName', /firstName, 'lastName', /lastName)").evaluate(record).getSelectedFields().findFirst().get();
-        assertTrue(fv.getField().getDataType().getFieldType().equals(RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()).getFieldType()));
-        assertEquals("MapRecord[{firstName=John, lastName=Doe}]", fv.getValue().toString());
+        final FieldValue fv = RecordPath.compile("mapOf('id', /id, 'name', /name, 'money', /balance, 'nullableString', /missing)").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(fv.getField().getDataType().getFieldType(), RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()).getFieldType());
+        assertEquals(Map.of("id", "83", "name", "John Doe", "money", "123.45", "nullableString", "null"), fv.getValue());
 
         assertThrows(RecordPathException.class, () -> RecordPath.compile("mapOf('firstName', /firstName, 'lastName')").evaluate(record));
     }
@@ -2294,8 +2295,8 @@ public class TestRecordPath {
         final FieldValue singleArgumentFieldValue = evaluateSingleFieldValue("escapeJson(/)", record);
         assertEquals("{\"id\":48,\"name\":\"John Doe\",\"missing\":null}", singleArgumentFieldValue.getValue());
         final FieldValue multipleArgumentsFieldValue = evaluateSingleFieldValue("mapOf(\"copy\",/)", record);
-        assertInstanceOf(MapRecord.class, multipleArgumentsFieldValue.getValue());
-        assertEquals(record.toString(), ((MapRecord) multipleArgumentsFieldValue.getValue()).getValue("copy"));
+        assertInstanceOf(Map.class, multipleArgumentsFieldValue.getValue());
+        assertEquals(record.toString(), ((Map<?, ?>) multipleArgumentsFieldValue.getValue()).get("copy"));
     }
 
     private List<RecordField> getDefaultFields() {
