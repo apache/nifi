@@ -125,6 +125,7 @@
         <org.slf4j.version>2.0.13</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <ranger.version>2.4.0</ranger.version>
+        <ranger.solr.version>8.11.3</ranger.solr.version>
         <jetty.version>9.4.54.v20240208</jetty.version>
         <jackson.bom.version>2.17.1</jackson.bom.version>
         <avro.version>1.11.3</avro.version>
