@@ -18,6 +18,7 @@
 package org.apache.nifi.c2.protocol.api;
 
 import java.util.List;
+import java.util.Objects;
 import org.apache.nifi.components.ValidationResult;
 
 public class FailureCause {
@@ -47,5 +48,18 @@ public class FailureCause {
 
     public void setCausedByMessage(String causedByMessage) {
         this.causedByMessage = causedByMessage;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FailureCause that = (FailureCause) o;
+        return Objects.equals(validationResults, that.validationResults) && Objects.equals(exceptionMessage, that.exceptionMessage) && Objects.equals(causedByMessage, that.causedByMessage);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(validationResults, exceptionMessage, causedByMessage);
     }
 }

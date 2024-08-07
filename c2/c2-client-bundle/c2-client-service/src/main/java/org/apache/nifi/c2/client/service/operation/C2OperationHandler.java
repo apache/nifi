@@ -86,8 +86,10 @@ public interface C2OperationHandler {
         state.setState(operationState);
         state.setDetails(details);
         FailureCause failureCause = new FailureCause();
-        failureCause.setExceptionMessage(e.getMessage());
-        Optional.ofNullable(e.getCause()).ifPresent(cause -> failureCause.setCausedByMessage(cause.getMessage()));
+        Optional.ofNullable(e).ifPresent(ex -> {
+            failureCause.setExceptionMessage(ex.getMessage());
+            Optional.ofNullable(ex.getCause()).ifPresent(cause -> failureCause.setCausedByMessage(cause.getMessage()));
+            });
         if (e instanceof ValidationException) {
             failureCause.setValidationResults(((ValidationException) e).getValidationResults());
         }

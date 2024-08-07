@@ -31,6 +31,7 @@ import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
 import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
+import org.apache.nifi.c2.protocol.api.FailureCause;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -116,6 +117,7 @@ public class UpdatePropertiesOperationHandlerTest {
         final C2OperationAck c2OperationAck = new C2OperationAck();
         c2OperationAck.setOperationId(ID);
         C2OperationState c2OperationState = new C2OperationState();
+        c2OperationState.setFailureCause(new FailureCause());
         c2OperationState.setState(operationState);
         c2OperationAck.setOperationState(c2OperationState);
         return c2OperationAck;

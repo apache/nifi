@@ -22,6 +22,8 @@ import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOpe
 import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.LOCATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,7 +32,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.protocol.api.C2Operation;
@@ -82,7 +83,7 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleFlowIdInArg() {
-        UpdateConfigurationStrategy successUpdate = (UpdateConfigurationStrategy) Function.identity();
+        UpdateConfigurationStrategy successUpdate = mock(UpdateConfigurationStrategy.class);
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
         when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(INCORRECT_LOCATION));
@@ -117,7 +118,8 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleReturnsNotAppliedWithContentApplyIssues() {
-        UpdateConfigurationStrategy failedToUpdate = flow -> {};
+        UpdateConfigurationStrategy failedToUpdate = mock(UpdateConfigurationStrategy.class);
+        doThrow(new IllegalStateException()).when(failedToUpdate).update(any());
         when(flowIdHolder.getFlowId()).thenReturn("previous_flow_id");
         when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
         when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(CORRECT_LOCATION));
@@ -134,7 +136,7 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleReturnsFullyApplied() {
-        UpdateConfigurationStrategy successUpdate = flow -> {};
+        UpdateConfigurationStrategy successUpdate = mock(UpdateConfigurationStrategy.class);
         when(flowIdHolder.getFlowId()).thenReturn("previous_flow_id");
         when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(CORRECT_LOCATION));
         when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
