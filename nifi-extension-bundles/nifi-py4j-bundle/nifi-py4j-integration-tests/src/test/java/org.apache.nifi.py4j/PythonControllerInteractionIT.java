@@ -596,18 +596,13 @@ public class PythonControllerInteractionIT {
     }
 
     @Test
-    public void testCreateNothing() throws IOException {
-        /* Test the use-case where the source processor returns with None.
-           (The case must not result in Java NullPointerException.) */
-
-        final String processorName = "CreateNothing";
-        final String relationshipSuccess = "success";
-
-        final TestRunner runner = createProcessor(processorName);
+    public void testCreateNothing() {
+        // Test the use-case where the source processor returns with None.
+        final TestRunner runner = createProcessor("CreateNothing");
         waitForValid(runner);
         runner.run();
 
-        runner.assertTransferCount(relationshipSuccess, 0);
+        runner.assertTransferCount("success", 0);
     }
 
     public interface StringLookupService extends ControllerService {
