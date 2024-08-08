@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 
@@ -53,11 +54,11 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 @SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class})
 public class GetS3ObjectMetadata extends AbstractS3Processor {
     public static final AllowableValue MODE_FETCH_METADATA = new AllowableValue("fetch", "Fetch Metadata",
-            "This is the default mode. It will fetch the metadata and write it to either the flowfile body or an " +
+            "This is the default mode. It will fetch the metadata and write it to either the FlowFile content or an " +
                     "attribute");
     public static final AllowableValue MODE_ROUTER = new AllowableValue("router", "Router", "When selected," +
-            "this mode will skip writing the metadata and just send the flowfile to the found or not-found relationship. It should be used " +
-            "when the goal is to just route flowfiles based on whether or not a key is present in S3.");
+            "this mode will skip writing the metadata and just send the FlowFile to the found or not-found relationship. It should be used " +
+            "when the goal is to just route FlowFiles based on whether or not a key is present in S3.");
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("Mode")
             .allowableValues(MODE_FETCH_METADATA, MODE_ROUTER)
@@ -69,8 +70,8 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
 
     public static final AllowableValue TARGET_ATTRIBUTE = new AllowableValue("attribute", "Attribute", "When " +
             "selected, the metadata will be written to a user-supplied attribute");
-    public static final AllowableValue TARGET_FLOWFILE_BODY = new AllowableValue("flowfile-body", "Flowfile Body", "Write " +
-            "the metadata to the flowfile's body");
+    public static final AllowableValue TARGET_FLOWFILE_BODY = new AllowableValue("flowfile-content", "FlowFile Body", "Write " +
+            "the metadata to the FlowFile's content as JSON data.");
 
     public static final PropertyDescriptor METADATA_TARGET = new PropertyDescriptor.Builder()
             .name("Metadata Target")
@@ -82,11 +83,11 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .dependsOn(MODE, MODE_FETCH_METADATA)
             .build();
 
-    public static final PropertyDescriptor METADATA_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("Metadata Attribute")
-            .description("The attribute where the metadata will be written")
+    public static final PropertyDescriptor METADATA_ATTRIBUTE_PREFIX = new PropertyDescriptor.Builder()
+            .name("Metadata Attribute Prefix")
+            .description("The prefix for FlowFile attributes generated from the S3 object metadata.")
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .defaultValue("s3.object.metadata")
+            .defaultValue("s3.")
             .dependsOn(METADATA_TARGET, TARGET_ATTRIBUTE)
             .required(true)
             .build();
@@ -96,7 +97,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
     public static final List<PropertyDescriptor> properties = List.of(
             MODE,
             METADATA_TARGET,
-            METADATA_ATTRIBUTE,
+            METADATA_ATTRIBUTE_PREFIX,
             BUCKET_WITH_DEFAULT_VALUE,
             KEY,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -163,12 +164,15 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
                 Map<String, Object> combinedMetadata = new HashMap<>(metadata.getRawMetadata());
                 combinedMetadata.putAll(metadata.getUserMetadata());
 
-                String metadataJson = MAPPER.writeValueAsString(combinedMetadata);
-
                 if (!isRouter && context.getProperty(METADATA_TARGET).getValue().equals(TARGET_ATTRIBUTE.getValue())) {
-                    String attribute = context.getProperty(METADATA_ATTRIBUTE).getValue();
-                    flowFile = session.putAttribute(flowFile, attribute, metadataJson);
+                    String attributePrefix = context.getProperty(METADATA_ATTRIBUTE_PREFIX).getValue();
+                    Map<String, String> newAttributes = combinedMetadata
+                            .entrySet().stream()
+                            .collect(Collectors.toMap(e -> attributePrefix + e.getKey(), e -> e.getValue().toString()));
+
+                    flowFile = session.putAllAttributes(flowFile, newAttributes);
                 } else if (!isRouter && context.getProperty(METADATA_TARGET).getValue().equals(TARGET_FLOWFILE_BODY.getValue())) {
+                    String metadataJson = MAPPER.writeValueAsString(combinedMetadata);
                     flowFile = session.write(flowFile, os -> os.write(metadataJson.getBytes(StandardCharsets.UTF_8)));
                 }
 

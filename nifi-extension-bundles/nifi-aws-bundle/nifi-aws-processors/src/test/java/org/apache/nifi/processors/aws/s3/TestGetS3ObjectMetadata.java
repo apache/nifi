@@ -33,9 +33,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -123,10 +125,29 @@ public class TestGetS3ObjectMetadata {
     public void testFetchMetadataToAttributeExists() {
         runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTE.getValue());
+
+        Map<String, Object> rawMetadata = new HashMap<>();
+        rawMetadata.put("raw1", "x");
+        rawMetadata.put("raw2", "y");
+        Map<String, String> userMetadata = new HashMap<>();
+        userMetadata.put("user1", "a");
+        userMetadata.put("user2", "b");
+        Map<String, Object> combined = new HashMap<>(rawMetadata);
+        combined.putAll(userMetadata);
+
+        when(mockMetadata.getRawMetadata()).thenReturn(rawMetadata);
+        when(mockMetadata.getUserMetadata()).thenReturn(userMetadata);
+
         when(mockS3Client.getObjectMetadata(anyString(), anyString()))
                 .thenReturn(mockMetadata);
         run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_FOUND, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetS3ObjectMetadata.REL_FOUND).get(0);
+        userMetadata.entrySet().forEach(e -> {
+            String key = String.format("s3.%s", e.getKey());
+            String val = flowFile.getAttribute(key);
+            assertEquals(e.getValue(), val);
+        });
     }
 
     @DisplayName("Validate fetch to attribute mode routes to failure on S3 error")
