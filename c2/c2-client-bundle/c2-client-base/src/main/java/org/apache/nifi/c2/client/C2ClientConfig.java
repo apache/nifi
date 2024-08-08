@@ -58,6 +58,7 @@ public class C2ClientConfig {
     private final String c2RequestCompression;
     private final String c2AssetDirectory;
     private final long bootstrapAcknowledgeTimeout;
+    private final int c2FlowInfoProcessorBulletinLimit;
 
     private C2ClientConfig(final Builder builder) {
         this.c2Url = builder.c2Url;
@@ -88,6 +89,7 @@ public class C2ClientConfig {
         this.c2RequestCompression = builder.c2RequestCompression;
         this.c2AssetDirectory = builder.c2AssetDirectory;
         this.bootstrapAcknowledgeTimeout = builder.bootstrapAcknowledgeTimeout;
+        this.c2FlowInfoProcessorBulletinLimit = builder.c2FlowInfoProcessorBulletinLimit;
     }
 
     public String getC2Url() {
@@ -202,6 +204,10 @@ public class C2ClientConfig {
         return bootstrapAcknowledgeTimeout;
     }
 
+    public int getC2FlowInfoProcessorBulletinLimit() {
+        return c2FlowInfoProcessorBulletinLimit;
+    }
+
     /**
      * Builder for client configuration.
      */
@@ -238,6 +244,7 @@ public class C2ClientConfig {
         private String c2RequestCompression;
         private String c2AssetDirectory;
         private long bootstrapAcknowledgeTimeout;
+        private int c2FlowInfoProcessorBulletinLimit;
 
         public Builder c2Url(String c2Url) {
             this.c2Url = c2Url;
@@ -386,6 +393,11 @@ public class C2ClientConfig {
 
         public Builder bootstrapAcknowledgeTimeout(long bootstrapAcknowledgeTimeout) {
             this.bootstrapAcknowledgeTimeout = bootstrapAcknowledgeTimeout;
+            return this;
+        }
+
+        public Builder c2FlowInfoProcessorBulletinLimit(int c2FlowInfoProcessorBulletinLimit) {
+            this.c2FlowInfoProcessorBulletinLimit = c2FlowInfoProcessorBulletinLimit;
             return this;
         }
 
