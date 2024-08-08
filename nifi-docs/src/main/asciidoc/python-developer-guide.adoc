@@ -323,6 +323,8 @@ Each processor based on the `FlowFileSource` API has a `success` relationship an
 created in the Processor's Python code. `attributes` and `contents` are both optional. If `attributes` is not provided,
 the FlowFile will still have the usual `filename`, `path` and `uuid` attributes, but no additional ones.
 If `contents` is not provided, a FlowFile with no contents (only attributes) will be created.
+In case there is no useful information to return from the `create` method, `return None` can be used instead of returning an
+empty `FlowFileSourceResult`. When `create` returns with `None`, the processor does not produce any output.
 
 
 

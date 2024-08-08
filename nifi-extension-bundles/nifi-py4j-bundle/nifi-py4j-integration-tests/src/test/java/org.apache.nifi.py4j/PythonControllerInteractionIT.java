@@ -595,6 +595,16 @@ public class PythonControllerInteractionIT {
                 multiLineContent.getBytes(StandardCharsets.UTF_8));
     }
 
+    @Test
+    public void testCreateNothing() {
+        // Test the use-case where the source processor returns with None.
+        final TestRunner runner = createProcessor("CreateNothing");
+        waitForValid(runner);
+        runner.run();
+
+        runner.assertTransferCount("success", 0);
+    }
+
     public interface StringLookupService extends ControllerService {
         Optional<String> lookup(Map<String, String> coordinates);
     }
