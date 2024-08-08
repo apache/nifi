@@ -79,6 +79,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.SimpleStatement;
 
 @Tags({"cassandra", "cql", "select"})
 @EventDriven
@@ -125,7 +127,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .name("Max Wait Time")
             .description("The maximum amount of time allowed for a running CQL select query. Must be of format "
                     + "<duration> <TimeUnit> where <duration> is a non-negative integer and TimeUnit is a supported "
-                    + "Time Unit, such as: nanos, millis, secs, mins, hrs, days. A value of zero means there is no limit. ")
+                    + "Time Unit, such as: millis, secs, mins, hrs, days. A value of zero means there is no limit. ")
             .defaultValue("0 seconds")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -261,7 +263,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
         final ComponentLog logger = getLogger();
         final String selectQuery = context.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
-        final long queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long queryTimeout =  context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.MILLISECONDS);
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
         final long maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
         final long outputBatchSize = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
@@ -274,10 +276,13 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             // The documentation for the driver recommends the session remain open the entire time the processor is running
             // and states that it is thread-safe. This is why connectionSession is not in a try-with-resources.
             final Session connectionSession = cassandraSession.get();
+
             final ResultSet resultSet;
 
             if (queryTimeout > 0) {
-                resultSet = connectionSession.execute(selectQuery, queryTimeout, TimeUnit.MILLISECONDS);
+                Statement statement = new SimpleStatement(selectQuery);
+                statement.setReadTimeoutMillis((int)queryTimeout);
+                resultSet = connectionSession.execute(statement);
             }else{
                 resultSet = connectionSession.execute(selectQuery);
             }
