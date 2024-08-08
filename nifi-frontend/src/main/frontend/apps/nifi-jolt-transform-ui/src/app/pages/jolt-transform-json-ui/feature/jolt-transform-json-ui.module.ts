@@ -39,6 +39,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { JoltTransformJsonTransformEffects } from '../state/jolt-transform-json-transform/jolt-transform-json-transform.effects';
 import { JoltTransformJsonValidateEffects } from '../state/jolt-transform-json-validate/jolt-transform-json-validate.effects';
 import { JoltTransformJsonPropertyEffects } from '../state/jolt-transform-json-property/jolt-transform-json-property.effects';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @NgModule({
     declarations: [JoltTransformJsonUi],
@@ -70,7 +71,8 @@ import { JoltTransformJsonPropertyEffects } from '../state/jolt-transform-json-p
         ComponentContext,
         MatExpansionModule,
         FormsModule,
-        MapTable
+        MapTable,
+        MatProgressSpinnerModule
     ]
 })
 export class JoltTransformJsonUiModule {}

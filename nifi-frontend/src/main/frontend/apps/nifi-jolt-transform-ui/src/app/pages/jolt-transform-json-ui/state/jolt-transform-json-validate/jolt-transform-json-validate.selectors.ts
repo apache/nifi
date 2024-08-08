@@ -27,8 +27,3 @@ export const selectJoltTransformJsonValidateState = createSelector(
     selectJoltTransformJsonUiState,
     (state: JoltTransformJsonUiState) => state[joltTransformJsonValidateFeatureKey]
 );
-
-export const selectSaving = createSelector(
-    selectJoltTransformJsonValidateState,
-    (state: JoltTransformJsonValidateState) => state.saving
-);
