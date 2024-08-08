@@ -15,3 +15,4 @@
 
 org.apache.nifi.services.iceberg.HiveCatalogService
 org.apache.nifi.services.iceberg.HadoopCatalogService
+org.apache.nifi.services.iceberg.JdbcCatalogService

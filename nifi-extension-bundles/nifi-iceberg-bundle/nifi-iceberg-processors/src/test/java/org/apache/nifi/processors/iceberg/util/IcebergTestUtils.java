@@ -21,11 +21,13 @@ import com.google.common.collect.Lists;
 import org.apache.commons.lang.Validate;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.Table;
+import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.IcebergGenerics;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.CloseableIterable;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,11 +36,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class IcebergTestUtils {
+
+    public static final String RECORD_READER_SERVICE = "record-reader-service";
+    public static final String CATALOG_SERVICE = "catalog-service";
+    public static final String CATALOG_NAME = "iceberg_test";
+
+    public static final Namespace NAMESPACE = Namespace.of(CATALOG_NAME);
 
     /**
      * Validates whether the table contains the expected records. The results should be sorted by a unique key, so we do not end up with flaky tests.
@@ -97,6 +106,14 @@ public class IcebergTestUtils {
             Path path = Paths.get(tableLocation + "/data/" + partitionPath);
             assertTrue(Files.exists(path), "The expected path doesn't exists: " + path);
         }
+    }
+
+    public static String getSystemTemporaryDirectory() {
+        return System.getProperty("java.io.tmpdir");
+    }
+
+    public static File createTemporaryDirectory() {
+        return Paths.get(getSystemTemporaryDirectory(), UUID.randomUUID().toString()).toFile();
     }
 
     public static class RecordsBuilder {

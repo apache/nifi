@@ -30,16 +30,14 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 @Tags({"iceberg", "catalog", "service", "metastore", "hive"})
 @CapabilityDescription("Catalog service that connects to a Hive metastore to keep track of Iceberg tables.")
 public class HiveCatalogService extends AbstractCatalogService {
 
-    static final PropertyDescriptor METASTORE_URI = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor METASTORE_URI = new PropertyDescriptor.Builder()
             .name("hive-metastore-uri")
             .displayName("Hive Metastore URI")
             .description("The URI location(s) for the Hive metastore; note that this is not the location of the Hive Server. The default port for the Hive metastore is 9043.")
@@ -47,7 +45,7 @@ public class HiveCatalogService extends AbstractCatalogService {
             .addValidator(StandardValidators.URI_LIST_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor WAREHOUSE_LOCATION = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor WAREHOUSE_LOCATION = new PropertyDescriptor.Builder()
             .name("warehouse-location")
             .displayName("Default Warehouse Location")
             .description("Location of default database for the warehouse. This field sets or overrides the 'hive.metastore.warehouse.dir' configuration property.")
@@ -55,11 +53,7 @@ public class HiveCatalogService extends AbstractCatalogService {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            METASTORE_URI,
-            WAREHOUSE_LOCATION,
-            HADOOP_CONFIGURATION_RESOURCES
-    ));
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(METASTORE_URI, WAREHOUSE_LOCATION, HADOOP_CONFIGURATION_RESOURCES);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

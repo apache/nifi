@@ -73,7 +73,7 @@ import static org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars.WAREH
  */
 class MetastoreCore {
 
-    private final String DATABASE_NAME = "test_metastore";
+    private final String DATABASE_NAME = "iceberg_test";
 
     private String thriftConnectionUri;
     private Configuration hiveConf;

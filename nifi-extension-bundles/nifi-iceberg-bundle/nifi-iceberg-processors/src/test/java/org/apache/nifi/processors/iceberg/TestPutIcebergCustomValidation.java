@@ -18,17 +18,17 @@
 package org.apache.nifi.processors.iceberg;
 
 import org.apache.nifi.kerberos.KerberosUserService;
-import org.apache.nifi.processors.iceberg.catalog.TestHiveCatalogService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.services.iceberg.HiveCatalogService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-import java.util.List;
-
+import static org.apache.nifi.services.iceberg.AbstractCatalogService.HADOOP_CONFIGURATION_RESOURCES;
+import static org.apache.nifi.services.iceberg.HiveCatalogService.METASTORE_URI;
+import static org.apache.nifi.services.iceberg.HiveCatalogService.WAREHOUSE_LOCATION;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -58,10 +58,13 @@ public class TestPutIcebergCustomValidation {
         runner.setProperty(PutIceberg.RECORD_READER, RECORD_READER_NAME);
     }
 
-    private void initCatalogService(List<String> configFilePaths) throws InitializationException {
-        TestHiveCatalogService catalogService = new TestHiveCatalogService.Builder().withConfigFilePaths(configFilePaths).build();
-
+    private void initCatalogService(String configFilePaths) throws InitializationException {
+        final HiveCatalogService catalogService = new HiveCatalogService();
         runner.addControllerService(CATALOG_SERVICE_NAME, catalogService);
+        runner.setProperty(catalogService, METASTORE_URI, "test-metastore");
+        runner.setProperty(catalogService, WAREHOUSE_LOCATION, "test-warehouse");
+        runner.setProperty(catalogService, HADOOP_CONFIGURATION_RESOURCES, configFilePaths);
+
         runner.enableControllerService(catalogService);
 
         runner.setProperty(PutIceberg.CATALOG, CATALOG_SERVICE_NAME);
@@ -80,7 +83,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithKerberosSecurityConfigAndWithoutKerberosUserService() throws InitializationException {
         initRecordReader();
-        initCatalogService(Collections.singletonList("src/test/resources/secured-core-site.xml"));
+        initCatalogService("src/test/resources/secured-core-site.xml");
 
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
@@ -90,7 +93,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithKerberosSecurityConfigAndKerberosUserService() throws InitializationException {
         initRecordReader();
-        initCatalogService(Collections.singletonList("src/test/resources/secured-core-site.xml"));
+        initCatalogService("src/test/resources/secured-core-site.xml");
 
         initKerberosUserService();
 
@@ -102,7 +105,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithoutKerberosSecurityConfigAndKerberosUserService() throws InitializationException {
         initRecordReader();
-        initCatalogService(Collections.singletonList("src/test/resources/unsecured-core-site.xml"));
+        initCatalogService("src/test/resources/unsecured-core-site.xml");
 
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
@@ -112,7 +115,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithoutKerberosSecurityConfigAndWithKerberosUserService() throws InitializationException {
         initRecordReader();
-        initCatalogService(Collections.singletonList("src/test/resources/unsecured-core-site.xml"));
+        initCatalogService("src/test/resources/unsecured-core-site.xml");
 
         initKerberosUserService();
 
@@ -124,7 +127,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testInvalidSnapshotSummaryDynamicProperty() throws InitializationException {
         initRecordReader();
-        initCatalogService(Collections.singletonList("src/test/resources/unsecured-core-site.xml"));
+        initCatalogService("src/test/resources/unsecured-core-site.xml");
 
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
@@ -136,7 +139,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testValidSnapshotSummaryDynamicProperty() throws InitializationException {
         initRecordReader();
-        initCatalogService(Collections.singletonList("src/test/resources/unsecured-core-site.xml"));
+        initCatalogService("src/test/resources/unsecured-core-site.xml");
 
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
