@@ -33,7 +33,7 @@
         <module>nifi-standard-nar</module>
     </modules>
     <properties>
-        <org.apache.sshd.version>2.13.1</org.apache.sshd.version>
+        <org.apache.sshd.version>2.13.2</org.apache.sshd.version>
         <tika.version>2.9.2</tika.version>
     </properties>
     <dependencyManagement>
@@ -112,7 +112,7 @@
             <dependency>
                 <groupId>org.tukaani</groupId>
                 <artifactId>xz</artifactId>
-                <version>1.9</version>
+                <version>1.10</version>
             </dependency>
             <dependency>
                 <groupId>net.sf.saxon</groupId>
@@ -231,7 +231,7 @@
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-                <version>1.5.0</version>
+                <version>1.5.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
