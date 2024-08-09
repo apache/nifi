@@ -31,6 +31,7 @@
     </properties>
     <modules>
         <module>nifi-framework</module>
+        <module>nifi-framework-extensions</module>
         <module>nifi-framework-nar</module>
         <module>nifi-framework-nar-bom</module>
         <module>nifi-jetty-nar</module>

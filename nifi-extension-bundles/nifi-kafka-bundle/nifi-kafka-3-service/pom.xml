@@ -86,11 +86,5 @@
             <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
-        <!-- Included for nifi-utils StringUtils -->
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-property-utils</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>

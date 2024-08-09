@@ -25,7 +25,6 @@ import org.apache.hadoop.hdfs.inotify.EventBatch;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processors.hadoop.inotify.util.EventTestUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,13 +42,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestGetHDFSEvents {
-    NiFiProperties mockNiFiProperties;
     DFSInotifyEventInputStream inotifyEventInputStream;
     HdfsAdmin hdfsAdmin;
 
     @BeforeEach
     public void setup() {
-        mockNiFiProperties = mock(NiFiProperties.class);
         inotifyEventInputStream = mock(DFSInotifyEventInputStream.class);
         hdfsAdmin = mock(HdfsAdmin.class);
     }
