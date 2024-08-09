@@ -27,6 +27,10 @@ import NfRegistryImportVersionedFlow
     from '../components/explorer/grid-list/dialogs/import-versioned-flow/nf-registry-import-versioned-flow';
 import NfRegistryImportNewFlow
     from '../components/explorer/grid-list/dialogs/import-new-flow/nf-registry-import-new-flow';
+import NfRegistryDeleteBundleVersion
+    from '../components/explorer/grid-list/dialogs/delete-bundle-version/nf-registry-delete-bundle-version';
+import NfRegistryDownloadBundleVersion
+    from '../components/explorer/grid-list/dialogs/download-bundle-version/nf-registry-download-bundle-version';
 
 /**
  * NfRegistryService constructor.
@@ -147,9 +151,9 @@ function NfRegistryService(nfRegistryApi, nfStorage, tdDataTableService, router,
             tooltip: 'Delete Policy'
         }
     ];
-    this.dropletActions = [
+    this.dropletFlowActions = [
         {
-            name: 'Import new version',
+            name: 'Import new flow version',
             icon: 'fa fa-upload',
             tooltip: 'Import new flow version',
             disabled: function (droplet) {
@@ -157,7 +161,7 @@ function NfRegistryService(nfRegistryApi, nfStorage, tdDataTableService, router,
             }
         },
         {
-            name: 'Export version',
+            name: 'Export flow version',
             icon: 'fa fa-download',
             tooltip: 'Export flow version',
             disabled: function (droplet) {
@@ -165,9 +169,35 @@ function NfRegistryService(nfRegistryApi, nfStorage, tdDataTableService, router,
             }
         },
         {
-            name: 'Delete',
+            name: 'Delete flow',
             icon: 'fa fa-trash',
-            tooltip: 'Delete',
+            tooltip: 'Delete flow',
+            disabled: function (droplet) {
+                return !droplet.permissions.canDelete;
+            }
+        }
+    ];
+    this.dropletBundleActions = [
+        {
+            name: 'Download bundle version',
+            icon: 'fa fa-download',
+            tooltip: 'Download bundle version',
+            disabled: function (droplet) {
+                return !droplet.permissions.canRead;
+            }
+        },
+        {
+            name: 'Delete bundle version',
+            icon: 'fa fa-trash',
+            tooltip: 'Delete bundle version',
+            disabled: function (droplet) {
+                return !droplet.permissions.canDelete;
+            }
+        },
+        {
+            name: 'Delete bundle',
+            icon: 'fa fa-trash',
+            tooltip: 'Delete bundle',
             disabled: function (droplet) {
                 return !droplet.permissions.canDelete;
             }
@@ -487,6 +517,40 @@ NfRegistryService.prototype = {
     },
 
     /**
+     * Opens the download bundle version dialog.
+     *
+     * @param droplet       The droplet object.
+     */
+    openDownloadBundleVersionDialog: function (droplet) {
+        this.matDialog.open(NfRegistryDownloadBundleVersion, {
+            disableClose: true,
+            width: '400px',
+            data: {
+                droplet: droplet
+            }
+        });
+    },
+
+    /**
+     * Opens the delete bundle version dialog.
+     *
+     * @param droplet       The droplet object.
+     */
+    openDeleteBundleVersionDialog: function (droplet) {
+        var self = this;
+
+        this.matDialog.open(NfRegistryDeleteBundleVersion, {
+            disableClose: true,
+            width: '400px',
+            data: {
+                droplet: droplet
+            }
+        }).afterClosed().subscribe(function () {
+            self.getDropletSnapshotMetadata(droplet);
+        });
+    },
+
+    /**
      * Opens the import new flow dialog.
      *
      * @param buckets       The buckets object.
@@ -528,6 +592,19 @@ NfRegistryService.prototype = {
     },
 
     /**
+     * Get the list of possible actions for the provided droplet.
+     *
+     * @param droplet       The droplet object the `action` will act upon.
+     */
+    getDropletActions: function (droplet) {
+        if (droplet.bundleType) {
+            return this.dropletBundleActions;
+        } else {
+            return this.dropletFlowActions;
+        }
+    },
+
+    /**
      * Execute the given droplet action.
      *
      * @param action        The action object.
@@ -535,16 +612,24 @@ NfRegistryService.prototype = {
      */
     executeDropletAction: function (action, droplet) {
         switch (action.name.toLowerCase()) {
-            case 'import new version':
+            case 'import new flow version':
                 // Opens the import versioned flow dialog
                 this.openImportVersionedFlowDialog(droplet);
                 break;
-            case 'export version':
+            case 'export flow version':
                 // Opens the export flow version dialog
                 this.openExportVersionedFlowDialog(droplet);
                 break;
-            case 'delete':
-                // Deletes the entire data flow
+            case 'download bundle version':
+                // Opens the download bundle version dialog
+                this.openDownloadBundleVersionDialog(droplet);
+                break;
+            case 'delete bundle version':
+                // Opens the delete bundle version dialog
+                this.openDeleteBundleVersionDialog(droplet);
+                break;
+            case 'delete flow':
+            case 'delete bundle':
                 this.deleteDroplet(droplet);
                 break;
             default: // do nothing

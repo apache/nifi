@@ -74,7 +74,7 @@ limitations under the License.
                         </button>
                         <mat-menu class="fds-primary-dropdown-button-menu" #primaryButtonDropdownMenu="matMenu"
                                   [overlapTrigger]="false">
-                            <button mat-menu-item *ngFor="let action of nfRegistryService.dropletActions"
+                            <button mat-menu-item *ngFor="let action of nfRegistryService.getDropletActions(droplet)"
                                     [disabled]="action.disabled(droplet)"
                                     (click)="nfRegistryService.executeDropletAction(action, droplet)">
                                 {{action.name}}
