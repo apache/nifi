@@ -402,27 +402,28 @@ public class UnpackContent extends AbstractProcessor {
                             attributes.put(CoreAttributes.FILENAME.key(), file.getName());
                             attributes.put(CoreAttributes.PATH.key(), filePathString);
                             attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
-
                             attributes.put(FILE_PERMISSIONS_ATTRIBUTE, FileInfo.permissionToString(tarEntry.getMode()));
                             attributes.put(FILE_OWNER_ATTRIBUTE, String.valueOf(tarEntry.getUserName()));
                             attributes.put(FILE_GROUP_ATTRIBUTE, String.valueOf(tarEntry.getGroupName()));
                             attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(tarEntry.getRealSize()));
-                            String timeAsString = DATE_TIME_FORMATTER.format(tarEntry.getModTime().toInstant());
-                            attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, timeAsString);
+                            String lastModified = DATE_TIME_FORMATTER.format(tarEntry.getModTime().toInstant());
+                            attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, lastModified);
 
                             if (tarEntry.getCreationTime() != null) {
-                                timeAsString = DATE_TIME_FORMATTER.format(tarEntry.getCreationTime().toInstant());
+                                final String creationTime = DATE_TIME_FORMATTER.format(tarEntry.getCreationTime().toInstant());
+                                attributes.put(FILE_CREATION_TIME_ATTRIBUTE, creationTime);
+                            } else {
+                                attributes.put(FILE_CREATION_TIME_ATTRIBUTE, lastModified);
                             }
-                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, timeAsString);
 
                             if (tarEntry.getStatusChangeTime() != null) {
-                                timeAsString = DATE_TIME_FORMATTER.format(tarEntry.getStatusChangeTime().toInstant());
-                                attributes.put(FILE_LAST_METADATA_CHANGE_ATTRIBUTE, timeAsString);
+                                final String metadataChangeTime = DATE_TIME_FORMATTER.format(tarEntry.getStatusChangeTime().toInstant());
+                                attributes.put(FILE_LAST_METADATA_CHANGE_ATTRIBUTE, metadataChangeTime);
                             }
 
                             if (tarEntry.getLastAccessTime() != null) {
-                                timeAsString = DATE_TIME_FORMATTER.format(tarEntry.getLastAccessTime().toInstant());
-                                attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, timeAsString);
+                                final String lastAccesTime = DATE_TIME_FORMATTER.format(tarEntry.getLastAccessTime().toInstant());
+                                attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, lastAccesTime);
                             }
 
                             attributes.put(FRAGMENT_ID, fragmentId);
