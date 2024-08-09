@@ -124,7 +124,7 @@ public class TestGetS3ObjectMetadata {
     @Test
     public void testFetchMetadataToAttributeExists() {
         runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
-        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTE.getValue());
+        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTES.getValue());
 
         Map<String, Object> rawMetadata = new HashMap<>();
         rawMetadata.put("raw1", "x");
@@ -157,7 +157,7 @@ public class TestGetS3ObjectMetadata {
         exception.setStatusCode(501);
 
         runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
-        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTE.getValue());
+        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTES.getValue());
         when(mockS3Client.getObjectMetadata(anyString(), anyString()))
                 .thenThrow(exception);
         run();
@@ -171,7 +171,7 @@ public class TestGetS3ObjectMetadata {
         exception.setStatusCode(404);
 
         runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
-        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTE.getValue());
+        runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, GetS3ObjectMetadata.TARGET_ATTRIBUTES.getValue());
         runner.setProperty(GetS3ObjectMetadata.MODE, GetS3ObjectMetadata.MODE_FETCH_METADATA.getValue());
         when(mockS3Client.getObjectMetadata(anyString(), anyString()))
                 .thenThrow(exception);

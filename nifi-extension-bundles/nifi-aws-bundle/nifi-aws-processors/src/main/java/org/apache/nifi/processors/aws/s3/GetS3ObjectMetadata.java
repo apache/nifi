@@ -68,8 +68,10 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .addValidator(Validator.VALID)
             .build();
 
-    public static final AllowableValue TARGET_ATTRIBUTE = new AllowableValue("attribute", "Attribute", "When " +
-            "selected, the metadata will be written to a user-supplied attribute");
+    public static final AllowableValue TARGET_ATTRIBUTES = new AllowableValue("attributes", "Attributes", "When " +
+            "selected, the metadata will be written to FlowFile attributes that have a user-configured prefix. For example: " +
+            "the standard S3 attribute Content-Type will be written as s3.Content-Type when using the default value. User-defined metadata " +
+            "will be included in the attributes added to the FlowFile");
     public static final AllowableValue TARGET_FLOWFILE_BODY = new AllowableValue("flowfile-content", "FlowFile Body", "Write " +
             "the metadata to the FlowFile's content as JSON data.");
 
@@ -78,8 +80,8 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .description("This determines where the metadata will be written when it is found.")
             .addValidator(Validator.VALID)
             .required(true)
-            .allowableValues(TARGET_ATTRIBUTE, TARGET_FLOWFILE_BODY)
-            .defaultValue(TARGET_ATTRIBUTE)
+            .allowableValues(TARGET_ATTRIBUTES, TARGET_FLOWFILE_BODY)
+            .defaultValue(TARGET_ATTRIBUTES)
             .dependsOn(MODE, MODE_FETCH_METADATA)
             .build();
 
@@ -88,7 +90,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .description("The prefix for FlowFile attributes generated from the S3 object metadata.")
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .defaultValue("s3.")
-            .dependsOn(METADATA_TARGET, TARGET_ATTRIBUTE)
+            .dependsOn(METADATA_TARGET, TARGET_ATTRIBUTES)
             .required(true)
             .build();
 
@@ -164,7 +166,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
                 Map<String, Object> combinedMetadata = new HashMap<>(metadata.getRawMetadata());
                 combinedMetadata.putAll(metadata.getUserMetadata());
 
-                if (!isRouter && context.getProperty(METADATA_TARGET).getValue().equals(TARGET_ATTRIBUTE.getValue())) {
+                if (!isRouter && context.getProperty(METADATA_TARGET).getValue().equals(TARGET_ATTRIBUTES.getValue())) {
                     String attributePrefix = context.getProperty(METADATA_ATTRIBUTE_PREFIX).getValue();
                     Map<String, String> newAttributes = combinedMetadata
                             .entrySet().stream()
