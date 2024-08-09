@@ -514,23 +514,22 @@ public class UnpackContent extends AbstractProcessor {
                         attributes.put(FILE_ENCRYPTION_METHOD_ATTRIBUTE, metadata.encryptionMethod().toString());
                         attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(metadata.uncompressedSize()));
 
-                        String timeAsString = null;
+                        String lastModifiedDate = null;
                         if (metadata.lastModifiedDate() != null) {
-                            timeAsString = DATE_TIME_FORMATTER.format(metadata.lastModifiedDate());
-                            attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, timeAsString);
+                            lastModifiedDate = DATE_TIME_FORMATTER.format(metadata.lastModifiedDate());
+                            attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, lastModifiedDate);
                         }
 
                         if (metadata.creationTime() != null) {
-                            timeAsString = DATE_TIME_FORMATTER.format(metadata.creationTime());
-                        }
-
-                        if (timeAsString != null) {
-                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, timeAsString);
+                            final String creationTime = DATE_TIME_FORMATTER.format(metadata.creationTime());
+                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, creationTime);
+                        } else if (lastModifiedDate != null) {
+                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, lastModifiedDate);
                         }
 
                         if (metadata.lastAccessDate() != null) {
-                            timeAsString = DATE_TIME_FORMATTER.format(metadata.lastAccessDate());
-                            attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, timeAsString);
+                            final String lastAccessDate  = DATE_TIME_FORMATTER.format(metadata.lastAccessDate());
+                            attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, lastAccessDate);
                         }
 
                         if (metadata.mode() > -1) {
