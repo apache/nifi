@@ -41,6 +41,7 @@ import java.util.UUID;
 
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -82,19 +83,21 @@ public class TestUnpackContent {
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
 
         for (final MockFlowFile flowFile : unpacked) {
+            assertTrue(flowFile.getAttributes().keySet().containsAll(List.of(UnpackContent.FRAGMENT_ID, UnpackContent.FRAGMENT_INDEX,
+                    UnpackContent.FRAGMENT_COUNT, UnpackContent.SEGMENT_ORIGINAL_FILENAME, UnpackContent.FILE_SIZE_ATTRIBUTE)));
+
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
             final Path path = dataPath.resolve(folder).resolve(filename);
-            assertEquals("rw-r--r--", flowFile.getAttribute("file.permissions"));
-            assertEquals("jmcarey", flowFile.getAttribute("file.owner"));
-            assertEquals("mkpasswd", flowFile.getAttribute("file.group"));
+
+            assertEquals("rw-r--r--", flowFile.getAttribute(UnpackContent.FILE_PERMISSIONS_ATTRIBUTE));
+            assertEquals("jmcarey", flowFile.getAttribute(UnpackContent.FILE_OWNER_ATTRIBUTE));
+            assertEquals("mkpasswd", flowFile.getAttribute(UnpackContent.FILE_GROUP_ATTRIBUTE));
+
             String modifiedTimeAsString = flowFile.getAttribute("file.lastModifiedTime");
-
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(modifiedTimeAsString);
-
+            assertDoesNotThrow(() -> DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(modifiedTimeAsString));
             String creationTimeAsString = flowFile.getAttribute("file.creationTime");
-
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(creationTimeAsString);
+            assertDoesNotThrow(() -> DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(creationTimeAsString));
 
             assertTrue(Files.exists(path));
 
@@ -183,6 +186,10 @@ public class TestUnpackContent {
 
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
+            assertTrue(flowFile.getAttributes().keySet().containsAll(List.of(CoreAttributes.FILENAME.key(), CoreAttributes.PATH.key(),
+                    UnpackContent.FRAGMENT_ID, UnpackContent.FRAGMENT_INDEX, UnpackContent.FRAGMENT_COUNT,
+                    UnpackContent.SEGMENT_ORIGINAL_FILENAME, UnpackContent.FILE_SIZE_ATTRIBUTE, UnpackContent.FILE_CREATION_TIME_ATTRIBUTE,
+                    UnpackContent.FILE_LAST_MODIFIED_TIME_ATTRIBUTE, UnpackContent.FILE_PERMISSIONS_ATTRIBUTE)));
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
             final Path path = dataPath.resolve(folder).resolve(filename);
@@ -218,7 +225,6 @@ public class TestUnpackContent {
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_FAILURE);
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-           // final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
             final Path path = dataPath.resolve(filename);
             assertTrue(Files.exists(path));
 
