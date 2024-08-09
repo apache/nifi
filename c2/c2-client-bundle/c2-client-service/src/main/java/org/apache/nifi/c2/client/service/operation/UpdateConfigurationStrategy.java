@@ -27,7 +27,7 @@ public interface UpdateConfigurationStrategy {
      * Updates the MiNiFi agent's flow with the flow passed as parameter
      *
      * @param flow the MiNiFi flow config JSON represented as a byte array
-     * @return true if the flow update was true, false otherwise
+     * @throw exception if update failed.
      */
-    boolean update(byte[] flow);
+    void update(byte[] flow);
 }

@@ -125,9 +125,11 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
             return operationState(NOT_APPLIED, "Update content retrieval resulted in empty content");
         }
 
-        if (!updateConfigurationStrategy.update(updateContent.get())) {
+        try {
+            updateConfigurationStrategy.update(updateContent.get());
+        } catch (Exception e) {
             logger.error("Update resulted in error for operation #{}.", opIdentifier);
-            return operationState(NOT_APPLIED, "Update resulted in error");
+            return operationState(NOT_APPLIED, "Update resulted in error:", e);
         }
 
         logger.debug("Update configuration applied for operation #{}.", opIdentifier);
