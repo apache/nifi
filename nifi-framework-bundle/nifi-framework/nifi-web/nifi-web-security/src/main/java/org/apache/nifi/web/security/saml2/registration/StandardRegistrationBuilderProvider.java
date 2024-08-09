@@ -16,26 +16,27 @@
  */
 package org.apache.nifi.web.security.saml2.registration;
 
-import okhttp3.Call;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.client.StandardWebClientService;
+import org.apache.nifi.web.client.api.HttpResponseEntity;
+import org.apache.nifi.web.client.api.HttpResponseStatus;
+import org.apache.nifi.web.client.api.WebClientService;
+import org.apache.nifi.web.client.ssl.TlsContext;
 import org.apache.nifi.web.security.saml2.SamlConfigurationException;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,21 +47,23 @@ class StandardRegistrationBuilderProvider implements RegistrationBuilderProvider
 
     private static final String HTTP_SCHEME_PREFIX = "http";
 
+    private static final String TLS_PROTOCOL = "TLS";
+
     private static final ResourceLoader resourceLoader = new DefaultResourceLoader();
 
     private final NiFiProperties properties;
 
-    private final SSLContext sslContext;
+    private final X509KeyManager keyManager;
 
     private final X509TrustManager trustManager;
 
     public StandardRegistrationBuilderProvider(
             final NiFiProperties properties,
-            final SSLContext sslContext,
+            final X509KeyManager keyManager,
             final X509TrustManager trustManager
     ) {
         this.properties = Objects.requireNonNull(properties, "Properties required");
-        this.sslContext = sslContext;
+        this.keyManager = keyManager;
         this.trustManager = trustManager;
     }
 
@@ -91,25 +94,26 @@ class StandardRegistrationBuilderProvider implements RegistrationBuilderProvider
     }
 
     private InputStream getRemoteInputStream(final String metadataUrl) {
-        final OkHttpClient client = getHttpClient();
+        final WebClientService webClientService = getWebClientService();
 
-        final Request request = new Request.Builder().get().url(metadataUrl).build();
-        final Call call = client.newCall(request);
+        final URI uri = URI.create(metadataUrl);
+
         try {
-            final Response response = call.execute();
-            if (response.isSuccessful()) {
-                final ResponseBody body = Objects.requireNonNull(response.body(), "SAML Metadata response not found");
-                return body.byteStream();
+            final HttpResponseEntity responseEntity = webClientService.get().uri(uri).retrieve();
+            final int statusCode = responseEntity.statusCode();
+
+            if (HttpResponseStatus.OK.getCode() == statusCode) {
+                return responseEntity.body();
             } else {
-                response.close();
-                throw new SamlConfigurationException(String.format("SAML Metadata retrieval failed [%s] HTTP %d", metadataUrl, response.code()));
+                responseEntity.close();
+                throw new SamlConfigurationException(String.format("SAML Metadata retrieval failed [%s] HTTP %d", metadataUrl, statusCode));
             }
         } catch (final IOException e) {
             throw new SamlConfigurationException(String.format("SAML Metadata retrieval failed [%s]", metadataUrl), e);
         }
     }
 
-    private OkHttpClient getHttpClient() {
+    private WebClientService getWebClientService() {
         final Duration connectTimeout = Duration.ofMillis(
                 (long) FormatUtils.getPreciseTimeDuration(properties.getSamlHttpClientConnectTimeout(), TimeUnit.MILLISECONDS)
         );
@@ -117,15 +121,29 @@ class StandardRegistrationBuilderProvider implements RegistrationBuilderProvider
                 (long) FormatUtils.getPreciseTimeDuration(properties.getSamlHttpClientReadTimeout(), TimeUnit.MILLISECONDS)
         );
 
-        final OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                .connectTimeout(connectTimeout)
-                .readTimeout(readTimeout);
+        final StandardWebClientService webClientService = new StandardWebClientService();
+        webClientService.setConnectTimeout(connectTimeout);
+        webClientService.setReadTimeout(readTimeout);
 
         if (NIFI_TRUST_STORE_STRATEGY.equals(properties.getSamlHttpClientTruststoreStrategy())) {
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-            builder.sslSocketFactory(sslSocketFactory, trustManager);
+            webClientService.setTlsContext(new TlsContext() {
+                @Override
+                public String getProtocol() {
+                    return TLS_PROTOCOL;
+                }
+
+                @Override
+                public X509TrustManager getTrustManager() {
+                    return trustManager;
+                }
+
+                @Override
+                public Optional<X509KeyManager> getKeyManager() {
+                    return Optional.ofNullable(keyManager);
+                }
+            });
         }
 
-        return builder.build();
+        return webClientService;
     }
 }
