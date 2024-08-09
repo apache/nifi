@@ -24,7 +24,7 @@ on:
       - 'nifi-api/**'
       - 'nifi-framework-api/**'
       - 'nifi-framework-bundle/**'
-      - 'nifi-extension-bundles/nifi-py4j-bundle/**'
+      - 'nifi-extension-bundles/nifi-py4j-extension-bundle/**'
       - 'nifi-stateless/**'
   pull_request:
     paths:
@@ -34,7 +34,7 @@ on:
       - 'nifi-api/**'
       - 'nifi-framework-api/**'
       - 'nifi-framework-bundle/**'
-      - 'nifi-extension-bundles/nifi-py4j-bundle/**'
+      - 'nifi-extension-bundles/nifi-py4j-extension-bundle/**'
       - 'nifi-stateless/**'
 
 env:
