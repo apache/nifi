@@ -35,7 +35,7 @@
                     <td mat-cell *matCellDef="let item" [class.font-bold]="item.descriptor.required">
                         <div class="flex justify-between items-center">
                             <div
-                                class="whitespace-nowrap overflow-hidden text-ellipsis leading-normal"
+                                class="whitespace-nowrap overflow-hidden text-ellipsis"
                                 [title]="item.descriptor.displayName">
                                 {{ item.descriptor.displayName }}
                             </div>
@@ -55,7 +55,7 @@
                     <td mat-cell *matCellDef="let item">
                         <div
                             [id]="formatId(item)"
-                            class="pointer"
+                            class="pointer min-h-[21px]"
                             cdkOverlayOrigin
                             #trigger="cdkOverlayOrigin"
                             (click)="openEditor(trigger, item, $event)">
@@ -83,7 +83,7 @@
                                 <ng-template #nonBlank let-resolvedValue>
                                     <div class="flex justify-between items-center">
                                         <div
-                                            class="whitespace-nowrap overflow-hidden text-ellipsis leading-normal"
+                                            class="whitespace-nowrap overflow-hidden text-ellipsis"
                                             [title]="resolvedValue">
                                             {{ resolvedValue }}
                                         </div>
