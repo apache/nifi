@@ -528,7 +528,7 @@ public class UnpackContent extends AbstractProcessor {
                         }
 
                         if (metadata.lastAccessDate() != null) {
-                            final String lastAccessDate  = DATE_TIME_FORMATTER.format(metadata.lastAccessDate());
+                            final String lastAccessDate = DATE_TIME_FORMATTER.format(metadata.lastAccessDate());
                             attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, lastAccessDate);
                         }
 
