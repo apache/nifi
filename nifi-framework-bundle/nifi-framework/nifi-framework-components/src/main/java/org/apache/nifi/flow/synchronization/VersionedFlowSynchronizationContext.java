@@ -17,6 +17,7 @@
 
 package org.apache.nifi.flow.synchronization;
 
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ProcessorNode;
@@ -43,6 +44,8 @@ public class VersionedFlowSynchronizationContext {
     private final FlowMappingOptions flowMappingOptions;
     private final Function<ProcessorNode, ProcessContext> processContextFactory;
     private final Function<ComponentNode, ConfigurationContext> configurationContextFactory;
+    private final AssetManager assetManager;
+
 
     private VersionedFlowSynchronizationContext(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
@@ -54,6 +57,7 @@ public class VersionedFlowSynchronizationContext {
         this.flowMappingOptions = builder.flowMappingOptions;
         this.processContextFactory = builder.processContextFactory;
         this.configurationContextFactory = builder.configurationContextFactory;
+        this.assetManager = builder.assetManager;
     }
 
     public ComponentIdGenerator getComponentIdGenerator() {
@@ -92,6 +96,10 @@ public class VersionedFlowSynchronizationContext {
         return configurationContextFactory;
     }
 
+    public AssetManager getAssetManager() {
+        return assetManager;
+    }
+
     public static class Builder {
         private ComponentIdGenerator componentIdGenerator;
         private FlowManager flowManager;
@@ -102,6 +110,8 @@ public class VersionedFlowSynchronizationContext {
         private FlowMappingOptions flowMappingOptions;
         private Function<ProcessorNode, ProcessContext> processContextFactory;
         private Function<ComponentNode, ConfigurationContext> configurationContextFactory;
+        private AssetManager assetManager;
+
 
         public Builder componentIdGenerator(final ComponentIdGenerator componentIdGenerator) {
             this.componentIdGenerator = componentIdGenerator;
@@ -148,6 +158,11 @@ public class VersionedFlowSynchronizationContext {
             return this;
         }
 
+        public Builder assetManager(final AssetManager assetManager) {
+            this.assetManager = assetManager;
+            return this;
+        }
+
         public VersionedFlowSynchronizationContext build() {
             requireNonNull(componentIdGenerator, "Component ID Generator must be set");
             requireNonNull(flowManager, "Flow Manager must be set");
@@ -158,6 +173,10 @@ public class VersionedFlowSynchronizationContext {
             requireNonNull(flowMappingOptions, "Flow Mapping Options must be set");
             requireNonNull(processContextFactory, "Process Context Factory must be set");
             requireNonNull(configurationContextFactory, "Configuration Context Factory must be set");
+            if (flowMappingOptions.isMapAssetReferences() && assetManager == null) {
+                throw new IllegalStateException("Asset Manager must be set when Flow Mapping Options specified that Asset references must be mapped");
+            }
+
             return new VersionedFlowSynchronizationContext(this);
         }
     }

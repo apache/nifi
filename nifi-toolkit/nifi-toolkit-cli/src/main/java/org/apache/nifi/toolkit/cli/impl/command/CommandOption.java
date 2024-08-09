@@ -154,6 +154,10 @@ public enum CommandOption {
     NAR_FILE("nar", "narFile", "A NAR file to upload, must contain full path and filename", true, true),
     NAR_UPLOAD_TIMEOUT("npt", "narProcessing", "Number of seconds after which a parameter context update will timeout (default: 60, maximum: 600)", true),
 
+    // NiFi - Assets
+    ASSET_FILE("af", "assetFile", "A file containing the asset content, must contain full path and filename", true, true),
+    ASSET_ID("aid", "assetId", "The id of an asset which can be referenced from a parameter", true, false),
+
     // Security related
     KEYSTORE("ks", "keystore", "A keystore to use for TLS/SSL connections", true),
     KEYSTORE_TYPE("kst", "keystoreType", "The type of key store being used such as PKCS12", true),

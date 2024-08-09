@@ -20,6 +20,7 @@ package org.apache.nifi.nar;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.client.NiFiRestApiRetryableException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.FlowController;
@@ -315,7 +316,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
     private NarSummariesEntity listNarSummaries(final NarRestApiClient narRestApiClient) {
         try {
             return narRestApiClient.listNarSummaries();
-        } catch (final NarRestApiRetryableException e) {
+        } catch (final NiFiRestApiRetryableException e) {
             final Throwable rootCause = ExceptionUtils.getRootCause(e);
             logger.warn("{}, root cause [{}]: retrying", e.getMessage(), rootCause.getMessage());
             return null;

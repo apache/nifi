@@ -81,7 +81,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
         final X509AuthenticationRequestToken request = (X509AuthenticationRequestToken) authentication;
 
         // attempt to authenticate if certificates were found
-        final X509Certificate[] certificates = request.getCertificates();;
+        final X509Certificate[] certificates = request.getCertificates();
         final AuthenticationResponse authenticationResponse;
         try {
             authenticationResponse = certificateIdentityProvider.authenticate(certificates);

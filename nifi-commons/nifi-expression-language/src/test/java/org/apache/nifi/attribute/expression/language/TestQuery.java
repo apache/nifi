@@ -209,7 +209,7 @@ public class TestQuery {
 
         final ParameterLookup parameterLookup = mock(ParameterLookup.class);
         final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).sensitive(true).build();
-        final Parameter parameter = new Parameter(parameterDescriptor, value);
+        final Parameter parameter = new Parameter.Builder().descriptor(parameterDescriptor).value(value).build();
         when(parameterLookup.getParameter(eq(parameterName))).thenReturn(Optional.of(parameter));
         when(parameterLookup.isEmpty()).thenReturn(false);
 
@@ -2619,7 +2619,7 @@ public class TestQuery {
                 return Optional.empty();
             }
 
-            return Optional.of(new Parameter(new ParameterDescriptor.Builder().name(parameterName).build(), value));
+            return Optional.of(new Parameter.Builder().name(parameterName).value(value).build());
         }
 
         @Override

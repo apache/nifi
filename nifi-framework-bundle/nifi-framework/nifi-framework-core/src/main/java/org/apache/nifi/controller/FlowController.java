@@ -20,6 +20,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.asset.AssetManagerInitializationContext;
+import org.apache.nifi.asset.AssetReferenceLookup;
+import org.apache.nifi.asset.StandardAssetManager;
+import org.apache.nifi.asset.StandardAssetManagerInitializationContext;
+import org.apache.nifi.asset.StandardAssetReferenceLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -255,6 +262,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public static final String DEFAULT_CONTENT_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.FileSystemRepository";
     public static final String DEFAULT_PROVENANCE_REPO_IMPLEMENTATION = "org.apache.nifi.provenance.VolatileProvenanceRepository";
     public static final String DEFAULT_SWAP_MANAGER_IMPLEMENTATION = "org.apache.nifi.controller.FileSystemSwapManager";
+    public static final String DEFAULT_ASSET_MANAGER_IMPLEMENTATION = StandardAssetManager.class.getName();
 
     public static final String GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.seconds";
     public static final long DEFAULT_GRACEFUL_SHUTDOWN_SECONDS = 10;
@@ -268,6 +276,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final FlowFileEventRepository flowFileEventRepository;
     private final ProvenanceRepository provenanceRepository;
     private final BulletinRepository bulletinRepository;
+    private final AssetManager assetManager;
     private final LifecycleStateManager lifecycleStateManager;
     private final StandardProcessScheduler processScheduler;
     private final SnippetManager snippetManager;
@@ -534,6 +543,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         parameterContextManager = new StandardParameterContextManager();
         repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository, stateManagerProvider);
+        assetManager = createAssetManager(nifiProperties);
 
         this.flowAnalysisThreadPool = new FlowEngine(1, "Background Flow Analysis", true);
         if (ruleViolationsManager != null) {
@@ -1337,6 +1347,78 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private AssetManager createAssetManager(final NiFiProperties properties) {
+        final String implementationClassName = properties.getProperty(NiFiProperties.ASSET_MANAGER_IMPLEMENTATION, DEFAULT_ASSET_MANAGER_IMPLEMENTATION);
+
+        try {
+            final AssetManager assetManager = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, AssetManager.class, properties);
+            final AssetReferenceLookup assetReferenceLookup = new StandardAssetReferenceLookup(parameterContextManager);
+            final Map<String, String> relevantNiFiProperties = properties.getPropertiesWithPrefix(NiFiProperties.ASSET_MANAGER_PREFIX);
+            final int prefixLength = NiFiProperties.ASSET_MANAGER_PREFIX.length();
+            final Map<String, String> assetManagerProperties = relevantNiFiProperties.entrySet().stream()
+                .collect(Collectors.toMap(entry -> entry.getKey().substring(prefixLength), Map.Entry::getValue));
+
+            final AssetManagerInitializationContext initializationContext = new StandardAssetManagerInitializationContext(
+                assetReferenceLookup, assetManagerProperties, this);
+
+            // Instrument Asset Manager with a wrapper that delegates to the appropriate class loader
+            final ClassLoader assetManagerClassLoader = assetManager.getClass().getClassLoader();
+            final AssetManager instrumented = new AssetManager() {
+                @Override
+                public void initialize(final AssetManagerInitializationContext context) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                        assetManager.initialize(context);
+                    }
+                }
+
+                @Override
+                public Asset createAsset(final String parameterContextId, final String assetName, final InputStream contents) throws IOException {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                        return assetManager.createAsset(parameterContextId, assetName, contents);
+                    }
+                }
+
+                @Override
+                public Optional<Asset> getAsset(final String id) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                        return assetManager.getAsset(id);
+                    }
+                }
+
+                @Override
+                public List<Asset> getAssets(final String parameterContextId) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                        return assetManager.getAssets(parameterContextId);
+                    }
+                }
+
+                @Override
+                public Asset createMissingAsset(final String parameterContextId, final String assetName) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                        return assetManager.createMissingAsset(parameterContextId, assetName);
+                    }
+                }
+
+                @Override
+                public Optional<Asset> deleteAsset(final String id) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                        return assetManager.deleteAsset(id);
+                    }
+                }
+            };
+
+            instrumented.initialize(initializationContext);
+
+            return instrumented;
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to create Asset Manager", e);
+        }
+    }
+
+    public AssetManager getAssetManager() {
+        return assetManager;
     }
 
     private ProvenanceRepository createProvenanceRepository(final NiFiProperties properties) {

@@ -18,6 +18,8 @@
 package org.apache.nifi.controller.serialization;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
 import org.apache.nifi.authorization.ManagedAuthorizer;
@@ -51,6 +53,7 @@ import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -110,6 +113,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -120,6 +124,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 
 import static org.apache.nifi.controller.serialization.FlowSynchronizationUtils.createBundleCoordinate;
@@ -446,6 +451,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     .mapInstanceIdentifiers(true)
                     .mapControllerServiceReferencesToVersionedId(false)
                     .mapFlowRegistryClientId(true)
+                    .mapAssetReferences(true)
                     .build();
 
                 rootGroup.synchronizeFlow(versionedExternalFlow, syncOptions, flowMappingOptions);
@@ -779,7 +785,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             parameterContexts.forEach(context -> namedParameterContexts.put(context.getName(), context));
 
             for (final VersionedParameterContext versionedParameterContext : parameterContexts) {
-                inheritParameterContext(versionedParameterContext, controller.getFlowManager(), namedParameterContexts, controller.getEncryptor());
+                inheritParameterContext(versionedParameterContext, controller.getFlowManager(), namedParameterContexts, controller.getEncryptor(), controller.getAssetManager());
             }
         });
     }
@@ -788,14 +794,15 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final VersionedParameterContext versionedParameterContext,
             final FlowManager flowManager,
             final Map<String, VersionedParameterContext> namedParameterContexts,
-            final PropertyEncryptor encryptor
+            final PropertyEncryptor encryptor,
+            final AssetManager assetManager
     ) {
         final ParameterContextManager contextManager = flowManager.getParameterContextManager();
         final ParameterContext existingContext = contextManager.getParameterContextNameMapping().get(versionedParameterContext.getName());
         if (existingContext == null) {
-            addParameterContext(versionedParameterContext, flowManager, namedParameterContexts, encryptor);
+            addParameterContext(versionedParameterContext, flowManager, namedParameterContexts, encryptor, assetManager);
         } else {
-            updateParameterContext(versionedParameterContext, existingContext, flowManager, namedParameterContexts, encryptor);
+            updateParameterContext(versionedParameterContext, existingContext, flowManager, namedParameterContexts, encryptor, assetManager);
         }
     }
 
@@ -803,9 +810,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final VersionedParameterContext versionedParameterContext,
             final FlowManager flowManager,
             final Map<String, VersionedParameterContext> namedParameterContexts,
-            final PropertyEncryptor encryptor
+            final PropertyEncryptor encryptor,
+            final AssetManager assetManager
     ) {
-        final Map<String, Parameter> parameters = createParameterMap(flowManager, versionedParameterContext, encryptor);
+        final Map<String, Parameter> parameters = createParameterMap(flowManager, versionedParameterContext, encryptor, assetManager);
 
         final ParameterContextManager contextManager = flowManager.getParameterContextManager();
         final List<String> referenceIds = findReferencedParameterContextIds(versionedParameterContext, contextManager, namedParameterContexts);
@@ -853,18 +861,13 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private Map<String, Parameter> createParameterMap(
             final FlowManager flowManager,
             final VersionedParameterContext versionedParameterContext,
-            final PropertyEncryptor encryptor
+            final PropertyEncryptor encryptor,
+            final AssetManager assetManager
     ) {
         final Map<String, Parameter> providedParameters = getProvidedParameters(flowManager, versionedParameterContext);
 
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versioned : versionedParameterContext.getParameters()) {
-            final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
-                    .description(versioned.getDescription())
-                    .name(versioned.getName())
-                    .sensitive(versioned.isSensitive())
-                    .build();
-
             final String parameterValue;
             final String rawValue = versioned.getValue();
             if (rawValue == null) {
@@ -884,11 +887,40 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 parameterValue = rawValue;
             }
 
-            final Parameter parameter = new Parameter(descriptor, parameterValue, null, versioned.isProvided());
+            final List<Asset> referencedAssets = getReferencedAssets(versioned, assetManager, versionedParameterContext.getInstanceIdentifier());
+            final Parameter parameter = new Parameter.Builder()
+                .parameterContextId(null)
+                .name(versioned.getName())
+                .description(versioned.getDescription())
+                .sensitive(versioned.isSensitive())
+                .value(referencedAssets.isEmpty() ? parameterValue : null)
+                .referencedAssets(referencedAssets)
+                .provided(versioned.isProvided())
+                .build();
+
             parameters.put(versioned.getName(), parameter);
         }
 
         return parameters;
+    }
+
+    private List<Asset> getReferencedAssets(final VersionedParameter versionedParameter, final AssetManager assetManager, final String contextId) {
+        final List<VersionedAsset> versionedAssets = versionedParameter.getReferencedAssets();
+        if (versionedAssets == null || versionedAssets.isEmpty()) {
+            return List.of();
+        }
+
+        final List<Asset> assets = new ArrayList<>();
+        for (final VersionedAsset versionedAsset : versionedAssets) {
+            final Optional<Asset> assetOption = assetManager.getAsset(versionedAsset.getIdentifier());
+            if (assetOption.isPresent()) {
+                assets.add(assetOption.get());
+            } else {
+                assets.add(assetManager.createMissingAsset(contextId, versionedAsset.getName()));
+            }
+        }
+
+        return assets;
     }
 
     private void updateParameterContext(
@@ -896,24 +928,32 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final ParameterContext parameterContext,
             final FlowManager flowManager,
             final Map<String, VersionedParameterContext> namedParameterContexts,
-            final PropertyEncryptor encryptor
+            final PropertyEncryptor encryptor,
+            final AssetManager assetManager
     ) {
-        final Map<String, Parameter> parameters = createParameterMap(flowManager, versionedParameterContext, encryptor);
+        final Map<String, Parameter> parameters = createParameterMap(flowManager, versionedParameterContext, encryptor, assetManager);
 
         final Map<String, String> currentValues = new HashMap<>();
-        parameterContext.getParameters().values().forEach(param -> currentValues.put(param.getDescriptor().getName(), param.getValue()));
+        final Map<String, Set<String>> currentAssetReferences = new HashMap<>();
+        parameterContext.getParameters().values().forEach(param -> {
+            currentValues.put(param.getDescriptor().getName(), param.getValue());
+            currentAssetReferences.put(param.getDescriptor().getName(), getAssetIds(param));
+        });
 
         final Map<String, Parameter> updatedParameters = new HashMap<>();
         final Set<String> proposedParameterNames = new HashSet<>();
         for (final VersionedParameter parameter : versionedParameterContext.getParameters()) {
             final String parameterName = parameter.getName();
             final String currentValue = currentValues.get(parameterName);
+            final Set<String> currentAssetIds = currentAssetReferences.get(parameterName);
 
-            proposedParameterNames.add(parameterName);
-            if (!Objects.equals(currentValue, parameter.getValue())) {
-                final Parameter updatedParameterObject = parameters.get(parameterName);
+            final Parameter updatedParameterObject = parameters.get(parameterName);
+            final String updatedValue = updatedParameterObject.getValue();
+            final Set<String> updatedAssetIds = getAssetIds(updatedParameterObject);
+            if (!Objects.equals(currentValue, updatedValue) || !currentAssetIds.equals(updatedAssetIds)) {
                 updatedParameters.put(parameterName, updatedParameterObject);
             }
+            proposedParameterNames.add(parameterName);
         }
 
         // If any parameters are removed, need to add a null value to the map in order to make sure that the parameter is removed.
@@ -937,6 +977,13 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 .map(contextManager::getParameterContext)
                 .collect(Collectors.toList());
         parameterContext.setInheritedParameterContexts(referencedContexts);
+    }
+
+    private Set<String> getAssetIds(final Parameter parameter) {
+        return Stream.ofNullable(parameter.getReferencedAssets())
+                .flatMap(Collection::stream)
+                .map(Asset::getIdentifier)
+                .collect(Collectors.toSet());
     }
 
     private void inheritControllerServices(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {

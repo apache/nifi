@@ -159,6 +159,7 @@ public class HeadlessNiFiServer implements NiFiServer {
                     props,
                     null, // revision manager
                     null, // NAR Manager
+                    null, // Asset Synchronizer
                     authorizer);
 
             diagnosticsFactory = new BootstrapDiagnosticsFactory();

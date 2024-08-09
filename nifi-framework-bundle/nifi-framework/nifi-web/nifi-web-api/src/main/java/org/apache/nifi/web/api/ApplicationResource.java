@@ -46,6 +46,8 @@ import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
+import org.apache.nifi.security.cert.PeerIdentityProvider;
+import org.apache.nifi.security.cert.StandardPeerIdentityProvider;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -80,9 +82,12 @@ import jakarta.ws.rs.core.Response.ResponseBuilder;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 
+import javax.net.ssl.SSLPeerUnverifiedException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -95,6 +100,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -124,7 +130,8 @@ public abstract class ApplicationResource {
     @Context
     protected UriInfo uriInfo;
 
-    protected ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
+    protected final PeerIdentityProvider peerIdentityProvider = new StandardPeerIdentityProvider();
+    protected final ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
     protected NiFiProperties properties;
     private RequestReplicator requestReplicator;
     private ClusterCoordinator clusterCoordinator;
@@ -1300,5 +1307,53 @@ public abstract class ApplicationResource {
         if (referencingEntities != null) {
             referencingEntities.forEach(this::stripNonUiRelevantFields);
         }
+    }
+
+    /**
+     * @return true if the credentials of the current request contain a certificate that matches an identity of a known cluster node, false otherwise
+     */
+    protected boolean isRequestFromClusterNode() {
+        final ClusterCoordinator clusterCoordinator = getClusterCoordinator();
+        if (clusterCoordinator == null) {
+            logger.debug("Clustering is not configured");
+            return false;
+        }
+
+        final X509Certificate[] certificates = getAuthenticationCertificates();
+        if (certificates == null) {
+            logger.debug("Client credentials do not contain certificates");
+            return false;
+        }
+
+        final Set<String> clientIdentities;
+        try {
+            clientIdentities = peerIdentityProvider.getIdentities(certificates);
+        } catch (final SSLPeerUnverifiedException e) {
+            throw new RuntimeException("Unable to get identities from client certificates", e);
+        }
+
+        final Set<String> nodeIds = getClusterCoordinator().getNodeIdentifiers().stream()
+                .map(NodeIdentifier::getApiAddress)
+                .collect(Collectors.toSet());
+
+        logger.debug("Checking client identities [{}] against cluster node identities [{}]", clientIdentities, nodeIds);
+
+        for (final String clientIdentity : clientIdentities) {
+            if (nodeIds.contains(clientIdentity)) {
+                logger.debug("Client identity [{}] is in the list of cluster nodes", clientIdentity);
+                return true;
+            }
+        }
+
+        logger.debug("None of the client identities [{}] are in the list of cluster nodes", clientIdentities);
+        return false;
+    }
+
+    private X509Certificate[] getAuthenticationCertificates() {
+        final Object credentials = SecurityContextHolder.getContext().getAuthentication().getCredentials();
+        if (credentials instanceof X509Certificate[]) {
+            return (X509Certificate[]) credentials;
+        }
+        return null;
     }
 }

@@ -26,6 +26,8 @@ import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AccessPolicy;
@@ -204,6 +206,7 @@ import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AccessPolicySummaryDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
+import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
@@ -302,6 +305,7 @@ import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
@@ -486,6 +490,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private RuleViolationsManager ruleViolationsManager;
     private PredictionBasedParallelProcessingService parallelProcessingService;
     private NarManager narManager;
+    private AssetManager assetManager;
 
     // -----------------------------------------
     // Synchronization methods
@@ -1400,18 +1405,47 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private Parameter createParameter(final ParameterDTO dto) {
-        if (dto.getDescription() == null && dto.getSensitive() == null && dto.getValue() == null) {
+        if (dto.getDescription() == null && dto.getSensitive() == null && dto.getValue() == null && dto.getReferencedAssets() == null) {
             return null; // null description, sensitivity flag, and value indicates a deletion, which we want to represent as a null Parameter.
         }
 
-        final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
+        final String dtoValue = dto.getValue();
+        final List<AssetReferenceDTO> referencedAssets = dto.getReferencedAssets();
+        final boolean referencesAsset = referencedAssets != null && !referencedAssets.isEmpty();
+        final String parameterContextId = dto.getParameterContext() == null ? null : dto.getParameterContext().getId();
+
+        final String value;
+        List<Asset> assets = null;
+        if (dtoValue == null && !referencesAsset && Boolean.TRUE.equals(dto.getValueRemoved())) {
+            value = null;
+        } else if (referencesAsset)  {
+            assets = getAssets(referencedAssets);
+            value = null;
+        } else {
+            value = dto.getValue();
+        }
+
+        return new Parameter.Builder()
             .name(dto.getName())
             .description(dto.getDescription())
             .sensitive(Boolean.TRUE.equals(dto.getSensitive()))
+            .value(value)
+            .referencedAssets(assets)
+            .parameterContextId(parameterContextId)
+            .provided(dto.getProvided())
             .build();
+    }
 
-        final String parameterContextId = dto.getParameterContext() == null ? null : dto.getParameterContext().getId();
-        return new Parameter(descriptor, dto.getValue(), parameterContextId, dto.getProvided());
+    private List<Asset> getAssets(final List<AssetReferenceDTO> referencedAssets) {
+        return Stream.ofNullable(referencedAssets)
+                .flatMap(Collection::stream)
+                .map(AssetReferenceDTO::getId)
+                .map(this::getAsset)
+                .collect(Collectors.toList());
+    }
+
+    private Asset getAsset(final String assetId) {
+        return assetManager.getAsset(assetId).orElseThrow(() -> new ResourceNotFoundException("Unable to find asset with id " + assetId));
     }
 
     @Override
@@ -6715,6 +6749,38 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createNarSummaryEntity(narSummaryDTO);
     }
 
+    @Override
+    public void verifyDeleteAsset(final String parameterContextId, final String assetId) {
+        final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextId);
+        final Set<String> referencingParameterNames = getReferencingParameterNames(parameterContext, assetId);
+        if (!referencingParameterNames.isEmpty()) {
+            final String joinedParametersNames = String.join(", ", referencingParameterNames);
+            throw new IllegalStateException("Unable to delete Asset [%s] because it is currently references by Parameters [%s]".formatted(assetId, joinedParametersNames));
+        }
+    }
+
+    private Set<String> getReferencingParameterNames(final ParameterContext parameterContext, final String assetId) {
+        final Set<String> referencingParameterNames = new HashSet<>();
+        for (final Parameter parameter : parameterContext.getParameters().values()) {
+            if (parameter.getReferencedAssets() != null) {
+                for (final Asset asset : parameter.getReferencedAssets()) {
+                    if (asset.getIdentifier().equals(assetId)) {
+                        referencingParameterNames.add(parameter.getDescriptor().getName());
+                    }
+                }
+            }
+        }
+        return referencingParameterNames;
+    }
+
+    @Override
+    public AssetEntity deleteAsset(final String parameterContextId, final String assetId) {
+        verifyDeleteAsset(parameterContextId, assetId);
+        final Asset deletedAsset = assetManager.deleteAsset(assetId)
+                .orElseThrow(() -> new ResourceNotFoundException("Asset does not exist with id [%s]".formatted(assetId)));
+        return dtoFactory.createAssetEntity(deletedAsset);
+    }
+
     private PermissionsDTO createPermissionDto(
             final String id,
             final org.apache.nifi.flow.ComponentType subjectComponentType,
@@ -7004,5 +7070,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Autowired
     public void setNarManager(final NarManager narManager) {
         this.narManager = narManager;
+    }
+
+    @Autowired
+    public void setAssetManager(final AssetManager assetManager) {
+        this.assetManager = assetManager;
     }
 }

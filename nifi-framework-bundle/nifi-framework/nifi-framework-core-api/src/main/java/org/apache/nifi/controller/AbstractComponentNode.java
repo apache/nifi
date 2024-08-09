@@ -1306,7 +1306,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     isProvided = false;
                 }
 
-                final Parameter updatedParameter = new Parameter(parameterDescriptor, parameterUpdate.getPreviousValue(), null, isProvided);
+                final Parameter updatedParameter = new Parameter.Builder()
+                    .descriptor(parameterDescriptor)
+                    .value(parameterUpdate.getPreviousValue())
+                    .provided(isProvided)
+                    .build();
+
                 return Optional.of(updatedParameter);
             }
 

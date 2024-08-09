@@ -91,6 +91,6 @@ class TestStandardParameterValueMapper {
 
     private Parameter getParameter(final boolean sensitive, final boolean provided) {
         final ParameterDescriptor descriptor = new ParameterDescriptor.Builder().name(NAME).sensitive(sensitive).build();
-        return new Parameter(descriptor, VALUE, null, provided);
+        return new Parameter.Builder().descriptor(descriptor).value(VALUE).provided(provided).build();
     }
 }

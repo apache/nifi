@@ -19,6 +19,7 @@ package org.apache.nifi.tests.system.parameters;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
+import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
@@ -26,6 +27,9 @@ import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.AssetEntity;
+import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
@@ -37,6 +41,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,12 +60,15 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ParameterContextIT extends NiFiSystemIT {
+    private static final Logger logger = LoggerFactory.getLogger(ParameterContextIT.class);
+
     @Test
     public void testCreateParameterContext() throws NiFiClientException, IOException {
         final Set<ParameterEntity> parameterEntities = new HashSet<>();
@@ -667,6 +676,327 @@ public class ParameterContextIT extends NiFiSystemIT {
         assertEquals(getNumberOfNodes(), counterValues.get("Scheduled").longValue());
     }
 
+    @Test
+    public void testAssetReference() throws NiFiClientException, IOException, InterruptedException {
+        // Create Parameter Context
+        final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testAssetReference", Map.of("name", "foo", "fileToIngest", ""));
+
+        // Set the Parameter Context on the root Process Group
+        setParameterContext("root", paramContext);
+
+        // Create a Processor and update it to reference a parameter
+        final ProcessorEntity ingest = getClientUtil().createProcessor("IngestFile");
+        getClientUtil().updateProcessorProperties(ingest, Map.of("Filename", "#{fileToIngest}", "Delete File", "false"));
+        getClientUtil().updateProcessorSchedulingPeriod(ingest, "10 mins");
+
+        // Create an asset
+        final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
+        final AssetEntity asset = createAsset(paramContext.getId(), assetFile);
+
+        // Update parameter to reference the asset
+        final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
+                paramContext, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
+        getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
+
+        // Connect the ingest processor to terminate processor and produce flow files
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+        final ConnectionEntity connection = getClientUtil().createConnection(ingest, terminate, "success");
+        waitForValidProcessor(ingest.getId());
+
+        getClientUtil().startProcessor(ingest);
+        waitForQueueCount(connection.getId(), getNumberOfNodes());
+        final String contents = getClientUtil().getFlowFileContentAsUtf8(connection.getId(), 0);
+        assertEquals("Hello, World!", contents);
+
+        // Check that the file exists in the assets directory.
+        final File node1Dir = getNumberOfNodes() == 1 ? getNiFiInstance().getInstanceDirectory() : getNiFiInstance().getNodeInstance(1).getInstanceDirectory();
+        final File node1Assets = new File(node1Dir, "assets");
+        final File node1ContextDir = new File(node1Assets, paramContext.getId());
+        assertTrue(node1ContextDir.exists());
+
+        final File node2Dir = getNumberOfNodes() == 1 ? null : getNiFiInstance().getNodeInstance(2).getInstanceDirectory();
+        final File node2Assets = node2Dir == null ? null : new File(node2Dir, "assets");
+        final File node2ContextDir = node2Assets == null ? null : new File(node2Assets, paramContext.getId());
+        if (node2ContextDir != null) {
+            assertTrue(node2ContextDir.exists());
+        }
+
+        // List assets and verify the expected asset is returned
+        final AssetsEntity assetListing = assertAssetListing(paramContext.getId(), 1);
+        assertAssetExists(asset, assetListing);
+
+        // Attempt to delete the asset should be prevented since it is still referenced
+        assertThrows(NiFiClientException.class, () -> getNifiClient().getParamContextClient().deleteAsset(paramContext.getId(), asset.getAsset().getId()));
+
+        // Change the parameter so that it no longer references the asset
+        final ParameterContextUpdateRequestEntity removeAssetUpdateRequest = getClientUtil().updateParameterContext(paramContext, Map.of("fileToIngest", "invalid"));
+
+        // Wait for the update to complete
+        getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), removeAssetUpdateRequest.getRequest().getRequestId());
+
+        // Attempt to delete the asset should now succeed since no longer referenced
+        final AssetEntity deletedAssetEntity = getNifiClient().getParamContextClient().deleteAsset(paramContext.getId(), asset.getAsset().getId());
+        assertNotNull(deletedAssetEntity);
+        assertNotNull(deletedAssetEntity.getAsset());
+        assertEquals(asset.getAsset().getId(), deletedAssetEntity.getAsset().getId());
+
+        // Ensure that the directories no longer exist
+        waitFor(() -> !node1ContextDir.exists());
+
+        if (node2ContextDir != null) {
+            waitFor(() -> !node2ContextDir.exists());
+        }
+
+        // Ensure that listing is now empty
+        assertAssetListing(paramContext.getId(), 0);
+
+        getClientUtil().stopProcessor(ingest);
+        waitForStoppedProcessor(ingest.getId());
+    }
+
+    @Test
+    public void testAssetReferenceFromDifferentContext() throws NiFiClientException, IOException, InterruptedException {
+        // Create first context
+        final ParameterContextEntity paramContext1 = getClientUtil().createParameterContext("testAssetReferenceFirstContext",
+                Map.of("name", "foo", "fileToIngest", ""));
+
+        // Create asset in first context
+        final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
+        final AssetEntity asset = createAsset(paramContext1.getId(), assetFile);
+
+        // Update parameter in first context to reference asset in first context
+        final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
+                paramContext1, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
+        getClientUtil().waitForParameterContextRequestToComplete(paramContext1.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
+
+        // Create second context and try to update a parameter to reference the asset from first context
+        final ParameterContextEntity paramContext2 = getClientUtil().createParameterContext("testAssetReferenceSecondContext", Map.of("otherParam", ""));
+        assertThrows(NiFiClientException.class, () -> getClientUtil().updateParameterAssetReferences(paramContext2, Map.of("otherParam", List.of(asset.getAsset().getId()))));
+    }
+
+    @Test
+    public void testAssetsRemovedWhenDeletingParameterContext() throws NiFiClientException, IOException, InterruptedException {
+        // Create context
+        final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testAssetsRemovedWhenDeletingParameterContext",
+                Map.of("name", "foo", "fileToIngest", ""));
+
+        // Create asset in context
+        final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
+        final AssetEntity asset = createAsset(paramContext.getId(), assetFile);
+
+        // Update parameter to reference asset
+        final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
+                paramContext, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
+        getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
+
+        // Check that the file exists in the assets directory.
+        final File node1Dir = getNumberOfNodes() == 1 ? getNiFiInstance().getInstanceDirectory() : getNiFiInstance().getNodeInstance(1).getInstanceDirectory();
+        final File node1Assets = new File(node1Dir, "assets");
+        final File node1ContextDir = new File(node1Assets, paramContext.getId());
+        assertTrue(node1ContextDir.exists());
+
+        final File node2Dir = getNumberOfNodes() == 1 ? null : getNiFiInstance().getNodeInstance(2).getInstanceDirectory();
+        final File node2Assets = node2Dir == null ? null : new File(node2Dir, "assets");
+        final File node2ContextDir = node2Assets == null ? null : new File(node2Assets, paramContext.getId());
+        if (node2ContextDir != null) {
+            assertTrue(node2ContextDir.exists());
+        }
+
+        // Delete context
+        final ParameterContextEntity latestParameterContext = getNifiClient().getParamContextClient().getParamContext(paramContext.getId(), false);
+        getNifiClient().getParamContextClient().deleteParamContext(paramContext.getId(), String.valueOf(latestParameterContext.getRevision().getVersion()));
+
+        // Verify the directory for the context's assets was removed
+        assertFalse(node1ContextDir.exists());
+        if (node2ContextDir != null) {
+            assertFalse(node2ContextDir.exists());
+        }
+    }
+
+    @Test
+    public void testAssetsRemainWhenRemovingReference() throws NiFiClientException, IOException, InterruptedException {
+        // Create context
+        final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testAssetsRemovedWhenDeletingParameterContext",
+                Map.of("name", "foo", "fileToIngest", ""));
+
+        // Create asset
+        final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
+        final AssetEntity asset = createAsset(paramContext.getId(), assetFile);
+
+        // Update parameter to reference the asset
+        final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
+                paramContext, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
+        getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
+
+        // Check that the file exists in the assets directory.
+        final File node1Dir = getNumberOfNodes() == 1 ? getNiFiInstance().getInstanceDirectory() : getNiFiInstance().getNodeInstance(1).getInstanceDirectory();
+        final File node1Assets = new File(node1Dir, "assets");
+        final File node1ContextDir = new File(node1Assets, paramContext.getId());
+        assertTrue(node1ContextDir.exists());
+
+        final File node2Dir = getNumberOfNodes() == 1 ? null : getNiFiInstance().getNodeInstance(2).getInstanceDirectory();
+        final File node2Assets = node2Dir == null ? null : new File(node2Dir, "assets");
+        final File node2ContextDir = node2Assets == null ? null : new File(node2Assets, paramContext.getId());
+        if (node2ContextDir != null) {
+            assertTrue(node2ContextDir.exists());
+        }
+
+        // Update the parameter to no longer reference the asset
+        final ParameterContextUpdateRequestEntity removeReferenceUpdateRequest = getClientUtil().updateParameterAssetReferences(paramContext, Map.of("fileToIngest", List.of()));
+        getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), removeReferenceUpdateRequest.getRequest().getRequestId());
+
+        // Verify the directory for the context's assets was not removed
+        assertTrue(node1ContextDir.exists());
+        if (node2ContextDir != null) {
+            assertTrue(node2ContextDir.exists());
+        }
+    }
+
+    @Test
+    public void testUnreferencedAssetsRemovedWhenDeletingParameterContext() throws NiFiClientException, IOException, InterruptedException {
+        // Create context
+        final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testUnreferencedAssetsRemovedWhenDeletingParameterContext",
+                Map.of("name", "foo", "fileToIngest", ""));
+
+        // Upload asset
+        final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
+        createAsset(paramContext.getId(), assetFile);
+
+        // Check that the files exist in the assets directory
+        final File node1Dir = getNumberOfNodes() == 1 ? getNiFiInstance().getInstanceDirectory() : getNiFiInstance().getNodeInstance(1).getInstanceDirectory();
+        final File node1Assets = new File(node1Dir, "assets");
+        final File node1ContextDir = new File(node1Assets, paramContext.getId());
+        assertTrue(node1ContextDir.exists());
+
+        final File node2Dir = getNumberOfNodes() == 1 ? null : getNiFiInstance().getNodeInstance(2).getInstanceDirectory();
+        final File node2Assets = node2Dir == null ? null : new File(node2Dir, "assets");
+        final File node2ContextDir = node2Assets == null ? null : new File(node2Assets, paramContext.getId());
+        if (node2ContextDir != null) {
+            assertTrue(node2ContextDir.exists());
+        }
+
+        // Delete context
+        final ParameterContextEntity latestParameterContext = getNifiClient().getParamContextClient().getParamContext(paramContext.getId(), false);
+        getNifiClient().getParamContextClient().deleteParamContext(paramContext.getId(), String.valueOf(latestParameterContext.getRevision().getVersion()));
+
+        // Verify the directory for the context's assets was removed
+        assertFalse(node1ContextDir.exists());
+        if (node2ContextDir != null) {
+            assertFalse(node2ContextDir.exists());
+        }
+    }
+
+    @Test
+    public void testAssetReplacement() throws NiFiClientException, IOException, InterruptedException {
+        // Create context
+        final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testAssetReplacement", Map.of("name", "foo", "fileToIngest", ""));
+
+        // Set the Parameter Context on the root Process Group
+        setParameterContext("root", paramContext);
+
+        // Create a Processor and update it to reference a parameter
+        final ProcessorEntity ingest = getClientUtil().createProcessor("IngestFile");
+        getClientUtil().updateProcessorProperties(ingest, Map.of("Filename", "#{fileToIngest}", "Delete File", "false"));
+        getClientUtil().updateProcessorSchedulingPeriod(ingest, "10 mins");
+
+        // Create an asset
+        final String assetName = "helloworld.txt";
+        final File assetFile1 = new File("src/test/resources/sample-assets/helloworld.txt");
+        final AssetEntity asset = createAsset(paramContext.getId(), assetName, assetFile1);
+
+        // Update the parameter to reference the asset
+        final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
+                paramContext, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
+        getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
+
+        // Connect the ingest processor to terminate processor and produce flow files
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+        final ConnectionEntity connection = getClientUtil().createConnection(ingest, terminate, "success");
+        waitForValidProcessor(ingest.getId());
+
+        // Run the flow and verify the flow files contain the contents of the asset
+        getClientUtil().startProcessor(ingest);
+        waitForQueueCount(connection.getId(), getNumberOfNodes());
+        final String contents = getClientUtil().getFlowFileContentAsUtf8(connection.getId(), 0);
+        assertEquals("Hello, World!", contents);
+
+        // Stop ingest processor and clear queue
+        getClientUtil().stopProcessor(ingest);
+        getClientUtil().waitForStoppedProcessor(ingest.getId());
+
+        getClientUtil().startProcessor(terminate);
+        waitForQueueCount(connection.getId(), 0);
+
+        getClientUtil().stopProcessor(terminate);
+        getClientUtil().waitForStoppedProcessor(terminate.getId());
+
+        // Replace the asset by uploading a different file with the same name
+        final File assetFile2 = new File("src/test/resources/sample-assets/helloworld2.txt");
+        final AssetEntity replacedAsset = createAsset(paramContext.getId(), assetName, assetFile2);
+        assertAsset(replacedAsset, assetName);
+
+        // Run the flow again and verify the flow files contain the updated contents of the asset
+        getClientUtil().startProcessor(ingest);
+        waitForQueueCount(connection.getId(), getNumberOfNodes());
+
+        final String contents2 = getClientUtil().getFlowFileContentAsUtf8(connection.getId(), 0);
+        assertEquals("Hello, World! 2", contents2);
+
+        getClientUtil().stopProcessor(ingest);
+        waitForStoppedProcessor(ingest.getId());
+    }
+
+    @Test
+    public void testAssetReferenceAfterRestart() throws NiFiClientException, IOException, InterruptedException {
+        // Create Parameter Context
+        final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testAssetReferenceAfterRestart",
+                Map.of("name", "foo", "fileToIngest", ""));
+
+        // Set the Parameter Context on the root Process Group
+        setParameterContext("root", paramContext);
+
+        // Create a Processor and update it to reference a parameter
+        final ProcessorEntity ingest = getClientUtil().createProcessor("IngestFile");
+        getClientUtil().updateProcessorProperties(ingest, Map.of("Filename", "#{fileToIngest}", "Delete File", "false"));
+        getClientUtil().updateProcessorSchedulingPeriod(ingest, "10 mins");
+
+        // Create an asset
+        final File assetFile1 = new File("src/test/resources/sample-assets/helloworld.txt");
+        final AssetEntity asset = createAsset(paramContext.getId(), assetFile1);
+
+        // Uupdate the parameter to reference the asset
+        final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
+                paramContext, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
+        getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
+
+        // Ensure that Asset References are kept intact after restart
+        final boolean clustered = getNumberOfNodes() > 1;
+        if (clustered) {
+            disconnectNode(2);
+        }
+        final NiFiInstance restartNode = clustered ? getNiFiInstance().getNodeInstance(2) : getNiFiInstance();
+        restartNode.stop();
+        restartNode.start(true);
+        if (clustered) {
+            reconnectNode(2);
+            waitForAllNodesConnected();
+        }
+
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+        final ConnectionEntity connection = getClientUtil().createConnection(ingest, terminate, "success");
+        waitForValidProcessor(ingest.getId());
+
+        // Get the new Processor Entity because the revision will be reset on restart
+        final ProcessorEntity ingestAfterRestart = getNifiClient().getProcessorClient().getProcessor(ingest.getId());
+        getClientUtil().startProcessor(ingestAfterRestart);
+        waitForQueueCount(connection.getId(), getNumberOfNodes());
+
+        final String contents = getClientUtil().getFlowFileContentAsUtf8(connection.getId(), 0);
+        assertEquals("Hello, World!", contents);
+
+        getClientUtil().stopProcessor(ingest);
+        waitForStoppedProcessor(ingest.getId());
+    }
 
     private Map<String, Long> waitForCounter(final String context, final String counterName, final long expectedValue) throws NiFiClientException, IOException, InterruptedException {
         return getClientUtil().waitForCounter(context, counterName, expectedValue);
@@ -715,7 +1045,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         return createParameterContextEntity(name, description, parameters, Collections.emptyList(), null, null);
     }
 
-    private ProcessGroupEntity setParameterContext(final String groupId, final ParameterContextEntity parameterContext) throws NiFiClientException, IOException {
+    protected ProcessGroupEntity setParameterContext(final String groupId, final ParameterContextEntity parameterContext) throws NiFiClientException, IOException {
         return getClientUtil().setParameterContext(groupId, parameterContext);
     }
 
@@ -759,7 +1089,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForAppliedParameters(request);
     }
 
-    private void waitForValidProcessor(String id) throws InterruptedException, IOException, NiFiClientException {
+    void waitForValidProcessor(String id) throws InterruptedException, IOException, NiFiClientException {
         getClientUtil().waitForValidProcessor(id);
     }
 
@@ -774,4 +1104,43 @@ public class ParameterContextIT extends NiFiSystemIT {
     private void waitForStoppedProcessor(final String processorId) throws InterruptedException, IOException, NiFiClientException {
         getClientUtil().waitForStoppedProcessor(processorId);
     }
+
+
+    protected AssetEntity createAsset(final String paramContextId, final File assetFile) throws NiFiClientException, IOException {
+        return createAsset(paramContextId, assetFile.getName(), assetFile);
+    }
+
+    protected AssetEntity createAsset(final String paramContextId, final String assetName, final File assetFile) throws NiFiClientException, IOException {
+        final AssetEntity asset = getNifiClient().getParamContextClient().createAsset(paramContextId, assetName, assetFile);
+        logger.info("Created asset [{}] in parameter context [{}]", assetName, paramContextId);
+        assertAsset(asset, assetName);
+        return asset;
+    }
+
+    protected AssetsEntity assertAssetListing(final String paramContextId, final int expectedCount) throws NiFiClientException, IOException {
+        final AssetsEntity assetListing = getNifiClient().getParamContextClient().getAssets(paramContextId);
+        assertNotNull(assetListing);
+        assertNotNull(assetListing.getAssets());
+        assertEquals(expectedCount, assetListing.getAssets().size());
+        return assetListing;
+    }
+
+    protected void assertAssetExists(final AssetEntity asset, final AssetsEntity assets) {
+        final AssetEntity assetFromListing = assets.getAssets().stream()
+                .filter(a -> a.getAsset().getId().equals(asset.getAsset().getId()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(assetFromListing);
+    }
+
+    protected void assertAsset(final AssetEntity asset, final String expectedName) {
+        assertNotNull(asset);
+        assertNotNull(asset.getAsset());
+        assertNotNull(asset.getAsset().getId());
+        assertNotNull(asset.getAsset().getDigest());
+        assertNotNull(asset.getAsset().getMissingContent());
+        assertFalse(asset.getAsset().getMissingContent());
+        assertEquals(expectedName, asset.getAsset().getName());
+    }
+
 }

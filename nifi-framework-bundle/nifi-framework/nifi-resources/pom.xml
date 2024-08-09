@@ -121,6 +121,10 @@
         <nifi.nar.persistence.provider.implementation>org.apache.nifi.nar.StandardNarPersistenceProvider</nifi.nar.persistence.provider.implementation>
         <nifi.nar.persistence.provider.properties.directory>./nar_repository</nifi.nar.persistence.provider.properties.directory>
 
+        <!-- Asset Management properties -->
+        <nifi.asset.manager.implementation>org.apache.nifi.asset.StandardAssetManager</nifi.asset.manager.implementation>
+        <nifi.asset.manager.properties.directory>./assets</nifi.asset.manager.properties.directory>
+
         <!-- nifi.properties: web properties -->
         <nifi.web.http.host />
         <nifi.web.http.port />

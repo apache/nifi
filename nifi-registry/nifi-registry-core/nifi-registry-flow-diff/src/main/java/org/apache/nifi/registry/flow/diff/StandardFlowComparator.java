@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow.diff;
 
 import org.apache.nifi.components.PortFunction;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -43,12 +44,14 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class StandardFlowComparator implements FlowComparator {
     private static final Logger logger = LoggerFactory.getLogger(StandardFlowComparator.class);
@@ -256,6 +259,22 @@ public class StandardFlowComparator implements FlowComparator {
                 final String valueB = parameterB.isSensitive() ? "<Sensitive Value B>" : parameterB.getValue();
                 final String description = differenceDescriptor.describeDifference(DifferenceType.PARAMETER_VALUE_CHANGED, flowA.getName(), flowB.getName(), contextA, contextB, name, valueA, valueB);
                 differences.add(new StandardFlowDifference(DifferenceType.PARAMETER_VALUE_CHANGED, contextA, contextB, name, valueA, valueB, description));
+            }
+
+            final Set<String> assetIdsA = Stream.ofNullable(parameterA.getReferencedAssets())
+                    .flatMap(Collection::stream)
+                    .map(VersionedAsset::getIdentifier)
+                    .collect(Collectors.toSet());
+            final Set<String> assetIdsB = Stream.ofNullable(parameterB.getReferencedAssets())
+                    .flatMap(Collection::stream)
+                    .map(VersionedAsset::getIdentifier)
+                    .collect(Collectors.toSet());
+            if (!assetIdsA.equals(assetIdsB)) {
+                final List<VersionedAsset> valueA = parameterA.getReferencedAssets();
+                final List<VersionedAsset> valueB = parameterB.getReferencedAssets();
+                final String description = differenceDescriptor.describeDifference(DifferenceType.PARAMETER_ASSET_REFERENCES_CHANGED,
+                        flowA.getName(), flowB.getName(), contextA, contextB, name, valueA, valueB);
+                differences.add(new StandardFlowDifference(DifferenceType.PARAMETER_ASSET_REFERENCES_CHANGED, contextA, contextB, name, valueA, valueB, description));
             }
 
             if (!Objects.equals(parameterA.getDescription(), parameterB.getDescription())) {

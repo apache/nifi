@@ -154,8 +154,17 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         logger.info("Beginning teardown");
 
         try {
-            Exception destroyFlowFailure = null;
+            // In some cases a test can pass, but still leave a clustered instance with one of the nodes in a bad state, if the instance then gets reused
+            // it will cause later tests to fail, so it is better to destroy the environment if the cluster is in a bad state at the end of a test
+            final NiFiInstance nifiInstance = nifiRef.get();
+            if (nifiInstance != null && nifiInstance.isClustered() && (!isCoordinatorElected() || !allNodesConnected(nifiInstance.getNumberOfNodes()))) {
+                logger.info("Clustered environment is in a bad state, will completely tear down the environments and start with a clean environment for the next test.");
+                instanceCache.poison(nifiInstance);
+                cleanup();
+                return;
+            }
 
+            Exception destroyFlowFailure = null;
             if (isDestroyFlowAfterEachTest()) {
                 try {
                     destroyFlow();
@@ -596,6 +605,11 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         }
 
         return false;
+    }
+
+    protected boolean allNodesConnected(int expectedNodeCount) throws NiFiClientException, IOException {
+        final ClusterSummaryEntity clusterSummary = getNifiClient().getFlowClient().getClusterSummary();
+        return expectedNodeCount == clusterSummary.getClusterSummary().getConnectedNodeCount();
     }
 
     protected void reconnectNode(final int nodeIndex) throws NiFiClientException, IOException {

@@ -176,6 +176,11 @@ public enum DifferenceType {
     PARAMETER_VALUE_CHANGED("Parameter Value Changed"),
 
     /**
+     * The assets referenced by the Parameter is different in each of the flows
+     */
+    PARAMETER_ASSET_REFERENCES_CHANGED("Parameter Asset References Changed"),
+
+    /**
      * The description of the Parameter is different in each of the flows
      */
     PARAMETER_DESCRIPTION_CHANGED("Parameter Description Changed"),

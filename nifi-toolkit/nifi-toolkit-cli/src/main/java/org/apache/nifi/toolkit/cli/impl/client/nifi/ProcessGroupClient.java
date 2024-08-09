@@ -42,6 +42,8 @@ public interface ProcessGroupClient {
 
    ProcessGroupEntity updateProcessGroup(ProcessGroupEntity entity) throws NiFiClientException, IOException;
 
+   ProcessGroupEntity deleteProcessGroup(ProcessGroupEntity entity) throws NiFiClientException, IOException;
+
    ControllerServiceEntity createControllerService(String processGroupId, ControllerServiceEntity controllerService)
            throws NiFiClientException, IOException;
 

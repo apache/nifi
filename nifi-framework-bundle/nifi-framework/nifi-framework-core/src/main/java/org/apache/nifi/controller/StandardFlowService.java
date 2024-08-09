@@ -17,6 +17,7 @@
 package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.asset.AssetSynchronizer;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
 import org.apache.nifi.authorization.ManagedAuthorizer;
@@ -123,6 +124,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private final ClusterCoordinator clusterCoordinator;
     private final RevisionManager revisionManager;
     private final NarManager narManager;
+    private final AssetSynchronizer assetSynchronizer;
     private volatile SaveReportingTask saveReportingTask;
 
     /**
@@ -153,9 +155,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final NiFiProperties nifiProperties,
             final RevisionManager revisionManager,
             final NarManager narManager,
+            final AssetSynchronizer assetSynchronizer,
             final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, nifiProperties, null, false, null, revisionManager, narManager, authorizer);
+        return new StandardFlowService(controller, nifiProperties, null, false, null, revisionManager, narManager, assetSynchronizer, authorizer);
     }
 
     public static StandardFlowService createClusteredInstance(
@@ -165,9 +168,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final ClusterCoordinator coordinator,
             final RevisionManager revisionManager,
             final NarManager narManager,
+            final AssetSynchronizer assetSynchronizer,
             final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, nifiProperties, senderListener, true, coordinator, revisionManager, narManager, authorizer);
+        return new StandardFlowService(controller, nifiProperties, senderListener, true, coordinator, revisionManager, narManager, assetSynchronizer, authorizer);
     }
 
     private StandardFlowService(
@@ -178,6 +182,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final ClusterCoordinator clusterCoordinator,
             final RevisionManager revisionManager,
             final NarManager narManager,
+            final AssetSynchronizer assetSynchronizer,
             final Authorizer authorizer) throws IOException {
 
         this.nifiProperties = nifiProperties;
@@ -193,6 +198,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
         this.revisionManager = revisionManager;
         this.narManager = narManager;
+        this.assetSynchronizer = assetSynchronizer;
         this.authorizer = authorizer;
 
         if (configuredForClustering) {
@@ -961,6 +967,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // load new controller state
             loadFromBytes(dataFlow, true, BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST);
+
+            // sync assets after loading the flow so that parameter contexts exist first
+            assetSynchronizer.synchronize();
 
             // set node ID on controller before we start heartbeating because heartbeat needs node ID
             clusterCoordinator.setLocalNodeIdentifier(nodeId);

@@ -116,7 +116,7 @@ public class TestAbstractComponentNode {
             .description("")
             .sensitive(false)
             .build();
-        final Parameter param = new Parameter(paramDescriptor, "123");
+        final Parameter param = new Parameter.Builder().descriptor(paramDescriptor).value("123").build();
         Mockito.doReturn(Optional.of(param)).when(context).getParameter("abc");
         node.setParameterContext(context);
 
@@ -150,7 +150,7 @@ public class TestAbstractComponentNode {
             .description("")
             .sensitive(true)
             .build();
-        final Parameter param = new Parameter(paramDescriptor, "123");
+        final Parameter param = new Parameter.Builder().descriptor(paramDescriptor).value("123").build();
         Mockito.doReturn(Optional.of(param)).when(context).getParameter("abc");
         node.setParameterContext(context);
 

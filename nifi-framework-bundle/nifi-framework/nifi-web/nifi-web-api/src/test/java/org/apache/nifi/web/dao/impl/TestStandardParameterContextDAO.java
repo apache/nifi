@@ -27,7 +27,6 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContextManager;
@@ -99,8 +98,7 @@ public class TestStandardParameterContextDAO {
                 .name("Inherited")
                 .build();
         final Map<String, Parameter> parameters = new HashMap<>();
-        parameters.put("inherited-param", new Parameter(new ParameterDescriptor.Builder().name("inherited-param").build(),
-                "value", null, true));
+        parameters.put("inherited-param", new Parameter.Builder().name("inherited-param").value("value").provided(true).build());
         inheritedContext.setParameters(parameters);
         parameterContextLookup.addParameterContext(inheritedContext);
     }

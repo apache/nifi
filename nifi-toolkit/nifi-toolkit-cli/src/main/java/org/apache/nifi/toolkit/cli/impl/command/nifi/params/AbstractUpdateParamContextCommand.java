@@ -23,10 +23,17 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
+import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -98,5 +105,24 @@ public abstract class AbstractUpdateParamContextCommand<R extends Result> extend
         } catch (final MissingOptionException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
+    }
+
+    protected ParameterContextEntity createContextEntityForUpdate(final String paramContextId, final ParameterDTO parameterDTO,
+                                                                  final List<ParameterContextReferenceEntity> inheritedParameterContexts,
+                                                                  final RevisionDTO paramContextRevision) {
+        final ParameterEntity parameterEntity = new ParameterEntity();
+        parameterEntity.setParameter(parameterDTO);
+
+        final ParameterContextDTO parameterContextDTO = new ParameterContextDTO();
+        parameterContextDTO.setId(paramContextId);
+        parameterContextDTO.setParameters(Collections.singleton(parameterEntity));
+        parameterContextDTO.setInheritedParameterContexts(inheritedParameterContexts);
+
+        final ParameterContextEntity updatedParameterContextEntity = new ParameterContextEntity();
+        updatedParameterContextEntity.setId(paramContextId);
+        updatedParameterContextEntity.setComponent(parameterContextDTO);
+        updatedParameterContextEntity.setRevision(paramContextRevision);
+        return updatedParameterContextEntity;
+
     }
 }

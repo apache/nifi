@@ -26,17 +26,17 @@ public class FlowAnalysisUtil {
     public static final String ENCRYPTED_SENSITIVE_VALUE_SUBSTITUTE = "*****";
 
     public static NiFiRegistryFlowMapper createMapper(ExtensionManager extensionManager) {
-        NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(
-                extensionManager,
-                new FlowMappingOptions.Builder()
-                        .mapPropertyDescriptors(true)
-                        .mapControllerServiceReferencesToVersionedId(true)
-                        .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
-                        .componentIdLookup(ComponentIdLookup.USE_COMPONENT_ID)
-                        .mapSensitiveConfiguration(true)
-                        .sensitiveValueEncryptor(value -> ENCRYPTED_SENSITIVE_VALUE_SUBSTITUTE)
-                        .build()
-        ) {
+        final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
+            .mapPropertyDescriptors(true)
+            .mapControllerServiceReferencesToVersionedId(true)
+            .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
+            .componentIdLookup(ComponentIdLookup.USE_COMPONENT_ID)
+            .mapSensitiveConfiguration(true)
+            .sensitiveValueEncryptor(value -> ENCRYPTED_SENSITIVE_VALUE_SUBSTITUTE)
+            .mapAssetReferences(true)
+            .build();
+
+        final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(extensionManager, flowMappingOptions) {
             @Override
             public String getGroupId(String groupId) {
                 return groupId;

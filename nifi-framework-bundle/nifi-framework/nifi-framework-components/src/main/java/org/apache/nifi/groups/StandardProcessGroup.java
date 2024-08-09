@@ -22,6 +22,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -192,6 +193,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final VersionControlFields versionControlFields = new VersionControlFields();
     private volatile ParameterContext parameterContext;
     private final NodeTypeProvider nodeTypeProvider;
+    private final AssetManager assetManager;
     private final StatelessGroupNode statelessGroupNode;
     private volatile ExecutionEngine executionEngine = ExecutionEngine.INHERITED;
     private volatile int maxConcurrentTasks = 1;
@@ -221,7 +223,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                                 final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager,
                                 final ReloadComponent reloadComponent, final NodeTypeProvider nodeTypeProvider,
-                                final NiFiProperties nifiProperties, final StatelessGroupNodeFactory statelessGroupNodeFactory) {
+                                final NiFiProperties nifiProperties, final StatelessGroupNodeFactory statelessGroupNodeFactory,
+                                final AssetManager assetManager) {
 
         this.id = id;
         this.controllerServiceProvider = serviceProvider;
@@ -234,6 +237,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         this.flowManager = flowManager;
         this.reloadComponent = reloadComponent;
         this.nodeTypeProvider = nodeTypeProvider;
+        this.assetManager = assetManager;
 
         name = new AtomicReference<>();
         position = new AtomicReference<>(new Position(0D, 0D));
@@ -279,14 +283,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public ProcessGroup getParent() {
         return parent.get();
-    }
-
-    private ProcessGroup getRoot() {
-        ProcessGroup root = this;
-        while (root.getParent() != null) {
-            root = root.getParent();
-        }
-        return root;
     }
 
     @Override
@@ -3838,6 +3834,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             .mapInstanceIdentifiers(false)
             .mapControllerServiceReferencesToVersionedId(true)
             .mapFlowRegistryClientId(false)
+            .mapAssetReferences(false)
             .build();
 
         synchronizeFlow(proposedSnapshot, synchronizationOptions, flowMappingOptions);
@@ -4022,7 +4019,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             .componentScheduler(componentScheduler)
             .flowMappingOptions(flowMappingOptions)
             .processContextFactory(this::createProcessContext)
-                .configurationContextFactory(this::createConfigurationContext)
+            .configurationContextFactory(this::createConfigurationContext)
+            .assetManager(assetManager)
             .build();
     }
 

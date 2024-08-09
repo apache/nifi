@@ -17,6 +17,11 @@
 package org.apache.nifi.framework.configuration;
 
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.asset.AssetComponentManager;
+import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.asset.AssetSynchronizer;
+import org.apache.nifi.asset.StandardAssetComponentManager;
+import org.apache.nifi.asset.StandardAssetSynchronizer;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
@@ -248,6 +253,7 @@ public class FlowControllerConfiguration {
                     properties,
                     revisionManager,
                     narManager,
+                    assetSynchronizer(),
                     authorizer
             );
         } else {
@@ -258,6 +264,7 @@ public class FlowControllerConfiguration {
                     clusterCoordinator,
                     revisionManager,
                     narManager,
+                    assetSynchronizer(),
                     authorizer
             );
         }
@@ -433,5 +440,35 @@ public class FlowControllerConfiguration {
                 webClientService(),
                 properties
         );
+    }
+
+    /**
+     * Asset Manager from Flow Controller
+     *
+     * @return Asset Manager
+     */
+    @Bean
+    public AssetManager assetManager() throws Exception {
+        return flowController().getAssetManager();
+    }
+
+    /**
+     * Asset Synchronizer depends on ClusterCoordinator, WebClientService, and NiFiProperties
+     *
+     * @return Asset Synchronizer
+     */
+    @Bean
+    public AssetSynchronizer assetSynchronizer() throws Exception {
+        return new StandardAssetSynchronizer(flowController(), clusterCoordinator, webClientService(), properties);
+    }
+
+    /**
+     * Affected Component Manager depends on FlowController
+     *
+     * @return Affected Component Manager
+     */
+    @Bean
+    public AssetComponentManager affectedComponentManager() throws Exception {
+        return new StandardAssetComponentManager(flowController());
     }
 }
