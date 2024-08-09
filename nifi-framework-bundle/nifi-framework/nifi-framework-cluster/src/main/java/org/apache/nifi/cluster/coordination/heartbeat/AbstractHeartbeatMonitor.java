@@ -30,12 +30,16 @@ import org.apache.nifi.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
+
+    private static final Duration NODE_API_TIMEOUT = Duration.ofSeconds(10);
 
     private final int heartbeatIntervalMillis;
     private final int missableHeartbeatCount;
@@ -288,12 +292,27 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
                 return;
             }
 
+            if (!isNodeApiReachable(nodeId)) {
+                logger.info("Received a connection request from {}, but the node's API address is not reachable, will not connect node to the cluster yet", nodeId);
+                return;
+            }
+
             // connection complete
             clusterCoordinator.finishNodeConnection(nodeId);
             clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received first heartbeat from connecting node. Node connected.");
         }
 
         clusterCoordinator.validateHeartbeat(heartbeat);
+    }
+
+    private boolean isNodeApiReachable(final NodeIdentifier nodeIdentifier) {
+        try {
+            final InetAddress nodeApiAddress = InetAddress.getByName(nodeIdentifier.getApiAddress());
+            return nodeApiAddress.isReachable((int) NODE_API_TIMEOUT.toMillis());
+        } catch (final Exception e) {
+            logger.debug("Node is not reachable at API address {}", nodeIdentifier.getApiAddress(), e);
+            return false;
+        }
     }
 
     /**
