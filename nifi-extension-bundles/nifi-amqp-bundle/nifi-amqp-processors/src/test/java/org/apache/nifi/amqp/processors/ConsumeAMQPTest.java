@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.MessageProperties;
+import org.apache.nifi.amqp.processors.ConsumeAMQP.OutputHeaderFormat;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -160,8 +161,8 @@ public class ConsumeAMQPTest {
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
-            successFF.assertAttributeEquals("amqp$routingKey", "key1");
-            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_ROUTING_KEY_ATTRIBUTE, "key1");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_EXCHANGE_ATTRIBUTE, "myExchange");
         }
     }
 
@@ -187,13 +188,13 @@ public class ConsumeAMQPTest {
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
-            runner.setProperty(ConsumeAMQP.HEADER_FORMAT, ConsumeAMQP.HEADERS_FORMAT_JSON_STRING);
+            runner.setProperty(ConsumeAMQP.HEADER_FORMAT, OutputHeaderFormat.JSON_STRING);
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
-            successFF.assertAttributeEquals("amqp$routingKey", "key1");
-            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
-            String headers = successFF.getAttribute("amqp$headers");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_ROUTING_KEY_ATTRIBUTE, "key1");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_EXCHANGE_ATTRIBUTE, "myExchange");
+            String headers = successFF.getAttribute(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE);
             JsonNode jsonNode = objectMapper.readTree(headers);
             assertEquals(expectedJson, jsonNode);
         }
@@ -222,14 +223,14 @@ public class ConsumeAMQPTest {
 
             ConsumeAMQP proc = new LocalConsumeAMQP(connection);
             TestRunner runner = initTestRunner(proc);
-            runner.setProperty(ConsumeAMQP.HEADER_FORMAT, ConsumeAMQP.HEADERS_FORMAT_ATTRIBUTES);
+            runner.setProperty(ConsumeAMQP.HEADER_FORMAT, OutputHeaderFormat.ATTRIBUTES);
             runner.setProperty(ConsumeAMQP.HEADER_KEY_PREFIX, headerPrefix);
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
-            successFF.assertAttributeEquals("amqp$routingKey", "key1");
-            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
-            successFF.assertAttributeNotExists("amqp$headers");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_ROUTING_KEY_ATTRIBUTE, "key1");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_EXCHANGE_ATTRIBUTE, "myExchange");
+            successFF.assertAttributeNotExists(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE);
             expectedHeadersMap.forEach((key, value) -> {
                 successFF.assertAttributeEquals(headerPrefix + "." + key, value.toString());
             } );
@@ -260,9 +261,9 @@ public class ConsumeAMQPTest {
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
-            successFF.assertAttributeEquals("amqp$routingKey", "key1");
-            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
-            String headers = successFF.getAttribute("amqp$headers");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_ROUTING_KEY_ATTRIBUTE, "key1");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_EXCHANGE_ATTRIBUTE, "myExchange");
+            String headers = successFF.getAttribute(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE);
             assertEquals(EXPECTED_RESULT, headers);
         }
     }
@@ -297,9 +298,9 @@ public class ConsumeAMQPTest {
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
-            successFF.assertAttributeEquals("amqp$routingKey", "key1");
-            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
-            successFF.assertAttributeEquals("amqp$headers", "key1=(bar,bar)");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_ROUTING_KEY_ATTRIBUTE, "key1");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_EXCHANGE_ATTRIBUTE, "myExchange");
+            successFF.assertAttributeEquals(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, "key1=(bar,bar)");
 
         }
     }
@@ -329,9 +330,9 @@ public class ConsumeAMQPTest {
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
-            successFF.assertAttributeEquals("amqp$routingKey", "key1");
-            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
-            String headers = successFF.getAttribute("amqp$headers");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_ROUTING_KEY_ATTRIBUTE, "key1");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_EXCHANGE_ATTRIBUTE, "myExchange");
+            String headers = successFF.getAttribute(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE);
             assertEquals(EXPECTED_RESULT, headers);
         }
     }
@@ -362,9 +363,9 @@ public class ConsumeAMQPTest {
             runner.run();
             final MockFlowFile successFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).get(0);
             assertNotNull(successFF);
-            successFF.assertAttributeEquals("amqp$routingKey", "key1");
-            successFF.assertAttributeEquals("amqp$exchange", "myExchange");
-            String headers = successFF.getAttribute("amqp$headers");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_ROUTING_KEY_ATTRIBUTE, "key1");
+            successFF.assertAttributeEquals(ConsumeAMQP.AMQP_EXCHANGE_ATTRIBUTE, "myExchange");
+            String headers = successFF.getAttribute(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE);
             assertEquals(EXPECTED_RESULT, headers);
         }
     }

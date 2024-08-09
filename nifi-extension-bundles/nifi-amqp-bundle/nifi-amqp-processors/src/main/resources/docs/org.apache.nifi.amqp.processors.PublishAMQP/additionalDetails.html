@@ -34,8 +34,8 @@
     This processor does two things. It constructs AMQP Message by extracting FlowFile contents (both body and attributes). 
     Once message is constructed it is sent to an AMQP Exchange.
     AMQP Properties will be extracted from the FlowFile and converted to <i>com.rabbitmq.client.AMQP.BasicProperties</i> to be sent
-    along with the message. Upon success the incoming FlowFile is transfered to <i>success</i> Relationship and upon failure FlowFile is
-    penalized and transfered to the <i>failure</i> Relationship. 
+    along with the message. Upon success the incoming FlowFile is transferred to <i>success</i> Relationship and upon failure FlowFile is
+    penalized and transferred to the <i>failure</i> Relationship.
 </p>
 <h2>Where did my message go?</h2>
 <p>
@@ -51,9 +51,21 @@
     properties if their names are prefixed with <i>amqp$</i> (e.g., amqp$contentType=text/xml). To enrich message with additional AMQP properties 
     you may use <b>UpdateAttribute</b> processor between the source processor and PublishAMQP processor.
     The following is the list of available standard AMQP properties: <i>("amqp$contentType", "amqp$contentEncoding",
-            "amqp$headers", "amqp$deliveryMode", "amqp$priority", "amqp$correlationId", "amqp$replyTo",
+            "amqp$headers" (if 'Headers Source' is set to 'Attribute "amqp$headers" Value') , "amqp$deliveryMode", "amqp$priority", "amqp$correlationId", "amqp$replyTo",
             "amqp$expiration", "amqp$messageId", "amqp$timestamp", "amqp$type", "amqp$userId", "amqp$appId",
             "amqp$clusterId")</i>
+</p>
+<h3>AMQP Message Headers Source</h3>
+<p>
+    The headers attached to AMQP message by the processor depends on the "Headers Source" property value.
+    <ol>
+    <li><b>Attribute "amqp$headers" Value</b> - The processor will read single attribute "amqp$headers" and split it based on "Header Separator" and then read headers
+    in <i>key=value</i> format.
+    </li>
+    <li><b>Attributes Matching Regex</b> - The processor will pick flow file attributes by matching the regex provided in "Attributes To Headers Regular Expression".
+    The name of the attribute is used as key of header
+    </li>
+    </ol>
 </p>
 <h2>Configuration Details</h2>
 <p>
