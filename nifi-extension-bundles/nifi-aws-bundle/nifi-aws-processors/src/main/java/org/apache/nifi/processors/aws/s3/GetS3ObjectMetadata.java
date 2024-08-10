@@ -176,7 +176,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
                                 if (attributePattern == null) {
                                     return true;
                                 } else {
-                                    return attributePattern.matcher(attributePrefix + e.getKey())
+                                    return attributePattern.matcher(e.getKey())
                                             .find();
                                 }
                             })

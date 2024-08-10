@@ -89,6 +89,7 @@ public class TestGetS3ObjectMetadata {
         Map<String, String> userMetadata = new HashMap<>();
         userMetadata.put("user1", "a");
         userMetadata.put("user2", "b");
+        userMetadata.put("mighthaveto", "excludemelater");
         Map<String, Object> combined = new HashMap<>(rawMetadata);
         combined.putAll(userMetadata);
 
@@ -126,20 +127,20 @@ public class TestGetS3ObjectMetadata {
         runner.setProperty(GetS3ObjectMetadata.ATTRIBUTE_INCLUDE_PATTERN, "(raw|user)");
 
         Map<String, Object> metadata = setupObjectMetadata();
-        Map<String, Object> expected = new HashMap<>(metadata);
-        metadata.put("excludeme", "please");
+        Map<String, Object> musthave = new HashMap<>(metadata);
+        musthave.remove("mighthaveto");
 
         run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_FOUND, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetS3ObjectMetadata.REL_FOUND).get(0);
-        expected.forEach((k, v) -> {
+        musthave.forEach((k, v) -> {
             String key = String.format("s3.%s", k);
             String val = flowFile.getAttribute(key);
             assertEquals(v, val);
         });
 
-        assertNull(flowFile.getAttribute("s3.excludeme"));
+        assertNull(flowFile.getAttribute("s3.mighthaveto"));
     }
 
     @DisplayName("Validate fetch to attribute mode routes to failure on S3 error")
