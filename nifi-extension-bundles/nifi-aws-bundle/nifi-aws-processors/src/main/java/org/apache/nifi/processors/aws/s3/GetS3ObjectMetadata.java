@@ -81,7 +81,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .build();
 
     public static final PropertyDescriptor ATTRIBUTE_INCLUDE_PATTERN = new PropertyDescriptor.Builder()
-            .name("Attribute Include Pattern")
+            .name("Metadata Attribute Include Pattern")
             .description("A regex pattern to use for determining which object metadata entries are included as FlowFile " +
                     "attributes. This pattern is only applied to the 'found' relationship and will not be used to " +
                     "filter the error attributes in the 'failure' relationship.")
