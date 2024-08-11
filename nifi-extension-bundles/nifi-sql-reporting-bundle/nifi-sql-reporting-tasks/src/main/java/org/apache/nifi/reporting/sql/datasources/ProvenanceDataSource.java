@@ -38,6 +38,7 @@ public class ProvenanceDataSource implements ResettableDataSource {
 
     public static final NiFiTableSchema SCHEMA = new NiFiTableSchema(List.of(
         new ColumnSchema("eventId", long.class, false),
+        new ColumnSchema("previousEventIds", new ArrayType(ScalarType.LONG), true),
         new ColumnSchema("eventType", String.class, false),
         new ColumnSchema("timestampMillis", long.class, true),
         new ColumnSchema("durationMillis", long.class, true),
@@ -118,6 +119,7 @@ public class ProvenanceDataSource implements ResettableDataSource {
 
         final ArrayList<Object> rowList = new ArrayList<>();
         rowList.add(provenanceEvent.getEventId());
+        rowList.add(provenanceEvent.getPreviousEventIds().toArray(new Long[provenanceEvent.getPreviousEventIds().size()]));
         rowList.add(provenanceEvent.getEventType().name());
         rowList.add(provenanceEvent.getEventTime());
         rowList.add(provenanceEvent.getEventDuration());

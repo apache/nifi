@@ -26,11 +26,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Holder for provenance relevant information
  */
-public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
+public class StandardProvenanceEventRecord implements UpdateableProvenanceEventRecord {
 
     private final long eventTime;
     private final long entryDate;
@@ -68,6 +69,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
     private final Map<String, String> updatedAttributes;
 
     private volatile long eventId = -1L;
+    private volatile Set<Long> previousEventIds;
 
     StandardProvenanceEventRecord(final Builder builder) {
         this.eventTime = builder.eventTime;
@@ -108,6 +110,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         if (builder.eventId != null) {
             eventId = builder.eventId;
         }
+        previousEventIds = builder.previousEventIds;
     }
 
     public static StandardProvenanceEventRecord copy(StandardProvenanceEventRecord other) {
@@ -123,7 +126,8 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         return storageByteOffset;
     }
 
-    void setEventId(final long eventId) {
+    @Override
+    public void setEventId(final long eventId) {
         this.eventId = eventId;
     }
 
@@ -132,6 +136,14 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         return eventId;
     }
 
+    @Override
+    public Set<Long> getPreviousEventIds() {
+        return previousEventIds;
+    }
+
+    public void setPreviousEventIds(Set<Long> previousEventIds) {
+        this.previousEventIds = previousEventIds;
+    }
     @Override
     public long getEventTime() {
         return eventTime;
@@ -316,11 +328,10 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         if (obj == this) {
             return true;
         }
-        if (!(obj instanceof StandardProvenanceEventRecord)) {
+        if (!(obj instanceof StandardProvenanceEventRecord other)) {
             return false;
         }
 
-        final StandardProvenanceEventRecord other = (StandardProvenanceEventRecord) obj;
         // If event ID's are populated and not equal, return false. If they have not yet been populated, do not
         // use them in the comparison.
         if (eventId > 0L && other.getEventId() > 0L && eventId != other.getEventId()) {
@@ -338,11 +349,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
             return false;
         }
 
-        if (different(childrenUuids, other.childrenUuids)) {
-            return false;
-        }
-
-        // SPAWN had issues indicating which should be the event's FlowFileUUID in the case that there is 1 parent and 1 child.
+        // JOIN had issues indicating which should be the event's FlowFileUUID in the case that there is 1 parent and 1 child.
         if (!uuid.equals(other.uuid)) {
             return false;
         }
@@ -374,15 +381,15 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
             return false;
         }
 
-        if (a == null && b != null && !b.isEmpty()) {
+        if (a == null && !b.isEmpty()) {
             return true;
         }
 
-        if (a == null && b.isEmpty()) {
+        if (a == null) {
             return false;
         }
 
-        if (a != null && !a.isEmpty() && b == null) {
+        if (!a.isEmpty() && b == null) {
             return true;
         }
 
@@ -413,11 +420,13 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
     public String toString() {
         return "ProvenanceEventRecord ["
                 + "eventId=" + eventId
+                + ", previousEventIds=" + previousEventIds
                 + ", eventType=" + eventType
                 + ", eventTime=" + new Date(eventTime)
                 + ", uuid=" + uuid
                 + ", fileSize=" + contentSize
                 + ", componentId=" + componentId
+                + ", componentType=" + componentType
                 + ", transitUri=" + transitUri
                 + ", sourceSystemFlowFileIdentifier=" + sourceSystemFlowFileIdentifier
                 + ", parentUuids=" + parentUuids
@@ -461,6 +470,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
         private long eventDuration = -1L;
         private String storageFilename;
         private Long eventId;
+        private Set<Long> previousEventIds;
 
         private String contentClaimSection;
         private String contentClaimContainer;
@@ -519,6 +529,7 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
                 storageFilename = standardProvEvent.storageFilename;
             }
 
+            previousEventIds = event.getPreviousEventIds();
             return this;
         }
 
@@ -571,6 +582,10 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
             copy.sourceQueueIdentifier = sourceQueueIdentifier;
             copy.storageByteOffset = storageByteOffset;
             copy.storageFilename = storageFilename;
+
+            if (previousEventIds != null) {
+                copy.previousEventIds = previousEventIds;
+            }
 
             return copy;
         }
@@ -740,6 +755,11 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
             return this;
         }
 
+        @Override
+        public ProvenanceEventBuilder setPreviousEventIds(Set<Long> previousEventIds) {
+            this.previousEventIds = previousEventIds;
+            return this;
+        }
         @Override
         public Builder setRelationship(Relationship relationship) {
             this.relationship = relationship.getName();

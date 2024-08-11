@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.repository;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.provenance.AbstractProvenanceRepository;
 import org.apache.nifi.provenance.AsyncLineageSubmission;
 import org.apache.nifi.provenance.IdentifierLookup;
 import org.apache.nifi.provenance.ProvenanceAuthorizableFactory;
@@ -26,8 +27,8 @@ import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.provenance.UpdateableProvenanceEventRecord;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
@@ -41,7 +42,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class StatelessProvenanceRepository implements ProvenanceRepository {
+public class StatelessProvenanceRepository extends AbstractProvenanceRepository {
 
     public static String CONTAINER_NAME = "in-memory";
 
@@ -106,23 +107,13 @@ public class StatelessProvenanceRepository implements ProvenanceRepository {
     }
 
     public ProvenanceEventRecord getEvent(final String identifier) throws IOException {
-        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new RingBuffer.Filter<ProvenanceEventRecord>() {
-            @Override
-            public boolean select(final ProvenanceEventRecord event) {
-                return identifier.equals(event.getFlowFileUuid());
-            }
-        }, 1);
+        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(event -> identifier.equals(event.getFlowFileUuid()), 1);
         return records.isEmpty() ? null : records.get(0);
     }
 
     @Override
     public ProvenanceEventRecord getEvent(final long id) {
-        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new RingBuffer.Filter<ProvenanceEventRecord>() {
-            @Override
-            public boolean select(final ProvenanceEventRecord event) {
-                return event.getEventId() == id;
-            }
-        }, 1);
+        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(event -> event.getEventId() == id, 1);
 
         return records.isEmpty() ? null : records.get(0);
     }
@@ -207,7 +198,7 @@ public class StatelessProvenanceRepository implements ProvenanceRepository {
         return null;
     }
 
-    private static class IdEnrichedProvEvent implements ProvenanceEventRecord {
+    private static class IdEnrichedProvEvent implements UpdateableProvenanceEventRecord {
 
         private final ProvenanceEventRecord record;
         private final long id;
@@ -220,6 +211,25 @@ public class StatelessProvenanceRepository implements ProvenanceRepository {
         @Override
         public long getEventId() {
             return id;
+        }
+
+        @Override
+        public void setEventId(long eventId) {
+            if (record instanceof UpdateableProvenanceEventRecord) {
+                ((UpdateableProvenanceEventRecord) record).setEventId(eventId);
+            }
+        }
+
+        @Override
+        public Set<Long> getPreviousEventIds() {
+            return record.getPreviousEventIds();
+        }
+
+        @Override
+        public void setPreviousEventIds(Set<Long> previousEventIds) {
+            if (record instanceof UpdateableProvenanceEventRecord) {
+                ((UpdateableProvenanceEventRecord) record).setPreviousEventIds(previousEventIds);
+            }
         }
 
         @Override

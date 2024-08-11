@@ -20,20 +20,23 @@ package org.apache.nifi.provenance;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A Provenance Event that is used to replace another Provenance Event when authorizations
  * are not granted for the original Provenance Event
  */
-public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
+public class PlaceholderProvenanceEvent implements UpdateableProvenanceEventRecord {
     private final String componentId;
-    private final long eventId;
+    private long eventId;
+    private Set<Long> previousEventIds;
     private final long eventTime;
     private final String flowFileUuid;
 
     public PlaceholderProvenanceEvent(final ProvenanceEventRecord original) {
         this.componentId = original.getComponentId();
         this.eventId = original.getEventId();
+        this.previousEventIds = original.getPreviousEventIds();
         this.eventTime = original.getEventTime();
         this.flowFileUuid = original.getFlowFileUuid();
     }
@@ -43,6 +46,20 @@ public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
         return eventId;
     }
 
+    @Override
+    public void setEventId(long eventId) {
+        this.eventId = eventId;
+    }
+
+    @Override
+    public Set<Long> getPreviousEventIds() {
+        return previousEventIds;
+    }
+
+    @Override
+    public void setPreviousEventIds(Set<Long> previousEventIds) {
+        this.previousEventIds = previousEventIds;
+    }
     @Override
     public long getEventTime() {
         return eventTime;

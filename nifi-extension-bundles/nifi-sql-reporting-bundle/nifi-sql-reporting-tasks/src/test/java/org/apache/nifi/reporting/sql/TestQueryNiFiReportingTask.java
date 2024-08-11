@@ -62,7 +62,6 @@ import org.apache.nifi.util.db.JdbcProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -75,6 +74,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -539,11 +539,16 @@ class TestQueryNiFiReportingTask {
         assertEquals(1001, rows.size());
         // Validate the first row
         Map<String, Object> row = rows.get(0);
-        assertEquals(24, row.size());
+        assertEquals(25, row.size());
         // Verify the first row contents
         final Long firstEventId = (Long) row.get("eventId");
         assertEquals("CREATE", row.get("eventType"));
         assertEquals(12L, row.get("entitySize"));
+        final Object previousEventIdsObj = row.get("previousEventIds");
+        assertNotNull(previousEventIdsObj);
+        Object[] previousEventIds = (Object[]) previousEventIdsObj;
+        assertEquals(1, previousEventIds.length);
+        assertEquals(10L, previousEventIds[0]);
 
         assertNull(row.get("contentPath"));
         assertNull(row.get("previousContentPath"));
@@ -559,14 +564,14 @@ class TestQueryNiFiReportingTask {
 
         // Verify some fields in the second row
         row = rows.get(1);
-        assertEquals(24, row.size());
+        assertEquals(25, row.size());
         // Verify the second row contents
         assertEquals(firstEventId + 1, row.get("eventId"));
         assertEquals("DROP", row.get("eventType"));
 
         // Verify some fields in the last row
         row = rows.get(1000);
-        assertEquals(24, row.size());
+        assertEquals(25, row.size());
         // Verify the last row contents
         assertEquals(firstEventId + 1000L, row.get("eventId"));
         assertEquals("DROP", row.get("eventType"));
@@ -700,6 +705,7 @@ class TestQueryNiFiReportingTask {
                 .setSourceSystemFlowFileIdentifier("I am FlowFile 1")
                 .setAlternateIdentifierUri("remote://test")
                 .setAttributes(previousAttributes, updatedAttributes)
+                .setPreviousEventIds(Collections.singleton(10L))
                 .build();
 
         mockProvenanceRepository.registerEvent(prov1);
@@ -720,13 +726,10 @@ class TestQueryNiFiReportingTask {
 
         Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(mockProvenanceRepository);
         try {
-            Mockito.when(eventAccess.getProvenanceEvents(anyLong(), anyInt())).thenAnswer(new Answer<List<ProvenanceEventRecord>>() {
-                @Override
-                public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) throws Throwable {
-                    final long startEventId = invocation.getArgument(0);
-                    final int max = invocation.getArgument(1);
-                    return mockProvenanceRepository.getEvents(startEventId, max);
-                }
+            Mockito.when(eventAccess.getProvenanceEvents(anyLong(), anyInt())).thenAnswer((Answer<List<ProvenanceEventRecord>>) invocation -> {
+                final long startEventId = invocation.getArgument(0);
+                final int max = invocation.getArgument(1);
+                return mockProvenanceRepository.getEvents(startEventId, max);
             });
         } catch (final IOException e) {
             // Won't happen
@@ -794,6 +797,7 @@ class TestQueryNiFiReportingTask {
 
     private static class MockProvenanceRepository implements ProvenanceEventRepository {
         private final List<ProvenanceEventRecord> events = new ArrayList<>();
+        protected final Map<String, Set<Long>> previousEventIdsMap = new HashMap<>();
 
         @Override
         public ProvenanceEventBuilder eventBuilder() {
@@ -836,6 +840,20 @@ class TestQueryNiFiReportingTask {
 
         @Override
         public void close() {
+        }
+
+        @Override
+        public Set<Long> getPreviousEventIds(String flowFileUUID) {
+            return previousEventIdsMap.get(flowFileUUID);
+        }
+
+        @Override
+        public void updatePreviousEventIds(ProvenanceEventRecord record, Set<Long> previousIds) {
+            if (previousIds == null) {
+                previousEventIdsMap.remove(record.getFlowFileUuid());
+            } else {
+                previousEventIdsMap.put(record.getFlowFileUuid(), previousIds);
+            }
         }
     }
 }

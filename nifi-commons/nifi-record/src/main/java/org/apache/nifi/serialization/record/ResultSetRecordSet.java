@@ -157,12 +157,12 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             return null;
         }
 
-        if (value instanceof List) {
-            return ((List) value).toArray();
+        if (value instanceof Set) {
+            return ((Set) value).toArray();
         }
 
-        if (value instanceof Array) {
-            return ((Array) value).getArray();
+        if (value instanceof List) {
+            return ((List) value).toArray();
         }
 
         return value;

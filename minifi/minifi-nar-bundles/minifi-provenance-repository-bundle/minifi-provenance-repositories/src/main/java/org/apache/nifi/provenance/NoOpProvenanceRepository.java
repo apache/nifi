@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-import static java.util.Collections.EMPTY_SET;
 import static java.util.Collections.emptyList;
 
 /**
@@ -36,7 +35,7 @@ import static java.util.Collections.emptyList;
  * store events.
  *
  */
-public class NoOpProvenanceRepository implements ProvenanceRepository {
+public class NoOpProvenanceRepository extends AbstractProvenanceRepository {
 
   @Override
   public void initialize(EventReporter eventReporter, Authorizer authorizer,
@@ -134,7 +133,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
 
   @Override
   public Set<String> getContainerNames() {
-    return EMPTY_SET;
+    return Set.of();
   }
 
   @Override

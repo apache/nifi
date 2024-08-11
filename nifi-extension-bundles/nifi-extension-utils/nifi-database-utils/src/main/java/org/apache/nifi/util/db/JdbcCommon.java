@@ -122,6 +122,8 @@ public class JdbcCommon {
 
     public static final Pattern LONG_PATTERN = Pattern.compile("^-?\\d{1,19}$");
     public static final Pattern SQL_TYPE_ATTRIBUTE_PATTERN = Pattern.compile("sql\\.args\\.(\\d+)\\.type");
+
+    public static final Pattern JDBC_ARRAY_ELEMENT_CLASS_TYPE_PATTERN = Pattern.compile("JavaType\\(class (.*)\\) ARRAY");
     public static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+");
 
     public static final String MIME_TYPE_AVRO_BINARY = "application/avro-binary";
@@ -663,9 +665,21 @@ public class JdbcCommon {
                 case BINARY:
                 case VARBINARY:
                 case LONGVARBINARY:
-                case ARRAY:
                 case BLOB:
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().bytesType().endUnion().noDefault();
+                    break;
+
+                case ARRAY:
+                    // Parse array element type from column type name
+                    String columnTypeName = meta.getColumnTypeName(i);
+                    Matcher matcher = JDBC_ARRAY_ELEMENT_CLASS_TYPE_PATTERN.matcher(columnTypeName);
+                    if (matcher.find()) {
+                        String elementTypeName = matcher.group(1);
+                        addArrayElementType(builder, columnName, elementTypeName);
+                    } else {
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and()
+                                .array().items().unionOf().nullBuilder().endNull().and().bytesType().endUnion().endUnion().noDefault();
+                    }
                     break;
 
                 case -150: // SQLServer may return -150 from the driver even though it's really -156 (sql_variant), treat as a union since we don't know what the values will actually be
@@ -681,6 +695,42 @@ public class JdbcCommon {
         }
 
         return builder.endRecord();
+    }
+
+    private static void addArrayElementType(final FieldAssembler<Schema> builder, final String columnName, final String elementTypeName) {
+        // Use Java class name to add an array with element type to the builder
+        if ("java.lang.String".equals(elementTypeName)) {
+            builder.name(columnName).type().unionOf().nullBuilder().endNull().and()
+                    .array().items().unionOf().nullBuilder().endNull().and().stringType().endUnion()
+                    .endUnion().noDefault();
+        } else if ("java.lang.Integer".equals(elementTypeName)) {
+            builder.name(columnName).type().unionOf().nullBuilder().endNull().and()
+                    .array().items().unionOf().nullBuilder().endNull().and().intType().endUnion()
+                    .endUnion().noDefault();
+        } else if ("java.lang.Long".equals(elementTypeName)) {
+            builder.name(columnName).type().unionOf().nullBuilder().endNull().and()
+                    .array().items().unionOf().nullBuilder().endNull().and().longType().endUnion()
+                    .endUnion().noDefault();
+        } else if ("java.lang.Boolean".equals(elementTypeName)) {
+            builder.name(columnName).type().unionOf().nullBuilder().endNull().and()
+                    .array().items().unionOf().nullBuilder().endNull().and().booleanType().endUnion()
+                    .endUnion().noDefault();
+        } else if ("java.lang.Float".equals(elementTypeName)) {
+            builder.name(columnName).type().unionOf().nullBuilder().endNull().and()
+                    .array().items().unionOf().nullBuilder().endNull().and().floatType().endUnion()
+                    .endUnion().noDefault();
+        } else if ("java.lang.Double".equals(elementTypeName)) {
+            builder.name(columnName).type().unionOf().nullBuilder().endNull().and()
+                    .array().items().unionOf().nullBuilder().endNull().and().doubleType().endUnion()
+                    .endUnion().noDefault();
+        } else if ("java.lang.Byte".equals(elementTypeName)) {
+            builder.name(columnName).type().unionOf().nullBuilder().endNull().and()
+                    .array().items().unionOf().nullBuilder().endNull().and().bytesType().endUnion()
+                    .endUnion().noDefault();
+        } else {
+            // default to bytes as before
+            builder.name(columnName).type().unionOf().nullBuilder().endNull().and().bytesType().endUnion().noDefault();
+        }
     }
 
     public static String normalizeNameForAvro(String inputName) {

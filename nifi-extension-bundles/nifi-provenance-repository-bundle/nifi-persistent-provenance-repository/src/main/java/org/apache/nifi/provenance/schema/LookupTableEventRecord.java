@@ -17,10 +17,13 @@
 
 package org.apache.nifi.provenance.schema;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -224,6 +227,8 @@ public class LookupTableEventRecord implements Record {
                 return event.getUpdatedAttributes();
             case EventFieldNames.FLOWFILE_UUID:
                 return event.getAttribute(CoreAttributes.UUID.key());
+            case EventFieldNames.PREVIOUS_EVENT_IDENTIFIERS:
+                return event.getPreviousEventIds();
         }
 
         return null;
@@ -353,6 +358,11 @@ public class LookupTableEventRecord implements Record {
             }
         }
 
+        final Collection<Long> previousEventIDsRecordField = (Collection<Long>) record.getFieldValue(EventFieldNames.PREVIOUS_EVENT_IDENTIFIERS);
+        if (previousEventIDsRecordField != null) {
+            final Set<Long> previousEventIDs = new HashSet<>(previousEventIDsRecordField);
+            builder.setPreviousEventIds(previousEventIDs);
+        }
         return builder.build();
     }
 

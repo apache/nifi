@@ -18,6 +18,7 @@ package org.apache.nifi.provenance;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Describes an event that happened to a FlowFile.
@@ -33,6 +34,12 @@ public interface ProvenanceEventRecord {
      * added to the {@link ProvenanceEventRepository}
      */
     long getEventId();
+
+    /**
+     * @return a unique ID for the "parent" Provenance Event, namely the one that came directly before this event
+     * for the given FlowFile. For source events such as CREATE, this value should be set to -1
+     */
+    Set<Long> getPreviousEventIds();
 
     /**
      * @return the time at which this Provenance Event was created, as the
@@ -149,14 +156,14 @@ public interface ProvenanceEventRecord {
     /**
      * @return the UUID's of all Parent FlowFiles. This is applicable only when
      * the {@link ProvenanceEventType} is of type
-     * {@link ProvenanceEventType#SPAWN SPAWN}
+     * {@link ProvenanceEventType#JOIN JOIN}
      */
     List<String> getParentUuids();
 
     /**
      * @return the UUID's of all Child FlowFiles. This is applicable only when
      * the {@link ProvenanceEventType} is of type
-     * {@link ProvenanceEventType#SPAWN SPAWN}
+     * {@link ProvenanceEventType#FORK FORK}
      */
     List<String> getChildUuids();
 

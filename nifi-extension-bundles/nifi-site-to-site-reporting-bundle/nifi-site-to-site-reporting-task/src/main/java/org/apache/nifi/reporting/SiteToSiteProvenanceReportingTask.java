@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -384,6 +385,15 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         addField(builder, "alternateIdentifier", event.getAlternateIdentifierUri(), allowNullValues);
         addField(builder, "platform", platform, allowNullValues);
         addField(builder, "application", applicationName, allowNullValues);
+        List<String> previousEventIdsList = null;
+        Set<Long> previousEventIds = event.getPreviousEventIds();
+        if (previousEventIds != null) {
+            previousEventIdsList = new ArrayList<>(previousEventIds.size());
+            for (Long previousEventId : previousEventIds) {
+                previousEventIdsList.add(String.valueOf(previousEventId));
+            }
+        }
+        addField(builder, factory, "previousEventIds", previousEventIdsList, allowNullValues);
 
         return builder.build();
     }

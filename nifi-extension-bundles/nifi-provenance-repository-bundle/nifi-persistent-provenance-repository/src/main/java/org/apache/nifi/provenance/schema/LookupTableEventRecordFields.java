@@ -33,6 +33,7 @@ public class LookupTableEventRecordFields {
 
     // General Event fields.
     public static final RecordField RECORD_IDENTIFIER_OFFSET = new SimpleRecordField(EventFieldNames.EVENT_IDENTIFIER, FieldType.INT, EXACTLY_ONE);
+    public static final RecordField PREVIOUS_EVENT_IDENTIFIERS = new SimpleRecordField(EventFieldNames.PREVIOUS_EVENT_IDENTIFIERS, FieldType.LONG, ZERO_OR_MORE);
     public static final RecordField EVENT_TYPE_ORDINAL = new SimpleRecordField(EventFieldNames.EVENT_TYPE, FieldType.INT, EXACTLY_ONE);
     public static final RecordField EVENT_TIME_OFFSET = new SimpleRecordField(EventFieldNames.EVENT_TIME, FieldType.INT, EXACTLY_ONE);
     public static final RecordField FLOWFILE_ENTRY_DATE_OFFSET = new SimpleRecordField(EventFieldNames.FLOWFILE_ENTRY_DATE, FieldType.INT, EXACTLY_ONE);

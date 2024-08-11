@@ -18,6 +18,7 @@ package org.apache.nifi.provenance;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 /**
  * This Repository houses Provenance Events. The repository is responsible for
@@ -93,5 +94,18 @@ public interface ProvenanceEventRepository {
      */
     void close() throws IOException;
 
+    /**
+     * Returns the previous provenance event IDs for the given FlowFile
+     * @param flowFileUUID the UUID of the FlowFile
+     * @return the previous event IDs for the given FlowFile
+     */
+    Set<Long> getPreviousEventIds(String flowFileUUID);
 
+    /**
+     * Updates the previous provenance event IDs for the given event
+     *
+     * @param record The record for which to update the previous event IDs
+     * @param previousIds the list of previous event IDs to set for the record, or null to remove
+     */
+    void updatePreviousEventIds(ProvenanceEventRecord record, Set<Long> previousIds);
 }

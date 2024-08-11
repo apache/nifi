@@ -20,6 +20,8 @@ package org.apache.nifi.provenance.schema;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -111,6 +113,8 @@ public class EventRecord implements Record {
                 return event.getTransitUri();
             case EventFieldNames.UPDATED_ATTRIBUTES:
                 return event.getUpdatedAttributes();
+            case EventFieldNames.PREVIOUS_EVENT_IDENTIFIERS:
+                return event.getPreviousEventIds();
         }
 
         return null;
@@ -157,6 +161,11 @@ public class EventRecord implements Record {
                 (Long) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SIZE));
         }
 
+        final Set<Long> previousEventIDs = (Set<Long>) record.getFieldValue(EventFieldNames.PREVIOUS_EVENT_IDENTIFIERS);
+        if (previousEventIDs != null) {
+            builder.setPreviousEventIds(previousEventIDs);
+        }
+
         final Record previousClaimRecord = (Record) record.getFieldValue(EventFieldNames.PREVIOUS_CONTENT_CLAIM);
         if (previousClaimRecord != null) {
             builder.setPreviousContentClaim(
@@ -177,7 +186,7 @@ public class EventRecord implements Record {
 
         // Check if any attribute value exceeds the attribute length
         final boolean anyExceedsLength = attributes.values().stream()
-            .filter(value -> value != null)
+            .filter(Objects::nonNull)
             .anyMatch(value -> value.length() > maxAttributeLength);
 
         if (!anyExceedsLength) {

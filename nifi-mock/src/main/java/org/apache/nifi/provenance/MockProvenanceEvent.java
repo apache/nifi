@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MockProvenanceEvent implements ProvenanceEventRecord {
@@ -64,6 +65,7 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
     private final Map<String, String> updatedAttributes;
 
     private volatile long eventId = -1L;
+    private volatile Set<Long> previousEventIds;
 
     private MockProvenanceEvent(final Builder builder) {
         this.eventTime = builder.eventTime;
@@ -102,6 +104,8 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
         if (builder.eventId != null) {
             eventId = builder.eventId;
         }
+
+        previousEventIds = builder.previousEventIds;
     }
 
 
@@ -112,6 +116,15 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
     @Override
     public long getEventId() {
         return eventId;
+    }
+
+    @Override
+    public Set<Long> getPreviousEventIds() {
+        return previousEventIds;
+    }
+
+    public void setPreviousEventIds(Set<Long> previousEventIds) {
+        this.previousEventIds = previousEventIds;
     }
 
     @Override
@@ -440,6 +453,7 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
         private String relationship = null;
         private long eventDuration = -1L;
         private Long eventId = eventIdGenerator.getAndIncrement();
+        private Set<Long> previousEventIds;
 
         private String contentClaimSection;
         private String contentClaimContainer;
@@ -492,6 +506,8 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
 
             sourceQueueIdentifier = event.getSourceQueueIdentifier();
 
+            previousEventIds = event.getPreviousEventIds();
+
             return this;
         }
 
@@ -542,6 +558,10 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
             copy.previousSize = previousSize;
 
             copy.sourceQueueIdentifier = sourceQueueIdentifier;
+
+            if (previousEventIds != null) {
+                copy.previousEventIds = previousEventIds;
+            }
 
             return copy;
         }
@@ -672,6 +692,12 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
         @Override
         public Builder setDetails(String details) {
             this.details = details;
+            return this;
+        }
+
+        @Override
+        public ProvenanceEventBuilder setPreviousEventIds(Set<Long> previousEventIds) {
+            this.previousEventIds = previousEventIds;
             return this;
         }
 

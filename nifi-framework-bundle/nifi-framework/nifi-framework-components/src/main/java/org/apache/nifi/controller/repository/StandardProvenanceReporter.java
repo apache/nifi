@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.provenance.InternalProvenanceReporter;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -115,7 +117,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     /**
-     * Generates a Fork event for the given child and parents but does not register the event. This is useful so that a ProcessSession has the ability to de-dupe events, since one or more events may
+     * Generates a Join event for the given child and parents but does not register the event. This is useful so that a ProcessSession has the ability to de-dupe events, since one or more events may
      * be created by the session itself, as well as by the Processor
      *
      * @param parents parents
@@ -127,16 +129,59 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         final ProvenanceEventBuilder eventBuilder = build(child, ProvenanceEventType.JOIN);
         eventBuilder.addChildFlowFile(child);
 
+        Set<Long> parentEventIds = new HashSet<>(parents.size());
         for (final FlowFile parent : parents) {
             eventBuilder.addParentFlowFile(parent);
+            parentEventIds.addAll(repository.getPreviousEventIds(parent.getAttribute(CoreAttributes.UUID.key())));
         }
+        eventBuilder.setPreviousEventIds(parentEventIds);
 
-        return eventBuilder.build();
+        ProvenanceEventRecord record = eventBuilder.build();
+        repository.updatePreviousEventIds(record, parentEventIds);
+        return record;
     }
 
     @Override
     public ProvenanceEventRecord generateDropEvent(final FlowFile flowFile, final String details) {
-        return build(flowFile, ProvenanceEventType.DROP).setDetails(details).build();
+        final String flowFileUUID = flowFile.getAttribute(CoreAttributes.UUID.key());
+        final ProvenanceEventRecord record =  build(flowFile, ProvenanceEventType.DROP)
+                .setDetails(details)
+                .setPreviousEventIds(repository.getPreviousEventIds(flowFileUUID))
+                .build();
+        repository.updatePreviousEventIds(record, null);
+        return record;
+    }
+
+    @Override
+    public ProvenanceEventRecord generateModifyContentEvent(final FlowFile flowFile, final String details) {
+        final String flowFileUUID = flowFile.getAttribute(CoreAttributes.UUID.key());
+        final ProvenanceEventRecord record =  build(flowFile, ProvenanceEventType.CONTENT_MODIFIED)
+                .setDetails(details)
+                .setPreviousEventIds(repository.getPreviousEventIds(flowFileUUID))
+                .build();
+        repository.updatePreviousEventIds(record, Collections.singleton(record.getEventId()));
+        return record;
+    }
+
+    @Override
+    public ProvenanceEventRecord generateModifyAttributesEvent(final FlowFile flowFile, final String details) {
+        final String flowFileUUID = flowFile.getAttribute(CoreAttributes.UUID.key());
+        final ProvenanceEventRecord record =  build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED)
+                .setDetails(details)
+                .setPreviousEventIds(repository.getPreviousEventIds(flowFileUUID))
+                .build();
+        repository.updatePreviousEventIds(record, Collections.singleton(record.getEventId()));
+        return record;
+    }
+
+    @Override
+    public ProvenanceEventRecord generateCreateEvent(final FlowFile flowFile, final String details) {
+        final ProvenanceEventRecord record =  build(flowFile, ProvenanceEventType.CREATE)
+                .setDetails(details)
+                .setPreviousEventIds(Collections.emptySet())
+                .build();
+        repository.updatePreviousEventIds(record, Collections.singleton(record.getEventId()));
+        return record;
     }
 
     private void verifyFlowFileKnown(final FlowFile flowFile) {
@@ -170,13 +215,15 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventBuilder builder = build(flowFile, ProvenanceEventType.RECEIVE);
-            builder.setTransitUri(transitUri);
-            builder.setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier);
-            builder.setEventDuration(transmissionMillis);
-            builder.setDetails(details);
-            final ProvenanceEventRecord record = builder.build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.RECEIVE)
+                    .setTransitUri(transitUri)
+                    .setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(details)
+                    .setPreviousEventIds(Collections.singleton(-1L))
+                    .build();
             events.add(record);
+            repository.updatePreviousEventIds(record, Collections.singleton(record.getEventId()));
 
             bytesReceived += flowFile.getSize();
             flowFilesReceived++;
@@ -200,13 +247,16 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         verifyFlowFileKnown(flowFile);
 
         try {
+            final String flowFileUUID = flowFile.getAttribute(CoreAttributes.UUID.key());
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.FETCH)
                     .setTransitUri(transitUri)
                     .setEventDuration(transmissionMillis)
                     .setDetails(details)
+                    .setPreviousEventIds(repository.getPreviousEventIds(flowFileUUID))
                     .build();
 
             events.add(record);
+            repository.updatePreviousEventIds(record, Collections.singleton(record.getEventId()));
 
             bytesFetched += flowFile.getSize();
             flowFilesFetched++;
@@ -253,7 +303,12 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     @Override
     public void send(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis, final boolean force) {
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND).setTransitUri(transitUri).setEventDuration(transmissionMillis).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND)
+                    .setTransitUri(transitUri)
+                    .setEventDuration(transmissionMillis)
+                    .setDetails(details)
+                    .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
+                    .build();
             // If the transmissionMillis field has been populated, use zero as the value of commitNanos (the call to System.nanoTime() is expensive but the value will be ignored).
             final long commitNanos = transmissionMillis < 0 ? System.nanoTime() : 0L;
             final ProvenanceEventRecord enriched = eventEnricher == null ? record : eventEnricher.enrich(record, flowFile, commitNanos);
@@ -263,6 +318,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             } else {
                 events.add(enriched);
             }
+            repository.updatePreviousEventIds(enriched, enriched.getPreviousEventIds());
 
             bytesSent += flowFile.getSize();
             flowFilesSent++;
@@ -311,7 +367,10 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     public void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details) {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.REMOTE_INVOCATION)
-                    .setTransitUri(transitUri).setDetails(details).build();
+                    .setTransitUri(transitUri)
+                    .setDetails(details)
+                    .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
@@ -335,8 +394,12 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             }
 
             final String alternateIdentifierUri = trimmedNamespace + ":" + trimmedIdentifier;
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ADDINFO).setAlternateIdentifierUri(alternateIdentifierUri).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ADDINFO)
+                    .setAlternateIdentifierUri(alternateIdentifierUri)
+                    .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
+                    .build();
             events.add(record);
+            repository.updatePreviousEventIds(record, Collections.singleton(record.getEventId()));
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
         }
@@ -349,8 +412,11 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             if (reason != null) {
                 builder.setDetails("Discard reason: " + reason);
             }
+            builder.setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())));
+
             final ProvenanceEventRecord record = builder.build();
             events.add(record);
+            repository.updatePreviousEventIds(record, null);
             return record;
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
@@ -361,8 +427,12 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     @Override
     public void expire(final FlowFile flowFile, final String details) {
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.EXPIRE).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.EXPIRE)
+                    .setDetails(details)
+                    .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
+                    .build();
             events.add(record);
+            repository.updatePreviousEventIds(record, null);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
         }
@@ -403,6 +473,15 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             }
 
             events.add(eventBuilder.build());
+            final ProvenanceEventRecord record = eventBuilder.build();
+            events.add(record);
+            // TODO is this right?
+            for (final FlowFile child : children) {
+                // Add the child FlowFiles to the previous event ID map with the parent's entry in the map
+                repository.updatePreviousEventIds(
+                        record,
+                        repository.getPreviousEventIds(child.getAttribute(CoreAttributes.UUID.key())));
+            }
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
         }
@@ -431,12 +510,20 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             final ProvenanceEventBuilder eventBuilder = build(child, ProvenanceEventType.JOIN);
             eventBuilder.addChildFlowFile(child);
             eventBuilder.setDetails(details);
+            Set<Long> parentEventIds = new HashSet<>(parents.size());
 
             for (final FlowFile parent : parents) {
                 eventBuilder.addParentFlowFile(parent);
+                Set<Long> previousEventIds = repository.getPreviousEventIds(parent.getAttribute(CoreAttributes.UUID.key()));
+                if (previousEventIds != null) {
+                    parentEventIds.addAll(previousEventIds);
+                }
             }
+            eventBuilder.setPreviousEventIds(parentEventIds);
 
-            events.add(eventBuilder.build());
+            final ProvenanceEventRecord record = eventBuilder.build();
+            events.add(record);
+            repository.updatePreviousEventIds(record, parentEventIds);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
         }
@@ -455,9 +542,13 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
 
         try {
             final ProvenanceEventBuilder eventBuilder = build(parent, ProvenanceEventType.CLONE);
-            eventBuilder.addChildFlowFile(child);
-            eventBuilder.addParentFlowFile(parent);
-            events.add(eventBuilder.build());
+            final ProvenanceEventRecord event = eventBuilder
+                    .addChildFlowFile(child)
+                    .addParentFlowFile(parent)
+                    .setPreviousEventIds(repository.getPreviousEventIds(parent.getAttribute(CoreAttributes.UUID.key())))
+                    .build();
+            events.add(event);
+            repository.updatePreviousEventIds(event, Collections.singleton(event.getEventId()));
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
         }
@@ -483,8 +574,13 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CONTENT_MODIFIED).setEventDuration(processingMillis).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CONTENT_MODIFIED)
+                    .setEventDuration(processingMillis)
+                    .setDetails(details)
+                    .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
+                    .build();
             events.add(record);
+            repository.updatePreviousEventIds(record, Collections.singleton(record.getEventId()));
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
         }
@@ -500,8 +596,12 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED)
+                    .setDetails(details)
+                    .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
+                    .build();
             events.add(record);
+            repository.updatePreviousEventIds(record, Collections.singleton(record.getEventId()));
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
         }
@@ -527,8 +627,13 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ROUTE).setRelationship(relationship).setDetails(details).setEventDuration(processingDuration).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.ROUTE).setRelationship(relationship)
+                    .setDetails(details)
+                    .setEventDuration(processingDuration)
+                    .setPreviousEventIds(repository.getPreviousEventIds(flowFile.getAttribute(CoreAttributes.UUID.key())))
+                    .build();
             events.add(record);
+            repository.updatePreviousEventIds(record, Collections.singleton(record.getEventId()));
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
         }
@@ -544,7 +649,10 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CREATE).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.CREATE)
+                    .setDetails(details)
+                    .setPreviousEventIds(Collections.emptySet())
+                    .build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
