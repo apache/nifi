@@ -312,6 +312,11 @@ export interface BulletinEntity {
     };
 }
 
+export interface ReferencedAsset {
+    id?: string;
+    name: string;
+}
+
 export interface ParameterEntity {
     canWrite?: boolean;
     parameter: Parameter;
@@ -327,6 +332,7 @@ export interface Parameter {
     referencingComponents?: AffectedComponentEntity[];
     parameterContext?: ParameterContextReferenceEntity;
     inherited?: boolean;
+    referencedAssets?: ReferencedAsset[];
 }
 
 export interface ParameterContextEntity {
