@@ -33,6 +33,8 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
@@ -398,8 +400,8 @@ public abstract class ApplicationResource {
 
         ensureFlowInitialized();
 
-        // If not connected to the cluster, we do not replicate
-        if (!isConnectedToCluster()) {
+        // If not connected or not connecting to the cluster, we do not replicate
+        if (!isConnectedToCluster() && !isConnectingToCluster()) {
             return false;
         }
 
@@ -1052,6 +1054,16 @@ public abstract class ApplicationResource {
      */
     boolean isConnectedToCluster() {
         return isClustered() && clusterCoordinator.isConnected();
+    }
+
+    boolean isConnectingToCluster() {
+        if (!isClustered()) {
+            return false;
+        }
+
+        final NodeIdentifier nodeId = clusterCoordinator.getLocalNodeIdentifier();
+        final NodeConnectionStatus nodeConnectionStatus = clusterCoordinator.getConnectionStatus(nodeId);
+        return nodeConnectionStatus != null && nodeConnectionStatus.getState() == NodeConnectionState.CONNECTING;
     }
 
     boolean isClustered() {

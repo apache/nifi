@@ -73,6 +73,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -97,6 +100,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     private static final Logger logger = LoggerFactory.getLogger(NodeClusterCoordinator.class);
     private static final String EVENT_CATEGORY = "Clustering";
+    private static final Duration NODE_API_TIMEOUT = Duration.ofSeconds(10);
 
     private static final Pattern COUNTER_URI_PATTERN = Pattern.compile("/nifi-api/counters/[a-f0-9\\-]{36}");
 
@@ -674,6 +678,21 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
 
         return true;
+    }
+
+    @Override
+    public boolean isApiReachable(final NodeIdentifier nodeId) {
+        final String apiAddress = nodeId.getApiAddress();
+        final int apiPort = nodeId.getApiPort();
+        try {
+            try (final Socket soc = new Socket()) {
+                soc.connect(new InetSocketAddress(apiAddress, apiPort), (int) NODE_API_TIMEOUT.toMillis());
+            }
+            return true;
+        } catch (final Exception e) {
+            logger.debug("Node is not reachable at API address {} and port {}", apiAddress, apiPort, e);
+            return false;
+        }
     }
 
     @Override

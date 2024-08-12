@@ -162,6 +162,14 @@ public interface ClusterCoordinator {
     boolean isBlockedByFirewall(Set<String> nodeIdentities);
 
     /**
+     * Checks if the API of the given node is reachable.
+     *
+     * @param nodeId the node id to check
+     * @return true if the API is reachable, false otherwise
+     */
+    boolean isApiReachable(NodeIdentifier nodeId);
+
+    /**
      * Reports that some event occurred that is relevant to the cluster
      *
      * @param nodeId the identifier of the node that the event pertains to, or <code>null</code> if not applicable
