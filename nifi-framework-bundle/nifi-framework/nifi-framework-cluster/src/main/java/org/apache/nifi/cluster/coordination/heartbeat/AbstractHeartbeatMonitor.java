@@ -30,7 +30,10 @@ import org.apache.nifi.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
@@ -293,7 +296,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             }
 
             if (!isNodeApiReachable(nodeId)) {
-                logger.info("Received a connection request from {}, but the node's API address is not reachable, will not connect node to the cluster yet", nodeId);
+                logger.info("Node API Address [{}] not reachable: cluster connection request deferred pending successful network connection", nodeId);
                 return;
             }
 
@@ -306,11 +309,15 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     }
 
     private boolean isNodeApiReachable(final NodeIdentifier nodeIdentifier) {
+        final String apiAddress = nodeIdentifier.getApiAddress();
+        final int apiPort = nodeIdentifier.getApiPort();
         try {
-            final InetAddress nodeApiAddress = InetAddress.getByName(nodeIdentifier.getApiAddress());
-            return nodeApiAddress.isReachable((int) NODE_API_TIMEOUT.toMillis());
+            try (final Socket soc = new Socket()) {
+                soc.connect(new InetSocketAddress(apiAddress, apiPort), (int) NODE_API_TIMEOUT.toMillis());
+            }
+            return true;
         } catch (final Exception e) {
-            logger.debug("Node is not reachable at API address {}", nodeIdentifier.getApiAddress(), e);
+            logger.debug("Node is not reachable at API address {} and port {}", apiAddress, apiPort, e);
             return false;
         }
     }
