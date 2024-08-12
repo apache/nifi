@@ -432,11 +432,7 @@ public class PutEmail extends AbstractProcessor {
             }
             this.setMessageHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions(flowFile).getValue(), message);
 
-            if (message instanceof MimeMessage) {
-                ((MimeMessage) message).setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue(), StandardCharsets.UTF_8.name());
-            } else {
-                message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue());
-            }
+            ((MimeMessage) message).setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue(), StandardCharsets.UTF_8.name());
 
             final String messageText = getMessage(flowFile, context, session);
 
