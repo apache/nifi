@@ -220,8 +220,8 @@
                                     </div>
                                 </mat-card-subtitle>
                             </mat-card-header>
-                            <mat-card-content class="mt-4">
-                                <mat-accordion>
+                            <mat-card-content class="mt-4 gap-y-2">
+                                <div class="flex flex-col p-2 gap-y-2">
                                     <mat-expansion-panel [expanded]="step === 0" (opened)="setStep(0)" hideToggle>
                                         <mat-expansion-panel-header>
                                             <mat-panel-title>
@@ -290,7 +290,7 @@
                                             </map-table>
                                         </div>
                                     </mat-expansion-panel>
-                                </mat-accordion>
+                                </div>
                                 <div class="flex flex-1 mt-2 justify-start">
                                     <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
                                         @if (joltState.transform().saving) {
