@@ -17,9 +17,9 @@
 
 @use '@angular/material' as mat;
 
-$material-primary-light-palette: mat.$deep-purple-palette;
-$material-accent-light-palette: mat.$teal-palette;
-$warn-light-palette: mat.$red-palette;
+$material-primary-light-palette: mat.$m2-deep-purple-palette;
+$material-accent-light-palette: mat.$m2-teal-palette;
+$warn-light-palette: mat.$m2-red-palette;
 
 $material-primary-dark-palette: $material-primary-light-palette;
 $material-accent-dark-palette: $material-accent-light-palette;
