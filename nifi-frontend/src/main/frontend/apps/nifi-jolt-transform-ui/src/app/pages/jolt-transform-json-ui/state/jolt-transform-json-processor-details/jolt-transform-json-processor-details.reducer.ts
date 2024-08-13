@@ -26,6 +26,7 @@ import {
 
 export const initialState: JoltTransformJsonProcessorDetailsState = {
     loading: false,
+    error: null,
     processorDetails: null
 };
 
@@ -36,6 +37,7 @@ export const joltTransformJsonProcessorDetailsReducer = createReducer(
     })),
     on(loadProcessorDetails, (state) => ({
         ...state,
+        error: null,
         loading: true
     })),
     on(loadProcessorDetailsSuccess, (state, { response }) => ({
@@ -43,9 +45,10 @@ export const joltTransformJsonProcessorDetailsReducer = createReducer(
         processorDetails: response,
         loading: false
     })),
-    on(loadProcessorDetailsFailure, (state) => ({
+    on(loadProcessorDetailsFailure, (state, { response }) => ({
         ...state,
         processorDetails: null,
+        error: response,
         loading: false
     }))
 );

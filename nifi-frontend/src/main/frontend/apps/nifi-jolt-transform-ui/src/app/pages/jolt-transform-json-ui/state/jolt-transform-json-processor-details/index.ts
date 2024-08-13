@@ -17,6 +17,7 @@
 
 export interface JoltTransformJsonProcessorDetailsState {
     loading: boolean;
+    error: string | null;
     processorDetails: ProcessorDetails | null;
 }
 

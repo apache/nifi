@@ -381,9 +381,13 @@
                 </div>
             </form>
         } @else {
-            @if (processorDetailsLoading$ | async; as processorDetailsLoading) {
+            @if (processorDetailsLoading$ | async) {
                 <div class="h-full flex items-center justify-center">
                     <mat-spinner color="primary"></mat-spinner>
+                </div>
+            } @else if (processorDetailsError()) {
+                <div class="flex flex-1 justify-center items-center">
+                    <i class="fa fa-warning caution-color mr-2"></i>{{ processorDetailsError() }}
                 </div>
             }
         }

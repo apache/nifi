@@ -37,10 +37,5 @@ export const loadProcessorDetailsSuccess = createAction(
 
 export const loadProcessorDetailsFailure = createAction(
     `${JOLT_TRANSFORM_JSON_PROCESSOR_DETAILS_PREFIX} Load Processor Details Failure`,
-    props<{ response: HttpErrorResponse }>()
-);
-
-export const snackbarError = createAction(
-    `${JOLT_TRANSFORM_JSON_PROCESSOR_DETAILS_PREFIX} Snackbar Error`,
-    props<{ error: string }>()
+    props<{ response: string }>()
 );
