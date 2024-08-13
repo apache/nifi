@@ -51,7 +51,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.tukaani</groupId>
             <artifactId>xz</artifactId>
-            <version>1.9</version>
+            <version>1.10</version>
         </dependency>
         <dependency>
             <groupId>org.xerial.snappy</groupId>

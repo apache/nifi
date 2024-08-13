@@ -104,30 +104,30 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <com.amazonaws.version>1.12.744</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.25.70</software.amazon.awssdk.version>
+        <com.amazonaws.version>1.12.767</com.amazonaws.version>
+        <software.amazon.awssdk.version>2.27.1</software.amazon.awssdk.version>
         <gson.version>2.10.1</gson.version>
-        <kotlin.version>1.9.24</kotlin.version>
+        <kotlin.version>1.9.25</kotlin.version>
         <okhttp.version>4.12.0</okhttp.version>
         <okio.version>3.9.0</okio.version>
         <org.apache.commons.cli.version>1.7.0</org.apache.commons.cli.version>
-        <org.apache.commons.codec.version>1.17.0</org.apache.commons.codec.version>
-        <org.apache.commons.compress.version>1.26.2</org.apache.commons.compress.version>
-        <com.github.luben.zstd-jni.version>1.5.6-3</com.github.luben.zstd-jni.version>
-        <org.apache.commons.lang3.version>3.14.0</org.apache.commons.lang3.version>
+        <org.apache.commons.codec.version>1.17.1</org.apache.commons.codec.version>
+        <org.apache.commons.compress.version>1.27.0</org.apache.commons.compress.version>
+        <com.github.luben.zstd-jni.version>1.5.6-4</com.github.luben.zstd-jni.version>
+        <org.apache.commons.lang3.version>3.16.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.10.0</org.apache.commons.net.version>
         <org.apache.commons.io.version>2.16.1</org.apache.commons.io.version>
         <org.apache.commons.text.version>1.12.0</org.apache.commons.text.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.78.1</org.bouncycastle.version>
-        <testcontainers.version>1.19.8</testcontainers.version>
-        <org.slf4j.version>2.0.13</org.slf4j.version>
+        <testcontainers.version>1.20.1</testcontainers.version>
+        <org.slf4j.version>2.0.15</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <ranger.version>2.4.0</ranger.version>
         <ranger.solr.version>8.11.3</ranger.solr.version>
         <jetty.version>9.4.54.v20240208</jetty.version>
-        <jackson.bom.version>2.17.1</jackson.bom.version>
+        <jackson.bom.version>2.17.2</jackson.bom.version>
         <avro.version>1.11.3</avro.version>
         <jaxb.runtime.version>2.3.9</jaxb.runtime.version>
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
@@ -146,7 +146,7 @@
         <logback.version>1.3.14</logback.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.2</snakeyaml.version>
-        <netty.4.version>4.1.111.Final</netty.4.version>
+        <netty.4.version>4.1.112.Final</netty.4.version>
         <spring.version>5.3.37</spring.version>
         <spring.security.version>5.8.13</spring.security.version>
         <swagger.annotations.version>1.6.14</swagger.annotations.version>
@@ -638,7 +638,7 @@
             <dependency>
                 <groupId>org.xerial.snappy</groupId>
                 <artifactId>snappy-java</artifactId>
-                <version>1.1.10.5</version>
+                <version>1.1.10.6</version>
             </dependency>
             <!-- Override Log4j 2 libraries for transitive dependencies -->
             <dependency>
@@ -699,7 +699,7 @@
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.17.2</version>
+                <version>1.18.1</version>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>

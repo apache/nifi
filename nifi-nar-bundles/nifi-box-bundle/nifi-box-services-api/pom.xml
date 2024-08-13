@@ -29,7 +29,7 @@
         <dependency>
             <groupId>com.box</groupId>
             <artifactId>box-java-sdk</artifactId>
-            <version>4.8.0</version>
+            <version>4.11.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
