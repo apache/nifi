@@ -343,11 +343,12 @@ public class TestAbstractComponentNode {
         assertTrue(sensitivePropertyDescriptor.isDynamic());
         assertTrue(sensitivePropertyDescriptor.isSensitive());
 
+        // Set Properties without updating Sensitive Dynamic Property Names
         node.setProperties(properties, false, Collections.emptySet());
 
         final PropertyDescriptor updatedPropertyDescriptor = node.getPropertyDescriptor(PROPERTY_NAME);
         assertTrue(updatedPropertyDescriptor.isDynamic());
-        assertFalse(updatedPropertyDescriptor.isSensitive());
+        assertTrue(updatedPropertyDescriptor.isSensitive());
 
         final Map<PropertyDescriptor, PropertyConfiguration> configuredProperties = node.getProperties();
         final PropertyDescriptor configuredPropertyDescriptor = configuredProperties.keySet()
@@ -357,6 +358,14 @@ public class TestAbstractComponentNode {
                 .orElseThrow(() -> new IllegalStateException("Property Name not found"));
         assertTrue(configuredPropertyDescriptor.isDynamic());
         assertFalse(configuredPropertyDescriptor.isSensitive());
+
+        // Set Properties with value removed to update Sensitive Dynamic Property Names
+        final Map<String, String> removedProperties = Collections.singletonMap(PROPERTY_NAME, null);
+        node.setProperties(removedProperties, false, Collections.emptySet());
+
+        final PropertyDescriptor removedPropertyDescriptor = node.getPropertyDescriptor(PROPERTY_NAME);
+        assertTrue(removedPropertyDescriptor.isDynamic());
+        assertFalse(removedPropertyDescriptor.isSensitive());
     }
 
     private ValidationContext getServiceValidationContext(final ControllerServiceState serviceState, final ControllerServiceProvider serviceProvider) {
