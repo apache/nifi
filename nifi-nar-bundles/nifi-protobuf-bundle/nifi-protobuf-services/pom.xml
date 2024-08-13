@@ -25,7 +25,7 @@
 
     <properties>
         <protobuf.version>3.25.1</protobuf.version>
-        <wire.version>4.9.3</wire.version>
+        <wire.version>5.0.0</wire.version>
     </properties>
 
     <dependencies>
