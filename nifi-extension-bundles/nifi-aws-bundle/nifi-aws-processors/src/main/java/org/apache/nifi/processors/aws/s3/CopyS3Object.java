@@ -140,7 +140,7 @@ public class CopyS3Object extends AbstractS3Processor {
         }
     }
 
-    private String getTransitUrl(String targetBucket, String targetKey) {
+    private String getTransitUrl(String destinationBucket, String destinationKey) {
         String spacer = targetKey.startsWith("/") ? "" : "/";
         return String.format("s3://%s%s%s", targetBucket, spacer, targetKey);
     }
