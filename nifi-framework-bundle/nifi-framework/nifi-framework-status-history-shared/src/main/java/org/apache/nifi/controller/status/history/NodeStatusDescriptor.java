@@ -79,7 +79,7 @@ public enum NodeStatusDescriptor {
                 @Override
                 public Long reduce(final List<StatusSnapshot> values) {
                     return (long) values.stream()
-                            .map(snapshot -> snapshot.getStatusMetric(HEAP_UTILIZATION.getDescriptor()))
+                            .map(snapshot -> snapshot.getStatusMetric(PROCESSOR_LOAD_AVERAGE.getDescriptor()))
                             .filter(Objects::nonNull)
                             .mapToLong(value -> value)
                             .average()
