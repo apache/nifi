@@ -180,7 +180,16 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
                                             .find();
                                 }
                             })
-                            .collect(Collectors.toMap(e -> attributePrefix + e.getKey(), e -> e.getValue().toString()));
+                            .collect(Collectors.toMap(e -> attributePrefix + e.getKey(), e -> {
+                                final Object value = e.getValue();
+                                final String attributeValue;
+                                if (value instanceof Date dateValue) {
+                                    attributeValue = Long.toString(dateValue.getTime());
+                                } else {
+                                    attributeValue = value.toString();
+                                }
+                                return attributeValue;
+                            }));
 
                     flowFile = session.putAllAttributes(flowFile, newAttributes);
                 } else if (context.getProperty(METADATA_TARGET).getValue().equals(TARGET_FLOWFILE_BODY.getValue())) {
