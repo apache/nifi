@@ -51,9 +51,7 @@ import {
     EditParameterRequest,
     EditParameterResponse,
     Parameter,
-    ParameterContextUpdateRequest,
-    ParameterEntity,
-    SubmitParameterContextUpdate
+    ParameterContextUpdateRequest
 } from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
@@ -61,7 +59,7 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from 'libs/shared/src';
 import { BackNavigation } from '../../../../state/navigation';
-import { Storage, NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, Storage } from '@nifi/shared';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -403,18 +401,6 @@ export class ParameterContextListingEffects {
         this.actions$.pipe(
             ofType(ParameterContextListingActions.submitParameterContextUpdateRequest),
             map((action) => action.request),
-            map((request) => {
-                // The backend api doesn't support providing both a parameter value and referenced assets
-                // even though it returns both from the GET api. We must strip the value out if there are
-                // referenced assets.
-                const modifiedRequest: SubmitParameterContextUpdate = structuredClone(request);
-                modifiedRequest.payload.component.parameters.forEach((parameter: ParameterEntity) => {
-                    if ((parameter.parameter.referencedAssets || []).length > 0) {
-                        parameter.parameter.value = null;
-                    }
-                });
-                return modifiedRequest;
-            }),
             switchMap((request) =>
                 from(this.parameterContextService.submitParameterContextUpdate(request)).pipe(
                     map((response) =>
