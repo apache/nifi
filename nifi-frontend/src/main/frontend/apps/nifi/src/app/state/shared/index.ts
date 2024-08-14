@@ -313,7 +313,7 @@ export interface BulletinEntity {
 }
 
 export interface ReferencedAsset {
-    id?: string;
+    id: string;
     name: string;
 }
 
