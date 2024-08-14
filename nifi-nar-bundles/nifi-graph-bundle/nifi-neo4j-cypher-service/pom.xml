@@ -140,8 +140,8 @@
              intend to do a full build of NiFi with Java 17! -->
             <id>neo4j-5</id>
             <properties>
-                <neo4j.driver.version>5.2.0</neo4j.driver.version>
-                <neo4j.docker.version>5.1</neo4j.docker.version>
+                <neo4j.driver.version>5.23.0</neo4j.driver.version>
+                <neo4j.docker.version>5.19</neo4j.docker.version>
             </properties>
         </profile>
     </profiles>
