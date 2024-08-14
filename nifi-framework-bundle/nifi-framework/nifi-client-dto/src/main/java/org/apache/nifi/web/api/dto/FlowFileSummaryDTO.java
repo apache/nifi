@@ -27,6 +27,7 @@ public class FlowFileSummaryDTO {
 
     private String uuid;
     private String filename;
+    private String mimeType;
     private Integer position;
     private Long size;
     private Long queuedDuration;
@@ -74,6 +75,19 @@ public class FlowFileSummaryDTO {
 
     public void setFilename(String filename) {
         this.filename = filename;
+    }
+
+    /**
+     * @return the FlowFile filename
+     */
+    @Schema(description = "The FlowFile mime type."
+    )
+    public String getMimeType() {
+        return mimeType;
+    }
+
+    public void setMimeType(String mimeType) {
+        this.mimeType = mimeType;
     }
 
     /**

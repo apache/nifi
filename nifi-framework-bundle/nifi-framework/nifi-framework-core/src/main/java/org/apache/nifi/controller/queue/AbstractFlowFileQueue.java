@@ -341,6 +341,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         // which can be problematic if we expect them to be swapped out.
         final String uuid = flowFile.getAttribute(CoreAttributes.UUID.key());
         final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+        final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
         final long size = flowFile.getSize();
         final Long lastQueuedTime = flowFile.getLastQueueDate();
         final long lineageStart = flowFile.getLineageStartDate();
@@ -356,6 +357,11 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             @Override
             public String getFilename() {
                 return filename;
+            }
+
+            @Override
+            public String getMimeType() {
+                return mimeType;
             }
 
             @Override

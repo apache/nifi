@@ -26,6 +26,7 @@ import {
     SubmitQueueListingRequest,
     ViewFlowFileContentRequest
 } from '../state/queue-listing';
+import { Client } from '../../../service/client.service';
 
 @Injectable({ providedIn: 'root' })
 export class QueueService {
@@ -33,7 +34,8 @@ export class QueueService {
 
     constructor(
         private httpClient: HttpClient,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private client: Client
     ) {}
 
     getConnection(connectionId: string): Observable<any> {
@@ -65,7 +67,7 @@ export class QueueService {
     }
 
     downloadContent(request: DownloadFlowFileContentRequest): void {
-        let dataUri = `${this.nifiCommon.stripProtocol(request.uri)}/content`;
+        let dataUri = `${request.uri}/content`;
 
         const queryParameters: any = {};
 
@@ -83,7 +85,7 @@ export class QueueService {
 
     viewContent(request: ViewFlowFileContentRequest, contentViewerUrl: string): void {
         // build the uri to the data
-        let dataUri = `${this.nifiCommon.stripProtocol(request.uri)}/content`;
+        let dataUri = `${request.uri}/content`;
 
         const dataUriParameters: any = {};
 
@@ -108,9 +110,13 @@ export class QueueService {
         }
 
         const contentViewerParameters: any = {
-            mode: 'Formatted',
-            ref: dataUri
+            ref: dataUri,
+            clientId: this.client.getClientId()
         };
+
+        if (request.mimeType) {
+            contentViewerParameters['mimeType'] = request.mimeType;
+        }
 
         // open the content viewer
         const contentViewerQuery: string = new URLSearchParams(contentViewerParameters).toString();

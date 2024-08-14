@@ -15,10 +15,6 @@
  * limitations under the License.
  */
 
-/*
-  Canvas Positioning/Transforms
- */
-
 import { Action, combineReducers, createFeatureSelector } from '@ngrx/store';
 import { Access, accessFeatureKey } from './access';
 import { accessReducer } from './access/access.reducer';

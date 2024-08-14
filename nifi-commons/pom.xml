@@ -24,6 +24,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>nifi-build</module>
+        <module>nifi-custom-ui-utils</module>
         <module>nifi-data-provenance-utils</module>
         <module>nifi-deprecation-log</module>
         <module>nifi-expression-language</module>
@@ -62,6 +63,7 @@
         <module>nifi-hashicorp-vault-api</module>
         <module>nifi-web-client</module>
         <module>nifi-web-client-api</module>
+        <module>nifi-content-viewer-utils</module>
         <module>nifi-web-servlet-shared</module>
         <module>nifi-web-utils</module>
         <module>nifi-write-ahead-log</module>

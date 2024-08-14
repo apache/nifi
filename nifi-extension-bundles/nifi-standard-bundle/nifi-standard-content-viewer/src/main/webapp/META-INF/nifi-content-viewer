@@ -12,18 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-application/xml
-application/json
-text/xml
-text/plain
-text/csv
-avro/binary
-application/avro-binary
-application/avro+binary
-text/x-yaml
-text/yaml
-text/yml
-application/x-yaml
-application/x-yml
-application/yaml
-application/yml
+xml=application/xml,text/xml
+json=application/json
+text=text/plain
+csv=text/csv
+avro=avro/binary,application/avro-binary,application/avro+binary
+yaml=text/x-yaml,text/yaml,text/yml,application/x-yaml,application/x-yml,application/yaml,application/yml

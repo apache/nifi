@@ -130,6 +130,32 @@
                             </resources>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>copy-built-standard-content-viewer-app</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/${project.build.finalName}/standard-content-viewer</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${frontend.working.dir}/dist/standard-content-viewer/browser</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${frontend.working.dir}/dist/standard-content-viewer</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>3rdpartylicenses.txt</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
                     <!--
                         Copy the staged applications into the bundle. Each application requires its own configuration.
                     -->
@@ -163,6 +189,25 @@
                             <resources>
                                 <resource>
                                     <directory>${project.build.directory}/${project.build.finalName}/nifi-jolt-transform-ui</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>bundle-built-standard-content-viewer-app</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/standard-content-viewer</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/${project.build.finalName}/standard-content-viewer</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>**/*</include>

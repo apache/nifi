@@ -33,6 +33,11 @@ public interface FlowFileSummary {
     String getFilename();
 
     /**
+     * @return the value of the 'mime.type' attribute
+     */
+    String getMimeType();
+
+    /**
      * @return the current position of the FlowFile in the queue based on the prioritizers selected
      */
     int getPosition();
