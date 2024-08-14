@@ -118,7 +118,7 @@ public class CopyS3Object extends AbstractS3Processor {
         final String destinationKey = context.getProperty(DESTINATION_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
-            CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceKey, targetBucket, targetKey);
+            CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceKey, destinationBucket, destinationKey);
             AccessControlList acl = createACL(context, flowFile);
             if (acl != null) {
                 request.setAccessControlList(acl);
@@ -130,7 +130,7 @@ public class CopyS3Object extends AbstractS3Processor {
             }
 
             s3.copyObject(request);
-            session.getProvenanceReporter().send(flowFile, getTransitUrl(targetBucket, targetKey));
+            session.getProvenanceReporter().send(flowFile, getTransitUrl(destinationBucket, destinationKey));
 
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final AmazonClientException e) {
@@ -141,7 +141,7 @@ public class CopyS3Object extends AbstractS3Processor {
     }
 
     private String getTransitUrl(String destinationBucket, String destinationKey) {
-        String spacer = targetKey.startsWith("/") ? "" : "/";
-        return String.format("s3://%s%s%s", targetBucket, spacer, targetKey);
+        String spacer = destinationKey.startsWith("/") ? "" : "/";
+        return String.format("s3://%s%s%s", destinationBucket, spacer, destinationKey);
     }
 }

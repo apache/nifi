@@ -35,10 +35,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -55,8 +55,10 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
         "used as a router for work flows that need to check on a file in S3 before proceeding with data processing")
 @SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class})
 public class GetS3ObjectMetadata extends AbstractS3Processor {
+    public static final String ATTRIBUTE_PREFIX = "s3.";
+
     public static final AllowableValue TARGET_ATTRIBUTES = new AllowableValue("attributes", "Attributes", "When " +
-            "selected, the metadata will be written to FlowFile attributes that have a user-configured prefix. For example: " +
+            "selected, the metadata will be written to FlowFile attributes with the prefix \"s3.\" following the convention used in other processors. For example: " +
             "the standard S3 attribute Content-Type will be written as s3.Content-Type when using the default value. User-defined metadata " +
             "will be included in the attributes added to the FlowFile");
     public static final AllowableValue TARGET_FLOWFILE_BODY = new AllowableValue("flowfile-content", "FlowFile Body", "Write " +
@@ -69,15 +71,6 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .required(true)
             .allowableValues(TARGET_ATTRIBUTES, TARGET_FLOWFILE_BODY)
             .defaultValue(TARGET_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor METADATA_ATTRIBUTE_PREFIX = new PropertyDescriptor.Builder()
-            .name("Metadata Attribute Prefix")
-            .description("The prefix for FlowFile attributes generated from the S3 object metadata.")
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .defaultValue("s3.")
-            .dependsOn(METADATA_TARGET, TARGET_ATTRIBUTES)
-            .required(true)
             .build();
 
     public static final PropertyDescriptor ATTRIBUTE_INCLUDE_PATTERN = new PropertyDescriptor.Builder()
@@ -95,7 +88,6 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
 
     public static final List<PropertyDescriptor> properties = List.of(
             METADATA_TARGET,
-            METADATA_ATTRIBUTE_PREFIX,
             ATTRIBUTE_INCLUDE_PATTERN,
             BUCKET_WITH_DEFAULT_VALUE,
             KEY,
@@ -169,7 +161,6 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
                 combinedMetadata.putAll(metadata.getUserMetadata());
 
                 if (context.getProperty(METADATA_TARGET).getValue().equals(TARGET_ATTRIBUTES.getValue())) {
-                    String attributePrefix = context.getProperty(METADATA_ATTRIBUTE_PREFIX).getValue();
                     Map<String, String> newAttributes = combinedMetadata
                             .entrySet().stream()
                             .filter(e -> {
@@ -180,7 +171,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
                                             .find();
                                 }
                             })
-                            .collect(Collectors.toMap(e -> attributePrefix + e.getKey(), e -> {
+                            .collect(Collectors.toMap(e -> ATTRIBUTE_PREFIX + e.getKey(), e -> {
                                 final Object value = e.getValue();
                                 final String attributeValue;
                                 if (value instanceof Date dateValue) {
