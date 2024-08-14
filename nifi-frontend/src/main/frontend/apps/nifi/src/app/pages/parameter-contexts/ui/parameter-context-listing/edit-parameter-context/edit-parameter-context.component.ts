@@ -170,8 +170,8 @@ export class EditParameterContext extends TabbedDialog {
             // The backend api doesn't support providing both a parameter value and referenced assets
             // even though it returns both from the GET api. We must strip the value out if there are
             // referenced assets.
-            const sanitizedParameters: ParameterEntity[] = this.parameters.slice();
-            sanitizedParameters.forEach((parameter: ParameterEntity) => {
+            const updatedParameters: ParameterEntity[] = this.parameters.slice();
+            updatedParameters.forEach((parameter: ParameterEntity) => {
                 if ((parameter.parameter.referencedAssets || []).length > 0) {
                     parameter.parameter.value = null;
                 }
@@ -185,7 +185,7 @@ export class EditParameterContext extends TabbedDialog {
                     id: pc.id,
                     name: this.editParameterContextForm.get('name')?.value,
                     description: this.editParameterContextForm.get('description')?.value,
-                    parameters: sanitizedParameters,
+                    parameters: updatedParameters,
                     inheritedParameterContexts: this.editParameterContextForm.get('inheritedParameterContexts')?.value
                 }
             };
