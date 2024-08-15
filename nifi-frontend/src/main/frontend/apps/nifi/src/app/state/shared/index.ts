@@ -259,6 +259,7 @@ export interface ElFunctionTipInput {
 export interface PropertyHintTipInput {
     supportsEl: boolean;
     supportsParameters: boolean;
+    hasParameterContext: boolean;
 }
 
 export interface RestrictionsTipInput {
@@ -364,6 +365,11 @@ export interface ParameterContextReferenceEntity {
 export interface ParameterContextReference {
     id: string;
     name: string;
+}
+
+export interface ParameterConfig {
+    supportsParameters: boolean;
+    parameters: Parameter[] | null;
 }
 
 export interface AffectedComponentEntity {
