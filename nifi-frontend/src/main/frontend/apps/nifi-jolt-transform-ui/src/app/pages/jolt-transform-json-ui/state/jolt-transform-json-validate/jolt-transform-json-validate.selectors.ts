@@ -21,7 +21,6 @@ import {
     joltTransformJsonValidateFeatureKey,
     selectJoltTransformJsonUiState
 } from '../index';
-import { JoltTransformJsonValidateState } from './index';
 
 export const selectJoltTransformJsonValidateState = createSelector(
     selectJoltTransformJsonUiState,
