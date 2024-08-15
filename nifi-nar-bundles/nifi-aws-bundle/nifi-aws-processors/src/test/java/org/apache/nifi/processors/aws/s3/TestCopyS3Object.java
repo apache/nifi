@@ -31,6 +31,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -94,11 +95,11 @@ public class TestCopyS3Object {
         runner.setProperty(CopyS3Object.DESTINATION_BUCKET, "${s3.bucket.target}");
         runner.setProperty(CopyS3Object.DESTINATION_KEY, "${s3.key.target}");
 
-        return Map.of(
-                "s3.bucket.source", "dev-bucket",
-                "s3.key.source", "/test.txt",
-                "s3.bucket.target", "staging-bucket",
-                "s3.key.target", "/copied.txt"
-        );
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("s3.bucket.source", "dev-bucket");
+        attrs.put("s3.key.source", "/test.txt");
+        attrs.put("s3.bucket.target", "staging-bucket");
+        attrs.put("s3.key.target", "/copied.txt");
+        return attrs;
     }
 }

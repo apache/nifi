@@ -59,8 +59,10 @@ class TestGetS3ObjectMetadata {
         AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
 
         mockMetadata = mock(ObjectMetadata.class);
-        Map<String, String> user = Map.of("x", "y");
-        Map<String, Object> raw = Map.of("a", "b");
+        Map<String, String> user = new HashMap<>();
+        user.put("x", "y");
+        Map<String, Object> raw = new HashMap<>();
+        raw.put("a", "b");
         when(mockMetadata.getUserMetadata()).thenReturn(user);
         when(mockMetadata.getRawMetadata()).thenReturn(raw);
     }
@@ -68,7 +70,10 @@ class TestGetS3ObjectMetadata {
     private void run() {
         runner.setProperty(GetS3ObjectMetadata.BUCKET, "${s3.bucket}");
         runner.setProperty(GetS3ObjectMetadata.KEY, "${filename}");
-        runner.enqueue("", Map.of("s3.bucket", "test-data", "filename", "test.txt"));
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("s3.bucket", "test-data");
+        attrs.put("filename", "test.txt");
+        runner.enqueue("", attrs);
 
         runner.run();
     }

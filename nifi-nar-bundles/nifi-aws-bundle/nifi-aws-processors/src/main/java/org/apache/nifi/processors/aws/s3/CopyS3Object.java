@@ -31,6 +31,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Tags({"Amazon", "S3", "AWS", "Archive", "Copy"})
@@ -68,7 +69,7 @@ public class CopyS3Object extends AbstractS3Processor {
             .defaultValue("${filename}-1")
             .build();
 
-    static final List<PropertyDescriptor> properties = List.of(
+    static final List<PropertyDescriptor> properties = Arrays.asList(
             SOURCE_BUCKET,
             SOURCE_KEY,
             DESTINATION_BUCKET,

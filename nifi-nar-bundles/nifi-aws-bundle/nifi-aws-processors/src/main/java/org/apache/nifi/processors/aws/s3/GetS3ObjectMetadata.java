@@ -37,7 +37,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +84,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .dependsOn(METADATA_TARGET, TARGET_ATTRIBUTES)
             .build();
 
-    private static final List<PropertyDescriptor> properties = List.of(
+    private static final List<PropertyDescriptor> properties = Arrays.asList(
             METADATA_TARGET,
             ATTRIBUTE_INCLUDE_PATTERN,
             BUCKET,
@@ -111,7 +114,8 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .description("No object was found in the bucket the supplied key")
             .build();
 
-    private static final Set<Relationship> relationships = Set.of(REL_FOUND, REL_NOT_FOUND,  REL_FAILURE);
+    private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(
+            Arrays.asList(REL_FOUND, REL_NOT_FOUND, REL_FAILURE)));
 
     private static final String ATTRIBUTE_FORMAT = "s3.%s";
 
