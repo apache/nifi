@@ -63,6 +63,8 @@ class EntityStoreAuditServiceTest {
 
     private static final Date SECOND_ACTION_TIMESTAMP = new Date(97500);
 
+    private static final Date THIRD_ACTION_TIMESTAMP = new Date(172800);
+
     private static final Date PURGE_END_DATE = new Date(43200);
 
     private static final String USER_IDENTITY = "admin";
@@ -98,6 +100,8 @@ class EntityStoreAuditServiceTest {
     private static final String THIRD_VALUE = "ThirdValue";
 
     private static final String DATABASE_FILE_EXTENSION = ".xd";
+
+    private static final String SORT_ASCENDING = "ASC";
 
     @TempDir
     File directory;
@@ -249,6 +253,42 @@ class EntityStoreAuditServiceTest {
     }
 
     @Test
+    void testAddActionsGetActionsQueryTimestampSortedSourceIdFiltered() {
+        final FlowChangeAction firstAction = newAction();
+        final FlowChangeAction secondAction = newAction();
+        secondAction.setTimestamp(SECOND_ACTION_TIMESTAMP);
+        final FlowChangeAction thirdAction = newAction();
+        thirdAction.setTimestamp(THIRD_ACTION_TIMESTAMP);
+        final Collection<Action> actions = Arrays.asList(firstAction, secondAction, thirdAction);
+
+        service.addActions(actions);
+
+        final HistoryQuery historyQuery = new HistoryQuery();
+        historyQuery.setSourceId(SOURCE_ID);
+        historyQuery.setSortOrder(SORT_ASCENDING);
+        final History actionsHistory = service.getActions(historyQuery);
+
+        assertNotNull(actionsHistory);
+        assertEquals(actionsHistory.getTotal(), actions.size());
+        assertNotNull(actionsHistory.getLastRefreshed());
+
+        final Collection<Action> actionsFound = actionsHistory.getActions();
+        assertNotNull(actionsFound);
+
+        final Iterator<Action> actionsFiltered = actionsFound.iterator();
+        assertTrue(actionsFiltered.hasNext());
+
+        final Action firstActionFound = actionsFiltered.next();
+        assertEquals(ACTION_TIMESTAMP, firstActionFound.getTimestamp());
+
+        final Action secondActionFound = actionsFiltered.next();
+        assertEquals(SECOND_ACTION_TIMESTAMP, secondActionFound.getTimestamp());
+
+        final Action thirdActionFound = actionsFiltered.next();
+        assertEquals(THIRD_ACTION_TIMESTAMP, thirdActionFound.getTimestamp());
+    }
+
+    @Test
     void testAddActionsPurgeActionsGetAction() {
         final Action action = newAction();
         final Collection<Action> actions = Collections.singletonList(action);
@@ -349,7 +389,7 @@ class EntityStoreAuditServiceTest {
 
         final List<PreviousValue> firstPreviousValues = previousValues.get(FIRST_PROPERTY_NAME);
         assertNotNull(firstPreviousValues);
-        final PreviousValue firstPreviousValue = firstPreviousValues.get(0);
+        final PreviousValue firstPreviousValue = firstPreviousValues.getFirst();
         assertNotNull(firstPreviousValue);
         assertEquals(FIRST_VALUE, firstPreviousValue.getPreviousValue());
         assertNotNull(firstPreviousValue.getTimestamp());
@@ -358,7 +398,7 @@ class EntityStoreAuditServiceTest {
         final List<PreviousValue> secondPreviousValues = previousValues.get(SECOND_PROPERTY_NAME);
         assertNotNull(secondPreviousValues);
 
-        final PreviousValue thirdPreviousValue = secondPreviousValues.get(0);
+        final PreviousValue thirdPreviousValue = secondPreviousValues.getFirst();
         assertNotNull(thirdPreviousValue);
         assertEquals(THIRD_VALUE, thirdPreviousValue.getPreviousValue());
         assertNotNull(thirdPreviousValue.getTimestamp());
