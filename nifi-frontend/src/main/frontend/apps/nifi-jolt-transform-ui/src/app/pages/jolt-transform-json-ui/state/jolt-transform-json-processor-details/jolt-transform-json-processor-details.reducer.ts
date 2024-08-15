@@ -18,13 +18,15 @@
 import { JoltTransformJsonProcessorDetailsState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
+    loadProcessorDetails,
     loadProcessorDetailsFailure,
     loadProcessorDetailsSuccess,
     resetJoltTransformJsonProcessorDetailsState
 } from './jolt-transform-json-processor-details.actions';
 
 export const initialState: JoltTransformJsonProcessorDetailsState = {
-    saving: false,
+    loading: false,
+    error: null,
     processorDetails: null
 };
 
@@ -33,12 +35,20 @@ export const joltTransformJsonProcessorDetailsReducer = createReducer(
     on(resetJoltTransformJsonProcessorDetailsState, () => ({
         ...initialState
     })),
+    on(loadProcessorDetails, (state) => ({
+        ...state,
+        error: null,
+        loading: true
+    })),
     on(loadProcessorDetailsSuccess, (state, { response }) => ({
         ...state,
-        processorDetails: response
+        processorDetails: response,
+        loading: false
     })),
-    on(loadProcessorDetailsFailure, (state) => ({
+    on(loadProcessorDetailsFailure, (state, { response }) => ({
         ...state,
-        processorDetails: null
+        processorDetails: null,
+        error: response,
+        loading: false
     }))
 );
