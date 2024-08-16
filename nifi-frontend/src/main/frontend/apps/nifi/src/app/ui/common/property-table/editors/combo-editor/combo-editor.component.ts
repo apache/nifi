@@ -24,7 +24,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
-import { AllowableValue, Parameter, PropertyDescriptor } from '../../../../../state/shared';
+import { AllowableValue, Parameter, ParameterConfig, PropertyDescriptor } from '../../../../../state/shared';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -75,10 +75,9 @@ export class ComboEditor {
         this.initialAllowableValues();
     }
 
-    @Input() set parameters(parameters: Parameter[]) {
-        this._parameters = parameters;
-
-        this.supportsParameters = parameters != null;
+    @Input() set parameterConfig(parameterConfig: ParameterConfig) {
+        this.parameters = parameterConfig.parameters;
+        this.supportsParameters = parameterConfig.supportsParameters;
         this.initialAllowableValues();
     }
     @Input() width!: number;
@@ -105,7 +104,7 @@ export class ComboEditor {
 
     itemSet = false;
     configuredValue: string | null = null;
-    _parameters!: Parameter[];
+    parameters: Parameter[] | null = null;
 
     constructor(
         private formBuilder: FormBuilder,
@@ -181,14 +180,13 @@ export class ComboEditor {
                     this.allowableValueChanged(this.referencesParametersId);
                 }
 
-                const parameters: Parameter[] = this._parameters;
-                if (parameters.length > 0) {
+                if (this.parameters !== null && this.parameters.length > 0) {
                     // capture the value of i which will be the id of the first
                     // parameter
                     this.configuredParameterId = i;
 
                     // create allowable values for each parameter
-                    parameters.forEach((parameter) => {
+                    this.parameters.forEach((parameter) => {
                         const parameterItem: AllowableValueItem = {
                             id: i++,
                             displayName: parameter.name,

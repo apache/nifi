@@ -180,7 +180,7 @@
                 @if (hasAllowableValues(editorItem)) {
                     <combo-editor
                         [item]="editorItem"
-                        [parameters]="editorParameters || []"
+                        [parameterConfig]="editorParameterConfig"
                         [width]="editorWidth"
                         [readonly]="isDisabled"
                         (ok)="savePropertyValue(editorItem, $event)"
@@ -188,7 +188,7 @@
                 } @else {
                     <nf-editor
                         [item]="editorItem"
-                        [parameters]="editorParameters"
+                        [parameterConfig]="editorParameterConfig"
                         [width]="editorWidth"
                         [readonly]="isDisabled"
                         (ok)="savePropertyValue(editorItem, $event)"
