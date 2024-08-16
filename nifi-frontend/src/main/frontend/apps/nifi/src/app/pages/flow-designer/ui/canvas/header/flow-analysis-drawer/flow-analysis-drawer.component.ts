@@ -32,12 +32,15 @@ import {
     openRuleDetailsDialog
 } from '../../../../state/flow-analysis/flow-analysis.actions';
 import { FlowAnalysisRule, FlowAnalysisRuleViolation } from '../../../../state/flow-analysis';
-import { selectCurrentProcessGroupId, selectProcessGroup, selectProcessGroupIdFromRoute } from '../../../../state/flow/flow.selectors';
+import {
+    selectBreadcrumbs,
+    selectCurrentProcessGroupId
+} from '../../../../state/flow/flow.selectors';
 import { RouterLink } from '@angular/router';
 import { NifiSpinnerDirective } from '../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { MatIconButton } from '@angular/material/button';
 import { ComponentContext } from '@nifi/shared';
-import { filter, switchMap, tap } from 'rxjs';
+import { BreadcrumbEntity } from '../../../../state/shared';
 
 @Component({
     selector: 'flow-analysis-drawer',
@@ -71,7 +74,6 @@ export class FlowAnalysisDrawerComponent {
     flowAnalysisState$ = this.store.select(selectFlowAnalysisState);
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
     processGroupName = '';
-    processGroupId = '';
 
     constructor(private store: Store) {
         this.store.dispatch(startPollingFlowAnalysis());
@@ -105,16 +107,10 @@ export class FlowAnalysisDrawerComponent {
             this.currentProcessGroupId = pgId;
         });
         this.store
-            .select(selectProcessGroupIdFromRoute)
-            .pipe(
-                filter((processGroupId) => processGroupId !== null),
-                tap((processGroupId) => (this.processGroupId = processGroupId)),
-                switchMap((pgId) => this.store.select(selectProcessGroup(pgId))),
-                filter((pg) => pg !== undefined),
-                takeUntilDestroyed()
-            )
-            .subscribe((pg) => {
-                this.processGroupName = pg.component.name;
+            .select(selectBreadcrumbs)
+            .pipe(takeUntilDestroyed())
+            .subscribe((breadcrumbs: BreadcrumbEntity) => {
+                this.processGroupName = breadcrumbs.breadcrumb.name;
             });
     }
 

@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 <div class="flow-analysis-drawer h-full w-96 p-5">
-    <component-context type="ProcessGroup" [name]="processGroupName" [id]="processGroupId"></component-context>
+    <component-context type="ProcessGroup" [name]="processGroupName" [id]="currentProcessGroupId"></component-context>
     <div class="flex items-center w-full">
         <ng-container *ngIf="isAnalysisPending">
             <span *nifiSpinner="isAnalysisPending"></span>
