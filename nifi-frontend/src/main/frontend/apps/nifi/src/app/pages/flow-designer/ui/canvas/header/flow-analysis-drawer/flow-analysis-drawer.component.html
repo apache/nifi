@@ -183,7 +183,7 @@
 
         <ul>
             @for (violation of enforcedViolations; track violation.scope) {
-                <li class="mt-2 pb-2 border-b border-white last-of-type:border-0">
+                <li class="mt-2 pb-2 border-b last-of-type:border-0">
                     <div class="warn-color-darker">{{ getRuleName(violation.ruleId) }}</div>
                     <div class="flex align-center justify-between ml-2">
                         <div class="flex flex-col items-start">
@@ -211,7 +211,7 @@
 
         <ul>
             @for (violation of warningViolations; track violation.scope) {
-                <li class="mt-2 pb-2 border-b border-white last-of-type:border-0">
+                <li class="mt-2 pb-2 border-b last-of-type:border-0">
                     <div class="warn-color-darker">{{ getRuleName(violation.ruleId) }}</div>
                     <div class="flex align-center justify-between ml-2">
                         <div class="flex flex-col items-start">
