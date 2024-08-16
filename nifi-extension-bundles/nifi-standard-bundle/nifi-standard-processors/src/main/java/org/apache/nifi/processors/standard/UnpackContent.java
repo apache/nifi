@@ -384,6 +384,7 @@ public class UnpackContent extends AbstractProcessor {
         @Override
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
             final String fragmentId = UUID.randomUUID().toString();
+            final Map<String, String> attributes = new HashMap<>();
             session.read(source, inputStream -> {
                 int fragmentCount = 0;
                 try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(new BufferedInputStream(inputStream))) {
@@ -398,7 +399,6 @@ public class UnpackContent extends AbstractProcessor {
 
                         FlowFile unpackedFile = session.create(source);
                         try {
-                            final Map<String, String> attributes = new HashMap<>();
                             attributes.put(CoreAttributes.FILENAME.key(), file.getName());
                             attributes.put(CoreAttributes.PATH.key(), filePathString);
                             attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
@@ -433,6 +433,7 @@ public class UnpackContent extends AbstractProcessor {
 
                             final long fileSize = tarEntry.getSize();
                             unpackedFile = session.write(unpackedFile, outputStream -> StreamUtils.copy(tarIn, outputStream, fileSize));
+                            attributes.clear();
                         } finally {
                             unpacked.add(unpackedFile);
                         }
@@ -461,11 +462,6 @@ public class UnpackContent extends AbstractProcessor {
             } else {
                 session.read(source, new EncryptedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, password, filenameEncoding));
             }
-        }
-
-        private record ZipInputStreamMetadata(boolean directory, String zipEntryName, EncryptionMethod encryptionMethod,
-                                               Instant creationTime, Instant lastModifiedDate, Instant lastAccessDate, int mode,
-                                               long uncompressedSize) {
         }
 
         private abstract static class ZipInputStreamCallback implements InputStreamCallback {
@@ -501,50 +497,57 @@ public class UnpackContent extends AbstractProcessor {
                 return !directory && (fileFilter == null || fileFilter.matcher(fileName).find());
             }
 
-            protected void processEntry(final InputStream zipInputStream, ZipInputStreamMetadata metadata) {
-                if (isFileEntryMatched(metadata.directory(), metadata.zipEntryName())) {
-                    final File file = new File(metadata.zipEntryName());
+            protected void processEntry(final InputStream zipInputStream, boolean directory, String zipEntryName, Map<String, String> attributes) {
+                if (isFileEntryMatched(directory, zipEntryName)) {
+                    final File file = new File(zipEntryName);
                     final String parentDirectory = (file.getParent() == null) ? PATH_SEPARATOR : file.getParent();
 
                     FlowFile unpackedFile = session.create(sourceFlowFile);
                     try {
-                        final Map<String, String> attributes = new HashMap<>();
                         attributes.put(CoreAttributes.FILENAME.key(), file.getName());
                         attributes.put(CoreAttributes.PATH.key(), parentDirectory);
                         attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
-                        attributes.put(FILE_ENCRYPTION_METHOD_ATTRIBUTE, metadata.encryptionMethod().toString());
-                        attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(metadata.uncompressedSize()));
-
-                        String lastModifiedDate = null;
-                        if (metadata.lastModifiedDate() != null) {
-                            lastModifiedDate = DATE_TIME_FORMATTER.format(metadata.lastModifiedDate());
-                            attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, lastModifiedDate);
-                        }
-
-                        if (metadata.creationTime() != null) {
-                            final String creationTime = DATE_TIME_FORMATTER.format(metadata.creationTime());
-                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, creationTime);
-                        } else if (lastModifiedDate != null) {
-                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, lastModifiedDate);
-                        }
-
-                        if (metadata.lastAccessDate() != null) {
-                            final String lastAccessDate = DATE_TIME_FORMATTER.format(metadata.lastAccessDate());
-                            attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, lastAccessDate);
-                        }
-
-                        if (metadata.mode() > -1) {
-                            attributes.put(FILE_PERMISSIONS_ATTRIBUTE, FileInfo.permissionToString(metadata.mode()));
-                        }
-
                         attributes.put(FRAGMENT_ID, fragmentId);
                         attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentIndex));
-
                         unpackedFile = session.putAllAttributes(unpackedFile, attributes);
                         unpackedFile = session.write(unpackedFile, outputStream -> StreamUtils.copy(zipInputStream, outputStream));
                     } finally {
                         unpacked.add(unpackedFile);
                     }
+                }
+            }
+
+            protected void addFileSizeAttribute(long fileSize, Map<String, String> attributes) {
+                attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(fileSize));
+            }
+
+            protected void addEncryptionMethodAttribute(EncryptionMethod encryptionMethod, Map<String, String> attributes) {
+                attributes.put(FILE_ENCRYPTION_METHOD_ATTRIBUTE, encryptionMethod.toString());
+            }
+
+            protected void addFilePermissionsAttribute(int mode, Map<String, String> attributes) {
+                if (mode > -1) {
+                    attributes.put(FILE_PERMISSIONS_ATTRIBUTE, FileInfo.permissionToString(mode));
+                }
+            }
+
+            protected void addZipEntryTimeAttributes(Instant lastModified, Instant creation, Instant lastAccess, Map<String, String> attributes) {
+                String lastModifiedDate = null;
+                if (lastModified != null) {
+                    lastModifiedDate = DATE_TIME_FORMATTER.format(lastModified);
+                    attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, lastModifiedDate);
+                }
+
+                if (creation != null) {
+                    final String creationTime = DATE_TIME_FORMATTER.format(creation);
+                    attributes.put(FILE_CREATION_TIME_ATTRIBUTE, creationTime);
+                } else if (lastModifiedDate != null) {
+                    attributes.put(FILE_CREATION_TIME_ATTRIBUTE, lastModifiedDate);
+                }
+
+                if (lastAccess != null) {
+                    final String lastAccessDate = DATE_TIME_FORMATTER.format(lastAccess);
+                    attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, lastAccessDate);
                 }
             }
         }
@@ -573,15 +576,19 @@ public class UnpackContent extends AbstractProcessor {
                 try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream),
                     filenameEncoding.toString(), true, allowStoredEntriesWithDataDescriptor)) {
                     ZipArchiveEntry zipEntry;
+                    final Map<String, String> attributes = new HashMap<>();
                     while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                        addEncryptionMethodAttribute(EncryptionMethod.NONE, attributes);
+                        addFileSizeAttribute(zipEntry.getSize(), attributes);
+                        addFilePermissionsAttribute(zipEntry.getUnixMode(), attributes);
                         // NOTE: Per javadocs, ZipArchiveEntry can return -1 for getTime() if its not specified
                         // and getLastAccessTime() can return null if it is not specified.
-                        Instant creationTime = zipEntry.getTime() > 0 ? new Date(zipEntry.getTime()).toInstant() : null;
-                        Instant lastModifiedDate = zipEntry.getLastModifiedDate().toInstant();
-                        Instant lastAccessTime = zipEntry.getLastAccessTime() != null ? zipEntry.getLastAccessTime().toInstant() : null;
-                        ZipInputStreamMetadata zipInputStreamMetadata = new ZipInputStreamMetadata(zipEntry.isDirectory(), zipEntry.getName(),
-                                EncryptionMethod.NONE, creationTime, lastModifiedDate, lastAccessTime, zipEntry.getUnixMode(), zipEntry.getSize());
-                        processEntry(zipInputStream, zipInputStreamMetadata);
+                        Instant lastModified = zipEntry.getLastModifiedDate().toInstant();
+                        Instant creation = zipEntry.getTime() > 0 ? new Date(zipEntry.getTime()).toInstant() : null;
+                        Instant lastAccess = zipEntry.getLastAccessTime() != null ? zipEntry.getLastAccessTime().toInstant() : null;
+                        addZipEntryTimeAttributes(lastModified, creation, lastAccess, attributes);
+                        processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), attributes);
+                        attributes.clear();
                     }
                 }
             }
@@ -609,12 +616,15 @@ public class UnpackContent extends AbstractProcessor {
             public void process(final InputStream inputStream) throws IOException {
                 try (final ZipInputStream zipInputStream = new ZipInputStream(new BufferedInputStream(inputStream), password, filenameEncoding)) {
                     LocalFileHeader zipEntry;
+                    final Map<String, String> attributes = new HashMap<>();
                     while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                         //NOTE: LocalFileHeader has no methods to return creation time and the mode.
-                        Instant lastModifiedDate = zipEntry.getLastModifiedTime() > 0 ? new Date(zipEntry.getLastModifiedTime()).toInstant() : null;
-                        ZipInputStreamMetadata zipInputStreamMetadata = new ZipInputStreamMetadata(zipEntry.isDirectory(), zipEntry.getFileName(),
-                                zipEntry.getEncryptionMethod(), lastModifiedDate, lastModifiedDate, null, -1, zipEntry.getUncompressedSize());
-                        processEntry(zipInputStream, zipInputStreamMetadata);
+                        addEncryptionMethodAttribute(zipEntry.getEncryptionMethod(), attributes);
+                        addFileSizeAttribute(zipEntry.getUncompressedSize(), attributes);
+                        Instant lastModified = zipEntry.getLastModifiedTime() > 0 ? new Date(zipEntry.getLastModifiedTime()).toInstant() : null;
+                        addZipEntryTimeAttributes(lastModified, null, null, attributes);
+                        processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getFileName(), attributes);
+                        attributes.clear();
                     }
                 }
             }
