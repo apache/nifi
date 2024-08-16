@@ -19,14 +19,14 @@ package org.apache.nifi.serialization.record.field;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 /**
  * Convert Object to java.sql.Timestamp using instanceof evaluation and optional format pattern for DateTimeFormatter
  */
 class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp> {
-    private static final ObjectLocalDateTimeFieldConverter CONVERTER = new ObjectLocalDateTimeFieldConverter();
+    private static final ObjectZonedDateTimeConverter CONVERTER = new ObjectZonedDateTimeConverter();
 
     /**
      * Convert Object field to java.sql.Timestamp using optional format supported in DateTimeFormatter
@@ -39,7 +39,7 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
      */
     @Override
     public Timestamp convertField(final Object field, final Optional<String> pattern, final String name) {
-        final LocalDateTime localDateTime = CONVERTER.convertField(field, pattern, name);
-        return localDateTime == null ? null : Timestamp.valueOf(localDateTime);
+        final ZonedDateTime zonedDateTime = CONVERTER.convertField(field, pattern, name);
+        return zonedDateTime == null ? null : Timestamp.from(zonedDateTime.toInstant());
     }
 }

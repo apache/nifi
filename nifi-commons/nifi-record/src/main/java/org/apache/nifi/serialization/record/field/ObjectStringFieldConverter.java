@@ -59,7 +59,8 @@ class ObjectStringFieldConverter implements FieldConverter<Object, String> {
             }
             final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
             final LocalDateTime localDateTime = timestamp.toLocalDateTime();
-            return formatter.format(localDateTime);
+            final ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
+            return formatter.format(zonedDateTime);
         }
         if (field instanceof java.util.Date date) {
             if (pattern.isEmpty()) {

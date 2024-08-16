@@ -1,0 +1,65 @@
+{
+  "name": "event_flex",
+  "type": "record",
+  "fields": [
+    {
+      "name": "apache_date",
+      "type": [
+        "null",
+        {
+          "type": "long",
+          "logicalType": "timestamp-millis"
+        }
+      ]
+    },
+    {
+      "name": "apache_ip_source",
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    {
+      "name": "apache_method",
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    {
+      "name": "apache_path",
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    {
+      "name": "apache_query_string",
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    {
+      "name": "apache_response_code",
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    {
+      "name": "apache_referer",
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    {
+      "name": "apache_user_agent",
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  ]
+}
