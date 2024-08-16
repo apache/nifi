@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { EditParameterRequest, EditParameterResponse, Parameter } from '../../../state/shared';
+import { EditParameterRequest, EditParameterResponse, Parameter, ReferencedAsset } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
 import {
     AbstractControl,
@@ -68,6 +68,8 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
     editParameterForm: FormGroup;
     isNew: boolean;
 
+    private originalParameter: Parameter | undefined = undefined;
+
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: EditParameterRequest,
         private formBuilder: FormBuilder
@@ -77,6 +79,7 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
         // seed the form for the new parameter. when existingParameters are not specified, this is the
         // existing parameter that populates the form
         const parameter: Parameter | undefined = request.parameter;
+        this.originalParameter = parameter;
 
         const validators: any[] = [Validators.required];
         if (request.existingParameters) {
@@ -162,6 +165,11 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
     okClicked(): void {
         const value: string = this.editParameterForm.get('value')?.value;
         const empty: boolean = this.editParameterForm.get('empty')?.value;
+        let referencedAssets: ReferencedAsset[] | undefined = undefined;
+
+        if (this.originalParameter) {
+            referencedAssets = this.originalParameter.referencedAssets;
+        }
 
         this.editParameter.next({
             parameter: {
@@ -169,7 +177,8 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
                 value: value === '' && !empty ? null : value,
                 valueRemoved: value === '' && !empty,
                 sensitive: this.editParameterForm.get('sensitive')?.value,
-                description: this.editParameterForm.get('description')?.value
+                description: this.editParameterForm.get('description')?.value,
+                referencedAssets
             }
         });
     }
