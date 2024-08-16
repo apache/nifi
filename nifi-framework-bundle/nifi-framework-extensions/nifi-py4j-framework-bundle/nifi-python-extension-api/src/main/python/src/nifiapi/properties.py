@@ -346,6 +346,9 @@ class ProcessContext(PropertyContext):
     def getName(self):
         return self.name
 
+    def yieldResources(self):
+        self.java_context.yieldResources()
+
 
 class ValidationContext(PropertyContext):
 

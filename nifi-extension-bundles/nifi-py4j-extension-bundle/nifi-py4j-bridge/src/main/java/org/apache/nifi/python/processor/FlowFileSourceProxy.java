@@ -50,7 +50,6 @@ public class FlowFileSourceProxy extends PythonProcessorProxy<FlowFileSource> {
         try {
             result = getTransform().createFlowFile();
             if (result == null) {
-                context.yield();
                 return;
             }
         } catch (final Py4JNetworkException e) {
