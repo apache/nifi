@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-import { Component, model, signal, viewChild } from '@angular/core';
+import { Component, model } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
-import { MatAccordion, MatExpansionModule } from '@angular/material/expansion';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { navigateToComponentDocumentation } from '../../../../../../state/documentation/documentation.actions';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FormsModule } from '@angular/forms';
@@ -35,6 +35,8 @@ import { FlowAnalysisRule, FlowAnalysisRuleViolation } from '../../../../state/f
 import { selectCurrentProcessGroupId } from '../../../../state/flow/flow.selectors';
 import { RouterLink } from '@angular/router';
 import { NifiSpinnerDirective } from '../../../../../../ui/common/spinner/nifi-spinner.directive';
+import { MatIconButton } from '@angular/material/button';
+import { ComponentContext } from '@nifi/shared';
 
 @Component({
     selector: 'flow-analysis-drawer',
@@ -47,13 +49,14 @@ import { NifiSpinnerDirective } from '../../../../../../ui/common/spinner/nifi-s
         MatCheckboxModule,
         FormsModule,
         RouterLink,
-        NifiSpinnerDirective
+        NifiSpinnerDirective,
+        MatIconButton,
+        ComponentContext
     ],
     templateUrl: './flow-analysis-drawer.component.html',
     styleUrl: './flow-analysis-drawer.component.scss'
 })
 export class FlowAnalysisDrawerComponent {
-    accordion = viewChild.required(MatAccordion);
     violationsMap = new Map();
     warningRules: FlowAnalysisRule[] = [];
     enforcedRules: FlowAnalysisRule[] = [];

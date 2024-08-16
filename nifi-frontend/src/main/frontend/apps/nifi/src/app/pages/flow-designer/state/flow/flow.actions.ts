@@ -573,6 +573,11 @@ export const setOperationCollapsed = createAction(
     props<{ operationCollapsed: boolean }>()
 );
 
+export const setFlowAnalysisOpen = createAction(
+    `${CANVAS_PREFIX} Set Flow Analysis Open`,
+    props<{ flowAnalysisOpen: boolean }>()
+);
+
 /*
     General
  */

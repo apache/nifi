@@ -24,6 +24,7 @@ import {
     selectControllerBulletins,
     selectControllerStatus,
     selectCurrentProcessGroupId,
+    selectFlowAnalysisOpen,
     selectLastRefreshed
 } from '../../../state/flow/flow.selectors';
 import { LoadingService } from '../../../../../service/loading.service';
@@ -65,6 +66,7 @@ export class HeaderComponent {
     currentProcessGroupId$ = this.store.select(selectCurrentProcessGroupId);
     canvasPermissions$ = this.store.select(selectCanvasPermissions);
     flowAnalysisState$ = this.store.select(selectFlowAnalysisState);
+    flowAnalysisOpen$ = this.store.select(selectFlowAnalysisOpen);
 
     constructor(
         private store: Store<CanvasState>,

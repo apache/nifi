@@ -257,3 +257,5 @@ export const selectMaxZIndex = (componentType: ComponentType.Connection | Compon
         );
     }
 };
+
+export const selectFlowAnalysisOpen = createSelector(selectFlowState, (state: FlowState) => state.flowAnalysisOpen);

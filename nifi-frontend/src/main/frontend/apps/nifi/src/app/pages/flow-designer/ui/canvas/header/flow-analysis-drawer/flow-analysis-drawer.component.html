@@ -14,33 +14,32 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<div class="flow-analysis-drawer p-5">
+<div class="flow-analysis-drawer h-full w-96 p-5">
+    <component-context type="ProcessGroup" name="Nifi Flow"></component-context>
     <div class="flex items-center w-full">
         <ng-container *ngIf="isAnalysisPending">
             <span *nifiSpinner="isAnalysisPending"></span>
             <div class="ml-1">Rules analysis pending...</div>
         </ng-container>
     </div>
-    <div class="mt-6">
+    <div class="mt-5">
         <div class="flex items-center justify-between">
-            <div class="primary-color text-lg">Flow Guide</div>
             <div>
                 <div>
-                    <mat-checkbox color="primary" [(ngModel)]="showEnforcedViolations"
-                        >Show enforced violations</mat-checkbox
-                    >
+                    <mat-checkbox class="text-sm" color="primary" [(ngModel)]="showEnforcedViolations">
+                        Show enforced violations
+                    </mat-checkbox>
                 </div>
                 <div>
-                    <mat-checkbox color="primary" [(ngModel)]="showWarningViolations"
-                        >Show warning violations</mat-checkbox
-                    >
+                    <mat-checkbox color="primary" [(ngModel)]="showWarningViolations">
+                        Show warning violations
+                    </mat-checkbox>
                 </div>
             </div>
         </div>
-        <div class="flow-analysis-flow-guide-breadcrumb text-sm">NiFi Flow</div>
     </div>
-    <div class="flow-analysis-rules-accordion mt-2 pb-5" [hidden]="showEnforcedViolations() || showWarningViolations()">
-        <mat-accordion multi>
+    <div class="mt-5 mb-2" [hidden]="showEnforcedViolations() || showWarningViolations()">
+        <div class="flex flex-col gap-y-2">
             <mat-expansion-panel hideToggle>
                 <mat-expansion-panel-header>
                     <mat-panel-title>
@@ -51,70 +50,58 @@
                 </mat-expansion-panel-header>
 
                 @if (rules) {
-                    <ul>
-                        @for (rule of enforcedRules; track rule.id) {
-                            <li>
-                                <div class="flex justify-between">
-                                    <div class="flex items-center">{{ rule.name }}</div>
-                                    <button mat-icon-button type="button" [matMenuTriggerFor]="menu" class="w-5">
-                                        <i class="fa fa-ellipsis-v"></i>
+                    @for (rule of enforcedRules; track rule.id) {
+                        <div>
+                            <div class="flex justify-between">
+                                <div class="flex items-center">{{ rule.name }}</div>
+                                <button
+                                    mat-icon-button
+                                    type="button"
+                                    [matMenuTriggerFor]="menu"
+                                    class="h-16 w-16 flex items-center justify-center">
+                                    <i class="fa fa-ellipsis-v"></i>
+                                </button>
+                                <mat-menu #menu="matMenu">
+                                    <button mat-menu-item (click)="openDocumentation(rule)">
+                                        <i class="fa fa-book mr-2 primary-color"></i>
+                                        View Documentation
                                     </button>
-                                    <mat-menu #menu="matMenu">
-                                        <ul>
-                                            <li>
-                                                <button mat-menu-item (click)="openDocumentation(rule)">
-                                                    <i class="fa fa-book mr-2 primary-color" aria-hidden="true"></i>View
-                                                    Documentation
-                                                </button>
-                                            </li>
-                                            <li>
-                                                <button mat-menu-item (click)="openRule(rule)">
-                                                    <i class="fa fa-cog mr-2 primary-color" aria-hidden="true"></i>Edit
-                                                    Rule
-                                                </button>
-                                            </li>
-                                        </ul>
-                                    </mat-menu>
+                                    <button mat-menu-item (click)="openRule(rule)">
+                                        <i class="fa fa-cog mr-2 primary-color"></i>
+                                        Edit Rule
+                                    </button>
+                                </mat-menu>
+                            </div>
+                            @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
+                                <div class="warn-color-darker text-sm mt-2">
+                                    <ng-container [ngPlural]="violationsMap.get(rule.id).length">
+                                        <ng-template ngPluralCase="=1"
+                                            >{{ violationsMap.get(rule.id).length }} violation</ng-template
+                                        >
+                                        <ng-template ngPluralCase="other"
+                                            >{{ violationsMap.get(rule.id).length }} violations</ng-template
+                                        >
+                                    </ng-container>
                                 </div>
-                                @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
-                                    <div class="rule-violations-count text-sm mt-2">
-                                        <ng-container [ngPlural]="violationsMap.get(rule.id).length">
-                                            <ng-template ngPluralCase="=1"
-                                                >{{ violationsMap.get(rule.id).length }} violation</ng-template
-                                            >
-                                            <ng-template ngPluralCase="other"
-                                                >{{ violationsMap.get(rule.id).length }} violations</ng-template
-                                            >
-                                        </ng-container>
-                                    </div>
-                                    <ul class="rule-violations-list">
-                                        @for (violation of violationsMap.get(rule.id); track violation.scope) {
-                                            <li
-                                                class="flex align-center relative py-2.5 pl-3.5 pr-0 border-b border-white last-of-type:border-0">
-                                                <div class="flex flex-col items-start ml-1 w-[calc(100%-5px)]">
-                                                    <div
-                                                        class="violation-list-item-name text-sm before:content-[''] before:h-1.5 before:w-1.5 before:absolute before:top-4 before:left-2 before:rounded"
-                                                        *ngIf="
-                                                            violation.subjectPermissionDto.canRead;
-                                                            else unauthorized
-                                                        ">
-                                                        {{ violation.subjectDisplayName }}
-                                                    </div>
-                                                    <span class="violation-list-item-id text-xs">
-                                                        {{ violation.subjectId }}
-                                                    </span>
-                                                </div>
+                                @for (violation of violationsMap.get(rule.id); track violation.scope) {
+                                    <div class="flex align-center">
+                                        <div class="flex flex-col items-start ml-2">
+                                            <div *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">
+                                                {{ violation.subjectDisplayName }}
+                                            </div>
+                                            <span class="text-xs">
+                                                {{ violation.subjectId }}
+                                            </span>
+                                        </div>
 
-                                                <ng-template
-                                                    [ngTemplateOutlet]="violationMenuTemplate"
-                                                    [ngTemplateOutletContext]="{ violation: violation }"></ng-template>
-                                            </li>
-                                        }
-                                    </ul>
+                                        <ng-template
+                                            [ngTemplateOutlet]="violationMenuTemplate"
+                                            [ngTemplateOutletContext]="{ violation: violation }"></ng-template>
+                                    </div>
                                 }
-                            </li>
-                        }
-                    </ul>
+                            }
+                        </div>
+                    }
                 }
             </mat-expansion-panel>
             <mat-expansion-panel hideToggle>
@@ -127,130 +114,108 @@
                 </mat-expansion-panel-header>
 
                 @if (rules) {
-                    <ul id="required-rules" class="required-rules">
-                        @for (rule of warningRules; track rule.id) {
-                            <li>
-                                <div class="flex justify-between">
-                                    <div class="flex items-center">{{ rule.name }}</div>
-                                    <button mat-icon-button type="button" [matMenuTriggerFor]="menu" class="w-5">
-                                        <i class="fa fa-ellipsis-v"></i>
+                    @for (rule of warningRules; track rule.id) {
+                        <div>
+                            <div class="flex justify-between">
+                                <div class="flex items-center">{{ rule.name }}</div>
+                                <button
+                                    mat-icon-button
+                                    type="button"
+                                    [matMenuTriggerFor]="menu"
+                                    class="h-16 w-16 flex items-center justify-center">
+                                    <i class="fa fa-ellipsis-v"></i>
+                                </button>
+                                <mat-menu #menu="matMenu" class="rule-menu w-52 shadow-lg">
+                                    <button mat-menu-item (click)="openDocumentation(rule)">
+                                        <i class="fa fa-book mr-2 primary-color"></i>
+                                        View Documentation
                                     </button>
-                                    <mat-menu #menu="matMenu" class="rule-menu w-52 shadow-lg">
-                                        <ul>
-                                            <li>
-                                                <button mat-menu-item (click)="openDocumentation(rule)">
-                                                    <i
-                                                        class="fa fa-book mr-2 primary-color rule-menu-option-icon"
-                                                        aria-hidden="true"></i
-                                                    >View Documentation
-                                                </button>
-                                            </li>
-                                            <li>
-                                                <button mat-menu-item (click)="openRule(rule)">
-                                                    <i
-                                                        class="fa fa-cog mr-2 primary-color rule-menu-option-icon"
-                                                        aria-hidden="true"></i
-                                                    >Edit Rule
-                                                </button>
-                                            </li>
-                                        </ul>
-                                    </mat-menu>
+                                    <button mat-menu-item (click)="openRule(rule)">
+                                        <i class="fa fa-cog mr-2 primary-color"></i>
+                                        Edit Rule
+                                    </button>
+                                </mat-menu>
+                            </div>
+                            @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
+                                <div class="primary-color text-sm mt-2">
+                                    <ng-container [ngPlural]="violationsMap.get(rule.id).length">
+                                        <ng-template ngPluralCase="=1"
+                                            >{{ violationsMap.get(rule.id).length }} violation</ng-template
+                                        >
+                                        <ng-template ngPluralCase="other"
+                                            >{{ violationsMap.get(rule.id).length }} violations</ng-template
+                                        >
+                                    </ng-container>
                                 </div>
-                                @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
-                                    <div class="rule-recommendations-count text-sm mt-2">
-                                        <ng-container [ngPlural]="violationsMap.get(rule.id).length">
-                                            <ng-template ngPluralCase="=1"
-                                                >{{ violationsMap.get(rule.id).length }} violation</ng-template
-                                            >
-                                            <ng-template ngPluralCase="other"
-                                                >{{ violationsMap.get(rule.id).length }} violations</ng-template
-                                            >
-                                        </ng-container>
-                                    </div>
-                                    <ul>
-                                        @for (violation of violationsMap.get(rule.id); track violation.scope) {
-                                            <li
-                                                class="flex align-center relative py-2.5 pl-3.5 pr-0 border-b border-white last-of-type:border-0">
-                                                <div class="flex flex-col items-start ml-1 w-[calc(100%-5px)]">
-                                                    <div
-                                                        class="recommendation-list-item-name text-sm before:content-[''] before:h-1.5 before:w-1.5 before:absolute before:top-4 before:left-2 before:rounded before:border"
-                                                        *ngIf="
-                                                            violation.subjectPermissionDto.canRead;
-                                                            else unauthorized
-                                                        ">
-                                                        {{ violation.subjectDisplayName }}
-                                                    </div>
-                                                    <span class="recommendation-list-item-id text-xs">
-                                                        {{ violation.subjectId }}
-                                                    </span>
+                                <ul>
+                                    @for (violation of violationsMap.get(rule.id); track violation.scope) {
+                                        <li class="flex align-center">
+                                            <div class="flex flex-col items-start ml-2">
+                                                <div *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">
+                                                    {{ violation.subjectDisplayName }}
                                                 </div>
+                                                <span class="text-xs">
+                                                    {{ violation.subjectId }}
+                                                </span>
+                                            </div>
 
-                                                <ng-template
-                                                    [ngTemplateOutlet]="violationMenuTemplate"
-                                                    [ngTemplateOutletContext]="{ violation: violation }"></ng-template>
-                                            </li>
-                                        }
-                                    </ul>
-                                }
-                            </li>
-                        }
-                    </ul>
+                                            <ng-template
+                                                [ngTemplateOutlet]="violationMenuTemplate"
+                                                [ngTemplateOutletContext]="{ violation: violation }"></ng-template>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+                    }
                 }
             </mat-expansion-panel>
-        </mat-accordion>
+        </div>
     </div>
 
-    <div class="rule-violations mt-2 pb-5" [hidden]="!showEnforcedViolations()">
-        <div class="rules-violations-header border-b text-sm pb-2">
+    <div class="mt-5" [hidden]="!showEnforcedViolations()" [class.mb-5]="!showWarningViolations()">
+        <div class="border-b">
             <div>
                 Enforced Violations
-                <span class="rule-violation-count">({{ enforcedViolations.length }})</span>
+                <span>({{ enforcedViolations.length }})</span>
             </div>
         </div>
 
         <ul>
             @for (violation of enforcedViolations; track violation.scope) {
-                <li class="border-b border-white last-of-type:border-0">
-                    <div class="rule-violations-list-item-name text-sm mt-2.5">{{ getRuleName(violation.ruleId) }}</div>
-                    <div class="flex align-center justify-between relative py-2.5 pl-3.5 pr-0">
-                        <div class="flex flex-col items-start ml-1 w-[calc(100%-5px)]">
-                            <div
-                                class="violation-list-item-name text-sm before:content-[''] before:h-1.5 before:w-1.5 before:absolute before:top-4 before:left-2 before:rounded"
-                                *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">
-                                {{ violation.subjectDisplayName }}
-                            </div>
-                            <span class="violation-list-item-id text-xs">{{ violation.subjectId }}</span>
+                <li class="mt-2">
+                    <div class="warn-color-darker">ruleId</div>
+                    <div class="flex align-center justify-between ml-2">
+                        <div class="flex flex-col items-start">
+                            <div>violation.subjectDisplayName</div>
+                            <span class="text-sm">violation.subjectId</span>
                         </div>
 
-                        <ng-template
-                            [ngTemplateOutlet]="violationMenuTemplate"
-                            [ngTemplateOutletContext]="{ violation: violation }"></ng-template>
+                        <ng-template [ngTemplateOutlet]="violationMenuTemplate"></ng-template>
                     </div>
                 </li>
             }
         </ul>
     </div>
 
-    <div class="rule-warnings mt-2 pb-5" [hidden]="!showWarningViolations()">
-        <div class="rules-warnings-header border-b text-sm pb-2">
+    <div class="mt-5" [hidden]="!showWarningViolations()">
+        <div class="border-b">
             <div>
                 Warning Violations
-                <span class="rule-violation-count">({{ warningViolations.length }})</span>
+                <span>({{ warningViolations.length }})</span>
             </div>
         </div>
 
-        <ul class="rule-warnings-list bg-transparent p-0 border-0">
+        <ul>
             @for (violation of warningViolations; track violation.scope) {
                 <li class="border-b border-white last-of-type:border-0">
-                    <div class="rule-warnings-list-item-name text-sm mt-2.5">{{ getRuleName(violation.ruleId) }}</div>
-                    <div class="flex align-center relative py-2.5 pl-3.5 pr-0">
-                        <div class="flex flex-col items-start ml-1 w-[calc(100%-5px)]">
-                            <div
-                                class="warning-list-item-name text-sm before:content-[''] before:h-1.5 before:w-1.5 before:absolute before:top-4 before:left-2 before:rounded before:border"
-                                *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">
+                    <div class="warn-color-darker">{{ getRuleName(violation.ruleId) }}</div>
+                    <div class="flex align-center justify-between ml-2">
+                        <div class="flex flex-col items-start">
+                            <div *ngIf="violation.subjectPermissionDto.canRead; else unauthorized">
                                 {{ violation.subjectDisplayName }}
                             </div>
-                            <span class="warning-list-item-id text-xs">{{ violation.subjectId }}</span>
+                            <span class="text-xs">{{ violation.subjectId }}</span>
                         </div>
 
                         <ng-template
@@ -264,29 +229,26 @@
 </div>
 
 <ng-template #violationMenuTemplate let-violation="violation">
-    <button mat-icon-button type="button" [matMenuTriggerFor]="violationMenu" class="w-5">
+    <button
+        mat-icon-button
+        type="button"
+        [matMenuTriggerFor]="violationMenu"
+        class="h-16 w-16 flex items-center justify-center">
         <i class="fa fa-ellipsis-v"></i>
     </button>
-    <mat-menu #violationMenu="matMenu" class="rule-menu w-52 shadow-lg" id="rule-menu">
-        <ul>
-            <li class="rule-menu-option" id="rule-menu-view-documentation">
-                <button
-                    mat-menu-item
-                    (click)="viewViolationDetails(violation)"
-                    [disabled]="!violation.subjectPermissionDto.canRead">
-                    <i class="fa fa-info-circle mr-2 primary-color rule-menu-option-icon" aria-hidden="true"></i>Violation details
-                </button>
-            </li>
-            <li
-                class="rule-menu-option"
-                id="rule-menu-edit-rule"
-                *ngIf="violation.subjectComponentType === 'PROCESSOR' && violation.subjectPermissionDto.canRead">
-                <button mat-menu-item [routerLink]="getProcessorLink(violation)">
-                    <i class="fa mr-2 fa-long-arrow-right primary-color rule-menu-option-icon" aria-hidden="true"></i>Go
-                    to component
-                </button>
-            </li>
-        </ul>
+    <mat-menu #violationMenu="matMenu">
+        <button
+            mat-menu-item
+            (click)="viewViolationDetails(violation)"
+            [disabled]="!violation.subjectPermissionDto.canRead">
+            <i class="fa fa-info-circle mr-2 primary-color"></i>Violation details
+        </button>
+        <button
+            mat-menu-item
+            [routerLink]="getProcessorLink(violation)"
+            *ngIf="violation.subjectComponentType === 'PROCESSOR' && violation.subjectPermissionDto.canRead">
+            <i class="fa mr-2 fa-long-arrow-right primary-color"></i>Go to component
+        </button>
     </mat-menu>
 </ng-template>
 

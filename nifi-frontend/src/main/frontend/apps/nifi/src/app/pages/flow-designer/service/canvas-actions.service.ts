@@ -57,7 +57,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { CanvasView } from './canvas-view.service';
 import { ComponentType } from 'libs/shared/src';
 import { Client } from '../../../service/client.service';
-import { BehaviorSubject } from 'rxjs';
 
 export type CanvasConditionFunction = (selection: d3.Selection<any, any, any, any>) => boolean;
 export type CanvasActionFunction = (selection: d3.Selection<any, any, any, any>, extraArgs?: any) => void;
@@ -501,8 +500,6 @@ export class CanvasActionsService {
         return selectedComponents;
     }
 
-    public flowAnalaysisDrawerOpen$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-
     getAction(id: string): CanvasAction | null {
         if (this._actions && this._actions[id]) {
             return this._actions[id];
@@ -522,11 +519,5 @@ export class CanvasActionsService {
             return this._actions[id].condition;
         }
         return () => false;
-    }
-
-    toggleFlowAnalysisDrawer() {
-        return this.flowAnalaysisDrawerOpen$.value === true
-            ? this.flowAnalaysisDrawerOpen$.next(false)
-            : this.flowAnalaysisDrawerOpen$.next(true);
     }
 }

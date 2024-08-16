@@ -22,12 +22,14 @@ import { BulletinsTip } from '../../../../../../ui/common/tooltips/bulletins-tip
 import { BulletinEntity, BulletinsTipInput } from '../../../../../../state/shared';
 
 import { Search } from '../search/search.component';
-import { NifiTooltipDirective } from '@nifi/shared';
+import { NifiTooltipDirective, Storage } from '@nifi/shared';
 import { ClusterSummary } from '../../../../../../state/cluster-summary';
 import { ConnectedPosition } from '@angular/cdk/overlay';
-import { CanvasActionsService } from '../../../../service/canvas-actions.service';
 import { FlowAnalysisState } from '../../../../state/flow-analysis';
 import { CommonModule } from '@angular/common';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../../../../state';
+import { setFlowAnalysisOpen } from '../../../../state/flow/flow.actions';
 
 @Component({
     selector: 'flow-status',
@@ -37,12 +39,15 @@ import { CommonModule } from '@angular/common';
     styleUrls: ['./flow-status.component.scss']
 })
 export class FlowStatus {
+    private static readonly FLOW_ANALYSIS_VISIBILITY_KEY: string = 'flow-analysis-visibility';
+    private static readonly FLOW_ANALYSIS_KEY: string = 'flow-analysis';
     public flowAnalysisNotificationClass: string = '';
     @Input() controllerStatus: ControllerStatus = initialState.flowStatus.controllerStatus;
     @Input() lastRefreshed: string = initialState.flow.processGroupFlow.lastRefreshed;
     @Input() clusterSummary: ClusterSummary | null = null;
     @Input() currentProcessGroupId: string = initialState.id;
     @Input() loadingStatus = false;
+    @Input() flowAnalysisOpen = initialState.flowAnalysisOpen;
     @Input() set flowAnalysisState(state: FlowAnalysisState) {
         if (!state.ruleViolations.length) {
             this.flowAnalysisNotificationClass = 'primary-color';
@@ -68,7 +73,22 @@ export class FlowStatus {
 
     protected readonly BulletinsTip = BulletinsTip;
 
-    constructor(private canvasActionsService: CanvasActionsService) {}
+    constructor(
+        private store: Store<NiFiState>,
+        private storage: Storage
+    ) {
+        try {
+            const item: { [key: string]: boolean } | null = this.storage.getItem(
+                FlowStatus.FLOW_ANALYSIS_VISIBILITY_KEY
+            );
+            if (item) {
+                const flowAnalysisOpen = item[FlowStatus.FLOW_ANALYSIS_KEY] === true;
+                this.store.dispatch(setFlowAnalysisOpen({ flowAnalysisOpen }));
+            }
+        } catch (e) {
+            // likely could not parse item... ignoring
+        }
+    }
 
     hasTerminatedThreads(): boolean {
         return this.controllerStatus.terminatedThreadCount > 0;
@@ -160,7 +180,17 @@ export class FlowStatus {
         };
     }
 
-    openFlowAnalysisMenu() {
-        this.canvasActionsService.toggleFlowAnalysisDrawer();
+    toggleFlowAnalysis(): void {
+        const flowAnalysisOpen = !this.flowAnalysisOpen;
+        this.store.dispatch(setFlowAnalysisOpen({ flowAnalysisOpen }));
+
+        // update the current value in storage
+        let item: { [key: string]: boolean } | null = this.storage.getItem(FlowStatus.FLOW_ANALYSIS_VISIBILITY_KEY);
+        if (item == null) {
+            item = {};
+        }
+
+        item[FlowStatus.FLOW_ANALYSIS_KEY] = flowAnalysisOpen;
+        this.storage.setItem(FlowStatus.FLOW_ANALYSIS_VISIBILITY_KEY, item);
     }
 }

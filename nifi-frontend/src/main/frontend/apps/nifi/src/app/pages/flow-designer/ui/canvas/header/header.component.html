@@ -69,6 +69,7 @@
         }
     </navigation>
     <flow-status
+        [flowAnalysisOpen]="(flowAnalysisOpen$ | async)!"
         [controllerStatus]="(controllerStatus$ | async)!"
         [lastRefreshed]="(lastRefreshed$ | async)!"
         [clusterSummary]="(clusterSummary$ | async)!"
