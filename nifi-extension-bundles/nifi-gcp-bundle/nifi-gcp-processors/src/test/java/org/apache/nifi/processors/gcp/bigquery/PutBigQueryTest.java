@@ -506,20 +506,21 @@ public class PutBigQueryTest {
     }
 
     private void decorateWithJsonRecordReaderWithSchema(TestRunner runner) throws InitializationException {
-        String recordReaderSchema = "{\n" +
-                "  \"name\": \"recordFormatName\",\n" +
-                "  \"namespace\": \"nifi.examples\",\n" +
-                "  \"type\": \"record\",\n" +
-                "  \"fields\": [\n" +
-                "    {\n" +
-                "      \"name\": \"field\",\n" +
-                "      \"type\": {\n" +
-                "        \"type\": \"map\",\n" +
-                "        \"values\": \"string\"\n" +
-                "      }\n" +
-                "    }\n" +
-                "  ]\n" +
-                "}";
+        String recordReaderSchema = """
+                {
+                  "name": "recordFormatName",
+                  "namespace": "nifi.examples",
+                  "type": "record",
+                  "fields": [
+                    {
+                      "name": "field",
+                      "type": {
+                        "type": "map",
+                        "values": "string"
+                      }
+                    }
+                  ]
+                }""";
 
         JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("jsonReader", jsonReader);
@@ -586,14 +587,15 @@ public class PutBigQueryTest {
     }
 
     private String jsonContent() {
-        return "{\n" +
-                "  \"field\": {\n" +
-                "    \"FIELD_1\": \"field_1\",\n" +
-                "    \"FIELD_2\": \"field_2\",\n" +
-                "    \"FIELD_3\": \"field_3\",\n" +
-                "    \"FIELD_4\": \"field_4\",\n" +
-                "    \"FIELD_5\": \"field_5\"\n" +
-                "  }\n" +
-                "}";
+        return """
+                {
+                  "field": {
+                    "FIELD_1": "field_1",
+                    "FIELD_2": "field_2",
+                    "FIELD_3": "field_3",
+                    "FIELD_4": "field_4",
+                    "FIELD_5": "field_5"
+                  }
+                }""";
     }
 }
