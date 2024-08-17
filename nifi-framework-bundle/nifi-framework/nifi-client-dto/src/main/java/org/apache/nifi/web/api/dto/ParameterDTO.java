@@ -21,6 +21,8 @@ import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
 import jakarta.xml.bind.annotation.XmlType;
+
+import java.util.List;
 import java.util.Set;
 
 @XmlType(name = "parameter")
@@ -31,6 +33,7 @@ public class ParameterDTO {
     private String value;
     private Boolean valueRemoved;
     private Boolean provided;
+    private List<AssetReferenceDTO> referencedAssets;
     private Set<AffectedComponentEntity> referencingComponents;
     private ParameterContextReferenceEntity parameterContext;
     private Boolean inherited;
@@ -122,8 +125,17 @@ public class ParameterDTO {
         this.referencingComponents = referencingComponents;
     }
 
+    @Schema(description = "A list of identifiers of the assets that are referenced by the parameter")
+    public List<AssetReferenceDTO> getReferencedAssets() {
+        return referencedAssets;
+    }
+
+    public void setReferencedAssets(final List<AssetReferenceDTO> referencedAssets) {
+        this.referencedAssets = referencedAssets;
+    }
+
     @Override
     public String toString() {
-        return "ParameterDTO[name=" + name + ", sensitive=" + sensitive + ", value=" + (sensitive ? "********" : value) + (provided ? " (provided)" : "") + "]";
+        return "ParameterDTO[name=" + name + ", sensitive=" + sensitive + ", value=" + (sensitive == Boolean.TRUE ? "********" : value) + (provided == Boolean.TRUE ? " (provided)" : "") + "]";
     }
 }

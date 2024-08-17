@@ -259,6 +259,7 @@ export interface ElFunctionTipInput {
 export interface PropertyHintTipInput {
     supportsEl: boolean;
     supportsParameters: boolean;
+    hasParameterContext: boolean;
 }
 
 export interface RestrictionsTipInput {
@@ -312,6 +313,11 @@ export interface BulletinEntity {
     };
 }
 
+export interface ReferencedAsset {
+    id: string;
+    name: string;
+}
+
 export interface ParameterEntity {
     canWrite?: boolean;
     parameter: Parameter;
@@ -327,6 +333,7 @@ export interface Parameter {
     referencingComponents?: AffectedComponentEntity[];
     parameterContext?: ParameterContextReferenceEntity;
     inherited?: boolean;
+    referencedAssets?: ReferencedAsset[];
 }
 
 export interface ParameterContextEntity {
@@ -364,6 +371,11 @@ export interface ParameterContextReferenceEntity {
 export interface ParameterContextReference {
     id: string;
     name: string;
+}
+
+export interface ParameterConfig {
+    supportsParameters: boolean;
+    parameters: Parameter[] | null;
 }
 
 export interface AffectedComponentEntity {

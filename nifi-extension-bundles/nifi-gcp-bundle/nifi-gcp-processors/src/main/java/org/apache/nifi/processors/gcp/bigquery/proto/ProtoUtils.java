@@ -46,8 +46,20 @@ public class ProtoUtils {
            switch (field.getType()) {
            case MESSAGE:
                if (field.isRepeated()) {
-                   Collection collection = value.getClass().isArray() ? Arrays.asList((Object[]) value) : (Collection) value;
-                   collection.forEach(act -> builder.addRepeatedField(field, createMessage(field.getMessageType(), (Map<String, Object>) act, tableSchema)));
+                   final Collection<Map<String, Object>> valueMaps;
+                   if (value instanceof Object[] arrayValue) {
+                       valueMaps = Arrays.stream(arrayValue)
+                               .map(item -> (Map<String, Object>) item).toList();
+                   } else if (value instanceof Map<?, ?> mapValue) {
+                       valueMaps = mapValue.entrySet().stream()
+                               .map(entry -> Map.of(
+                                       "key", entry.getKey(),
+                                       "value", entry.getValue()
+                               )).toList();
+                   } else {
+                       valueMaps = (Collection<Map<String, Object>>) value;
+                   }
+                   valueMaps.forEach(act -> builder.addRepeatedField(field, createMessage(field.getMessageType(), act, tableSchema)));
                } else {
                    builder.setField(field, createMessage(field.getMessageType(), (Map<String, Object>) value, tableSchema));
                }

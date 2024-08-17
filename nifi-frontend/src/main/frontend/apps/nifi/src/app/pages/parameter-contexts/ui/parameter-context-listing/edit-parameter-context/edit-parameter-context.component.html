@@ -26,7 +26,7 @@
                 <div class="w-full flex flex-col">
                     <div>Steps To Update Parameters</div>
                     <div class="flex flex-col gap-y-1.5">
-                        @for (updateStep of requestEntity.request.updateSteps; track updateStep) {
+                        @for (updateStep of requestEntity.request.updateSteps; track updateStep.description) {
                             <div class="flex justify-between items-center">
                                 <div class="accent-color font-medium">
                                     {{ updateStep.description }}

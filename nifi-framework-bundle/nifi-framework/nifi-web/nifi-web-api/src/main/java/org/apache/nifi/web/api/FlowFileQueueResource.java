@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URI;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,13 +30,13 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -52,7 +49,6 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
@@ -65,6 +61,7 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.api.streaming.StreamingOutputResponseBuilder;
 import org.apache.nifi.web.util.ResponseBuilderUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -194,7 +191,6 @@ public class FlowFileQueueResource extends ApplicationResource {
      * @param flowFileUuid The flowfile uuid
      * @param clusterNodeId The cluster node id
      * @return The content stream
-     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -209,14 +205,20 @@ public class FlowFileQueueResource extends ApplicationResource {
     )
     @ApiResponses(
             value = {
+                    @ApiResponse(responseCode = "206", description = "Partial Content with range of bytes requested"),
                     @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
                     @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
                     @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
                     @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
-                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it."),
+                    @ApiResponse(responseCode = "416", description = "Requested Range Not Satisfiable based on bytes requested")
             }
     )
     public Response downloadFlowFileContent(
+            @Parameter(
+                    description = "Range of bytes requested"
+            )
+            @HeaderParam("Range") final String rangeHeader,
             @Parameter(
                     description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
@@ -257,30 +259,14 @@ public class FlowFileQueueResource extends ApplicationResource {
         // get the uri of the request
         final String uri = generateResourceUri("flowfile-queues", connectionId, "flowfiles", flowFileUuid, "content");
 
-        // get an input stream to the content
         final DownloadableContent content = serviceFacade.getContent(connectionId, flowFileUuid, uri);
+        final Response.ResponseBuilder responseBuilder = noCache(new StreamingOutputResponseBuilder(content.getContent()).range(rangeHeader).build());
 
-        // generate a streaming response
-        final StreamingOutput response = new StreamingOutput() {
-            @Override
-            public void write(final OutputStream output) throws IOException, WebApplicationException {
-                try (InputStream is = content.getContent()) {
-                    // stream the content to the response
-                    StreamUtils.copy(is, output);
-
-                    // flush the response
-                    output.flush();
-                }
-            }
-        };
-
-        // use the appropriate content type
         String contentType = content.getType();
         if (contentType == null) {
             contentType = MediaType.APPLICATION_OCTET_STREAM;
         }
-
-        final Response.ResponseBuilder responseBuilder = generateOkResponse(response).type(contentType);
+        responseBuilder.type(contentType);
         return ResponseBuilderUtils.setContentDisposition(responseBuilder, content.getFilename()).build();
     }
 

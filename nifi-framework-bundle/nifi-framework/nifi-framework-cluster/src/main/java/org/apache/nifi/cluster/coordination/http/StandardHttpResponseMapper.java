@@ -18,6 +18,7 @@ package org.apache.nifi.cluster.coordination.http;
 
 import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.nifi.cluster.coordination.http.endpoints.AccessPolicyEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.AssetsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.BulletinBoardEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ComponentStateEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
@@ -201,7 +202,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new NarSummaryEndpointMerger());
         endpointMergers.add(new NarSummariesEndpointMerger());
         endpointMergers.add(new NarDetailsEndpointMerger());
-
+        endpointMergers.add(new AssetsEndpointMerger());
     }
 
     @Override

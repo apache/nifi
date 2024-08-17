@@ -180,47 +180,50 @@ describe('ComboEditor', () => {
         }
     });
 
-    it('verify combo with parameter reference', () => {
+    it('verify combo with parameter reference', async () => {
         if (item) {
             item.value = '#{one}';
 
             component.item = item;
             component.parameters = parameters;
             fixture.detectChanges();
-            fixture.whenStable().then(() => {
-                const formValue = component.comboEditorForm.get('value')?.value;
-                expect(component.itemLookup.get(formValue)?.value).toEqual(item?.value);
-                expect(component.comboEditorForm.get('parameterReference')).toBeDefined();
+            await fixture.whenStable();
 
-                const parameterReferenceValue = component.comboEditorForm.get('parameterReference')?.value;
-                expect(component.itemLookup.get(parameterReferenceValue)?.value).toEqual(item?.value);
+            const formValue = component.comboEditorForm.get('value')?.value;
+            expect(component.itemLookup.get(Number(formValue))?.value).toBeNull();
+            expect(component.comboEditorForm.get('parameterReference')).toBeDefined();
 
-                jest.spyOn(component.ok, 'next');
-                component.okClicked();
-                expect(component.ok.next).toHaveBeenCalledWith(item?.value);
-            });
+            const parameterReferenceValue = component.comboEditorForm.get('parameterReference')?.value;
+            expect(component.itemLookup.get(Number(parameterReferenceValue))?.value).toEqual(item.value);
+
+            jest.spyOn(component.ok, 'next');
+            component.okClicked();
+            expect(component.ok.next).toHaveBeenCalledWith(item.value);
         }
     });
 
-    it('verify combo with missing parameter reference', () => {
+    it('verify combo with missing parameter reference', async () => {
         if (item) {
             item.value = '#{three}';
 
             component.item = item;
             component.parameters = parameters;
             fixture.detectChanges();
-            fixture.whenStable().then(() => {
-                const formValue = component.comboEditorForm.get('value')?.value;
-                expect(component.itemLookup.get(formValue)?.value).toEqual('#{' + parameters[0].value + '}');
-                expect(component.comboEditorForm.get('parameterReference')).toBeDefined();
+            await fixture.whenStable();
 
-                const parameterReferenceValue = component.comboEditorForm.get('parameterReference')?.value;
-                expect(component.itemLookup.get(parameterReferenceValue)?.value).toEqual(item?.value);
+            const formValue = component.comboEditorForm.get('value')?.value;
+            expect(component.itemLookup.get(Number(formValue))?.value).toBeNull();
+            expect(component.comboEditorForm.get('parameterReference')).toBeDefined();
 
-                jest.spyOn(component.ok, 'next');
-                component.okClicked();
-                expect(component.ok.next).toHaveBeenCalledWith('#{' + parameters[0].value + '}');
-            });
+            // since the value does not match any parameters it should match the first
+            const firstParameterValue = '#{' + parameters[0].name + '}';
+
+            const parameterReferenceValue = component.comboEditorForm.get('parameterReference')?.value;
+            expect(component.itemLookup.get(Number(parameterReferenceValue))?.value).toEqual(firstParameterValue);
+
+            jest.spyOn(component.ok, 'next');
+            component.okClicked();
+            expect(component.ok.next).toHaveBeenCalledWith(firstParameterValue);
         }
     });
 });

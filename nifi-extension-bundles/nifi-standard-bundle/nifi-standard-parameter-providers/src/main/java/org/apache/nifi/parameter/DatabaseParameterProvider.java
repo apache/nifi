@@ -207,11 +207,11 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
                             parameterGroupName = tableName;
                         }
 
-                        final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
-                                .name(parameterName)
-                                .build();
-                        final Parameter parameter = new Parameter(parameterDescriptor, parameterValue);
-
+                        final Parameter parameter = new Parameter.Builder()
+                            .name(parameterName)
+                            .value(parameterValue)
+                            .provided(true)
+                            .build();
                         parameterMap.computeIfAbsent(parameterGroupName, key -> new ArrayList<>()).add(parameter);
                     }
                 }

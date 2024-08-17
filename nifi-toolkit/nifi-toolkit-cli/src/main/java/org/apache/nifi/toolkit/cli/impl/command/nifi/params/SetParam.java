@@ -32,7 +32,6 @@ import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -83,11 +82,11 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
 
         // Determine if this is an existing param or a new one...
         final Optional<ParameterDTO> existingParam = existingParameterContextDTO.getParameters().stream()
-                .map(p -> p.getParameter())
+                .map(ParameterEntity::getParameter)
                 .filter(p -> p.getName().equals(paramName))
                 .findFirst();
 
-        if (!existingParam.isPresent() && paramValue == null) {
+        if (existingParam.isEmpty() && paramValue == null) {
             throw new IllegalArgumentException("A parameter value is required when creating a new parameter");
         }
 
@@ -95,8 +94,8 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
             throw new IllegalArgumentException(String.format("Parameter value supplied for parameter [%s] is the same as its current value", paramName));
         }
 
-        // Construct the objects for the update...
-        final ParameterDTO parameterDTO = existingParam.isPresent() ? existingParam.get() : new ParameterDTO();
+        // Create/update the parameter object
+        final ParameterDTO parameterDTO = existingParam.orElseGet(ParameterDTO::new);
         parameterDTO.setName(paramName);
 
         if (paramValue != null) {
@@ -112,21 +111,10 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
         }
         parameterDTO.setProvided(false);
 
-        final ParameterEntity parameterEntity = new ParameterEntity();
-        parameterEntity.setParameter(parameterDTO);
-
-        final ParameterContextDTO parameterContextDTO = new ParameterContextDTO();
-        parameterContextDTO.setId(existingParameterContextEntity.getId());
-        parameterContextDTO.setParameters(Collections.singleton(parameterEntity));
-
-        parameterContextDTO.setInheritedParameterContexts(existingParameterContextDTO.getInheritedParameterContexts());
-
-        final ParameterContextEntity updatedParameterContextEntity = new ParameterContextEntity();
-        updatedParameterContextEntity.setId(paramContextId);
-        updatedParameterContextEntity.setComponent(parameterContextDTO);
-        updatedParameterContextEntity.setRevision(existingParameterContextEntity.getRevision());
-
         // Submit the update request...
+        final ParameterContextEntity updatedParameterContextEntity = createContextEntityForUpdate(paramContextId, parameterDTO,
+                existingParameterContextDTO.getInheritedParameterContexts(), existingParameterContextEntity.getRevision());
+
         final ParameterContextUpdateRequestEntity updateRequestEntity = paramContextClient.updateParamContext(updatedParameterContextEntity);
         performUpdate(paramContextClient, updatedParameterContextEntity, updateRequestEntity, updateTimeout);
 

@@ -415,7 +415,7 @@ public class PutEmail extends AbstractProcessor {
 
         final Properties properties = this.getMailPropertiesFromFlowFile(context, flowFile);
         final Session mailSession = this.createMailSession(properties);
-        final Message message = new MimeMessage(mailSession);
+        final MimeMessage message = new MimeMessage(mailSession);
 
         try {
             message.addFrom(toInetAddresses(context, flowFile, FROM));
@@ -431,7 +431,8 @@ public class PutEmail extends AbstractProcessor {
                 }
             }
             this.setMessageHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions(flowFile).getValue(), message);
-            message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue());
+
+            message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue(), StandardCharsets.UTF_8.name());
 
             final String messageText = getMessage(flowFile, context, session);
 

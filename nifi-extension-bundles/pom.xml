@@ -27,7 +27,6 @@
         <module>nifi-standard-shared-bundle</module>
         <module>nifi-hadoop-bundle</module>
         <module>nifi-hadoop-libraries-bundle</module>
-        <module>nifi-provenance-repository-bundle</module>
         <module>nifi-standard-bundle</module>
         <module>nifi-standard-services</module>
         <module>nifi-standard-services-api-bom</module>
@@ -44,9 +43,6 @@
         <module>nifi-media-bundle</module>
         <module>nifi-avro-bundle</module>
         <module>nifi-azure-bundle</module>
-        <module>nifi-ldap-iaa-providers-bundle</module>
-        <module>nifi-kerberos-iaa-providers-bundle</module>
-        <module>nifi-single-user-iaa-providers-bundle</module>
         <module>nifi-scripting-bundle</module>
         <module>nifi-elasticsearch-bundle</module>
         <module>nifi-amqp-bundle</module>
@@ -69,6 +65,7 @@
         <module>nifi-poi-bundle</module>
         <module>nifi-cdc</module>
         <module>nifi-parquet-bundle</module>
+        <module>nifi-py4j-extension-bundle</module>
         <module>nifi-extension-utils</module>
         <module>nifi-redis-bundle</module>
         <module>nifi-network-bundle</module>
@@ -92,12 +89,10 @@
         <module>nifi-jslt-bundle</module>
         <module>nifi-iotdb-bundle</module>
         <module>nifi-cipher-bundle</module>
-        <module>nifi-py4j-bundle</module>
         <module>nifi-compress-bundle</module>
         <module>nifi-opentelemetry-bundle</module>
         <module>nifi-apicurio-bundle</module>
         <module>nifi-jolt-bundle</module>
-        <module>nifi-questdb-bundle</module>
         <module>nifi-protobuf-bundle</module>
         <module>nifi-github-bundle</module>
     </modules>

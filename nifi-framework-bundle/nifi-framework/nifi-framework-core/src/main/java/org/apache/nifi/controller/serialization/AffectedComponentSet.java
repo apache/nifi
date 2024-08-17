@@ -355,7 +355,8 @@ public class AffectedComponentSet {
             return;
         }
 
-        if (differenceType == DifferenceType.PARAMETER_VALUE_CHANGED || differenceType == DifferenceType.PARAMETER_DESCRIPTION_CHANGED || differenceType == DifferenceType.PARAMETER_REMOVED) {
+        if (differenceType == DifferenceType.PARAMETER_VALUE_CHANGED || differenceType == DifferenceType.PARAMETER_ASSET_REFERENCES_CHANGED
+                || differenceType == DifferenceType.PARAMETER_DESCRIPTION_CHANGED || differenceType == DifferenceType.PARAMETER_REMOVED) {
             addComponentsForParameterUpdate(difference);
             return;
         }

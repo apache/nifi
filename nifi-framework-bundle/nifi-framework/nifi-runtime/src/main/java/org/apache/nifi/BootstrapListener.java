@@ -210,6 +210,7 @@ public class BootstrapListener {
                                     case CLUSTER_STATUS:
                                         logger.info("Received CLUSTER_STATUS request from Bootstrap");
                                         final String clusterStatus = getClusterStatus();
+                                        logger.debug("Responding to CLUSTER_STATUS request from Bootstrap with {}", clusterStatus);
                                         sendAnswer(socket.getOutputStream(), clusterStatus);
                                         break;
                                     case DECOMMISSION:

@@ -16,18 +16,28 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
+import org.apache.nifi.web.api.entity.AssetEntity;
+import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 public class JerseyParamContextClient extends AbstractJerseyClient implements ParamContextClient {
 
@@ -162,6 +172,103 @@ public class JerseyParamContextClient extends AbstractJerseyClient implements Pa
                     .resolveTemplate("context-id", contextId)
                     .resolveTemplate("request-id", updateRequestId);
             return getRequestBuilder(target).delete(ParameterContextUpdateRequestEntity.class);
+        });
+    }
+
+    @Override
+    public AssetEntity createAsset(final String contextId, final String assetName, final File file) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(contextId)) {
+            throw new IllegalArgumentException("Parameter context id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(assetName)) {
+            throw new IllegalArgumentException("Asset name cannot be null or blank");
+        }
+        if (file == null) {
+            throw new IllegalArgumentException("File cannot be null");
+        }
+        if (!file.exists()) {
+            throw new FileNotFoundException(file.getAbsolutePath());
+        }
+
+        try (final InputStream assetInputStream = new FileInputStream(file)) {
+            return executeAction("Error Creating Asset " + assetName + " for Parameter Context " + contextId, () -> {
+                final WebTarget target = paramContextTarget.path("{context-id}/assets")
+                    .resolveTemplate("context-id", contextId);
+
+                return getRequestBuilder(target)
+                        .header("Filename", assetName)
+                        .post(
+                                Entity.entity(assetInputStream, MediaType.APPLICATION_OCTET_STREAM_TYPE),
+                                AssetEntity.class
+                        );
+            });
+        }
+    }
+
+    @Override
+    public AssetsEntity getAssets(final String contextId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(contextId)) {
+            throw new IllegalArgumentException("Parameter context id cannot be null or blank");
+        }
+        return executeAction("Error retrieving parameter context assets", () -> {
+            final WebTarget target = paramContextTarget.path("{context-id}/assets")
+                    .resolveTemplate("context-id", contextId);
+            return getRequestBuilder(target).get(AssetsEntity.class);
+        });
+    }
+
+    @Override
+    public Path getAssetContent(final String contextId, final String assetId, final File outputDirectory)
+            throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(contextId)) {
+            throw new IllegalArgumentException("Parameter context id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(assetId)) {
+            throw new IllegalArgumentException("Asset id cannot be null or blank");
+        }
+        return executeAction("Error getting asset content", () -> {
+            final WebTarget target = paramContextTarget.path("{context-id}/assets/{asset-id}")
+                    .resolveTemplate("context-id", contextId)
+                    .resolveTemplate("asset-id", assetId);
+
+            final Response response = getRequestBuilder(target)
+                    .accept(MediaType.APPLICATION_OCTET_STREAM_TYPE)
+                    .get();
+
+            final String filename = getContentDispositionFilename(response);
+            final File assetFile = new File(outputDirectory, filename);
+
+            try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
+                Files.copy(responseInputStream, assetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                return assetFile.toPath();
+            }
+        });
+    }
+
+    @Override
+    public AssetEntity deleteAsset(final String contextId, final String assetId) throws NiFiClientException, IOException {
+        return deleteAsset(contextId, assetId, false);
+    }
+
+    @Override
+    public AssetEntity deleteAsset(final String contextId, final String assetId, final boolean disconnectedNodeAcknowledged)
+            throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(contextId)) {
+            throw new IllegalArgumentException("Parameter context id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(assetId)) {
+            throw new IllegalArgumentException("Asset id cannot be null or blank");
+        }
+        return executeAction("Error deleting asset", () -> {
+            WebTarget target = paramContextTarget.path("{context-id}/assets/{asset-id}")
+                    .resolveTemplate("context-id", contextId)
+                    .resolveTemplate("asset-id", assetId);
+
+            if (disconnectedNodeAcknowledged) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
+
+            return getRequestBuilder(target).delete(AssetEntity.class);
         });
     }
 }

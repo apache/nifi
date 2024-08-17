@@ -43,12 +43,18 @@
                 <div class="fa fa-check"></div>
                 <div class="flex flex-col">
                     <div class="font-bold">Parameters (PARAM) supported</div>
-                    <div>
-                        After beginning with the start delimiter
-                        <span class="hint-pattern font-normal">#&#123;</span> use the keystroke
-                        <span class="hint-keystroke font-light">control+space</span> to see a list of available
-                        parameters.
-                    </div>
+                    @if (data?.hasParameterContext) {
+                        <div>
+                            After beginning with the start delimiter
+                            <span class="hint-pattern font-normal">#&#123;</span> use the keystroke
+                            <span class="hint-keystroke font-light">control+space</span> to see a list of available
+                            parameters.
+                        </div>
+                    } @else {
+                        <div>
+                            Parameters are supported but no Parameter Context is currently bound to this Process Group.
+                        </div>
+                    }
                 </div>
             </div>
         </ng-template>

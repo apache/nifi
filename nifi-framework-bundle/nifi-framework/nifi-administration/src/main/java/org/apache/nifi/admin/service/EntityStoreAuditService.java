@@ -336,10 +336,7 @@ public class EntityStoreAuditService implements AuditService, Closeable {
             endTimestamp = endDate.getTime();
         }
 
-        final ActionEntity sortEntityProperty = getSortEntityProperty(actionQuery);
-        final boolean ascending = isAscending(actionQuery);
-        final EntityIterable sorted = storeTransaction.sort(EntityType.ACTION.getEntityType(), sortEntityProperty.getProperty(), ascending);
-        final EntityIterable entities = sorted.intersect(storeTransaction.find(EntityType.ACTION.getEntityType(), ActionEntity.TIMESTAMP.getProperty(), startTimestamp, endTimestamp));
+        final EntityIterable entities = storeTransaction.find(EntityType.ACTION.getEntityType(), ActionEntity.TIMESTAMP.getProperty(), startTimestamp, endTimestamp);
 
         final EntityIterable sourceEntities;
         final String sourceId = actionQuery.getSourceId();
@@ -359,7 +356,9 @@ public class EntityStoreAuditService implements AuditService, Closeable {
             filteredEntities = sourceEntities.intersect(identityFiltered);
         }
 
-        return filteredEntities;
+        final ActionEntity sortEntityProperty = getSortEntityProperty(actionQuery);
+        final boolean ascending = isAscending(actionQuery);
+        return storeTransaction.sort(EntityType.ACTION.getEntityType(), sortEntityProperty.getProperty(), filteredEntities, ascending);
     }
 
     private boolean isAscending(final HistoryQuery historyQuery) {

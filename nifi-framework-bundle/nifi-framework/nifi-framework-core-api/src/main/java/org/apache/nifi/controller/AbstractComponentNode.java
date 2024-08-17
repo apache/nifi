@@ -261,18 +261,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
      *
      * @param properties Property Names and Values to be updated
      * @param allowRemovalOfRequiredProperties Allow Removal of Required Properties
-     * @param updatedSensitiveDynamicPropertyNames Requested Sensitive Dynamic Property Names replaces current configuration
+     * @param requestedSensitiveDynamicPropertyNames Requested Sensitive Dynamic Property Names adds to current configuration
      */
     @Override
-    public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties, final Set<String> updatedSensitiveDynamicPropertyNames) {
+    public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties, final Set<String> requestedSensitiveDynamicPropertyNames) {
         if (properties == null) {
             return;
         }
 
         lock.lock();
         try {
-            Objects.requireNonNull(updatedSensitiveDynamicPropertyNames, "Sensitive Dynamic Property Names required");
-            sensitiveDynamicPropertyNames.getAndSet(updatedSensitiveDynamicPropertyNames);
+            Objects.requireNonNull(requestedSensitiveDynamicPropertyNames, "Sensitive Dynamic Property Names required");
 
             verifyCanUpdateProperties(properties);
 
@@ -282,6 +281,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
             final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
             final Map<String, PropertyConfiguration> configurationMap = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(this, properties);
 
+            final Set<String> removedPropertyNames = new LinkedHashSet<>();
+
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), id)) {
                 boolean classpathChanged = false;
                 for (final Map.Entry<String, String> entry : properties.entrySet()) {
@@ -289,7 +290,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
                     // Set sensitive status on dynamic properties after getting canonical representation of Property Descriptor
                     final PropertyDescriptor componentDescriptor = getComponent().getPropertyDescriptor(propertyName);
-                    final PropertyDescriptor descriptor = componentDescriptor.isDynamic() && updatedSensitiveDynamicPropertyNames.contains(propertyName)
+                    final PropertyDescriptor descriptor = componentDescriptor.isDynamic() && requestedSensitiveDynamicPropertyNames.contains(propertyName)
                             ? new PropertyDescriptor.Builder().fromPropertyDescriptor(componentDescriptor).sensitive(true).build()
                             : componentDescriptor;
 
@@ -306,7 +307,10 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     }
 
                     if (propertyName != null && entry.getValue() == null) {
-                        removeProperty(propertyName, allowRemovalOfRequiredProperties);
+                        final boolean removed = removeProperty(propertyName, allowRemovalOfRequiredProperties);
+                        if (removed) {
+                            removedPropertyNames.add(propertyName);
+                        }
                     } else if (propertyName != null) {
                         // Use the EL-Agnostic Parameter Parser to gather the list of referenced Parameters. We do this because we want to keep track of which parameters
                         // are referenced, regardless of whether or not they are referenced from within an EL Expression. However, we also will need to derive a different ParameterTokenList
@@ -322,6 +326,13 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         setProperty(descriptor, propertyConfiguration, this.properties::get);
                     }
                 }
+
+                // Update Sensitive Dynamic Property Names
+                final Set<String> updatedSensitiveDynamicPropertyNames = new LinkedHashSet<>(sensitiveDynamicPropertyNames.get());
+                updatedSensitiveDynamicPropertyNames.addAll(requestedSensitiveDynamicPropertyNames);
+                // Remove Sensitive Dynamic Property Names for removed properties
+                updatedSensitiveDynamicPropertyNames.removeAll(removedPropertyNames);
+                sensitiveDynamicPropertyNames.getAndSet(updatedSensitiveDynamicPropertyNames);
 
                 // Determine the updated Classloader Isolation Key, if applicable.
                 final String updatedIsolationKey = determineClasloaderIsolationKey();
@@ -1306,7 +1317,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     isProvided = false;
                 }
 
-                final Parameter updatedParameter = new Parameter(parameterDescriptor, parameterUpdate.getPreviousValue(), null, isProvided);
+                final Parameter updatedParameter = new Parameter.Builder()
+                    .descriptor(parameterDescriptor)
+                    .value(parameterUpdate.getPreviousValue())
+                    .provided(isProvided)
+                    .build();
+
                 return Optional.of(updatedParameter);
             }
 

@@ -288,6 +288,11 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
                 return;
             }
 
+            if (!clusterCoordinator.isApiReachable(nodeId)) {
+                logger.info("Node API Address [{}] not reachable: cluster connection request deferred pending successful network connection", nodeId);
+                return;
+            }
+
             // connection complete
             clusterCoordinator.finishNodeConnection(nodeId);
             clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received first heartbeat from connecting node. Node connected.");

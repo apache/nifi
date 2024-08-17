@@ -43,9 +43,19 @@ export class JoltTransformJsonProcessorDetailsEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) => {
+                        let errorMessage = 'An unspecified error occurred.';
+
+                        if (errorResponse.status !== 0) {
+                            if (typeof errorResponse.error === 'string') {
+                                errorMessage = errorResponse.error;
+                            } else {
+                                errorMessage = errorResponse.message || `${errorResponse.status}`;
+                            }
+                        }
+
                         return of(
                             loadProcessorDetailsFailure({
-                                response: errorResponse
+                                response: errorMessage
                             })
                         );
                     })

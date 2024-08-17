@@ -35,6 +35,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -109,6 +110,7 @@ public class StandardStatelessEngine implements StatelessEngine {
     private final StatelessStateManagerProvider stateManagerProvider;
     private final PropertyEncryptor propertyEncryptor;
     private final ProcessScheduler processScheduler;
+    private final AssetManager assetManager;
     private final KerberosConfig kerberosConfig;
     private final FlowFileEventRepository flowFileEventRepository;
     private final ProvenanceRepository provenanceRepository;
@@ -139,6 +141,7 @@ public class StandardStatelessEngine implements StatelessEngine {
         this.provenanceRepository = requireNonNull(builder.provenanceRepository, "Provenance Repository must be provided");
         this.extensionRepository = requireNonNull(builder.extensionRepository, "Extension Repository must be provided");
         this.counterRepository = requireNonNull(builder.counterRepository, "Counter Repository must be provided");
+        this.assetManager = requireNonNull(builder.assetManager, "Asset Manager must be provided");
         this.statusTaskInterval = parseDuration(builder.statusTaskInterval);
         this.componentEnableTimeout = parseDuration(builder.componentEnableTimeout);
 
@@ -543,7 +546,7 @@ public class StandardStatelessEngine implements StatelessEngine {
                 final String parameterName = parameter.getDescriptor().getName();
                 if (parameterValueProvider.isParameterDefined(contextName, parameterName)) {
                     final String providedValue = parameterValueProvider.getParameterValue(contextName, parameterName);
-                    final Parameter updatedParameter = new Parameter(parameter.getDescriptor(), providedValue, parameter.getParameterContextId(), parameter.isProvided());
+                    final Parameter updatedParameter = new Parameter.Builder().fromParameter(parameter).value(providedValue).build();
                     updatedParameters.put(parameterName, updatedParameter);
                 }
             }
@@ -575,8 +578,10 @@ public class StandardStatelessEngine implements StatelessEngine {
                 }
 
                 final Parameter existingParameter = optionalParameter.get();
-                final Parameter updatedParameter = new Parameter(existingParameter.getDescriptor(), parameterDefinition.getValue(), existingParameter.getParameterContextId(),
-                        existingParameter.isProvided());
+                final Parameter updatedParameter = new Parameter.Builder()
+                    .fromParameter(existingParameter)
+                    .value(parameterDefinition.getValue())
+                    .build();
                 parameters.put(parameterName, updatedParameter);
             }
         }
@@ -661,6 +666,11 @@ public class StandardStatelessEngine implements StatelessEngine {
         return statusTaskInterval;
     }
 
+    @Override
+    public AssetManager getAssetManager() {
+        return assetManager;
+    }
+
     public static class Builder {
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
@@ -674,6 +684,7 @@ public class StandardStatelessEngine implements StatelessEngine {
         private CounterRepository counterRepository = null;
         private String statusTaskInterval = null;
         private String componentEnableTimeout = null;
+        private AssetManager assetManager = null;
 
         public Builder extensionManager(final ExtensionManager extensionManager) {
             this.extensionManager = extensionManager;
@@ -732,6 +743,11 @@ public class StandardStatelessEngine implements StatelessEngine {
 
         public Builder componentEnableTimeout(final String componentEnableTimeout) {
             this.componentEnableTimeout = componentEnableTimeout;
+            return this;
+        }
+
+        public Builder assetManager(final AssetManager assetManager) {
+            this.assetManager = assetManager;
             return this;
         }
 

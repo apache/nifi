@@ -21,14 +21,8 @@ import {
     JoltTransformJsonUiState,
     selectJoltTransformJsonUiState
 } from '../index';
-import { JoltTransformJsonTransformState } from './index';
 
 export const selectJoltTransformJsonTransformState = createSelector(
     selectJoltTransformJsonUiState,
     (state: JoltTransformJsonUiState) => state[joltTransformJsonTransformFeatureKey]
-);
-
-export const selectSaving = createSelector(
-    selectJoltTransformJsonTransformState,
-    (state: JoltTransformJsonTransformState) => state.saving
 );

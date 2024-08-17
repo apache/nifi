@@ -41,6 +41,7 @@ import java.util.UUID;
 
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -49,6 +50,8 @@ public class TestUnpackContent {
     private static final String FIRST_FRAGMENT_INDEX = "1";
 
     private static final Path dataPath = Paths.get("src/test/resources/TestUnpackContent");
+
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ");
 
     @Test
     public void testTar() throws IOException {
@@ -82,19 +85,21 @@ public class TestUnpackContent {
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
 
         for (final MockFlowFile flowFile : unpacked) {
+            assertTrue(flowFile.getAttributes().keySet().containsAll(List.of(UnpackContent.FRAGMENT_ID, UnpackContent.FRAGMENT_INDEX,
+                    UnpackContent.FRAGMENT_COUNT, UnpackContent.SEGMENT_ORIGINAL_FILENAME, UnpackContent.FILE_SIZE_ATTRIBUTE)));
+
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
             final Path path = dataPath.resolve(folder).resolve(filename);
-            assertEquals("rw-r--r--", flowFile.getAttribute("file.permissions"));
-            assertEquals("jmcarey", flowFile.getAttribute("file.owner"));
-            assertEquals("mkpasswd", flowFile.getAttribute("file.group"));
+
+            assertEquals("rw-r--r--", flowFile.getAttribute(UnpackContent.FILE_PERMISSIONS_ATTRIBUTE));
+            assertEquals("jmcarey", flowFile.getAttribute(UnpackContent.FILE_OWNER_ATTRIBUTE));
+            assertEquals("mkpasswd", flowFile.getAttribute(UnpackContent.FILE_GROUP_ATTRIBUTE));
+
             String modifiedTimeAsString = flowFile.getAttribute("file.lastModifiedTime");
-
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(modifiedTimeAsString);
-
+            assertDoesNotThrow(() -> TIMESTAMP_FORMATTER.parse(modifiedTimeAsString));
             String creationTimeAsString = flowFile.getAttribute("file.creationTime");
-
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(creationTimeAsString);
+            assertDoesNotThrow(() -> TIMESTAMP_FORMATTER.parse(creationTimeAsString));
 
             assertTrue(Files.exists(path));
 
@@ -182,7 +187,24 @@ public class TestUnpackContent {
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+
+        final List<String> expectedAttributeNames = List.of(
+                CoreAttributes.FILENAME.key(),
+                CoreAttributes.PATH.key(),
+                UnpackContent.FRAGMENT_ID,
+                UnpackContent.FRAGMENT_INDEX,
+                UnpackContent.FRAGMENT_COUNT,
+                UnpackContent.SEGMENT_ORIGINAL_FILENAME,
+                UnpackContent.FILE_SIZE_ATTRIBUTE,
+                UnpackContent.FILE_CREATION_TIME_ATTRIBUTE,
+                UnpackContent.FILE_LAST_MODIFIED_TIME_ATTRIBUTE,
+                UnpackContent.FILE_PERMISSIONS_ATTRIBUTE
+        );
+
         for (final MockFlowFile flowFile : unpacked) {
+            for (final String expectedAttributeName : expectedAttributeNames) {
+                flowFile.assertAttributeExists(expectedAttributeName);
+            }
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
             final Path path = dataPath.resolve(folder).resolve(filename);
@@ -191,6 +213,7 @@ public class TestUnpackContent {
             flowFile.assertContentEquals(path.toFile());
         }
     }
+
     @Test
     public void testInvalidZip() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
@@ -218,7 +241,6 @@ public class TestUnpackContent {
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_FAILURE);
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-           // final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
             final Path path = dataPath.resolve(filename);
             assertTrue(Files.exists(path));
 

@@ -216,12 +216,13 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
                         final JsonNode fieldValue = field.get("value");
 
                         if (fieldValue != null) {
-                            final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(itemName + "_" + fieldId).build();
-                            parameters.add(new Parameter(parameterDescriptor, fieldValue.asText(), null, true));
+                            parameters.add(new Parameter.Builder()
+                                .name(itemName + "_" + fieldId)
+                                .value(fieldValue.asText())
+                                .provided(true)
+                                .build());
                         }
-
                     }
-
                 }
 
                 parameterGroups.add(new ParameterGroup(vaultName, parameters));

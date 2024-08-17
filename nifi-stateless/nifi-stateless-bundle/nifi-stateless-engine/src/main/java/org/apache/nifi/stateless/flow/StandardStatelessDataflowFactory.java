@@ -17,7 +17,12 @@
 
 package org.apache.nifi.stateless.flow;
 
+import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.asset.AssetManagerInitializationContext;
+import org.apache.nifi.asset.AssetReferenceLookup;
+import org.apache.nifi.asset.StandardAssetManager;
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.ContentRepositoryContext;
@@ -68,6 +73,7 @@ import org.apache.nifi.stateless.engine.StatelessEngine;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.engine.StatelessEngineInitializationContext;
 import org.apache.nifi.stateless.engine.StatelessFlowManager;
+import org.apache.nifi.stateless.engine.StatelessNodeTypeProvider;
 import org.apache.nifi.stateless.engine.StatelessProcessContextFactory;
 import org.apache.nifi.stateless.engine.StatelessProvenanceAuthorizableFactory;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
@@ -87,7 +93,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class StandardStatelessDataflowFactory implements StatelessDataflowFactory {
@@ -122,6 +130,26 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     narClassLoaders,
                     engineConfiguration.isLogExtensionDiscovery()
             );
+
+            final AssetManager assetManager = new StandardAssetManager();
+            final File assetDir = new File(workingDir, "assets");
+            final AssetManagerInitializationContext assetManagerInitializationContext = new AssetManagerInitializationContext() {
+                @Override
+                public AssetReferenceLookup getAssetReferenceLookup() {
+                    return Set::of;
+                }
+
+                @Override
+                public Map<String, String> getProperties() {
+                    return Map.of(StandardAssetManager.ASSET_STORAGE_LOCATION_PROPERTY, assetDir.getAbsolutePath());
+                }
+
+                @Override
+                public NodeTypeProvider getNodeTypeProvider() {
+                    return new StatelessNodeTypeProvider();
+                }
+            };
+            assetManager.initialize(assetManagerInitializationContext);
 
             flowFileEventRepo = new RingBufferEventRepository(5);
 
@@ -188,6 +216,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     .bulletinRepository(bulletinRepository)
                     .encryptor(lazyInitializedEncryptor)
                     .extensionManager(extensionManager)
+                    .assetManager(assetManager)
                     .stateManagerProvider(stateManagerProvider)
                     .processScheduler(processScheduler)
                     .kerberosConfiguration(kerberosConfig)

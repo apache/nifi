@@ -17,35 +17,26 @@
 
 package org.apache.nifi.nar;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
-import org.apache.commons.io.IOUtils;
+import org.apache.nifi.client.NiFiRestApiClient;
+import org.apache.nifi.client.NiFiRestApiRetryableException;
 import org.apache.nifi.web.api.entity.NarSummariesEntity;
 import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.HttpRequestBodySpec;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
-import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.api.WebClientServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 
 /**
  * Encapsulate API calls for listing and downloading NARs through the REST API of a NiFi node.
  */
-public class NarRestApiClient {
+public class NarRestApiClient extends NiFiRestApiClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NarRestApiClient.class);
-
-    private static final String HTTP_SCHEME = "http";
-    private static final String HTTPS_SCHEME = "https";
 
     private static final String NIFI_API_PATH = "nifi-api";
     private static final String CONTROLLER_PATH = "controller";
@@ -53,19 +44,8 @@ public class NarRestApiClient {
     private static final String NARS_PATH = "nars";
     private static final String NAR_CONTENT_PATH = "content";
 
-    private final URI baseUri;
-    private final WebClientService webClientService;
-    private final ObjectMapper objectMapper;
-
     public NarRestApiClient(final WebClientService webClientService, final String host, final int port, final boolean secure) {
-        try {
-            this.baseUri = new URI(secure ? HTTPS_SCHEME : HTTP_SCHEME, null, host, port, null, null, null);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        this.webClientService = Objects.requireNonNull(webClientService, "WebClientService is required");
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(objectMapper.getTypeFactory()));
+        super(webClientService, host, port, secure);
     }
 
     public NarSummariesEntity listNarSummaries() {
@@ -84,15 +64,10 @@ public class NarRestApiClient {
         // can happen when no nodes are considered connected and result in a 500 exception that can't easily be differentiated from other unknown errors
         final HttpRequestBodySpec requestBodySpec = webClientService.get()
                 .uri(requestUri)
-                .header("Accept", "application/json")
-                .header("X-Request-Replicated", "true");
+                .header(ACCEPT_HEADER, APPLICATION_JSON)
+                .header(X_REQUEST_REPLICATED_HEADER, "true");
 
-        try (final HttpResponseEntity response = requestBodySpec.retrieve()) {
-            final InputStream responseBody = getResponseBody(requestUri, response);
-            return objectMapper.readValue(responseBody, NarSummariesEntity.class);
-        } catch (final WebClientServiceException | IOException e) {
-            throw new NarRestApiRetryableException(e.getMessage(), e);
-        }
+        return executeEntityRequest(requestUri, requestBodySpec, NarSummariesEntity.class);
     }
 
     public InputStream downloadNar(final String identifier) {
@@ -112,30 +87,12 @@ public class NarRestApiClient {
         try {
             final HttpResponseEntity response = webClientService.get()
                     .uri(requestUri)
-                    .header("Accept", "application/octet-stream")
+                    .header(ACCEPT_HEADER, APPLICATION_OCTET_STREAM)
                     .retrieve();
             return getResponseBody(requestUri, response);
         } catch (final WebClientServiceException e) {
-            throw new NarRestApiRetryableException(e.getMessage(), e);
+            throw new NiFiRestApiRetryableException(e.getMessage(), e);
         }
     }
 
-    private InputStream getResponseBody(final URI requestUri, final HttpResponseEntity response) {
-        final int statusCode = response.statusCode();
-        if (HttpResponseStatus.OK.getCode() == statusCode) {
-            return response.body();
-        } else {
-            final String responseMessage;
-            try {
-                responseMessage = IOUtils.toString(response.body(), StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                throw new NarRestApiRetryableException("Error reading response from %s - %s".formatted(requestUri, statusCode), e);
-            }
-            if (statusCode == HttpResponseStatus.CONFLICT.getCode()) {
-                throw new NarRestApiRetryableException("Error calling %s - %s - %s".formatted(requestUri, statusCode, responseMessage));
-            } else {
-                throw new IllegalStateException("Error calling %s - %s - %s".formatted(requestUri, statusCode, responseMessage));
-            }
-        }
-    }
 }

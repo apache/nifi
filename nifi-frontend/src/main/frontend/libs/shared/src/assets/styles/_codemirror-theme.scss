@@ -255,7 +255,7 @@
         background: if($is-dark, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.5));
     }
 
-    .cm-s-nifi .CodeMirror-hints {
+    .CodeMirror-hints {
         z-index: 1000 !important;
         overflow-y: scroll !important;
     }

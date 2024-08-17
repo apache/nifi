@@ -17,7 +17,6 @@
 
 import { createAction, props } from '@ngrx/store';
 import { ProcessorDetails } from './index';
-import { HttpErrorResponse } from '@angular/common/http';
 
 const JOLT_TRANSFORM_JSON_PROCESSOR_DETAILS_PREFIX = '[Jolt Transform Json Processor Details]';
 
@@ -37,5 +36,5 @@ export const loadProcessorDetailsSuccess = createAction(
 
 export const loadProcessorDetailsFailure = createAction(
     `${JOLT_TRANSFORM_JSON_PROCESSOR_DETAILS_PREFIX} Load Processor Details Failure`,
-    props<{ response: HttpErrorResponse }>()
+    props<{ response: string }>()
 );

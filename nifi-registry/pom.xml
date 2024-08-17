@@ -36,11 +36,11 @@
     </modules>
     <properties>
         <spring.boot.version>3.3.2</spring.boot.version>
-        <flyway.version>10.16.0</flyway.version>
+        <flyway.version>10.17.0</flyway.version>
         <flyway.tests.version>10.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <jgit.version>6.10.0.202406032230-r</jgit.version>
-        <org.apache.sshd.version>2.13.1</org.apache.sshd.version>
+        <org.apache.sshd.version>2.13.2</org.apache.sshd.version>
     </properties>
     <dependencyManagement>
         <dependencies>

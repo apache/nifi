@@ -24,7 +24,6 @@ import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509ExtendedTrustManager;
 import java.security.Principal;
@@ -34,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
 /**
  * Standard implementation of Relying Party Registration Repository based on NiFi Properties
  */
@@ -52,8 +52,6 @@ public class StandardRelyingPartyRegistrationRepository implements RelyingPartyR
 
     private final NiFiProperties properties;
 
-    private final SSLContext sslContext;
-
     private final X509ExtendedTrustManager trustManager;
 
     private final X509ExtendedKeyManager keyManager;
@@ -63,19 +61,16 @@ public class StandardRelyingPartyRegistrationRepository implements RelyingPartyR
     /**
      * Standard implementation builds a Registration based on NiFi Properties and returns the same instance for all queries
      *
-     * @param sslContext SSL Context loaded from properties
      * @param keyManager Key Manager loaded from properties
      * @param trustManager Trust manager loaded from properties
      * @param properties NiFi Application Properties
      */
     public StandardRelyingPartyRegistrationRepository(
             final NiFiProperties properties,
-            final SSLContext sslContext,
             final X509ExtendedKeyManager keyManager,
             final X509ExtendedTrustManager trustManager
     ) {
         this.properties = properties;
-        this.sslContext = sslContext;
         this.keyManager = keyManager;
         this.trustManager = trustManager;
         this.relyingPartyRegistration = getRelyingPartyRegistration();
@@ -87,7 +82,7 @@ public class StandardRelyingPartyRegistrationRepository implements RelyingPartyR
     }
 
     private RelyingPartyRegistration getRelyingPartyRegistration() {
-        final RegistrationBuilderProvider registrationBuilderProvider = new StandardRegistrationBuilderProvider(properties, sslContext, trustManager);
+        final RegistrationBuilderProvider registrationBuilderProvider = new StandardRegistrationBuilderProvider(properties, keyManager, trustManager);
         final RelyingPartyRegistration.Builder builder = registrationBuilderProvider.getRegistrationBuilder();
 
         builder.registrationId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());

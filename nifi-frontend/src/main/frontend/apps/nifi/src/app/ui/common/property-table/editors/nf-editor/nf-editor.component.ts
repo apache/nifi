@@ -26,7 +26,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgTemplateOutlet } from '@angular/common';
 import { NifiTooltipDirective, Resizable } from '@nifi/shared';
 import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hint-tip.component';
-import { Parameter, PropertyHintTipInput } from '../../../../../state/shared';
+import { Parameter, ParameterConfig, PropertyHintTipInput } from '../../../../../state/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { NfEl } from './modes/nfel';
@@ -74,8 +74,9 @@ export class NfEditor implements OnDestroy {
         this.loadParameters();
     }
 
-    @Input() set parameters(parameters: Parameter[] | null) {
-        this._parameters = parameters;
+    @Input() set parameterConfig(parameterConfig: ParameterConfig) {
+        this.parameters = parameterConfig.parameters;
+        this.supportsParameters = parameterConfig.supportsParameters;
 
         this.getParametersSet = true;
         this.loadParameters();
@@ -98,7 +99,7 @@ export class NfEditor implements OnDestroy {
     blank = false;
 
     mode!: string;
-    _parameters!: Parameter[] | null;
+    parameters: Parameter[] | null = null;
 
     editor!: Editor;
 
@@ -137,10 +138,8 @@ export class NfEditor implements OnDestroy {
             this.nfpr.setViewContainerRef(this.viewContainerRef, this.renderer);
 
             if (this.getParametersSet) {
-                if (this._parameters) {
-                    this.supportsParameters = true;
-
-                    const parameters: Parameter[] = this._parameters;
+                if (this.parameters) {
+                    const parameters: Parameter[] = this.parameters;
                     if (this.supportsEl) {
                         this.nfel.enableParameters();
                         this.nfel.setParameters(parameters);
@@ -151,8 +150,6 @@ export class NfEditor implements OnDestroy {
                         this.nfpr.configureAutocomplete();
                     }
                 } else {
-                    this.supportsParameters = false;
-
                     this.nfel.disableParameters();
                     this.nfpr.disableParameters();
 
@@ -187,7 +184,8 @@ export class NfEditor implements OnDestroy {
     getPropertyHintTipData(): PropertyHintTipInput {
         return {
             supportsEl: this.supportsEl,
-            supportsParameters: this.supportsParameters
+            supportsParameters: this.supportsParameters,
+            hasParameterContext: this.parameters !== null
         };
     }
 

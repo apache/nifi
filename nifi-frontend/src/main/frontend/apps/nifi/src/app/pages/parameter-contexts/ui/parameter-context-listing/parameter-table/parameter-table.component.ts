@@ -309,6 +309,10 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
                     item.entity.parameter.valueRemoved = parameter.valueRemoved;
                     item.dirty = true;
 
+                    if (valueChanged) {
+                        item.entity.parameter.referencedAssets = undefined;
+                    }
+
                     this.handleChanged();
                 }
             });
@@ -368,7 +372,8 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
                             sensitive: item.entity.parameter.sensitive,
                             description: item.entity.parameter.description,
                             value: item.entity.parameter.value,
-                            valueRemoved: item.entity.parameter.valueRemoved
+                            valueRemoved: item.entity.parameter.valueRemoved,
+                            referencedAssets: item.entity.parameter.referencedAssets
                         }
                     };
                 }

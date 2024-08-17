@@ -42,6 +42,7 @@ import org.apache.nifi.web.api.config.NoResponseFromNodesExceptionMapper;
 import org.apache.nifi.web.api.config.NodeDisconnectionExceptionMapper;
 import org.apache.nifi.web.api.config.NodeReconnectionExceptionMapper;
 import org.apache.nifi.web.api.config.NotFoundExceptionMapper;
+import org.apache.nifi.web.api.config.RangeNotSatisfiableExceptionMapper;
 import org.apache.nifi.web.api.config.ResourceNotFoundExceptionMapper;
 import org.apache.nifi.web.api.config.ThrowableMapper;
 import org.apache.nifi.web.api.config.UnknownNodeExceptionMapper;
@@ -131,6 +132,7 @@ public class NiFiWebApiResourceConfig extends ResourceConfig {
         register(NoResponseFromNodesExceptionMapper.class);
         register(NodeDisconnectionExceptionMapper.class);
         register(NodeReconnectionExceptionMapper.class);
+        register(RangeNotSatisfiableExceptionMapper.class);
         register(ResourceNotFoundExceptionMapper.class);
         register(NotFoundExceptionMapper.class);
         register(UnknownNodeExceptionMapper.class);

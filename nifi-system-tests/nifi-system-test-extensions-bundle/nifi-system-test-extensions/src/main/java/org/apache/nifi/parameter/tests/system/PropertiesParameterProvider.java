@@ -20,7 +20,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -69,12 +68,11 @@ public class PropertiesParameterProvider extends AbstractParameterProvider imple
             throw new RuntimeException("Could not parse parameters as properties: " + parametersPropertiesValue);
         }
        return parameters.entrySet().stream()
-                .map(entry -> {
-                    final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
-                            .name(entry.getKey().toString())
-                            .build();
-                    return new Parameter(parameterDescriptor, entry.getValue().toString(), null, true);
-                })
+                .map(entry -> new Parameter.Builder()
+                    .name(entry.getKey().toString())
+                    .value(entry.getValue().toString())
+                    .provided(true)
+                    .build())
                 .collect(Collectors.toList());
     }
 }

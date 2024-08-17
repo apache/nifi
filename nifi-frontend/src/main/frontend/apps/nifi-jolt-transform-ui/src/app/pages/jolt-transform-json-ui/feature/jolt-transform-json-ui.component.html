@@ -97,7 +97,7 @@
                                         (codeMirrorLoaded)="initSpecEditor($event)"></ngx-codemirror>
                                 </div>
                                 <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                    @if (joltState.validate().saving) {
+                                    @if (joltState.validate().loading) {
                                         <i
                                             class="fa fa-refresh fa-spin mr-2"
                                             nifiTooltip
@@ -220,8 +220,8 @@
                                     </div>
                                 </mat-card-subtitle>
                             </mat-card-header>
-                            <mat-card-content class="mt-4">
-                                <mat-accordion>
+                            <mat-card-content class="mt-4 gap-y-2">
+                                <div class="flex flex-col p-2 gap-y-2">
                                     <mat-expansion-panel [expanded]="step === 0" (opened)="setStep(0)" hideToggle>
                                         <mat-expansion-panel-header>
                                             <mat-panel-title>
@@ -290,10 +290,10 @@
                                             </map-table>
                                         </div>
                                     </mat-expansion-panel>
-                                </mat-accordion>
+                                </div>
                                 <div class="flex flex-1 mt-2 justify-start">
                                     <div class="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                        @if (joltState.transform().saving) {
+                                        @if (joltState.transform().loading) {
                                             <i
                                                 class="fa fa-refresh fa-spin mr-2"
                                                 nifiTooltip
@@ -381,9 +381,15 @@
                 </div>
             </form>
         } @else {
-            <div class="flex flex-1 justify-center items-center">
-                <i class="fa fa-warning caution-color mr-2"></i>An error has occurred loading the editor.
-            </div>
+            @if (processorDetailsLoading$ | async) {
+                <div class="h-full flex items-center justify-center">
+                    <mat-spinner color="primary"></mat-spinner>
+                </div>
+            } @else if (processorDetailsError()) {
+                <div class="flex flex-1 justify-center items-center">
+                    <i class="fa fa-warning caution-color mr-2"></i>{{ processorDetailsError() }}
+                </div>
+            }
         }
     </div>
 </div>

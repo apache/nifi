@@ -19,7 +19,7 @@
     @if (parameterReferenceMap == null || parameterReferenceMap.size == 0) {
         <div class="accent-color font-medium">No referencing components</div>
     } @else {
-        @for (pg of processGroups; track pg) {
+        @for (pg of processGroups; track pg.id) {
             <ng-container *ngTemplateOutlet="pgListing; context: { $implicit: pg }"></ng-container>
         }
         <ng-template #pgListing let-pg>
@@ -55,7 +55,7 @@
                 <li>
                     <h4 class="accent-color">Processors ({{ references.length }})</h4>
                     <div class="references">
-                        @for (reference of references; track reference) {
+                        @for (reference of references; track reference.component.id) {
                             <div class="flex items-center gap-x-2">
                                 @if (isNonServiceInvalid(reference.component)) {
                                     <div
@@ -90,7 +90,7 @@
                 <li>
                     <h4 class="accent-color">Controller Services ({{ references.length }})</h4>
                     <div class="references">
-                        @for (service of references; track service) {
+                        @for (service of references; track service.component.id) {
                             <div class="flex flex-col">
                                 <div class="flex items-center gap-x-2">
                                     @if (isServiceInvalid(service.component)) {
@@ -124,7 +124,7 @@
                 <li>
                     <h4 class="accent-color">Unauthorized ({{ references.length }})</h4>
                     <div class="references">
-                        @for (reference of references; track reference) {
+                        @for (reference of references; track reference.id) {
                             <div class="flex">
                                 <div class="unset surface-color">{{ reference.id }}</div>
                             </div>

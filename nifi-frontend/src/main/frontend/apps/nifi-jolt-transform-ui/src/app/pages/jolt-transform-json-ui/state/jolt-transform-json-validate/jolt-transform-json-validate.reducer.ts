@@ -26,7 +26,7 @@ import {
 } from './jolt-transform-json-validate.actions';
 
 export const initialState: JoltTransformJsonValidateState = {
-    saving: false,
+    loading: false,
     validationResponse: null,
     validationFailureResponse: null
 };
@@ -38,21 +38,21 @@ export const joltTransformJsonValidateReducer = createReducer(
     })),
     on(validateJoltSpec, (state) => ({
         ...state,
-        saving: true
+        loading: true
     })),
     on(validateJoltSpecSuccess, (state, { response }) => ({
         ...state,
-        saving: false,
+        loading: false,
         validationResponse: response
     })),
     on(validateJoltSpecFailure, (state, { response }) => ({
         ...state,
-        saving: false,
+        loading: false,
         validationFailureResponse: response
     })),
     on(resetValidateJoltSpecState, (state) => ({
         ...state,
-        saving: null,
+        loading: null,
         validationResponse: null,
         validationFailureResponse: null
     }))

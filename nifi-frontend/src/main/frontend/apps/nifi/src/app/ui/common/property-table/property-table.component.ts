@@ -38,6 +38,7 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     Parameter,
+    ParameterConfig,
     ParameterContextEntity,
     Property,
     PropertyDependency,
@@ -136,7 +137,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     editorOpen = false;
     editorTrigger: any = null;
     editorItem!: PropertyItem;
-    editorParameters: Parameter[] | null = [];
+    editorParameterConfig!: ParameterConfig;
     editorWidth = 0;
     editorOffsetX = 0;
     editorOffsetY = 0;
@@ -318,11 +319,18 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         this.initFilter();
     }
 
+    private getParameterConfig(propertyItem: PropertyItem): ParameterConfig {
+        return {
+            supportsParameters: this.supportsParameters,
+            parameters: this.getParametersForItem(propertyItem)
+        };
+    }
+
     private getParametersForItem(propertyItem: PropertyItem): Parameter[] | null {
-        if (!this.supportsParameters) {
+        if (!this.supportsParameters || !this.parameterContext) {
             return null;
         }
-        if (this.parameterContext?.permissions.canRead) {
+        if (this.parameterContext.permissions.canRead) {
             return this.parameterContext.component.parameters
                 .map((parameterEntity) => parameterEntity.parameter)
                 .filter((parameter: Parameter) => parameter.sensitive == propertyItem.descriptor.sensitive);
@@ -450,7 +458,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
 
                 this.editorPositions.pop();
                 this.editorItem = item;
-                this.editorParameters = this.getParametersForItem(this.editorItem);
+                this.editorParameterConfig = this.getParameterConfig(this.editorItem);
                 this.editorTrigger = editorTrigger;
                 this.editorOpen = true;
 

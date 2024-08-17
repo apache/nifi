@@ -59,7 +59,7 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from 'libs/shared/src';
 import { BackNavigation } from '../../../../state/navigation';
-import { Storage, NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, Storage } from '@nifi/shared';
 
 @Injectable()
 export class ParameterContextListingEffects {
