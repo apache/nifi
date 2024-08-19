@@ -43,6 +43,7 @@ import {
     selectConnection,
     selectCurrentProcessGroupId,
     selectEditedCurrentProcessGroup,
+    selectFlowAnalysisOpen,
     selectFunnel,
     selectInputPort,
     selectLabel,
@@ -79,6 +80,8 @@ export class Canvas implements OnInit, OnDestroy {
 
     private scale: number = INITIAL_SCALE;
     private canvasClicked = false;
+
+    flowAnalysisOpen = this.store.selectSignal(selectFlowAnalysisOpen);
 
     constructor(
         private store: Store<CanvasState>,

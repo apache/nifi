@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-.flow-status {
-    box-sizing: content-box;
+import { createSelector } from '@ngrx/store';
+import { flowAnalysisFeatureKey } from './index';
+import { CanvasState, selectCanvasState } from '../index';
 
-    .controller-bulletins {
-        cursor: default;
-    }
-}
+export const selectFlowAnalysisState = createSelector(
+    selectCanvasState,
+    (state: CanvasState) => state[flowAnalysisFeatureKey]
+);

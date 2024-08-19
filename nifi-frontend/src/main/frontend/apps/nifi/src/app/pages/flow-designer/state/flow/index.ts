@@ -638,6 +638,7 @@ export interface FlowState {
     saving: boolean;
     navigationCollapsed: boolean;
     operationCollapsed: boolean;
+    flowAnalysisOpen: boolean;
     versionSaving: boolean;
     changeVersionRequest: FlowUpdateRequestEntity | null;
     copiedSnippet: CopiedSnippet | null;

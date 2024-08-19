@@ -15,10 +15,28 @@
  * limitations under the License.
  */
 
-.flow-status {
-    box-sizing: content-box;
+import { createReducer, on } from '@ngrx/store';
+import { FlowAnalysisState } from './index';
+import { pollFlowAnalysis, pollFlowAnalysisSuccess } from './flow-analysis.actions';
 
-    .controller-bulletins {
-        cursor: default;
-    }
-}
+export const initialState: FlowAnalysisState = {
+    rules: [],
+    ruleViolations: [],
+    flowAnalysisPending: false,
+    status: 'pending'
+};
+
+export const flowAnalysisReducer = createReducer(
+    initialState,
+    on(pollFlowAnalysis, (state) => ({
+        ...state,
+        status: 'loading' as const
+    })),
+    on(pollFlowAnalysisSuccess, (state, { response }) => ({
+        ...state,
+        rules: response.rules,
+        ruleViolations: response.ruleViolations,
+        flowAnalysisPending: response.flowAnalysisPending,
+        status: 'success' as const
+    }))
+);

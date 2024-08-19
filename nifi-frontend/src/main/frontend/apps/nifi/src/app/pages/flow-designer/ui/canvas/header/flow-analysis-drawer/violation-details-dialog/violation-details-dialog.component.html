@@ -15,22 +15,28 @@
   ~ limitations under the License.
   -->
 
-<div class="flex flex-col h-full">
-    <fd-header></fd-header>
-    <div class="flex-1">
-        <mat-sidenav-container class="h-full">
-            <mat-sidenav mode="side" [opened]="flowAnalysisOpen()" position="end">
-                <flow-analysis-drawer></flow-analysis-drawer>
-            </mat-sidenav>
-            <mat-sidenav-content>
-                <graph-controls></graph-controls>
-                <div
-                    id="canvas-container"
-                    class="canvas-background select-none h-full w-full"
-                    [cdkContextMenuTriggerFor]="contextMenu.menu"></div>
-                <fd-context-menu #contextMenu [menuProvider]="canvasContextMenu" menuId="root"></fd-context-menu>
-            </mat-sidenav-content>
-        </mat-sidenav-container>
+<h2 mat-dialog-title>
+    <div class="flex justify-between items-baseline">
+        <div>Violation Information</div>
     </div>
-    <fd-footer></fd-footer>
-</div>
+</h2>
+<mat-dialog-content>
+    <div>
+        <div class="flex justify-between mt-4 mb-4">
+            <div>Violation</div>
+            <div class="py-1 px-2 rounded-xl pill" [ngClass]="violation.enforcementPolicy | lowercase">
+                {{ violation.enforcementPolicy }}
+            </div>
+        </div>
+
+        <p>{{ violation.violationMessage }}</p>
+
+        <button mat-menu-item (click)="viewDocumentation()">
+            <i class="fa fa-book primary-color mr-2"></i>
+            View Documentation
+        </button>
+    </div>
+    <mat-dialog-actions align="end">
+        <button mat-button mat-dialog-close color="primary">Close</button>
+    </mat-dialog-actions>
+</mat-dialog-content>

@@ -15,10 +15,29 @@
  * limitations under the License.
  */
 
-.flow-status {
-    box-sizing: content-box;
+import { TestBed } from '@angular/core/testing';
 
-    .controller-bulletins {
-        cursor: default;
-    }
-}
+import { FlowAnalysisService } from './flow-analysis.service';
+import { provideMockStore } from '@ngrx/store/testing';
+import { HttpClient } from '@angular/common/http';
+
+describe('FlowAnalysisService', () => {
+    let service: FlowAnalysisService;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({
+            providers: [
+                provideMockStore({}),
+                {
+                    provide: HttpClient,
+                    useValue: {}
+                }
+            ]
+        });
+        service = TestBed.inject(FlowAnalysisService);
+    });
+
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
+});

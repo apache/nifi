@@ -69,11 +69,13 @@
         }
     </navigation>
     <flow-status
+        [flowAnalysisOpen]="(flowAnalysisOpen$ | async)!"
         [controllerStatus]="(controllerStatus$ | async)!"
         [lastRefreshed]="(lastRefreshed$ | async)!"
         [clusterSummary]="(clusterSummary$ | async)!"
         [bulletins]="(controllerBulletins$ | async)!"
         [currentProcessGroupId]="(currentProcessGroupId$ | async)!"
-        [loadingStatus]="(loadingService.status$ | async)!">
+        [loadingStatus]="(loadingService.status$ | async)!"
+        [flowAnalysisState]="(flowAnalysisState$ | async)!">
     </flow-status>
 </header>
