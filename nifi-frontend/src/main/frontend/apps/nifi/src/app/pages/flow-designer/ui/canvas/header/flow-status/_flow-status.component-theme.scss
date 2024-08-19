@@ -34,42 +34,42 @@
     $material-theme-primary-palette-lighter: mat.m2-get-color-from-palette($material-theme-primary-palette, lighter);
     $material-theme-warn-palette-darker: mat.m2-get-color-from-palette($material-theme-warn-palette, darker);
     $supplemental-theme-surface-palette-lighter: mat.m2-get-color-from-palette(
-            $supplemental-theme-surface-palette,
-            lighter
+        $supplemental-theme-surface-palette,
+        lighter
     );
     $supplemental-theme-surface-palette-darker: mat.m2-get-color-from-palette(
-            $supplemental-theme-surface-palette,
-            darker
+        $supplemental-theme-surface-palette,
+        darker
     );
     $supplemental-theme-surface-palette-darker-contrast: mat.m2-get-color-from-palette(
-            $supplemental-theme-surface-palette,
-            darker-contrast
+        $supplemental-theme-surface-palette,
+        darker-contrast
     );
     $supplemental-theme-surface-palette-lighter-contrast: mat.m2-get-color-from-palette(
-            $supplemental-theme-surface-palette,
-            lighter-contrast
+        $supplemental-theme-surface-palette,
+        lighter-contrast
     );
 
     .flow-status {
         background: if(
-                $is-dark,
-                $supplemental-theme-surface-palette-darker,
-                $supplemental-theme-surface-palette-lighter
+            $is-dark,
+            $supplemental-theme-surface-palette-darker,
+            $supplemental-theme-surface-palette-lighter
         );
 
         .controller-bulletins {
             background-color: if(
-                    $is-dark,
-                    $material-theme-primary-palette-lighter,
-                    $material-theme-primary-palette-default
+                $is-dark,
+                $material-theme-primary-palette-lighter,
+                $material-theme-primary-palette-default
             );
 
             .fa {
                 // invert the contrast colors since the surface is dark in light mode and light in dark mode
                 color: if(
-                        $is-dark,
-                        $supplemental-theme-surface-palette-lighter-contrast,
-                        $supplemental-theme-surface-palette-darker-contrast
+                    $is-dark,
+                    $supplemental-theme-surface-palette-lighter-contrast,
+                    $supplemental-theme-surface-palette-darker-contrast
                 );
             }
         }
@@ -80,23 +80,22 @@
 
         .flow-analysis-notifications.warn {
             background-color: if(
-                    $is-dark,
-                    $material-theme-primary-palette-lighter,
-                    $material-theme-primary-palette-default
+                $is-dark,
+                $material-theme-primary-palette-lighter,
+                $material-theme-primary-palette-default
             );
             border-right-color: if(
-                    $is-dark,
-                    $supplemental-theme-surface-palette-lighter-contrast,
-                    $supplemental-theme-surface-palette-darker-contrast
+                $is-dark,
+                $supplemental-theme-surface-palette-lighter-contrast,
+                $supplemental-theme-surface-palette-darker-contrast
             );
-
 
             .fa {
                 // invert the contrast colors since the surface is dark in light mode and light in dark mode
                 color: if(
-                        $is-dark,
-                        $supplemental-theme-surface-palette-lighter-contrast,
-                        $supplemental-theme-surface-palette-darker-contrast
+                    $is-dark,
+                    $supplemental-theme-surface-palette-lighter-contrast,
+                    $supplemental-theme-surface-palette-darker-contrast
                 );
             }
         }
@@ -104,17 +103,17 @@
         .flow-analysis-notifications.enforce {
             background-color: $material-theme-warn-palette-darker;
             border-right-color: if(
-                    $is-dark,
-                    $supplemental-theme-surface-palette-lighter-contrast,
-                    $supplemental-theme-surface-palette-darker-contrast
+                $is-dark,
+                $supplemental-theme-surface-palette-lighter-contrast,
+                $supplemental-theme-surface-palette-darker-contrast
             );
 
             .fa {
                 // invert the contrast colors since the surface is dark in light mode and light in dark mode
                 color: if(
-                        $is-dark,
-                        $supplemental-theme-surface-palette-lighter-contrast,
-                        $supplemental-theme-surface-palette-darker-contrast
+                    $is-dark,
+                    $supplemental-theme-surface-palette-lighter-contrast,
+                    $supplemental-theme-surface-palette-darker-contrast
                 );
             }
         }
