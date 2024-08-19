@@ -16,7 +16,8 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Canvas } from './canvas.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/flow/flow.reducer';
@@ -58,6 +59,8 @@ describe('Canvas', () => {
             imports: [
                 CdkContextMenuTrigger,
                 ContextMenu,
+                MatSidenavModule,
+                NoopAnimationsModule,
                 MatSidenavModule,
                 NoopAnimationsModule,
                 MockComponent(GraphControls),

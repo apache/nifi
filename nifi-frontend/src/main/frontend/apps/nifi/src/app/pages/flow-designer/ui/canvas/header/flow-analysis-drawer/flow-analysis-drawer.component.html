@@ -151,7 +151,8 @@
                                     @for (violation of violationsMap.get(rule.id); track violation.scope) {
                                         <li class="flex align-center justify-between mt-2">
                                             <div class="flex flex-col items-start ml-2">
-                                                <div *ngIf="violation?.subjectPermissionDto?.canRead; else unauthorized">
+                                                <div
+                                                    *ngIf="violation?.subjectPermissionDto?.canRead; else unauthorized">
                                                     {{ violation.subjectDisplayName }}
                                                 </div>
                                                 <span class="text-sm">
@@ -193,8 +194,9 @@
                             <span class="text-sm">{{ violation.subjectId }}</span>
                         </div>
 
-                        <ng-template [ngTemplateOutlet]="violationMenuTemplate"
-                                     [ngTemplateOutletContext]="{ violation: violation }"></ng-template>
+                        <ng-template
+                            [ngTemplateOutlet]="violationMenuTemplate"
+                            [ngTemplateOutletContext]="{ violation: violation }"></ng-template>
                     </div>
                 </li>
             }

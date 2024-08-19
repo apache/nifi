@@ -32,10 +32,7 @@ import {
     openRuleDetailsDialog
 } from '../../../../state/flow-analysis/flow-analysis.actions';
 import { FlowAnalysisRule, FlowAnalysisRuleViolation } from '../../../../state/flow-analysis';
-import {
-    selectBreadcrumbs,
-    selectCurrentProcessGroupId
-} from '../../../../state/flow/flow.selectors';
+import { selectBreadcrumbs, selectCurrentProcessGroupId } from '../../../../state/flow/flow.selectors';
 import { RouterLink } from '@angular/router';
 import { NifiSpinnerDirective } from '../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { MatIconButton } from '@angular/material/button';
