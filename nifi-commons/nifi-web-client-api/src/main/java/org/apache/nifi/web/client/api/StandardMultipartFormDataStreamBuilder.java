@@ -35,9 +35,9 @@ import java.util.regex.Pattern;
  * Standard implementation of Multipart Form Data Stream Builder supporting form-data as described in RFC 7578
  */
 public class StandardMultipartFormDataStreamBuilder implements MultipartFormDataStreamBuilder {
-    private static final String CONTENT_DISPOSITION_HEADER = "Content-Disposition: form-data; name=\"%s\"\r\n";
+    private static final String CONTENT_DISPOSITION_HEADER = "Content-Disposition: form-data; name=\"%s\"";
 
-    private static final String CONTENT_TYPE_HEADER = "Content-Type: %s\r\n";
+    private static final String CONTENT_TYPE_HEADER = "Content-Type: %s";
 
     private static final Pattern ALLOWED_NAME_PATTERN = Pattern.compile("^\\p{ASCII}+$");
 
@@ -71,19 +71,7 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
         final Iterator<Part> selectedParts = parts.iterator();
         while (selectedParts.hasNext()) {
             final Part part = selectedParts.next();
-
-            final StringBuilder footerBuilder = new StringBuilder();
-            footerBuilder.append(CARRIAGE_RETURN_LINE_FEED);
-            footerBuilder.append(BOUNDARY_SEPARATOR);
-            footerBuilder.append(boundary);
-            if (selectedParts.hasNext()) {
-                footerBuilder.append(CARRIAGE_RETURN_LINE_FEED);
-            } else {
-                // Add boundary separator after last part indicating end
-                footerBuilder.append(BOUNDARY_SEPARATOR);
-            }
-
-            final String footer = footerBuilder.toString();
+            final String footer = getFooter(selectedParts);
 
             final InputStream partInputStream = getPartInputStream(part, footer);
             partInputStreams.add(partInputStream);
@@ -157,13 +145,30 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
 
         final String contentDispositionHeader = CONTENT_DISPOSITION_HEADER.formatted(part.name);
         headersBuilder.append(contentDispositionHeader);
+        headersBuilder.append(CARRIAGE_RETURN_LINE_FEED);
 
         final String contentType = part.httpContentType.getContentType();
         final String contentTypeHeader = CONTENT_TYPE_HEADER.formatted(contentType);
         headersBuilder.append(contentTypeHeader);
+        headersBuilder.append(CARRIAGE_RETURN_LINE_FEED);
 
         headersBuilder.append(CARRIAGE_RETURN_LINE_FEED);
         return headersBuilder.toString();
+    }
+
+    private String getFooter(final Iterator<Part> selectedParts) {
+        final StringBuilder footerBuilder = new StringBuilder();
+        footerBuilder.append(CARRIAGE_RETURN_LINE_FEED);
+        footerBuilder.append(BOUNDARY_SEPARATOR);
+        footerBuilder.append(boundary);
+        if (selectedParts.hasNext()) {
+            footerBuilder.append(CARRIAGE_RETURN_LINE_FEED);
+        } else {
+            // Add boundary separator after last part indicating end
+            footerBuilder.append(BOUNDARY_SEPARATOR);
+        }
+
+        return footerBuilder.toString();
     }
 
     private record MultipartHttpContentType(String contentType) implements HttpContentType {
@@ -178,6 +183,5 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
             HttpContentType httpContentType,
             InputStream inputStream
     ) {
-
     }
 }
