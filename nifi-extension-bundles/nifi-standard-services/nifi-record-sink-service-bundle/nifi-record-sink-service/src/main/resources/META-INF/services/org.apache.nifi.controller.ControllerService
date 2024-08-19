@@ -16,3 +16,4 @@ org.apache.nifi.record.sink.lookup.RecordSinkServiceLookup
 org.apache.nifi.record.sink.LoggingRecordSink
 org.apache.nifi.record.sink.EmailRecordSink
 org.apache.nifi.record.sink.event.UDPEventRecordSink
+org.apache.nifi.record.sink.HttpRecordSink
