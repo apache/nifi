@@ -23,7 +23,6 @@ public enum IcebergCatalogProperty {
     METASTORE_URI("hive.metastore.uris"),
     WAREHOUSE_LOCATION("hive.metastore.warehouse.dir"),
     CLIENT_POOL_SERVICE,
-    CLIENT_POOL_SIZE,
     FILE_IO_IMPLEMENTATION;
 
     private static final String EMPTY_STRING = "";

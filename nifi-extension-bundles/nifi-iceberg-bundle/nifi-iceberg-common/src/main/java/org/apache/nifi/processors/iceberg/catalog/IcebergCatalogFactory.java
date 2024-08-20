@@ -38,7 +38,6 @@ import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFr
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.CATALOG_NAME;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.FILE_IO_IMPLEMENTATION;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.CLIENT_POOL_SERVICE;
-import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.CLIENT_POOL_SIZE;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.METASTORE_URI;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.WAREHOUSE_LOCATION;
 
@@ -97,7 +96,6 @@ public class IcebergCatalogFactory {
         final Map<String, String> properties = new HashMap<>();
         properties.put(CatalogProperties.URI, "");
         properties.put(CatalogProperties.WAREHOUSE_LOCATION, (String) catalogProperties.get(WAREHOUSE_LOCATION));
-        properties.put(CatalogProperties.CLIENT_POOL_SIZE, (String) catalogProperties.get(CLIENT_POOL_SIZE));
 
         final Configuration configuration = getConfigurationFromFiles(catalogService.getConfigFilePaths());
         final DBCPService dbcpService = (DBCPService) catalogProperties.get(CLIENT_POOL_SERVICE);
