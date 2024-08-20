@@ -135,7 +135,7 @@ public class CopyS3Object extends AbstractS3Processor {
             s3.copyObject(request);
             session.getProvenanceReporter().send(flowFile, getTransitUrl(destinationBucket, destinationKey));
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (final AmazonClientException e) {
+        } catch (final IllegalArgumentException | AmazonClientException e) {
             flowFile = extractExceptionDetails(e, session, flowFile);
             getLogger().error("Failed to copy S3 object from Bucket [{}] Key [{}]", sourceBucket, sourceKey, e);
             session.transfer(flowFile, REL_FAILURE);
