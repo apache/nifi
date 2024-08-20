@@ -4348,6 +4348,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             verifyCanSetExecutionEngine(executionEngine);
             this.executionEngine = executionEngine;
+            findAllProcessors().forEach(ProcessorNode::resetValidationState);
+            findAllControllerServices().forEach(ControllerServiceNode::resetValidationState);
         } finally {
             writeLock.unlock();
         }
