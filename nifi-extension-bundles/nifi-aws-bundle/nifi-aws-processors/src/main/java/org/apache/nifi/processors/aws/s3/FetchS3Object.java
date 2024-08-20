@@ -423,7 +423,7 @@ public class FetchS3Object extends AbstractS3Processor {
             if (metadata.getVersionId() != null) {
                 attributes.put("s3.version", metadata.getVersionId());
             }
-        } catch (final IOException | AmazonClientException ioe) {
+        } catch (final IllegalArgumentException | IOException | AmazonClientException ioe) {
             flowFile = extractExceptionDetails(ioe, session, flowFile);
             getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", flowFile, ioe);
             flowFile = session.penalize(flowFile);
