@@ -31,9 +31,7 @@ import { HeaderComponent } from './header/header.component';
 import { FooterComponent } from './footer/footer.component';
 import { canvasFeatureKey } from '../../state';
 import { flowFeatureKey } from '../../state/flow';
-import { MatSidenavModule } from '@angular/material/sidenav';
 import { FlowAnalysisDrawerComponent } from './header/flow-analysis-drawer/flow-analysis-drawer.component';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CanvasActionsService } from '../../service/canvas-actions.service';
 
 describe('Canvas', () => {
