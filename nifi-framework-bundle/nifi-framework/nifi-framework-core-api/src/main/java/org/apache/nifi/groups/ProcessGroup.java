@@ -1215,6 +1215,12 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void verifyCanSetExecutionEngine(ExecutionEngine executionEngine);
 
     /**
+     * Verifies that the Process Group is in a state in which the Execution Engine can be changed.
+     * @throws IllegalStateException if the Execution Engine cannot be changed at this time
+     */
+    void verifyCanUpdateExecutionEngine();
+
+    /**
      * Sets the maximum number on concurrent tasks that can be run in this Process Group if using the Stateless Execution Engine
      * @param maxConcurrentTasks the maximum number of concurrent tasks
      */
