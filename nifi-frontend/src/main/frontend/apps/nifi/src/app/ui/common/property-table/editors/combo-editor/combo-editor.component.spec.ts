@@ -206,11 +206,10 @@ describe('ComboEditor', () => {
 
             component.item = item;
             component.parameterConfig = {
-                supportsParameters: false,
-                parameters: null
+                supportsParameters: true,
+                parameters
             };
 
-            component.parameters = parameters;
             fixture.detectChanges();
             await fixture.whenStable();
 
@@ -233,11 +232,10 @@ describe('ComboEditor', () => {
 
             component.item = item;
             component.parameterConfig = {
-                supportsParameters: false,
-                parameters: null
+                supportsParameters: true,
+                parameters
             };
 
-            component.parameters = parameters;
             fixture.detectChanges();
             await fixture.whenStable();
 
