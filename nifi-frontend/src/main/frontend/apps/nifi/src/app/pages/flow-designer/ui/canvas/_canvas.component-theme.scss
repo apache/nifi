@@ -106,9 +106,9 @@
 
     mat-sidenav {
         background-color: if(
-                $is-dark,
-                $supplemental-theme-surface-palette-darker,
-                $supplemental-theme-surface-palette-lighter
+            $is-dark,
+            $supplemental-theme-surface-palette-darker,
+            $supplemental-theme-surface-palette-lighter
         );
     }
 

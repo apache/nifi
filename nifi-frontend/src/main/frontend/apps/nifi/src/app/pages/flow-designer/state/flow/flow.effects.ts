@@ -1115,13 +1115,12 @@ export class FlowEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, currentProcessGroupId]) => {
-                    this.router.navigate([
-                        '/process-groups',
-                        currentProcessGroupId,
-                        request.type,
-                        request.id,
-                        'history'
-                    ]);
+                    const url = ['/process-groups', currentProcessGroupId, request.type, request.id, 'history'];
+                    if (this.canvasView.isSelectedComponentOnScreen()) {
+                        this.store.dispatch(FlowActions.navigateWithoutTransform({ url }));
+                    } else {
+                        this.router.navigate(url);
+                    }
                 })
             ),
         { dispatch: false }
