@@ -27,7 +27,6 @@ import static org.apache.nifi.c2.util.Preconditions.requires;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
@@ -89,20 +88,24 @@ public class SyncResourceOperationHandler implements C2OperationHandler {
     public C2OperationAck handle(C2Operation operation) {
         String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        Optional<ResourcesGlobalHash> resourcesGlobalHash = getOperationArg(operation, GLOBAL_HASH_FIELD, new TypeReference<>() {
-        }, c2Serializer);
-        if (resourcesGlobalHash.isEmpty()) {
+        ResourcesGlobalHash resourcesGlobalHash;
+        try {
+            resourcesGlobalHash = getOperationArg(operation, GLOBAL_HASH_FIELD, new TypeReference<>() { }, c2Serializer);
+        } catch (Exception e) {
             LOG.error("Resources global hash could not be constructed from C2 request");
-            return operationAck(operationId, operationState(NOT_APPLIED, "Resources global hash element was not found"));
-        }
-        Optional<List<ResourceItem>> resourceItems = getOperationArg(operation, RESOURCE_LIST_FIELD, new TypeReference<>() {
-        }, c2Serializer);
-        if (resourceItems.isEmpty()) {
-            LOG.error("Resource item list could not be constructed from C2 request");
-            return operationAck(operationId, operationState(NOT_APPLIED, "Resource item list element was not found"));
+            return operationAck(operationId, operationState(NOT_APPLIED, "Resources global hash element was not found", e));
         }
 
-        OperationState operationState = syncResourceStrategy.synchronizeResourceRepository(resourcesGlobalHash.get(), resourceItems.get(), c2Client::retrieveResourceItem,
+        List<ResourceItem> resourceItems;
+        try {
+           resourceItems = getOperationArg(operation, RESOURCE_LIST_FIELD, new TypeReference<>() { }, c2Serializer);
+
+        } catch (Exception e) {
+            LOG.error("Resource item list could not be constructed from C2 request");
+            return operationAck(operationId, operationState(NOT_APPLIED, "Resource item list element was not found", e));
+        }
+
+        OperationState operationState = syncResourceStrategy.synchronizeResourceRepository(resourcesGlobalHash, resourceItems, c2Client::retrieveResourceItem,
             relativeUrl -> c2Client.getCallbackUrl(null, relativeUrl));
         C2OperationState resultState = operationState(
             operationState,

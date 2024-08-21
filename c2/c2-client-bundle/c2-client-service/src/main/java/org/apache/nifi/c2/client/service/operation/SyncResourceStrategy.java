@@ -31,5 +31,5 @@ public interface SyncResourceStrategy {
 
     OperationState synchronizeResourceRepository(ResourcesGlobalHash resourcesGlobalHash, List<ResourceItem> c2ServerItems,
                                                  BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction,
-                                                 Function<String, Optional<String>> urlEnrichFunction);
+                                                 Function<String, String> urlEnrichFunction);
 }

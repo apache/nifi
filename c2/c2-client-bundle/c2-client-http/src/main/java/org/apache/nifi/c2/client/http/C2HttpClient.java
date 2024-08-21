@@ -146,7 +146,7 @@ public class C2HttpClient implements C2Client {
     }
 
     @Override
-    public Optional<String> getCallbackUrl(String absoluteUrl, String relativeUrl) {
+    public String getCallbackUrl(String absoluteUrl, String relativeUrl) {
         return c2UrlProvider.getCallbackUrl(absoluteUrl, relativeUrl);
     }
 

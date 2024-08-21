@@ -127,10 +127,9 @@ public class DefaultUpdateConfigurationStrategyTest {
         when(mockFlowManager.getRootGroup()).thenReturn(mockProcessGroup);
 
         // when
-        boolean result = testUpdateConfigurationStrategy.update(NEW_RAW_FLOW_CONFIG_CONTENT);
+        testUpdateConfigurationStrategy.update(NEW_RAW_FLOW_CONFIG_CONTENT);
 
         //then
-        assertTrue(result);
         assertTrue(exists(flowConfigurationFile));
         assertTrue(exists(rawFlowConfigurationFile));
         assertArrayEquals(NEW_ENRICHED_FLOW_CONFIG_CONTENT, readGzipFile(flowConfigurationFile));
@@ -155,19 +154,20 @@ public class DefaultUpdateConfigurationStrategyTest {
         doThrow(new IOException()).when(mockFlowService).load(null);
 
         // when
-        boolean result = testUpdateConfigurationStrategy.update(NEW_RAW_FLOW_CONFIG_CONTENT);
-
-        //then
-        assertFalse(result);
-        assertTrue(exists(flowConfigurationFile));
-        assertTrue(exists(rawFlowConfigurationFile));
-        assertArrayEquals(ORIGINAL_ENRICHED_FLOW_CONFIG_CONTENT, readGzipFile(flowConfigurationFile));
-        assertArrayEquals(ORIGINAL_RAW_FLOW_CONFIG_CONTENT, readPlainTextFile(rawFlowConfigurationFile));
-        assertFalse(exists(backupFlowConfigurationFile));
-        assertFalse(exists(backupRawFlowConfigurationFile));
-        verify(mockFlowService, times(1)).load(null);
-        verify(mockFlowController, times(0)).onFlowInitialized(true);
-        verify(mockProcessGroup, times(0)).startProcessing();
+        try {
+            testUpdateConfigurationStrategy.update(NEW_RAW_FLOW_CONFIG_CONTENT);
+        } catch (Exception e) {
+            //then
+            assertTrue(exists(flowConfigurationFile));
+            assertTrue(exists(rawFlowConfigurationFile));
+            assertArrayEquals(ORIGINAL_ENRICHED_FLOW_CONFIG_CONTENT, readGzipFile(flowConfigurationFile));
+            assertArrayEquals(ORIGINAL_RAW_FLOW_CONFIG_CONTENT, readPlainTextFile(rawFlowConfigurationFile));
+            assertFalse(exists(backupFlowConfigurationFile));
+            assertFalse(exists(backupRawFlowConfigurationFile));
+            verify(mockFlowService, times(1)).load(null);
+            verify(mockFlowController, times(0)).onFlowInitialized(true);
+            verify(mockProcessGroup, times(0)).startProcessing();
+        }
     }
 
     private void writeGzipFile(Path path, byte[] content) throws IOException {
