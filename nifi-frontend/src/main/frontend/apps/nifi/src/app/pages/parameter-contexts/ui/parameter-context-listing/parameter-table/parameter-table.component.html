@@ -41,15 +41,15 @@
                             <div class="flex justify-between items-center">
                                 <div
                                     class="whitespace-nowrap overflow-hidden text-ellipsis leading-normal"
-                                    [title]="item.entity.parameter.name">
-                                    {{ item.entity.parameter.name }}
+                                    [title]="item.originalEntity.parameter.name">
+                                    {{ item.originalEntity.parameter.name }}
                                 </div>
                                 @if (hasDescription(item)) {
                                     <i
                                         class="fa fa-info-circle primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="item.entity.parameter.description"
+                                        [tooltipInputData]="getDescription(item)"
                                         [delayClose]="false"></i>
                                 }
                                 @if (canOverride(item)) {
@@ -68,42 +68,46 @@
                     <ng-container matColumnDef="value">
                         <th mat-header-cell *matHeaderCellDef>Value</th>
                         <td mat-cell *matCellDef="let item">
-                            @if (isNull(item.entity.parameter.value)) {
-                                <div class="unset surface-color">No value set</div>
-                            } @else {
-                                <ng-container
-                                    *ngTemplateOutlet="
-                                        isSensitiveParameter(item) ? sensitive : nonSensitive;
-                                        context: { $implicit: item.entity.parameter.value }
-                                    "></ng-container>
-                                <ng-template #sensitive>
-                                    <div class="sensitive surface-color">Sensitive value set</div>
-                                </ng-template>
-                                <ng-template #nonSensitive let-value>
+                            <ng-container
+                                *ngTemplateOutlet="renderValue; context: { $implicit: getValue(item) }"></ng-container>
+                            <ng-template #renderValue let-parameterValue>
+                                @if (isNull(parameterValue)) {
+                                    <div class="unset surface-color">No value set</div>
+                                } @else {
                                     <ng-container
                                         *ngTemplateOutlet="
-                                            isEmptyString(value) ? blank : nonBlank;
-                                            context: { $implicit: value }
+                                            isSensitiveParameter(item) ? sensitive : nonSensitive;
+                                            context: { $implicit: parameterValue }
                                         "></ng-container>
-                                </ng-template>
-                                <ng-template #blank>
-                                    <div class="empty surface-color">Empty string set</div>
-                                </ng-template>
-                                <ng-template #nonBlank let-value>
-                                    <div class="flex justify-between items-center">
-                                        <div class="whitespace-nowrap overflow-hidden text-ellipsis">
-                                            {{ value }}
+                                    <ng-template #sensitive>
+                                        <div class="sensitive surface-color">Sensitive value set</div>
+                                    </ng-template>
+                                    <ng-template #nonSensitive let-value>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                isEmptyString(value) ? blank : nonBlank;
+                                                context: { $implicit: value }
+                                            "></ng-container>
+                                    </ng-template>
+                                    <ng-template #blank>
+                                        <div class="empty surface-color">Empty string set</div>
+                                    </ng-template>
+                                    <ng-template #nonBlank let-value>
+                                        <div class="flex justify-between items-center">
+                                            <div class="whitespace-nowrap overflow-hidden text-ellipsis">
+                                                {{ value }}
+                                            </div>
+                                            @if (hasExtraWhitespace(value)) {
+                                                <div
+                                                    class="fa fa-info-circle primary-color"
+                                                    nifiTooltip
+                                                    [tooltipComponentType]="TextTip"
+                                                    tooltipInputData="The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional."></div>
+                                            }
                                         </div>
-                                        @if (hasExtraWhitespace(value)) {
-                                            <div
-                                                class="fa fa-info-circle primary-color"
-                                                nifiTooltip
-                                                [tooltipComponentType]="TextTip"
-                                                tooltipInputData="The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional."></div>
-                                        }
-                                    </div>
-                                </ng-template>
-                            }
+                                    </ng-template>
+                                }
+                            </ng-template>
                         </td>
                     </ng-container>
 
@@ -171,7 +175,7 @@
             <div>Parameter</div>
             <div class="accent-color font-medium">
                 @if (selectedItem) {
-                    <span>{{ selectedItem.entity.parameter.name }}</span>
+                    <span>{{ selectedItem.originalEntity.parameter.name }}</span>
                 } @else {
                     <span class="unset surface-color">None</span>
                 }
@@ -191,7 +195,7 @@
                     @if (selectedItem) {
                         <parameter-references
                             [parameterReferences]="
-                                selectedItem.entity.parameter.referencingComponents
+                                selectedItem.originalEntity.parameter.referencingComponents
                             "></parameter-references>
                     }
                 </div>
