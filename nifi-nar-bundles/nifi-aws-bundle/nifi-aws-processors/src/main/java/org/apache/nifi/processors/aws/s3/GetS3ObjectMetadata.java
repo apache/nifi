@@ -207,7 +207,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             }
 
             session.transfer(flowFile, relationship);
-        } catch (final AmazonClientException e) {
+        } catch (final IllegalArgumentException | AmazonClientException e) {
             getLogger().error("Failed to get S3 Object Metadata from Bucket [{}] Key [{}]", bucket, key, e);
             flowFile = extractExceptionDetails(e, session, flowFile);
             session.transfer(flowFile, REL_FAILURE);
