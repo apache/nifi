@@ -18,6 +18,7 @@
 package org.apache.nifi.c2.client.http.url;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 
 import java.util.Optional;
@@ -83,9 +84,16 @@ public class ProxyAwareC2ProviderTest {
 
     @MethodSource("testCallbackUrlProvidedArguments")
     @ParameterizedTest(name = "{index} => c2RestBase={0}, absoluteUrl={1}, relativeUrl={2}, expectedCallbackUrl={3}")
-    public void testCallbackUrlProvidedFor(String c2RestBase, String absoluteUrl, String relativeUrl, Optional<String> expectedCallbackUrl) {
+    public void testCallbackUrlProvidedForValidInputs(String c2RestBase, String absoluteUrl, String relativeUrl, String expectedCallbackUrl) {
         ProxyAwareC2UrlProvider testProvider = new ProxyAwareC2UrlProvider(c2RestBase, "any_path", "any_path");
         assertEquals(expectedCallbackUrl, testProvider.getCallbackUrl(absoluteUrl, relativeUrl));
+    }
+
+    @MethodSource("testCallbackUrlProvidedInvalidArguments")
+    @ParameterizedTest(name = "{index} => c2RestBase={0}, absoluteUrl={1}, relativeUrl={2}, expectedCallbackUrl={3}")
+    public void testCallbackUrlProvidedForInvalidInputs(String c2RestBase, String absoluteUrl, String relativeUrl) {
+        ProxyAwareC2UrlProvider testProvider = new ProxyAwareC2UrlProvider(c2RestBase, "any_path", "any_path");
+        assertThrows(IllegalArgumentException.class, () -> testProvider.getCallbackUrl(absoluteUrl, relativeUrl));
     }
 
     private static Stream<Arguments> testCallbackUrlProvidedArguments() {
@@ -94,6 +102,19 @@ public class ProxyAwareC2ProviderTest {
         String path = "path/endpoint";
         String absoluteUrl = "http://c2-other/api/path/endpoint";
         return Stream.of(
+            Arguments.of(c2RestBaseNoTrailingSlash, null, path, c2RestBaseWithTrailingSlash + path),
+            Arguments.of(c2RestBaseNoTrailingSlash, "", "/" + path, c2RestBaseWithTrailingSlash + path),
+            Arguments.of(c2RestBaseWithTrailingSlash, null, path, c2RestBaseWithTrailingSlash + path),
+            Arguments.of(c2RestBaseWithTrailingSlash, "", "/" + path, c2RestBaseWithTrailingSlash + path),
+            Arguments.of(c2RestBaseWithTrailingSlash, absoluteUrl, null, absoluteUrl),
+            Arguments.of(c2RestBaseWithTrailingSlash, absoluteUrl, "", absoluteUrl)
+        );
+    }
+
+    private static Stream<Arguments> testCallbackUrlProvidedInvalidArguments() {
+        String c2RestBaseNoTrailingSlash = "http://c2/api";
+        String c2RestBaseWithTrailingSlash = "http://c2/api/";
+        return Stream.of(
             Arguments.of(c2RestBaseNoTrailingSlash, null, null, Optional.empty()),
             Arguments.of(c2RestBaseNoTrailingSlash, "", null, Optional.empty()),
             Arguments.of(c2RestBaseNoTrailingSlash, null, "", Optional.empty()),
@@ -101,13 +122,7 @@ public class ProxyAwareC2ProviderTest {
             Arguments.of(c2RestBaseWithTrailingSlash, null, null, Optional.empty()),
             Arguments.of(c2RestBaseWithTrailingSlash, "", null, Optional.empty()),
             Arguments.of(c2RestBaseWithTrailingSlash, null, "", Optional.empty()),
-            Arguments.of(c2RestBaseWithTrailingSlash, "", "", Optional.empty()),
-            Arguments.of(c2RestBaseNoTrailingSlash, null, path, Optional.of(c2RestBaseWithTrailingSlash + path)),
-            Arguments.of(c2RestBaseNoTrailingSlash, "", "/" + path, Optional.of(c2RestBaseWithTrailingSlash + path)),
-            Arguments.of(c2RestBaseWithTrailingSlash, null, path, Optional.of(c2RestBaseWithTrailingSlash + path)),
-            Arguments.of(c2RestBaseWithTrailingSlash, "", "/" + path, Optional.of(c2RestBaseWithTrailingSlash + path)),
-            Arguments.of(c2RestBaseWithTrailingSlash, absoluteUrl, null, Optional.of(absoluteUrl)),
-            Arguments.of(c2RestBaseWithTrailingSlash, absoluteUrl, "", Optional.of(absoluteUrl))
+            Arguments.of(c2RestBaseWithTrailingSlash, "", "", Optional.empty())
         );
     }
 }

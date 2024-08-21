@@ -73,7 +73,7 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
     @Override
     public OperationState synchronizeResourceRepository(ResourcesGlobalHash c2GlobalHash, List<ResourceItem> c2ServerItems,
                                                         BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction,
-                                                        Function<String, Optional<String>> urlEnrichFunction) {
+                                                        Function<String, String> urlEnrichFunction) {
         Set<ResourceItem> c2Items = Set.copyOf(c2ServerItems);
         Set<ResourceItem> agentItems = Set.copyOf(resourceRepository.findAllResourceItems());
 
@@ -89,7 +89,7 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
 
     private OperationState saveNewItems(Set<ResourceItem> c2Items, Set<ResourceItem> agentItems,
                                         BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction,
-                                        Function<String, Optional<String>> urlEnrichFunction) {
+                                        Function<String, String> urlEnrichFunction) {
         List<ResourceItem> newItems = c2Items.stream().filter(not(agentItems::contains)).toList();
         if (newItems.isEmpty()) {
             return NO_OPERATION;
@@ -107,10 +107,10 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
     }
 
     private Function<ResourceItem, Optional<ResourceItem>> downloadIfNotPresentAndAddToRepository(
-        BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction, Function<String, Optional<String>> urlEnrichFunction) {
+        BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction, Function<String, String> urlEnrichFunction) {
         return resourceItem -> resourceRepository.resourceItemBinaryPresent(resourceItem)
             ? resourceRepository.addResourceItem(resourceItem)
-            : urlEnrichFunction.apply(resourceItem.getUrl())
+            : Optional.ofNullable(urlEnrichFunction.apply(resourceItem.getUrl()))
             .flatMap(enrichedUrl -> resourceDownloadFunction.apply(enrichedUrl, this::persistToTemporaryLocation))
             .flatMap(tempResourcePath -> resourceRepository.addResourceItem(resourceItem, tempResourcePath));
     }

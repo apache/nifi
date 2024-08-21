@@ -45,11 +45,12 @@ public class LegacyC2UrlProvider implements C2UrlProvider {
     }
 
     @Override
-    public Optional<String> getCallbackUrl(String absoluteUrl, String relativeUrl) {
-        Optional<String> url = Optional.ofNullable(absoluteUrl).filter(StringUtils::isNotBlank);
-        if (!url.isPresent()) {
-            LOG.error("Provided absolute url was empty or null. Relative urls are not supported with this configuration");
-        }
-        return url;
+    public String getCallbackUrl(String absoluteUrl, String relativeUrl) {
+        return Optional.ofNullable(absoluteUrl)
+                   .filter(StringUtils::isNotBlank)
+                   .orElseThrow( () -> {
+                      LOG.error("Provided absolute url was empty or null. Relative urls are not supported with this configuration");
+                      throw new IllegalArgumentException("Provided absolute url was empty or null. Relative C2 urls are not supported with this configuration");
+                   });
     }
 }

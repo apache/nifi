@@ -17,8 +17,6 @@
 
 package org.apache.nifi.c2.client.http.url;
 
-import java.util.Optional;
-
 public interface C2UrlProvider {
 
     /**
@@ -42,5 +40,5 @@ public interface C2UrlProvider {
      * @param relativeUrl relative url sent by the C2 server
      * @return the url of the C2 server to send requests to
      */
-    Optional<String> getCallbackUrl(String absoluteUrl, String relativeUrl);
+    String getCallbackUrl(String absoluteUrl, String relativeUrl);
 }

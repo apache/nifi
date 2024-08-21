@@ -91,13 +91,15 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
         String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
         String absoluteFlowUrl = getOperationArg(operation, FLOW_URL_KEY).orElse(getOperationArg(operation, LOCATION).orElse(EMPTY));
-        Optional<String> callbackUrl = client.getCallbackUrl(absoluteFlowUrl, getOperationArg(operation, FLOW_RELATIVE_URL_KEY).orElse(EMPTY));
-        if (callbackUrl.isEmpty()) {
+        String callbackUrl;
+        try {
+            callbackUrl = client.getCallbackUrl(absoluteFlowUrl, getOperationArg(operation, FLOW_RELATIVE_URL_KEY).orElse(EMPTY));
+        } catch (Exception e) {
             logger.error("Callback URL could not be constructed from C2 request and current configuration");
             return operationAck(operationId, operationState(NOT_APPLIED, "Could not get callback url from operation and current configuration"));
         }
 
-        Optional<String> flowId = getFlowId(operation, callbackUrl.get());
+        Optional<String> flowId = getFlowId(operation, callbackUrl);
         if (flowId.isEmpty()) {
             logger.error("FlowId is missing, no update will be performed");
             return operationAck(operationId, operationState(NOT_APPLIED, "Could not get flowId from the operation"));
@@ -110,7 +112,7 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
 
         logger.info("Will perform flow update from {} for operation #{}. Previous flow id was {}, replacing with new id {}",
             callbackUrl, operationId, ofNullable(flowIdHolder.getFlowId()).orElse("not set"), flowId.get());
-        C2OperationState state = updateFlow(operationId, callbackUrl.get());
+        C2OperationState state = updateFlow(operationId, callbackUrl);
         if (state.getState() == FULLY_APPLIED) {
             flowIdHolder.setFlowId(flowId.get());
         }
@@ -125,9 +127,11 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
             return operationState(NOT_APPLIED, "Update content retrieval resulted in empty content");
         }
 
-        if (!updateConfigurationStrategy.update(updateContent.get())) {
+        try {
+            updateConfigurationStrategy.update(updateContent.get());
+        } catch (Exception e) {
             logger.error("Update resulted in error for operation #{}.", opIdentifier);
-            return operationState(NOT_APPLIED, "Update resulted in error");
+            return operationState(NOT_APPLIED, "Update resulted in error:", e);
         }
 
         logger.debug("Update configuration applied for operation #{}.", opIdentifier);

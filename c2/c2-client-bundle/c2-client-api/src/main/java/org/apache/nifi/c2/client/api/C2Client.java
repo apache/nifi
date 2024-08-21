@@ -85,7 +85,7 @@ public interface C2Client {
      *
      * @param absoluteUrl absolute url sent by C2 server
      * @param relativeUrl relative url sent by C2 server
-     * @return an optional with content of finalised callback url
+     * @return finalised callback url
      */
-    Optional<String> getCallbackUrl(String absoluteUrl, String relativeUrl);
+    String getCallbackUrl(String absoluteUrl, String relativeUrl);
 }

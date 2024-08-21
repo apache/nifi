@@ -97,9 +97,11 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
     public C2OperationAck handle(C2Operation operation) {
         String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        Optional<String> callbackUrl =
-            c2Client.getCallbackUrl(getOperationArg(operation, ASSET_URL_KEY).orElse(EMPTY), getOperationArg(operation, ASSET_RELATIVE_URL_KEY).orElse(EMPTY));
-        if (callbackUrl.isEmpty()) {
+        String callbackUrl;
+
+        try {
+            callbackUrl = c2Client.getCallbackUrl(getOperationArg(operation, ASSET_URL_KEY).orElse(EMPTY), getOperationArg(operation, ASSET_RELATIVE_URL_KEY).orElse(EMPTY));
+        } catch (Exception e) {
             LOG.error("Callback URL could not be constructed from C2 request and current configuration");
             return operationAck(operationId, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
         }
@@ -114,7 +116,7 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
         LOG.info("Initiating asset update from url {} with name {}, force update is {}", callbackUrl, assetFileName, forceDownload);
 
         C2OperationState operationState = assetUpdatePrecondition.test(assetFileName.get(), forceDownload)
-            ? c2Client.retrieveUpdateAssetContent(callbackUrl.get())
+            ? c2Client.retrieveUpdateAssetContent(callbackUrl)
             .map(content -> assetPersistFunction.apply(assetFileName.get(), content)
                 ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)
                 : operationState(NOT_APPLIED, FAILED_TO_PERSIST_ASSET_TO_DISK))
