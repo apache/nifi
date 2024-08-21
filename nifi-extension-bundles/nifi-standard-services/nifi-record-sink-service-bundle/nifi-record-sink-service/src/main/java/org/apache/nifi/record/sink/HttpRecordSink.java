@@ -17,6 +17,7 @@
 
 package org.apache.nifi.record.sink;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -27,7 +28,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -45,6 +45,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -73,7 +74,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
             .name("Maximum Batch Size")
             .description("Specifies the maximum number of records to send in the body of each HTTP request. Zero means the batch size is not limited, "
                     + "and all records are sent together in a single HTTP request.")
-            .defaultValue("1")
+            .defaultValue("0")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
@@ -235,7 +236,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
         return writeResult;
     }
 
-    public void sendHttpRequest(final byte[] body, String mimeType) { // throws IOException {
+    public void sendHttpRequest(final byte[] body, String mimeType) throws IOException {
         final URI apiUri = URI.create(apiUrl);
         final HttpUriBuilder uriBuilder = webClientServiceProvider.getHttpUriBuilder()
                 .scheme(apiUri.getScheme())
@@ -268,10 +269,13 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
                 .retrieve()) {
             final int statusCode = response.statusCode();
             if (!(statusCode >= 200 && statusCode < 300)) {
-                throw new IOException("HTTP request failed with error code: " + statusCode);
+                throw new IOException(String.format("HTTP request failed with status code: %s for url: %s and returned response body: %s",
+                        statusCode, uri.toString(), response.body() == null ? "none" : IOUtils.toString(response.body(), StandardCharsets.UTF_8)));
             }
-        } catch (final IOException e) {
-            throw new ProcessException("HttpRecordSink HTTP request failed", e);
+        } catch (final IOException ioe) {
+            throw ioe;
+        } catch (final Exception e) {
+            throw new IOException(String.format("HttpRecordSink HTTP request transmission failed for url: %s", uri.toString()), e);
         }
     }
 }
