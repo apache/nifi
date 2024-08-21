@@ -128,7 +128,7 @@ public class DeleteS3Object extends AbstractS3Processor {
                 final DeleteVersionRequest r = new DeleteVersionRequest(bucket, key, versionId);
                 s3.deleteVersion(r);
             }
-        } catch (final AmazonServiceException ase) {
+        } catch (final IllegalArgumentException | AmazonServiceException ase) {
             flowFile = extractExceptionDetails(ase, session, flowFile);
             getLogger().error("Failed to delete S3 Object for {}; routing to failure", flowFile, ase);
             flowFile = session.penalize(flowFile);
