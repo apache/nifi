@@ -14,25 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.bootstrap;
+package org.apache.nifi.bootstrap.configuration;
 
-public class InvalidCommandException extends Exception {
+/**
+ * Enumeration of application class names for processes and logging
+ */
+public enum ApplicationClassName {
+    APPLICATION("org.apache.nifi.NiFi"),
 
-    private static final long serialVersionUID = 1L;
+    BOOTSTRAP_COMMAND("org.apache.nifi.bootstrap.Command");
 
-    public InvalidCommandException() {
-        super();
+    private final String name;
+
+    ApplicationClassName(final String name) {
+        this.name = name;
     }
 
-    public InvalidCommandException(final String message) {
-        super(message);
-    }
-
-    public InvalidCommandException(final Throwable t) {
-        super(t);
-    }
-
-    public InvalidCommandException(final String message, final Throwable t) {
-        super(message, t);
+    public String getName() {
+        return name;
     }
 }
