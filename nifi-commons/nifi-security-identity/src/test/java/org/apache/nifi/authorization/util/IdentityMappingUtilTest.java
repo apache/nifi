@@ -17,7 +17,6 @@
 package org.apache.nifi.authorization.util;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -25,24 +24,37 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 class IdentityMappingUtilTest {
+
+    private static final String MAPPING_KEY_DN = "dn";
+    private static final String MAPPING_KEY_LDAP = "ldap";
+    private static final String TRANSFORM_UPPER = "UPPER";
+    private static final String TRANSFORM_LOWER = "LOWER";
+    private static final String TRANSFORM_NONE = "NONE";
+    private static final String IDENTITY_DN = "CN=nifi-node1, ST=MD, C=US";
+    private static final String IDENTITY_NIFIADMIN = "nifiadmin";
+    private static final String MAPPED_IDENTITY_NODE1 = "nifi-node1";
+    private static final String MAPPED_IDENTITY_NIFIADMIN = "NIFIADMIN";
 
     @Test
     public void testIdentityMappingGeneration() {
         final Map<String, String> properties = new HashMap<>();
         properties.putAll(getDnProperties());
-        properties.putAll(getLdapProperties("UPPER"));
+        properties.putAll(getLdapProperties(TRANSFORM_UPPER));
         final NiFiProperties niFiProperties = new NiFiProperties(properties);
         final List<IdentityMapping> identityMappings = IdentityMappingUtil.getIdentityMappings(niFiProperties);
 
-        final Optional<IdentityMapping> dnMapping = identityMappings.stream().filter(im -> im.getKey().equals("dn")).findFirst();
-        final Optional<IdentityMapping> ldapMapping = identityMappings.stream().filter(im -> im.getKey().equals("ldap")).findFirst();
+        final Optional<IdentityMapping> dnMapping = identityMappings.stream().filter(im -> im.getKey().equals(MAPPING_KEY_DN)).findFirst();
+        final Optional<IdentityMapping> ldapMapping = identityMappings.stream().filter(im -> im.getKey().equals(MAPPING_KEY_LDAP)).findFirst();
 
-        Assertions.assertTrue(dnMapping.isPresent());
-        Assertions.assertEquals("NONE", dnMapping.get().getTransform().name());
+        assertTrue(dnMapping.isPresent());
+        assertEquals(TRANSFORM_NONE, dnMapping.get().getTransform().name());
 
-        Assertions.assertTrue(ldapMapping.isPresent());
-        Assertions.assertEquals("UPPER", ldapMapping.get().getTransform().name());
+        assertTrue(ldapMapping.isPresent());
+        assertEquals(TRANSFORM_UPPER, ldapMapping.get().getTransform().name());
     }
 
     // NIFI-13409 TC1
@@ -50,12 +62,12 @@ class IdentityMappingUtilTest {
     public void testMappingIdentity() {
         final Map<String, String> properties = new HashMap<>();
         properties.putAll(getDnProperties());
-        properties.putAll(getLdapProperties("UPPER"));
+        properties.putAll(getLdapProperties(TRANSFORM_UPPER));
         final NiFiProperties niFiProperties = new NiFiProperties(properties);
 
         final List<IdentityMapping> identityMappings = IdentityMappingUtil.getIdentityMappings(niFiProperties);
-        Assertions.assertEquals("nifi-node1", IdentityMappingUtil.mapIdentity("CN=nifi-node1, ST=MD, C=US", identityMappings));
-        Assertions.assertEquals("NIFIADMIN", IdentityMappingUtil.mapIdentity("nifiadmin", identityMappings));
+        assertEquals(MAPPED_IDENTITY_NODE1, IdentityMappingUtil.mapIdentity(IDENTITY_DN, identityMappings));
+        assertEquals(MAPPED_IDENTITY_NIFIADMIN, IdentityMappingUtil.mapIdentity(IDENTITY_NIFIADMIN, identityMappings));
     }
 
     // NIFI-13409 TC2
@@ -63,13 +75,13 @@ class IdentityMappingUtilTest {
     public void testMappingIdentityWithTwoInclusiveMappings() {
         final Map<String, String> properties = new HashMap<>();
         properties.putAll(getDnProperties());
-        properties.putAll(getLdapProperties("UPPER"));
-        properties.putAll(getUsernameProperties("LOWER"));
+        properties.putAll(getLdapProperties(TRANSFORM_UPPER));
+        properties.putAll(getUsernameProperties(TRANSFORM_LOWER));
         final NiFiProperties niFiProperties = new NiFiProperties(properties);
 
         final List<IdentityMapping> identityMappings = IdentityMappingUtil.getIdentityMappings(niFiProperties);
-        Assertions.assertEquals("nifi-node1", IdentityMappingUtil.mapIdentity("CN=nifi-node1, ST=MD, C=US", identityMappings));
-        Assertions.assertEquals("NIFIADMIN", IdentityMappingUtil.mapIdentity("nifiadmin", identityMappings));
+        assertEquals(MAPPED_IDENTITY_NODE1, IdentityMappingUtil.mapIdentity(IDENTITY_DN, identityMappings));
+        assertEquals(MAPPED_IDENTITY_NIFIADMIN, IdentityMappingUtil.mapIdentity(IDENTITY_NIFIADMIN, identityMappings));
     }
 
     // NIFI-13409 TC3
@@ -77,13 +89,13 @@ class IdentityMappingUtilTest {
     public void testMappingIdentityWithTwoInclusiveMappingsReversed() {
         final Map<String, String> properties = new HashMap<>();
         properties.putAll(getDnProperties());
-        properties.putAll(getLdapProperties("LOWER"));
-        properties.putAll(getUsernameProperties("UPPER"));
+        properties.putAll(getLdapProperties(TRANSFORM_LOWER));
+        properties.putAll(getUsernameProperties(TRANSFORM_UPPER));
         final NiFiProperties niFiProperties = new NiFiProperties(properties);
 
         final List<IdentityMapping> identityMappings = IdentityMappingUtil.getIdentityMappings(niFiProperties);
-        Assertions.assertEquals("nifi-node1", IdentityMappingUtil.mapIdentity("CN=nifi-node1, ST=MD, C=US", identityMappings));
-        Assertions.assertEquals("nifiadmin", IdentityMappingUtil.mapIdentity("nifiadmin", identityMappings));
+        assertEquals(MAPPED_IDENTITY_NODE1, IdentityMappingUtil.mapIdentity(IDENTITY_DN, identityMappings));
+        assertEquals(IDENTITY_NIFIADMIN, IdentityMappingUtil.mapIdentity(IDENTITY_NIFIADMIN, identityMappings));
     }
 
     // NIFI-13409 TC4
@@ -91,13 +103,13 @@ class IdentityMappingUtilTest {
     public void testMappingIdentityWithPrefixedMapping() {
         final Map<String, String> properties = new HashMap<>();
         properties.putAll(getDnProperties());
-        properties.putAll(getLdapPropertiesWithPrefix("LOWER"));
-        properties.putAll(getUsernameProperties("UPPER"));
+        properties.putAll(getLdapPropertiesWithPrefix(TRANSFORM_LOWER));
+        properties.putAll(getUsernameProperties(TRANSFORM_UPPER));
         final NiFiProperties niFiProperties = new NiFiProperties(properties);
 
         final List<IdentityMapping> identityMappings = IdentityMappingUtil.getIdentityMappings(niFiProperties);
-        Assertions.assertEquals("nifi-node1", IdentityMappingUtil.mapIdentity("CN=nifi-node1, ST=MD, C=US", identityMappings));
-        Assertions.assertEquals("NIFIADMIN", IdentityMappingUtil.mapIdentity("nifiadmin", identityMappings));
+        assertEquals(MAPPED_IDENTITY_NODE1, IdentityMappingUtil.mapIdentity(IDENTITY_DN, identityMappings));
+        assertEquals(MAPPED_IDENTITY_NIFIADMIN, IdentityMappingUtil.mapIdentity(IDENTITY_NIFIADMIN, identityMappings));
     }
 
     // NIFI-13409 TC5
@@ -105,19 +117,19 @@ class IdentityMappingUtilTest {
     public void testMappingIdentityWithThreeDifferentMappings() {
         final Map<String, String> properties = new HashMap<>();
         properties.putAll(getDnProperties());
-        properties.putAll(getLdapPropertiesWithPrefix("LOWER"));
-        properties.putAll(getUsernamePropertiesWithPostfix("UPPER"));
+        properties.putAll(getLdapPropertiesWithPrefix(TRANSFORM_LOWER));
+        properties.putAll(getUsernamePropertiesWithPostfix(TRANSFORM_UPPER));
         final NiFiProperties niFiProperties = new NiFiProperties(properties);
 
         final List<IdentityMapping> identityMappings = IdentityMappingUtil.getIdentityMappings(niFiProperties);
-        Assertions.assertEquals("nifi-node1", IdentityMappingUtil.mapIdentity("CN=nifi-node1, ST=MD, C=US", identityMappings));
-        Assertions.assertEquals("NIFIADMIN.TEST", IdentityMappingUtil.mapIdentity("nifiadmin", identityMappings));
+        assertEquals(MAPPED_IDENTITY_NODE1, IdentityMappingUtil.mapIdentity(IDENTITY_DN, identityMappings));
+        assertEquals("NIFIADMIN.TEST", IdentityMappingUtil.mapIdentity(IDENTITY_NIFIADMIN, identityMappings));
     }
 
     private static Map<String, String> getDnProperties() {
         final Map<String, String> values = new HashMap<>();
         values.put("nifi.security.identity.mapping.pattern.dn", "^CN=(.*?),\\s{0,1}.+$");
-        values.put("nifi.security.identity.mapping.transform.dn", "NONE");
+        values.put("nifi.security.identity.mapping.transform.dn", TRANSFORM_NONE);
         values.put("nifi.security.identity.mapping.value.dn", "$1");
         return values;
     }
@@ -138,7 +150,7 @@ class IdentityMappingUtilTest {
         return values;
     }
 
-    private static Map<String, String> getUsernameProperties(String transform) {
+    private static Map<String, String> getUsernameProperties(final String transform) {
         final Map<String, String> values = new HashMap<>();
         values.put("nifi.security.identity.mapping.pattern.username", "^(.*)$");
         values.put("nifi.security.identity.mapping.transform.username", transform);
@@ -146,7 +158,7 @@ class IdentityMappingUtilTest {
         return values;
     }
 
-    private static Map<String, String> getUsernamePropertiesWithPostfix(String transform) {
+    private static Map<String, String> getUsernamePropertiesWithPostfix(final String transform) {
         final Map<String, String> values = new HashMap<>();
         values.put("nifi.security.identity.mapping.pattern.username", "^(.*)$");
         values.put("nifi.security.identity.mapping.transform.username", transform);

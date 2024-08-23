@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -141,6 +143,28 @@ public class IdentityMappingUtil {
      * @return the mapped identity, or the same identity if no mappings matched
      */
     public static String mapIdentity(final String identity, List<IdentityMapping> mappings) {
+        final TreeMap<String, IdentityMapping> mappingsInOrderByKey = new TreeMap<>();
+        mappings.forEach(m -> mappingsInOrderByKey.put(m.getKey(), m));
+
+        for (final Map.Entry<String, IdentityMapping> mappingEntry : mappingsInOrderByKey.entrySet()) {
+            final IdentityMapping mapping = mappingEntry.getValue();
+            final Matcher m = mapping.getPattern().matcher(identity);
+            if (m.matches()) {
+                final String pattern = mapping.getPattern().pattern();
+                final String replacementValue = escapeLiteralBackReferences(mapping.getReplacementValue(), m.groupCount());
+                final String replacement = identity.replaceAll(pattern, replacementValue);
+
+                if (Transform.UPPER.equals(mapping.getTransform())) {
+                    return replacement.toUpperCase();
+                } else if (Transform.LOWER.equals(mapping.getTransform())) {
+                    return replacement.toLowerCase();
+                } else {
+                    return replacement;
+                }
+            }
+        }
+
+
         final List<String> keys = mappings.stream().map(m -> m.getKey()).collect(Collectors.toList());
         Collections.sort(keys);
 
