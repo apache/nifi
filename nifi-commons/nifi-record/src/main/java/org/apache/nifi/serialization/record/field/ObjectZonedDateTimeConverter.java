@@ -83,7 +83,7 @@ public class ObjectZonedDateTimeConverter implements FieldConverter<Object, Zone
                     if (matcher.matches()) {
                         return ZonedDateTime.parse(string, formatter);
                     } else {
-                        LocalDateTime localDateTime = LocalDateTime.parse(string, formatter);
+                        final LocalDateTime localDateTime = LocalDateTime.parse(string, formatter);
                         return ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
                     }
                 } catch (final DateTimeParseException e) {
