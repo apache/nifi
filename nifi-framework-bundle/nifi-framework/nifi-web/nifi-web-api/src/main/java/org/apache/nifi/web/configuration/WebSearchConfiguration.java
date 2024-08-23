@@ -22,6 +22,7 @@ import org.apache.nifi.web.controller.ControllerSearchService;
 import org.apache.nifi.web.search.ComponentMatcherFactory;
 import org.apache.nifi.web.search.attributematchers.BackPressureMatcher;
 import org.apache.nifi.web.search.attributematchers.BasicMatcher;
+import org.apache.nifi.web.search.attributematchers.BundleMatcher;
 import org.apache.nifi.web.search.attributematchers.ConnectionMatcher;
 import org.apache.nifi.web.search.attributematchers.ConnectionRelationshipMatcher;
 import org.apache.nifi.web.search.attributematchers.ConnectivityMatcher;
@@ -95,6 +96,7 @@ public class WebSearchConfiguration {
         controllerSearchService.setMatcherForControllerServiceNode(factory.getInstanceForControllerServiceNode(
                 List.of(
                         new ControllerServiceNodeMatcher(),
+                        new BundleMatcher<>(),
                         new PropertyMatcher<>()
                 )
         ));
@@ -153,6 +155,7 @@ public class WebSearchConfiguration {
                         new ScheduledStateMatcher(),
                         new RelationshipMatcher<>(),
                         new ProcessorMetadataMatcher(),
+                        new BundleMatcher<>(),
                         new PropertyMatcher<>(),
                         searchableMatcher
                 )
