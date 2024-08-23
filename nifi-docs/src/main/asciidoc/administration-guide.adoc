@@ -49,10 +49,6 @@ NOTE: Under sustained and extremely high throughput the CodeCache settings may n
 *** `stop`: stops NiFi that is running in the background
 *** `status`: provides the current status of NiFi
 *** `run`: runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
-*** `install`: installs NiFi as a service that can then be controlled via
-**** `service nifi start`
-**** `service nifi stop`
-**** `service nifi status`
 
 * Windows
 ** Decompress into the desired installation directory
