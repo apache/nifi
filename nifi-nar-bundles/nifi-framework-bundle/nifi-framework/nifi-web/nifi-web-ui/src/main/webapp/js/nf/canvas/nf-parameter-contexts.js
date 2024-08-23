@@ -2194,7 +2194,7 @@
                     infoIcon.qtip($.extend({},
                         nfCommon.config.tooltipConfig,
                         {
-                            content: parameter.description
+                            content: nfCommon.escapeHtml(parameter.description)
                         }));
                 }
             }
