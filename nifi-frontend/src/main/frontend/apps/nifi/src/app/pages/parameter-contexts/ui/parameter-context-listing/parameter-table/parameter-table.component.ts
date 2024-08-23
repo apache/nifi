@@ -365,19 +365,22 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
 
         let hasChanged: boolean = response.valueChanged;
 
-        // a value has been specified so record it in the updated entity
-        if (parameter.value !== null) {
+        if (response.valueChanged) {
             item.updatedEntity.parameter.value = parameter.value;
-            item.updatedEntity.parameter.valueRemoved = undefined;
-            item.updatedEntity.parameter.referencedAssets = undefined;
-        } else {
-            // the value is null, this means that the value should be unchanged
-            // or that the value has been removed. if removed we should
-            // clear our the value.
-            if (parameter.valueRemoved === true) {
-                item.updatedEntity.parameter.value = null;
-                item.updatedEntity.parameter.valueRemoved = true;
+
+            // a value has been specified so record it in the updated entity
+            if (parameter.value !== null) {
+                item.updatedEntity.parameter.valueRemoved = undefined;
                 item.updatedEntity.parameter.referencedAssets = undefined;
+            } else {
+                // the value is null, this means that the value should be unchanged
+                // or that the value has been removed. if removed we should
+                // clear our the value.
+                if (parameter.valueRemoved === true) {
+                    item.updatedEntity.parameter.value = null;
+                    item.updatedEntity.parameter.valueRemoved = true;
+                    item.updatedEntity.parameter.referencedAssets = undefined;
+                }
             }
         }
 
@@ -411,7 +414,6 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
             }
 
             item.updatedEntity.parameter.value = null;
-            item.updatedEntity.parameter.valueRemoved = true;
             item.updatedEntity.parameter.referencedAssets = undefined;
 
             item.deleted = true;
