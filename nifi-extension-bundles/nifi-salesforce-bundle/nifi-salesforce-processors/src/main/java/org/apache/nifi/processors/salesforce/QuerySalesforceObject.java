@@ -252,8 +252,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
     public static final String LAST_AGE_FILTER = "last_age_filter";
     private static final String STARTING_FIELD_NAME = "records";
     private static final String DATE_FORMAT = "yyyy-MM-dd";
-    private static final String TIME_FORMAT = "HH:mm:ss.SSSX";
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ";
+    private static final String TIME_FORMAT = "HH:mm:ss.SSSZ";
+    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
     private static final String NEXT_RECORDS_URL = "nextRecordsUrl";
     private static final String TOTAL_SIZE = "totalSize";
     private static final String RECORDS = "records";
