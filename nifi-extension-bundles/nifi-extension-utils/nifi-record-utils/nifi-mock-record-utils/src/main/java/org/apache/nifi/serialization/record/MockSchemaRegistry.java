@@ -17,12 +17,12 @@
 
 package org.apache.nifi.serialization.record;
 
-import org.apache.commons.lang3.tuple.Triple;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.util.Tuple;
+import org.apache.nifi.util.Triple;
 
 import java.util.EnumSet;
 import java.util.Optional;
@@ -49,7 +49,7 @@ public class MockSchemaRegistry extends AbstractControllerService implements Sch
     }
 
     public void addSchema(final String name, final String branch, final Integer version, final RecordSchema schema) {
-        schemaNameMap.put(Triple.of(name, branch, version), schema);
+        schemaNameMap.put(new Triple<>(name, branch, version), schema);
     }
 
     RecordSchema retrieveSchemaByName(final SchemaIdentifier schemaIdentifier) throws SchemaNotFoundException {
@@ -60,7 +60,7 @@ public class MockSchemaRegistry extends AbstractControllerService implements Sch
 
         final String schemaBranch = schemaIdentifier.getBranch().orElse(null);
         final Integer schemaVersion =  schemaIdentifier.getVersion().isPresent() ? schemaIdentifier.getVersion().getAsInt() : null;
-        return schemaNameMap.get(Triple.of(schemaName.get(), schemaBranch, schemaVersion));
+        return schemaNameMap.get(new Triple<>(schemaName.get(), schemaBranch, schemaVersion));
     }
 
     private RecordSchema retrieveSchemaByIdAndVersion(final SchemaIdentifier schemaIdentifier) throws SchemaNotFoundException {
