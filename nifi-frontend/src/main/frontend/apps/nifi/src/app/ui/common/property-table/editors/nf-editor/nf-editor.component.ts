@@ -133,6 +133,7 @@ export class NfEditor implements OnDestroy {
             const clearSensitiveHelperText = () => {
                 if (this.showSensitiveHelperText) {
                     this.nfEditorForm.get('value')?.setValue('');
+                    this.nfEditorForm.get('value')?.markAsDirty();
                     this.showSensitiveHelperText = false;
                 }
             };
