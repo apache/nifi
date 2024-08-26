@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { EditParameterRequest, EditParameterResponse, Parameter, ReferencedAsset } from '../../../state/shared';
+import { EditParameterRequest, EditParameterResponse, Parameter } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
 import {
     AbstractControl,
@@ -67,6 +67,8 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
     sensitive: FormControl;
     editParameterForm: FormGroup;
     isNew: boolean;
+    showSensitiveHelperText: boolean = false;
+    valueInputTriggered: boolean = false;
 
     private originalParameter: Parameter | undefined = undefined;
 
@@ -81,9 +83,13 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
         const parameter: Parameter | undefined = request.parameter;
         this.originalParameter = parameter;
 
+        let value: string | null;
+
         const validators: any[] = [Validators.required];
         if (request.existingParameters) {
             this.isNew = true;
+
+            value = parameter ? parameter.value : null;
 
             // since there were existing parameters in the request, add the existing parameters validator because
             // parameters names must be unique
@@ -100,20 +106,25 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
         } else {
             this.isNew = false;
 
+            value = parameter ? parameter.value : null;
+
+            const sensitive = parameter ? parameter.sensitive : false;
+            if (sensitive && value !== null) {
+                value = 'Sensitive value set';
+                this.showSensitiveHelperText = true;
+            }
+
             // without existingParameters, we are editing an existing parameter. in this case the name and sensitivity cannot be modified
             this.name = new FormControl(
                 { value: parameter ? parameter.name : '', disabled: true },
                 Validators.required
             );
-            this.sensitive = new FormControl(
-                { value: parameter ? parameter.sensitive : false, disabled: true },
-                Validators.required
-            );
+            this.sensitive = new FormControl({ value: sensitive, disabled: true }, Validators.required);
         }
 
         this.editParameterForm = this.formBuilder.group({
             name: this.name,
-            value: new FormControl(parameter ? parameter.value : null),
+            value: new FormControl(value),
             empty: new FormControl(parameter ? parameter.value == '' : false),
             sensitive: this.sensitive,
             description: new FormControl(parameter ? parameter.description : '')
@@ -146,12 +157,23 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
         return this.name.hasError('existingParameter') ? 'A parameter with this name already exists.' : '';
     }
 
+    clearSensitiveHelperText(): void {
+        if (this.showSensitiveHelperText) {
+            this.editParameterForm.get('value')?.setValue('');
+            this.showSensitiveHelperText = false;
+        }
+
+        this.valueInputTriggered = true;
+    }
+
     setEmptyStringChanged(): void {
         const emptyStringChecked: AbstractControl | null = this.editParameterForm.get('empty');
         if (emptyStringChecked) {
             if (emptyStringChecked.value) {
                 this.editParameterForm.get('value')?.setValue('');
                 this.editParameterForm.get('value')?.disable();
+
+                this.valueInputTriggered = true;
             } else {
                 this.editParameterForm.get('value')?.enable();
             }
@@ -162,24 +184,50 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
         this.cancel.next();
     }
 
-    okClicked(): void {
-        const value: string = this.editParameterForm.get('value')?.value;
-        const empty: boolean = this.editParameterForm.get('empty')?.value;
-        let referencedAssets: ReferencedAsset[] | undefined = undefined;
-
+    private valueChanged(enteredValue: string | null): boolean {
+        let valueChanged = true;
         if (this.originalParameter) {
-            referencedAssets = this.originalParameter.referencedAssets;
+            if (this.originalParameter.sensitive) {
+                valueChanged = this.valueInputTriggered;
+            } else {
+                valueChanged = enteredValue !== this.originalParameter.value;
+            }
+        }
+        return valueChanged;
+    }
+
+    okClicked(): void {
+        const value: string | null = this.editParameterForm.get('value')?.value;
+        const empty: boolean = this.editParameterForm.get('empty')?.value;
+
+        const parameter: Parameter = {
+            name: this.editParameterForm.get('name')?.value,
+            value: null,
+            sensitive: this.editParameterForm.get('sensitive')?.value,
+            description: this.editParameterForm.get('description')?.value
+        };
+
+        // update the parameter value
+        let valueChanged = this.valueChanged(value);
+        if (valueChanged) {
+            parameter.value = value;
+        }
+
+        // indicate if the value has been removed
+        const valueRemoved = value === '' && !empty;
+        if (valueRemoved) {
+            valueChanged = true;
+            parameter.value = null;
+
+            // if this is a new parameter there is no need to indicate that the value is removed
+            if (!this.isNew) {
+                parameter.valueRemoved = true;
+            }
         }
 
         this.editParameter.next({
-            parameter: {
-                name: this.editParameterForm.get('name')?.value,
-                value: value === '' && !empty ? null : value,
-                valueRemoved: value === '' && !empty,
-                sensitive: this.editParameterForm.get('sensitive')?.value,
-                description: this.editParameterForm.get('description')?.value,
-                referencedAssets
-            }
+            parameter,
+            valueChanged
         });
     }
 

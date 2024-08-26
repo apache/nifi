@@ -23,7 +23,7 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
-import { Parameter, ParameterEntity } from '../../../../../state/shared';
+import { EditParameterResponse, Parameter, ParameterEntity } from '../../../../../state/shared';
 import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
 import { Observable, take } from 'rxjs';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
@@ -37,7 +37,8 @@ export interface ParameterItem {
     deleted: boolean;
     dirty: boolean;
     added: boolean;
-    entity: ParameterEntity;
+    originalEntity: ParameterEntity; // either new or existing from server
+    updatedEntity?: ParameterEntity;
 }
 
 @Component({
@@ -70,8 +71,8 @@ export interface ParameterItem {
     ]
 })
 export class ParameterTable implements AfterViewInit, ControlValueAccessor {
-    @Input() createNewParameter!: (existingParameters: string[]) => Observable<Parameter>;
-    @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
+    @Input() createNewParameter!: (existingParameters: string[]) => Observable<EditParameterResponse>;
+    @Input() editParameter!: (parameter: Parameter) => Observable<EditParameterResponse>;
     @Input() canAddParameters = true;
 
     protected readonly TextTip = TextTip;
@@ -128,10 +129,11 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
                 deleted: false,
                 added: false,
                 dirty: false,
-                entity: {
+                originalEntity: {
                     ...entity,
                     parameter: {
-                        ...entity.parameter
+                        ...entity.parameter,
+                        value: entity.parameter.value === undefined ? null : entity.parameter.value
                     }
                 }
             };
@@ -161,7 +163,10 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
             let retVal = 0;
             switch (sort.active) {
                 case 'name':
-                    retVal = this.nifiCommon.compareString(a.entity.parameter.name, b.entity.parameter.name);
+                    retVal = this.nifiCommon.compareString(
+                        a.originalEntity.parameter.name,
+                        b.originalEntity.parameter.name
+                    );
                     break;
                 default:
                     return 0;
@@ -176,25 +181,27 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         // unmarked for deletion if the user chooses to enter the same name
         const existingParameters: string[] = this.dataSource.data
             .filter((item) => !item.deleted)
-            .filter((item) => !item.entity.parameter.inherited)
-            .map((item) => item.entity.parameter.name);
+            .filter((item) => !item.originalEntity.parameter.inherited)
+            .map((item) => item.originalEntity.parameter.name);
 
         this.createNewParameter(existingParameters)
             .pipe(take(1))
-            .subscribe((parameter) => {
+            .subscribe((response: EditParameterResponse) => {
+                const parameter: Parameter = response.parameter;
+
                 const currentParameterItems: ParameterItem[] = this.dataSource.data;
 
                 // identify if a parameter with the same name already exists (must have been marked
                 // for deletion already)
                 const item: ParameterItem | undefined = currentParameterItems.find(
-                    (item) => item.entity.parameter.name === parameter.name
+                    (item) => item.originalEntity.parameter.name === parameter.name
                 );
 
                 if (item) {
                     // if the item is added that means it hasn't been saved yet. in this case, we
                     // can simply update the existing parameter. if the item has been saved, and the
                     // sensitivity has changed, the user must apply the changes first.
-                    if (!item.added && item.entity.parameter.sensitive !== parameter.sensitive) {
+                    if (!item.added && item.originalEntity.parameter.sensitive !== parameter.sensitive) {
                         this.store.dispatch(
                             showOkDialog({
                                 title: 'Parameter Exists',
@@ -208,15 +215,21 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
                     // update the existing item
                     item.deleted = false;
                     item.dirty = true;
-                    item.entity.parameter = {
-                        ...parameter
-                    };
+
+                    // since the item is either new or the sensitivity is the same, accept the sensitivity
+                    // from the response to be set on the entities
+                    item.originalEntity.parameter.sensitive = parameter.sensitive;
+                    if (item.updatedEntity) {
+                        item.updatedEntity.parameter.sensitive = parameter.sensitive;
+                    }
+
+                    this.applyParameterEdit(item, response);
                 } else {
                     const newItem: ParameterItem = {
                         deleted: false,
                         added: true,
                         dirty: true,
-                        entity: {
+                        originalEntity: {
                             canWrite: true,
                             parameter: {
                                 ...parameter
@@ -232,11 +245,36 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     hasDescription(item: ParameterItem): boolean {
-        return !this.nifiCommon.isBlank(item.entity.parameter.description);
+        return !this.nifiCommon.isBlank(this.getDescription(item));
+    }
+
+    getDescription(item: ParameterItem): string {
+        if (item.updatedEntity) {
+            return item.updatedEntity.parameter.description;
+        } else {
+            return item.originalEntity.parameter.description;
+        }
     }
 
     isSensitiveParameter(item: ParameterItem): boolean {
-        return item.entity.parameter.sensitive;
+        return item.originalEntity.parameter.sensitive;
+    }
+
+    getValue(item: ParameterItem): string | null {
+        if (item.updatedEntity) {
+            if (item.updatedEntity.parameter.valueRemoved) {
+                return null;
+            } else {
+                // if there is an updated value use that, otherwise the original
+                if (item.updatedEntity.parameter.value !== null) {
+                    return item.updatedEntity.parameter.value;
+                } else {
+                    return item.originalEntity.parameter.value;
+                }
+            }
+        } else {
+            return item.originalEntity.parameter.value;
+        }
     }
 
     isNull(value: string): boolean {
@@ -253,35 +291,37 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
 
     canGoToParameter(item: ParameterItem): boolean {
         return (
-            item.entity.parameter.inherited === true &&
-            item.entity.parameter.parameterContext?.permissions.canRead == true
+            item.originalEntity.parameter.inherited === true &&
+            item.originalEntity.parameter.parameterContext?.permissions.canRead == true
         );
     }
 
     getParameterLink(item: ParameterItem): string[] {
-        if (item.entity.parameter.parameterContext) {
+        if (item.originalEntity.parameter.parameterContext) {
             // TODO - support routing directly to a parameter
-            return ['/parameter-contexts', item.entity.parameter.parameterContext.id, 'edit'];
+            return ['/parameter-contexts', item.originalEntity.parameter.parameterContext.id, 'edit'];
         }
         return [];
     }
 
     canOverride(item: ParameterItem): boolean {
-        return item.entity.parameter.inherited === true;
+        return item.originalEntity.parameter.inherited === true;
     }
 
     overrideParameter(item: ParameterItem): void {
         const overriddenParameter: Parameter = {
-            ...item.entity.parameter,
+            ...item.originalEntity.parameter,
             value: null
         };
 
         this.editParameter(overriddenParameter)
             .pipe(take(1))
-            .subscribe((parameter) => {
+            .subscribe((response) => {
                 item.dirty = true;
-                item.entity.parameter = {
-                    ...parameter
+                item.updatedEntity = {
+                    parameter: {
+                        ...response.parameter
+                    }
                 };
 
                 this.handleChanged();
@@ -289,46 +329,93 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
     }
 
     canEdit(item: ParameterItem): boolean {
-        const canWrite: boolean = item.entity.canWrite == true;
-        const provided: boolean = item.entity.parameter.provided == true;
-        const inherited: boolean = item.entity.parameter.inherited == true;
+        const canWrite: boolean = item.originalEntity.canWrite == true;
+        const provided: boolean = item.originalEntity.parameter.provided == true;
+        const inherited: boolean = item.originalEntity.parameter.inherited == true;
         return canWrite && !provided && !inherited;
     }
 
     editClicked(item: ParameterItem): void {
-        this.editParameter(item.entity.parameter)
+        const parameterToEdit: Parameter = {
+            name: item.originalEntity.parameter.name,
+            sensitive: item.originalEntity.parameter.sensitive,
+            description: this.getDescription(item),
+            value: this.getValue(item)
+        };
+
+        this.editParameter(parameterToEdit)
             .pipe(take(1))
-            .subscribe((parameter) => {
-                const valueChanged: boolean = item.entity.parameter.value != parameter.value;
-                const descriptionChanged: boolean = item.entity.parameter.description != parameter.description;
-                const valueRemovedChanged: boolean = item.entity.parameter.valueRemoved != parameter.valueRemoved;
-
-                if (valueChanged || descriptionChanged || valueRemovedChanged) {
-                    item.entity.parameter.value = parameter.value;
-                    item.entity.parameter.description = parameter.description;
-                    item.entity.parameter.valueRemoved = parameter.valueRemoved;
-                    item.dirty = true;
-
-                    if (valueChanged) {
-                        item.entity.parameter.referencedAssets = undefined;
-                    }
-
-                    this.handleChanged();
-                }
+            .subscribe((response) => {
+                this.applyParameterEdit(item, response);
             });
     }
 
+    private applyParameterEdit(item: ParameterItem, response: EditParameterResponse) {
+        const parameter: Parameter = response.parameter;
+
+        // initialize the updated entity if this is the first time this has been edited
+        if (!item.updatedEntity) {
+            item.updatedEntity = {
+                parameter: {
+                    ...item.originalEntity.parameter,
+                    value: null
+                }
+            };
+        }
+
+        let hasChanged: boolean = response.valueChanged;
+
+        if (response.valueChanged) {
+            item.updatedEntity.parameter.value = parameter.value;
+
+            // a value has been specified so record it in the updated entity
+            if (parameter.value !== null) {
+                item.updatedEntity.parameter.valueRemoved = undefined;
+                item.updatedEntity.parameter.referencedAssets = undefined;
+            } else {
+                // the value is null, this means that the value should be unchanged
+                // or that the value has been removed. if removed we should
+                // clear our the value.
+                if (parameter.valueRemoved === true) {
+                    item.updatedEntity.parameter.value = null;
+                    item.updatedEntity.parameter.valueRemoved = true;
+                    item.updatedEntity.parameter.referencedAssets = undefined;
+                }
+            }
+        }
+
+        if (item.updatedEntity.parameter.description !== parameter.description) {
+            hasChanged = true;
+            item.updatedEntity.parameter.description = parameter.description;
+        }
+
+        // if any aspect of the parameter has changed, mark it dirty and trigger handle changed
+        if (hasChanged) {
+            item.dirty = true;
+            this.handleChanged();
+        }
+    }
+
     canDelete(item: ParameterItem): boolean {
-        const canWrite: boolean = item.entity.canWrite == true;
-        const provided: boolean = item.entity.parameter.provided == true;
-        const inherited: boolean = item.entity.parameter.inherited == true;
+        const canWrite: boolean = item.originalEntity.canWrite == true;
+        const provided: boolean = item.originalEntity.parameter.provided == true;
+        const inherited: boolean = item.originalEntity.parameter.inherited == true;
         return canWrite && !provided && !inherited;
     }
 
     deleteClicked(item: ParameterItem): void {
         if (!item.deleted) {
-            item.entity.parameter.value = null;
-            item.entity.parameter.valueRemoved = true;
+            if (!item.updatedEntity) {
+                item.updatedEntity = {
+                    parameter: {
+                        ...item.originalEntity.parameter
+                    }
+                };
+            }
+
+            item.updatedEntity.parameter.value = null;
+            item.updatedEntity.parameter.referencedAssets = undefined;
+
             item.deleted = true;
             item.dirty = true;
             this.selectParameter(null);
@@ -360,20 +447,34 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
             .filter((item) => !(item.added && item.deleted))
             .map((item) => {
                 if (item.deleted) {
+                    // item is deleted
                     return {
                         parameter: {
-                            name: item.entity.parameter.name
+                            name: item.originalEntity.parameter.name
+                        }
+                    };
+                } else if (item.updatedEntity) {
+                    // item has been edited
+                    return {
+                        parameter: {
+                            name: item.originalEntity.parameter.name,
+                            sensitive: item.originalEntity.parameter.sensitive,
+                            description: item.updatedEntity.parameter.description,
+                            value: item.updatedEntity.parameter.value,
+                            valueRemoved: item.updatedEntity.parameter.valueRemoved,
+                            referencedAssets: item.updatedEntity.parameter.referencedAssets
                         }
                     };
                 } else {
+                    // item is added (but not subsequently edited)
                     return {
                         parameter: {
-                            name: item.entity.parameter.name,
-                            sensitive: item.entity.parameter.sensitive,
-                            description: item.entity.parameter.description,
-                            value: item.entity.parameter.value,
-                            valueRemoved: item.entity.parameter.valueRemoved,
-                            referencedAssets: item.entity.parameter.referencedAssets
+                            name: item.originalEntity.parameter.name,
+                            sensitive: item.originalEntity.parameter.sensitive,
+                            description: item.originalEntity.parameter.description,
+                            value: item.originalEntity.parameter.value,
+                            valueRemoved: item.originalEntity.parameter.valueRemoved,
+                            referencedAssets: item.originalEntity.parameter.referencedAssets
                         }
                     };
                 }
@@ -386,7 +487,7 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
 
     isSelected(item: ParameterItem): boolean {
         if (this.selectedItem) {
-            return item.entity.parameter.name == this.selectedItem.entity.parameter.name;
+            return item.originalEntity.parameter.name == this.selectedItem.originalEntity.parameter.name;
         }
         return false;
     }

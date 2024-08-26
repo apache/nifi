@@ -50,6 +50,7 @@ export interface EditParameterRequest {
 
 export interface EditParameterResponse {
     parameter: Parameter;
+    valueChanged: boolean;
 }
 
 export interface AdvancedUiParams {

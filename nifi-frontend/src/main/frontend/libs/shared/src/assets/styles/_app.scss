@@ -56,8 +56,8 @@
     .unset,
     .sensitive {
         font-weight: normal !important;
-        font-style: italic;
-        opacity: 0.8;
+        font-style: italic !important;
+        opacity: 0.8 !important;
     }
 
     .context-logo {

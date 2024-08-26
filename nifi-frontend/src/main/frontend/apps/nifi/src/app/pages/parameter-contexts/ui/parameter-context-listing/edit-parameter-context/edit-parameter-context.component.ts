@@ -31,6 +31,7 @@ import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spin
 import { Client } from '../../../../../service/client.service';
 import { ParameterTable } from '../parameter-table/parameter-table.component';
 import {
+    EditParameterResponse,
     Parameter,
     ParameterContextEntity,
     ParameterContextUpdateRequestEntity,
@@ -73,8 +74,8 @@ import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
     styleUrls: ['./edit-parameter-context.component.scss']
 })
 export class EditParameterContext extends TabbedDialog {
-    @Input() createNewParameter!: (existingParameters: string[]) => Observable<Parameter>;
-    @Input() editParameter!: (parameter: Parameter) => Observable<Parameter>;
+    @Input() createNewParameter!: (existingParameters: string[]) => Observable<EditParameterResponse>;
+    @Input() editParameter!: (parameter: Parameter) => Observable<EditParameterResponse>;
     @Input() updateRequest!: Observable<ParameterContextUpdateRequestEntity | null>;
     @Input() availableParameterContexts$!: Observable<ParameterContextEntity[]>;
     @Input() saving$!: Observable<boolean>;
