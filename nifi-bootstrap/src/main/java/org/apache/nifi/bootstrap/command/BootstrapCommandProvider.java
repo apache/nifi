@@ -14,11 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi;
+package org.apache.nifi.bootstrap.command;
 
-public interface NiFiEntryPoint {
-
-    NiFiServer getServer();
-
-    void shutdownHook(boolean isReload);
+/**
+ * Abstraction for parsing arguments and returning runnable Bootstrap Command
+ */
+public interface BootstrapCommandProvider {
+    /**
+     * Get Bootstrap Command
+     *
+     * @param arguments Application arguments
+     * @return Bootstrap Command to run
+     */
+    BootstrapCommand getBootstrapCommand(String[] arguments);
 }

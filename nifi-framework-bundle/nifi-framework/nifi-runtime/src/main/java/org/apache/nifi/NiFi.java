@@ -25,6 +25,8 @@ import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.runtime.ManagementServer;
+import org.apache.nifi.runtime.StandardManagementServer;
 import org.apache.nifi.util.DiagnosticUtils;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -38,6 +40,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -50,18 +53,31 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-public class NiFi implements NiFiEntryPoint {
+public class NiFi {
 
-    public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
-    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+
+    private static final String MANAGEMENT_SERVER_ADDRESS = "org.apache.nifi.management.server.address";
+
+    private static final Pattern MANAGEMENT_SERVER_ADDRESS_PATTERN = Pattern.compile("^(.+?):([1-9][0-9]{3,4})$");
+
+    private static final String MANAGEMENT_SERVER_DEFAULT_ADDRESS = "127.0.0.1:52020";
+
+    private static final int ADDRESS_GROUP = 1;
+
+    private static final int PORT_GROUP = 2;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NiFi.class);
 
     private final NiFiServer nifiServer;
-    private final BootstrapListener bootstrapListener;
+
     private final NiFiProperties properties;
+
+    private final ManagementServer managementServer;
 
     private volatile boolean shutdown = false;
 
@@ -88,25 +104,6 @@ public class NiFi implements NiFiEntryPoint {
 
         // register the shutdown hook
         addShutdownHook();
-
-        final String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);
-        if (bootstrapPort != null) {
-            try {
-                final int port = Integer.parseInt(bootstrapPort);
-
-                if (port < 1 || port > 65535) {
-                    throw new RuntimeException("Failed to start NiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
-                }
-
-                bootstrapListener = new BootstrapListener(this, port);
-                bootstrapListener.start(properties.getDefaultListenerBootstrapPort());
-            } catch (final NumberFormatException nfe) {
-                throw new RuntimeException("Failed to start NiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
-            }
-        } else {
-            LOGGER.info("NiFi started without Bootstrap Port information provided; will not listen for requests from Bootstrap");
-            bootstrapListener = null;
-        }
 
         // delete the web working dir - if the application does not start successfully
         // the web app directories might be in an invalid state. when this happens
@@ -151,15 +148,12 @@ public class NiFi implements NiFiEntryPoint {
                 narBundles,
                 extensionMapping);
 
+        managementServer = getManagementServer();
         if (shutdown) {
             LOGGER.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");
         } else {
             nifiServer.start();
-
-            if (bootstrapListener != null) {
-                bootstrapListener.setNiFiLoaded(true);
-                bootstrapListener.sendStartedStatus(true);
-            }
+            managementServer.start();
 
             final long duration = System.nanoTime() - startTime;
             final double durationSeconds = TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0;
@@ -172,14 +166,16 @@ public class NiFi implements NiFiEntryPoint {
     }
 
     protected void setDefaultUncaughtExceptionHandler() {
-        Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> LOGGER.error("An Unknown Error Occurred in Thread {}", thread, exception));
+        Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler());
     }
 
     protected void addShutdownHook() {
-        Runtime.getRuntime().addShutdownHook(new Thread(() ->
-                // shutdown the jetty server
-                shutdownHook(false)
-        ));
+        final Thread shutdownHook = Thread.ofPlatform()
+                .name(NiFi.class.getSimpleName())
+                .uncaughtExceptionHandler(new ExceptionHandler())
+                .unstarted(this::stop);
+
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
     protected void initLogging() {
@@ -205,12 +201,15 @@ public class NiFi implements NiFiEntryPoint {
         return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
     }
 
-    public void shutdownHook(final boolean isReload) {
+    /**
+     * Stop Application and shutdown server
+     */
+    public void stop() {
         try {
             runDiagnosticsOnShutdown();
             shutdown();
         } catch (final Throwable t) {
-            LOGGER.warn("Problem occurred ensuring Jetty web server was properly terminated", t);
+            LOGGER.warn("Application Controller shutdown failed", t);
         }
     }
 
@@ -238,18 +237,39 @@ public class NiFi implements NiFiEntryPoint {
         }
     }
 
-
     protected void shutdown() {
         this.shutdown = true;
 
-        LOGGER.info("Application Server shutdown started");
-        if (nifiServer != null) {
+        LOGGER.info("Application Controller shutdown started");
+
+        managementServer.stop();
+
+        if (nifiServer == null) {
+            LOGGER.info("Application Server not running");
+        } else {
             nifiServer.stop();
         }
-        if (bootstrapListener != null) {
-            bootstrapListener.stop();
+
+        LOGGER.info("Application Controller shutdown completed");
+    }
+
+    private ManagementServer getManagementServer() {
+        final String managementServerAddressProperty = System.getProperty(MANAGEMENT_SERVER_ADDRESS, MANAGEMENT_SERVER_DEFAULT_ADDRESS);
+        if (managementServerAddressProperty.isBlank()) {
+            throw new IllegalStateException("Management Server Address System Property [%s] not configured".formatted(MANAGEMENT_SERVER_ADDRESS));
         }
-        LOGGER.info("Application Server shutdown completed");
+
+        final Matcher matcher = MANAGEMENT_SERVER_ADDRESS_PATTERN.matcher(managementServerAddressProperty);
+        if (matcher.matches()) {
+            final String addressGroup = matcher.group(ADDRESS_GROUP);
+            final String portGroup = matcher.group(PORT_GROUP);
+            final int port = Integer.parseInt(portGroup);
+
+            final InetSocketAddress bindAddress = new InetSocketAddress(addressGroup, port);
+            return new StandardManagementServer(bindAddress, nifiServer);
+        } else {
+            throw new IllegalStateException("Management Server Address System Property [%s] not valid [%s]".formatted(MANAGEMENT_SERVER_ADDRESS, managementServerAddressProperty));
+        }
     }
 
     /**
@@ -299,6 +319,14 @@ public class NiFi implements NiFiEntryPoint {
             throw new IllegalArgumentException(msg, e);
         } finally {
             Thread.currentThread().setContextClassLoader(contextClassLoader);
+        }
+    }
+
+    private static class ExceptionHandler implements Thread.UncaughtExceptionHandler {
+
+        @Override
+        public void uncaughtException(final Thread thread, Throwable exception) {
+            LOGGER.error("An Unknown Error Occurred in Thread {}", thread, exception);
         }
     }
 }
