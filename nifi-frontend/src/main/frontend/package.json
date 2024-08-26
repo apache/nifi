@@ -43,6 +43,7 @@
         "ngx-skeleton-loader": "^8.1.0",
         "rxjs": "~7.8.1",
         "tslib": "^2.6.2",
+        "uuid": "^10.0.0",
         "webfontloader": "^1.6.28",
         "zone.js": "0.14.4"
     },
@@ -69,6 +70,7 @@
         "@types/humanize-duration": "^3.27.3",
         "@types/jest": "^29.5.12",
         "@types/jsonlint": "^1.6.3",
+        "@types/uuid": "^10.0.0",
         "@types/webfontloader": "^1.6.38",
         "@typescript-eslint/eslint-plugin": "7.9.0",
         "@typescript-eslint/parser": "7.9.0",

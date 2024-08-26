@@ -16,12 +16,13 @@
  */
 
 import { Injectable } from '@angular/core';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable({
     providedIn: 'root'
 })
 export class Client {
-    private clientId: string = crypto.randomUUID();
+    private clientId: string = uuidv4();
 
     public getClientId(): string {
         return this.clientId;
