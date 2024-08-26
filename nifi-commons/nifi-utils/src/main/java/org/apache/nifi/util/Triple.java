@@ -18,43 +18,4 @@ package org.apache.nifi.util;
 
 public record Triple<A, B, C>(A first, B second, C third) {
 
-    @Override
-    public boolean equals(final Object other) {
-        if (other == null) {
-            return false;
-        }
-        if (other == this) {
-            return true;
-        }
-        if (!(other instanceof Triple<?, ?, ?> triple)) {
-            return false;
-        }
-
-        if (first == null) {
-            if (triple.first != null) {
-                return false;
-            }
-        } else {
-            if (!first.equals(triple.first)) {
-                return false;
-            }
-        }
-
-        if (second == null) {
-            if (triple.second != null) {
-                return false;
-            }
-        } else {
-            if (!second.equals(triple.second)) {
-                return false;
-            }
-        }
-
-        if (third == null) {
-            return triple.third == null;
-        } else {
-            return third.equals(triple.third);
-        }
-    }
-
 }
