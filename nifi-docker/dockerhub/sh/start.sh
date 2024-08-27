@@ -71,8 +71,8 @@ prop_replace 'nifi.cluster.flow.election.max.candidates'    "${NIFI_ELECTION_MAX
 prop_replace 'nifi.web.proxy.context.path'                  "${NIFI_WEB_PROXY_CONTEXT_PATH:-}"
 
 # Set leader election and state management properties
-prop_replace 'nifi.cluster.leader.election.implementation'      "${NIFI_LEADER_ELECTION_IMPLEMENTATION:-CuratorLeaderElectionManager}"
-prop_replace 'nifi.state.management.provider.cluster'           "${NIFI_STATE_MANAGEMENT_CLUSTER_PROVIDER:-zk-provider}"
+prop_replace 'nifi.cluster.leader.election.implementation'      "${NIFI_CLUSTER_LEADER_ELECTION_IMPLEMENTATION:-CuratorLeaderElectionManager}"
+prop_replace 'nifi.state.management.provider.cluster'           "${NIFI_STATE_MANAGEMENT_PROVIDER_CLUSTER:-zk-provider}"
 
 # Set analytics properties
 prop_replace 'nifi.analytics.predict.enabled'                   "${NIFI_ANALYTICS_PREDICT_ENABLED:-false}"
