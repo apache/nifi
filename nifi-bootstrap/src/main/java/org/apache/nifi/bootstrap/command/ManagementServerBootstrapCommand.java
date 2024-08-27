@@ -141,6 +141,7 @@ class ManagementServerBootstrapCommand implements BootstrapCommand {
         } else {
             commandStatus = CommandStatus.COMMUNICATION_FAILED;
             getCommandLogger().warn("Application Process [{}] Command Status [{}] HTTP {}", pid, commandStatus, statusCode);
+            responseStreamHandler.onResponseStream(responseStream);
         }
     }
 
