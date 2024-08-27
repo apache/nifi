@@ -31,6 +31,7 @@ import java.util.Objects;
 import static java.net.HttpURLConnection.HTTP_ACCEPTED;
 import static java.net.HttpURLConnection.HTTP_BAD_METHOD;
 import static java.net.HttpURLConnection.HTTP_OK;
+import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
 
 /**
  * HTTP Handler for Cluster Health status operations
@@ -65,7 +66,8 @@ class HealthClusterHttpHandler implements HttpHandler {
             final ConnectionState connectionState = getConnectionState();
             final String status = STATUS.formatted(connectionState);
             final byte[] response = status.getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(HTTP_OK, response.length);
+            final int responseCode = getResponseCode(connectionState);
+            exchange.sendResponseHeaders(responseCode, response.length);
             responseBody.write(response);
         } else if (DELETE_METHOD.contentEquals(requestMethod)) {
             startDecommission();
@@ -89,6 +91,18 @@ class HealthClusterHttpHandler implements HttpHandler {
                 Thread.currentThread().interrupt();
             }
         });
+    }
+
+    private int getResponseCode(final ConnectionState connectionState) {
+        final int responseCode;
+
+        if (ConnectionState.CONNECTED == connectionState || ConnectionState.CONNECTING == connectionState) {
+            responseCode = HTTP_OK;
+        } else {
+            responseCode = HTTP_UNAVAILABLE;
+        }
+
+        return responseCode;
     }
 
     private ConnectionState getConnectionState() {

@@ -17,6 +17,8 @@
 package org.apache.nifi.runtime;
 
 import org.apache.nifi.NiFiServer;
+import org.apache.nifi.cluster.ClusterDetailsFactory;
+import org.apache.nifi.cluster.ConnectionState;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -34,12 +36,15 @@ import java.time.Duration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StandardManagementServerTest {
     private static final String LOCALHOST = "127.0.0.1";
 
     private static final String HEALTH_URI = "http://%s:%d/health";
+
+    private static final String HEALTH_CLUSTER_URI = "http://%s:%d/health/cluster";
 
     private static final String GET_METHOD = "GET";
 
@@ -49,6 +54,9 @@ class StandardManagementServerTest {
 
     @Mock
     private NiFiServer server;
+
+    @Mock
+    private ClusterDetailsFactory clusterDetailsFactory;
 
     @Test
     void testStartStop() {
@@ -76,7 +84,47 @@ class StandardManagementServerTest {
             final InetSocketAddress serverAddress = standardManagementServer.getServerAddress();
             assertNotSame(initialBindAddress.getPort(), serverAddress.getPort());
 
-            assertResponseStatusCode(serverAddress, GET_METHOD, HttpURLConnection.HTTP_OK);
+            assertResponseStatusCode(HEALTH_URI, serverAddress, GET_METHOD, HttpURLConnection.HTTP_OK);
+        } finally {
+            standardManagementServer.stop();
+        }
+    }
+
+    @Test
+    void testGetHealthClusterDisconnected() throws Exception {
+        final InetSocketAddress initialBindAddress = new InetSocketAddress(LOCALHOST, 0);
+        final StandardManagementServer standardManagementServer = new StandardManagementServer(initialBindAddress, server);
+
+        when(server.getClusterDetailsFactory()).thenReturn(clusterDetailsFactory);
+        when(clusterDetailsFactory.getConnectionState()).thenReturn(ConnectionState.DISCONNECTED);
+
+        try {
+            standardManagementServer.start();
+
+            final InetSocketAddress serverAddress = standardManagementServer.getServerAddress();
+            assertNotSame(initialBindAddress.getPort(), serverAddress.getPort());
+
+            assertResponseStatusCode(HEALTH_CLUSTER_URI, serverAddress, GET_METHOD, HttpURLConnection.HTTP_UNAVAILABLE);
+        } finally {
+            standardManagementServer.stop();
+        }
+    }
+
+    @Test
+    void testGetHealthClusterConnected() throws Exception {
+        final InetSocketAddress initialBindAddress = new InetSocketAddress(LOCALHOST, 0);
+        final StandardManagementServer standardManagementServer = new StandardManagementServer(initialBindAddress, server);
+
+        when(server.getClusterDetailsFactory()).thenReturn(clusterDetailsFactory);
+        when(clusterDetailsFactory.getConnectionState()).thenReturn(ConnectionState.CONNECTED);
+
+        try {
+            standardManagementServer.start();
+
+            final InetSocketAddress serverAddress = standardManagementServer.getServerAddress();
+            assertNotSame(initialBindAddress.getPort(), serverAddress.getPort());
+
+            assertResponseStatusCode(HEALTH_CLUSTER_URI, serverAddress, GET_METHOD, HttpURLConnection.HTTP_OK);
         } finally {
             standardManagementServer.stop();
         }
@@ -94,14 +142,14 @@ class StandardManagementServerTest {
             final InetSocketAddress serverAddress = standardManagementServer.getServerAddress();
             assertNotSame(initialBindAddress.getPort(), serverAddress.getPort());
 
-            assertResponseStatusCode(serverAddress, DELETE_METHOD, HttpURLConnection.HTTP_BAD_METHOD);
+            assertResponseStatusCode(HEALTH_URI, serverAddress, DELETE_METHOD, HttpURLConnection.HTTP_BAD_METHOD);
         } finally {
             standardManagementServer.stop();
         }
     }
 
-    private void assertResponseStatusCode(final InetSocketAddress serverAddress, final String method, final int responseStatusCode) throws IOException, InterruptedException {
-        final URI healthUri = URI.create(HEALTH_URI.formatted(serverAddress.getHostString(), serverAddress.getPort()));
+    private void assertResponseStatusCode(final String uri, final InetSocketAddress serverAddress, final String method, final int responseStatusCode) throws IOException, InterruptedException {
+        final URI healthUri = URI.create(uri.formatted(serverAddress.getHostString(), serverAddress.getPort()));
 
         try (HttpClient httpClient = HttpClient.newBuilder().connectTimeout(TIMEOUT).build()) {
             final HttpRequest request = HttpRequest.newBuilder(healthUri)
