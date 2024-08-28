@@ -15,7 +15,7 @@ public class ObjectZonedDateTimeConverterTest {
     @MethodSource("getPatterns")
     void testTimeZonePattern(String pattern, boolean expected) {
         final Matcher matcher = ObjectZonedDateTimeConverter.TIMEZONE_PATTERN.matcher(pattern);
-        if(expected) {
+        if (expected) {
             assertTrue(matcher.find());
         } else {
             assertFalse(matcher.find());
