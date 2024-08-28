@@ -26,6 +26,7 @@ import org.apache.nifi.authorization.ManagedAuthorizer;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.AbstractComponentNode;
@@ -122,6 +123,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1037,6 +1039,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         // Enable any Controller-level services that are intended to be enabled.
         if (!toEnable.isEmpty()) {
             controller.getControllerServiceProvider().enableControllerServices(toEnable);
+
+            // Validate Controller-level services
+            for (final ControllerServiceNode serviceNode : toEnable) {
+                serviceNode.performValidation();
+            }
         }
 
         // Disable any Controller-level services that are intended to be disabled.
@@ -1048,15 +1055,25 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private Map<String, Parameter> getProvidedParameters(final FlowManager flowManager, final VersionedParameterContext versionedParameterContext) {
-        final Map<String, Parameter> providedProviders;
+        final Map<String, Parameter> providedParameters;
         final String parameterProviderId = versionedParameterContext.getParameterProvider();
         if (parameterProviderId == null) {
-            providedProviders = Collections.emptyMap();
+            providedParameters = Collections.emptyMap();
         } else {
             final ParameterProviderNode parameterProviderNode = flowManager.getParameterProvider(parameterProviderId);
-            providedProviders = getProvidedParameters(parameterProviderNode, versionedParameterContext.getParameterGroupName());
+
+            // Wait for Validation as needed for Parameter Providers with Controller Services
+            final ValidationStatus validationStatus = parameterProviderNode.getValidationStatus(10, TimeUnit.SECONDS);
+
+            final String parameterGroupName = versionedParameterContext.getParameterGroupName();
+            if (ValidationStatus.VALID == validationStatus) {
+                providedParameters = getProvidedParameters(parameterProviderNode, parameterGroupName);
+            } else {
+                logger.warn("Parameter Provider [{}] {}: Parameters not available for Group [{}]", parameterProviderId, validationStatus, parameterGroupName);
+                providedParameters = Collections.emptyMap();
+            }
         }
-        return providedProviders;
+        return providedParameters;
     }
 
     private Map<String, Parameter> getProvidedParameters(final ParameterProviderNode parameterProviderNode, final String parameterGroupName) {
