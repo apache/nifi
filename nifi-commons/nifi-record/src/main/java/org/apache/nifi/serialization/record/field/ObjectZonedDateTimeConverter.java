@@ -34,7 +34,12 @@ public class ObjectZonedDateTimeConverter implements FieldConverter<Object, Zone
     /** The timezone characters and their legal cardinality detailed in the regular expression below are all defined in the grammar specified
      * in the javadoc for java.time.format.DateTimeFormatter. The regular expression below checks for these characters as unescaped
      * when specified in a timestamp pattern.*/
-    private static final Pattern TIMEZONE_PATTERN = Pattern.compile("^.*[^'](?:[O]|[O]{4}|[x]{1,5}|[X]{1,5}|[z]{1,4}|[Z]{1,5})[^'].*$");
+    private static final String TIMEZONE_CHARACTERS_WITH_CARDINALITIES = "(?:[O]|[O]{4}|[x]{1,5}|[X]{1,5}|[z]{1,4}|[Z]{1,5})";
+    private static final String BEGINNING = "^" + TIMEZONE_CHARACTERS_WITH_CARDINALITIES;
+    private static final String ONLY_LEADING = "'" + TIMEZONE_CHARACTERS_WITH_CARDINALITIES + "[^']";
+    private static final String ONLY_TRAILING = "[^']" + TIMEZONE_CHARACTERS_WITH_CARDINALITIES + "'";
+    private static final String END = TIMEZONE_CHARACTERS_WITH_CARDINALITIES + "$";
+    static final Pattern TIMEZONE_PATTERN = Pattern.compile(BEGINNING + "|" + ONLY_LEADING + "|" + ONLY_TRAILING + "|" + END);
 
     /**
      * Convert Object field to java.time.ZonedDateTime using optional format supported in DateTimeFormatter
