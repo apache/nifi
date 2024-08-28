@@ -18,6 +18,7 @@ package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -37,10 +38,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@CapabilityDescription("Provides parameters from HashiCorp Vault Key/Value Version 1 Secrets.  Each Secret represents a parameter group, " +
+@CapabilityDescription("Provides parameters from HashiCorp Vault Key/Value Version 1 and Version 2 Secrets.  Each Secret represents a parameter group, " +
         "which will map to a Parameter Context.  The keys and values in the Secret map to Parameters.")
 @Tags({"hashicorp", "vault", "secret"})
 public class HashiCorpVaultParameterProvider extends AbstractParameterProvider implements ParameterProvider, VerifiableParameterProvider {
+
+    static final AllowableValue KV_1 = new AllowableValue("KV_1", "KV_1", "Key/Value Secret Engine Version 1.");
+    static final AllowableValue KV_2 = new AllowableValue("KV_2", "KV_2", "Key/Value Secret Engine Version 2. "
+            + "If multiple versions of the secret exist, latest will be used.");
 
     public static final PropertyDescriptor VAULT_CLIENT_SERVICE = new PropertyDescriptor.Builder()
             .name("vault-client-service")
@@ -53,10 +58,19 @@ public class HashiCorpVaultParameterProvider extends AbstractParameterProvider i
     public static final PropertyDescriptor KV_PATH = new PropertyDescriptor.Builder()
             .name("kv-path")
             .displayName("Key/Value Path")
-            .description("The HashiCorp Vault path to the Key/Value Version 1 Secrets Engine")
+            .description("The HashiCorp Vault path to the Key/Value Secrets Engine")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .defaultValue("kv")
+            .build();
+    public static final PropertyDescriptor KV_VERSION = new PropertyDescriptor.Builder()
+            .name("kv-version")
+            .displayName("Key/Value Version")
+            .description("The version of the Key/Value Secrets Engine")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(true)
+            .allowableValues(KV_1, KV_2)
+            .defaultValue(KV_1)
             .build();
     public static final PropertyDescriptor SECRET_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("secret-name-pattern")
@@ -70,6 +84,7 @@ public class HashiCorpVaultParameterProvider extends AbstractParameterProvider i
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             VAULT_CLIENT_SERVICE,
             KV_PATH,
+            KV_VERSION,
             SECRET_NAME_PATTERN));
 
     private HashiCorpVaultCommunicationService vaultCommunicationService;
@@ -92,15 +107,16 @@ public class HashiCorpVaultParameterProvider extends AbstractParameterProvider i
     private List<ParameterGroup> getParameterGroups(final HashiCorpVaultCommunicationService vaultCommunicationService,
                                                             final ConfigurationContext context) {
         final String kvPath = context.getProperty(KV_PATH).getValue();
+        final String kvVersion = context.getProperty(KV_VERSION).getValue();
         final String secretIncludeRegex = context.getProperty(SECRET_NAME_PATTERN).getValue();
-        final List<String> allSecretNames = vaultCommunicationService.listKeyValueSecrets(kvPath);
+        final List<String> allSecretNames = vaultCommunicationService.listKeyValueSecrets(kvPath, kvVersion);
         final List<String> secretNames = allSecretNames.stream()
                 .filter(name -> name.matches(secretIncludeRegex))
                 .collect(Collectors.toList());
 
         final List<ParameterGroup> parameterGroups = new ArrayList<>();
         for (final String secretName : secretNames) {
-            final Map<String, String> keyValues = vaultCommunicationService.readKeyValueSecretMap(kvPath, secretName);
+            final Map<String, String> keyValues = vaultCommunicationService.readKeyValueSecretMap(kvPath, secretName, kvVersion);
             final List<Parameter> parameters = new ArrayList<>();
             keyValues.forEach( (key, value) -> {
                 parameters.add(new Parameter.Builder()

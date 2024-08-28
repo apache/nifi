@@ -90,9 +90,28 @@ public interface HashiCorpVaultCommunicationService {
     Map<String, String> readKeyValueSecretMap(String keyValuePath, String secretKey);
 
     /**
+     * Reads a secret with multiple key/value pairs from Vault's Key/Value Secrets Engine.
+     *
+     * @see <a href="https://www.vaultproject.io/api-docs/secret/kv">https://www.vaultproject.io/api-docs/secret/kv</a>
+     * @param keyValuePath The Vault path to use for the configured Key/Value Secrets Engine
+     * @param secretKey The secret key
+     * @param version the Key/Vault Secrets engine version
+     * @return A map from key to value from the secret key/values, or an empty map if not found
+     */
+    Map<String, String> readKeyValueSecretMap(String keyValuePath, String secretKey, String version);
+
+    /**
      * Lists the secrets at the given Key/Value Version 1 Secrets Engine path.
      * @param keyValuePath The Vault path to list
      * @return The list of secret names
      */
     List<String> listKeyValueSecrets(String keyValuePath);
+
+    /**
+     * Lists the secrets at the given Key/Value Secrets Engine path.
+     * @param keyValuePath The Vault path to list
+     * @param version the Key/Vault Secrets engine version
+     * @return The list of secret names
+     */
+    List<String> listKeyValueSecrets(String keyValuePath, String version);
 }

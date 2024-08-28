@@ -136,17 +136,23 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
 
     @Override
     public Map<String, String> readKeyValueSecretMap(final String keyValuePath, final String key) {
-        final VaultKeyValueOperations keyValueOperations = keyValueOperationsMap
-                .computeIfAbsent(keyValuePath, path -> vaultTemplate.opsForKeyValue(path, keyValueBackend));
-        final VaultResponseSupport<Map> response = keyValueOperations.get(key, Map.class);
+        return readKeyValueSecretMap(keyValuePath, key, keyValueBackend.name());
+    }
+
+    @Override
+    public Map<String, String> readKeyValueSecretMap(final String keyValuePath, final String key, final String version) {
+        final VaultResponseSupport<Map> response = vaultTemplate.opsForKeyValue(keyValuePath, KeyValueBackend.valueOf(version)).get(key, Map.class);
         return response == null ? Collections.emptyMap() : (Map<String, String>) response.getRequiredData();
     }
 
     @Override
     public List<String> listKeyValueSecrets(final String keyValuePath) {
-        final VaultKeyValueOperations keyValueOperations = keyValueOperationsMap
-                .computeIfAbsent(keyValuePath, path -> vaultTemplate.opsForKeyValue(path, KeyValueBackend.KV_1));
-        return keyValueOperations.list("/");
+        return listKeyValueSecrets(keyValuePath, KeyValueBackend.KV_1.name());
+    }
+
+    @Override
+    public List<String> listKeyValueSecrets(final String keyValuePath, final String version) {
+        return vaultTemplate.opsForKeyValue(keyValuePath, KeyValueBackend.valueOf(version)).list("/");
     }
 
     private static class SecretData {

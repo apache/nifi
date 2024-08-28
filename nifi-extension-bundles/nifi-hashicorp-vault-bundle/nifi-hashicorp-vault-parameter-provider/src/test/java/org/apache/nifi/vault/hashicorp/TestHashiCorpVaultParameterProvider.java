@@ -84,10 +84,12 @@ public class TestHashiCorpVaultParameterProvider {
 
     @Test
     public void testFetchParameters() {
-        mockSecrets("kv2", mockedGroups);
+        final String kvVersion = "KV_1";
+        mockSecrets("kv2", kvVersion, mockedGroups);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(HashiCorpVaultParameterProvider.KV_PATH, "kv2");
+        properties.put(HashiCorpVaultParameterProvider.KV_VERSION, kvVersion);
         properties.put(HashiCorpVaultParameterProvider.VAULT_CLIENT_SERVICE, "service");
         properties.put(HashiCorpVaultParameterProvider.SECRET_NAME_PATTERN, ".*");
         final ConfigurationContext context = mockContext(properties);
@@ -101,10 +103,12 @@ public class TestHashiCorpVaultParameterProvider {
 
     @Test
     public void testFetchParametersSecretRegex() {
-        mockSecrets("kv2", mockedGroups);
+        final String kvVersion = "KV_2";
+        mockSecrets("kv2", kvVersion, mockedGroups);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(HashiCorpVaultParameterProvider.KV_PATH, "kv2");
+        properties.put(HashiCorpVaultParameterProvider.KV_VERSION, kvVersion);
         properties.put(HashiCorpVaultParameterProvider.VAULT_CLIENT_SERVICE, "service");
         properties.put(HashiCorpVaultParameterProvider.SECRET_NAME_PATTERN, ".*A");
         final ConfigurationContext context = mockContext(properties);
@@ -118,10 +122,12 @@ public class TestHashiCorpVaultParameterProvider {
 
     @Test
     public void testVerifyParameters() {
-        mockSecrets("kv2", mockedGroups);
+        final String kvVersion = "KV_1";
+        mockSecrets("kv2", kvVersion, mockedGroups);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(HashiCorpVaultParameterProvider.KV_PATH, "kv2");
+        properties.put(HashiCorpVaultParameterProvider.KV_VERSION, kvVersion);
         properties.put(HashiCorpVaultParameterProvider.VAULT_CLIENT_SERVICE, "service");
         properties.put(HashiCorpVaultParameterProvider.SECRET_NAME_PATTERN, ".*");
         final ConfigurationContext context = mockContext(properties);
@@ -145,13 +151,13 @@ public class TestHashiCorpVaultParameterProvider {
         lenient().when(context.getProperty(descriptor)).thenReturn(propertyValue);
     }
 
-    private void mockSecrets(final String kvPath, final List<ParameterGroup> parameterGroups) {
-        when(vaultCommunicationService.listKeyValueSecrets(kvPath))
+    private void mockSecrets(final String kvPath, final String kvVersion, final List<ParameterGroup> parameterGroups) {
+        when(vaultCommunicationService.listKeyValueSecrets(kvPath, kvVersion))
                 .thenReturn(parameterGroups.stream().map(group -> group.getGroupName()).collect(Collectors.toList()));
         for (final ParameterGroup parameterGroup : parameterGroups) {
             final Map<String, String> keyValues = parameterGroup.getParameters().stream()
                     .collect(Collectors.toMap(parameter -> parameter.getDescriptor().getName(), parameter -> parameter.getValue()));
-            lenient().when(vaultCommunicationService.readKeyValueSecretMap(kvPath, parameterGroup.getGroupName())).thenReturn(keyValues);
+            lenient().when(vaultCommunicationService.readKeyValueSecretMap(kvPath, parameterGroup.getGroupName(), kvVersion)).thenReturn(keyValues);
         }
     }
 
