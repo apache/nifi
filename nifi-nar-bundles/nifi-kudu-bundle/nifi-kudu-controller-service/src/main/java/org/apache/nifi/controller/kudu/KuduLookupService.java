@@ -34,11 +34,14 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -57,6 +60,7 @@ import javax.security.auth.login.LoginException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -88,6 +92,14 @@ public class KuduLookupService extends AbstractControllerService implements Reco
             .description("Specifies the Kerberos Credentials to use for authentication")
             .required(false)
             .identifiesControllerService(KerberosCredentialsService.class)
+            .build();
+
+    public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
+            .name("kudu-lu-kerberos-user-service")
+            .displayName("Kerberos User Service")
+            .description("Specifies the Kerberos User to use for authentication")
+            .required(false)
+            .identifiesControllerService(KerberosUserService.class)
             .build();
 
     public static final PropertyDescriptor KUDU_OPERATION_TIMEOUT_MS = new PropertyDescriptor.Builder()
@@ -139,10 +151,8 @@ public class KuduLookupService extends AbstractControllerService implements Reco
 
     protected List<PropertyDescriptor> properties;
 
-    protected KerberosCredentialsService credentialsService;
     private volatile KerberosUser kerberosUser;
 
-    protected String kuduMasters;
     protected KuduClient kuduClient;
     protected ReplicaSelection replicaSelection;
     protected volatile String tableName;
@@ -156,6 +166,7 @@ public class KuduLookupService extends AbstractControllerService implements Reco
     protected void init(final ControllerServiceInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(KUDU_MASTERS);
+        properties.add(KERBEROS_USER_SERVICE);
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(KUDU_OPERATION_TIMEOUT_MS);
         properties.add(KUDU_REPLICA_SELECTION);
@@ -168,15 +179,38 @@ public class KuduLookupService extends AbstractControllerService implements Reco
     protected void addProperties(List<PropertyDescriptor> properties) {
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        final boolean kerberosUserServiceIsSet = validationContext.getProperty(KERBEROS_USER_SERVICE).isSet();
+        final boolean kerberosCredentialsServiceIsSet = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).isSet();
+
+        if (kerberosUserServiceIsSet && kerberosCredentialsServiceIsSet) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject("Kerberos configuration")
+                    .explanation("Kerberos User Service and Kerberos Credentials Service cannot be configured at the same time")
+                    .build());
+        }
+        return results;
+    }
+
     protected void createKuduClient(ConfigurationContext context) throws LoginException {
         final String kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
-        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
-        if (credentialsService != null) {
-            final String keytab = credentialsService.getKeytab();
-            final String principal = credentialsService.getPrincipal();
+        if (kerberosUserService != null) {
+            kerberosUser = kerberosUserService.createKerberosUser();
+            kerberosUser.login();
+        } else if (kerberosCredentialsService != null) {
+            final String keytab = kerberosCredentialsService.getKeytab();
+            final String principal = kerberosCredentialsService.getPrincipal();
             kerberosUser = loginKerberosUser(principal, keytab);
+        }
 
+        if (kerberosUser != null) {
             final KerberosAction<KuduClient> kerberosAction = new KerberosAction<>(kerberosUser, () -> buildClient(kuduMasters, context), getLogger());
             this.kuduClient = kerberosAction.execute();
         } else {
@@ -207,9 +241,6 @@ public class KuduLookupService extends AbstractControllerService implements Reco
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
 
         try {
-            kuduMasters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
-            credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-
             if (kuduClient == null) {
                 getLogger().debug("Setting up Kudu connection...");
 
