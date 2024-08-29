@@ -49,10 +49,6 @@ NOTE: Under sustained and extremely high throughput the CodeCache settings may n
 *** `stop`: stops NiFi that is running in the background
 *** `status`: provides the current status of NiFi
 *** `run`: runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
-*** `install`: installs NiFi as a service that can then be controlled via
-**** `service nifi start`
-**** `service nifi stop`
-**** `service nifi status`
 
 * Windows
 ** Decompress into the desired installation directory
@@ -2846,7 +2842,6 @@ properties for minimum and maximum Java Heap size, the garbage collector to use,
 |`nifi.diagnostics.on.shutdown.directory`|This property specifies the location of the NiFi diagnostics directory. The default value is `./diagnostics`.
 |`nifi.diagnostics.on.shutdown.max.filecount`|This property specifies the maximum permitted number of diagnostic files. If the limit is exceeded, the oldest files are deleted. The default value is `10`.
 |`nifi.diagnostics.on.shutdown.max.directory.size`|This property specifies the maximum permitted size of the diagnostics directory. If the limit is exceeded, the oldest files are deleted. The default value is `10 MB`.
-|`nifi.bootstrap.listen.port`|This property defines the port used to listen for communications from NiFi. If this property is missing, empty, or `0`, a random ephemeral port is used.
 |====
 
 [[proxy_configuration]]

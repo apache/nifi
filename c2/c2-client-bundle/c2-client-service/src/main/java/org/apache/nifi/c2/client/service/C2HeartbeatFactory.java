@@ -35,6 +35,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -47,6 +48,7 @@ import org.apache.nifi.c2.protocol.api.AgentManifest;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.AgentResourceConsumption;
 import org.apache.nifi.c2.protocol.api.AgentStatus;
+import org.apache.nifi.c2.protocol.api.ProcessorBulletin;
 import org.apache.nifi.c2.protocol.api.ResourceInfo;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.DeviceInfo;
@@ -89,7 +91,7 @@ public class C2HeartbeatFactory {
 
         heartbeat.setAgentInfo(getAgentInfo(runtimeInfoWrapper.getAgentRepositories(), runtimeInfoWrapper.getManifest()));
         heartbeat.setDeviceInfo(generateDeviceInfo());
-        heartbeat.setFlowInfo(getFlowInfo(runtimeInfoWrapper.getQueueStatus()));
+        heartbeat.setFlowInfo(getFlowInfo(runtimeInfoWrapper.getQueueStatus(), runtimeInfoWrapper.getProcessorBulletins()));
         heartbeat.setCreated(System.currentTimeMillis());
 
         ResourceInfo resourceInfo = new ResourceInfo();
@@ -99,9 +101,10 @@ public class C2HeartbeatFactory {
         return heartbeat;
     }
 
-    private FlowInfo getFlowInfo(Map<String, FlowQueueStatus> queueStatus) {
+    private FlowInfo getFlowInfo(Map<String, FlowQueueStatus> queueStatus, List<ProcessorBulletin> processorBulletins) {
         FlowInfo flowInfo = new FlowInfo();
         flowInfo.setQueues(queueStatus);
+        flowInfo.setProcessorBulletins(processorBulletins);
         Optional.ofNullable(flowIdHolder.getFlowId()).ifPresent(flowInfo::setFlowId);
         return flowInfo;
     }

@@ -29,17 +29,16 @@ set BOOTSTRAP_LIB_DIR=%NIFI_HOME%\lib\bootstrap
 set CONF_DIR=%NIFI_HOME%\conf
 
 set LOG_DIR_PROPERTY=-Dorg.apache.nifi.bootstrap.config.log.dir=%NIFI_LOG_DIR%
-set PID_DIR_PROPERTY=-Dorg.apache.nifi.bootstrap.config.pid.dir=%NIFI_PID_DIR%
 set CONFIG_FILE_PROPERTY=-Dorg.apache.nifi.bootstrap.config.file=%CONF_DIR%\bootstrap.conf
 set PROPERTIES_FILE_PROPERTY=-Dnifi.properties.file.path=%CONF_DIR%\nifi.properties
 set BOOTSTRAP_HEAP_SIZE=48m
 
-set JAVA_ARGS=%LOG_DIR_PROPERTY% %PID_DIR_PROPERTY% %CONFIG_FILE_PROPERTY% %PROPERTIES_FILE_PROPERTY%
+set JAVA_ARGS=%LOG_DIR_PROPERTY% %CONFIG_FILE_PROPERTY% %PROPERTIES_FILE_PROPERTY%
 set JAVA_PARAMS=-cp %BOOTSTRAP_LIB_DIR%\*;%CONF_DIR% %JAVA_ARGS%
 set JAVA_MEMORY=-Xms%BOOTSTRAP_HEAP_SIZE% -Xmx%BOOTSTRAP_HEAP_SIZE%
 
-echo JAVA_HOME: %JAVA_HOME%
-echo NIFI_HOME: %NIFI_HOME%
+echo JAVA_HOME=%JAVA_HOME%
+echo NIFI_HOME=%NIFI_HOME%
 echo.
 
 pushd %NIFI_HOME%
@@ -54,7 +53,7 @@ if %RUN_COMMAND% == "set-single-user-credentials" (
 ) else if %RUN_COMMAND% == "set-sensitive-properties-algorithm" (
   call "%JAVA_EXE%" %JAVA_PARAMS% org.apache.nifi.flow.encryptor.command.SetSensitivePropertiesAlgorithm %~2
 ) else (
-  call "%JAVA_EXE%" %JAVA_MEMORY% %JAVA_PARAMS% org.apache.nifi.bootstrap.RunNiFi %RUN_COMMAND%
+  call "%JAVA_EXE%" %JAVA_MEMORY% %JAVA_PARAMS% org.apache.nifi.bootstrap.BootstrapProcess %RUN_COMMAND%
 )
 
 popd

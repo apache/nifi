@@ -29,7 +29,7 @@ public interface IcebergCatalogService extends ControllerService {
 
     IcebergCatalogType getCatalogType();
 
-    Map<IcebergCatalogProperty, String> getCatalogProperties();
+    Map<IcebergCatalogProperty, Object> getCatalogProperties();
 
     List<String> getConfigFilePaths();
 }

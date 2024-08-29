@@ -4406,6 +4406,23 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
         }
 
+        // Ensure that we are not changing a parent to Stateless when a child is explicitly set to STANDARD.
+        if (resolvedProposedEngine == ExecutionEngine.STATELESS) {
+            for (final ProcessGroup descendant : findAllProcessGroups()) {
+                final ExecutionEngine descendantEngine = descendant.getExecutionEngine();
+                if (descendantEngine == ExecutionEngine.STANDARD) {
+                    throw new IllegalStateException("A Process Group using the Stateless Engine may not have a child Process Group using the Standard Engine. Cannot set Execution Engine of " + this +
+                        " to Stateless because it has a child Process Group " + descendant + " using the Standard Engine");
+                }
+            }
+        }
+
+        verifyCanUpdateExecutionEngine();
+    }
+
+    @Override
+    public void verifyCanUpdateExecutionEngine() {
+        // Ensure that no components are running / services enabled.
         for (final ProcessorNode processor : getProcessors()) {
             if (processor.isRunning()) {
                 throw new IllegalStateException("Cannot change Execution Engine for " + this + " while components are running. " + processor + " is currently running.");
@@ -4432,6 +4449,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
         }
 
+        // Ensure that there is no data queued.
         for (final Connection connection : getConnections()) {
             final boolean queueEmpty = connection.getFlowFileQueue().isEmpty();
             if (!queueEmpty) {
@@ -4439,9 +4457,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
         }
 
+        // Ensure that all descendants are in a good state for updating the execution engine.
         for (final ProcessGroup child : getProcessGroups()) {
             if (child.getExecutionEngine() == ExecutionEngine.INHERITED) {
-                child.verifyCanSetExecutionEngine(executionEngine);
+                child.verifyCanUpdateExecutionEngine();
             }
         }
     }

@@ -104,6 +104,14 @@
             );
     }
 
+    mat-sidenav {
+        background-color: if(
+            $is-dark,
+            $supplemental-theme-surface-palette-darker,
+            $supplemental-theme-surface-palette-lighter
+        );
+    }
+
     /* svg styles */
 
     svg.canvas-svg {

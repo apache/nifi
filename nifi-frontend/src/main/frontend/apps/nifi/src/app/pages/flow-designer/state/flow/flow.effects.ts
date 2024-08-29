@@ -153,6 +153,7 @@ import {
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
 import { Storage, NiFiCommon } from '@nifi/shared';
+import { resetPollingFlowAnalysis } from '../flow-analysis/flow-analysis.actions';
 
 @Injectable()
 export class FlowEffects {
@@ -212,6 +213,7 @@ export class FlowEffects {
                     this.flowService.getControllerBulletins()
                 ]).pipe(
                     map(([flow, flowStatus, controllerBulletins]) => {
+                        this.store.dispatch(resetPollingFlowAnalysis());
                         return FlowActions.loadProcessGroupSuccess({
                             response: {
                                 id: request.id,
@@ -1113,13 +1115,12 @@ export class FlowEffects {
                 map((action) => action.request),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([request, currentProcessGroupId]) => {
-                    this.router.navigate([
-                        '/process-groups',
-                        currentProcessGroupId,
-                        request.type,
-                        request.id,
-                        'history'
-                    ]);
+                    const url = ['/process-groups', currentProcessGroupId, request.type, request.id, 'history'];
+                    if (this.canvasView.isSelectedComponentOnScreen()) {
+                        this.store.dispatch(FlowActions.navigateWithoutTransform({ url }));
+                    } else {
+                        this.router.navigate(url);
+                    }
                 })
             ),
         { dispatch: false }

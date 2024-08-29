@@ -867,6 +867,10 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanUpdateExecutionEngine() {
+    }
+
+    @Override
     public void setMaxConcurrentTasks(final int maxConcurrentTasks) {
     }
 

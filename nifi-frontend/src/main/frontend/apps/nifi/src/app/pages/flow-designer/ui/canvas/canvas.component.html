@@ -18,12 +18,19 @@
 <div class="flex flex-col h-full">
     <fd-header></fd-header>
     <div class="flex-1">
-        <graph-controls></graph-controls>
-        <div
-            id="canvas-container"
-            class="canvas-background select-none h-full"
-            [cdkContextMenuTriggerFor]="contextMenu.menu"></div>
-        <fd-context-menu #contextMenu [menuProvider]="canvasContextMenu" menuId="root"></fd-context-menu>
+        <mat-sidenav-container class="h-full">
+            <mat-sidenav mode="side" [opened]="flowAnalysisOpen()" position="end">
+                <flow-analysis-drawer></flow-analysis-drawer>
+            </mat-sidenav>
+            <mat-sidenav-content>
+                <graph-controls></graph-controls>
+                <div
+                    id="canvas-container"
+                    class="canvas-background select-none h-full w-full"
+                    [cdkContextMenuTriggerFor]="contextMenu.menu"></div>
+                <fd-context-menu #contextMenu [menuProvider]="canvasContextMenu" menuId="root"></fd-context-menu>
+            </mat-sidenav-content>
+        </mat-sidenav-container>
     </div>
     <fd-footer></fd-footer>
 </div>

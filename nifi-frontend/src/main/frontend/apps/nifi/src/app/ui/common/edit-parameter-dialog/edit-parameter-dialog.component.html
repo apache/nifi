@@ -37,7 +37,12 @@
                         [tooltipComponentType]="TextTip"
                         tooltipInputData="Parameter values do not support Expression Language or embedded parameter references."></i>
                 </mat-label>
-                <textarea matInput formControlName="value" type="text"></textarea>
+                <textarea
+                    matInput
+                    formControlName="value"
+                    type="text"
+                    [class.sensitive]="showSensitiveHelperText"
+                    (keydown)="clearSensitiveHelperText()"></textarea>
             </mat-form-field>
         </div>
         <div class="-mt-4 mb-4">

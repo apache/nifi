@@ -36,6 +36,8 @@ import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-
 import * as fromFlowConfiguration from '../../../state/flow-configuration/flow-configuration.reducer';
 import { queueFeatureKey } from '../../queue/state';
 import * as fromQueue from '../state/queue/queue.reducer';
+import { flowAnalysisFeatureKey } from '../state/flow-analysis';
+import * as fromFlowAnalysis from '../state/flow-analysis/flow-analysis.reducer';
 
 describe('BirdseyeView', () => {
     let service: BirdseyeView;
@@ -46,7 +48,8 @@ describe('BirdseyeView', () => {
             [transformFeatureKey]: fromTransform.initialState,
             [controllerServicesFeatureKey]: fromControllerServices.initialState,
             [parameterFeatureKey]: fromParameter.initialState,
-            [queueFeatureKey]: fromQueue.initialState
+            [queueFeatureKey]: fromQueue.initialState,
+            [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState
         };
 
         TestBed.configureTestingModule({

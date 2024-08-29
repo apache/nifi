@@ -195,7 +195,7 @@ public class TagS3Object extends AbstractS3Processor {
                 r = new SetObjectTaggingRequest(bucket, key, version, new ObjectTagging(tags));
             }
             s3.setObjectTagging(r);
-        } catch (final AmazonServiceException ase) {
+        } catch (final IllegalArgumentException | AmazonServiceException ase) {
             flowFile = extractExceptionDetails(ase, session, flowFile);
             getLogger().error("Failed to tag S3 Object for {}; routing to failure", flowFile, ase);
             flowFile = session.penalize(flowFile);

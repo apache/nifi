@@ -853,7 +853,7 @@ public class PutS3Object extends AbstractS3Processor {
                 getLogger().info("Error trying to delete key {} from cache:", cacheKey, e);
             }
 
-        } catch (final ProcessException | AmazonClientException | IOException e) {
+        } catch (final IllegalArgumentException | ProcessException | AmazonClientException | IOException e) {
             extractExceptionDetails(e, session, flowFile);
             if (e.getMessage().contains(S3_PROCESS_UNSCHEDULED_MESSAGE)) {
                 getLogger().info(e.getMessage());

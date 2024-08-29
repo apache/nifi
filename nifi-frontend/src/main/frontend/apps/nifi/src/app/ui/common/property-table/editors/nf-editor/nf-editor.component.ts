@@ -55,7 +55,13 @@ import { Editor } from 'codemirror';
 })
 export class NfEditor implements OnDestroy {
     @Input() set item(item: PropertyItem) {
-        this.nfEditorForm.get('value')?.setValue(item.value);
+        if (item.descriptor.sensitive && item.value !== null) {
+            this.nfEditorForm.get('value')?.setValue('Sensitive value set');
+            this.showSensitiveHelperText = true;
+        } else {
+            this.nfEditorForm.get('value')?.setValue(item.value);
+        }
+
         if (item.descriptor.required) {
             this.nfEditorForm.get('value')?.addValidators(Validators.required);
         } else {
@@ -67,7 +73,6 @@ export class NfEditor implements OnDestroy {
         this.setEmptyStringChanged();
 
         this.supportsEl = item.descriptor.supportsEl;
-        this.sensitive = item.descriptor.sensitive;
         this.mode = this.supportsEl ? this.nfel.getLanguageId() : this.nfpr.getLanguageId();
 
         this.itemSet = true;
@@ -93,7 +98,7 @@ export class NfEditor implements OnDestroy {
     getParametersSet = false;
 
     nfEditorForm: FormGroup;
-    sensitive = false;
+    showSensitiveHelperText = false;
     supportsEl = false;
     supportsParameters = false;
     blank = false;
@@ -122,6 +127,18 @@ export class NfEditor implements OnDestroy {
         if (!this.readonly) {
             this.editor.focus();
             this.editor.execCommand('selectAll');
+        }
+
+        if (this.showSensitiveHelperText) {
+            const clearSensitiveHelperText = () => {
+                if (this.showSensitiveHelperText) {
+                    this.nfEditorForm.get('value')?.setValue('');
+                    this.nfEditorForm.get('value')?.markAsDirty();
+                    this.showSensitiveHelperText = false;
+                }
+            };
+
+            this.editor.on('keydown', clearSensitiveHelperText);
         }
 
         // disabling of the input through the form isn't supported until codemirror

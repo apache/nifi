@@ -122,6 +122,11 @@ describe('ComboEditor', () => {
     it('should create', () => {
         if (item) {
             component.item = item;
+            component.parameterConfig = {
+                supportsParameters: false,
+                parameters: null
+            };
+
             fixture.detectChanges();
 
             expect(component).toBeTruthy();
@@ -131,6 +136,11 @@ describe('ComboEditor', () => {
     it('verify combo value', () => {
         if (item) {
             component.item = item;
+            component.parameterConfig = {
+                supportsParameters: false,
+                parameters: null
+            };
+
             fixture.detectChanges();
 
             const formValue = component.comboEditorForm.get('value')?.value;
@@ -149,6 +159,11 @@ describe('ComboEditor', () => {
             item.descriptor.required = false;
 
             component.item = item;
+            component.parameterConfig = {
+                supportsParameters: false,
+                parameters: null
+            };
+
             fixture.detectChanges();
 
             const formValue = component.comboEditorForm.get('value')?.value;
@@ -168,6 +183,11 @@ describe('ComboEditor', () => {
             item.descriptor.defaultValue = undefined;
 
             component.item = item;
+            component.parameterConfig = {
+                supportsParameters: false,
+                parameters: null
+            };
+
             fixture.detectChanges();
 
             const formValue = component.comboEditorForm.get('value')?.value;
@@ -185,7 +205,11 @@ describe('ComboEditor', () => {
             item.value = '#{one}';
 
             component.item = item;
-            component.parameters = parameters;
+            component.parameterConfig = {
+                supportsParameters: true,
+                parameters
+            };
+
             fixture.detectChanges();
             await fixture.whenStable();
 
@@ -207,7 +231,11 @@ describe('ComboEditor', () => {
             item.value = '#{three}';
 
             component.item = item;
-            component.parameters = parameters;
+            component.parameterConfig = {
+                supportsParameters: true,
+                parameters
+            };
+
             fixture.detectChanges();
             await fixture.whenStable();
 

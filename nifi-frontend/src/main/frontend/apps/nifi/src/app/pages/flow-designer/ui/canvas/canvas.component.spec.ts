@@ -16,7 +16,8 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Canvas } from './canvas.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/flow/flow.reducer';
@@ -30,6 +31,8 @@ import { HeaderComponent } from './header/header.component';
 import { FooterComponent } from './footer/footer.component';
 import { canvasFeatureKey } from '../../state';
 import { flowFeatureKey } from '../../state/flow';
+import { FlowAnalysisDrawerComponent } from './header/flow-analysis-drawer/flow-analysis-drawer.component';
+import { CanvasActionsService } from '../../service/canvas-actions.service';
 
 describe('Canvas', () => {
     let component: Canvas;
@@ -54,9 +57,14 @@ describe('Canvas', () => {
             imports: [
                 CdkContextMenuTrigger,
                 ContextMenu,
+                MatSidenavModule,
+                NoopAnimationsModule,
+                MatSidenavModule,
+                NoopAnimationsModule,
                 MockComponent(GraphControls),
                 MockComponent(HeaderComponent),
-                MockComponent(FooterComponent)
+                MockComponent(FooterComponent),
+                FlowAnalysisDrawerComponent
             ],
             providers: [
                 provideMockStore({
@@ -71,7 +79,8 @@ describe('Canvas', () => {
                             value: breadcrumbEntity
                         }
                     ]
-                })
+                }),
+                CanvasActionsService
             ]
         });
         fixture = TestBed.createComponent(Canvas);

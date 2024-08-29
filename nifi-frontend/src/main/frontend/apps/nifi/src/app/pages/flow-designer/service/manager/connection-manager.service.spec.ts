@@ -37,6 +37,8 @@ import * as fromFlowConfiguration from '../../../../state/flow-configuration/flo
 import { queueFeatureKey } from '../../../queue/state';
 import * as fromQueue from '../../state/queue/queue.reducer';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { flowAnalysisFeatureKey } from '../../state/flow-analysis';
+import * as fromFlowAnalysis from '../../state/flow-analysis/flow-analysis.reducer';
 
 describe('ConnectionManager', () => {
     let service: ConnectionManager;
@@ -47,7 +49,8 @@ describe('ConnectionManager', () => {
             [transformFeatureKey]: fromTransform.initialState,
             [controllerServicesFeatureKey]: fromControllerServices.initialState,
             [parameterFeatureKey]: fromParameter.initialState,
-            [queueFeatureKey]: fromQueue.initialState
+            [queueFeatureKey]: fromQueue.initialState,
+            [flowAnalysisFeatureKey]: fromFlowAnalysis.initialState
         };
 
         TestBed.configureTestingModule({

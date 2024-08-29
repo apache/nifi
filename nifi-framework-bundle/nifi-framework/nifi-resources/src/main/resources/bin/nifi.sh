@@ -143,15 +143,6 @@ locateJava() {
             fi
         fi
     fi
-    # if command is env, attempt to add more to the classpath
-    if [ "$1" = "env" ]; then
-        [ "x${TOOLS_JAR}" =  "x" ] && [ -n "${JAVA_HOME}" ] && TOOLS_JAR=$(find -H "${JAVA_HOME}" -name "tools.jar")
-        [ "x${TOOLS_JAR}" =  "x" ] && [ -n "${JAVA_HOME}" ] && TOOLS_JAR=$(find -H "${JAVA_HOME}" -name "classes.jar")
-        if [ "x${TOOLS_JAR}" =  "x" ]; then
-             warn "Could not locate tools.jar or classes.jar. Please set manually to avail all command features."
-        fi
-    fi
-
 }
 
 init() {
@@ -162,94 +153,7 @@ init() {
     unlimitFD
 
     # Locate the Java VM to execute
-    locateJava "$1"
-}
-
-
-install() {
-    detectOS
-
-    if [ "${darwin}" = "true"  ] || [ "${cygwin}" = "true" ]; then
-        echo 'Installing Apache NiFi as a service is not supported on OS X or Cygwin.'
-        exit 1
-    fi
-
-    SVC_NAME=nifi
-    if [ "x$2" != "x" ] ; then
-        SVC_NAME=$2
-    fi
-
-    # since systemd seems to honour /etc/init.d we don't still create native systemd services
-    # yet...
-    initd_dir='/etc/init.d'
-    SVC_FILE="${initd_dir}/${SVC_NAME}"
-
-    if [ ! -w  "${initd_dir}" ]; then
-        echo "Current user does not have write permissions to ${initd_dir}. Cannot install NiFi as a service."
-        exit 1
-    fi
-
-# Create the init script, overwriting anything currently present
-cat <<SERVICEDESCRIPTOR > ${SVC_FILE}
-#!/bin/sh
-
-#
-#    Licensed to the Apache Software Foundation (ASF) under one or more
-#    contributor license agreements.  See the NOTICE file distributed with
-#    this work for additional information regarding copyright ownership.
-#    The ASF licenses this file to You under the Apache License, Version 2.0
-#    (the "License"); you may not use this file except in compliance with
-#    the License.  You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    See the License for the specific language governing permissions and
-#    limitations under the License.
-#
-# chkconfig: 2345 20 80
-# description: Apache NiFi is a dataflow system based on the principles of Flow-Based Programming.
-#
-
-# Make use of the configured NIFI_HOME directory and pass service requests to the nifi.sh executable
-NIFI_HOME=${NIFI_HOME}
-bin_dir=\${NIFI_HOME}/bin
-nifi_executable=\${bin_dir}/nifi.sh
-
-\${nifi_executable} "\$@"
-SERVICEDESCRIPTOR
-
-    if [ ! -f "${SVC_FILE}" ]; then
-        echo "Could not create service file ${SVC_FILE}"
-        exit 1
-    fi
-
-    # Provide the user execute access on the file
-    chmod u+x ${SVC_FILE}
-
-
-    # If SLES or OpenSuse...
-    if [ "${ID}" = "opensuse" ] || [ "${ID}" = "sles" ]; then
-        rm -f "/etc/rc.d/rc2.d/S65${SVC_NAME}"
-        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc.d/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc.d/rc2.d/S65${SVC_NAME}"; exit 1; }
-        rm -f "/etc/rc.d/rc2.d/K65${SVC_NAME}"
-        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc.d/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc.d/rc2.d/K65${SVC_NAME}"; exit 1; }
-        echo "Service ${SVC_NAME} installed"
-    # Anything other fallback to the old approach
-    else
-        rm -f "/etc/rc2.d/S65${SVC_NAME}"
-        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/S65${SVC_NAME}"; exit 1; }
-        rm -f "/etc/rc2.d/K65${SVC_NAME}"
-        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1; }
-        echo "Service ${SVC_NAME} installed"
-    fi
-
-    # systemd: generate nifi.service from init.d
-    if [ -d "/run/systemd/system/" ] || [ ! -z "$(pidof systemd 2>/dev/null)" ]; then
-        systemctl daemon-reload
-    fi
+    locateJava
 }
 
 is_nonzero_integer() {
@@ -284,7 +188,6 @@ run() {
 
         NIFI_HOME=$(cygpath --path --windows "${NIFI_HOME}")
         NIFI_LOG_DIR=$(cygpath --path --windows "${NIFI_LOG_DIR}")
-        NIFI_PID_DIR=$(cygpath --path --windows "${NIFI_PID_DIR}")
         BOOTSTRAP_CONF=$(cygpath --path --windows "${BOOTSTRAP_CONF}")
         BOOTSTRAP_CONF_DIR=$(cygpath --path --windows "${BOOTSTRAP_CONF_DIR}")
         BOOTSTRAP_LIBS=$(cygpath --path --windows "${BOOTSTRAP_LIBS}")
@@ -307,26 +210,21 @@ run() {
     fi
 
     echo
-    echo "Java home: ${JAVA_HOME}"
-    echo "NiFi home: ${NIFI_HOME}"
+    echo "JAVA_HOME=${JAVA_HOME}"
+    echo "NIFI_HOME=${NIFI_HOME}"
     echo
-    echo "Bootstrap Config File: ${BOOTSTRAP_CONF}"
-    echo
-
-    # run 'start' in the background because the process will continue to run, monitoring NiFi.
-    # all other commands will terminate quickly so want to just wait for them
 
     #setup directory parameters
     BOOTSTRAP_LOG_PARAMS="-Dorg.apache.nifi.bootstrap.config.log.dir='${NIFI_LOG_DIR}'"
-    BOOTSTRAP_PID_PARAMS="-Dorg.apache.nifi.bootstrap.config.pid.dir='${NIFI_PID_DIR}'"
     BOOTSTRAP_CONF_PARAMS="-Dorg.apache.nifi.bootstrap.config.file='${BOOTSTRAP_CONF}'"
 
     # uncomment to allow debugging of the bootstrap process
     #BOOTSTRAP_DEBUG_PARAMS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
 
-    BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
+    BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
 
-    run_bootstrap_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms48m -Xmx48m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.RunNiFi"
+    MAXIMUM_HEAP_SIZE="-Xmx48m"
+    run_bootstrap_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' ${MAXIMUM_HEAP_SIZE} ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.BootstrapProcess"
     run_nifi_cmd="${run_bootstrap_cmd} $@"
 
     if [ -n "${run_as_user}" ]; then
@@ -337,11 +235,6 @@ run() {
       fi
       # Provide SCRIPT_DIR and execute nifi-env for the run.as user command
       run_nifi_cmd="${SUDO} -u ${run_as_user} sh -c \"SCRIPT_DIR='${SCRIPT_DIR}' && . '${SCRIPT_DIR}/nifi-env.sh' && ${run_nifi_cmd}\""
-    fi
-
-    if [ "$1" = "run" ]; then
-      # Use exec to handover PID to RunNiFi java process, instead of foking it as a child process
-      run_nifi_cmd="exec ${run_nifi_cmd}"
     fi
 
     if [ "$1" = "set-sensitive-properties-algorithm" ]; then
@@ -374,8 +267,20 @@ run() {
         return;
     fi
 
-    if [ "$1" = "start" ]; then
-        ( eval "cd ${NIFI_HOME} && ${run_nifi_cmd}" & )> /dev/null 1>&-
+    eval "cd ${NIFI_HOME}"
+
+    if [ "$1" = "run" ]; then
+        RUN_COMMAND=$(eval "${run_bootstrap_cmd} get-run-command")
+        RUN_COMMAND_STATUS=$?
+        if [ $RUN_COMMAND_STATUS = 0 ]; then
+            exec $RUN_COMMAND
+        else
+            echo "Failed to get run command"
+            echo "${RUN_COMMAND}"
+            exit 1
+        fi
+    elif [ "$1" = "start" ]; then
+        eval "${run_nifi_cmd}" > /dev/null 1>&- &
 
         if [ "$2" = "--wait-for-init" ]; then
 
@@ -391,63 +296,57 @@ run() {
             time_since_feedback=0
             not_running_counter=0
 
-            is_nifi_loaded="false" # 3 possible values: "true", "false", "not_running". "not_running" means NiFi has not been started.
-            while [ "$is_nifi_loaded" != "true" ]; do
+            PROCESS_STATUS=1
+            while [ $PROCESS_STATUS != 0 ]; do
                 time_at_previous_loop=$current_time
 
                 current_time=$(date +%s)
                 if [ "$current_time" -ge "$endtime" ]; then
-                  echo "Exited the script due to --wait-for-init timeout"
+                  echo "Initialization failed after $wait_timeout seconds"
                   break;
                 fi
 
                 time_since_feedback=$(($time_since_feedback+($current_time-$time_at_previous_loop)))
                 if [ "$time_since_feedback" -ge "$WAIT_FOR_INIT_FEEDBACK_INTERVAL" ]; then
                   time_since_feedback=0
-                  echo "NiFi has not fully initialized yet..."
                 fi
 
-                is_nifi_loaded=$( eval "cd ${NIFI_HOME} && ${run_bootstrap_cmd} is_loaded" )
+                eval "cd ${NIFI_HOME} && ${run_bootstrap_cmd} status"
+                PROCESS_STATUS=$?
 
-                if [ "$is_nifi_loaded" = "not_running" ]; then
+                if [ $PROCESS_STATUS = 3 ]; then
                   not_running_counter=$(($not_running_counter+1))
                   if [ "$not_running_counter" -ge 3 ]; then
-                    echo "NiFi is not running. Stopped waiting for it to initialize."
+                    echo "Initialization failed"
                     break;
                   fi
                 fi
 
                 sleep $WAIT_FOR_INIT_SLEEP_TIME
             done
-            if [ "$is_nifi_loaded" = "true" ]; then
-              echo "NiFi initialized."
-              echo "Exiting startup script..."
+            if [ $PROCESS_STATUS = 0 ]; then
+              echo "Initialization completed"
             fi
         fi
+
+        # Wait for logging initialization before returning to shell after starting
+        sleep 1
     else
-        eval "cd ${NIFI_HOME} && ${run_nifi_cmd}"
+        eval "${run_nifi_cmd}"
     fi
     EXIT_STATUS=$?
 
-    # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
-    # We do this to avoid having logs spewed on the console after running the command and then not giving
-    # control back to the user
-    sleep 1
     echo
 }
 
 main() {
-    init "$1"
+    init
     run "$@"
 }
 
 
 case "$1" in
-    install)
-        install "$@"
-        ;;
-
-    start|stop|decommission|run|status|is_loaded|dump|diagnostics|status-history|env|set-sensitive-properties-algorithm|set-sensitive-properties-key|set-single-user-credentials|cluster-status)
+    start|stop|decommission|run|status|cluster-status|diagnostics|status-history|set-sensitive-properties-algorithm|set-sensitive-properties-key|set-single-user-credentials)
         main "$@"
         ;;
 
@@ -457,6 +356,6 @@ case "$1" in
         run "start"
         ;;
     *)
-        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|status-history|install|set-sensitive-properties-algorithm|set-sensitive-properties-key|set-single-user-credentials|cluster-status}"
+        echo "Usage nifi.sh {start|stop|decommission|run|restart|status|cluster-status|diagnostics|status-history|set-sensitive-properties-algorithm|set-sensitive-properties-key|set-single-user-credentials}"
         ;;
 esac

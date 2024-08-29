@@ -113,7 +113,7 @@ export class ParameterContextListingEffects {
 
                     dialogReference.componentInstance.createNewParameter = (
                         existingParameters: string[]
-                    ): Observable<Parameter> => {
+                    ): Observable<EditParameterResponse> => {
                         const dialogRequest: EditParameterRequest = { existingParameters };
                         const newParameterDialogReference = this.dialog.open(EditParameterDialog, {
                             ...MEDIUM_DIALOG,
@@ -128,13 +128,15 @@ export class ParameterContextListingEffects {
                                 newParameterDialogReference.close();
 
                                 return {
-                                    ...dialogResponse.parameter
+                                    ...dialogResponse
                                 };
                             })
                         );
                     };
 
-                    dialogReference.componentInstance.editParameter = (parameter: Parameter): Observable<Parameter> => {
+                    dialogReference.componentInstance.editParameter = (
+                        parameter: Parameter
+                    ): Observable<EditParameterResponse> => {
                         const dialogRequest: EditParameterRequest = {
                             parameter: {
                                 ...parameter
@@ -153,7 +155,7 @@ export class ParameterContextListingEffects {
                                 editParameterDialogReference.close();
 
                                 return {
-                                    ...dialogResponse.parameter
+                                    ...dialogResponse
                                 };
                             })
                         );
@@ -317,7 +319,7 @@ export class ParameterContextListingEffects {
 
                     editDialogReference.componentInstance.createNewParameter = (
                         existingParameters: string[]
-                    ): Observable<Parameter> => {
+                    ): Observable<EditParameterResponse> => {
                         const dialogRequest: EditParameterRequest = { existingParameters };
                         const newParameterDialogReference = this.dialog.open(EditParameterDialog, {
                             ...MEDIUM_DIALOG,
@@ -332,7 +334,7 @@ export class ParameterContextListingEffects {
                                 newParameterDialogReference.close();
 
                                 return {
-                                    ...dialogResponse.parameter
+                                    ...dialogResponse
                                 };
                             })
                         );
@@ -340,7 +342,7 @@ export class ParameterContextListingEffects {
 
                     editDialogReference.componentInstance.editParameter = (
                         parameter: Parameter
-                    ): Observable<Parameter> => {
+                    ): Observable<EditParameterResponse> => {
                         const dialogRequest: EditParameterRequest = {
                             parameter: {
                                 ...parameter
@@ -359,7 +361,7 @@ export class ParameterContextListingEffects {
                                 editParameterDialogReference.close();
 
                                 return {
-                                    ...dialogResponse.parameter
+                                    ...dialogResponse
                                 };
                             })
                         );

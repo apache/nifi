@@ -17,6 +17,7 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatSidenavModule } from '@angular/material/sidenav';
 import { Canvas } from './canvas.component';
 import { ContextMenu } from '../../../../ui/common/context-menu/context-menu.component';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
@@ -24,6 +25,7 @@ import { GraphControls } from './graph-controls/graph-controls.component';
 import { CanvasRoutingModule } from './canvas-routing.module';
 import { HeaderComponent } from './header/header.component';
 import { FooterComponent } from './footer/footer.component';
+import { FlowAnalysisDrawerComponent } from './header/flow-analysis-drawer/flow-analysis-drawer.component';
 
 @NgModule({
     declarations: [Canvas],
@@ -38,7 +40,9 @@ import { FooterComponent } from './footer/footer.component';
         GraphControls,
         ContextMenu,
         HeaderComponent,
-        FooterComponent
+        FooterComponent,
+        MatSidenavModule,
+        FlowAnalysisDrawerComponent
     ]
 })
 export class CanvasModule {}

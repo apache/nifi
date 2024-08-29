@@ -60,6 +60,7 @@ import {
     saveToFlowRegistrySuccess,
     setAllowTransition,
     setDragging,
+    setFlowAnalysisOpen,
     setNavigationCollapsed,
     setOperationCollapsed,
     setSkipTransform,
@@ -164,6 +165,7 @@ export const initialState: FlowState = {
     allowTransition: false,
     navigationCollapsed: false,
     operationCollapsed: false,
+    flowAnalysisOpen: false,
     status: 'pending'
 };
 
@@ -540,6 +542,10 @@ export const flowReducer = createReducer(
     on(setOperationCollapsed, (state, { operationCollapsed }) => ({
         ...state,
         operationCollapsed
+    })),
+    on(setFlowAnalysisOpen, (state, { flowAnalysisOpen }) => ({
+        ...state,
+        flowAnalysisOpen
     })),
     on(
         startComponentSuccess,
