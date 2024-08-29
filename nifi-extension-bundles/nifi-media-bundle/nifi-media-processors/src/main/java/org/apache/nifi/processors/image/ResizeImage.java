@@ -23,7 +23,6 @@ import java.awt.Image;
 import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -169,7 +168,7 @@ public class ResizeImage extends AbstractProcessor {
                 reader.setInput(iis, true);
                 image = reader.read(0);
             }
-        } catch (final IOException | RuntimeException ex) {
+        } catch (final Exception ex) {
             getLogger().error("Failed to read {} due to {}", flowFile, ex);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -188,8 +187,8 @@ public class ResizeImage extends AbstractProcessor {
                 height = finalDimension.height;
             }
 
-        } catch (final NumberFormatException nfe) {
-            getLogger().error("Failed to resize {} due to {}", flowFile, nfe);
+        } catch (final Exception e) {
+            getLogger().error("Failed to resize {} due to {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -216,7 +215,7 @@ public class ResizeImage extends AbstractProcessor {
             }
 
             ImageIO.write(scaledBufferedImg, formatName, out);
-        } catch (final IOException | NegativeArraySizeException ex) {
+        } catch (final Exception ex) {
             getLogger().error("Failed to write {} due to {}", flowFile, ex);
             session.transfer(flowFile, REL_FAILURE);
             return;
