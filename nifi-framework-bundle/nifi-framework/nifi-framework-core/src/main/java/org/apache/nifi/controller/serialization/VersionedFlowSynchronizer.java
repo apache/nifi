@@ -1061,9 +1061,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             providedParameters = Collections.emptyMap();
         } else {
             final ParameterProviderNode parameterProviderNode = flowManager.getParameterProvider(parameterProviderId);
-
-            // Wait for Validation as needed for Parameter Providers with Controller Services
-            final ValidationStatus validationStatus = parameterProviderNode.getValidationStatus(10, TimeUnit.SECONDS);
+            final ValidationStatus validationStatus = getParameterProviderValidationStatus(parameterProviderNode);
 
             final String parameterGroupName = versionedParameterContext.getParameterGroupName();
             if (ValidationStatus.VALID == validationStatus) {
@@ -1094,6 +1092,29 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         logger.info("Fetched Parameters [{}] for Group [{}] from Provider [{}]", parameters.size(), parameterGroupName, parameterProviderNode.getIdentifier());
         return parameters;
+    }
+
+    private ValidationStatus getParameterProviderValidationStatus(final ParameterProviderNode parameterProviderNode) {
+        final ValidationStatus workingValidationStatus;
+
+        final ValidationStatus currentValidationStatus = parameterProviderNode.getValidationStatus();
+        if (ValidationStatus.VALIDATING == currentValidationStatus) {
+            // Perform validation to determine status before fetching Parameters
+            workingValidationStatus = parameterProviderNode.performValidation();
+        } else {
+            workingValidationStatus = currentValidationStatus;
+        }
+
+        final ValidationStatus validationStatus;
+        if (ValidationStatus.INVALID == workingValidationStatus) {
+            // Wait for Validation as needed for Parameter Providers with Controller Services or other dependencies
+            parameterProviderNode.resetValidationState();
+            validationStatus = parameterProviderNode.getValidationStatus(10, TimeUnit.SECONDS);
+        } else {
+            validationStatus = workingValidationStatus;
+        }
+
+        return validationStatus;
     }
 
     private void removeMissingServices(final FlowController controller, final VersionedDataflow dataflow) {
