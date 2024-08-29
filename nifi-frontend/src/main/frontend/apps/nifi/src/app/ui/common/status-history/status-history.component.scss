@@ -20,8 +20,21 @@
 .status-history-container {
     position: relative;
     resize: both;
-    max-width: 80vw;
-    max-height: 84vh;
+    height: 720px;
+    width: 887px;
+    min-height: 720px;
+    min-width: 887px;
+
+    &.maximized {
+        height: 96vh;
+        width: 98vw;
+    }
+    &.insufficient-history {
+        height: unset;
+        width: unset;
+        min-height: unset;
+        min-width: unset;
+    }
 
     .status-history {
         @include mat.button-density(-1);

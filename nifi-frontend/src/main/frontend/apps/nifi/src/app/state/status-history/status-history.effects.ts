@@ -164,7 +164,8 @@ export class StatusHistoryEffects {
                     const dialogReference = this.dialog.open(StatusHistory, {
                         maxHeight: 'unset',
                         maxWidth: 'unset',
-                        data: request
+                        data: request,
+                        autoFocus: 'dialog'
                     });
 
                     dialogReference.afterClosed().subscribe((response) => {
