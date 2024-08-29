@@ -1126,6 +1126,24 @@ export class FlowEffects {
         { dispatch: false }
     );
 
+    navigateToViewStatusHistoryForCurrentProcessGroup$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.navigateToViewStatusHistoryForCurrentProcessGroup),
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([, processGroupId]) => {
+                    this.router.navigate([
+                        '/process-groups',
+                        processGroupId,
+                        ComponentType.ProcessGroup,
+                        processGroupId,
+                        'history'
+                    ]);
+                })
+            ),
+        { dispatch: false }
+    );
+
     completeStatusHistoryForComponent$ = createEffect(
         () =>
             this.actions$.pipe(
