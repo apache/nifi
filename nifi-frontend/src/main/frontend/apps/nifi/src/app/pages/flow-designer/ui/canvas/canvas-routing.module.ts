@@ -35,6 +35,10 @@ const routes: Routes = [
             { path: 'bulk/:ids', component: Canvas },
             { path: 'edit', component: Canvas },
             {
+                path: 'history',
+                component: Canvas
+            },
+            {
                 path: ':type/:id',
                 component: Canvas,
                 children: [

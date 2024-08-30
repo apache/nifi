@@ -56,7 +56,8 @@ import {
     selectSingleEditedComponent,
     selectSingleSelectedComponent,
     selectSkipTransform,
-    selectViewStatusHistoryComponent
+    selectViewStatusHistoryComponent,
+    selectViewStatusHistoryCurrentProcessGroup
 } from '../../state/flow/flow.selectors';
 import { filter, map, NEVER, switchMap, take } from 'rxjs';
 import { restoreViewport } from '../../state/transform/transform.actions';
@@ -64,7 +65,7 @@ import { initialState } from '../../state/flow/flow.reducer';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
 import { concatLatestFrom } from '@ngrx/operators';
-import { selectUrl, ComponentType, isDefinedAndNotNull, Storage } from '@nifi/shared';
+import { ComponentType, isDefinedAndNotNull, selectUrl, Storage } from '@nifi/shared';
 import { CanvasUtils } from '../../service/canvas-utils.service';
 import { CanvasActionsService } from '../../service/canvas-actions.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -264,6 +265,7 @@ export class Canvas implements OnInit, OnDestroy {
                 );
             });
 
+        // Handle status history for a selected component on the canvas
         this.store
             .select(selectCurrentProcessGroupId)
             .pipe(
@@ -284,6 +286,22 @@ export class Canvas implements OnInit, OnDestroy {
                         })
                     );
                 }
+            });
+
+        // Handle status history for the current process group
+        this.store
+            .select(selectViewStatusHistoryCurrentProcessGroup)
+            .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
+            .subscribe((currentProcessGroupId) => {
+                this.store.dispatch(
+                    getStatusHistoryAndOpenDialog({
+                        request: {
+                            source: 'canvas',
+                            componentType: ComponentType.ProcessGroup,
+                            componentId: currentProcessGroupId
+                        }
+                    })
+                );
             });
     }
 

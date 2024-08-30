@@ -1132,13 +1132,7 @@ export class FlowEffects {
                 ofType(FlowActions.navigateToViewStatusHistoryForCurrentProcessGroup),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
                 tap(([, processGroupId]) => {
-                    this.router.navigate([
-                        '/process-groups',
-                        processGroupId,
-                        ComponentType.ProcessGroup,
-                        processGroupId,
-                        'history'
-                    ]);
+                    this.router.navigate(['/process-groups', processGroupId, 'history']);
                 })
             ),
         { dispatch: false }
@@ -1150,19 +1144,24 @@ export class FlowEffects {
                 ofType(StatusHistoryActions.viewStatusHistoryComplete),
                 map((action) => action.request),
                 filter((request) => request.source === 'canvas'),
-                tap((request) => {
-                    this.store.dispatch(
-                        FlowActions.selectComponents({
-                            request: {
-                                components: [
-                                    {
-                                        id: request.componentId,
-                                        componentType: request.componentType
-                                    }
-                                ]
-                            }
-                        })
-                    );
+                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+                tap(([request, currentProcessGroupId]) => {
+                    if (request.componentId === currentProcessGroupId) {
+                        this.router.navigate(['/process-groups', currentProcessGroupId]);
+                    } else {
+                        this.store.dispatch(
+                            FlowActions.selectComponents({
+                                request: {
+                                    components: [
+                                        {
+                                            id: request.componentId,
+                                            componentType: request.componentType
+                                        }
+                                    ]
+                                }
+                            })
+                        );
+                    }
                 })
             ),
         { dispatch: false }
