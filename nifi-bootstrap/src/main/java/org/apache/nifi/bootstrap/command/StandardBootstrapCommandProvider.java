@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -68,6 +69,8 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
     private static final int DAYS_PATH_ARGUMENTS = 3;
 
     private static final int DAYS_REQUESTED_DEFAULT = 1;
+
+    private static final Duration START_WATCH_DELAY = Duration.ofSeconds(60);
 
     private static final BootstrapArgumentParser bootstrapArgumentParser = new StandardBootstrapArgumentParser();
 
@@ -114,7 +117,7 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
             final BootstrapCommand runBootstrapCommand = new RunBootstrapCommand(configurationProvider, processHandleProvider);
             final ProcessHandle currentProcessHandle = ProcessHandle.current();
             final BootstrapCommand statusBootstrapCommand = new ApplicationProcessStatusBootstrapCommand(currentProcessHandle);
-            bootstrapCommand = new StartBootstrapCommand(runBootstrapCommand, statusBootstrapCommand);
+            bootstrapCommand = new StartBootstrapCommand(runBootstrapCommand, statusBootstrapCommand, START_WATCH_DELAY);
         } else if (BootstrapArgument.STATUS == bootstrapArgument) {
             bootstrapCommand = new ManagementServerBootstrapCommand(processHandleProvider, HEALTH, commandLoggerStreamHandler);
         } else if (BootstrapArgument.STATUS_HISTORY == bootstrapArgument) {

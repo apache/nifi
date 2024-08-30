@@ -22,12 +22,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StartBootstrapCommandTest {
+    private static final Duration START_STATUS_DELAY = Duration.ofMillis(25);
+
+    private static final Duration RUN_STATUS_DELAY = Duration.ofMillis(500);
+
     @Mock
     private BootstrapCommand runBootstrapCommand;
 
@@ -38,7 +44,7 @@ class StartBootstrapCommandTest {
 
     @BeforeEach
     void setCommand() {
-        command = new StartBootstrapCommand(runBootstrapCommand, statusBootstrapCommand);
+        command = new StartBootstrapCommand(runBootstrapCommand, statusBootstrapCommand, START_STATUS_DELAY);
     }
 
     @Test
@@ -53,16 +59,21 @@ class StartBootstrapCommandTest {
     }
 
     @Test
-    void testRunSuccessFailed() {
+    void testRunSuccessFailed() throws InterruptedException {
         final CommandStatus runCommandStatus = CommandStatus.SUCCESS;
         when(runBootstrapCommand.getCommandStatus()).thenReturn(runCommandStatus);
 
         final CommandStatus statusCommandStatus = CommandStatus.FAILED;
-        lenient().when(statusBootstrapCommand.getCommandStatus()).thenReturn(statusCommandStatus);
+        when(statusBootstrapCommand.getCommandStatus()).thenReturn(statusCommandStatus);
 
         command.run();
 
-        final CommandStatus commandStatus = command.getCommandStatus();
-        assertEquals(CommandStatus.RUNNING, commandStatus);
+        final CommandStatus runningStatus = command.getCommandStatus();
+        assertEquals(CommandStatus.RUNNING, runningStatus);
+
+        TimeUnit.MILLISECONDS.sleep(RUN_STATUS_DELAY.toMillis());
+
+        final CommandStatus failedStatus = command.getCommandStatus();
+        assertEquals(CommandStatus.FAILED, failedStatus);
     }
 }
