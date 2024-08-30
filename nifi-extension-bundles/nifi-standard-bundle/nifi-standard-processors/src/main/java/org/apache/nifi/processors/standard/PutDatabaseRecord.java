@@ -23,6 +23,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,12 +39,24 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLTransientException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -178,25 +191,25 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor STATEMENT_TYPE_RECORD_PATH = new Builder()
-        .name("Statement Type Record Path")
-        .displayName("Statement Type Record Path")
-        .description("Specifies a RecordPath to evaluate against each Record in order to determine the Statement Type. The RecordPath should equate to either INSERT, UPDATE, UPSERT, or DELETE. "
-                + "(Debezium style operation types are also supported: \"r\" and \"c\" for INSERT, \"u\" for UPDATE, and \"d\" for DELETE)")
-        .required(true)
-        .addValidator(new RecordPathValidator())
-        .expressionLanguageSupported(NONE)
-        .dependsOn(STATEMENT_TYPE, USE_RECORD_PATH)
-        .build();
+            .name("Statement Type Record Path")
+            .displayName("Statement Type Record Path")
+            .description("Specifies a RecordPath to evaluate against each Record in order to determine the Statement Type. The RecordPath should equate to either INSERT, UPDATE, UPSERT, or DELETE. "
+                    + "(Debezium style operation types are also supported: \"r\" and \"c\" for INSERT, \"u\" for UPDATE, and \"d\" for DELETE)")
+            .required(true)
+            .addValidator(new RecordPathValidator())
+            .expressionLanguageSupported(NONE)
+            .dependsOn(STATEMENT_TYPE, USE_RECORD_PATH)
+            .build();
 
     static final PropertyDescriptor DATA_RECORD_PATH = new Builder()
-        .name("Data Record Path")
-        .displayName("Data Record Path")
-        .description("If specified, this property denotes a RecordPath that will be evaluated against each incoming Record and the Record that results from evaluating the RecordPath will be sent to" +
-            " the database instead of sending the entire incoming Record. If not specified, the entire incoming Record will be published to the database.")
-        .required(false)
-        .addValidator(new RecordPathValidator())
-        .expressionLanguageSupported(NONE)
-        .build();
+            .name("Data Record Path")
+            .displayName("Data Record Path")
+            .description("If specified, this property denotes a RecordPath that will be evaluated against each incoming Record and the Record that results from evaluating the RecordPath " +
+                    "will be sent to the database instead of sending the entire incoming Record. If not specified, the entire incoming Record will be published to the database.")
+            .required(false)
+            .addValidator(new RecordPathValidator())
+            .expressionLanguageSupported(NONE)
+            .build();
 
     static final PropertyDescriptor DBCP_SERVICE = new Builder()
             .name("put-db-record-dcbp-service")
@@ -428,14 +441,14 @@ public class PutDatabaseRecord extends AbstractProcessor {
         });
 
         DB_TYPE = new Builder()
-            .name("db-type")
-            .displayName("Database Type")
-            .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
-                + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
-            .allowableValues(dbAdapterValues.toArray(new AllowableValue[0]))
-            .defaultValue("Generic")
-            .required(false)
-            .build();
+                .name("db-type")
+                .displayName("Database Type")
+                .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
+                        + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
+                .allowableValues(dbAdapterValues.toArray(new AllowableValue[0]))
+                .defaultValue("Generic")
+                .required(false)
+                .build();
 
         properties = List.of(
                 RECORD_READER_FACTORY,
@@ -488,12 +501,12 @@ public class PutDatabaseRecord extends AbstractProcessor {
         DatabaseAdapter databaseAdapter = dbAdapters.get(validationContext.getProperty(DB_TYPE).getValue());
         String statementType = validationContext.getProperty(STATEMENT_TYPE).getValue();
         if ((UPSERT_TYPE.equals(statementType) && !databaseAdapter.supportsUpsert())
-            || (INSERT_IGNORE_TYPE.equals(statementType) && !databaseAdapter.supportsInsertIgnore())) {
+                || (INSERT_IGNORE_TYPE.equals(statementType) && !databaseAdapter.supportsInsertIgnore())) {
             validationResults.add(new ValidationResult.Builder()
-                .subject(STATEMENT_TYPE.getDisplayName())
-                .valid(false)
-                .explanation(databaseAdapter.getName() + " does not support " + statementType)
-                .build()
+                    .subject(STATEMENT_TYPE.getDisplayName())
+                    .valid(false)
+                    .explanation(databaseAdapter.getName() + " does not support " + statementType)
+                    .build()
             );
         }
 
@@ -510,15 +523,15 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         if (autoCommit != null && autoCommit && !isMaxBatchSizeHardcodedToZero(validationContext)) {
-                final String explanation = format("'%s' must be hard-coded to zero when '%s' is set to 'true'."
-                                + " Batch size equal to zero executes all statements in a single transaction"
-                                + " which allows rollback to revert all the flow file's statements together if an error occurs.",
-                        MAX_BATCH_SIZE.getDisplayName(), AUTO_COMMIT.getDisplayName());
+            final String explanation = format("'%s' must be hard-coded to zero when '%s' is set to 'true'."
+                            + " Batch size equal to zero executes all statements in a single transaction"
+                            + " which allows rollback to revert all the flow file's statements together if an error occurs.",
+                    MAX_BATCH_SIZE.getDisplayName(), AUTO_COMMIT.getDisplayName());
 
-                validationResults.add(new ValidationResult.Builder()
-                        .subject(MAX_BATCH_SIZE.getDisplayName())
-                        .explanation(explanation)
-                        .build());
+            validationResults.add(new ValidationResult.Builder()
+                    .subject(MAX_BATCH_SIZE.getDisplayName())
+                    .explanation(explanation)
+                    .build());
         }
 
         return validationResults;
@@ -707,7 +720,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     final String regex = "(?<!\\\\);";
                     sqlStatements = (sql).split(regex);
                 } else {
-                    sqlStatements = new String[] {sql};
+                    sqlStatements = new String[]{sql};
                 }
 
                 if (isFirstRecord) {
@@ -750,7 +763,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     private void executeDML(final ProcessContext context, final ProcessSession session, final FlowFile flowFile,
                             final Connection con, final RecordReader recordReader, final String explicitStatementType, final DMLSettings settings)
-        throws IllegalArgumentException, MalformedRecordException, IOException, SQLException {
+            throws IllegalArgumentException, MalformedRecordException, IOException, SQLException {
 
         final ComponentLog log = getLogger();
 
@@ -799,7 +812,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         // build the fully qualified table name
-        final String fqTableName =  generateTableName(settings, catalog, schemaName, tableName, tableSchema);
+        final String fqTableName = generateTableName(settings, catalog, schemaName, tableName, tableSchema);
 
         final Map<String, PreparedSqlAndColumns> preparedSql = new HashMap<>();
         int currentBatchSize = 0;
@@ -828,7 +841,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                         } else if (UPDATE_TYPE.equalsIgnoreCase(statementType)) {
                             sqlHolder = generateUpdate(recordSchema, fqTableName, updateKeys, tableSchema, settings, normalizer);
                         } else if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                            sqlHolder = generateDelete(recordSchema, fqTableName, deleteKeys, tableSchema, settings,normalizer);
+                            sqlHolder = generateDelete(recordSchema, fqTableName, deleteKeys, tableSchema, settings, normalizer);
                         } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
                             sqlHolder = generateUpsert(recordSchema, fqTableName, updateKeys, tableSchema, settings, normalizer);
                         } else if (INSERT_IGNORE_TYPE.equalsIgnoreCase(statementType)) {
@@ -862,7 +875,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     if (ps != lastPreparedStatement && lastPreparedStatement != null) {
                         batchIndex++;
                         log.debug("Executing query {} because Statement Type changed between Records for {}; fieldIndexes: {}; batch index: {}; batch size: {}",
-                            sql, flowFile, fieldIndexes, batchIndex, currentBatchSize);
+                                sql, flowFile, fieldIndexes, batchIndex, currentBatchSize);
                         lastPreparedStatement.executeBatch();
 
                         session.adjustCounter("Batches Executed", 1, false);
@@ -971,7 +984,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     if (++currentBatchSize == maxBatchSize) {
                         batchIndex++;
                         log.debug("Executing query {} because batch reached max size for {}; fieldIndexes: {}; batch index: {}; batch size: {}",
-                            sql, flowFile, fieldIndexes, batchIndex, currentBatchSize);
+                                sql, flowFile, fieldIndexes, batchIndex, currentBatchSize);
                         session.adjustCounter("Batches Executed", 1, false);
                         ps.executeBatch();
                         currentBatchSize = 0;
@@ -1100,7 +1113,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             final RecordFieldType fieldType = fieldValue.getField().getDataType().getFieldType();
             if (fieldType != RecordFieldType.RECORD) {
                 throw new ProcessException("RecordPath " + dataRecordPath.getPath() + " evaluated against Record expected to return one or more Records but encountered field of type" +
-                    " " + fieldType);
+                        " " + fieldType);
             }
         }
 
@@ -1480,7 +1493,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
         return new SqlAndIncludedColumns(sqlBuilder.toString(), includedColumns);
     }
 
-    SqlAndIncludedColumns generateDelete(final RecordSchema recordSchema, final String tableName, String deleteKeys, final TableSchema tableSchema, final DMLSettings settings, final NameNormalizer normalizer)
+    SqlAndIncludedColumns generateDelete(final RecordSchema recordSchema, final String tableName, String deleteKeys, final TableSchema tableSchema, final DMLSettings settings,
+                                         final NameNormalizer normalizer)
             throws IllegalArgumentException, MalformedRecordException, SQLDataException {
 
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings, normalizer);
@@ -1675,7 +1689,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
             SchemaKey schemaKey = (SchemaKey) o;
 
             if (catalog != null ? !catalog.equals(schemaKey.catalog) : schemaKey.catalog != null) return false;
-            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null) return false;
+            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null)
+                return false;
             return tableName.equals(schemaKey.tableName);
         }
     }
