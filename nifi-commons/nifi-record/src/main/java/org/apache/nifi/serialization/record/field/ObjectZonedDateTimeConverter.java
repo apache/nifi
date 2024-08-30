@@ -83,10 +83,12 @@ public class ObjectZonedDateTimeConverter implements FieldConverter<Object, Zone
                 final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
                 try {
                     final String patternString = pattern.get();
-                    // NOTE: The parsing of a string as a ZoneDateTime will fail if the pattern has no timezone information
-                    // hence only parse the string as a ZonedDateTime if the pattern is a timezone pattern otherwise parse as a LocalDateTime.
+                    // NOTE: In order to calculate any possible timezone offsets, the string must be parsed as a ZoneDateTime.
+                    // It is not possible to always parse as a ZoneDateTime as it will fail if the pattern has
+                    // no timezone information. Hence, a regular expression is used to determine whether it is necessary
+                    // to parse with ZoneDateTime or not.
                     final Matcher matcher = TIMEZONE_PATTERN.matcher(patternString);
-                    if (matcher.matches()) {
+                    if (matcher.find()) {
                         return ZonedDateTime.parse(string, formatter);
                     } else {
                         final LocalDateTime localDateTime = LocalDateTime.parse(string, formatter);
