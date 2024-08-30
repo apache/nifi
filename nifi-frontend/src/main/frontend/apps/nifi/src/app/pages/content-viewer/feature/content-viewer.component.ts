@@ -36,6 +36,7 @@ import { snackBarError } from '../../../state/error/error.actions';
 interface SupportedContentViewer {
     supportedMimeTypes: SupportedMimeTypes;
     contentViewer: ContentViewer;
+    bundled: boolean;
 }
 
 @Component({
@@ -53,7 +54,6 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
         number,
         SupportedContentViewer
     >();
-    private mimeTypeIdsSupportedByBundledUis: Set<number> = new Set<number>();
 
     private defaultSupportedMimeTypeId: number | null = null;
 
@@ -80,7 +80,6 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
             )
             .subscribe(([externalViewerOptions, bundledViewerOptions]) => {
                 this.supportedContentViewerLookup.clear();
-                this.mimeTypeIdsSupportedByBundledUis.clear();
 
                 // maps a given content (by display name) to the supported mime type id
                 // which can be used to look up the corresponding content viewer
@@ -98,7 +97,8 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
 
                         this.supportedContentViewerLookup.set(supportedMimeTypeId, {
                             supportedMimeTypes,
-                            contentViewer
+                            contentViewer,
+                            bundled: false
                         });
                     });
                 });
@@ -117,10 +117,10 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                         }
                         supportedMimeTypeMapping.get(supportedMimeTypes.displayName)?.push(supportedMimeTypeId);
 
-                        this.mimeTypeIdsSupportedByBundledUis.add(supportedMimeTypeId);
                         this.supportedContentViewerLookup.set(supportedMimeTypeId, {
                             supportedMimeTypes,
-                            contentViewer
+                            contentViewer,
+                            bundled: true
                         });
                     });
                 });
@@ -277,7 +277,7 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
 
                 this.viewerSelected = true;
 
-                if (this.mimeTypeIdsSupportedByBundledUis.has(value)) {
+                if (supportedContentViewer.bundled) {
                     this.store.dispatch(
                         navigateToBundledContentViewer({
                             route: viewer.uri
