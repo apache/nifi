@@ -40,7 +40,8 @@ public class QueryStringToFragmentFilter implements Filter {
             // Some NiFi front ends use hash based routing, so they don't need to know the baseHref. With hash based
             // routing query parameters are implemented within the URL fragment. Because of this any query parameters on the
             // original URL are not considered. This filter captures those and adds them to the fragment.
-            final RequestUriBuilder requestUriBuilder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).path(httpServletRequest.getContextPath()).fragment("/?" + queryString);
+            final String contextPath = httpServletRequest.getContextPath() + "/";
+            final RequestUriBuilder requestUriBuilder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).path(contextPath).fragment("/?" + queryString);
             final URI redirectUri = requestUriBuilder.build();
 
             final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
