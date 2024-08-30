@@ -31,7 +31,7 @@ import { loadAbout } from '../../../state/about/about.actions';
 import { selectAbout } from '../../../state/about/about.selectors';
 import { filter, map, switchMap, take } from 'rxjs';
 import { navigateToExternalViewer } from '../state/external-viewer/external-viewer.actions';
-import { snackBarError } from '../../../state/error';
+import { snackBarError } from '../../../state/error/error.actions';
 
 interface SupportedContentViewer {
     supportedMimeTypes: SupportedMimeTypes;
