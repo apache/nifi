@@ -81,7 +81,7 @@ export class AdvancedUi {
             .set('editable', params.editable)
             .set('disconnectedNodeAcknowledged', params.disconnectedNodeAcknowledged)
             .toString();
-        const url = `${params.url}?${queryParams}`;
+        const url = `${params.url}/?${queryParams}`;
 
         const sanitizedUrl = this.domSanitizer.sanitize(SecurityContext.URL, url);
 
