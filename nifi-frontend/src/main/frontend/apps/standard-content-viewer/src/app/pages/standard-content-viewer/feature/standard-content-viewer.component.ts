@@ -70,6 +70,8 @@ export class StandardContentViewer {
         if (this.ref && this.mimeTypeDisplayName) {
             this.setMode(this.mimeTypeDisplayName);
 
+            this.contentLoaded = false;
+
             const formatted: string = this.contentFormGroup.get('formatted')?.value;
             this.contentViewerService
                 .getContent(this.ref, this.mimeTypeDisplayName, formatted, this.clientId)
@@ -110,7 +112,7 @@ export class StandardContentViewer {
                 this.mode = 'application/xml';
                 break;
             case 'yaml':
-                this.mode = 'application/yaml';
+                this.mode = 'text/x-yaml';
                 break;
             case 'text':
                 this.mode = 'text/plain';

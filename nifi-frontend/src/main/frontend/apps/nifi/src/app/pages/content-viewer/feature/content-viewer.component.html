@@ -23,7 +23,10 @@
         <form [formGroup]="viewerForm">
             <mat-form-field subscriptSizing="dynamic" class="w-72">
                 <mat-label>View</mat-label>
-                <mat-select formControlName="viewAs" (selectionChange)="viewAsChanged($event)">
+                <mat-select
+                    formControlName="viewAs"
+                    (selectionChange)="viewAsChanged($event)"
+                    [panelWidth]="panelWidth">
                     @for (groupOption of viewAsOptions; track groupOption.text) {
                         @if (groupOption.options.length > 1) {
                             <mat-optgroup [label]="groupOption.text">

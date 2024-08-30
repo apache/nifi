@@ -22,7 +22,7 @@ import { loadContentViewerOptions, resetContentViewerOptions } from '../state/vi
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { selectBundledViewerOptions, selectViewerOptions } from '../state/viewer-options/viewer-options.selectors';
 import { ContentViewer, HEX_VIEWER_URL, SupportedMimeTypes } from '../state/viewer-options';
-import { isDefinedAndNotNull, SelectGroup, SelectOption, selectQueryParams } from '@nifi/shared';
+import { isDefinedAndNotNull, NiFiCommon, SelectGroup, SelectOption, selectQueryParams } from '@nifi/shared';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { concatLatestFrom } from '@ngrx/operators';
 import { navigateToBundledContentViewer, resetContent, setRef } from '../state/content/content.actions';
@@ -31,6 +31,12 @@ import { loadAbout } from '../../../state/about/about.actions';
 import { selectAbout } from '../../../state/about/about.selectors';
 import { filter, map, switchMap, take } from 'rxjs';
 import { navigateToExternalViewer } from '../state/external-viewer/external-viewer.actions';
+import { snackBarError } from '../../../state/error';
+
+interface SupportedContentViewer {
+    supportedMimeTypes: SupportedMimeTypes;
+    contentViewer: ContentViewer;
+}
 
 @Component({
     selector: 'content-viewer',
@@ -40,17 +46,19 @@ import { navigateToExternalViewer } from '../state/external-viewer/external-view
 export class ContentViewerComponent implements OnInit, OnDestroy {
     viewerForm: FormGroup;
     viewAsOptions: SelectGroup[] = [];
+    panelWidth: string | null = 'auto';
 
     private supportedMimeTypeId = 0;
-    private supportedMimeTypeLookup: Map<number, SupportedMimeTypes> = new Map<number, SupportedMimeTypes>();
-    private supportedMimeTypeContentViewerLookup: Map<number, ContentViewer> = new Map<number, ContentViewer>();
-    private mimeTypeDisplayNameLookup: Map<number, string> = new Map<number, string>();
+    private supportedContentViewerLookup: Map<number, SupportedContentViewer> = new Map<
+        number,
+        SupportedContentViewer
+    >();
     private mimeTypeIdsSupportedByBundledUis: Set<number> = new Set<number>();
 
     private defaultSupportedMimeTypeId: number | null = null;
 
     viewerSelected: boolean = false;
-    private mimeType: string | undefined;
+    mimeType: string | undefined;
     private clientId: string | undefined;
 
     private queryParamsLoaded = false;
@@ -58,6 +66,7 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
 
     constructor(
         private store: Store<NiFiState>,
+        private nifiCommon: NiFiCommon,
         private formBuilder: FormBuilder
     ) {
         this.viewerForm = this.formBuilder.group({ viewAs: null });
@@ -70,10 +79,8 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                 takeUntilDestroyed()
             )
             .subscribe(([externalViewerOptions, bundledViewerOptions]) => {
-                this.supportedMimeTypeLookup.clear();
-                this.supportedMimeTypeContentViewerLookup.clear();
+                this.supportedContentViewerLookup.clear();
                 this.mimeTypeIdsSupportedByBundledUis.clear();
-                this.mimeTypeDisplayNameLookup.clear();
 
                 // maps a given content (by display name) to the supported mime type id
                 // which can be used to look up the corresponding content viewer
@@ -81,59 +88,79 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
 
                 // process all external viewer options
                 externalViewerOptions.forEach((contentViewer) => {
-                    contentViewer.supportedMimeTypes.forEach((supportedMimeType) => {
+                    contentViewer.supportedMimeTypes.forEach((supportedMimeTypes) => {
                         const supportedMimeTypeId = this.supportedMimeTypeId++;
 
-                        if (!supportedMimeTypeMapping.has(supportedMimeType.displayName)) {
-                            supportedMimeTypeMapping.set(supportedMimeType.displayName, []);
+                        if (!supportedMimeTypeMapping.has(supportedMimeTypes.displayName)) {
+                            supportedMimeTypeMapping.set(supportedMimeTypes.displayName, []);
                         }
-                        supportedMimeTypeMapping.get(supportedMimeType.displayName)?.push(supportedMimeTypeId);
+                        supportedMimeTypeMapping.get(supportedMimeTypes.displayName)?.push(supportedMimeTypeId);
 
-                        this.supportedMimeTypeLookup.set(supportedMimeTypeId, supportedMimeType);
-                        this.supportedMimeTypeContentViewerLookup.set(supportedMimeTypeId, contentViewer);
+                        this.supportedContentViewerLookup.set(supportedMimeTypeId, {
+                            supportedMimeTypes,
+                            contentViewer
+                        });
                     });
                 });
 
                 // process all bundled options
                 bundledViewerOptions.forEach((contentViewer) => {
-                    contentViewer.supportedMimeTypes.forEach((supportedMimeType) => {
+                    contentViewer.supportedMimeTypes.forEach((supportedMimeTypes) => {
                         const supportedMimeTypeId = this.supportedMimeTypeId++;
 
                         if (contentViewer.uri === HEX_VIEWER_URL) {
                             this.defaultSupportedMimeTypeId = supportedMimeTypeId;
                         }
 
-                        if (!supportedMimeTypeMapping.has(supportedMimeType.displayName)) {
-                            supportedMimeTypeMapping.set(supportedMimeType.displayName, []);
+                        if (!supportedMimeTypeMapping.has(supportedMimeTypes.displayName)) {
+                            supportedMimeTypeMapping.set(supportedMimeTypes.displayName, []);
                         }
-                        supportedMimeTypeMapping.get(supportedMimeType.displayName)?.push(supportedMimeTypeId);
+                        supportedMimeTypeMapping.get(supportedMimeTypes.displayName)?.push(supportedMimeTypeId);
 
                         this.mimeTypeIdsSupportedByBundledUis.add(supportedMimeTypeId);
-                        this.supportedMimeTypeLookup.set(supportedMimeTypeId, supportedMimeType);
-                        this.supportedMimeTypeContentViewerLookup.set(supportedMimeTypeId, contentViewer);
+                        this.supportedContentViewerLookup.set(supportedMimeTypeId, {
+                            supportedMimeTypes,
+                            contentViewer
+                        });
                     });
                 });
 
                 const newViewAsOptions: SelectGroup[] = [];
                 supportedMimeTypeMapping.forEach((contentViewers, displayName) => {
                     const options: SelectOption[] = [];
-                    contentViewers.forEach((contentViewerId) => {
-                        this.mimeTypeDisplayNameLookup.set(contentViewerId, displayName);
-
-                        const contentViewer = this.supportedMimeTypeContentViewerLookup.get(contentViewerId);
-                        if (contentViewer) {
+                    contentViewers.forEach((supportedMimeTypeId) => {
+                        const supportedContentViewer = this.supportedContentViewerLookup.get(supportedMimeTypeId);
+                        if (supportedContentViewer) {
                             const option: SelectOption = {
-                                text: contentViewer.displayName,
-                                value: String(contentViewerId)
+                                text: supportedContentViewer.contentViewer.displayName,
+                                value: String(supportedMimeTypeId)
                             };
                             options.push(option);
                         }
                     });
+
+                    // if there is more than one content viewer for this mime type we sent the panel
+                    // width to null which will allow the select menu to expand to the width of
+                    // the content which will be a lengthy nar version string
+                    if (options.length > 1) {
+                        this.panelWidth = null;
+                    }
+
+                    // sort by option text
+                    options.sort((a, b) => {
+                        return this.nifiCommon.compareString(a.text, b.text);
+                    });
+
                     const groupOption: SelectGroup = {
                         text: displayName,
                         options
                     };
                     newViewAsOptions.push(groupOption);
+                });
+
+                // sort by option text
+                newViewAsOptions.sort((a, b) => {
+                    return this.nifiCommon.compareString(a.text, b.text);
                 });
 
                 this.viewAsOptions = newViewAsOptions;
@@ -197,16 +224,22 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
         if (!this.viewerSelected) {
             if (this.mimeType) {
                 const compatibleViewerOption = this.getCompatibleViewer(this.mimeType);
-                if (Number.isNaN(compatibleViewerOption)) {
-                    if (!Number.isNaN(this.defaultSupportedMimeTypeId)) {
+                if (compatibleViewerOption === null) {
+                    if (this.defaultSupportedMimeTypeId !== null) {
                         this.viewerForm.get('viewAs')?.setValue(String(this.defaultSupportedMimeTypeId));
                         this.loadBundledContentViewer(this.defaultSupportedMimeTypeId);
                     }
+
+                    this.store.dispatch(
+                        snackBarError({
+                            error: `No compatible content viewer found for mime type [${this.mimeType}]`
+                        })
+                    );
                 } else {
                     this.viewerForm.get('viewAs')?.setValue(String(compatibleViewerOption));
                     this.loadBundledContentViewer(compatibleViewerOption);
                 }
-            } else if (!Number.isNaN(this.defaultSupportedMimeTypeId)) {
+            } else if (this.defaultSupportedMimeTypeId !== null) {
                 this.viewerForm.get('viewAs')?.setValue(String(this.defaultSupportedMimeTypeId));
                 this.loadBundledContentViewer(this.defaultSupportedMimeTypeId);
             }
@@ -217,10 +250,10 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
         for (const group of this.viewAsOptions) {
             for (const option of group.options) {
                 const supportedMimeTypeId: number = Number(option.value);
-                if (!Number.isNaN(supportedMimeTypeId)) {
-                    const supportedMimeType = this.supportedMimeTypeLookup.get(supportedMimeTypeId);
-                    if (supportedMimeType) {
-                        if (supportedMimeType.mimeTypes.includes(mimeType)) {
+                if (Number.isInteger(supportedMimeTypeId)) {
+                    const supportedContentViewer = this.supportedContentViewerLookup.get(supportedMimeTypeId);
+                    if (supportedContentViewer) {
+                        if (supportedContentViewer.supportedMimeTypes.mimeTypes.includes(mimeType)) {
                             return supportedMimeTypeId;
                         }
                     }
@@ -237,9 +270,11 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
 
     loadBundledContentViewer(value: number | null): void {
         if (value !== null) {
-            const viewer = this.supportedMimeTypeContentViewerLookup.get(value);
+            const supportedContentViewer = this.supportedContentViewerLookup.get(value);
 
-            if (viewer) {
+            if (supportedContentViewer) {
+                const viewer = supportedContentViewer.contentViewer;
+
                 this.viewerSelected = true;
 
                 if (this.mimeTypeIdsSupportedByBundledUis.has(value)) {
@@ -249,18 +284,15 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                         })
                     );
                 } else {
-                    const mimeTypeDisplayName = this.mimeTypeDisplayNameLookup.get(value);
-                    if (mimeTypeDisplayName) {
-                        this.store.dispatch(
-                            navigateToExternalViewer({
-                                request: {
-                                    url: viewer.uri,
-                                    mimeTypeDisplayName,
-                                    clientId: this.clientId
-                                }
-                            })
-                        );
-                    }
+                    this.store.dispatch(
+                        navigateToExternalViewer({
+                            request: {
+                                url: viewer.uri,
+                                mimeTypeDisplayName: supportedContentViewer.supportedMimeTypes.displayName,
+                                clientId: this.clientId
+                            }
+                        })
+                    );
                 }
             }
         }
