@@ -14,15 +14,36 @@
 ~  See the License for the specific language governing permissions and
 ~  limitations under the License.
 -->
+
 <div
-    resizable
-    [resizeDisabled]="instances.length === 0 || fieldDescriptors.length === 0"
-    (resized)="resized()"
-    [minHeight]="720"
-    [minWidth]="887"
+    [class.maximized]="dialogMaximized && instances.length > 0 && fieldDescriptors.length > 0"
+    [class.insufficient-history]="!instances.length || !fieldDescriptors.length"
     class="flex flex-col status-history-container">
     @if (statusHistoryState$ | async; as statusHistoryState) {
-        <h2 mat-dialog-title>Status History</h2>
+        <div class="flex justify-between">
+            <h2 mat-dialog-title>Status History</h2>
+            @if (instances.length > 0 && fieldDescriptors.length > 0) {
+                @if (!dialogMaximized) {
+                    <button
+                        class="mt-2 mr-2"
+                        mat-icon-button
+                        color="primary"
+                        (click)="maximize()"
+                        title="Maximize dialog size">
+                        <i class="fa fa-window-maximize"></i>
+                    </button>
+                } @else {
+                    <button
+                        class="mt-2 mr-2"
+                        mat-icon-button
+                        color="primary"
+                        (click)="minimize()"
+                        title="Restore default dialog size">
+                        <i class="fa fa-window-minimize"></i>
+                    </button>
+                }
+            }
+        </div>
         <error-banner></error-banner>
         <div class="status-history flex flex-col grow">
             <mat-dialog-content class="grow flex flex-1">

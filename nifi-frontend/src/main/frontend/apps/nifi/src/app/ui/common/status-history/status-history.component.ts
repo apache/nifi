@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, inject, Inject, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, HostListener, inject, Inject, OnDestroy, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { StatusHistoryService } from '../../../service/status-history.service';
 import { AsyncPipe, NgStyle } from '@angular/common';
@@ -42,7 +42,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import * as d3 from 'd3';
-import { NifiTooltipDirective, NiFiCommon, TextTip, Resizable, CloseOnEscapeDialog } from '@nifi/shared';
+import { CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective, Resizable, TextTip } from '@nifi/shared';
 import { isDefinedAndNotNull } from 'libs/shared/src';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
@@ -79,6 +79,8 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, OnDest
     statusHistory$ = this.store.select(selectStatusHistory);
     fieldDescriptors$ = this.store.select(selectStatusHistoryFieldDescriptors);
     fieldDescriptors: FieldDescriptor[] = [];
+
+    dialogMaximized = false;
 
     details: { key: string; value: string }[] = [];
 
@@ -214,6 +216,16 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, OnDest
             });
     }
 
+    maximize() {
+        this.dialogMaximized = true;
+        this.resized();
+    }
+
+    minimize() {
+        this.dialogMaximized = false;
+        this.resized();
+    }
+
     isInitialLoading(state: StatusHistoryState) {
         return state.loadedTimestamp === initialState.loadedTimestamp;
     }
@@ -260,6 +272,13 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, OnDest
         if (this.selectedDescriptor) {
             // trigger the chart to re-render by changing the selection
             this.selectedDescriptor = { ...this.selectedDescriptor };
+        }
+    }
+
+    @HostListener('window:resize', ['$event.target'])
+    windowResized() {
+        if (this.dialogMaximized) {
+            this.resized();
         }
     }
 
