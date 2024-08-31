@@ -17,23 +17,25 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.avro.Schema;
 import org.apache.nifi.avro.AvroReader;
 import org.apache.nifi.avro.AvroReaderWithEmbeddedSchema;
 import org.apache.nifi.avro.AvroRecordReader;
 import org.apache.nifi.avro.AvroRecordSetWriter;
+import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.csv.CSVReader;
 import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.serialization.record.MockSchemaRegistry;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -48,13 +50,19 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_BRANCH_NAME;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -87,12 +95,12 @@ public class TestValidateRecord {
         runner.enqueue(content);
         runner.run();
         runner.assertAllFlowFilesTransferred(ValidateRecord.REL_VALID, 1);
-        runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0).assertContentEquals(content);
+        runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst().assertContentEquals(content);
     }
 
 
     @Test
-    public void testWriteFailureRoutesToFaliure() throws InitializationException {
+    public void testWriteFailureRoutesToFailure() throws InitializationException {
         final CSVReader csvReader = new CSVReader();
         runner.addControllerService("reader", csvReader);
         runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "true");
@@ -114,13 +122,13 @@ public class TestValidateRecord {
     }
 
     @Test
-    public void testAppropriateServiceUsedForInvalidRecords() throws InitializationException, UnsupportedEncodingException, IOException {
-        final String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc")), "UTF-8");
+    public void testAppropriateServiceUsedForInvalidRecords() throws InitializationException, IOException {
+        final String schema = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc"));
 
         final CSVReader csvReader = new CSVReader();
         runner.addControllerService("reader", csvReader);
-        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_TEXT, schema);
+        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvReader, SCHEMA_TEXT, schema);
         runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "false");
         runner.setProperty(csvReader, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL.getValue());
         runner.setProperty(csvReader, CSVUtils.TRAILING_DELIMITER, "false");
@@ -139,9 +147,11 @@ public class TestValidateRecord {
         runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
         runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
 
-        final String content = "1, John Doe\n"
-            + "2, Jane Doe\n"
-            + "Three, Jack Doe\n";
+        final String content = """
+                1, John Doe
+                2, Jane Doe
+                Three, Jack Doe
+                """;
 
         runner.enqueue(content);
         runner.run();
@@ -150,24 +160,26 @@ public class TestValidateRecord {
         runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
         runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
 
-        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
         validFlowFile.assertAttributeEquals("record.count", "2");
-        validFlowFile.assertContentEquals("valid\n"
-            + "1,John Doe\n"
-            + "2,Jane Doe\n");
+        validFlowFile.assertContentEquals("""
+                valid
+                1,John Doe
+                2,Jane Doe
+                """);
 
-        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).get(0);
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
         invalidFlowFile.assertAttributeEquals("record.count", "1");
         invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
     }
 
     @Test
     public void testStrictTypeCheck() throws InitializationException, IOException {
-        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc")), "UTF-8");
+        final String validateSchema = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc"));
 
         final CSVReader csvReader = new CSVReader();
         runner.addControllerService("reader", csvReader);
-        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
+        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
         runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "true");
         runner.setProperty(csvReader, CSVUtils.IGNORE_CSV_HEADER, "true");
         runner.setProperty(csvReader, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL.getValue());
@@ -185,18 +197,20 @@ public class TestValidateRecord {
 
         runner.setProperty(ValidateRecord.RECORD_READER, "reader");
         runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
-        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(SCHEMA_TEXT, validateSchema);
         runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
         runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
         runner.setProperty(ValidateRecord.STRICT_TYPE_CHECKING, "true");
 
         // The validationSchema expects 'id' to be int, but CSVReader reads it as 'string'
         // with strict type check, the type difference is not allowed.
-        final String content = "id, firstName, lastName\n"
-                + "1, John, Doe\n"
-                + "2, Jane, Doe\n"
-                + "Three, Jack, Doe\n";
+        final String content = """
+                id, firstName, lastName
+                1, John, Doe
+                2, Jane, Doe
+                Three, Jack, Doe
+                """;
 
         runner.enqueue(content);
         runner.run();
@@ -205,22 +219,24 @@ public class TestValidateRecord {
         runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
         runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
 
-        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).get(0);
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
         invalidFlowFile.assertAttributeEquals("record.count", "3");
-        final String expectedInvalidContents = "invalid\n"
-                + "\"1\",\"John\",\"Doe\"\n"
-                + "\"2\",\"Jane\",\"Doe\"\n"
-                + "\"Three\",\"Jack\",\"Doe\"\n";
+        final String expectedInvalidContents = """
+                invalid
+                "1","John","Doe"
+                "2","Jane","Doe"
+                "Three","Jack","Doe"
+                """;
         invalidFlowFile.assertContentEquals(expectedInvalidContents);
     }
 
     @Test
     public void testNonStrictTypeCheckWithAvroWriter() throws InitializationException, IOException, MalformedRecordException, SchemaNotFoundException {
-        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc")), "UTF-8");
+        final String validateSchema = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc"));
 
         final CSVReader csvReader = new CSVReader();
         runner.addControllerService("reader", csvReader);
-        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
+        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
         runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "true");
         runner.setProperty(csvReader, CSVUtils.IGNORE_CSV_HEADER, "true");
         runner.setProperty(csvReader, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL.getValue());
@@ -238,18 +254,20 @@ public class TestValidateRecord {
 
         runner.setProperty(ValidateRecord.RECORD_READER, "reader");
         runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
-        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(SCHEMA_TEXT, validateSchema);
         runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
         runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
         runner.setProperty(ValidateRecord.STRICT_TYPE_CHECKING, "false");
 
         // The validationSchema expects 'id' to be int, but CSVReader reads it as 'string'
         // with non-strict type check, the type difference should be accepted, and results should be written as 'int'.
-        final String content = "id, firstName, lastName\n"
-                + "1, John, Doe\n"
-                + "2, Jane, Doe\n"
-                + "Three, Jack, Doe\n";
+        final String content = """
+                id, firstName, lastName
+                1, John, Doe
+                2, Jane, Doe
+                Three, Jack, Doe
+                """;
 
         runner.enqueue(content);
         runner.run();
@@ -260,13 +278,13 @@ public class TestValidateRecord {
 
         final AvroReader avroReader = new AvroReader();
         runner.addControllerService("avroReader", avroReader);
-        runner.setProperty(avroReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(avroReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
         runner.enableControllerService(avroReader);
-        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
         final byte[] validFlowFileBytes = validFlowFile.toByteArray();
         try (
         final ByteArrayInputStream resultContentStream = new ByteArrayInputStream(validFlowFileBytes);
-        final RecordReader recordReader = avroReader.createRecordReader(validFlowFile.getAttributes(), resultContentStream, validFlowFileBytes.length, runner.getLogger());
+        final RecordReader recordReader = avroReader.createRecordReader(validFlowFile.getAttributes(), resultContentStream, validFlowFileBytes.length, runner.getLogger())
         ) {
             final RecordSchema resultSchema = recordReader.getSchema();
             assertEquals(3, resultSchema.getFieldCount());
@@ -289,10 +307,12 @@ public class TestValidateRecord {
             assertEquals("Doe", record.getValue("lastName"));
         }
 
-        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).get(0);
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
         invalidFlowFile.assertAttributeEquals("record.count", "1");
-        final String expectedInvalidContents = "invalid\n"
-                + "\"Three\",\"Jack\",\"Doe\"\n";
+        final String expectedInvalidContents = """
+                invalid
+                "Three","Jack","Doe"
+                """;
         invalidFlowFile.assertContentEquals(expectedInvalidContents);
     }
 
@@ -300,7 +320,7 @@ public class TestValidateRecord {
      * This test case demonstrates the limitation on JsonRecordSetWriter type-coercing when strict type check is disabled.
      * Since WriteJsonResult.writeRawRecord doesn't use record schema,
      * type coercing does not happen with JsonWriter even if strict type check is disabled.
-     *
+     * <p>
      * E.g. When an input "1" as string is given, and output field schema is int:
      * <ul>
      * <li>Expected result: "id": 1 (without quote)</li>
@@ -309,11 +329,11 @@ public class TestValidateRecord {
      */
     @Test
     public void testNonStrictTypeCheckWithJsonWriter() throws InitializationException, IOException {
-        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc")), "UTF-8");
+        final String validateSchema = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc"));
 
         final CSVReader csvReader = new CSVReader();
         runner.addControllerService("reader", csvReader);
-        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
+        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
         runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "true");
         runner.setProperty(csvReader, CSVUtils.IGNORE_CSV_HEADER, "true");
         runner.setProperty(csvReader, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL.getValue());
@@ -331,18 +351,20 @@ public class TestValidateRecord {
 
         runner.setProperty(ValidateRecord.RECORD_READER, "reader");
         runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
-        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(SCHEMA_TEXT, validateSchema);
         runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
         runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
         runner.setProperty(ValidateRecord.STRICT_TYPE_CHECKING, "false");
 
         // The validationSchema expects 'id' to be int, but CSVReader reads it as 'string'
         // with non-strict type check, the type difference should be accepted, and results should be written as 'int'.
-        final String content = "id, firstName, lastName\n"
-                + "1, John, Doe\n"
-                + "2, Jane, Doe\n"
-                + "Three, Jack, Doe\n";
+        final String content = """
+                id, firstName, lastName
+                1, John, Doe
+                2, Jane, Doe
+                Three, Jack, Doe
+                """;
 
         runner.enqueue(content);
         runner.run();
@@ -354,7 +376,7 @@ public class TestValidateRecord {
         /*
         TODO: JsonRecordSetWriter does not coerce value. Should we fix this??
          */
-        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
         validFlowFile.assertAttributeEquals("record.count", "2");
         final String expectedValidContents = "[" +
                 "{\"id\":\"1\",\"firstName\":\"John\",\"lastName\":\"Doe\"}," +
@@ -362,21 +384,23 @@ public class TestValidateRecord {
                 "]";
         validFlowFile.assertContentEquals(expectedValidContents);
 
-        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).get(0);
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
         invalidFlowFile.assertAttributeEquals("record.count", "1");
-        final String expectedInvalidContents = "invalid\n"
-                + "\"Three\",\"Jack\",\"Doe\"\n";
+        final String expectedInvalidContents = """
+                invalid
+                "Three","Jack","Doe"
+                """;
         invalidFlowFile.assertContentEquals(expectedInvalidContents);
     }
 
     @Test
     public void testValidateNestedMap() throws InitializationException, IOException {
-        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateRecord/nested-map-schema.avsc")), StandardCharsets.UTF_8);
+        final String validateSchema = Files.readString(Paths.get("src/test/resources/TestValidateRecord/nested-map-schema.avsc"));
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(jsonReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
+        runner.setProperty(jsonReader, SCHEMA_TEXT, validateSchema);
         runner.enableControllerService(jsonReader);
 
         final JsonRecordSetWriter validWriter = new JsonRecordSetWriter();
@@ -390,14 +414,15 @@ public class TestValidateRecord {
 
         runner.setProperty(ValidateRecord.RECORD_READER, "reader");
         runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
-        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(SCHEMA_TEXT, validateSchema);
         runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
         runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
 
         // Both records should be valid if strict type checking is off
         runner.setProperty(ValidateRecord.STRICT_TYPE_CHECKING, "false");
-        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/nested-map-input.json"));
+        final Path nestedMapINputpath = Paths.get("src/test/resources/TestValidateRecord/nested-map-input.json");
+        runner.enqueue(nestedMapINputpath);
         runner.run();
 
         runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
@@ -407,7 +432,7 @@ public class TestValidateRecord {
 
         // The second record should be invalid if strict type checking is on
         runner.setProperty(ValidateRecord.STRICT_TYPE_CHECKING, "true");
-        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/nested-map-input.json"));
+        runner.enqueue(nestedMapINputpath);
         runner.run();
 
         runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
@@ -417,12 +442,12 @@ public class TestValidateRecord {
 
     @Test
     public void testValidateMissingRequiredArray() throws InitializationException, IOException {
-        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateRecord/missing-array.avsc")), StandardCharsets.UTF_8);
+        final String validateSchema = Files.readString(Paths.get("src/test/resources/TestValidateRecord/missing-array.avsc"));
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(jsonReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
+        runner.setProperty(jsonReader, SCHEMA_TEXT, validateSchema);
         runner.enableControllerService(jsonReader);
 
         final JsonRecordSetWriter validWriter = new JsonRecordSetWriter();
@@ -436,8 +461,8 @@ public class TestValidateRecord {
 
         runner.setProperty(ValidateRecord.RECORD_READER, "reader");
         runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
-        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(SCHEMA_TEXT, validateSchema);
         runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
         runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "true");
 
@@ -454,12 +479,12 @@ public class TestValidateRecord {
 
     @Test
     public void testValidateMissingRequiredArrayWithDefault() throws InitializationException, IOException {
-        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateRecord/missing-array-with-default.avsc")), StandardCharsets.UTF_8);
+        final String validateSchema = Files.readString(Paths.get("src/test/resources/TestValidateRecord/missing-array-with-default.avsc"));
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(jsonReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
+        runner.setProperty(jsonReader, SCHEMA_TEXT, validateSchema);
         runner.enableControllerService(jsonReader);
 
         final JsonRecordSetWriter validWriter = new JsonRecordSetWriter();
@@ -473,8 +498,8 @@ public class TestValidateRecord {
 
         runner.setProperty(ValidateRecord.RECORD_READER, "reader");
         runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
-        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(SCHEMA_TEXT, validateSchema);
         runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
         runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "true");
 
@@ -492,12 +517,12 @@ public class TestValidateRecord {
 
     @Test
     public void testValidateJsonTimestamp() throws IOException, InitializationException {
-        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateRecord/timestamp.avsc")), StandardCharsets.UTF_8);
+        final String validateSchema = Files.readString(Paths.get("src/test/resources/TestValidateRecord/timestamp.avsc"));
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(jsonReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
+        runner.setProperty(jsonReader, SCHEMA_TEXT, validateSchema);
         runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy/MM/dd HH:mm:ss");
         runner.enableControllerService(jsonReader);
 
@@ -509,17 +534,18 @@ public class TestValidateRecord {
 
         runner.setProperty(ValidateRecord.RECORD_READER, "reader");
         runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
-        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(SCHEMA_TEXT, validateSchema);
         runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "writer");
         runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
 
         runner.setProperty(ValidateRecord.STRICT_TYPE_CHECKING, "true");
-        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/timestamp.json"));
+        final Path timestampPath = Paths.get("src/test/resources/TestValidateRecord/timestamp.json");
+        runner.enqueue(timestampPath);
         runner.run();
 
         runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
-        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
         validFlowFile.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
 
         // Test with a timestamp that has an invalid format.
@@ -527,39 +553,38 @@ public class TestValidateRecord {
 
         runner.disableControllerService(jsonReader);
         runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy-MM-dd HH:mm:ss");
-        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/timestamp.json"));
+        runner.enqueue(timestampPath);
         runner.enableControllerService(jsonReader);
 
         runner.run();
 
         runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
-        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).get(0);
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
         invalidFlowFile.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
 
         // Test with an Inferred Schema.
         runner.disableControllerService(jsonReader);
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        runner.setProperty(jsonReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
         runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy/MM/dd HH:mm:ss");
         runner.enableControllerService(jsonReader);
 
         runner.clearTransferState();
-        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/timestamp.json"));
+        runner.enqueue(timestampPath);
         runner.run();
 
         runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
-        final MockFlowFile validFlowFileInferredSchema = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        final MockFlowFile validFlowFileInferredSchema = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
         validFlowFileInferredSchema.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
     }
 
     @Test
     public void testValidateMaps() throws IOException, InitializationException, MalformedRecordException {
-        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateRecord/int-maps-schema.avsc")), StandardCharsets.UTF_8);
+        final String validateSchema = Files.readString(Paths.get("src/test/resources/TestValidateRecord/int-maps-schema.avsc"));
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(jsonReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SCHEMA_TEXT, validateSchema);
         runner.enableControllerService(jsonReader);
 
         final AvroRecordSetWriter avroWriter = new AvroRecordSetWriter();
@@ -568,8 +593,8 @@ public class TestValidateRecord {
 
         runner.setProperty(ValidateRecord.RECORD_READER, "reader");
         runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
-        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(SCHEMA_TEXT, validateSchema);
         runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "writer");
         runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
 
@@ -577,7 +602,7 @@ public class TestValidateRecord {
         runner.run();
 
         runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
-        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
 
         byte[] source = validFlowFile.toByteArray();
 
@@ -594,13 +619,13 @@ public class TestValidateRecord {
     }
 
     @Test
-    public void testValidationsDetailsAttributeForInvalidRecords()  throws InitializationException, UnsupportedEncodingException, IOException {
-        final String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc")), "UTF-8");
+    public void testValidationsDetailsAttributeForInvalidRecords()  throws InitializationException, IOException {
+        final String schema = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc"));
 
         final CSVReader csvReader = new CSVReader();
         runner.addControllerService("reader", csvReader);
-        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_TEXT, schema);
+        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvReader, SCHEMA_TEXT, schema);
         runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "false");
         runner.setProperty(csvReader, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL.getValue());
         runner.setProperty(csvReader, CSVUtils.TRAILING_DELIMITER, "false");
@@ -621,9 +646,11 @@ public class TestValidateRecord {
         runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "150");
         runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
 
-        final String content = "1, John Doe\n"
-            + "2, Jane Doe\n"
-            + "Three, Jack Doe\n";
+        final String content = """
+                1, John Doe
+                2, Jane Doe
+                Three, Jack Doe
+                """;
 
         runner.enqueue(content);
         runner.run();
@@ -631,7 +658,7 @@ public class TestValidateRecord {
         runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
         runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
 
-        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).get(0);
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
         invalidFlowFile.assertAttributeEquals("record.count", "1");
         invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
         invalidFlowFile.assertAttributeExists("valDetails");
@@ -641,10 +668,9 @@ public class TestValidateRecord {
 
     @Test
     public void testValidationForNullElementArrayAndMap() throws Exception {
-        AvroReader avroReader = new AvroReader();
+        final AvroReader avroReader = new AvroReader();
         runner.addControllerService("reader", avroReader);
         runner.enableControllerService(avroReader);
-
 
         final MockRecordWriter validWriter = new MockRecordWriter("valid", false);
         runner.addControllerService("writer", validWriter);
@@ -668,9 +694,228 @@ public class TestValidateRecord {
         runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
         runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
 
-        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
         validFlowFile.assertAttributeEquals("record.count", "1");
         validFlowFile.assertContentEquals("valid\n[text, null],{key=null}\n");
     }
 
+    @Test
+    public void testSchemaNameAccess() throws Exception {
+        final String schema = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc"));
+
+        final MockSchemaRegistry registry = new MockSchemaRegistry();
+        registry.addSchema("record", AvroTypeUtil.createSchema(new Schema.Parser().parse(schema)));
+        runner.addControllerService("registry", registry);
+        runner.enableControllerService(registry);
+
+        final CSVReader csvReader = new CSVReader();
+        runner.addControllerService("reader", csvReader);
+        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvReader, SCHEMA_TEXT, schema);
+        runner.enableControllerService(csvReader);
+
+        final CSVRecordSetWriter csvWriter = new CSVRecordSetWriter();
+        runner.addControllerService("writer", csvWriter);
+        runner.setProperty(csvWriter, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvWriter, SCHEMA_TEXT, schema);
+        runner.enableControllerService(csvWriter);
+
+        final MockRecordWriter invalidWriter = new MockRecordWriter("invalid", true);
+        runner.addControllerService("invalid-writer", invalidWriter);
+        runner.enableControllerService(invalidWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY);
+        runner.setProperty(SCHEMA_REGISTRY, "registry");
+        runner.setProperty(SCHEMA_NAME, "record");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "150");
+        runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
+
+        final String content = """
+                1, John Doe
+                2, Jane Doe
+                Three, Jack Doe
+                """;
+        runner.enqueue(content);
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+        runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
+
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
+        invalidFlowFile.assertAttributeEquals("record.count", "1");
+        invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
+        invalidFlowFile.assertAttributeExists("valDetails");
+        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
+                + "The following 1 fields had values whose type did not match the schema: [/id]");
+    }
+
+    @Test
+    public void testSchemaNameAccessWithBranch() throws Exception {
+        final String schema = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc"));
+
+        final MockSchemaRegistry registry = new MockSchemaRegistry();
+        registry.addSchema("record", "branch", AvroTypeUtil.createSchema(new Schema.Parser().parse(schema)));
+        runner.addControllerService("registry", registry);
+        runner.enableControllerService(registry);
+
+        final CSVReader csvReader = new CSVReader();
+        runner.addControllerService("reader", csvReader);
+        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvReader, SCHEMA_TEXT, schema);
+        runner.enableControllerService(csvReader);
+
+        final CSVRecordSetWriter csvWriter = new CSVRecordSetWriter();
+        runner.addControllerService("writer", csvWriter);
+        runner.setProperty(csvWriter, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvWriter, SCHEMA_TEXT, schema);
+        runner.enableControllerService(csvWriter);
+
+        final MockRecordWriter invalidWriter = new MockRecordWriter("invalid", true);
+        runner.addControllerService("invalid-writer", invalidWriter);
+        runner.enableControllerService(invalidWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY);
+        runner.setProperty(SCHEMA_REGISTRY, "registry");
+        runner.setProperty(SCHEMA_NAME, "record");
+        runner.setProperty(SCHEMA_BRANCH_NAME, "branch");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "150");
+        runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
+
+        final String content = """
+                1, John Doe
+                2, Jane Doe
+                Three, Jack Doe
+                """;
+        runner.enqueue(content);
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+        runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
+
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
+        invalidFlowFile.assertAttributeEquals("record.count", "1");
+        invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
+        invalidFlowFile.assertAttributeExists("valDetails");
+        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
+                + "The following 1 fields had values whose type did not match the schema: [/id]");
+    }
+
+    @Test
+    public void testSchemaNameAccessWithVersion() throws Exception {
+        final String schema = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc"));
+
+        final MockSchemaRegistry registry = new MockSchemaRegistry();
+        registry.addSchema("record", 1, AvroTypeUtil.createSchema(new Schema.Parser().parse(schema)));
+        runner.addControllerService("registry", registry);
+        runner.enableControllerService(registry);
+
+        final CSVReader csvReader = new CSVReader();
+        runner.addControllerService("reader", csvReader);
+        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvReader, SCHEMA_TEXT, schema);
+        runner.enableControllerService(csvReader);
+
+        final CSVRecordSetWriter csvWriter = new CSVRecordSetWriter();
+        runner.addControllerService("writer", csvWriter);
+        runner.setProperty(csvWriter, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvWriter, SCHEMA_TEXT, schema);
+        runner.enableControllerService(csvWriter);
+
+        final MockRecordWriter invalidWriter = new MockRecordWriter("invalid", true);
+        runner.addControllerService("invalid-writer", invalidWriter);
+        runner.enableControllerService(invalidWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY);
+        runner.setProperty(SCHEMA_REGISTRY, "registry");
+        runner.setProperty(SCHEMA_NAME, "record");
+        runner.setProperty(SCHEMA_VERSION, "1");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "150");
+        runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
+
+        final String content = """
+                1, John Doe
+                2, Jane Doe
+                Three, Jack Doe
+                """;
+        runner.enqueue(content);
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+        runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
+
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
+        invalidFlowFile.assertAttributeEquals("record.count", "1");
+        invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
+        invalidFlowFile.assertAttributeExists("valDetails");
+        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
+                + "The following 1 fields had values whose type did not match the schema: [/id]");
+    }
+
+    @Test
+    public void testSchemaNameAccessWithBranchAndVersion() throws Exception {
+        final String schema = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc"));
+
+        final MockSchemaRegistry registry = new MockSchemaRegistry();
+        registry.addSchema("record", "branch", 1, AvroTypeUtil.createSchema(new Schema.Parser().parse(schema)));
+        runner.addControllerService("registry", registry);
+        runner.enableControllerService(registry);
+
+        final CSVReader csvReader = new CSVReader();
+        runner.addControllerService("reader", csvReader);
+        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvReader, SCHEMA_TEXT, schema);
+        runner.enableControllerService(csvReader);
+
+        final CSVRecordSetWriter csvWriter = new CSVRecordSetWriter();
+        runner.addControllerService("writer", csvWriter);
+        runner.setProperty(csvWriter, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvWriter, SCHEMA_TEXT, schema);
+        runner.enableControllerService(csvWriter);
+
+        final MockRecordWriter invalidWriter = new MockRecordWriter("invalid", true);
+        runner.addControllerService("invalid-writer", invalidWriter);
+        runner.enableControllerService(invalidWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY);
+        runner.setProperty(SCHEMA_REGISTRY, "registry");
+        runner.setProperty(SCHEMA_NAME, "record");
+        runner.setProperty(SCHEMA_BRANCH_NAME, "branch");
+        runner.setProperty(SCHEMA_VERSION, "1");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "150");
+        runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
+
+        final String content = """
+                1, John Doe
+                2, Jane Doe
+                Three, Jack Doe
+                """;
+        runner.enqueue(content);
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+        runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
+
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).getFirst();
+        invalidFlowFile.assertAttributeEquals("record.count", "1");
+        invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
+        invalidFlowFile.assertAttributeExists("valDetails");
+        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
+                + "The following 1 fields had values whose type did not match the schema: [/id]");
+    }
 }
