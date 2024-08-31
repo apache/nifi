@@ -72,20 +72,26 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SuppressWarnings({"SameParameterValue"})
 public class TestRecordPath {
 
-    private static final String USER_TIMEZONE_PROPERTY = "user.timezone";
-    private static final String SYSTEM_TIMEZONE = System.getProperty(USER_TIMEZONE_PROPERTY);
-    private static final String TEST_TIMEZONE = "America/Phoenix";
-    private static final ZoneId TEST_ZONE_ID = ZoneId.of(TEST_TIMEZONE);
+    private static final String USER_TIMEZONE_PROPERTY_NAME = "user.timezone";
+    private static final String INITIAL_USER_TIMEZONE = System.getProperty(USER_TIMEZONE_PROPERTY_NAME);
+    private static final TimeZone INITIAL_DEFAULT_TIMEZONE = TimeZone.getDefault();
+
+    private static final ZoneId TEST_ZONE_ID = ZoneId.of("America/Phoenix");
+    private static final TimeZone TEST_TIME_ZONE = TimeZone.getTimeZone(TEST_ZONE_ID);
 
     @BeforeAll
     public static void setTestTimezone() {
-        System.setProperty(USER_TIMEZONE_PROPERTY, TEST_TIMEZONE);
+        System.setProperty(USER_TIMEZONE_PROPERTY_NAME, TEST_ZONE_ID.getId());
+        TimeZone.setDefault(TEST_TIME_ZONE);
     }
 
     @AfterAll
     public static void setSystemTimezone() {
-        if (SYSTEM_TIMEZONE != null) {
-            System.setProperty(USER_TIMEZONE_PROPERTY, SYSTEM_TIMEZONE);
+        if (INITIAL_USER_TIMEZONE != null) {
+            System.setProperty(USER_TIMEZONE_PROPERTY_NAME, INITIAL_USER_TIMEZONE);
+        }
+        if (INITIAL_DEFAULT_TIMEZONE != null) {
+            TimeZone.setDefault(INITIAL_DEFAULT_TIMEZONE);
         }
     }
 
@@ -2039,7 +2045,7 @@ public class TestRecordPath {
             @Test
             public void supportsToUnescapeReferencedObjectAsRecordValueAndNestedObjectsAsMapValue() {
                 record.setValue("name", "{\"id\":1,\"balance\":2.3,\"nested\":[{\"city\":\"New York\",\"state\":\"NY\"}]}");
-                Map[] expectedNestedValue = {Map.of("city", "New York", "state", "NY")};
+                final Object[] expectedNestedValue = {Map.of("city", "New York", "state", "NY")};
 
                 final FieldValue fieldValue = evaluateSingleFieldValue("unescapeJson(/name, 'true', 'false')", record);
                 assertInstanceOf(Record.class, fieldValue.getValue());
