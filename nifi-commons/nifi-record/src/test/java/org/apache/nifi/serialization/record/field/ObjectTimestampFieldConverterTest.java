@@ -18,12 +18,18 @@ package org.apache.nifi.serialization.record.field;
 
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -44,40 +50,40 @@ public class ObjectTimestampFieldConverterTest {
     private static final String DATE_TIME_NANOSECONDS = "2000-01-01 12:00:00.123456789";
 
     @Test
-    public void testConvertFieldNull() {
+    void testConvertFieldNull() {
         final Timestamp timestamp = CONVERTER.convertField(null, DEFAULT_PATTERN, FIELD_NAME);
         assertNull(timestamp);
     }
 
     @Test
-    public void testConvertFieldTimestamp() {
+    void testConvertFieldTimestamp() {
         final Timestamp field = new Timestamp(System.currentTimeMillis());
         final Timestamp timestamp = CONVERTER.convertField(field, DEFAULT_PATTERN, FIELD_NAME);
         assertEquals(field, timestamp);
     }
 
     @Test
-    public void testConvertFieldDate() {
+    void testConvertFieldDate() {
         final Date field = new Date();
         final Timestamp timestamp = CONVERTER.convertField(field, DEFAULT_PATTERN, FIELD_NAME);
         assertEquals(field.getTime(), timestamp.getTime());
     }
 
     @Test
-    public void testConvertFieldLong() {
+    void testConvertFieldLong() {
         final long field = System.currentTimeMillis();
         final Timestamp timestamp = CONVERTER.convertField(field, DEFAULT_PATTERN, FIELD_NAME);
         assertEquals(field, timestamp.getTime());
     }
 
     @Test
-    public void testConvertFieldStringEmpty() {
+    void testConvertFieldStringEmpty() {
         final Timestamp timestamp = CONVERTER.convertField(EMPTY, DEFAULT_PATTERN, FIELD_NAME);
         assertNull(timestamp);
     }
 
     @Test
-    public void testConvertFieldStringFormatNull() {
+    void testConvertFieldStringFormatNull() {
         final long currentTime = System.currentTimeMillis();
         final String field = Long.toString(currentTime);
         final Timestamp timestamp = CONVERTER.convertField(field, Optional.empty(), FIELD_NAME);
@@ -85,29 +91,65 @@ public class ObjectTimestampFieldConverterTest {
     }
 
     @Test
-    public void testConvertFieldStringFormatNullNumberFormatException() {
+    void testConvertFieldStringFormatNullNumberFormatException() {
         final String field = String.class.getSimpleName();
         final FieldConversionException exception = assertThrows(FieldConversionException.class, () -> CONVERTER.convertField(field, Optional.empty(), FIELD_NAME));
         assertTrue(exception.getMessage().contains(field));
     }
 
     @Test
-    public void testConvertFieldStringFormatDefault() {
+    void testConvertFieldStringFormatDefault() {
         final Timestamp timestamp = CONVERTER.convertField(DATE_TIME_DEFAULT, DEFAULT_PATTERN, FIELD_NAME);
         final Timestamp expected = Timestamp.valueOf(DATE_TIME_DEFAULT);
         assertEquals(expected, timestamp);
     }
 
     @Test
-    public void testConvertFieldStringFormatCustomNanoseconds() {
+    void testConvertFieldStringFormatCustomNanoseconds() {
         final Timestamp timestamp = CONVERTER.convertField(DATE_TIME_NANOSECONDS, DATE_TIME_NANOSECONDS_PATTERN, FIELD_NAME);
         final Timestamp expected = Timestamp.valueOf(DATE_TIME_NANOSECONDS);
         assertEquals(expected, timestamp);
     }
 
     @Test
-    public void testConvertFieldStringFormatCustomFormatterException() {
+    void testConvertFieldStringFormatCustomFormatterException() {
         final FieldConversionException exception = assertThrows(FieldConversionException.class, () -> CONVERTER.convertField(DATE_TIME_DEFAULT, DATE_TIME_NANOSECONDS_PATTERN, FIELD_NAME));
         assertTrue(exception.getMessage().contains(DATE_TIME_DEFAULT));
+    }
+
+    @Test
+    void testConvertFieldStringFormatWithTimeZone() {
+        final String originalTimestampHour = "12";
+        //NOTE: Antarctica/Casey is the timezone offset chosen in timestamp below
+        final String originalTimestamp = "2000-01-01 " + originalTimestampHour + ":00:00+0800";
+        final Optional<String> timezonePattern = Optional.of("yyyy-MM-dd HH:mm:ssZ");
+        final Timestamp actual = CONVERTER.convertField(originalTimestamp, timezonePattern, FIELD_NAME);
+        final String actualString = actual.toString();
+
+        assertFalse(actualString.contains(" " + originalTimestampHour + ":"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getPatterns")
+    void testTimeZonePattern(String pattern, boolean expected) {
+        final Matcher matcher = ObjectTimestampFieldConverter.TIMEZONE_PATTERN.matcher(pattern);
+        if (expected) {
+            assertTrue(matcher.find());
+        } else {
+            assertFalse(matcher.find());
+        }
+    }
+
+    private static Stream<Arguments> getPatterns() {
+        return Stream.of(
+                Arguments.of("yyyy-MM-dd'T'HH:mm:ssZ", true),
+                Arguments.of("Zyyyy-MM-dd'T'HH:mm:ss", true),
+                Arguments.of("yyyy-MM-dd'T'ZHH:mm:ss", true),
+                Arguments.of("yyyy-MM-ddZ'T'HH:mm:ss", true),
+                Arguments.of("yyyy-MM-dd'T'HH:mm:ss'Z'", false),
+                Arguments.of("EEEE, MMM dd, yyyy HH:mm:ss a", false),
+                Arguments.of("dd-MMM-yyyy", false),
+                Arguments.of("MMMM dd, yyyy: EEEE", false)
+        );
     }
 }

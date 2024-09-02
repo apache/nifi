@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.serialization.record.field;
 
+import org.apache.nifi.serialization.record.util.InstantFieldUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 import java.time.Instant;
@@ -30,7 +31,6 @@ import java.util.Optional;
  * Convert Object to java.time.LocalDateTime using instanceof evaluation and optional format pattern for DateTimeFormatter
  */
 class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalDateTime> {
-    private static final long YEAR_TEN_THOUSAND = 253_402_300_800_000L;
 
     /**
      * Convert Object field to java.sql.Timestamp using optional format supported in DateTimeFormatter
@@ -55,11 +55,14 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
         }
         if (field instanceof final Number number) {
             // If value is a floating point number, we consider it as seconds since epoch plus a decimal part for fractions of a second.
+            final Instant instant;
             if (field instanceof Double || field instanceof Float) {
-                return toLocalDateTime(number.doubleValue());
+                instant = InstantFieldUtils.toInstant(number.doubleValue());
+                return ofInstant(instant);
             }
 
-            return toLocalDateTime(number.longValue());
+            instant = InstantFieldUtils.toInstant(number.longValue());
+            return ofInstant(instant);
         }
         if (field instanceof String) {
             final String string = field.toString().trim();
@@ -84,46 +87,11 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
 
     private LocalDateTime tryParseAsNumber(final String value, final String fieldName) {
         try {
-            // If decimal, treat as a double and convert to seconds and nanoseconds.
-            if (value.contains(".")) {
-                final double number = Double.parseDouble(value);
-                return toLocalDateTime(number);
-            }
-
-            // attempt to parse as a long value
-            final long number = Long.parseLong(value);
-            return toLocalDateTime(number);
+            final Instant instant = InstantFieldUtils.tryParseAsNumber(value);
+            return ofInstant(instant);
         } catch (final NumberFormatException e) {
             throw new FieldConversionException(LocalDateTime.class, value, fieldName, e);
         }
-    }
-
-    private LocalDateTime toLocalDateTime(final double secondsSinceEpoch) {
-        // Determine the number of micros past the second by subtracting the number of seconds from the decimal value and multiplying by 1 million.
-        final double micros = 1_000_000 * (secondsSinceEpoch - (long) secondsSinceEpoch);
-        // Convert micros to nanos. Note that we perform this as a separate operation, rather than multiplying by 1_000,000,000 in order to avoid
-        // issues that occur with rounding at high precision.
-        final long nanos = (long) micros * 1000L;
-
-        return toLocalDateTime((long) secondsSinceEpoch, nanos);
-    }
-
-    private LocalDateTime toLocalDateTime(final long epochSeconds, final long nanosPastSecond) {
-        final Instant instant = Instant.ofEpochSecond(epochSeconds).plusNanos(nanosPastSecond);
-        return ofInstant(instant);
-    }
-
-    private LocalDateTime toLocalDateTime(final long value) {
-        if (value > YEAR_TEN_THOUSAND) {
-            // Value is too large. Assume microseconds instead of milliseconds.
-            final Instant microsInstant = Instant.ofEpochSecond(value / 1_000_000, (value % 1_000_000) * 1_000);
-            return ofInstant(microsInstant);
-        }
-
-        final Instant instant = Instant.ofEpochMilli(value);
-        final LocalDateTime localDateTime = ofInstant(instant);
-
-        return localDateTime;
     }
 
     private LocalDateTime ofInstant(final Instant instant) {
