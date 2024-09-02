@@ -42,6 +42,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -216,23 +217,11 @@ public class QueryRecord extends AbstractProcessor {
         .defaultValue("true")
         .required(true)
         .build();
-    static final PropertyDescriptor CACHE_SCHEMA = new PropertyDescriptor.Builder()
-        .name("cache-schema")
-        .displayName("Cache Schema")
-        .description("This property is no longer used. It remains solely for backward compatibility in order to avoid making existing Processors invalid upon upgrade. This property will be" +
-            " removed in future versions. Now, instead of forcing the user to understand the semantics of schema caching, the Processor caches up to 25 schemas and automatically rolls off the" +
-            " old schemas. This provides the same performance when caching was enabled previously and in some cases very significant performance improvements if caching was previously disabled.")
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .allowableValues("true", "false")
-        .defaultValue("true")
-        .required(true)
-        .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
             RECORD_READER_FACTORY,
             RECORD_WRITER_FACTORY,
             INCLUDE_ZERO_RECORD_FLOWFILES,
-            CACHE_SCHEMA,
             DEFAULT_PRECISION,
             DEFAULT_SCALE
     );
@@ -254,6 +243,11 @@ public class QueryRecord extends AbstractProcessor {
         .maximumSize(25)
         .removalListener(this::onCacheEviction)
         .build();
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.removeProperty("cache-schema");
+    }
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
