@@ -5,7 +5,8 @@ import java.time.Instant;
 public class InstantFieldUtils {
     private static final long YEAR_TEN_THOUSAND = 253_402_300_800_000L;
 
-    private InstantFieldUtils() {}
+    private InstantFieldUtils() {
+    }
 
     public static Instant tryParseAsNumber(final String value) {
         // If decimal, treat as a double and convert to seconds and nanoseconds.
