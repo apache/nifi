@@ -64,6 +64,7 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestValidateRecord {
@@ -575,6 +576,45 @@ public class TestValidateRecord {
         runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
         final MockFlowFile validFlowFileInferredSchema = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
         validFlowFileInferredSchema.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
+    }
+
+    @Test
+    void testTimeZoneWithTimeStamp() throws Exception {
+        final String timestampWithTimeZonePattern = "dd/MM/yyyy HH:mm:ssZ";
+        final String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateRecord/timestampWithTimeZone.avsc")), "UTF-8");
+        final CSVReader csvReader = new CSVReader();
+        runner.addControllerService("reader", csvReader);
+        runner.setProperty(csvReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvReader, SCHEMA_TEXT, schema);
+        runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "true");
+        runner.setProperty(csvReader, CSVUtils.VALUE_SEPARATOR, "◆");
+        runner.setProperty(csvReader, DateTimeUtils.TIMESTAMP_FORMAT, timestampWithTimeZonePattern);
+        runner.enableControllerService(csvReader);
+
+        final CSVRecordSetWriter csvWriter = new CSVRecordSetWriter();
+        runner.addControllerService("writer", csvWriter);
+        runner.setProperty(csvWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.setProperty(csvWriter, DateTimeUtils.TIMESTAMP_FORMAT, timestampWithTimeZonePattern);
+        runner.enableControllerService(csvWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "4000");
+        runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
+        final String originalTimestampHour = "15";
+        //NOTE: Antarctica/Casey is the timezone offset chosen in timestamp below
+        final String timestampWithTimezone = "24/09/2024 " + originalTimestampHour + ":04:23+0800";
+        final String content = "apache_date◆apache_ip_source◆apache_method◆apache_path◆apache_query_string◆apache_response_code◆apache_referer◆apache_user_agent\n" +
+                timestampWithTimezone + "◆10.4.3.20◆GET◆/path◆?test=toto◆200◆-◆";
+
+        runner.enqueue(content);
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
+        //Validate timezone is taken into account as the hour in the timestamp should be different
+        assertFalse(validFlowFile.getContent().contains(originalTimestampHour + ":"));
     }
 
     @Test
