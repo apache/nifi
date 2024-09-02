@@ -1014,15 +1014,14 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, false, false);
 
-        // Ensure state not set, as the processor hasn't been stopped and no State Update Interval has been set
+        // Ensure state not set, as the processor hasn't been stopped
         testRunner.getStateManager().assertStateEquals(BinlogEventInfo.BINLOG_FILENAME_KEY, INIT_BIN_LOG_FILENAME, Scope.CLUSTER);
         testRunner.getStateManager().assertStateEquals(BinlogEventInfo.BINLOG_POSITION_KEY, FOUR, Scope.CLUSTER);
         testRunner.getStateManager().assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, null, Scope.CLUSTER);
 
         testRunner.getStateManager().clear(Scope.CLUSTER);
 
-        // Send some events, wait for the State Update Interval, and verify the state was set
-        testRunner.setProperty(CaptureChangeMySQL.STATE_UPDATE_INTERVAL, "1 second");
+        // Send some events and verify the state was set
         testRunner.run(1, false, true);
 
         // ROTATE
@@ -1087,8 +1086,7 @@ public class CaptureChangeMySQLTest {
         ((CaptureChangeMySQL) testRunner.getProcessor()).clearState();
         testRunner.getStateManager().clear(Scope.CLUSTER);
 
-        // Send some events, wait for the State Update Interval, and verify the state was set
-        testRunner.setProperty(CaptureChangeMySQL.STATE_UPDATE_INTERVAL, "1 second");
+        // Send some events and verify the state was set
         testRunner.run(1, false, true);
 
         // GTID
