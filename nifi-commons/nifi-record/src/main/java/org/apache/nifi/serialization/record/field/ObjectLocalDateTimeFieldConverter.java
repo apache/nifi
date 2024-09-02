@@ -58,10 +58,9 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
             final Instant instant;
             if (field instanceof Double || field instanceof Float) {
                 instant = InstantFieldUtils.toInstant(number.doubleValue());
-                return ofInstant(instant);
+            } else {
+                instant = InstantFieldUtils.toInstant(number.longValue());
             }
-
-            instant = InstantFieldUtils.toInstant(number.longValue());
             return ofInstant(instant);
         }
         if (field instanceof String) {
