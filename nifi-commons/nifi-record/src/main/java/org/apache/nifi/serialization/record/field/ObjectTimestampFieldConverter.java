@@ -17,7 +17,7 @@
 package org.apache.nifi.serialization.record.field;
 
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
-import org.apache.nifi.serialization.record.util.InstantFieldUtils;
+import org.apache.nifi.serialization.record.util.FractionalSecondsUtils;
 
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -79,9 +79,9 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
             // If value is a floating point number, we consider it as seconds since epoch plus a decimal part for fractions of a second.
             final Instant instant;
             if (field instanceof Double || field instanceof Float) {
-                instant = InstantFieldUtils.toInstant(number.doubleValue());
+                instant = FractionalSecondsUtils.toInstant(number.doubleValue());
             } else {
-                instant = InstantFieldUtils.toInstant(number.longValue());
+                instant = FractionalSecondsUtils.toInstant(number.longValue());
             }
             return ofInstant(instant);
         }
@@ -123,7 +123,7 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
 
     private Timestamp tryParseAsNumber(final String value, final String fieldName) {
         try {
-            final Instant instant = InstantFieldUtils.tryParseAsNumber(value);
+            final Instant instant = FractionalSecondsUtils.tryParseAsNumber(value);
             return ofInstant(instant);
         } catch (final NumberFormatException e) {
             throw new FieldConversionException(Timestamp.class, value, fieldName, e);
