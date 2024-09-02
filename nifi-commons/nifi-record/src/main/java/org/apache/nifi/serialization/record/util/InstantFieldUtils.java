@@ -30,8 +30,8 @@ public class InstantFieldUtils {
     }
 
     public static Instant toInstant(final long value) {
+        // Value is too large. Assume microseconds instead of milliseconds.
         if (value > YEAR_TEN_THOUSAND) {
-            // Value is too large. Assume microseconds instead of milliseconds.
            return Instant.ofEpochSecond(value / 1_000_000, (value % 1_000_000) * 1_000);
         }
 
