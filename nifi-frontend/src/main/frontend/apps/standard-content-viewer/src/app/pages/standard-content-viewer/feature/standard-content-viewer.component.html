@@ -33,7 +33,7 @@
             @if (error) {
                 <div>{{ error }}</div>
             } @else {
-                <div class="flex-1 overflow-auto">
+                <div class="flex-1 overflow-auto min-h-[125px]">
                     <ngx-codemirror formControlName="value" [options]="getOptions()"></ngx-codemirror>
                 </div>
             }
