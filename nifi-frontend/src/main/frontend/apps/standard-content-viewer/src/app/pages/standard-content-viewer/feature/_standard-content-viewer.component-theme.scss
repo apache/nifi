@@ -22,10 +22,6 @@
     .standard-content-viewer {
         @include mat.button-density(-1);
 
-        .mat-mdc-form-field {
-            width: 100%;
-        }
-
         .CodeMirror.cm-s-nifi {
             height: 100%;
         }
