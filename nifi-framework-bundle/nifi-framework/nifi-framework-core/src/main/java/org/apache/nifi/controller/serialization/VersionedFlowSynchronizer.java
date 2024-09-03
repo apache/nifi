@@ -1067,8 +1067,14 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private Map<String, Parameter> getProvidedParameters(final ParameterProviderNode parameterProviderNode, final String parameterGroupName) {
-        logger.debug("Fetching Parameters for Group [{}] from Provider [{}]", parameterGroupName, parameterProviderNode.getIdentifier());
-        parameterProviderNode.fetchParameters();
+        final String providerId = parameterProviderNode.getIdentifier();
+        logger.debug("Fetching Parameters for Group [{}] from Provider [{}]", parameterGroupName, providerId);
+
+        try {
+            parameterProviderNode.fetchParameters();
+        } catch (final Exception e) {
+            logger.warn("Fetching Parameters for Group [{}] from Provider [{}] failed", parameterGroupName, providerId, e);
+        }
 
         final Map<String, Parameter> parameters;
         final Optional<ParameterGroup> foundParameterGroup = parameterProviderNode.findFetchedParameterGroup(parameterGroupName);
@@ -1082,7 +1088,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             parameters = Collections.emptyMap();
         }
 
-        logger.info("Fetched Parameters [{}] for Group [{}] from Provider [{}]", parameters.size(), parameterGroupName, parameterProviderNode.getIdentifier());
+        logger.info("Fetched Parameters [{}] for Group [{}] from Provider [{}]", parameters.size(), parameterGroupName, providerId);
         return parameters;
     }
 
