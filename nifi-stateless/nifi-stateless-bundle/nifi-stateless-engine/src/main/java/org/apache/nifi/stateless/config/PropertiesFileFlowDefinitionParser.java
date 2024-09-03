@@ -19,20 +19,12 @@ package org.apache.nifi.stateless.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.Call;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.registry.VersionedFlowConverter;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.stateless.core.RegistryUtil;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
@@ -42,20 +34,28 @@ import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.apache.nifi.stateless.parameter.EnvironmentVariableParameterValueProvider;
 import org.apache.nifi.stateless.parameter.OverrideParameterValueProvider;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.client.StandardWebClientService;
+import org.apache.nifi.web.client.api.HttpResponseEntity;
+import org.apache.nifi.web.client.api.WebClientService;
+import org.apache.nifi.web.client.redirect.RedirectHandling;
+import org.apache.nifi.web.client.ssl.TlsContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.X509TrustManager;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -94,7 +94,6 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     private static final String FLOW_SNAPSHOT_URL_KEY = "nifi.stateless.flow.snapshot.url";
     private static final String FLOW_SNAPSHOT_CONTENTS_KEY = "nifi.stateless.flow.snapshot.contents";
     private static final String FLOW_SNAPSHOT_URL_USE_SSLCONTEXT_KEY = "nifi.stateless.flow.snapshot.url.use.ssl.context";
-    private static final String FLOW_NAME = "nifi.stateless.flow.name";
     private static final String TRANSACTION_THRESHOLD_FLOWFILES = "nifi.stateless.transaction.thresholds.flowfiles";
     private static final String TRANSACTION_THRESHOLD_DATA_SIZE = "nifi.stateless.transaction.thresholds.bytes";
     private static final String TRANSACTION_THRESHOLD_TIME = "nifi.stateless.transaction.thresholds.time";
@@ -122,8 +121,6 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         final List<ReportingTaskDefinition> reportingTaskDefinitions = getReportingTasks(properties);
         final List<ParameterValueProviderDefinition> parameterValueProviderDefinitions = getParameterValueProviders(properties, parameterOverrides);
         final TransactionThresholds transactionThresholds = getTransactionThresholds(properties);
-
-        final String flowName = properties.getOrDefault(FLOW_NAME, externalFlow.getMetadata().getFlowName());
 
         return new StandardDataflowDefinition.Builder()
             .versionedExternalFlow(externalFlow)
@@ -327,8 +324,8 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
 
     private TransactionThresholds getTransactionThresholds(final Map<String, String> properties) {
         final Long flowfileThreshold = getLongProperty(properties, TRANSACTION_THRESHOLD_FLOWFILES);
-        final Double dataSizeThreshold = getDataSizeProperty(properties, TRANSACTION_THRESHOLD_DATA_SIZE, DataUnit.B);
-        final Double timeThreshold = getTimePeriodProperty(properties, TRANSACTION_THRESHOLD_TIME, TimeUnit.NANOSECONDS);
+        final Double dataSizeThreshold = getDataSizeProperty(properties, TRANSACTION_THRESHOLD_DATA_SIZE);
+        final Double timeThreshold = getTimePeriodProperty(properties, TRANSACTION_THRESHOLD_TIME);
 
         final OptionalLong maxFlowFiles = flowfileThreshold == null ? OptionalLong.empty() : OptionalLong.of(flowfileThreshold);
         final OptionalLong maxBytes = dataSizeThreshold == null ? OptionalLong.empty() : OptionalLong.of(dataSizeThreshold.longValue());
@@ -367,21 +364,21 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         }
     }
 
-    private Double getDataSizeProperty(final Map<String, String> properties, final String propertyName, final DataUnit dataUnit) {
+    private Double getDataSizeProperty(final Map<String, String> properties, final String propertyName) {
         final String propertyValue = getTrimmedProperty(properties, propertyName);
 
         try {
-            return propertyValue == null ? null : DataUnit.parseDataSize(propertyValue, dataUnit);
+            return propertyValue == null ? null : DataUnit.parseDataSize(propertyValue, DataUnit.B);
         } catch (final Exception e) {
             throw new IllegalArgumentException("Configured property <" + propertyName + "> has a value that is not a valid data size");
         }
     }
 
-    private Double getTimePeriodProperty(final Map<String, String> properties, final String propertyName, final TimeUnit timeUnit) {
+    private Double getTimePeriodProperty(final Map<String, String> properties, final String propertyName) {
         final String propertyValue = getTrimmedProperty(properties, propertyName);
 
         try {
-            return propertyValue == null ? null : FormatUtils.getPreciseTimeDuration(propertyValue, timeUnit);
+            return propertyValue == null ? null : FormatUtils.getPreciseTimeDuration(propertyValue, TimeUnit.NANOSECONDS);
         } catch (final Exception e) {
             throw new IllegalArgumentException("Configured property <" + propertyName + "> has a value that is not a valid time period");
         }
@@ -421,10 +418,12 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
      * This makes sense for many use cases, but for our use case, the a very common use case will be for the properties file to contain Parameters
      * whose names have spaces. Expecting users to manually escape that will be very frustrating and error-prone.
      *
+     * <p>
      * Another option would be to avoid using Properties and instead use JSON, YAML, or the like. However, these have their downsides, as well.
      * JSON is easy to read but can be frustrating to write correctly when writing it manually. YAML will likely be easier, but it is less well known
      * than either properties or JSON.
      *
+     * <p>
      * The final consideration is that we want to remain consistent with the configuration format. We don't want to take in a properties file for the
      * engine configuration and a JSON/YAML/XML/etc. configuration for the flow configuration. And since NiFi is already based on properties file and
      * that seems to be the easiest to manually read/write, that's what we are going with here.
@@ -549,48 +548,50 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     }
 
     private VersionedFlowSnapshot fetchFlowFromUrl(final String url, final SslContextDefinition sslContextDefinition) throws IOException {
-        final OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-            .callTimeout(30, TimeUnit.SECONDS);
+        final WebClientService webClientService = getWebClientService(sslContextDefinition);
+        final URI uri = URI.create(url);
+
+        try (
+                HttpResponseEntity responseEntity = webClientService.get().uri(uri).retrieve();
+                InputStream responseBody = responseEntity.body()
+        ) {
+            final int statusCode = responseEntity.statusCode();
+            if (statusCode == HttpURLConnection.HTTP_OK) {
+                try {
+                    return OBJECT_MAPPER.readValue(responseBody, VersionedFlowSnapshot.class);
+                } catch (final Exception e) {
+                    throw new IOException("Downloaded flow from " + url + " but failed to parse the contents as a Versioned Flow. Please verify that the correct URL was provided.", e);
+                }
+            } else {
+                final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                final InputStream body = responseEntity.body();
+                body.transferTo(outputStream);
+
+                final String responseMessage = outputStream.toString();
+                final String message = "Failed to download flow from URL %s HTTP %d %s".formatted(url, statusCode, responseMessage);
+                throw new IOException(message);
+            }
+        }
+    }
+
+    private WebClientService getWebClientService(final SslContextDefinition sslContextDefinition) throws IOException {
+        final StandardWebClientService webClientService = new StandardWebClientService();
+
+        final Duration timeout = Duration.ofSeconds(30);
+        webClientService.setConnectTimeout(timeout);
+        webClientService.setReadTimeout(timeout);
+        webClientService.setRedirectHandling(RedirectHandling.FOLLOWED);
 
         if (sslContextDefinition != null) {
-            final TlsConfiguration tlsConfiguration = SslConfigurationUtil.createTlsConfiguration(sslContextDefinition);
             try {
-                final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
-                final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
-                clientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
-            } catch (final TlsException e) {
-                throw new IllegalArgumentException("TLS Configuration Failed: Check SSL Context Properties", e);
+                final TlsContext tlsContext = SslConfigurationUtil.createTlsContext(sslContextDefinition);
+                webClientService.setTlsContext(tlsContext);
+            } catch (final StatelessConfigurationException e) {
+                throw new IOException("Web Client Service TLS Configuration failed", e);
             }
         }
 
-        final OkHttpClient client = clientBuilder.build();
-
-        final Request getRequest = new Request.Builder()
-            .url(url)
-            .get()
-            .build();
-
-        final Call call = client.newCall(getRequest);
-
-        try (final Response response = call.execute()) {
-            final ResponseBody responseBody = response.body();
-
-            if (!response.isSuccessful()) {
-                final String responseText = responseBody == null ? "<No Message Received from Server>" : responseBody.string();
-                throw new IOException("Failed to download flow from URL " + url + ": Response was " + response.code() + ": " + responseText);
-            }
-
-            if (responseBody == null) {
-                throw new IOException("Failed to download flow from URL " + url + ": Received successful response code " + response.code() + " but no Response body");
-            }
-
-            try {
-                final VersionedFlowSnapshot snapshot = OBJECT_MAPPER.readValue(responseBody.bytes(), VersionedFlowSnapshot.class);
-                return snapshot;
-            } catch (final Exception e) {
-                throw new IOException("Downloaded flow from " + url + " but failed to parse the contents as a Versioned Flow. Please verify that the correct URL was provided.", e);
-            }
-        }
+        return webClientService;
     }
 
     private VersionedFlowSnapshot fetchFlowFromRegistry(final String registryUrl, final String bucketId, final String flowId, final Integer flowVersion,
