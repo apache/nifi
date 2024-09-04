@@ -15,26 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cluster.coordination.http.replication.okhttp;
-
-import java.util.Map;
+package org.apache.nifi.cluster.coordination.http.replication.client;
 
 import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
 
-import okhttp3.RequestBody;
+import java.util.Map;
 
-public class OkHttpPreparedRequest implements PreparedRequest {
-    private final String method;
-    private final Map<String, String> headers;
-    private final Object entity;
-    private final RequestBody requestBody;
-
-    public OkHttpPreparedRequest(final String method, final Map<String, String> headers, final Object entity, final RequestBody requestBody) {
-        this.method = method;
-        this.headers = headers;
-        this.entity = entity;
-        this.requestBody = requestBody;
-    }
+/**
+ * Standard record implementation of Request prepared for Replication
+ *
+ * @param method HTTP Method
+ * @param headers Map of HTTP Request Headers
+ * @param entity HTTP Request Entity
+ * @param requestBody Serialized Request Body
+ */
+record StandardPreparedRequest(String method, Map<String, String> headers, Object entity, byte[] requestBody) implements PreparedRequest {
 
     @Override
     public String getMethod() {
@@ -49,14 +44,5 @@ public class OkHttpPreparedRequest implements PreparedRequest {
     @Override
     public Object getEntity() {
         return entity;
-    }
-
-    public RequestBody getRequestBody() {
-        return requestBody;
-    }
-
-    @Override
-    public String toString() {
-        return "OkHttpPreparedRequest[method=" + method + ", headers=" + headers + "]";
     }
 }

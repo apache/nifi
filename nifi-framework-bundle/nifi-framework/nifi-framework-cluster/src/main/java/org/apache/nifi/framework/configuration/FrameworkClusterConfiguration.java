@@ -19,15 +19,17 @@ package org.apache.nifi.framework.configuration;
 import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.cluster.StandardClusterDetailsFactory;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClient;
 import org.apache.nifi.cluster.coordination.http.replication.RequestCompletionCallback;
 import org.apache.nifi.cluster.coordination.http.replication.StandardUploadRequestReplicator;
 import org.apache.nifi.cluster.coordination.http.replication.ThreadPoolRequestReplicator;
 import org.apache.nifi.cluster.coordination.http.replication.UploadRequestReplicator;
-import org.apache.nifi.cluster.coordination.http.replication.okhttp.OkHttpReplicationClient;
+import org.apache.nifi.cluster.coordination.http.replication.client.StandardHttpReplicationClient;
 import org.apache.nifi.cluster.lifecycle.ClusterDecommissionTask;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -87,7 +89,7 @@ public class FrameworkClusterConfiguration {
         if (clusterCoordinator == null) {
             replicator = null;
         } else {
-            final OkHttpReplicationClient replicationClient = new OkHttpReplicationClient(properties, sslContext, trustManager);
+            final HttpReplicationClient replicationClient = new StandardHttpReplicationClient(webClientService, StandardHttpUriBuilder::new);
 
             replicator = new ThreadPoolRequestReplicator(
                     properties.getClusterNodeProtocolMaxPoolSize(),

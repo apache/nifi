@@ -72,6 +72,8 @@ import static org.mockito.Mockito.when;
 
 public class TestThreadPoolRequestReplicator {
 
+    private static final String NODE_CONTINUE = "202-Accepted";
+
     @BeforeAll
     public static void setupClass() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
@@ -278,11 +280,11 @@ public class TestThreadPoolRequestReplicator {
             protected NodeResponse replicateRequest(final PreparedRequest request, final NodeIdentifier nodeId,
                 final URI uri, final String requestId, final StandardAsyncClusterResponse response) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
-                final Object expectsHeader = request.getHeaders().get(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
+                final Object expectsHeader = request.getHeaders().get(RequestReplicationHeader.VALIDATION_EXPECTS.getHeader());
 
                 final int statusCode;
                 if (requestCount.incrementAndGet() == 1) {
-                    assertEquals(ThreadPoolRequestReplicator.NODE_CONTINUE, expectsHeader);
+                    assertEquals(NODE_CONTINUE, expectsHeader);
                     statusCode = Status.ACCEPTED.getStatusCode();
                 } else {
                     assertNull(expectsHeader);
@@ -343,10 +345,10 @@ public class TestThreadPoolRequestReplicator {
             protected NodeResponse replicateRequest(final PreparedRequest request, final NodeIdentifier nodeId,
                 final URI uri, final String requestId, final StandardAsyncClusterResponse response) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
-                final Object expectsHeader = request.getHeaders().get(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
+                final Object expectsHeader = request.getHeaders().get(RequestReplicationHeader.VALIDATION_EXPECTS.getHeader());
 
                 final int requestIndex = requestCount.incrementAndGet();
-                assertEquals(ThreadPoolRequestReplicator.NODE_CONTINUE, expectsHeader);
+                assertEquals(NODE_CONTINUE, expectsHeader);
 
                 if (requestIndex == 1) {
                     final Response clientResponse = mock(Response.class);

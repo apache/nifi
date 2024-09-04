@@ -22,7 +22,6 @@ import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowAnalysisRuleViolationDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -187,13 +186,11 @@ public class FlowAnalysisResultEntityMergerTest {
         ));
     }
 
-    @NotNull
     private static NodeIdentifier nodeIdOf(String nodeId) {
         NodeIdentifier nodeIdentifier = new NodeIdentifier(nodeId, "unimportant", 1, "unimportant", 1, "unimportant", 1, 1, false);
         return nodeIdentifier;
     }
 
-    @NotNull
     private static FlowAnalysisRuleDTO ruleOf(String ruleId) {
         FlowAnalysisRuleDTO rule = new FlowAnalysisRuleDTO();
 
@@ -202,7 +199,6 @@ public class FlowAnalysisResultEntityMergerTest {
         return rule;
     }
 
-    @NotNull
     private static FlowAnalysisRuleViolationDTO ruleViolationOf(
             String ruleId,
             boolean canRead,
@@ -216,7 +212,6 @@ public class FlowAnalysisResultEntityMergerTest {
         return ruleViolation;
     }
 
-    @NotNull
     private static PermissionsDTO permissionOf(boolean canRead, boolean canWrite) {
         PermissionsDTO subjectPermissionDto = new PermissionsDTO();
 
@@ -226,7 +221,6 @@ public class FlowAnalysisResultEntityMergerTest {
         return subjectPermissionDto;
     }
 
-    @NotNull
     private static FlowAnalysisResultEntity resultEntityOf(List<FlowAnalysisRuleDTO> rules, List<FlowAnalysisRuleViolationDTO> ruleViolations) {
         FlowAnalysisResultEntity clientEntity = new FlowAnalysisResultEntity();
 
@@ -236,7 +230,6 @@ public class FlowAnalysisResultEntityMergerTest {
         return clientEntity;
     }
 
-    @NotNull
     private static Map<NodeIdentifier, FlowAnalysisResultEntity> resultEntityMapOf(FlowAnalysisResultEntity clientEntity1, FlowAnalysisResultEntity clientEntity2) {
         Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = new HashMap<>();
 
@@ -246,7 +239,6 @@ public class FlowAnalysisResultEntityMergerTest {
         return entityMap;
     }
 
-    @NotNull
     private static <T> List<T> listOf(T... items) {
         List<T> itemSet = new ArrayList<>();
         for (T item : items) {

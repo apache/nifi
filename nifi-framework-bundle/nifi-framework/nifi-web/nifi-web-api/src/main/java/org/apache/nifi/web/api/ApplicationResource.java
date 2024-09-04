@@ -32,6 +32,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicationHeader;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -87,6 +88,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
@@ -222,7 +224,7 @@ public abstract class ApplicationResource {
     }
 
     protected Optional<String> getIdGenerationSeed() {
-        final String idGenerationSeed = httpServletRequest.getHeader(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER);
+        final String idGenerationSeed = httpServletRequest.getHeader(RequestReplicationHeader.CLUSTER_ID_GENERATION_SEED.getHeader());
         if (StringUtils.isBlank(idGenerationSeed)) {
             return Optional.empty();
         }
@@ -268,7 +270,7 @@ public abstract class ApplicationResource {
      * @return a 202 Accepted (Node Continue) response to be used within the cluster request handshake
      */
     protected ResponseBuilder generateContinueResponse() {
-        return Response.status(RequestReplicator.NODE_CONTINUE_STATUS_CODE);
+        return Response.status(HttpURLConnection.HTTP_ACCEPTED);
     }
 
     protected URI getAbsolutePath() {
@@ -317,48 +319,13 @@ public abstract class ApplicationResource {
             }
         }
 
-        // if the scheme is not set by the client, include the details from this request but don't override
-        final String proxyScheme = getFirstHeaderValue(ProxyHeader.PROXY_SCHEME.getHeader(), ProxyHeader.FORWARDED_PROTO.getHeader());
-        if (proxyScheme == null) {
-            result.put(ProxyHeader.PROXY_SCHEME.getHeader(), httpServletRequest.getScheme());
-        }
-
-        // if the host is not set by the client, include the details from this request but don't override
-        final String proxyHost = getFirstHeaderValue(ProxyHeader.PROXY_HOST.getHeader(), ProxyHeader.FORWARDED_HOST.getHeader());
-        if (proxyHost == null) {
-            result.put(ProxyHeader.PROXY_HOST.getHeader(), httpServletRequest.getServerName());
-        }
-
-        // if the port is not set by the client, include the details from this request but don't override
-        final String proxyPort = getFirstHeaderValue(ProxyHeader.PROXY_PORT.getHeader(), ProxyHeader.FORWARDED_PORT.getHeader());
-        if (proxyPort == null) {
-            result.put(ProxyHeader.PROXY_PORT.getHeader(), String.valueOf(httpServletRequest.getServerPort()));
-        }
+        final URI requestUri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).build();
+        // Set Proxy Headers based on resolved URI from supported values
+        result.put(ProxyHeader.PROXY_SCHEME.getHeader(), requestUri.getScheme());
+        result.put(ProxyHeader.PROXY_HOST.getHeader(), requestUri.getHost());
+        result.put(ProxyHeader.PROXY_PORT.getHeader(), Integer.toString(requestUri.getPort()));
 
         return result;
-    }
-
-    /**
-     * Returns the value for the first key discovered when inspecting the current request. Will
-     * return null if there are no keys specified or if none of the specified keys are found.
-     *
-     * @param keys http header keys
-     * @return the value for the first key found
-     */
-    private String getFirstHeaderValue(final String... keys) {
-        if (keys == null) {
-            return null;
-        }
-
-        for (final String key : keys) {
-            final String value = httpServletRequest.getHeader(key);
-
-            if (value != null) {
-                return value;
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -368,7 +335,7 @@ public abstract class ApplicationResource {
      * @return <code>true</code> if the request represents a two-phase commit style request
      */
     protected boolean isTwoPhaseRequest(final HttpServletRequest httpServletRequest) {
-        final String transactionId = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+        final String transactionId = httpServletRequest.getHeader(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader());
         return transactionId != null && isClustered();
     }
 
@@ -383,15 +350,15 @@ public abstract class ApplicationResource {
      * first of the two phases.
      */
     protected boolean isValidationPhase(final HttpServletRequest httpServletRequest) {
-        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER) != null;
+        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicationHeader.VALIDATION_EXPECTS.getHeader()) != null;
     }
 
     protected boolean isExecutionPhase(final HttpServletRequest httpServletRequest) {
-        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_EXECUTION_HTTP_HEADER) != null;
+        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader()) != null;
     }
 
     protected boolean isCancellationPhase(final HttpServletRequest httpServletRequest) {
-        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_CANCELATION_HTTP_HEADER) != null;
+        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicationHeader.CANCEL_TRANSACTION.getHeader()) != null;
     }
 
     /**
@@ -412,9 +379,9 @@ public abstract class ApplicationResource {
             return false;
         }
 
-        // Check if the X-Request-Replicated header is set. If so, the request has already been replicated,
+        // Check if the replicated header is set. If so, the request has already been replicated,
         // so we need to service the request locally. If not, then replicate the request to the entire cluster.
-        final String header = httpServletRequest.getHeader(RequestReplicator.REPLICATION_INDICATOR_HEADER);
+        final String header = httpServletRequest.getHeader(RequestReplicationHeader.REQUEST_REPLICATED.getHeader());
         return header == null;
     }
 
@@ -719,7 +686,7 @@ public abstract class ApplicationResource {
         }
 
         // get the transaction id
-        final String transactionId = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+        final String transactionId = httpServletRequest.getHeader(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader());
         if (StringUtils.isBlank(transactionId)) {
             throw new IllegalArgumentException("Two phase commit Transaction Id missing.");
         }
@@ -739,7 +706,7 @@ public abstract class ApplicationResource {
 
     private <T extends Entity> Request<T> phaseTwoVerifyTransaction() {
         // get the transaction id
-        final String transactionId = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+        final String transactionId = httpServletRequest.getHeader(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader());
         if (StringUtils.isBlank(transactionId)) {
             throw new IllegalArgumentException("Two phase commit Transaction Id missing.");
         }
@@ -775,7 +742,7 @@ public abstract class ApplicationResource {
 
     private void cancelTransaction() {
         // get the transaction id
-        final String transactionId = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+        final String transactionId = httpServletRequest.getHeader(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader());
         if (StringUtils.isBlank(transactionId)) {
             throw new IllegalArgumentException("Two phase commit Transaction Id missing.");
         }
@@ -891,7 +858,7 @@ public abstract class ApplicationResource {
                 final Set<NodeIdentifier> targetNodes = Collections.singleton(nodeId);
                 return requestReplicator.replicate(targetNodes, method, path, entity, headers, true, true).awaitMergedResponse().getResponse();
             } else {
-                headers.put(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, nodeId.getId());
+                headers.put(RequestReplicationHeader.REPLICATION_TARGET_ID.getHeader(), nodeId.getId());
                 return requestReplicator.forwardToCoordinator(getClusterCoordinatorNode(), method, path, entity, headers).awaitMergedResponse().getResponse();
             }
         } catch (final InterruptedException ie) {
@@ -936,7 +903,7 @@ public abstract class ApplicationResource {
                 final Set<NodeIdentifier> nodeIds = Collections.singleton(targetNode);
                 return getRequestReplicator().replicate(nodeIds, method, getAbsolutePath(), entity, getHeaders(), true, true).awaitMergedResponse().getResponse();
             } else {
-                final Map<String, String> headers = getHeaders(Collections.singletonMap(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, targetNode.getId()));
+                final Map<String, String> headers = getHeaders(Collections.singletonMap(RequestReplicationHeader.REPLICATION_TARGET_ID.getHeader(), targetNode.getId()));
                 return requestReplicator.forwardToCoordinator(getClusterCoordinatorNode(), method, getAbsolutePath(), entity, headers).awaitMergedResponse().getResponse();
             }
         } catch (final InterruptedException ie) {
@@ -1049,7 +1016,7 @@ public abstract class ApplicationResource {
             }
         } finally {
             final long replicateNanos = System.nanoTime() - replicateStart;
-            final String transactionId = headers.get(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+            final String transactionId = headers.get(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader());
             final String requestId = transactionId == null ? "Request with no ID" : transactionId;
             logger.debug("Took a total of {} millis to {} for {}", TimeUnit.NANOSECONDS.toMillis(replicateNanos), action, requestId);
         }

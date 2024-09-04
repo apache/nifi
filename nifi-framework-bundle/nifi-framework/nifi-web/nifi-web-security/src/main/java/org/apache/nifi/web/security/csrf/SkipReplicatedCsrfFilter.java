@@ -33,8 +33,8 @@ import java.io.IOException;
  * Skip Replicated Cross-Site Request Forgery Filter disables subsequent filtering for matched requests
  */
 public class SkipReplicatedCsrfFilter extends OncePerRequestFilter {
-    /** RequestReplicator.REQUEST_TRANSACTION_ID_HEADER applied to replicated cluster requests */
-    protected static final String REPLICATED_REQUEST_HEADER = "X-RequestTransactionId";
+    /** Replication HTTP Header applied to replicated cluster requests */
+    protected static final String REPLICATED_REQUEST_HEADER = "request-transaction-id";
 
     /** Requests containing replicated header and not containing authorization cookies will be skipped */
     private static final RequestMatcher REQUEST_MATCHER = new AndRequestMatcher(

@@ -14,12 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.cluster.coordination.http.replication.client;
 
-package org.apache.nifi.cluster.coordination.http.replication.okhttp;
+/**
+ * Enumeration of HTTP headers for preparing replicated requests
+ */
+enum PreparedRequestHeader {
+    ACCEPT_ENCODING("accept-encoding"),
 
-import java.io.IOException;
-import java.io.OutputStream;
+    CONTENT_ENCODING("content-encoding"),
 
-public interface EntitySerializer {
-    void serialize(Object entity, OutputStream out) throws IOException;
+    CONTENT_LENGTH("content-length"),
+
+    CONTENT_TYPE("content-type"),
+
+    USER_AGENT("user-agent");
+
+    private final String header;
+
+    PreparedRequestHeader(final String header) {
+        this.header = header;
+    }
+
+    String getHeader() {
+        return header;
+    }
 }

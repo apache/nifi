@@ -245,13 +245,6 @@ public class NodeResponse {
                      * the content-length. Let the outgoing response builder determine it.
                      */
                     continue;
-                } else if (key.equals("X-ClusterContext")) {
-                    /*
-                     * do not copy the cluster context to the response because
-                     * this information is private and should not be sent to
-                     * the client
-                     */
-                    continue;
                 }
 
                 responseBuilder.header(key, value);

@@ -153,8 +153,8 @@ public class StandardUploadRequestReplicator implements UploadRequestReplicator 
                     .uri(requestUri)
                     .body(inputStream, OptionalLong.of(inputStream.available()))
                     // Special NiFi-specific headers to indicate that the request should be performed and not replicated to the nodes
-                    .header(RequestReplicator.REQUEST_EXECUTION_HTTP_HEADER, "true")
-                    .header(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true")
+                    .header(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader(), Boolean.TRUE.toString())
+                    .header(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString())
                     .header(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user))
                     .header(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups()));
 
