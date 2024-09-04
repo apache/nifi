@@ -34,7 +34,8 @@ export class ExternalViewerEffects {
                 ofType(ExternalViewerActions.navigateToExternalViewer),
                 tap(() => {
                     const extras: NavigationExtras = {
-                        queryParamsHandling: 'preserve'
+                        queryParamsHandling: 'preserve',
+                        replaceUrl: true
                     };
                     this.router.navigate(['/content-viewer', 'external'], extras);
                 })

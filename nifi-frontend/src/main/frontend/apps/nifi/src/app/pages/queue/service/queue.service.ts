@@ -104,7 +104,7 @@ export class QueueService {
         // least one query parameter
         let contentViewer: string = contentViewerUrl;
         if (contentViewer.indexOf('?') === -1) {
-            contentViewer += '?';
+            contentViewer += '/?';
         } else {
             contentViewer += '&';
         }

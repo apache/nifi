@@ -15,25 +15,19 @@
   ~  limitations under the License.
   -->
 
-<div class="standard-content-viewer p-5 flex h-screen">
+<div class="standard-content-viewer flex h-screen">
     <form [formGroup]="contentFormGroup" class="w-full flex-1 flex flex-col gap-y-2">
-        <div class="flex justify-between items-center">
-            <h3 class="primary-color">
-                @if (mimeTypeDisplayName) {
-                    <span class="mime-type-display-name">{{ mimeTypeDisplayName }}</span
-                    >&nbsp;Viewer
-                }
-            </h3>
+        <div class="flex items-center">
             <mat-button-toggle-group formControlName="formatted" (change)="loadContent()">
-                <mat-button-toggle value="false">Original</mat-button-toggle>
                 <mat-button-toggle value="true">Formatted</mat-button-toggle>
+                <mat-button-toggle value="false">Original</mat-button-toggle>
             </mat-button-toggle-group>
         </div>
         @if (contentLoaded) {
             @if (error) {
                 <div>{{ error }}</div>
             } @else {
-                <div class="flex-1 overflow-auto min-h-[125px]">
+                <div class="flex-1 min-h-[108px]">
                     <ngx-codemirror formControlName="value" [options]="getOptions()"></ngx-codemirror>
                 </div>
             }

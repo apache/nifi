@@ -15,12 +15,12 @@
   ~ limitations under the License.
   -->
 
-<div class="content-viewer-background h-screen flex flex-col gap-y-4 p-4">
+<div class="content-viewer-background h-screen flex flex-col gap-y-2 p-4">
     <div class="flex justify-between items-center">
         <div>
             <img ngSrc="assets/icons/nifi-logo-about.svg" priority width="150" height="64" alt="NiFi Logo" />
         </div>
-        <form [formGroup]="viewerForm">
+        <form [formGroup]="viewerForm" class="flex flex-col justify-between gap-y-2">
             <mat-form-field subscriptSizing="dynamic" class="w-72">
                 <mat-label>View</mat-label>
                 <mat-select
@@ -40,6 +40,19 @@
                     }
                 </mat-select>
             </mat-form-field>
+            <div class="flex justify-end gap-x-2 items-center">
+                <div>mime.type</div>
+                @if (mimeType) {
+                    <div class="font-medium accent-color">{{ mimeType }}</div>
+                } @else {
+                    <div class="unset">unknown</div>
+                    <div
+                        class="fa fa-warning caution-color"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The mime type for this content is not known. By default, content will be displayed as hex. Setting the mime.type attribute will ensure the appropriate viewer is selected automatically."></div>
+                }
+            </div>
         </form>
     </div>
     <div class="p-2 flex-1 flex border overflow-y-auto">

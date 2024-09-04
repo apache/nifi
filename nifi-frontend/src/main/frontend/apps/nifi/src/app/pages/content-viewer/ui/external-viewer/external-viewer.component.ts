@@ -26,17 +26,19 @@ import { HttpParams } from '@angular/common/http';
 import { selectExternalViewerRequest } from '../../state/external-viewer/external-viewer.selectors';
 import { ExternalViewerRequest } from '../../state/external-viewer';
 import { resetExternalViewerRequest } from '../../state/external-viewer/external-viewer.actions';
+import { RecreateViewDirective } from '../recreate-view.directive';
 
 @Component({
     selector: 'external-viewer',
     standalone: true,
     templateUrl: './external-viewer.component.html',
-    imports: [],
+    imports: [RecreateViewDirective],
     styleUrls: ['./external-viewer.component.scss']
 })
 export class ExternalViewer implements OnDestroy {
-    ref: string | null = null;
-    request: ExternalViewerRequest | null = null;
+    private ref: string | null = null;
+    private request: ExternalViewerRequest | null = null;
+
     frameSource: SafeResourceUrl | null = null;
 
     constructor(

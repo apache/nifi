@@ -29,6 +29,7 @@ import { HexViewer } from '../ui/hex-viewer/hex-viewer.component';
 import { ImageViewer } from '../ui/image-viewer/image-viewer.component';
 import { ContentEffects } from '../state/content/content.effects';
 import { ExternalViewerEffects } from '../state/external-viewer/external-viewer.effects';
+import { NifiTooltipDirective } from '@nifi/shared';
 
 @NgModule({
     declarations: [ContentViewerComponent],
@@ -43,7 +44,8 @@ import { ExternalViewerEffects } from '../state/external-viewer/external-viewer.
         ReactiveFormsModule,
         HexViewer,
         ImageViewer,
-        NgOptimizedImage
+        NgOptimizedImage,
+        NifiTooltipDirective
     ]
 })
 export class ContentViewerModule {}

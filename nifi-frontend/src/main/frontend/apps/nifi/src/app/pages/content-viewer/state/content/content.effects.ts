@@ -37,7 +37,8 @@ export class ContentEffects {
                 map((action) => action.route),
                 tap((route) => {
                     const extras: NavigationExtras = {
-                        queryParamsHandling: 'preserve'
+                        queryParamsHandling: 'preserve',
+                        replaceUrl: true
                     };
                     const commands = route.split('/').filter((segment) => !this.nifiCommon.isBlank(segment));
                     this.router.navigate(commands, extras);

@@ -34,9 +34,9 @@ export class StandardContentViewer {
 
     private mode = 'text/plain';
     private ref: string | null = null;
+    private mimeTypeDisplayName: string | null = null;
     private clientId: string | undefined = undefined;
 
-    mimeTypeDisplayName: string | null = null;
     error: string | null = null;
     contentLoaded = false;
 

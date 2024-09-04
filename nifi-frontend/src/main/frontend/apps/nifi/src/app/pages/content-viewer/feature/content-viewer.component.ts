@@ -22,7 +22,7 @@ import { loadContentViewerOptions, resetContentViewerOptions } from '../state/vi
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { selectBundledViewerOptions, selectViewerOptions } from '../state/viewer-options/viewer-options.selectors';
 import { ContentViewer, HEX_VIEWER_URL, SupportedMimeTypes } from '../state/viewer-options';
-import { isDefinedAndNotNull, NiFiCommon, SelectGroup, SelectOption, selectQueryParams } from '@nifi/shared';
+import { isDefinedAndNotNull, NiFiCommon, SelectGroup, SelectOption, selectQueryParams, TextTip } from '@nifi/shared';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { concatLatestFrom } from '@ngrx/operators';
 import { navigateToBundledContentViewer, resetContent, setRef } from '../state/content/content.actions';
@@ -227,7 +227,7 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                 if (compatibleViewerOption === null) {
                     if (this.defaultSupportedMimeTypeId !== null) {
                         this.viewerForm.get('viewAs')?.setValue(String(this.defaultSupportedMimeTypeId));
-                        this.loadBundledContentViewer(this.defaultSupportedMimeTypeId);
+                        this.loadContentViewer(this.defaultSupportedMimeTypeId);
                     }
 
                     this.store.dispatch(
@@ -237,11 +237,11 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                     );
                 } else {
                     this.viewerForm.get('viewAs')?.setValue(String(compatibleViewerOption));
-                    this.loadBundledContentViewer(compatibleViewerOption);
+                    this.loadContentViewer(compatibleViewerOption);
                 }
             } else if (this.defaultSupportedMimeTypeId !== null) {
                 this.viewerForm.get('viewAs')?.setValue(String(this.defaultSupportedMimeTypeId));
-                this.loadBundledContentViewer(this.defaultSupportedMimeTypeId);
+                this.loadContentViewer(this.defaultSupportedMimeTypeId);
             }
         }
     }
@@ -265,10 +265,10 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
     }
 
     viewAsChanged(event: MatSelectChange): void {
-        this.loadBundledContentViewer(Number(event.value));
+        this.loadContentViewer(Number(event.value));
     }
 
-    loadBundledContentViewer(value: number | null): void {
+    loadContentViewer(value: number | null): void {
         if (value !== null) {
             const supportedContentViewer = this.supportedContentViewerLookup.get(value);
 
@@ -302,4 +302,6 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
         this.store.dispatch(resetContent());
         this.store.dispatch(resetContentViewerOptions());
     }
+
+    protected readonly TextTip = TextTip;
 }

@@ -16,5 +16,5 @@
   -->
 
 @if (frameSource) {
-    <iframe class="h-full w-full" [src]="frameSource"></iframe>
+    <iframe class="h-full w-full" [src]="frameSource" *recreateView="frameSource"></iframe>
 }
