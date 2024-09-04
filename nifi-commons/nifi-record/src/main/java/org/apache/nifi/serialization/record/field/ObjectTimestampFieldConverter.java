@@ -41,10 +41,10 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
      * when specified in a timestamp pattern.*/
     private static final String TIMEZONE_CHARACTERS_WITH_CARDINALITIES = "(?:[O]|[O]{4}|[x]{1,5}|[X]{1,5}|[z]{1,4}|[Z]{1,5})";
     private static final String BEGINNING = "^" + TIMEZONE_CHARACTERS_WITH_CARDINALITIES;
-    private static final String QUOTE_LEADING = "'" + TIMEZONE_CHARACTERS_WITH_CARDINALITIES + "[^']";
-    private static final String QUOTE_TRAILING = "[^']" + TIMEZONE_CHARACTERS_WITH_CARDINALITIES + "'";
+    private static final String LEADING_QUOTE = "'" + TIMEZONE_CHARACTERS_WITH_CARDINALITIES + "[^']";
+    private static final String TRAILING_QUOTE = "[^']" + TIMEZONE_CHARACTERS_WITH_CARDINALITIES + "'";
     private static final String END = TIMEZONE_CHARACTERS_WITH_CARDINALITIES + "$";
-    static final Pattern TIMEZONE_PATTERN = Pattern.compile(BEGINNING + "|" + QUOTE_LEADING + "|" + QUOTE_TRAILING + "|" + END);
+    static final Pattern TIMEZONE_PATTERN = Pattern.compile(BEGINNING + "|" + LEADING_QUOTE + "|" + TRAILING_QUOTE + "|" + END);
 
     /**
      * Convert Object field to java.sql.Timestamp using optional format supported in DateTimeFormatter
@@ -57,67 +57,73 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
      */
     @Override
     public Timestamp convertField(final Object field, final Optional<String> pattern, final String name) {
-        if (field == null) {
-            return null;
-        }
-        if (field instanceof Timestamp) {
-            return (Timestamp) field;
-        }
-        if (field instanceof ZonedDateTime) {
-            final Instant instant = ((ZonedDateTime) field).toInstant();
-            return ofInstant(instant);
-        }
-        if (field instanceof Time time) {
-            // Convert to an Instant object preserving millisecond precision
-            final long epochMilli = time.getTime();
-            final Instant instant = Instant.ofEpochMilli(epochMilli);
-            return ofInstant(instant);
-        }
-        if (field instanceof Date date) {
-            final long epochMilli = date.getTime();
-            final Instant instant = Instant.ofEpochMilli(epochMilli);
-            return ofInstant(instant);
-        }
-        if (field instanceof Number number) {
-            // If value is a floating point number, we consider it as seconds since epoch plus a decimal part for fractions of a second.
-            final Instant instant;
-            if (field instanceof Double || field instanceof Float) {
-                instant = FractionalSecondsUtils.toInstant(number.doubleValue());
-            } else {
-                instant = FractionalSecondsUtils.toInstant(number.longValue());
-            }
-            return ofInstant(instant);
-        }
-        if (field instanceof String) {
-            final String string = field.toString().trim();
-            if (string.isEmpty()) {
+        switch (field) {
+            case null -> {
                 return null;
             }
-
-            if (pattern.isPresent()) {
-                final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
-                try {
-                    final String patternString = pattern.get();
-                    // NOTE: In order to calculate any possible timezone offsets, the string must be parsed as a ZoneDateTime.
-                    // It is not possible to always parse as a ZoneDateTime as it will fail if the pattern has
-                    // no timezone information. Hence, a regular expression is used to determine whether it is necessary
-                    // to parse with ZoneDateTime or not.
-                    final Matcher matcher = TIMEZONE_PATTERN.matcher(patternString);
-                    final ZonedDateTime zonedDateTime;
-
-                    if (matcher.find()) {
-                        zonedDateTime = ZonedDateTime.parse(string, formatter);
-                    } else {
-                        final LocalDateTime localDateTime = LocalDateTime.parse(string, formatter);
-                        zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
-                    }
-                    final Instant instant = zonedDateTime.toInstant();
-                    return ofInstant(instant);
-                } catch (final DateTimeParseException e) {
-                    return tryParseAsNumber(string, name);
+            case Timestamp timestamp -> {
+                return timestamp;
+            }
+            case ZonedDateTime zonedDateTime -> {
+                final Instant instant = zonedDateTime.toInstant();
+                return Timestamp.from(instant);
+            }
+            case Time time -> {
+                // Convert to an Instant object preserving millisecond precision
+                final long epochMilli = time.getTime();
+                final Instant instant = Instant.ofEpochMilli(epochMilli);
+                return Timestamp.from(instant);
+            }
+            case Date date -> {
+                final long epochMilli = date.getTime();
+                final Instant instant = Instant.ofEpochMilli(epochMilli);
+                return Timestamp.from(instant);
+            }
+            case Double number -> {
+                final Instant instant = FractionalSecondsUtils.toInstant(number);
+                return Timestamp.from(instant);
+            }
+            case Float number -> {
+                final Instant instant = FractionalSecondsUtils.toInstant(number.doubleValue());
+                return Timestamp.from(instant);
+            }
+            case Long number -> {
+                final Instant instant = FractionalSecondsUtils.toInstant(number);
+                return Timestamp.from(instant);
+            }
+            case String string -> {
+                final String stringTrimmed = string.trim();
+                if (stringTrimmed.isEmpty()) {
+                    return null;
                 }
-            } else {
-                return tryParseAsNumber(string, name);
+
+                if (pattern.isPresent()) {
+                    final String patternString = pattern.get();
+                    final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(patternString);
+                    try {
+                        // NOTE: In order to calculate any possible timezone offsets, the string must be parsed as a ZoneDateTime.
+                        // It is not possible to always parse as a ZoneDateTime as it will fail if the pattern has
+                        // no timezone information. Hence, a regular expression is used to determine whether it is necessary
+                        // to parse with ZoneDateTime or not.
+                        final Matcher matcher = TIMEZONE_PATTERN.matcher(patternString);
+                        final ZonedDateTime zonedDateTime;
+
+                        if (matcher.find()) {
+                            zonedDateTime = ZonedDateTime.parse(stringTrimmed, formatter);
+                        } else {
+                            final LocalDateTime localDateTime = LocalDateTime.parse(stringTrimmed, formatter);
+                            zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
+                        }
+                        final Instant instant = zonedDateTime.toInstant();
+                        return Timestamp.from(instant);
+                    } catch (final DateTimeParseException e) {
+                        return tryParseAsNumber(stringTrimmed, name);
+                    }
+                } else {
+                    return tryParseAsNumber(stringTrimmed, name);
+                }
+            }
+            default -> {
             }
         }
 
@@ -127,13 +133,9 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
     private Timestamp tryParseAsNumber(final String value, final String fieldName) {
         try {
             final Instant instant = FractionalSecondsUtils.tryParseAsNumber(value);
-            return ofInstant(instant);
+            return Timestamp.from(instant);
         } catch (final NumberFormatException e) {
             throw new FieldConversionException(Timestamp.class, value, fieldName, e);
         }
-    }
-
-    private Timestamp ofInstant(final Instant instant) {
-        return Timestamp.from(instant);
     }
 }
