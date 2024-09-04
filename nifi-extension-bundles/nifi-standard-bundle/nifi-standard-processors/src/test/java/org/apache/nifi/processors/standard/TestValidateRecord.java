@@ -613,8 +613,9 @@ public class TestValidateRecord {
 
         runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
         final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
-        //Validate timezone is taken into account as the hour in the timestamp should be different
-        assertFalse(validFlowFile.getContent().contains(originalTimestampHour + ":"));
+        //Validate timezone is taken into account as the hour in the timestamp should be different per timezone offset
+        final String partialTimestampWithOriginalHour = " %s:".formatted(originalTimestampHour);
+        assertFalse(validFlowFile.getContent().contains(partialTimestampWithOriginalHour));
     }
 
     @Test

@@ -126,7 +126,9 @@ public class ObjectTimestampFieldConverterTest {
         final Timestamp actual = CONVERTER.convertField(originalTimestamp, timezonePattern, FIELD_NAME);
         final String actualString = actual.toString();
 
-        assertFalse(actualString.contains(" " + originalTimestampHour + ":"));
+        //Validate timezone is taken into account as the hour in the timestamp should be different per timezone offset
+        final String partialTimestampWithOriginalHour = " %s:".formatted(originalTimestampHour);
+        assertFalse(actualString.contains(partialTimestampWithOriginalHour));
     }
 
     @ParameterizedTest
