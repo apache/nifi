@@ -17,6 +17,7 @@ import logging
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from py4j import java_gateway
 from py4j.java_gateway import JavaGateway, CallbackServerParameters, GatewayParameters
 
 import ExtensionManager
@@ -122,6 +123,7 @@ if __name__ == "__main__":
     from nifiapi.__jvm__ import JvmHolder
     JvmHolder.jvm = gateway.jvm
     JvmHolder.gateway = gateway
+    JvmHolder.java_gateway = java_gateway
 
     # We need to import PythonProcessorAdapter but cannot import it at the top of the class because we must first initialize the Gateway,
     # since there are statically defined objects in the file that contains PythonProcessorAdapter, and those statically defined objects require the Gateway.
