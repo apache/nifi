@@ -60,6 +60,9 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
         if (field == null) {
             return null;
         }
+        if(field instanceof Timestamp) {
+            return (Timestamp) field;
+        }
         if (field instanceof ZonedDateTime) {
             final Instant instant = ((ZonedDateTime) field).toInstant();
             return ofInstant(instant);
