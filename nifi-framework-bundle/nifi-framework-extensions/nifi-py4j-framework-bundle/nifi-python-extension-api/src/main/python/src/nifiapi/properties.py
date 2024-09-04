@@ -346,8 +346,8 @@ class ProcessContext(PropertyContext):
     def getName(self):
         return self.name
 
-    def yieldResources(self):
-        self.java_context.yieldResources()
+    def yield_resources(self):
+        JvmHolder.java_gateway.get_method(self.java_context, "yield")()
 
 
 class ValidationContext(PropertyContext):

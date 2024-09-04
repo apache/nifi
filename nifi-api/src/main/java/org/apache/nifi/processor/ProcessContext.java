@@ -74,15 +74,6 @@ public interface ProcessContext extends PropertyContext, ClusterContext {
     void yield();
 
     /**
-     * <p>
-     * An alternative name for the yield() method so that it can be called from Python.
-     * </p>
-     */
-    default void yieldResources() {
-        this.yield();
-    }
-
-    /**
      * @return the maximum number of threads that may be executing this
      * processor's code at any given time
      */

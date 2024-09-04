@@ -327,7 +327,7 @@ In case there is no useful information to return from the `create` method, `retu
 empty `FlowFileSourceResult`. When `create()` returns with `None`, the processor does not produce any output.
 When there is nothing to return, it might be useful to yield the processor's resources and not schedule the processor
 to run for the period of time defined by the processor's Yield Duration. This can be achieved by calling
-`context.yieldResources()` from the processor's `create` method right before returning `None`.
+`context.yield_resources()` from the processor's `create` method right before returning `None`.
 
 
 [[property-descriptors]]
