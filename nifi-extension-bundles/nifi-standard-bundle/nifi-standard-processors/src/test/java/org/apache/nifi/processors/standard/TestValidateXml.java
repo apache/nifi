@@ -168,6 +168,8 @@ public class TestValidateXml {
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
         runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+        String errorAttribute = runner.getFlowFilesForRelationship(ValidateXml.REL_INVALID).get(0).getAttribute(ValidateXml.ERROR_ATTRIBUTE_KEY);
+        assertTrue(errorAttribute.contains("ParseError"));
     }
 
     @Test
@@ -191,5 +193,7 @@ public class TestValidateXml {
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
         runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+        String errorAttribute = runner.getFlowFilesForRelationship(ValidateXml.REL_INVALID).get(0).getAttribute(ValidateXml.ERROR_ATTRIBUTE_KEY);
+        assertTrue(errorAttribute.contains("ParseError"));
     }
 }
