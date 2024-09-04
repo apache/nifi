@@ -116,17 +116,8 @@ public class TestListFile {
         resetAges();
     }
 
-    public void tearDown() throws Exception {
+    public void tearDown() {
         deleteDirectory(testDir);
-        File tempFile = processor.getPersistenceFile();
-        if (tempFile.exists()) {
-            File[] stateFiles = tempFile.getParentFile().listFiles();
-            if (stateFiles != null) {
-                for (File stateFile : stateFiles) {
-                    assertTrue(stateFile.delete());
-                }
-            }
-        }
     }
 
     private List<File> listFiles(final File file) {

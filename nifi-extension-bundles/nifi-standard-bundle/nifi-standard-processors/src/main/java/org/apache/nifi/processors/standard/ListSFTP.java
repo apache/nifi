@@ -89,7 +89,6 @@ public class ListSFTP extends ListFileTransfer {
             SFTPTransfer.PRIVATE_KEY_PASSPHRASE,
             REMOTE_PATH,
             RECORD_WRITER,
-            DISTRIBUTED_CACHE_SERVICE,
             SFTPTransfer.RECURSIVE_SEARCH,
             SFTPTransfer.FOLLOW_SYMLINK,
             SFTPTransfer.FILE_FILTER_REGEX,

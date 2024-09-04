@@ -81,7 +81,6 @@ public class ListFTP extends ListFileTransfer {
             FTPTransfer.PASSWORD,
             REMOTE_PATH,
             RECORD_WRITER,
-            DISTRIBUTED_CACHE_SERVICE,
             FTPTransfer.RECURSIVE_SEARCH,
             FTPTransfer.FOLLOW_SYMLINK,
             FTPTransfer.FILE_FILTER_REGEX,
