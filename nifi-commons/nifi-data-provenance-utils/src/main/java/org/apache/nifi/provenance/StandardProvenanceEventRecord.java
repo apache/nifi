@@ -303,9 +303,15 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
             eventTypeCode = 4812 + eventType.hashCode() + 4 * uuid.hashCode();
         }
 
+        final List<String> sortedChildUuids = new ArrayList<>(getChildUuids());
+        final List<String> sortedParentUuids = new ArrayList<>(getParentUuids());
+
+        Collections.sort(sortedChildUuids);
+        Collections.sort(sortedParentUuids);
+
         return -37423 + 3 * componentId.hashCode() + (transitUri == null ? 0 : 41 * transitUri.hashCode())
                 + (relationship == null ? 0 : 47 * relationship.hashCode()) + 44 * eventTypeCode
-                + 47 * getChildUuids().hashCode() + 47 * getParentUuids().hashCode();
+                + 47 * sortedChildUuids.hashCode() + 47 * sortedParentUuids.hashCode();
     }
 
     @Override
