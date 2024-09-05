@@ -37,6 +37,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- Override google-auth-library-oauth2-http in order to overcome https://github.com/googleapis/google-auth-library-java/issues/1387.
+                 This should be removed once libraries-bom brings 1.25.0 or newer. -->
+            <dependency>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-oauth2-http</artifactId>
+                <version>1.25.0</version>
+            </dependency>
             <!-- Override Guava 31.1 -->
             <dependency>
                 <groupId>com.google.guava</groupId>
