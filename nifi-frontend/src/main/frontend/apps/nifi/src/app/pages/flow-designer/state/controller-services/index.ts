@@ -18,7 +18,7 @@
 import { SelectOption } from '@nifi/shared';
 import { ControllerServiceEntity, ParameterContextReferenceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../shared';
-import { Revision } from './../../../../state/shared/index';
+import { Revision } from '../../../../state/shared';
 
 export const controllerServicesFeatureKey = 'controllerServiceListing';
 
@@ -57,10 +57,15 @@ export interface ConfigureControllerServiceSuccess {
 export interface MoveControllerServiceDialogRequest {
     id: string;
     controllerService: ControllerServiceEntity;
+}
+
+export interface MoveControllerServiceDialogRequestSuccess {
+    id: string;
+    controllerService: ControllerServiceEntity;
     childProcessGroupOptions: SelectOption[];
-    processGroupEntity?: any;
+    processGroupEntity: any;
     parentControllerServices: ControllerServiceEntity[];
-    breadcrumb?: BreadcrumbEntity;
+    breadcrumb: BreadcrumbEntity;
 }
 
 export interface MoveControllerServiceRequest {
