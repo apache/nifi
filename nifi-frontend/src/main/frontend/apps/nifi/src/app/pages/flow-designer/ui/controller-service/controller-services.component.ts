@@ -245,9 +245,7 @@ export class ControllerServices implements OnDestroy {
             openMoveControllerServiceDialog({
                 request: {
                     id: entity.id,
-                    controllerService: entity,
-                    parentControllerServices: [],
-                    childProcessGroupOptions: []
+                    controllerService: entity
                 }
             })
         );
