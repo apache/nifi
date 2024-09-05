@@ -25,9 +25,11 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SniEndPoint;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.ReadTimeoutException;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.avro.Schema;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -540,6 +542,7 @@ public class QueryCassandraTest {
                 } else {
                     when(mockSession.execute(anyString(),any(), any())).thenReturn(rs);
                     when(mockSession.execute(anyString())).thenReturn(rs);
+                    when(mockSession.execute(any(SimpleStatement.class))).thenReturn(rs);
                 }
             } catch (Exception e) {
                 fail(e.getMessage());
@@ -585,6 +588,7 @@ public class QueryCassandraTest {
                 } else {
                     when(mockSession.execute(anyString(),any(), any())).thenReturn(rs);
                     when(mockSession.execute(anyString())).thenReturn(rs);
+                    when(mockSession.execute(any(SimpleStatement.class))).thenReturn(rs);
                 }
             } catch (Exception e) {
                 fail(e.getMessage());
