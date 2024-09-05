@@ -17,28 +17,28 @@
 
 package org.apache.nifi.extensions;
 
-import okhttp3.Call;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.stateless.config.SslConfigurationUtil;
 import org.apache.nifi.stateless.config.SslContextDefinition;
+import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.client.StandardWebClientService;
+import org.apache.nifi.web.client.api.HttpResponseEntity;
+import org.apache.nifi.web.client.api.WebClientService;
+import org.apache.nifi.web.client.redirect.RedirectHandling;
+import org.apache.nifi.web.client.ssl.TlsContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.X509TrustManager;
+import java.io.ByteArrayOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URLEncoder;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 public class NexusExtensionClient implements ExtensionClient {
@@ -61,63 +61,59 @@ public class NexusExtensionClient implements ExtensionClient {
         final String url = resolveUrl(bundleCoordinate);
         logger.debug("Attempting to fetch {} from {}", bundleCoordinate, url);
 
-        final OkHttpClient okHttpClient = createClient();
-        final Request request = new Request.Builder()
-            .get()
-            .url(url)
-            .build();
+        final WebClientService webClientService = getWebClientService();
+        final URI uri = URI.create(url);
+        final HttpResponseEntity responseEntity = webClientService.get().uri(uri).retrieve();
+        final int statusCode = responseEntity.statusCode();
 
-        final Call call = okHttpClient.newCall(request);
-        final Response response = call.execute();
-        if (response.isSuccessful() && response.body() != null) {
+        if (statusCode == HttpURLConnection.HTTP_OK) {
             logger.debug("Successfully obtained stream for extension {} from {}", bundleCoordinate, url);
-            final InputStream extensionByteStream = response.body().byteStream();
+            final InputStream extensionByteStream = responseEntity.body();
             return new FilterInputStream(extensionByteStream) {
                 @Override
                 public void close() throws IOException {
-                    response.close();
+                    responseEntity.close();
                     super.close();
                 }
             };
         } else {
             try {
-                if (response.code() == HttpURLConnection.HTTP_NOT_FOUND) {
+                if (statusCode == HttpURLConnection.HTTP_NOT_FOUND) {
                     logger.debug("Received NOT FOUND response for extension {} from {}", bundleCoordinate, url);
                     return null;
                 } else {
-                    final String responseText = response.body() == null ? "<No Response Body>" : response.body().string();
-                    throw new IOException("Failed to fetch extension " + bundleCoordinate + " from " + url + ". Received repsonse of " + response.code() + ": " + responseText);
+                    final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    final InputStream body = responseEntity.body();
+                    body.transferTo(outputStream);
+
+                    final String responseBody = outputStream.toString();
+                    final String message = "Failed to fetch extension %s from [%s] HTTP %d %s".formatted(bundleCoordinate, url, statusCode, responseBody);
+                    throw new IOException(message);
                 }
             } finally {
-                response.close();
-
-                // Client is no longer needed. We don't have to release the resources from the HTTP Client. They will be
-                // cleaned up automatically once the connections time out. However, in this case, since we could not fetch
-                // the resources needed, the caller may want to fail aggressively. As such, the HTTP Client should free its
-                // resources aggressively in order to avoid holding onto non-daemon threads.
-                okHttpClient.dispatcher().executorService().shutdown();
-                okHttpClient.connectionPool().evictAll();
+                responseEntity.close();
             }
         }
     }
 
-    private OkHttpClient createClient() {
-        final OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
-            .readTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
-            .connectTimeout(timeoutMillis, TimeUnit.MILLISECONDS);
+    private WebClientService getWebClientService() throws IOException {
+        final StandardWebClientService webClientService = new StandardWebClientService();
+
+        final Duration timeout = Duration.ofMillis(timeoutMillis);
+        webClientService.setConnectTimeout(timeout);
+        webClientService.setReadTimeout(timeout);
+        webClientService.setRedirectHandling(RedirectHandling.FOLLOWED);
 
         if (sslContextDefinition != null) {
-            final TlsConfiguration tlsConfiguration = SslConfigurationUtil.createTlsConfiguration(sslContextDefinition);
             try {
-                final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
-                final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
-                okHttpClientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
-            } catch (final TlsException e) {
-                throw new IllegalArgumentException("TLS Configuration Failed: Check SSL Context Properties", e);
+                final TlsContext tlsContext = SslConfigurationUtil.createTlsContext(sslContextDefinition);
+                webClientService.setTlsContext(tlsContext);
+            } catch (final StatelessConfigurationException e) {
+                throw new IOException("Web Client Service TLS Configuration failed", e);
             }
         }
 
-        return okHttpClientBuilder.build();
+        return webClientService;
     }
 
     private String resolveUrl(final BundleCoordinate bundleCoordinate) throws UnsupportedEncodingException {
