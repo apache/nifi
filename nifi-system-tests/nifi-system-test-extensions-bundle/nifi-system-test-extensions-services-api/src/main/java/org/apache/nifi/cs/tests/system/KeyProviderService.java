@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.cs.tests.system;
 
-import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ControllerService;
 
-public class FakeControllerService1 extends AbstractControllerService {
-    public void foo() {
-    }
+public interface KeyProviderService extends ControllerService {
+    String getKeyField();
 }

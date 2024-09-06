@@ -19,7 +19,7 @@ package org.apache.nifi.processors.tests.system;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.cs.tests.system.FakeControllerService1;
+import org.apache.nifi.cs.tests.system.BaseFakeService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -62,7 +62,7 @@ public class FakeDynamicPropertiesProcessor extends AbstractProcessor {
                     .name(propertyDescriptorName)
                     .required(false)
                     .dynamic(true)
-                    .identifiesControllerService(FakeControllerService1.class)
+                    .identifiesControllerService(BaseFakeService.class)
                     .build();
         }
         return new PropertyDescriptor.Builder()

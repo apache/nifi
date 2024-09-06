@@ -455,7 +455,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         // Set the Parameter Context on the root Process Group
         setParameterContext("root", createdContextEntity);
 
-        final ControllerServiceEntity serviceEntity = createControllerService(TEST_CS_PACKAGE + ".StandardSleepService", "root", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+        final ControllerServiceEntity serviceEntity = createControllerService(TEST_CS_PACKAGE + ".StandardSleepService", "root", NIFI_GROUP_ID, TEST_EXTENSIONS_SERVICES_ARTIFACT_ID, getNiFiVersion());
         final String serviceId = serviceEntity.getId();
 
         // Set service's sleep time to the parameter.
@@ -504,7 +504,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         // Set the Parameter Context on the root Process Group
         setParameterContext("root", createdContextEntity);
 
-        final ControllerServiceEntity serviceEntity = createControllerService(TEST_CS_PACKAGE + ".StandardSleepService", "root", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+        final ControllerServiceEntity serviceEntity = createControllerService(TEST_CS_PACKAGE + ".StandardSleepService", "root", NIFI_GROUP_ID, TEST_EXTENSIONS_SERVICES_ARTIFACT_ID, getNiFiVersion());
 
         // Set service's sleep time to the parameter.
         serviceEntity.getComponent().setProperties(Collections.singletonMap("@OnEnabled Sleep Time", "#{sleep}"));
@@ -541,7 +541,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         setParameterContext(childGroup.getId(), createdContextEntity);
 
         final ControllerServiceEntity serviceEntity = createControllerService(TEST_CS_PACKAGE + ".StandardSleepService", childGroup.getId(),
-            NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+            NIFI_GROUP_ID, TEST_EXTENSIONS_SERVICES_ARTIFACT_ID, getNiFiVersion());
 
         // Set service's sleep time to the parameter.
         serviceEntity.getComponent().setProperties(Collections.singletonMap("@OnDisabled Sleep Time", "#{sleep}"));

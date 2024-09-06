@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.tests.system;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.cs.tests.system.FakeControllerService1;
+import org.apache.nifi.cs.tests.system.BaseFakeService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -39,7 +39,7 @@ public class FakeProcessor extends AbstractProcessor {
             .name("Fake Service")
             .description("The Fake Service Being Tested")
             .required(true)
-            .identifiesControllerService(FakeControllerService1.class)
+            .identifiesControllerService(BaseFakeService.class)
             .build();
 
     @Override

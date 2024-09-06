@@ -674,11 +674,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
         final boolean dynamicallyModifiesClasspath = descriptors.stream()
                 .anyMatch(PropertyDescriptor::isDynamicClasspathModifier);
+        final String isolationKey = determineClasloaderIsolationKey();
 
-        if (dynamicallyModifiesClasspath) {
+        if (dynamicallyModifiesClasspath || isolationKey != null) {
             final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors, this::getEffectivePropertyValueWithDefault);
 
-            final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
+            final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, isolationKey);
             if (!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
                 setAdditionalResourcesFingerprint(newFingerprint);
                 try {
