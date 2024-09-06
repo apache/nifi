@@ -455,10 +455,20 @@ public class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED = new PropertyDescriptor.Builder()
             .name("Response Header Request Attributes Enabled")
-            .description("Enable adding HTTP response headers as attributes to FlowFiles transferred to the Original relationship.")
+            .description("Enable adding HTTP response headers as attributes to FlowFiles transferred to the Original, Retry or No Retry relationships.")
             .required(false)
             .defaultValue(Boolean.FALSE.toString())
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX = new PropertyDescriptor.Builder()
+            .name("Response Header Request Attributes Prefix")
+            .description("Prefix to HTTP response headers when included as attributes to FlowFiles transferred to the Original, Retry or No Retry relationships.  "
+                + "It is recommended to end with a separator character like '.' or '-'.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED, Boolean.TRUE.toString())
             .build();
 
     public static final PropertyDescriptor RESPONSE_REDIRECTS_ENABLED = new PropertyDescriptor.Builder()
@@ -508,6 +518,7 @@ public class InvokeHTTP extends AbstractProcessor {
             RESPONSE_GENERATION_REQUIRED,
             RESPONSE_FLOW_FILE_NAMING_STRATEGY,
             RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED,
+            RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX,
             RESPONSE_REDIRECTS_ENABLED
     );
 
@@ -635,6 +646,7 @@ public class InvokeHTTP extends AbstractProcessor {
         config.renameProperty("Always Output Response", RESPONSE_GENERATION_REQUIRED.getName());
         config.renameProperty("flow-file-naming-strategy", RESPONSE_FLOW_FILE_NAMING_STRATEGY.getName());
         config.renameProperty("Add Response Headers to Request", RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED.getName());
+        config.renameProperty("Prefix to Added Response Headers to the Request", RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX.getName());
         config.renameProperty("Follow Redirects", RESPONSE_REDIRECTS_ENABLED.getName());
     }
 
@@ -878,13 +890,6 @@ public class InvokeHTTP extends AbstractProcessor {
                     requestFlowFile = session.putAllAttributes(requestFlowFile, statusAttributes);
                 }
 
-                // If the property to add the response headers to the request flowfile is true then add them
-                if (context.getProperty(RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED).asBoolean() && requestFlowFile != null) {
-                    // write the response headers as attributes
-                    // this will overwrite any existing flowfile attributes
-                    requestFlowFile = session.putAllAttributes(requestFlowFile, convertAttributesFromHeaders(responseHttp));
-                }
-
                 boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
                 boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(RESPONSE_GENERATION_REQUIRED).asBoolean();
                 ResponseBody responseBody = responseHttp.body();
@@ -985,6 +990,18 @@ public class InvokeHTTP extends AbstractProcessor {
                     } else if (responseBodyStream != null) {
                         responseBodyStream.close();
                     }
+                }
+
+                // If the property to add the response headers to the request flowfile is true then add them
+                //
+                // This needs to be done after the response flowFile has been created from the request flowFile
+                // as the added attribute headers may have a prefix added that doesn't make sense for the response flowFile.
+                if (context.getProperty(RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED).asBoolean() && requestFlowFile != null) {
+                    String prefix = context.getProperty(RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX).evaluateAttributeExpressions(requestFlowFile).getValue();
+
+                    // write the response headers as attributes
+                    // this will overwrite any existing flowfile attributes
+                    requestFlowFile = session.putAllAttributes(requestFlowFile, convertAttributesFromHeaders(responseHttp, prefix));
                 }
 
                 route(requestFlowFile, responseFlowFile, session, context, statusCode);
@@ -1257,6 +1274,14 @@ public class InvokeHTTP extends AbstractProcessor {
      * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
      */
     private Map<String, String> convertAttributesFromHeaders(final Response responseHttp) {
+        return convertAttributesFromHeaders(responseHttp, "");
+    }
+
+    /**
+     * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
+     * Prefix is passed in to allow differentiation for these new attributes.
+     */
+    private Map<String, String> convertAttributesFromHeaders(final Response responseHttp, String prefix) {
         // create a new hashmap to store the values from the connection
         final Map<String, String> attributes = new HashMap<>();
         final Headers headers = responseHttp.headers();
@@ -1266,7 +1291,7 @@ public class InvokeHTTP extends AbstractProcessor {
             if (!values.isEmpty()) {
                 // create a comma separated string from the values, this is stored in the map
                 final String value = StringUtils.join(values, MULTIPLE_HEADER_DELIMITER);
-                attributes.put(key, value);
+                attributes.put(trimToEmpty(prefix) + key, value);
             }
         });
 

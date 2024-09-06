@@ -452,8 +452,10 @@ public class InvokeHTTPTest {
 
     @Test
     public void testRunGetHttp200SuccessResponseHeaderRequestAttributes() {
+        final String prefix = "response.";
         setUrlProperty();
         runner.setProperty(InvokeHTTP.RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED, Boolean.TRUE.toString());
+        runner.setProperty(InvokeHTTP.RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX, prefix);
 
         final String firstHeader = String.class.getSimpleName();
         final String secondHeader = Integer.class.getSimpleName();
@@ -470,10 +472,19 @@ public class InvokeHTTPTest {
         assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final MockFlowFile requestFlowFile = getRequestFlowFile();
-        requestFlowFile.assertAttributeEquals(CONTENT_LENGTH_HEADER, Integer.toString(0));
+        requestFlowFile.assertAttributeEquals(prefix + CONTENT_LENGTH_HEADER, Integer.toString(0));
+        requestFlowFile.assertAttributeNotExists(CONTENT_LENGTH_HEADER);
 
         final String repeatedHeaders = String.format("%s, %s", firstHeader, secondHeader);
-        requestFlowFile.assertAttributeEquals(REPEATED_HEADER, repeatedHeaders);
+        requestFlowFile.assertAttributeEquals(prefix + REPEATED_HEADER, repeatedHeaders);
+        requestFlowFile.assertAttributeNotExists(REPEATED_HEADER);
+
+        final MockFlowFile responseFlowFile = getResponseFlowFile();
+        responseFlowFile.assertAttributeNotExists(prefix + CONTENT_LENGTH_HEADER);
+        responseFlowFile.assertAttributeEquals(CONTENT_LENGTH_HEADER, Integer.toString(0));
+
+        responseFlowFile.assertAttributeNotExists(prefix + REPEATED_HEADER);
+        responseFlowFile.assertAttributeEquals(REPEATED_HEADER, repeatedHeaders);
     }
 
     @Test
