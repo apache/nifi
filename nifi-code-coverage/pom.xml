@@ -604,14 +604,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-content-access</artifactId>
+            <artifactId>nifi-content-viewer-utils</artifactId>
             <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-content-viewer</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>war</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -1089,12 +1083,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-image-viewer</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>war</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-media-processors</artifactId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
@@ -1287,12 +1275,6 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-sql-reporting-tasks</artifactId>
             <version>2.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-content-viewer</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>war</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

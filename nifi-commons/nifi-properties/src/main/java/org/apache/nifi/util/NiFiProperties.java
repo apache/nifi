@@ -97,7 +97,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String CONTENT_ARCHIVE_BACK_PRESSURE_PERCENTAGE = "nifi.content.repository.archive.backpressure.percentage";
     public static final String CONTENT_ARCHIVE_ENABLED = "nifi.content.repository.archive.enabled";
     public static final String CONTENT_ARCHIVE_CLEANUP_FREQUENCY = "nifi.content.repository.archive.cleanup.frequency";
-    public static final String CONTENT_VIEWER_URL = "nifi.content.viewer.url";
 
     // flowfile repository properties
     public static final String FLOWFILE_REPOSITORY_IMPLEMENTATION = "nifi.flowfile.repository.implementation";

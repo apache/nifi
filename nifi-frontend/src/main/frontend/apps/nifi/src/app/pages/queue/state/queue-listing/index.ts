@@ -33,6 +33,7 @@ export interface FlowFileSummary {
     uri: string;
     uuid: string;
     filename: string;
+    mimeType?: string;
     position?: number;
     size: number;
     queuedDuration: number;
@@ -96,6 +97,7 @@ export interface DownloadFlowFileContentRequest {
 
 export interface ViewFlowFileContentRequest {
     uri: string;
+    mimeType?: string;
     clusterNodeId?: string;
 }
 

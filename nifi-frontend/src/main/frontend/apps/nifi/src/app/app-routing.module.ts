@@ -113,6 +113,12 @@ const routes: Routes = [
         loadChildren: () => import('./pages/cluster/feature/cluster.module').then((m) => m.ClusterModule)
     },
     {
+        path: 'content-viewer',
+        canMatch: [authenticationGuard],
+        loadChildren: () =>
+            import('./pages/content-viewer/feature/content-viewer.module').then((m) => m.ContentViewerModule)
+    },
+    {
         path: '',
         canMatch: [authenticationGuard],
         loadChildren: () =>

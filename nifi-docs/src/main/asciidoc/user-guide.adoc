@@ -2408,9 +2408,7 @@ a Connection's context menu. The listing will return the top 100 FlowFiles in th
 configured priority. The listing can be performed even if the source and destination are actively running.
 
 Additionally, details for a FlowFile in the listing can be viewed by clicking the "Details" button (image:iconDetails.png["Details"]) in the left most column. From here, the FlowFile details and attributes are available as well as buttons for
-downloading or viewing the content. Viewing the content is only available if the `nifi.content.viewer.url` has been configured.
-If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will
-no longer be in the active queue.
+downloading or viewing the content. If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will no longer be in the active queue.
 
 The FlowFiles enqueued in a Connection can also be deleted when necessary. The removal of the FlowFiles is initiated
 via `Empty queue` in the Connection's context menu. This action can also be performed if the source and destination
