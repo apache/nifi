@@ -79,16 +79,13 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
                 final Instant instant = Instant.ofEpochMilli(epochMilli);
                 return Timestamp.from(instant);
             }
-            case Double number -> {
-                final Instant instant = FractionalSecondsUtils.toInstant(number);
-                return Timestamp.from(instant);
-            }
-            case Float number -> {
-                final Instant instant = FractionalSecondsUtils.toInstant(number.doubleValue());
-                return Timestamp.from(instant);
-            }
-            case Long number -> {
-                final Instant instant = FractionalSecondsUtils.toInstant(number);
+            case Number number -> {
+                final Instant instant;
+                switch (field) {
+                    case Double d -> instant = FractionalSecondsUtils.toInstant(d);
+                    case Float f -> instant = FractionalSecondsUtils.toInstant(f.doubleValue());
+                    default -> instant = FractionalSecondsUtils.toInstant(number.longValue());
+                }
                 return Timestamp.from(instant);
             }
             case String string -> {
