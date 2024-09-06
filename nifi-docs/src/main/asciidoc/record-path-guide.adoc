@@ -1151,6 +1151,46 @@ And that would give us something like:
 
 This function requires an even number of arguments and the record paths must represent simple field values.
 
+=== recordOf
+
+Creates a nested record with the given parameters. For example, if we have the following record:
+
+----
+{
+  "firstName": "Alice",
+  "lastName": "Koopa",
+  "age": 30,
+  "hobbies": ["reading", "hiking", "coding"],
+  "address": {
+    "street": "123 Main St",
+    "city": "Anytown",
+    "state": "CA"
+  }
+}
+----
+
+We could use the `UpdateRecord` processor with
+
+----
+/profile => recordOf("name", /firstName, "location", /address/city, "hobbies", /hobbies, /age, "years old")
+----
+
+And that would give us something like:
+
+----
+{
+  "name": "Alice",
+  "hobbies": ["reading", "hiking", "coding"],
+  "location": "Anytown",
+  "30": "years old"
+}
+----
+
+This function requires an even number of arguments.
+Each pair of arguments resembles a field in the new record.
+Every odd argument, the first one of each pair, is used as field name and coerced into a String value.
+Every even argument, the second one of each pair, is used as field value.
+
 [[filter_functions]]
 == Filter Functions
 
