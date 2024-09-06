@@ -218,8 +218,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
     private final Map<BundleCoordinate, List<App>> appsByBundleCoordinate = new ConcurrentHashMap<>();
 
-    private ExtensionUiLoadTask extensionUiLoadTask;
     private final BlockingQueue<Bundle> extensionUisToLoad = new LinkedBlockingQueue<>();
+    private final ExtensionUiLoadTask extensionUiLoadTask = new ExtensionUiLoadTask(extensionUisToLoad, this::processExtensionUiBundle);
 
     /**
      * Default no-arg constructor for ServiceLoader
@@ -945,7 +945,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             // Start background task to process bundles that are submitted for loading extension UIs, this needs to be
             // started after Jetty has been started to ensure the Spring WebApplicationContext is available
-            extensionUiLoadTask = new ExtensionUiLoadTask(extensionUisToLoad, this::processExtensionUiBundle);
             Thread.ofVirtual().name("Extension UI Loader").start(extensionUiLoadTask);
 
             // if this nifi is a node in a cluster, start the flow service and load the flow - the
