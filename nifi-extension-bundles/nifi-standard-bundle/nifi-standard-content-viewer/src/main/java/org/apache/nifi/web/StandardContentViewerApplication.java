@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.web;
 
-import jakarta.servlet.Filter;
 import org.apache.nifi.web.servlet.filter.QueryStringToFragmentFilter;
+import org.springframework.boot.Banner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.Bean;
@@ -27,17 +29,23 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication(exclude = {ErrorMvcAutoConfiguration.class})
 public class StandardContentViewerApplication extends SpringBootServletInitializer {
 
+    static {
+        // Disable Spring Boot logging initialization
+        System.setProperty(LoggingSystem.SYSTEM_PROPERTY, LoggingSystem.NONE);
+    }
+
     @Bean
-    public FilterRegistrationBean someFilterRegistration() {
-        final FilterRegistrationBean registration = new FilterRegistrationBean();
-        registration.setFilter(queryStringToFragmentFilter());
+    public FilterRegistrationBean<QueryStringToFragmentFilter> queryStringToFragmentFilter() {
+        final FilterRegistrationBean<QueryStringToFragmentFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new QueryStringToFragmentFilter());
         registration.addUrlPatterns("");
-        registration.setName("FragmentFilter");
+        registration.setName(QueryStringToFragmentFilter.class.getSimpleName());
         registration.setOrder(1);
         return registration;
     }
 
-    public Filter queryStringToFragmentFilter() {
-        return new QueryStringToFragmentFilter();
+    @Override
+    protected SpringApplicationBuilder createSpringApplicationBuilder() {
+        return new SpringApplicationBuilder().bannerMode(Banner.Mode.OFF);
     }
 }
