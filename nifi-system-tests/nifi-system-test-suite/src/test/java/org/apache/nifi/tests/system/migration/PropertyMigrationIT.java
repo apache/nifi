@@ -228,15 +228,15 @@ public class PropertyMigrationIT extends NiFiSystemIT {
         final File alternateConfig = new File(lib, "alternate-config");
 
         // Move the nifi-system-test-extensions-nar out of the lib directory
-        final File libNar = findFile(lib, "nifi-system-test-extensions-nar-.*");
-        assertNotNull(libNar);
-        final File libNarTarget = new File(alternateConfig, libNar.getName());
-        assertTrue(libNar.renameTo(libNarTarget));
+        moveNars(lib, "nifi-system-test-extensions-nar-.*", alternateConfig);
 
-        final File alternateNar = findFile(alternateConfig, "nifi-alternate-config.*");
-        assertNotNull(alternateNar);
-        final File alternateNarTarget = new File(lib, alternateNar.getName());
-        assertTrue(alternateNar.renameTo(alternateNarTarget));
+        // Move the nifi-system-test-extensions-services-nar out of the lib directory
+        moveNars(lib, "nifi-system-test-extensions-services-nar-.*", alternateConfig);
+
+        // Move the nifi-system-test-extensions-services-api-nar out of the lib directory
+        moveNars(lib, "nifi-system-test-extensions-services-api-nar-.*", alternateConfig);
+
+        moveNars(alternateConfig, "nifi-alternate-config.*", lib);
 
         final File workDir = new File(instanceDir, "work/nar/extensions");
         deleteRecursively(workDir);
@@ -274,18 +274,16 @@ public class PropertyMigrationIT extends NiFiSystemIT {
         final File lib = new File(instanceDir, "lib");
         final File alternateConfig = new File(lib, "alternate-config");
 
-        // Move the nifi-system-test-extensions-nar out of the lib directory
-        final File libNar = findFile(alternateConfig, "nifi-system-test-extensions-nar-.*");
-        if (libNar != null) {
-            final File libNarTarget = new File(lib, libNar.getName());
-            assertTrue(libNar.renameTo(libNarTarget));
-        }
+        // Move the nifi-system-test-extensions-nar back to the lib directory
+        moveNars(alternateConfig, "nifi-system-test-extensions-nar-.*", lib);
 
-        final File alternateNar = findFile(lib, "nifi-alternate-config.*");
-        if (alternateNar != null) {
-            final File alternateNarTarget = new File(alternateConfig, alternateNar.getName());
-            assertTrue(alternateNar.renameTo(alternateNarTarget));
-        }
+        // Move the nifi-system-test-extensions-services-nar back to the lib directory
+        moveNars(alternateConfig, "nifi-system-test-extensions-services-nar-.*", lib);
+
+        // Move the nifi-system-test-extensions-services-api-nar back to the lib directory
+        moveNars(alternateConfig, "nifi-system-test-extensions-services-api-nar-.*", lib);
+
+        moveNars(lib, "nifi-alternate-config.*", alternateConfig);
     }
 
     private File findFile(final File dir, final String regex) {
@@ -295,5 +293,12 @@ public class PropertyMigrationIT extends NiFiSystemIT {
             return null;
         }
         return files[0];
+    }
+
+    private void moveNars(File source, String regex, File target) {
+        final File libNar = findFile(source, regex);
+        assertNotNull(libNar);
+        final File libNarTarget = new File(target, libNar.getName());
+        assertTrue(libNar.renameTo(libNarTarget));
     }
 }

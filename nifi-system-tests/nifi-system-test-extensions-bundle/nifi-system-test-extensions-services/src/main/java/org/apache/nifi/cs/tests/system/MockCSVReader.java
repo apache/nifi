@@ -20,7 +20,6 @@ package org.apache.nifi.cs.tests.system;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -44,7 +43,7 @@ import java.util.Map;
 public class MockCSVReader extends AbstractControllerService implements RecordReaderFactory {
     @Override
     public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger)
-                throws MalformedRecordException, IOException, SchemaNotFoundException {
+                throws IOException {
         return createRecordReader(flowFile.getAttributes(), in, flowFile.getSize(), logger);
     }
 
