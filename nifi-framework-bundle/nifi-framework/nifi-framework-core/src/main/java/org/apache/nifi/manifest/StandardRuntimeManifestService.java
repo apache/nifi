@@ -329,9 +329,9 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
                 continue;
             }
 
-            final File additionalDetailsFile = new File(additionalDetailsTypeDir, "additionalDetails.html");
+            final File additionalDetailsFile = new File(additionalDetailsTypeDir, "additionalDetails.md");
             if (!additionalDetailsFile.exists()) {
-                LOGGER.debug("No additionalDetails.html found under [{}]", additionalDetailsTypeDir.getAbsolutePath());
+                LOGGER.debug("No additionalDetails.md found under [{}]", additionalDetailsTypeDir.getAbsolutePath());
                 continue;
             }
 

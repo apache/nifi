@@ -71,9 +71,9 @@ public class NarUnpackerTest {
 
     private static final String COMPONENT_DOCS_PATH = String.format("docs/%s/", PROCESSOR);
 
-    private static final String ADDITIONAL_DETAILS_HTML = "additionalDetails.html";
+    private static final String ADDITIONAL_DETAILS_MD = "additionalDetails.md";
 
-    private static final String ADDITIONAL_DETAILS_PATH = String.format("docs/%s/%s", PROCESSOR, ADDITIONAL_DETAILS_HTML);
+    private static final String ADDITIONAL_DETAILS_PATH = String.format("docs/%s/%s", PROCESSOR, ADDITIONAL_DETAILS_MD);
 
     private static final String HTML = "<html></html>";
 
@@ -237,7 +237,7 @@ public class NarUnpackerTest {
         final File[] documentationFiles = docsDir.listFiles();
         assertNotNull(documentationFiles, "Documentation Files not found");
 
-        final Path expectedRelativePath = Paths.get(GROUP_ID, ARTIFACT_ID, VERSION, PROCESSOR, ADDITIONAL_DETAILS_HTML);
+        final Path expectedRelativePath = Paths.get(GROUP_ID, ARTIFACT_ID, VERSION, PROCESSOR, ADDITIONAL_DETAILS_MD);
         final Path documentationFilePath = docsDir.toPath().resolve(expectedRelativePath);
         assertTrue(Files.exists(documentationFilePath), "Documentation File not found");
 

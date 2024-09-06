@@ -33,7 +33,7 @@ abstract class AbstractHtmlDocumentationWriter<T> implements DocumentationWriter
     /**
      * The filename where additional user specified information may be stored.
      */
-    public static final String ADDITIONAL_DETAILS_HTML = "additionalDetails.html";
+    public static final String ADDITIONAL_DETAILS_MD = "additionalDetails.md";
 
     static final String NO_DESCRIPTION = "No description provided.";
     static final String NO_TAGS = "No tags provided.";
@@ -146,7 +146,7 @@ abstract class AbstractHtmlDocumentationWriter<T> implements DocumentationWriter
      *
      * @param component            the component to describe
      * @param xmlStreamWriter      the stream writer
-     * @param hasAdditionalDetails whether there are additional details available as 'additionalDetails.html'
+     * @param hasAdditionalDetails whether there are additional details available as 'additionalDetails.md'
      * @throws XMLStreamException thrown if there was a problem writing to the XML stream
      */
     protected void writeDescription(final T component, final XMLStreamWriter xmlStreamWriter, final boolean hasAdditionalDetails) throws XMLStreamException {
@@ -155,7 +155,7 @@ abstract class AbstractHtmlDocumentationWriter<T> implements DocumentationWriter
         if (hasAdditionalDetails) {
             xmlStreamWriter.writeStartElement(P);
 
-            writeLink(xmlStreamWriter, "Additional Details...", ADDITIONAL_DETAILS_HTML);
+            writeLink(xmlStreamWriter, "Additional Details...", ADDITIONAL_DETAILS_MD);
 
             xmlStreamWriter.writeEndElement();
         }

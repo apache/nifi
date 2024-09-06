@@ -148,7 +148,7 @@ public class DocGenerator {
 
     /**
      * Generates the documentation for a particular configurable component. Will
-     * check to see if an "additionalDetails.html" file exists and will link
+     * check to see if an "additionalDetails.md" file exists and will link
      * that from the generated documentation.
      *
      * @param componentDocsDir the component documentation directory
@@ -179,7 +179,7 @@ public class DocGenerator {
 
     /**
      * Generates the documentation for a particular configurable component. Will
-     * check to see if an "additionalDetails.html" file exists and will link
+     * check to see if an "additionalDetails.md" file exists and will link
      * that from the generated documentation.
      *
      * @param componentDocsDir the component documentation directory
@@ -211,7 +211,7 @@ public class DocGenerator {
     }
 
     private static boolean hasAdditionalInfo(File directory) {
-        final Path additionalDetailsPath = directory.toPath().resolve(HtmlDocumentationWriter.ADDITIONAL_DETAILS_HTML);
+        final Path additionalDetailsPath = directory.toPath().resolve(HtmlDocumentationWriter.ADDITIONAL_DETAILS_MD);
         return Files.exists(additionalDetailsPath);
     }
 }
