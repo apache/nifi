@@ -57,6 +57,7 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
      */
     @Override
     public Timestamp convertField(final Object field, final Optional<String> pattern, final String name) {
+        Instant instant = null;
         switch (field) {
             case null -> {
                 return null;
@@ -65,28 +66,23 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
                 return timestamp;
             }
             case ZonedDateTime zonedDateTime -> {
-                final Instant instant = zonedDateTime.toInstant();
-                return Timestamp.from(instant);
+                instant = zonedDateTime.toInstant();
             }
             case Time time -> {
                 // Convert to an Instant object preserving millisecond precision
                 final long epochMilli = time.getTime();
-                final Instant instant = Instant.ofEpochMilli(epochMilli);
-                return Timestamp.from(instant);
+                instant = Instant.ofEpochMilli(epochMilli);
             }
             case Date date -> {
                 final long epochMilli = date.getTime();
-                final Instant instant = Instant.ofEpochMilli(epochMilli);
-                return Timestamp.from(instant);
+                instant = Instant.ofEpochMilli(epochMilli);
             }
             case Number number -> {
-                final Instant instant;
                 switch (field) {
                     case Double d -> instant = FractionalSecondsUtils.toInstant(d);
                     case Float f -> instant = FractionalSecondsUtils.toInstant(f.doubleValue());
                     default -> instant = FractionalSecondsUtils.toInstant(number.longValue());
                 }
-                return Timestamp.from(instant);
             }
             case String string -> {
                 final String stringTrimmed = string.trim();
@@ -111,8 +107,7 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
                             final LocalDateTime localDateTime = LocalDateTime.parse(stringTrimmed, formatter);
                             zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
                         }
-                        final Instant instant = zonedDateTime.toInstant();
-                        return Timestamp.from(instant);
+                        instant = zonedDateTime.toInstant();
                     } catch (final DateTimeParseException e) {
                         return tryParseAsNumber(stringTrimmed, name);
                     }
@@ -124,6 +119,9 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
             }
         }
 
+        if (instant != null) {
+            return Timestamp.from(instant);
+        }
         throw new FieldConversionException(Timestamp.class, field, name);
     }
 
