@@ -227,7 +227,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     public void reload(final Set<URL> additionalUrls) throws ControllerServiceInstantiationException {
         synchronized (this.active) {
             final String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
-            setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
+            setComponentFingerprint(additionalResourcesFingerprint);
             getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
         }
     }

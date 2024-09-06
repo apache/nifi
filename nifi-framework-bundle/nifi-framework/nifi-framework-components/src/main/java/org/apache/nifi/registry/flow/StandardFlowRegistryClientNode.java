@@ -125,7 +125,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     @Override
     public void reload(Set<URL> additionalUrls) throws Exception {
         final String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
-        setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
+        setComponentFingerprint(additionalResourcesFingerprint);
         getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
     }
 

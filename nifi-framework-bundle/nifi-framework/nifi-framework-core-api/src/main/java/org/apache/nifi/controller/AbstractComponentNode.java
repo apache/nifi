@@ -110,7 +110,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, PropertyConfiguration> properties = new ConcurrentHashMap<>();
     private final AtomicReference<Set<String>> sensitiveDynamicPropertyNames = new AtomicReference<>(new HashSet<>());
-    private volatile String additionalResourcesFingerprint;
+    private volatile String componentFingerprint;
     private final AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
     private final ValidationTrigger validationTrigger;
     private volatile boolean triggerValidation = true;
@@ -762,7 +762,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public synchronized boolean isReloadAdditionalResourcesNecessary() {
         // Components that don't have any PropertyDescriptors marked `dynamicallyModifiesClasspath`
         // won't have the fingerprint i.e. will be null, in such cases do nothing
-        if (additionalResourcesFingerprint == null) {
+        if (componentFingerprint == null) {
             return false;
         }
 
@@ -770,11 +770,11 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
 
         final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
-        return (!StringUtils.equals(additionalResourcesFingerprint, newFingerprint));
+        return (!StringUtils.equals(componentFingerprint, newFingerprint));
     }
 
     /**
-     * Generates fingerprint for the additional urls and compares it with the previous
+     * Generates fingerprint for the component and compares it with the previous
      * fingerprint value. If the fingerprint values don't match, the function calls the
      * component's reload() to load the newly found resources.
      */
@@ -784,13 +784,14 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
         final boolean dynamicallyModifiesClasspath = descriptors.stream()
                 .anyMatch(PropertyDescriptor::isDynamicClasspathModifier);
+        final String isolationKey = determineClasloaderIsolationKey();
 
-        if (dynamicallyModifiesClasspath) {
+        if (dynamicallyModifiesClasspath || isolationKey != null) {
             final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors, this::getEffectivePropertyValueWithDefault);
 
-            final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
-            if (!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
-                setAdditionalResourcesFingerprint(newFingerprint);
+            final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, isolationKey);
+            if (!StringUtils.equals(componentFingerprint, newFingerprint)) {
+                setComponentFingerprint(newFingerprint);
                 try {
                     logger.info("Updating classpath for [{}] with the ID [{}]", this.componentType, this.getIdentifier());
                     reload(additionalUrls);
@@ -1525,8 +1526,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
     }
 
-    protected void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {
-        this.additionalResourcesFingerprint = additionalResourcesFingerprint;
+    protected void setComponentFingerprint(String componentFingerprint) {
+        this.componentFingerprint = componentFingerprint;
     }
 
     // Determine whether the property value should be evaluated in terms of the parameter context or not.

@@ -877,7 +877,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public synchronized void reload(final Set<URL> additionalUrls) throws ProcessorInstantiationException {
         final String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
-        setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
+        setComponentFingerprint(additionalResourcesFingerprint);
         getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
     }
 

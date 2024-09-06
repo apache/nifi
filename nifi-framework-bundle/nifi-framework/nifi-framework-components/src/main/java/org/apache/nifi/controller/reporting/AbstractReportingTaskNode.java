@@ -184,7 +184,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     @Override
     public void reload(final Set<URL> additionalUrls) throws ReportingTaskInstantiationException {
         final String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
-        setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
+        setComponentFingerprint(additionalResourcesFingerprint);
         getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
     }
 

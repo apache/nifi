@@ -178,7 +178,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     @Override
     public void reload(final Set<URL> additionalUrls) throws ParameterProviderInstantiationException {
         final String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
-        setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
+        setComponentFingerprint(additionalResourcesFingerprint);
         getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
     }
 
