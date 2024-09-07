@@ -28,7 +28,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class SearchResponseTest {
+class SearchResponseTest {
     @Test
     void test() {
         final List<Map<String, Object>> results = new ArrayList<>();
@@ -37,7 +37,7 @@ public class SearchResponseTest {
         final String scrollId = "scrollId";
         final String searchAfter = "searchAfter";
         final int num     = 10;
-        final int took    = 100;
+        final long took    = 100;
         final boolean timeout = false;
         final List<String> warnings = Collections.singletonList("auth");
         final SearchResponse response = new SearchResponse(results, aggs, pitId, scrollId, searchAfter, num, took, timeout, warnings);
@@ -60,5 +60,21 @@ public class SearchResponseTest {
         assertTrue(str.contains("took"));
         assertTrue(str.contains("timedOut"));
         assertTrue(str.contains("warnings"));
+    }
+
+    @Test
+    void testLongTookTime() {
+        final List<Map<String, Object>> results = new ArrayList<>();
+        final Map<String, Object> aggs    = new HashMap<>();
+        final String pitId = "pitId";
+        final String scrollId = "scrollId";
+        final String searchAfter = "searchAfter";
+        final int num     = 10;
+        final long took    = 34493262031L; // example "took" from Elasticsearch 8.15.0
+        final boolean timeout = false;
+        final List<String> warnings = Collections.singletonList("auth");
+        final SearchResponse response = new SearchResponse(results, aggs, pitId, scrollId, searchAfter, num, took, timeout, warnings);
+
+        assertEquals(took, response.getTook());
     }
 }

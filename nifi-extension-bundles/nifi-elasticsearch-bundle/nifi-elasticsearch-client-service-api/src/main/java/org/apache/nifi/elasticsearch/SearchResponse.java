@@ -24,7 +24,7 @@ public class SearchResponse implements OperationResponse {
     private final List<Map<String, Object>> hits;
     private final Map<String, Object> aggregations;
     private final long numberOfHits;
-    private final int took;
+    private final long took;
     private final boolean timedOut;
     private final String pitId;
     private final String scrollId;
@@ -32,7 +32,7 @@ public class SearchResponse implements OperationResponse {
     private final List<String> warnings;
 
     public SearchResponse(final List<Map<String, Object>> hits, final Map<String, Object> aggregations, final String pitId,
-                          final String scrollId, final String searchAfter, final int numberOfHits, final int took, final boolean timedOut,
+                          final String scrollId, final String searchAfter, final int numberOfHits, final long took, final boolean timedOut,
                           final List<String> warnings) {
         this.hits = hits;
         this.aggregations = aggregations;
