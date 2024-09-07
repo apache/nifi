@@ -579,7 +579,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final List<String> warnings = Arrays.stream(response.getHeaders())
                 .filter(h -> "Warning".equalsIgnoreCase(h.getName()))
                 .map(Header::getValue)
-                .collect(Collectors.toList());
+                .toList();
 
         warnings.forEach(w -> getLogger().warn("Elasticsearch Warning: {}", w));
 
@@ -627,13 +627,11 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final String header = buildBulkHeader(request);
         builder.append(header).append("\n");
         switch (request.getOperation()) {
-            case Index:
-            case Create:
+            case Index, Create:
                 final String indexDocument = mapper.writeValueAsString(request.getFields());
                 builder.append(indexDocument).append("\n");
                 break;
-            case Update:
-            case Upsert:
+            case Update, Upsert:
                 final Map<String, Object> updateBody = new HashMap<>(2, 1);
                 if (request.getScript() != null && !request.getScript().isEmpty()) {
                     updateBody.put("script", request.getScript());
@@ -945,7 +943,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final Map<String, Object> parsed = parseResponse(response);
         final List<String> warnings = parseResponseWarningHeaders(response);
 
-        final int took = (Integer) parsed.get("took");
+        // took should be an int, but could be a long (bg in Elasticsearch 8.15.0)
+        final long took = Long.parseLong(String.valueOf(parsed.get("took")));
         final boolean timedOut = (Boolean) parsed.get("timed_out");
         final String pitId = parsed.get("pit_id") != null ? (String) parsed.get("pit_id") : null;
         final String scrollId = parsed.get("_scroll_id") != null ? (String) parsed.get("_scroll_id") : null;
