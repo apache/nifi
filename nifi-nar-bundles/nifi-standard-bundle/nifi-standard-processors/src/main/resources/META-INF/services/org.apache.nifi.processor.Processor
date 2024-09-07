@@ -25,6 +25,7 @@ org.apache.nifi.processors.standard.CountText
 org.apache.nifi.processors.standard.CryptographicHashAttribute
 org.apache.nifi.processors.standard.CryptographicHashContent
 org.apache.nifi.processors.standard.DebugFlow
+org.apache.nifi.processors.standard.DeleteSFTP
 org.apache.nifi.processors.standard.DetectDuplicate
 org.apache.nifi.processors.standard.DeduplicateRecord
 org.apache.nifi.processors.standard.DeleteFile
