@@ -56,7 +56,6 @@ import java.net.URI;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -116,20 +115,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             .defaultValue(CompressionType.NONE.toString())
             .build();
 
-    /*
-     * TODO This property has been deprecated, remove for NiFi 2.0
-     */
-    public static final PropertyDescriptor KERBEROS_RELOGIN_PERIOD = new PropertyDescriptor.Builder()
-            .name("Kerberos Relogin Period")
-            .required(false)
-            .description("Period of time which should pass before attempting a kerberos relogin.\n\nThis property has been deprecated, and has no effect on processing. " +
-                    "Relogins now occur automatically.")
-            .defaultValue("4 hours")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .build();
-
     public static final PropertyDescriptor ADDITIONAL_CLASSPATH_RESOURCES = new PropertyDescriptor.Builder()
             .name("Additional Classpath Resources")
             .description("A comma-separated list of paths to files and/or directories that will be added to the classpath and used for loading native libraries. " +
@@ -169,12 +154,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     protected void init(ProcessorInitializationContext context) {
         hdfsResources.set(EMPTY_HDFS_RESOURCES);
 
-        List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(HADOOP_CONFIGURATION_RESOURCES);
-        props.add(KERBEROS_USER_SERVICE);
-        props.add(KERBEROS_RELOGIN_PERIOD);
-        props.add(ADDITIONAL_CLASSPATH_RESOURCES);
-        properties = Collections.unmodifiableList(props);
+        properties = List.of(
+                HADOOP_CONFIGURATION_RESOURCES,
+                KERBEROS_USER_SERVICE,
+                ADDITIONAL_CLASSPATH_RESOURCES
+        );
     }
 
     @Override
@@ -183,6 +167,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         config.removeProperty("Kerberos Password");
         config.removeProperty("Kerberos Keytab");
         config.removeProperty("kerberos-credentials-service");
+        config.removeProperty("Kerberos Relogin Period");
     }
 
     @Override
