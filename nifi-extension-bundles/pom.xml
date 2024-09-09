@@ -95,5 +95,6 @@
         <module>nifi-jolt-bundle</module>
         <module>nifi-protobuf-bundle</module>
         <module>nifi-github-bundle</module>
+        <module>nifi-gitlab-bundle</module>
     </modules>
 </project>

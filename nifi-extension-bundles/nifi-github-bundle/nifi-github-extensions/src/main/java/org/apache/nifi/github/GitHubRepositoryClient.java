@@ -20,6 +20,9 @@
 package org.apache.nifi.github;
 
 import org.apache.nifi.registry.flow.FlowRegistryException;
+import org.apache.nifi.registry.flow.git.client.GitCommit;
+import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
+import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHContentUpdateResponse;
@@ -39,6 +42,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivateKey;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +55,7 @@ import java.util.stream.Collectors;
 /**
  * Client to encapsulate access to a GitHub Repository through the Hub4j GitHub client.
  */
-public class GitHubRepositoryClient {
+public class GitHubRepositoryClient implements GitRepositoryClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GitHubRepositoryClient.class);
 
@@ -130,15 +134,9 @@ public class GitHubRepositoryClient {
     }
 
     /**
-     * @return the authentication type this client is configured with
-     */
-    public GitHubAuthenticationType getAuthenticationType() {
-        return authenticationType;
-    }
-
-    /**
      * @return true if the repository is readable by configured credentials
      */
+    @Override
     public boolean getCanRead() {
         return canRead;
     }
@@ -146,6 +144,7 @@ public class GitHubRepositoryClient {
     /**
      * @return true if the repository is writable by the configured credentials
      */
+    @Override
     public boolean getCanWrite() {
         return canWrite;
     }
@@ -159,7 +158,8 @@ public class GitHubRepositoryClient {
      * @throws IOException if an I/O error happens calling GitHub
      * @throws FlowRegistryException if a non I/O error happens calling GitHub
      */
-    public String createContent(final GitHubCreateContentRequest request) throws IOException, FlowRegistryException {
+    @Override
+    public String createContent(final GitCreateContentRequest request) throws IOException, FlowRegistryException {
         final String branch = request.getBranch();
         final String resolvedPath = getResolvedPath(request.getPath());
         LOGGER.debug("Creating content at path [{}] on branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
@@ -188,6 +188,7 @@ public class GitHubRepositoryClient {
      * @throws IOException if an I/O error happens calling GitHub
      * @throws FlowRegistryException if a non I/O error happens calling GitHub
      */
+    @Override
     public Set<String> getBranches() throws IOException, FlowRegistryException {
         LOGGER.debug("Getting branches for repo [{}]", repository.getName());
         return execute(() -> repository.getBranches().keySet());
@@ -204,6 +205,7 @@ public class GitHubRepositoryClient {
      * @throws IOException if an I/O error happens calling GitHub
      * @throws FlowRegistryException if a non I/O error happens calling GitHub
      */
+    @Override
     public InputStream getContentFromBranch(final String path, final String branch) throws IOException, FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
@@ -231,6 +233,7 @@ public class GitHubRepositoryClient {
      * @throws IOException if an I/O error happens calling GitHub
      * @throws FlowRegistryException if a non I/O error happens calling GitHub
      */
+    @Override
     public InputStream getContentFromCommit(final String path, final String commitSha) throws IOException, FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         LOGGER.debug("Getting content for [{}] from commit [{}] in repo [{}] ", resolvedPath, commitSha, repository.getName());
@@ -255,7 +258,8 @@ public class GitHubRepositoryClient {
      * @throws IOException if an I/O error happens calling GitHub
      * @throws FlowRegistryException if a non I/O error happens calling GitHub
      */
-    public List<GHCommit> getCommits(final String path, final String branch) throws IOException, FlowRegistryException {
+    @Override
+    public List<GitCommit> getCommits(final String path, final String branch) throws IOException, FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
         LOGGER.debug("Getting commits for [{}] from branch [{}] in repo [{}]", resolvedPath, branch, repository.getName());
@@ -263,12 +267,18 @@ public class GitHubRepositoryClient {
         return execute(() -> {
             try {
                 final GHRef branchGhRef = repository.getRef(branchRef);
-                return repository.queryCommits()
+                final List<GHCommit> ghCommits = repository.queryCommits()
                         .path(resolvedPath)
                         .from(branchGhRef.getObject().getSha())
                         .pageSize(COMMIT_PAGE_SIZE)
                         .list()
                         .toList();
+
+                final List<GitCommit> commits = new ArrayList<>();
+                for (final GHCommit ghCommit : ghCommits) {
+                    commits.add(toGitCommit(ghCommit));
+                }
+                return commits;
             } catch (final FileNotFoundException fnf) {
                 throwPathOrBranchNotFound(fnf, resolvedPath, branchRef);
                 return null;
@@ -285,22 +295,9 @@ public class GitHubRepositoryClient {
      * @throws IOException if an I/O error happens calling GitHub
      * @throws FlowRegistryException if a non I/O error happens calling GitHub
      */
+    @Override
     public Set<String> getTopLevelDirectoryNames(final String branch) throws IOException, FlowRegistryException {
         return getDirectoryItems("", branch, GHContent::isDirectory);
-    }
-
-    /**
-     * Gets the names of the directories contained within the given directory.
-     *
-     * @param directory the directory to list
-     * @param branch the branch
-     * @return the set of directory names
-     *
-     * @throws IOException if an I/O error happens calling GitHub
-     * @throws FlowRegistryException if a non I/O error happens calling GitHub
-     */
-    public Set<String> getDirectoryNames(final String directory, final String branch) throws IOException, FlowRegistryException {
-        return getDirectoryItems(directory, branch, GHContent::isDirectory);
     }
 
     /**
@@ -313,6 +310,7 @@ public class GitHubRepositoryClient {
      * @throws IOException if an I/O error happens calling GitHub
      * @throws FlowRegistryException if a non I/O error happens calling GitHub
      */
+    @Override
     public Set<String> getFileNames(final String directory, final String branch) throws IOException, FlowRegistryException {
         return getDirectoryItems(directory, branch, GHContent::isFile);
     }
@@ -355,6 +353,7 @@ public class GitHubRepositoryClient {
      *
      * @throws IOException if an I/O error happens calling GitHub
      */
+    @Override
     public Optional<String> getContentSha(final String path, final String branch) throws IOException, FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
         final String branchRef = BRANCH_REF_PATTERN.formatted(branch);
@@ -382,14 +381,15 @@ public class GitHubRepositoryClient {
      * @throws IOException if an I/O error happens calling GitHub
      * @throws FlowRegistryException if a non I/O error happens calling GitHub
      */
-    public GHContent deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException, IOException {
+    @Override
+    public InputStream deleteContent(final String filePath, final String commitMessage, final String branch) throws FlowRegistryException, IOException {
         final String resolvedPath = getResolvedPath(filePath);
         LOGGER.debug("Deleting file [{}] in repo [{}] on branch [{}]", resolvedPath, repository.getName(), branch);
         return execute(() -> {
             try {
                 GHContent ghContent = repository.getFileContent(resolvedPath);
                 ghContent.delete(commitMessage, branch);
-                return ghContent;
+                return ghContent.read();
             } catch (final FileNotFoundException fnf) {
                 throwPathOrBranchNotFound(fnf, resolvedPath, branch);
                 return null;
@@ -403,6 +403,16 @@ public class GitHubRepositoryClient {
 
     private void throwPathOrBranchNotFound(final FileNotFoundException fileNotFoundException, final String path, final String branch) throws FlowRegistryException {
         throw new FlowRegistryException("Path [" + path + "] or Branch [" + branch + "] not found", fileNotFoundException);
+    }
+
+    private GitCommit toGitCommit(final GHCommit ghCommit) throws IOException {
+        final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
+        return GitCommit.builder()
+                .id(ghCommit.getSHA1())
+                .author(ghCommit.getAuthor().getLogin())
+                .message(shortInfo.getMessage())
+                .commitDate(shortInfo.getCommitDate())
+                .build();
     }
 
     private <T> T execute(final GHRequest<T> action) throws FlowRegistryException, IOException {
