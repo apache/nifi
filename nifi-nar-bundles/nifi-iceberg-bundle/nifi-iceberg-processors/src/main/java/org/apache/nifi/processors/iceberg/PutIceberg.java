@@ -54,7 +54,6 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.services.iceberg.IcebergCatalogService;
-import org.ietf.jgss.GSSException;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -65,13 +64,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
-import static org.apache.nifi.processors.iceberg.IcebergUtils.findCause;
 import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFromFiles;
 import static org.apache.nifi.processors.iceberg.IcebergUtils.getDynamicProperties;
 
@@ -286,13 +283,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
         try {
             table = loadTable(context, flowFile);
         } catch (Exception e) {
-            final Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-            if (causeOptional.isPresent()) {
-                getLogger().warn("No valid Kerberos credential found, retrying login", causeOptional.get());
-                initKerberosCredentials(context);
-                session.rollback();
-                context.yield();
-            } else {
+            if (!handleAuthErrors(e, session, context)) {
                 getLogger().error("Failed to load table from catalog", e);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
             }
@@ -320,13 +311,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             final WriteResult result = taskWriter.complete();
             appendDataFiles(context, flowFile, table, result);
         } catch (Exception e) {
-            final Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
-            if (causeOptional.isPresent()) {
-                getLogger().warn("No valid Kerberos credential found, retrying login", causeOptional.get());
-                initKerberosCredentials(context);
-                session.rollback();
-                context.yield();
-            } else {
+            if (!handleAuthErrors(e, session, context)) {
                 getLogger().error("Exception occurred while writing Iceberg records", e);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
             }
