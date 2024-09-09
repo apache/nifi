@@ -53,7 +53,6 @@ public abstract class AbstractCatalogService extends AbstractControllerService i
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dynamicallyModifiesClasspath(true)
             .build();
 
     public static final PropertyDescriptor WAREHOUSE_PATH = new PropertyDescriptor.Builder()
