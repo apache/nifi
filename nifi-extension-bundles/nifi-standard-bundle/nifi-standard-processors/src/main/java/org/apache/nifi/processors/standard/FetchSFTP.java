@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.file.transfer.FetchFileTransfer;
 import org.apache.nifi.processor.util.file.transfer.FileTransfer;
@@ -115,11 +116,6 @@ public class FetchSFTP extends FetchFileTransfer {
             SFTPTransfer.STRICT_HOST_KEY_CHECKING,
             SFTPTransfer.USE_COMPRESSION,
             SFTPTransfer.PROXY_CONFIGURATION_SERVICE,
-            FTPTransfer.PROXY_TYPE,
-            FTPTransfer.PROXY_HOST,
-            FTPTransfer.PROXY_PORT,
-            FTPTransfer.HTTP_PROXY_USERNAME,
-            FTPTransfer.HTTP_PROXY_PASSWORD,
             FILE_NOT_FOUND_LOG_LEVEL,
             SFTPTransfer.CIPHERS_ALLOWED,
             SFTPTransfer.KEY_ALGORITHMS_ALLOWED,
@@ -130,6 +126,12 @@ public class FetchSFTP extends FetchFileTransfer {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        FTPTransfer.migrateProxyProperties(config);
     }
 
     @Override

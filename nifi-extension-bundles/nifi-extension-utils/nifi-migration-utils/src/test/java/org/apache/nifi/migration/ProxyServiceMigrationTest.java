@@ -35,18 +35,20 @@ class ProxyServiceMigrationTest {
             .name("proxy-service")
             .build();
 
+    private static final String OBSOLETE_PROXY_TYPE = "proxy-type";
     private static final String OBSOLETE_PROXY_HOST = "proxy-host";
     private static final String OBSOLETE_PROXY_PORT = "proxy-port";
     private static final String OBSOLETE_PROXY_USERNAME = "proxy-username";
     private static final String OBSOLETE_PROXY_PASSWORD = "proxy-password";
 
+    private static final String PROXY_TYPE_VALUE = "SOCKS";
     private static final String PROXY_HOST_VALUE = "localhost";
     private static final String PROXY_PORT_VALUE = "8888";
     private static final String PROXY_USERNAME_VALUE = "user";
     private static final String PROXY_PASSWORD_VALUE = "pass";
 
     @Test
-    void testMigrateProxyProperties() {
+    void testMigrateProxyPropertiesWithDefaultProxyType() {
         final Map<String, String> properties = Map.of(
                 OBSOLETE_PROXY_HOST, PROXY_HOST_VALUE,
                 OBSOLETE_PROXY_PORT, PROXY_PORT_VALUE,
@@ -74,6 +76,45 @@ class ProxyServiceMigrationTest {
 
         assertEquals(Map.of(
                         ProxyServiceMigration.PROXY_SERVICE_TYPE, Proxy.Type.HTTP.name(),
+                        ProxyServiceMigration.PROXY_SERVICE_HOST, PROXY_HOST_VALUE,
+                        ProxyServiceMigration.PROXY_SERVICE_PORT, PROXY_PORT_VALUE,
+                        ProxyServiceMigration.PROXY_SERVICE_USERNAME, PROXY_USERNAME_VALUE,
+                        ProxyServiceMigration.PROXY_SERVICE_PASSWORD, PROXY_PASSWORD_VALUE
+                ),
+                createdService.serviceProperties());
+    }
+
+    @Test
+    void testMigrateProxyPropertiesWithCustomProxyType() {
+        final Map<String, String> properties = Map.of(
+                OBSOLETE_PROXY_TYPE, PROXY_TYPE_VALUE,
+                OBSOLETE_PROXY_HOST, PROXY_HOST_VALUE,
+                OBSOLETE_PROXY_PORT, PROXY_PORT_VALUE,
+                OBSOLETE_PROXY_USERNAME, PROXY_USERNAME_VALUE,
+                OBSOLETE_PROXY_PASSWORD, PROXY_PASSWORD_VALUE
+        );
+        final MockPropertyConfiguration config = new MockPropertyConfiguration(properties);
+
+        ProxyServiceMigration.migrateProxyProperties(config, PROXY_SERVICE, OBSOLETE_PROXY_TYPE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, OBSOLETE_PROXY_USERNAME, OBSOLETE_PROXY_PASSWORD);
+
+        assertFalse(config.hasProperty(OBSOLETE_PROXY_TYPE));
+        assertFalse(config.hasProperty(OBSOLETE_PROXY_HOST));
+        assertFalse(config.hasProperty(OBSOLETE_PROXY_PORT));
+        assertFalse(config.hasProperty(OBSOLETE_PROXY_USERNAME));
+        assertFalse(config.hasProperty(OBSOLETE_PROXY_PASSWORD));
+
+        assertTrue(config.isPropertySet(PROXY_SERVICE));
+
+        PropertyMigrationResult result = config.toPropertyMigrationResult();
+        assertEquals(1, result.getCreatedControllerServices().size());
+
+        final CreatedControllerService createdService = result.getCreatedControllerServices().iterator().next();
+
+        assertEquals(config.getRawPropertyValue(PROXY_SERVICE).get(), createdService.id());
+        assertEquals(ProxyServiceMigration.PROXY_SERVICE_CLASSNAME, createdService.implementationClassName());
+
+        assertEquals(Map.of(
+                        ProxyServiceMigration.PROXY_SERVICE_TYPE, Proxy.Type.SOCKS.name(),
                         ProxyServiceMigration.PROXY_SERVICE_HOST, PROXY_HOST_VALUE,
                         ProxyServiceMigration.PROXY_SERVICE_PORT, PROXY_PORT_VALUE,
                         ProxyServiceMigration.PROXY_SERVICE_USERNAME, PROXY_USERNAME_VALUE,

@@ -53,7 +53,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
 import static org.apache.nifi.processors.standard.util.SFTPTransfer.CONNECTION_TIMEOUT;
 import static org.apache.nifi.processors.standard.util.SFTPTransfer.DATA_TIMEOUT;
 import static org.apache.nifi.processors.standard.util.SFTPTransfer.HOSTNAME;
@@ -179,7 +178,7 @@ public class StandardSSHClientProvider implements SSHClientProvider {
             }
         }
 
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context, createComponentProxyConfigSupplier(context));
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
         final Proxy.Type proxyType = proxyConfiguration.getProxyType();
         if (SUPPORTED_PROXY_TYPES.contains(proxyType)) {
             final SocketFactory socketFactory = SOCKET_FACTORY_PROVIDER.getSocketFactory(proxyConfiguration);
