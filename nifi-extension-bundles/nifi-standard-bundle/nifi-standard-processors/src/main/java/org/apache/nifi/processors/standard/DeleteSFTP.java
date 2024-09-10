@@ -29,6 +29,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -116,11 +117,6 @@ public class DeleteSFTP extends AbstractProcessor {
             SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT,
             SFTPTransfer.USE_COMPRESSION,
             SFTPTransfer.PROXY_CONFIGURATION_SERVICE,
-            FTPTransfer.PROXY_TYPE,
-            FTPTransfer.PROXY_HOST,
-            FTPTransfer.PROXY_PORT,
-            FTPTransfer.HTTP_PROXY_USERNAME,
-            FTPTransfer.HTTP_PROXY_PASSWORD,
             SFTPTransfer.CIPHERS_ALLOWED,
             SFTPTransfer.KEY_ALGORITHMS_ALLOWED,
             SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED,
@@ -135,6 +131,12 @@ public class DeleteSFTP extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        FTPTransfer.migrateProxyProperties(config);
     }
 
     @Override

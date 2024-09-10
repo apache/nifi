@@ -50,7 +50,6 @@ import static org.apache.nifi.processors.standard.util.FTPTransfer.TRANSFER_MODE
 import static org.apache.nifi.processors.standard.util.FTPTransfer.TRANSFER_MODE_ASCII;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.USERNAME;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.UTF8_ENCODING;
-import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
 
 /**
  * Standard implementation of FTP Client Provider
@@ -168,7 +167,7 @@ public class StandardFTPClientProvider implements FTPClientProvider {
     }
 
     private FTPClient createClient(final PropertyContext context) {
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context, createComponentProxyConfigSupplier(context));
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
         final Proxy.Type proxyType = proxyConfiguration.getProxyType();
 
