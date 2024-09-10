@@ -538,6 +538,7 @@ public class TestValidateRecord {
 
         // Test with an Inferred Schema.
         runner.disableControllerService(jsonReader);
+        runner.removeProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
         runner.setProperty(jsonReader, DateTimeUtils.TIMESTAMP_FORMAT, "yyyy/MM/dd HH:mm:ss");
         runner.enableControllerService(jsonReader);
