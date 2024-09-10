@@ -62,7 +62,7 @@
 
     .cm-s-nifi.CodeMirror {
         @extend .surface-contrast;
-        min-height: 108px;
+        height: 100%;
         cursor: default;
         line-height: normal;
         background-color: if(
