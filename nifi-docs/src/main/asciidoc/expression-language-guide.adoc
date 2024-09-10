@@ -2872,7 +2872,7 @@ provides several functions for evaluating the same conditions against groups of 
 |=======================================================================================
 | Expression | Value
 | `${allMatchingAttributes("[ax].*"):substringBefore(" "):join("-")}` | `hello-good`
-| `${allAttributes("abc", "xyz"):join(" now")}` | `hello world nowgood bye world now`
+| `${allAttributes("abc", "xyz"):join(" now ")}` | `hello world now good bye world`
 |=======================================================================================
 
 
