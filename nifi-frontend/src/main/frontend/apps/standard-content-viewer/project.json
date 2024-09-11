@@ -74,7 +74,7 @@
                     ]
                 }
             },
-            "defaultConfiguration": "development"
+            "defaultConfiguration": "production"
         },
         "serve": {
             "executor": "@nx/angular:dev-server",
