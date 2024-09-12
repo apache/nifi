@@ -235,6 +235,9 @@ public class HiveJdbcCommon {
             // Hive returns table.column for column name. Grab the column name as the string after the last period
             int columnNameDelimiter = columnNameFromMeta.lastIndexOf(".");
             String columnName = columnNameFromMeta.substring(columnNameDelimiter + 1);
+            if (convertNames) {
+                columnName = normalizeNameForAvro(columnName);
+            }
             switch (meta.getColumnType(i)) {
                 case CHAR:
                 case LONGNVARCHAR:
