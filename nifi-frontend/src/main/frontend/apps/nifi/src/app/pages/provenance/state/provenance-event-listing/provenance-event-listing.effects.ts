@@ -45,6 +45,7 @@ import { isDefinedAndNotNull, NiFiCommon } from 'libs/shared/src';
 import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { ClusterService } from '../../../../service/cluster.service';
 import { LARGE_DIALOG, MEDIUM_DIALOG } from 'libs/shared/src';
+import { Attribute } from '../../../../state/shared';
 
 @Injectable()
 export class ProvenanceEventListingEffects {
@@ -358,12 +359,30 @@ export class ProvenanceEventListingEffects {
                                 dialogReference.componentInstance.viewContent
                                     .pipe(takeUntil(dialogReference.afterClosed()))
                                     .subscribe((direction: string) => {
+                                        let mimeType: string | undefined;
+
+                                        if (response.provenanceEvent.attributes) {
+                                            const mimeTypeAttribute: Attribute | undefined =
+                                                response.provenanceEvent.attributes.find(
+                                                    (attribute: Attribute) => attribute.name === 'mime.type'
+                                                );
+
+                                            if (mimeTypeAttribute) {
+                                                if (direction === 'input') {
+                                                    mimeType = mimeTypeAttribute.previousValue;
+                                                } else if (direction === 'output') {
+                                                    mimeType = mimeTypeAttribute.value;
+                                                }
+                                            }
+                                        }
+
                                         this.provenanceService.viewContent(
                                             about.uri,
                                             about.contentViewerUrl,
                                             request.eventId,
                                             direction,
-                                            request.clusterNodeId
+                                            request.clusterNodeId,
+                                            mimeType
                                         );
                                     });
                             }

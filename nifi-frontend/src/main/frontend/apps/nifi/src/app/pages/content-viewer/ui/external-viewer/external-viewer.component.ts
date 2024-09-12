@@ -72,7 +72,7 @@ export class ExternalViewer implements OnDestroy {
                 queryParams = queryParams.set('clientId', this.request.clientId);
             }
 
-            const urlWithParams = `${this.request.url}?${queryParams.toString()}`;
+            const urlWithParams = `${this.request.url}/?${queryParams.toString()}`;
 
             const sanitizedUrl = this.domSanitizer.sanitize(SecurityContext.URL, urlWithParams);
 
