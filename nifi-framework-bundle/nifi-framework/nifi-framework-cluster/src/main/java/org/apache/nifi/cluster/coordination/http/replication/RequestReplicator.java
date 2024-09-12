@@ -26,48 +26,6 @@ import java.util.Map;
 import java.util.Set;
 
 public interface RequestReplicator {
-
-    public static final String REQUEST_TRANSACTION_ID_HEADER = "X-RequestTransactionId";
-    public static final String CLUSTER_ID_GENERATION_SEED_HEADER = "X-Cluster-Id-Generation-Seed";
-
-    /**
-     * The HTTP header that the requestor specifies to ask a node if they are able to process a given request.
-     * The value is always 202-Accepted. The node will respond with 202 ACCEPTED if it is able to
-     * process the request, 417 EXPECTATION_FAILED otherwise.
-     */
-    public static final String REQUEST_VALIDATION_HTTP_HEADER = "X-Validation-Expects";
-    public static final String NODE_CONTINUE = "202-Accepted";
-    public static final int NODE_CONTINUE_STATUS_CODE = 202;
-
-    /**
-     * Indicates that the request is intended to cancel a transaction that was previously created without performing the action
-     */
-    public static final String REQUEST_TRANSACTION_CANCELATION_HTTP_HEADER = "X-Cancel-Transaction";
-
-    /**
-     * Indicates that this is the second phase of the two phase commit and the execution of the action should proceed.
-     */
-    public static final String REQUEST_EXECUTION_HTTP_HEADER = "X-Execution-Continue";
-
-    /**
-     * When we replicate a request across the cluster, we replicate it only from the cluster coordinator.
-     * If the request needs to be replicated by another node, it first replicates the request to the coordinator,
-     * which then replicates the request on the node's behalf. This header name and value are used to denote
-     * that the request has already been to the cluster coordinator, and the cluster coordinator is the one replicating
-     * the request. This allows us to know that the request should be serviced, rather than proxied back to the
-     * cluster coordinator.
-     */
-    public static final String REPLICATION_INDICATOR_HEADER = "X-Request-Replicated";
-
-    /**
-     * When replicating a request to the cluster coordinator, it may be useful to denote that the request should
-     * be replicated only to a single node. This happens, for instance, when retrieving a Provenance Event that
-     * we know lives on a specific node. This request must still be replicated through the cluster coordinator.
-     * This header tells the cluster coordinator the UUID's (comma-separated list, possibly with spaces between)
-     * of the nodes that the request should be replicated to.
-     */
-    public static final String REPLICATION_TARGET_NODE_UUID_HEADER = "X-Replication-Target-Id";
-
     /**
      * Stops the instance from replicating requests. Calling this method on a stopped instance has no effect.
      */

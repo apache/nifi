@@ -61,6 +61,7 @@ import jakarta.ws.rs.core.Response.Status;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -98,6 +99,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
     private static final String COOKIE_HEADER = "Cookie";
     private static final String HOST_HEADER = "Host";
+    private static final String NODE_CONTINUE = "202-Accepted";
 
     private final int maxConcurrentRequests; // maximum number of concurrent requests
     private final HttpResponseMapper responseMapper;
@@ -276,9 +278,9 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                                           final boolean indicateReplicated, final boolean performVerification) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
-        updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, ComponentIdGenerator.generateId().toString());
+        updatedHeaders.put(RequestReplicationHeader.CLUSTER_ID_GENERATION_SEED.getHeader(), ComponentIdGenerator.generateId().toString());
         if (indicateReplicated) {
-            updatedHeaders.put(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true");
+            updatedHeaders.put(RequestReplicationHeader.REQUEST_REPLICATED.getHeader(), Boolean.TRUE.toString());
         }
 
         // include the proxied entities header
@@ -380,7 +382,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             // Update headers to indicate the current revision so that we can
             // prevent multiple users changing the flow at the same time
             final Map<String, String> updatedHeaders = new HashMap<>(headers);
-            final String requestId = updatedHeaders.computeIfAbsent(REQUEST_TRANSACTION_ID_HEADER, key -> UUID.randomUUID().toString());
+            final String requestId = computeRequestId(updatedHeaders);
 
             long verifyClusterStateNanos = -1;
             if (performVerification) {
@@ -458,7 +460,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
             // instruct the node to actually perform the underlying action
             if (mutableRequest && executionPhase) {
-                updatedHeaders.put(REQUEST_EXECUTION_HTTP_HEADER, "true");
+                updatedHeaders.put(RequestReplicationHeader.EXECUTION_CONTINUE.getHeader(), "true");
             }
 
             // replicate the request to all nodes
@@ -486,13 +488,16 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         }
     }
 
+    private String computeRequestId(final Map<String, String> headers) {
+        return headers.computeIfAbsent(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader(), header -> UUID.randomUUID().toString());
+    }
 
     private void performVerification(final Set<NodeIdentifier> nodeIds, final String method, final URI uri, final Object entity, final Map<String, String> headers,
         final StandardAsyncClusterResponse clusterResponse, final boolean merge, final Object monitor) {
         logger.debug("Verifying that mutable request {} {} can be made", method, uri.getPath());
 
         final Map<String, String> validationHeaders = new HashMap<>(headers);
-        validationHeaders.put(REQUEST_VALIDATION_HTTP_HEADER, NODE_CONTINUE);
+        validationHeaders.put(RequestReplicationHeader.VALIDATION_EXPECTS.getHeader(), NODE_CONTINUE);
 
         final long startNanos = System.nanoTime();
         final int numNodes = nodeIds.size();
@@ -523,7 +528,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                         clusterResponse.addTiming("Verification Completed", "All Nodes", nanos);
 
                         // Check if we have any requests that do not have a 202-Accepted status code.
-                        final long dissentingCount = nodeResponses.stream().filter(p -> p.getStatus() != NODE_CONTINUE_STATUS_CODE).count();
+                        final long dissentingCount = nodeResponses.stream().filter(p -> p.getStatus() != HttpURLConnection.HTTP_ACCEPTED).count();
 
                         // If all nodes responded with 202-Accepted, then we can replicate the original request
                         // to all nodes and we are finished.
@@ -535,7 +540,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
                         try {
                             final Map<String, String> cancelLockHeaders = new HashMap<>(headers);
-                            cancelLockHeaders.put(REQUEST_TRANSACTION_CANCELATION_HTTP_HEADER, "true");
+                            cancelLockHeaders.put(RequestReplicationHeader.CANCEL_TRANSACTION.getHeader(), "true");
                             final Thread cancelLockThread = new Thread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -554,7 +559,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                             // Add a NodeResponse for each node to the Cluster Response
                             // Check that all nodes responded successfully.
                             for (final NodeResponse response : nodeResponses) {
-                                if (response.getStatus() != NODE_CONTINUE_STATUS_CODE) {
+                                if (response.getStatus() != HttpURLConnection.HTTP_ACCEPTED) {
                                     final Response clientResponse = response.getClientResponse();
 
                                     final String message;
@@ -645,7 +650,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         logger.debug("Replicating request to {} {}, request ID = {}, headers = {}", request.getMethod(), uri, requestId, request.getHeaders());
 
         // invoke the request
-        response = httpClient.replicate(request, uri.toString());
+        response = httpClient.replicate(request, uri);
 
         final long nanos = System.nanoTime() - startNanos;
         clusterResponse.addTiming("Perform HTTP Request", nodeId.toString(), nanos);
@@ -866,7 +871,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
             try {
                 // create and send the request
-                final String requestId = request.getHeaders().get("x-nifi-request-id");
+                final String requestId = request.getHeaders().get(RequestReplicationHeader.REQUEST_TRANSACTION_ID.getHeader());
                 logger.debug("Replicating request {} {} to {}", method, uri.getPath(), nodeId);
 
                 nodeResponse = replicateRequest(request, nodeId, uri, requestId, clusterResponse);

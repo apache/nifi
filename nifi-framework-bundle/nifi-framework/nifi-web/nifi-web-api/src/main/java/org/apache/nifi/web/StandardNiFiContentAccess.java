@@ -19,6 +19,7 @@ package org.apache.nifi.web;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicationHeader;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.manager.NodeResponse;
@@ -91,7 +92,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
             // replicate the request to the cluster coordinator, indicating the target node
             NodeResponse nodeResponse;
             try {
-                headers.put(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, nodeId.getId());
+                headers.put(RequestReplicationHeader.REPLICATION_TARGET_ID.getHeader(), nodeId.getId());
                 final NodeIdentifier coordinatorNode = clusterCoordinator.getElectedActiveCoordinatorNode();
                 if (coordinatorNode == null) {
                     throw new NoClusterCoordinatorException();

@@ -15,18 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cluster.coordination.http.replication;
+package org.apache.nifi.cluster.coordination.http.replication.io;
 
 import java.io.IOException;
-import java.net.URI;
-import java.util.Map;
+import java.io.OutputStream;
 
-import jakarta.ws.rs.core.Response;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-public interface HttpReplicationClient {
+public class JsonEntitySerializer implements EntitySerializer {
+    private final ObjectMapper jsonCodec;
 
-    PreparedRequest prepareRequest(String method, Map<String, String> headers, Object entity);
+    public JsonEntitySerializer(final ObjectMapper jsonCodec) {
+        this.jsonCodec = jsonCodec;
+    }
 
-    Response replicate(PreparedRequest request, URI uri) throws IOException;
-
+    @Override
+    public void serialize(final Object entity, final OutputStream out) throws IOException {
+        final JsonFactory factory = new JsonFactory();
+        final JsonGenerator generator = factory.createGenerator(out);
+        generator.setCodec(jsonCodec);
+        generator.writeObject(entity);
+        generator.flush();
+    }
 }

@@ -63,7 +63,7 @@ class AssetsRestApiClient extends NiFiRestApiClient {
         final HttpRequestBodySpec requestBodySpec = webClientService.get()
                 .uri(requestUri)
                 .header(ACCEPT_HEADER, APPLICATION_JSON)
-                .header(X_REQUEST_REPLICATED_HEADER, "true");
+                .header(REQUEST_REPLICATED_HEADER, Boolean.TRUE.toString());
 
         return executeEntityRequest(requestUri, requestBodySpec, AssetsEntity.class);
     }

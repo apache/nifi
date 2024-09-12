@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cluster.coordination.http.replication.okhttp;
+package org.apache.nifi.cluster.coordination.http.replication.io;
 
 import java.io.IOException;
 import java.io.OutputStream;

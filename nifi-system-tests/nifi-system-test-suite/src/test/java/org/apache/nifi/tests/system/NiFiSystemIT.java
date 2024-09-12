@@ -77,7 +77,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     //                                                   Group ID  | Source Name | Dest Name | Conn Name  | Queue Size |
     private static final String QUEUE_SIZES_FORMAT = "| %1$-36.36s | %2$-30.30s | %3$-30.30s | %4$-30.30s | %5$-30.30s |";
 
-    public static final RequestConfig DO_NOT_REPLICATE = () -> Collections.singletonMap("X-Request-Replicated", "value");
+    public static final RequestConfig DO_NOT_REPLICATE = () -> Collections.singletonMap("request-replicated", Boolean.TRUE.toString());
 
     public static final int CLUSTERED_CLIENT_API_BASE_PORT = 5671;
     public static final int STANDALONE_CLIENT_API_BASE_PORT = 5670;
