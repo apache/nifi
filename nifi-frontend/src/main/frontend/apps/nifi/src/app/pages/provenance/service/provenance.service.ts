@@ -92,7 +92,8 @@ export class ProvenanceService {
         contentViewerUrl: string,
         eventId: number,
         direction: string,
-        clusterNodeId?: string
+        clusterNodeId?: string,
+        mimeType?: string
     ): void {
         // build the uri to the data
         let dataUri = `${nifiUrl}provenance-events/${encodeURIComponent(eventId)}/content/${encodeURIComponent(
@@ -125,6 +126,10 @@ export class ProvenanceService {
             ref: dataUri,
             clientId: this.client.getClientId()
         };
+
+        if (mimeType) {
+            contentViewerParameters['mimeType'] = mimeType;
+        }
 
         // open the content viewer
         const contentViewerQuery: string = new URLSearchParams(contentViewerParameters).toString();

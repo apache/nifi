@@ -3673,7 +3673,9 @@ export class FlowEffects {
             switchMap((versionControlInfo: VersionControlInformationEntity) => {
                 const vci = versionControlInfo.versionControlInformation;
                 if (vci) {
-                    return from(this.registryService.getFlowVersions(vci.registryId, vci.bucketId, vci.flowId, vci.branch)).pipe(
+                    return from(
+                        this.registryService.getFlowVersions(vci.registryId, vci.bucketId, vci.flowId, vci.branch)
+                    ).pipe(
                         map((versions) =>
                             FlowActions.openChangeVersionDialog({
                                 request: {
