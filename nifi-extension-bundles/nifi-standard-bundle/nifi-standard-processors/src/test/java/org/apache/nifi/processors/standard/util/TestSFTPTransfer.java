@@ -33,6 +33,7 @@ import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 import java.io.File;
 import java.io.IOException;
@@ -262,7 +263,7 @@ public class TestSFTPTransfer {
         when(processContext.getProperty(eq(FileTransfer.REMOTE_PATH))).thenReturn(new MockPropertyValue("."));
 
         try (SFTPClient sftpClient = mock(SFTPClient.class)) {
-            when(sftpClient.ls(any(), any())).then(invocation -> {
+            when(sftpClient.ls(any(), ArgumentMatchers.<RemoteResourceFilter>any())).then(invocation -> {
                 final Map<String, String> extended = new LinkedHashMap<>();
                 final List<RemoteResourceInfo> list = new ArrayList<>();
                 list.add(new RemoteResourceInfo(
