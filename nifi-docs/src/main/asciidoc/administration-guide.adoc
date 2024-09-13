@@ -3112,6 +3112,9 @@ available again. These properties govern how that process occurs.
 |`nifi.swap.manager.implementation`| The Swap Manager implementation. The default value is `org.apache.nifi.controller.FileSystemSwapManager`.
 |`nifi.queue.swap.threshold`|The queue threshold at which NiFi starts to swap FlowFile information to disk. The default value is `20000`.
 |====
+NOTE: When a queue begins swapping to disk, NiFi does not guarantee that all the FlowFiles in the queue are sorted in the
+order specified by the <<user-guide.adoc#_prioritization,prioritizers>> configured on the queue. New FlowFiles arriving at the queue are written to
+the swap file without considering prioritizers. They are prioritized when the swap file is read back into memory.
 
 === Content Repository
 
