@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import com.hierynomus.sshj.sftp.RemoteResourceSelector;
 import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.Factory;
 import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.FileMode;
 import net.schmizz.sshj.sftp.RemoteFile;
-import net.schmizz.sshj.sftp.RemoteResourceFilter;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.Response;
 import net.schmizz.sshj.sftp.SFTPClient;
@@ -287,6 +287,7 @@ public class SFTPTransfer implements FileTransfer {
 
         final List<FileInfo> listing = new ArrayList<>(1000);
         getListing(path, depth, maxResults, listing, applyFilters);
+
         return listing;
     }
 
@@ -328,45 +329,47 @@ public class SFTPTransfer implements FileTransfer {
         final boolean pathMatched = pathFilterMatches;
         final boolean filteringDisabled = !applyFilters;
 
-        final List<RemoteResourceInfo> subDirs = new ArrayList<>();
+        final List<RemoteResourceInfo> subDirectoryPaths = new ArrayList<>();
         try {
-            final RemoteResourceFilter filter = (entry) -> {
+            final RemoteResourceSelector selector = (entry) -> {
                 final String entryFilename = entry.getName();
 
                 // skip over 'this directory' and 'parent directory' special files regardless of ignoring dot files
                 if (RELATIVE_CURRENT_DIRECTORY.equals(entryFilename) || RELATIVE_PARENT_DIRECTORY.equals(entryFilename)) {
-                    return false;
+                    return RemoteResourceSelector.Result.CONTINUE;
                 }
 
                 // skip files and directories that begin with a dot if we're ignoring them
                 if (ignoreDottedFiles && entryFilename.startsWith(DOT_PREFIX)) {
-                    return false;
+                    return RemoteResourceSelector.Result.CONTINUE;
                 }
 
+                // remember directory for later recursive listing
                 if (isIncludedDirectory(entry, recurse, symlink)) {
-                    subDirs.add(entry);
-                    return false;
+                    subDirectoryPaths.add(entry);
+                    return RemoteResourceSelector.Result.CONTINUE;
                 }
 
-                // Since SSHJ does not have the concept of BREAK that JSCH had, we need to move this before the call to listing.add
-                // below, otherwise we would keep adding to the listings since returning false here doesn't break
-                if (listing.size() >= maxResults) {
-                    return false;
-                }
-
+                // add regular files matching our filter to the result
                 if (isIncludedFile(entry, symlink) && (filteringDisabled || pathMatched)) {
                     if (filteringDisabled || fileFilterPattern == null || fileFilterPattern.matcher(entryFilename).matches()) {
                         listing.add(newFileInfo(path, entry.getName(), entry.getAttributes()));
+
+                        // abort further processing once we've reached the configured amount of maxResults
+                        if (listing.size() >= maxResults) {
+                            return RemoteResourceSelector.Result.BREAK;
+                        }
                     }
                 }
 
-                return false;
+                // SSHJ does not need to keep track as we collect the results ourselves, continue with next entry instead
+                return RemoteResourceSelector.Result.CONTINUE;
             };
 
-            if (path == null || path.trim().isEmpty()) {
-                sftpClient.ls(RELATIVE_CURRENT_DIRECTORY, filter);
+            if (path == null || path.isBlank()) {
+                sftpClient.ls(RELATIVE_CURRENT_DIRECTORY, selector);
             } else {
-                sftpClient.ls(path, filter);
+                sftpClient.ls(path, selector);
             }
         } catch (final SFTPException e) {
             final String pathDesc = path == null ? "current directory" : path;
@@ -381,7 +384,7 @@ public class SFTPTransfer implements FileTransfer {
             }
         }
 
-        for (final RemoteResourceInfo entry : subDirs) {
+        for (final RemoteResourceInfo entry : subDirectoryPaths) {
             final String entryFilename = entry.getName();
             final File newFullPath = new File(path, entryFilename);
             final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
@@ -392,7 +395,6 @@ public class SFTPTransfer implements FileTransfer {
                 logger.error("Unable to get listing from {}; skipping", newFullForwardPath, e);
             }
         }
-
     }
 
     /**
