@@ -133,9 +133,9 @@ public class ObjectTimestampFieldConverterTest {
 
     @ParameterizedTest
     @MethodSource("getPatterns")
-    void testTimeZonePattern(String pattern, boolean expected) {
+    void testTimeZonePattern(String pattern, boolean matchExpected) {
         final Matcher matcher = ObjectTimestampFieldConverter.TIMEZONE_PATTERN.matcher(pattern);
-        if (expected) {
+        if (matchExpected) {
             assertTrue(matcher.find());
         } else {
             assertFalse(matcher.find());

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.serialization.record.field;
 
-import org.apache.nifi.serialization.record.util.FractionalSecondsUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 import java.time.Instant;
@@ -85,12 +84,8 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
     }
 
     private LocalDateTime tryParseAsNumber(final String value, final String fieldName) {
-        try {
-            final Instant instant = FractionalSecondsUtils.tryParseAsNumber(value);
-            return ofInstant(instant);
-        } catch (final NumberFormatException e) {
-            throw new FieldConversionException(LocalDateTime.class, value, fieldName, e);
-        }
+        final Instant instant = FractionalSecondsUtils.toInstant(value, LocalDateTime.class, fieldName);
+        return ofInstant(instant);
     }
 
     private LocalDateTime ofInstant(final Instant instant) {

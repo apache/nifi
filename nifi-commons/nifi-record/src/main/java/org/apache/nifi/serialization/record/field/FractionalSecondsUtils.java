@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.serialization.record.util;
+package org.apache.nifi.serialization.record.field;
 
 import java.time.Instant;
 
@@ -24,16 +24,20 @@ public class FractionalSecondsUtils {
     private FractionalSecondsUtils() {
     }
 
-    public static Instant tryParseAsNumber(final String value) {
+    public static <T> Instant toInstant(final String value, Class<T> outputFieldType, String fieldName) {
         // If decimal, treat as a double and convert to seconds and nanoseconds.
-        if (value.contains(".")) {
-            final double number = Double.parseDouble(value);
-            return toInstant(number);
-        }
+        try {
+                if (value.contains(".")) {
+                    final double number = Double.parseDouble(value);
+                    return toInstant(number);
+                }
 
-        // attempt to parse as a long value
-        final long number = Long.parseLong(value);
-        return toInstant(number);
+                // attempt to parse as a long value
+                final long number = Long.parseLong(value);
+                return toInstant(number);
+        } catch (NumberFormatException nfe) {
+            throw new FieldConversionException(outputFieldType, value, fieldName, nfe);
+        }
     }
 
     public static Instant toInstant(final double secondsSinceEpoch) {

@@ -17,7 +17,6 @@
 package org.apache.nifi.serialization.record.field;
 
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
-import org.apache.nifi.serialization.record.util.FractionalSecondsUtils;
 
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -92,27 +91,13 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
 
                 if (pattern.isPresent()) {
                     final String patternString = pattern.get();
-                    final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(patternString);
                     try {
-                        // NOTE: In order to calculate any possible timezone offsets, the string must be parsed as a ZoneDateTime.
-                        // It is not possible to always parse as a ZoneDateTime as it will fail if the pattern has
-                        // no timezone information. Hence, a regular expression is used to determine whether it is necessary
-                        // to parse with ZoneDateTime or not.
-                        final Matcher matcher = TIMEZONE_PATTERN.matcher(patternString);
-                        final ZonedDateTime zonedDateTime;
-
-                        if (matcher.find()) {
-                            zonedDateTime = ZonedDateTime.parse(stringTrimmed, formatter);
-                        } else {
-                            final LocalDateTime localDateTime = LocalDateTime.parse(stringTrimmed, formatter);
-                            zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
-                        }
-                        instant = zonedDateTime.toInstant();
+                        instant = toInstant(stringTrimmed, patternString);
                     } catch (final DateTimeParseException e) {
-                        return tryParseAsNumber(stringTrimmed, name);
+                        instant = FractionalSecondsUtils.toInstant(stringTrimmed, Timestamp.class, name);
                     }
                 } else {
-                    return tryParseAsNumber(stringTrimmed, name);
+                    instant = FractionalSecondsUtils.toInstant(stringTrimmed, Timestamp.class, name);
                 }
             }
             default -> {
@@ -125,12 +110,22 @@ class ObjectTimestampFieldConverter implements FieldConverter<Object, Timestamp>
         throw new FieldConversionException(Timestamp.class, field, name);
     }
 
-    private Timestamp tryParseAsNumber(final String value, final String fieldName) {
-        try {
-            final Instant instant = FractionalSecondsUtils.tryParseAsNumber(value);
-            return Timestamp.from(instant);
-        } catch (final NumberFormatException e) {
-            throw new FieldConversionException(Timestamp.class, value, fieldName, e);
+    private Instant toInstant(String stringTrimmed, String patternString) {
+        final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(patternString);
+
+        // NOTE: In order to calculate any possible timezone offsets, the string must be parsed as a ZoneDateTime.
+        // It is not possible to always parse as a ZoneDateTime as it will fail if the pattern has
+        // no timezone information. Hence, a regular expression is used to determine whether it is necessary
+        // to parse with ZoneDateTime or not.
+        final Matcher matcher = TIMEZONE_PATTERN.matcher(patternString);
+        final ZonedDateTime zonedDateTime;
+
+        if (matcher.find()) {
+            zonedDateTime = ZonedDateTime.parse(stringTrimmed, formatter);
+        } else {
+            final LocalDateTime localDateTime = LocalDateTime.parse(stringTrimmed, formatter);
+            zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
         }
+        return zonedDateTime.toInstant();
     }
 }
