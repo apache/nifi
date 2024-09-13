@@ -20,44 +20,61 @@
     <form class="purge-history-form" [formGroup]="purgeHistoryForm">
         <div class="purge-history-content h-full">
             <mat-dialog-content class="h-full">
-                <div class="panel-content flex h-full w-full gap-y-4 gap-x-4 pt-4">
-                    <div class="w-full">
-                        <mat-form-field>
-                            <mat-label>Before Date</mat-label>
-                            <input
-                                matInput
-                                [matDatepicker]="endDatePicker"
-                                formControlName="endDate"
-                                placeholder="mm/dd/yyyy"
-                                title="The end date in the format 'mm/dd/yyyy'. Must also specify end time." />
-                            <mat-datepicker-toggle matIconSuffix [for]="endDatePicker"></mat-datepicker-toggle>
-                            <mat-datepicker #endDatePicker></mat-datepicker>
-                        </mat-form-field>
-                    </div>
-                    <div class="w-full">
-                        <mat-form-field>
-                            <mat-label>Before Time ({{ (about$ | async)?.timezone }})</mat-label>
-                            <input
-                                matInput
-                                type="time"
-                                step="1"
-                                formControlName="endTime"
-                                placeholder="hh:mm:ss"
-                                title="The start time in the format 'hh:mm:ss'. Must also specify start date." />
-                        </mat-form-field>
-                    </div>
+                <div>Select the starting time period you would like to purge your flow configuration history from.</div>
+                <div class="panel-content flex flex-col h-full gap-y-4 pt-4">
+                    <mat-radio-group
+                        formControlName="purgeOption"
+                        (change)="purgeOptionChanged()"
+                        class="flex flex-col h-full gap-y-2">
+                        <mat-radio-button value="month">
+                            <span class="pointer">Delete history older than 1 month.</span>
+                        </mat-radio-button>
+                        <mat-radio-button value="week">
+                            <span class="pointer">Delete history older than 1 week.</span>
+                        </mat-radio-button>
+                        <mat-radio-button value="today">
+                            <span class="pointer">Delete history older than today.</span>
+                        </mat-radio-button>
+                        <mat-radio-button value="custom">
+                            <span class="pointer">Custom</span>
+                        </mat-radio-button>
+                    </mat-radio-group>
+                    @if (showCustomDate) {
+                        <div class="flex gap-x-4">
+                            <div class="w-full">
+                                <mat-form-field>
+                                    <mat-label>Before Date</mat-label>
+                                    <input
+                                        matInput
+                                        [matDatepicker]="endDatePicker"
+                                        formControlName="endDate"
+                                        placeholder="mm/dd/yyyy"
+                                        title="The end date in the format 'mm/dd/yyyy'. Must also specify end time." />
+                                    <mat-datepicker-toggle matIconSuffix [for]="endDatePicker"></mat-datepicker-toggle>
+                                    <mat-datepicker #endDatePicker></mat-datepicker>
+                                </mat-form-field>
+                            </div>
+                            <div class="w-full">
+                                <mat-form-field>
+                                    <mat-label>Before Time ({{ (about$ | async)?.timezone }})</mat-label>
+                                    <input
+                                        matInput
+                                        type="time"
+                                        step="1"
+                                        formControlName="endTime"
+                                        placeholder="hh:mm:ss"
+                                        title="The start time in the format 'hh:mm:ss'. Must also specify start date." />
+                                </mat-form-field>
+                            </div>
+                        </div>
+                    }
                 </div>
             </mat-dialog-content>
 
             <mat-dialog-actions align="end">
                 <button mat-button mat-dialog-close>Cancel</button>
-                <button
-                    color="primary"
-                    (click)="submit()"
-                    [disabled]="!purgeHistoryForm.valid"
-                    mat-button
-                    mat-dialog-close>
-                    Ok
+                <button mat-flat-button (click)="submit()" [disabled]="!purgeHistoryForm.valid" mat-dialog-close>
+                    Purge
                 </button>
             </mat-dialog-actions>
         </div>

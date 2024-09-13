@@ -24,16 +24,26 @@ import {
     FlowConfigurationHistoryListingState,
     PurgeHistoryRequest
 } from '../../../state/flow-configuration-history-listing';
-import { NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
+import { CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { selectAbout } from '../../../../../state/about/about.selectors';
 import { Store } from '@ngrx/store';
+import { MatRadioButton, MatRadioGroup } from '@angular/material/radio';
 
 @Component({
     selector: 'purge-history',
     standalone: true,
-    imports: [CommonModule, MatDialogModule, MatButtonModule, ReactiveFormsModule, MatInputModule, MatDatepickerModule],
+    imports: [
+        CommonModule,
+        MatDialogModule,
+        MatButtonModule,
+        ReactiveFormsModule,
+        MatInputModule,
+        MatDatepickerModule,
+        MatRadioButton,
+        MatRadioGroup
+    ],
     templateUrl: './purge-history.component.html',
     styleUrls: ['./purge-history.component.scss']
 })
@@ -41,6 +51,7 @@ export class PurgeHistory extends CloseOnEscapeDialog {
     private static readonly DEFAULT_PURGE_TIME: string = '00:00:00';
     private static readonly TIME_REGEX = /^([0-1]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
     purgeHistoryForm: FormGroup;
+    showCustomDate = false;
     about$ = this.store.select(selectAbout);
 
     @Output() submitPurgeRequest: EventEmitter<PurgeHistoryRequest> = new EventEmitter<PurgeHistoryRequest>();
@@ -56,6 +67,7 @@ export class PurgeHistory extends CloseOnEscapeDialog {
         aMonthAgo.setMonth(now.getMonth() - 1);
 
         this.purgeHistoryForm = this.formBuilder.group({
+            purgeOption: new FormControl('month'),
             endDate: new FormControl(aMonthAgo, Validators.required),
             endTime: new FormControl(PurgeHistory.DEFAULT_PURGE_TIME, [
                 Validators.required,
@@ -65,30 +77,62 @@ export class PurgeHistory extends CloseOnEscapeDialog {
     }
 
     submit() {
+        const purgeOption = this.purgeHistoryForm.get('purgeOption')?.value;
         const formEndDate = this.purgeHistoryForm.get('endDate')?.value;
         const formEndTime = this.purgeHistoryForm.get('endTime')?.value;
 
-        const request: PurgeHistoryRequest = {
-            endDate: formEndDate
-        };
+        if (purgeOption === 'custom') {
+            const request: PurgeHistoryRequest = {
+                endDate: formEndDate
+            };
 
-        if (formEndDate && formEndTime) {
-            const formatted = this.nifiCommon.formatDateTime(formEndDate);
-            // get just the date portion because the time is entered separately by the user
+            if (formEndDate && formEndTime) {
+                const formatted = this.nifiCommon.formatDateTime(formEndDate);
+
+                // get just the date portion because the time is entered separately by the user
+                const formattedEndDateTime = formatted.split(' ');
+                if (formattedEndDateTime.length > 0) {
+                    const formattedEndDate = formattedEndDateTime[0];
+
+                    let endTime: string = formEndTime;
+                    if (!endTime) {
+                        endTime = PurgeHistory.DEFAULT_PURGE_TIME;
+                    }
+
+                    // combine the pieces into the format the api requires
+                    request.endDate = `${formattedEndDate} ${endTime}`;
+                }
+            }
+            this.submitPurgeRequest.next(request);
+        } else {
+            const now: Date = new Date();
+            let formatted = '';
+
+            if (purgeOption === 'month') {
+                const aMonthAgo: Date = new Date();
+                aMonthAgo.setMonth(now.getMonth() - 1);
+                formatted = this.nifiCommon.formatDateTime(aMonthAgo);
+            } else if (purgeOption === 'week') {
+                const aWeekAgo: Date = new Date();
+                aWeekAgo.setDate(now.getDate() - 7);
+                formatted = this.nifiCommon.formatDateTime(aWeekAgo);
+            } else if (purgeOption === 'today') {
+                formatted = this.nifiCommon.formatDateTime(now);
+            }
+
             const formattedEndDateTime = formatted.split(' ');
             if (formattedEndDateTime.length > 0) {
                 const formattedEndDate = formattedEndDateTime[0];
-
-                let endTime: string = formEndTime;
-                if (!endTime) {
-                    endTime = PurgeHistory.DEFAULT_PURGE_TIME;
-                }
-
-                // combine the pieces into the format the api requires
-                request.endDate = `${formattedEndDate} ${endTime}`;
+                const request: PurgeHistoryRequest = {
+                    endDate: `${formattedEndDate} ${PurgeHistory.DEFAULT_PURGE_TIME}`
+                };
+                this.submitPurgeRequest.next(request);
             }
-
-            this.submitPurgeRequest.next(request);
         }
+    }
+
+    purgeOptionChanged() {
+        const purgeOption = this.purgeHistoryForm.get('purgeOption')?.value;
+        this.showCustomDate = purgeOption === 'custom';
     }
 }
