@@ -1444,6 +1444,10 @@ processing order is not further specified but an implementation detail that migh
 
 NOTE: With a <<load_balance_strategy>> configured, the connection has a queue per node in addition to the local queue. The prioritizer will sort the data in each queue independently.
 
+NOTE: When a connection has more FlowFiles than the `nifi.queue.swap.threshold`, new FlowFiles arriving at that connection
+are not prioritized against the active queue, instead they are sent directly to swap. They will be prioritized when they
+get brought back into memory.
+
 ==== Changing Configuration and Context Menu Options
 After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
