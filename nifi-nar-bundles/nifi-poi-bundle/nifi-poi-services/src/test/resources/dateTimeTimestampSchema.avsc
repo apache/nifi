@@ -1,0 +1,19 @@
+{
+  "type": "record",
+  "name": "nifiRecord",
+  "namespace": "org.apache.nifi",
+  "fields": [
+    {
+      "name": "Date_Custom",
+      "type": [ "null", { "type": "int", "logicalType": "date" } ]
+    },
+    {
+      "name": "Time_Custom",
+      "type": [ "null", { "type": "long", "logicalType": "time-micros" } ]
+    },
+    {
+      "name": "Timestamp",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ]
+    }
+  ]
+} 

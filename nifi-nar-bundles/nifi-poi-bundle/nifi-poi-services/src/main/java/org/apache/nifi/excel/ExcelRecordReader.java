@@ -26,7 +26,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 
 import java.io.IOException;
@@ -34,6 +34,7 @@ import java.io.InputStream;
 import java.text.DateFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -49,10 +50,15 @@ public class ExcelRecordReader implements RecordReader {
     private final String dateFormat;
     private final String timeFormat;
     private final String timestampFormat;
+    private final DataFormatter dataFormatter;
 
     public ExcelRecordReader(ExcelRecordReaderConfiguration configuration, InputStream inputStream, ComponentLog logger) throws MalformedRecordException {
-        this.schema = configuration.getSchema();
+        this(configuration, inputStream, logger, null);
+    }
 
+    public ExcelRecordReader(ExcelRecordReaderConfiguration configuration, InputStream inputStream, ComponentLog logger, Locale locale) throws MalformedRecordException {
+        this.dataFormatter = locale == null ? new DataFormatter() : new DataFormatter(locale);
+        this.schema = configuration.getSchema();
         if (isEmpty(configuration.getDateFormat())) {
             this.dateFormat = null;
             LAZY_DATE_FORMAT = null;
@@ -116,17 +122,17 @@ public class ExcelRecordReader implements RecordReader {
             IntStream.range(0, currentRow.getLastCellNum())
                     .forEach(index -> {
                         Cell cell = currentRow.getCell(index);
-                        Object cellValue;
+                        String cellValue;
                         if (index >= recordFields.size()) {
                             if (!dropUnknownFields) {
-                                cellValue = getCellValue(cell);
+                                cellValue = dataFormatter.formatCellValue(cell);;
                                 currentRowValues.put("unknown_field_index_" + index, cellValue);
                             }
                         } else {
                             final RecordField recordField = recordFields.get(index);
                             String fieldName = recordField.getFieldName();
                             DataType dataType = recordField.getDataType();
-                            cellValue = getCellValue(cell);
+                            cellValue = dataFormatter.formatCellValue(cell);
                             final Object value = coerceTypes ? convert(cellValue, dataType, fieldName)
                                     : convertSimpleIfPossible(cellValue, dataType, fieldName);
                             currentRowValues.put(fieldName, value);
@@ -135,24 +141,6 @@ public class ExcelRecordReader implements RecordReader {
         }
 
         return currentRowValues;
-    }
-
-    private static Object getCellValue(Cell cell) {
-        if (cell != null) {
-            switch (cell.getCellType()) {
-                case _NONE:
-                case BLANK:
-                case ERROR:
-                case FORMULA:
-                case STRING:
-                    return cell.getStringCellValue();
-                case NUMERIC:
-                    return DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue() : cell.getNumericCellValue();
-                case BOOLEAN:
-                    return cell.getBooleanCellValue();
-            }
-        }
-        return null;
     }
 
     private Object convert(final Object value, final DataType dataType, final String fieldName) {
