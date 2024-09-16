@@ -19,7 +19,7 @@ package org.apache.nifi.minifi.commons.service;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.UUID.randomUUID;
-import static org.apache.nifi.minifi.commons.service.StandardFlowEnrichService.COMMON_SSL_CONTEXT_SERVICE_NAME;
+import static org.apache.nifi.minifi.commons.service.StandardFlowEnrichService.PARENT_SSL_CONTEXT_SERVICE_NAME;
 import static org.apache.nifi.minifi.commons.service.StandardFlowEnrichService.DEFAULT_SSL_CONTEXT_SERVICE_NAME;
 import static org.apache.nifi.minifi.commons.service.StandardFlowEnrichService.SITE_TO_SITE_PROVENANCE_REPORTING_TASK_NAME;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -102,9 +102,9 @@ public class StandardFlowEnrichServiceTest {
         FlowEnrichService testFlowEnrichService = new StandardFlowEnrichService(new StandardReadableProperties(properties));
         VersionedDataflow enrichedFlow = testFlowEnrichService.enrichFlow(testFlow);
 
-        assertEquals(1, enrichedFlow.getControllerServices().size());
-        VersionedControllerService sslControllerService = enrichedFlow.getControllerServices().get(0);
-        assertEquals(COMMON_SSL_CONTEXT_SERVICE_NAME, sslControllerService.getName());
+        assertEquals(1, enrichedFlow.getRootGroup().getControllerServices().size());
+        VersionedControllerService sslControllerService = enrichedFlow.getRootGroup().getControllerServices().iterator().next();
+        assertEquals(PARENT_SSL_CONTEXT_SERVICE_NAME, sslControllerService.getName());
         assertEquals(StringUtils.EMPTY, sslControllerService.getBundle().getVersion());
         Set<VersionedProcessor> processors = enrichedFlow.getRootGroup().getProcessors();
         assertEquals(2, processors.size());
