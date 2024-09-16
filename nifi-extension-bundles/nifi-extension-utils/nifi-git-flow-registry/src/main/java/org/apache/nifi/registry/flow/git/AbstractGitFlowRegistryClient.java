@@ -401,7 +401,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String filePath = getSnapshotFilePath(flowLocation);
 
         final List<GitCommit> commits = repositoryClient.getCommits(filePath, branch);
-        final String latestVersion = commits.isEmpty() ? null : commits.getFirst().getId();
+        final String latestVersion = commits.isEmpty() ? null : commits.getFirst().id();
         return Optional.ofNullable(latestVersion);
     }
 
@@ -431,10 +431,10 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         snapshotMetadata.setBranch(flowLocation.getBranch());
         snapshotMetadata.setBucketIdentifier(flowLocation.getBucketId());
         snapshotMetadata.setFlowIdentifier(flowLocation.getFlowId());
-        snapshotMetadata.setVersion(commit.getId());
-        snapshotMetadata.setAuthor(commit.getAuthor());
-        snapshotMetadata.setComments(commit.getMessage());
-        snapshotMetadata.setTimestamp(commit.getCommitDate().getTime());
+        snapshotMetadata.setVersion(commit.id());
+        snapshotMetadata.setAuthor(commit.author());
+        snapshotMetadata.setComments(commit.message());
+        snapshotMetadata.setTimestamp(commit.commitDate().toEpochMilli());
         return snapshotMetadata;
     }
 

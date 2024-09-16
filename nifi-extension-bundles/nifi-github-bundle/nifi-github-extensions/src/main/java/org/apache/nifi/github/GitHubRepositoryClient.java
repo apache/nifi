@@ -42,6 +42,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivateKey;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -407,12 +408,12 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
     private GitCommit toGitCommit(final GHCommit ghCommit) throws IOException {
         final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
-        return GitCommit.builder()
-                .id(ghCommit.getSHA1())
-                .author(ghCommit.getAuthor().getLogin())
-                .message(shortInfo.getMessage())
-                .commitDate(shortInfo.getCommitDate())
-                .build();
+        return new GitCommit(
+                ghCommit.getSHA1(),
+                ghCommit.getAuthor().getLogin(),
+                shortInfo.getMessage(),
+                Instant.ofEpochMilli(shortInfo.getCommitDate().getTime())
+        );
     }
 
     private <T> T execute(final GHRequest<T> action) throws FlowRegistryException, IOException {

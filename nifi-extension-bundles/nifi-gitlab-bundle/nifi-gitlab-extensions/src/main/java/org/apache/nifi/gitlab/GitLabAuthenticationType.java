@@ -17,6 +17,31 @@
 
 package org.apache.nifi.gitlab;
 
-public enum GitLabAuthenticationType {
-    ACCESS_TOKEN
+import org.apache.nifi.components.DescribedValue;
+
+public enum GitLabAuthenticationType implements DescribedValue {
+    ACCESS_TOKEN("Access Token", "Group, Project, or Personal Access Token");
+
+    private final String displayName;
+    private final String description;
+
+    GitLabAuthenticationType(final String displayName, final String description) {
+        this.displayName = displayName;
+        this.description = description;
+    }
+
+    @Override
+    public String getValue() {
+        return name();
+    }
+
+    @Override
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
 }

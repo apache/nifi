@@ -17,71 +17,16 @@
 
 package org.apache.nifi.registry.flow.git.client;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.Objects;
 
-public class GitCommit {
-
-    private final String id;
-    private final String author;
-    private final String message;
-    private final Date commitDate;
-
-    private GitCommit(final Builder builder) {
-        this.id = Objects.requireNonNull(builder.id, "Id is required");
-        this.author = Objects.requireNonNull(builder.author, "Author is required");
-        this.commitDate = Objects.requireNonNull(builder.commitDate, "Commit Date is required");
-        this.message = builder.message;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getAuthor() {
-        return author;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public Date getCommitDate() {
-        return commitDate;
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static final class Builder {
-        private String id;
-        private String author;
-        private String message;
-        private Date commitDate;
-
-        public Builder id(final String id) {
-            this.id = id;
-            return this;
-        }
-
-        public Builder author(final String author) {
-            this.author = author;
-            return this;
-        }
-
-        public Builder message(final String message) {
-            this.message = message;
-            return this;
-        }
-
-        public Builder commitDate(final Date commitDate) {
-            this.commitDate = commitDate;
-            return this;
-        }
-
-        public GitCommit build() {
-            return new GitCommit(this);
-        }
+/**
+ * Info for a git commit.
+ */
+public record GitCommit(String id, String author, String message, Instant commitDate) {
+    public GitCommit {
+        Objects.requireNonNull(id, "Id is required");
+        Objects.requireNonNull(author, "Author is required");
+        Objects.requireNonNull(commitDate, "Commit Date is required");
     }
 }

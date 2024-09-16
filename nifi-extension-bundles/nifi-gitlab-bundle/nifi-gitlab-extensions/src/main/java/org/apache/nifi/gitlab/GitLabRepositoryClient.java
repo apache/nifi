@@ -49,6 +49,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -377,12 +378,12 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     }
 
     private GitCommit toGitCommit(final Commit commit) {
-        return GitCommit.builder()
-                .id(commit.getId())
-                .author(commit.getAuthorName())
-                .message(commit.getMessage())
-                .commitDate(commit.getCommittedDate())
-                .build();
+        return new GitCommit(
+                commit.getId(),
+                commit.getAuthorName(),
+                commit.getMessage(),
+                Instant.ofEpochMilli(commit.getCommittedDate().getTime())
+        );
     }
 
     /**

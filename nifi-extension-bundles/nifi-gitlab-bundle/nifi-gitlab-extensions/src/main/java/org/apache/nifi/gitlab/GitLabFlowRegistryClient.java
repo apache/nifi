@@ -68,7 +68,7 @@ public class GitLabFlowRegistryClient extends AbstractGitFlowRegistryClient {
             .name("Authentication Type")
             .description("The type of authentication to use for accessing GitLan")
             .allowableValues(GitLabAuthenticationType.class)
-            .defaultValue(GitLabAuthenticationType.ACCESS_TOKEN.name())
+            .defaultValue(GitLabAuthenticationType.ACCESS_TOKEN)
             .required(true)
             .build();
 
@@ -78,7 +78,7 @@ public class GitLabFlowRegistryClient extends AbstractGitFlowRegistryClient {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
             .sensitive(true)
-            .dependsOn(AUTHENTICATION_TYPE, GitLabAuthenticationType.ACCESS_TOKEN.name())
+            .dependsOn(AUTHENTICATION_TYPE, GitLabAuthenticationType.ACCESS_TOKEN)
             .build();
 
     static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
