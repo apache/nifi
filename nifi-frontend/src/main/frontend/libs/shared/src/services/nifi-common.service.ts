@@ -42,6 +42,9 @@ export class NiFiCommon {
 
     public static readonly PACKAGE_SEPARATOR: string = '.';
 
+    public static readonly TOOLTIP_DELAY_CLOSE_MILLIS: number = 400;
+    public static readonly TOOLTIP_DELAY_OPEN_MILLIS: number = 500;
+
     private policyTypeListing: SelectOption[] = [
         {
             text: 'view the user interface',
