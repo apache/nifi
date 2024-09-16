@@ -25,7 +25,7 @@
             <button
                 matSuffix
                 type="button"
-                class="upload-flow-definition accent-color icon icon-template-import mr-2.5 pointer"
+                class="upload-flow-definition tertiary-color icon icon-template-import mr-2.5 pointer"
                 title="Browse"
                 (click)="flowUploadControl.click()">
                 <input type="file" #flowUploadControl class="hidden" (change)="attachFlow($event)" />
@@ -57,14 +57,14 @@
                 <div class="flex flex-col gap-y-3 mb-3">
                     <div class="flex flex-col">
                         <div>Parameter Context</div>
-                        <div class="unset surface-color">
+                        <div class="unset neutral-color">
                             Parameters will be imported from the uploaded Flow Definition.
                         </div>
                     </div>
                     <div class="flex flex-col">
                         <div>File to upload</div>
                         <div class="flex justify-between items-center">
-                            <div class="accent-color font-medium">{{ flowNameAttached }}</div>
+                            <div class="tertiary-color font-medium">{{ flowNameAttached }}</div>
                             <div (click)="removeAttachedFlow()">X</div>
                         </div>
                     </div>
@@ -74,13 +74,13 @@
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-button mat-dialog-close>Cancel</button>
+            <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
             <button
                 [disabled]="!createProcessGroupForm.dirty || createProcessGroupForm.invalid || saving.value"
                 type="submit"
-                color="primary"
                 (click)="createProcessGroup()"
-                mat-button>
+                mat-flat-button
+                class="secondary-button">
                 <span *nifiSpinner="saving.value">Add</span>
             </button>
         </mat-dialog-actions>

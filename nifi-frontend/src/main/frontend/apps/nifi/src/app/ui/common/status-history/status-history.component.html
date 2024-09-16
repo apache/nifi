@@ -25,18 +25,16 @@
             @if (instances.length > 0 && fieldDescriptors.length > 0) {
                 @if (!dialogMaximized) {
                     <button
-                        class="mt-2 mr-2"
+                        class="mt-2 mr-2 secondary-icon-button"
                         mat-icon-button
-                        color="primary"
                         (click)="maximize()"
                         title="Maximize dialog size">
                         <i class="fa fa-window-maximize"></i>
                     </button>
                 } @else {
                     <button
-                        class="mt-2 mr-2"
+                        class="mt-2 mr-2 secondary-icon-button"
                         mat-icon-button
-                        color="primary"
                         (click)="minimize()"
                         title="Restore default dialog size">
                         <i class="fa fa-window-minimize"></i>
@@ -64,7 +62,7 @@
                                                         <div>{{ detail.key }}</div>
                                                         <div
                                                             [title]="detail.value"
-                                                            class="accent-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+                                                            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
                                                             {{ detail.value }}
                                                         </div>
                                                     </div>
@@ -72,13 +70,13 @@
                                             }
                                             <div class="flex flex-col">
                                                 <div>Start</div>
-                                                <div class="accent-color font-medium">
+                                                <div class="tertiary-color font-medium">
                                                     {{ minDate }}
                                                 </div>
                                             </div>
                                             <div class="flex flex-col">
                                                 <div>End</div>
-                                                <div class="accent-color font-medium">
+                                                <div class="tertiary-color font-medium">
                                                     {{ maxDate }}
                                                 </div>
                                             </div>
@@ -86,14 +84,13 @@
                                                 <div class="font-bold">NiFi</div>
                                                 <div class="detail-item">
                                                     <div>Min / Max / Mean</div>
-                                                    <div class="accent-color font-medium">
+                                                    <div class="tertiary-color font-medium">
                                                         {{ clusterStats.min }} / {{ clusterStats.max }} /
                                                         {{ clusterStats.mean }}
                                                     </div>
                                                 </div>
                                                 <div class="legend-entry">
                                                     <mat-checkbox
-                                                        color="primary"
                                                         value="nifi-instance-id"
                                                         (change)="selectNode($event)"
                                                         [checked]="
@@ -112,7 +109,7 @@
                                                     <div>Nodes</div>
                                                     <div>
                                                         <div>Min / Max / Mean</div>
-                                                        <div class="accent-color font-medium">
+                                                        <div class="tertiary-color font-medium">
                                                             {{ nodeStats.min }} / {{ nodeStats.max }} /
                                                             {{ nodeStats.mean }}
                                                         </div>
@@ -122,7 +119,6 @@
                                                             @if (node.snapshots?.length) {
                                                                 <div class="flex">
                                                                     <mat-checkbox
-                                                                        color="primary"
                                                                         [value]="node.id"
                                                                         (change)="selectNode($event)"
                                                                         [checked]="
@@ -195,20 +191,20 @@
                     <div class="flex-1">
                         @if (instances.length > 0 && fieldDescriptors.length > 0) {
                             <div class="text-sm flex items-center gap-x-2">
-                                <button mat-icon-button color="primary" (click)="refresh()">
+                                <button mat-icon-button class="secondary-icon-button" (click)="refresh()">
                                     <i
                                         class="fa fa-refresh"
                                         [class.fa-spin]="statusHistoryState.status === 'loading'"></i>
                                 </button>
                                 <div>Last updated:</div>
-                                <div class="accent-color font-medium">
+                                <div class="tertiary-color font-medium">
                                     {{ statusHistoryState.loadedTimestamp }}
                                 </div>
                             </div>
                         }
                     </div>
                     <div>
-                        <button mat-button mat-dialog-close>Close</button>
+                        <button mat-button class="secondary-button" mat-dialog-close>Close</button>
                     </div>
                 </div>
             </mat-dialog-actions>

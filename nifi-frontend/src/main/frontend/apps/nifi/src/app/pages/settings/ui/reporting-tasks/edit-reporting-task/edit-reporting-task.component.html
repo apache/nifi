@@ -37,25 +37,23 @@
                                 <mat-label>Name</mat-label>
                                 <input matInput formControlName="name" type="text" [readonly]="readonly" />
                             </mat-form-field>
-                            <mat-checkbox color="primary" formControlName="state" class="ml-1 mt-2">
-                                Enabled
-                            </mat-checkbox>
+                            <mat-checkbox formControlName="state" class="ml-1 mt-2"> Enabled </mat-checkbox>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ request.reportingTask.id }}
                             </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Type</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ formatType(request.reportingTask) }}
                             </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Bundle</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ formatBundle(request.reportingTask) }}
                             </div>
                         </div>
@@ -153,15 +151,15 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (readonly) {
-                <button mat-button mat-dialog-close color="primary">Close</button>
+                <button mat-flat-button class="secondary-button" mat-dialog-close>Close</button>
             } @else {
-                <button mat-button mat-dialog-close>Cancel</button>
+                <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
                 <button
                     [disabled]="!editReportingTaskForm.dirty || editReportingTaskForm.invalid || saving.value"
                     type="button"
-                    color="primary"
                     (click)="submitForm()"
-                    mat-button>
+                    mat-flat-button
+                    class="secondary-button">
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             }

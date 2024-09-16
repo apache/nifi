@@ -21,7 +21,7 @@
         <div class="dialog-content flex flex-col justify-between gap-y-3">
             <div class="flex flex-col">
                 <div>User</div>
-                <div class="accent-color font-medium">{{ request.identity }}</div>
+                <div class="tertiary-color font-medium">{{ request.identity }}</div>
             </div>
             <div class="listing-table flex-1 relative">
                 <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
@@ -42,7 +42,7 @@
                                         {{ formatPolicy(item) }}
                                     </div>
                                 } @else {
-                                    <div class="unset surface-color">{{ item.id }}</div>
+                                    <div class="unset neutral-color">{{ item.id }}</div>
                                 }
                             </td>
                         </ng-container>
@@ -72,7 +72,7 @@
                                     <mat-menu #actionMenu="matMenu" xPosition="before">
                                         @if (canGoToPolicyTarget(item)) {
                                             <button mat-menu-item [routerLink]="getPolicyTargetLink(item)">
-                                                <i class="fa fa-long-arrow-right primary-color mr-2"></i>
+                                                <i class="fa fa-long-arrow-right secondary-color mr-2"></i>
                                                 Go to
                                             </button>
                                         }
@@ -91,12 +91,12 @@
                     </table>
                 </div>
             </div>
-            <div class="accent-color font-medium">
+            <div class="tertiary-color font-medium">
                 Some policies may be inherited by descendant components unless explicitly overridden.
             </div>
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-        <button mat-button mat-dialog-close>Close</button>
+        <button mat-button class="secondary-button" mat-dialog-close>Close</button>
     </mat-dialog-actions>
 </div>

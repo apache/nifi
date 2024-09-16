@@ -18,19 +18,24 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme) {
-    // Get the color config from the theme.
-    $material-theme-color-config: mat.m2-get-color-config($material-theme);
-
-    // Get the color palette from the color-config.
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-
-    // Get hues from palette
-    $is-dark: map-get($material-theme-color-config, is-dark);
-    $material-theme-primary-palette-default: mat.m2-get-color-from-palette($material-theme-primary-palette, default);
-    $material-theme-primary-palette-darker: mat.m2-get-color-from-palette($material-theme-primary-palette, darker);
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-primary-palette-default: mat.get-theme-color(
+        $material-theme,
+        primary,
+        map.get(map.get($config, primary), default)
+    );
+    $material-theme-primary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        primary,
+        map.get(map.get($config, primary), lighter)
+    );
 
     .splash {
-        background-color: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker);
+        background-color: if(
+            $is-material-dark,
+            $material-theme-primary-palette-default,
+            $material-theme-primary-palette-lighter
+        );
     }
 }

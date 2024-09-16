@@ -17,12 +17,12 @@
 
 <div class="process-group-references">
     @if (!hasBoundProcessGroups()) {
-        <div class="accent-color font-medium">No referencing Process Groups</div>
+        <div class="tertiary-color font-medium">No referencing Process Groups</div>
     } @else {
         <ul>
             @if (authorizedProcessGroupReferences.length > 0) {
                 <li>
-                    <h4 class="primary-color">
+                    <h4 class="secondary-color">
                         <b>Process Groups ({{ authorizedProcessGroupReferences.length }})</b>
                     </h4>
                     <ul class="nested">
@@ -36,7 +36,7 @@
             }
             @if (unauthorizedProcessGroupReferences.length > 0) {
                 <li>
-                    <h4 class="primary-color">
+                    <h4 class="secondary-color">
                         <b>Unauthorized ({{ unauthorizedProcessGroupReferences.length }})</b>
                     </h4>
                     <ul class="nested">
@@ -62,7 +62,7 @@
             @if (references.length > 0) {
                 @for (reference of references; track reference) {
                     <li>
-                        <div class="unset surface-color">{{ reference.id }}</div>
+                        <div class="unset neutral-color">{{ reference.id }}</div>
                     </li>
                 }
             }

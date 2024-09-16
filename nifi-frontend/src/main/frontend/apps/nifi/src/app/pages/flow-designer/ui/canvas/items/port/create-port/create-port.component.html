@@ -58,13 +58,13 @@
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-button mat-dialog-close>Cancel</button>
+            <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
             <button
                 [disabled]="!createPortForm.dirty || createPortForm.invalid || saving.value"
                 type="submit"
-                color="primary"
                 (click)="createPort()"
-                mat-button>
+                mat-flat-button
+                class="secondary-button">
                 <span *nifiSpinner="saving.value">Add</span>
             </button>
         </mat-dialog-actions>

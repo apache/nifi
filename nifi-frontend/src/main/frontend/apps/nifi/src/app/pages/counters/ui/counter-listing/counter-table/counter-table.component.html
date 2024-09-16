@@ -35,7 +35,7 @@
                 </div>
             </div>
         </form>
-        <div class="my-2 accent-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
+        <div class="my-2 tertiary-color font-medium">Displaying {{ filteredCount }} of {{ totalCount }}</div>
     </div>
     <div class="flex-1 relative">
         <div class="listing-table overflow-y-auto absolute inset-0">
@@ -77,7 +77,7 @@
                         <div class="flex items-center gap-x-3">
                             @if (canModifyCounters) {
                                 <div
-                                    class="pointer fa fa-undo primary-color"
+                                    class="pointer fa fa-undo secondary-color"
                                     title="Reset Counter"
                                     (click)="resetClicked(item, $event)"></div>
                             }

@@ -26,14 +26,12 @@
         <div class="flex items-center justify-between">
             <div>
                 <div>
-                    <mat-checkbox class="text-sm" color="primary" [(ngModel)]="showEnforcedViolations">
+                    <mat-checkbox class="text-sm" [(ngModel)]="showEnforcedViolations">
                         Show enforced violations
                     </mat-checkbox>
                 </div>
                 <div>
-                    <mat-checkbox color="primary" [(ngModel)]="showWarningViolations">
-                        Show warning violations
-                    </mat-checkbox>
+                    <mat-checkbox [(ngModel)]="showWarningViolations"> Show warning violations </mat-checkbox>
                 </div>
             </div>
         </div>
@@ -63,17 +61,17 @@
                                 </button>
                                 <mat-menu #menu="matMenu">
                                     <button mat-menu-item (click)="openDocumentation(rule)">
-                                        <i class="fa fa-book mr-2 primary-color"></i>
+                                        <i class="fa fa-book mr-2 secondary-color"></i>
                                         View Documentation
                                     </button>
                                     <button mat-menu-item (click)="openRule(rule)">
-                                        <i class="fa fa-cog mr-2 primary-color"></i>
+                                        <i class="fa fa-cog mr-2 secondary-color"></i>
                                         Edit Rule
                                     </button>
                                 </mat-menu>
                             </div>
                             @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
-                                <div class="warn-color-darker text-sm">
+                                <div class="error-color-darker text-sm">
                                     <ng-container [ngPlural]="violationsMap.get(rule.id).length">
                                         <ng-template ngPluralCase="=1"
                                             >{{ violationsMap.get(rule.id).length }} violation</ng-template
@@ -127,17 +125,17 @@
                                 </button>
                                 <mat-menu #menu="matMenu" class="rule-menu w-52 shadow-lg">
                                     <button mat-menu-item (click)="openDocumentation(rule)">
-                                        <i class="fa fa-book mr-2 primary-color"></i>
+                                        <i class="fa fa-book mr-2 secondary-color"></i>
                                         View Documentation
                                     </button>
                                     <button mat-menu-item (click)="openRule(rule)">
-                                        <i class="fa fa-cog mr-2 primary-color"></i>
+                                        <i class="fa fa-cog mr-2 secondary-color"></i>
                                         Edit Rule
                                     </button>
                                 </mat-menu>
                             </div>
                             @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
-                                <div class="primary-color text-sm">
+                                <div class="secondary-color text-sm">
                                     <ng-container [ngPlural]="violationsMap.get(rule.id).length">
                                         <ng-template ngPluralCase="=1"
                                             >{{ violationsMap.get(rule.id).length }} violation</ng-template
@@ -185,7 +183,7 @@
         <ul>
             @for (violation of enforcedViolations; track violation.scope) {
                 <li class="mt-2 pb-2 border-b last-of-type:border-0">
-                    <div class="warn-color-darker">{{ getRuleName(violation.ruleId) }}</div>
+                    <div class="error-color-darker">{{ getRuleName(violation.ruleId) }}</div>
                     <div class="flex align-center justify-between ml-2">
                         <div class="flex flex-col items-start">
                             <div *ngIf="violation?.subjectPermissionDto?.canRead; else unauthorized">
@@ -214,7 +212,7 @@
         <ul>
             @for (violation of warningViolations; track violation.scope) {
                 <li class="mt-2 pb-2 border-b last-of-type:border-0">
-                    <div class="warn-color-darker">{{ getRuleName(violation.ruleId) }}</div>
+                    <div class="error-color-darker">{{ getRuleName(violation.ruleId) }}</div>
                     <div class="flex align-center justify-between ml-2">
                         <div class="flex flex-col items-start">
                             <div *ngIf="violation?.subjectPermissionDto?.canRead; else unauthorized">
@@ -246,13 +244,13 @@
             mat-menu-item
             (click)="viewViolationDetails(violation)"
             [disabled]="!violation?.subjectPermissionDto?.canRead">
-            <i class="fa fa-info-circle mr-2 primary-color"></i>Violation details
+            <i class="fa fa-info-circle mr-2 secondary-color"></i>Violation details
         </button>
         <button
             mat-menu-item
             [routerLink]="getProcessorLink(violation)"
             *ngIf="violation?.subjectComponentType === 'PROCESSOR' && violation?.subjectPermissionDto?.canRead">
-            <i class="fa mr-2 fa-long-arrow-right primary-color"></i>Go to component
+            <i class="fa mr-2 fa-long-arrow-right secondary-color"></i>Go to component
         </button>
     </mat-menu>
 </ng-template>

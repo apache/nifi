@@ -30,9 +30,6 @@
 @use 'codemirror/addon/fold/foldgutter.css';
 
 @import 'font-awesome';
-@import 'libs/shared/src/assets/themes/supplemental';
-// To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
-@import 'libs/shared/src/assets/themes/material';
 
 // Include the common styles for Angular Material. We include this here so that you only
 // have to load a single css file for Angular Material in your app.
@@ -46,22 +43,18 @@
 // only include these once (not needed for dark mode)
 @include app.styles();
 
-// Include the light theme color styles.
-@include mat.all-component-themes($material-theme-light);
+html {
+    @include mat.typography-hierarchy($m3-light-theme);
+    @include mat.all-component-themes($m3-light-theme);
+    @include app.generate-material-theme($m3-light-theme, $m3-light-theme-config);
+    @include codemirror-theme.generate-codemirror-theme($m3-light-theme, $m3-light-theme-config);
+    @include standard-content-viewer.generate-theme($m3-light-theme, $m3-light-theme-config);
 
-// generate light mode stylesheets
-@include app.generate-material-theme($material-theme-light);
-@include app.generate-supplemental-theme($supplemental-theme-light);
-@include codemirror-theme.generate-codemirror-theme($material-theme-light, $supplemental-theme-light);
-@include standard-content-viewer.generate-theme($material-theme-light, $supplemental-theme-light);
-
-.dark-theme {
-    // Include the dark theme color styles.
-    @include mat.all-component-colors($material-theme-dark);
-
-    // generate dark mode stylesheets
-    @include app.generate-material-theme($material-theme-dark);
-    @include app.generate-supplemental-theme($supplemental-theme-dark);
-    @include codemirror-theme.generate-codemirror-theme($material-theme-dark, $supplemental-theme-dark);
-    @include standard-content-viewer.generate-theme($material-theme-dark, $supplemental-theme-dark);
+    .dark-theme {
+        //@include mat.typography-hierarchy($m3-dark-theme);
+        @include mat.all-component-colors($m3-dark-theme);
+        @include app.generate-material-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include codemirror-theme.generate-codemirror-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include standard-content-viewer.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+    }
 }

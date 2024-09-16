@@ -21,7 +21,7 @@
             <div class="flex items-center gap-x-1.5">
                 <div>Automatically Terminate/Retry Relationships</div>
                 <i
-                    class="fa fa-info-circle primary-color"
+                    class="fa fa-info-circle secondary-color"
                     nifiTooltip
                     [tooltipComponentType]="TextTip"
                     tooltipInputData="Will automatically terminate and/or retry FlowFiles sent to a given relationship if it is not defined elsewhere. If both terminate and retry are selected, any retry logic will happen first, then auto-termination."></i>
@@ -30,13 +30,12 @@
                 @for (relationship of relationships; track relationship; let i = $index) {
                     <div class="flex flex-col gap-y-1.5">
                         <div
-                            class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                             [title]="relationship.name">
                             {{ relationship.name }}
                         </div>
                         <div class="flex items-center gap-x-2">
                             <mat-checkbox
-                                color="primary"
                                 [(ngModel)]="relationship.autoTerminate"
                                 name="autoTerminate-{{ i }}"
                                 (change)="handleChanged()"
@@ -44,7 +43,6 @@
                                 >terminate
                             </mat-checkbox>
                             <mat-checkbox
-                                color="primary"
                                 [(ngModel)]="relationship.retry"
                                 name="retry-{{ i }}"
                                 (change)="handleChanged()"
@@ -88,7 +86,7 @@
                     <div class="flex items-center gap-x-1.5">
                         <div>Retry Back Off Policy</div>
                         <i
-                            class="fa fa-info-circle primary-color"
+                            class="fa fa-info-circle secondary-color"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
                             tooltipInputData="Penalize: Retry attempts will occur in time, but the processor will continue to process other FlowFiles. Yield: No other FlowFile processing will occur until all retry attempts have been made."></i>
@@ -98,8 +96,8 @@
                         (change)="handleChanged()"
                         [disabled]="isDisabled"
                         class="flex gap-x-2">
-                        <mat-radio-button color="primary" value="PENALIZE_FLOWFILE">Penalize</mat-radio-button>
-                        <mat-radio-button color="primary" value="YIELD_PROCESSOR">Yield</mat-radio-button>
+                        <mat-radio-button value="PENALIZE_FLOWFILE">Penalize</mat-radio-button>
+                        <mat-radio-button value="YIELD_PROCESSOR">Yield</mat-radio-button>
                     </mat-radio-group>
                 </div>
                 <div>

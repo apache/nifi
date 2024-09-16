@@ -26,7 +26,7 @@
                             <div class="flex flex-col">
                                 <div>Service</div>
                                 <div
-                                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                                     [title]="controllerService.component.name">
                                     {{ controllerService.component.name }}
                                 </div>
@@ -34,9 +34,9 @@
                             <div class="flex flex-col">
                                 <div>Scope</div>
                                 <div>
-                                    <span class="accent-color font-medium">Service and referencing components</span>
+                                    <span class="tertiary-color font-medium">Service and referencing components</span>
                                     <i
-                                        class="fa fa-info-circle ml-1 primary-color"
+                                        class="fa fa-info-circle ml-1 secondary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
                                         tooltipInputData="Referencing components must be disabled/stopped in order to disable this service."></i>
@@ -47,7 +47,7 @@
                             <div>
                                 Referencing Components
                                 <i
-                                    class="fa fa-info-circle primary-color"
+                                    class="fa fa-info-circle secondary-color"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
                                     tooltipInputData="Other components referencing this controller service."></i>
@@ -65,8 +65,10 @@
                     </div>
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
-                    <button mat-button mat-dialog-close>Cancel</button>
-                    <button type="button" color="primary" (click)="submitForm()" mat-button>Disable</button>
+                    <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
+                    <button type="button" (click)="submitForm()" mat-flat-button class="secondary-button">
+                        Disable
+                    </button>
                 </mat-dialog-actions>
             } @else {
                 <mat-dialog-content>
@@ -75,7 +77,7 @@
                             <div class="flex flex-col">
                                 <div>Service</div>
                                 <div
-                                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                                     [title]="controllerService.component.name">
                                     {{ controllerService.component.name }}
                                 </div>
@@ -88,7 +90,7 @@
                                 </div>
                                 <div class="flex flex-col gap-y-1.5">
                                     <div class="flex justify-between items-center">
-                                        <div class="accent-color font-medium">
+                                        <div class="tertiary-color font-medium">
                                             Stopping referencing processors and reporting tasks
                                         </div>
                                         <ng-container
@@ -108,7 +110,7 @@
                                         </div>
                                     }
                                     <div class="flex justify-between items-center">
-                                        <div class="accent-color font-medium">
+                                        <div class="tertiary-color font-medium">
                                             Disabling referencing controller services
                                         </div>
                                         <ng-container
@@ -128,7 +130,7 @@
                                         </div>
                                     }
                                     <div class="flex justify-between items-center">
-                                        <div class="accent-color font-medium">Disabling this controller service</div>
+                                        <div class="tertiary-color font-medium">Disabling this controller service</div>
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 getTemplateForStep(SetEnableStep.DisableService, disableRequest)
@@ -149,7 +151,7 @@
                             <div>
                                 Referencing Components
                                 <i
-                                    class="fa fa-info-circle primary-color"
+                                    class="fa fa-info-circle secondary-color"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
                                     tooltipInputData="Other components referencing this controller service."></i>
@@ -168,9 +170,11 @@
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
                     @if (disableRequest.currentStep === SetEnableStep.Completed || disableRequest.error) {
-                        <button mat-button mat-dialog-close>Close</button>
+                        <button mat-button class="secondary-button" mat-dialog-close>Close</button>
                     } @else {
-                        <button (click)="cancelClicked()" mat-button mat-dialog-close>Cancel</button>
+                        <button (click)="cancelClicked()" mat-button class="secondary-button" mat-dialog-close>
+                            Cancel
+                        </button>
                     }
                 </mat-dialog-actions>
             }
@@ -178,12 +182,12 @@
     }
 }
 <ng-template #stepInProgress>
-    <div class="fa fa-spin fa-circle-o-notch primary-color"></div>
+    <div class="fa fa-spin fa-circle-o-notch secondary-color"></div>
 </ng-template>
 <ng-template #stepComplete>
     <div class="complete fa fa-check success-color"></div>
 </ng-template>
 <ng-template #stepError>
-    <div class="fa fa-times warn-color"></div>
+    <div class="fa fa-times error-color"></div>
 </ng-template>
 <ng-template #stepNotStarted><div class="w-3.5"></div></ng-template>

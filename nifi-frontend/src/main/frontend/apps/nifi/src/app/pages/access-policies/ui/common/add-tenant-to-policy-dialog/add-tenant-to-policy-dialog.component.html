@@ -36,24 +36,24 @@
                 <mat-selection-list formControlName="userGroups" class="border">
                     @for (userGroup of filteredUserGroups; track userGroup) {
                         <mat-list-option togglePosition="before" [value]="userGroup.id">
-                            <i class="fa fa-users primary-color mr-3"></i>{{ userGroup.component.identity }}
+                            <i class="fa fa-users secondary-color mr-3"></i>{{ userGroup.component.identity }}
                         </mat-list-option>
                     }
                 </mat-selection-list>
             </div>
         }
         @if (filteredUsers.length === 0 && filteredUserGroups.length === 0) {
-            <div class="accent-color font-medium">All users and groups are assigned to this policy.</div>
+            <div class="tertiary-color font-medium">All users and groups are assigned to this policy.</div>
         }
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-button mat-dialog-close>Cancel</button>
+            <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
             <button
-                mat-button
+                mat-flat-button
+                class="secondary-button"
                 [disabled]="addTenantsForm.invalid || saving.value"
-                (click)="addClicked()"
-                color="primary">
+                (click)="addClicked()">
                 <span *nifiSpinner="saving.value">Add</span>
             </button>
         </mat-dialog-actions>

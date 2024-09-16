@@ -84,11 +84,11 @@ export class ControllerServiceReferences {
 
     getNonServiceStateIcon(reference: ControllerServiceReferencingComponent): string {
         if (reference.state == 'STOPPED') {
-            return 'stopped fa fa-stop warn-color-lighter';
+            return 'stopped fa fa-stop error-color-lighter';
         } else if (reference.state == 'RUNNING') {
             return 'running fa fa-play success-color-lighter';
         } else {
-            return 'disabled icon icon-enable-false surface-color';
+            return 'disabled icon icon-enable-false neutral-color';
         }
     }
 
@@ -96,7 +96,7 @@ export class ControllerServiceReferences {
         if (reference.state == 'ENABLED') {
             return 'enabled fa fa-flash success-color';
         } else {
-            return 'disabled icon icon-enable-false surface-color';
+            return 'disabled icon icon-enable-false neutral-color';
         }
     }
 

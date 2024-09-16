@@ -21,13 +21,13 @@
             <navigation></navigation>
         </header>
         <div class="pb-5 px-5 flex-1 flex flex-col">
-            <h3 class="primary-color">NiFi Cluster</h3>
+            <h3 class="secondary-color">NiFi Cluster</h3>
             <error-banner></error-banner>
             <div class="flex flex-col h-full gap-y-2">
                 @if (getTabLinks(); as tabs) {
                     <!-- Don't show the tab bar if there is only 1 tab to show -->
                     <div class="cluster-tabs" [class.hidden]="tabs.length === 1">
-                        <nav mat-tab-nav-bar color="primary" [tabPanel]="tabPanel">
+                        <nav mat-tab-nav-bar [tabPanel]="tabPanel">
                             @for (tab of tabs; track tab) {
                                 <a
                                     mat-tab-link
@@ -49,11 +49,11 @@
 
                 <div class="flex justify-between align-middle">
                     <div class="text-sm flex items-center gap-x-2">
-                        <button mat-icon-button color="primary" (click)="refresh()">
+                        <button mat-icon-button class="secondary-icon-button" (click)="refresh()">
                             <i class="fa fa-refresh" [class.fa-spin]="listingStatus() === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="accent-color font-medium">{{ loadedTimestamp() }}</div>
+                        <div class="tertiary-color font-medium">{{ loadedTimestamp() }}</div>
                     </div>
                 </div>
             </div>

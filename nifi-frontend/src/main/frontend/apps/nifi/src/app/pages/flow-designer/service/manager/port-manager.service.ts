@@ -375,14 +375,14 @@ export class PortManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz = 'primary-color';
+                let clazz = 'secondary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'invalid caution-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                     clazz = 'running success-color-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'stopped warn-color-lighter';
+                    clazz = 'stopped error-color-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;
@@ -439,7 +439,7 @@ export class PortManager {
             .classed('transmitting success-color', function (d: any) {
                 return d.status.transmitting === true;
             })
-            .classed('not-transmitting surface-color', function (d: any) {
+            .classed('not-transmitting neutral-color', function (d: any) {
                 return d.status.transmitting !== true;
             });
 

@@ -24,7 +24,7 @@
                     <div class="flex gap-x-4">
                         <div class="w-full flex flex-col gap-y-3">
                             <div class="flex flex-col">
-                                <div class="mat-body-strong primary-color">FlowFile Details</div>
+                                <div class="font-bold secondary-color">FlowFile Details</div>
                             </div>
                             <div class="flex flex-col">
                                 <div>UUID</div>
@@ -79,7 +79,7 @@
                             </div>
                             <div class="flex flex-col">
                                 <div>Penalized</div>
-                                <div class="accent-color font-medium">
+                                <div class="tertiary-color font-medium">
                                     {{ request.flowfile.penalized ? 'Yes' : 'No' }}
                                 </div>
                             </div>
@@ -95,18 +95,18 @@
                             </ng-container>
                             <ng-template #formatDuration let-duration>
                                 <ng-container *ngIf="duration != null; else noDuration">
-                                    <div class="accent-color font-medium">
+                                    <div class="tertiary-color font-medium">
                                         {{ formatDurationValue(duration) }}
                                     </div>
                                 </ng-container>
                                 <ng-template #noDuration>
-                                    <div class="unset surface-color">No value set</div>
+                                    <div class="unset neutral-color">No value set</div>
                                 </ng-template>
                             </ng-template>
                         </div>
                         <div class="w-full flex flex-col gap-y-3">
                             <div class="flex flex-col">
-                                <div class="mat-body-strong primary-color">Content Claim</div>
+                                <div class="font-bold secondary-color">Content Claim</div>
                             </div>
                             <div
                                 class="flex flex-col gap-y-3"
@@ -155,14 +155,13 @@
                                         "></ng-container>
                                 </div>
                                 <div class="flex">
-                                    <button color="primary" mat-stroked-button (click)="downloadContentClicked()">
+                                    <button mat-stroked-button (click)="downloadContentClicked()">
                                         <i class="fa fa-download"></i>
                                         Download
                                     </button>
                                     <button
                                         *ngIf="contentViewerAvailable"
                                         class="ml-3"
-                                        color="primary"
                                         mat-stroked-button
                                         (click)="viewContentClicked()">
                                         <i class="fa fa-eye"></i>
@@ -171,7 +170,7 @@
                                 </div>
                             </div>
                             <ng-template #noContent>
-                                <div class="unset surface-color">No Content Available</div>
+                                <div class="unset neutral-color">No Content Available</div>
                             </ng-template>
                         </div>
                     </div>
@@ -183,7 +182,7 @@
                 <div class="dialog-tab-content">
                     <div class="flex flex-col gap-y-4">
                         <div class="flex">
-                            <div class="mat-body-strong primary-color">Attribute Values</div>
+                            <div class="font-bold secondary-color">Attribute Values</div>
                         </div>
                         <div class="flex flex-col">
                             <div *ngFor="let attribute of request.flowfile.attributes | keyvalue">
@@ -205,35 +204,35 @@
     <ng-template #formatValue let-value let-title="title">
         <ng-container *ngIf="value != null; else nullValue">
             <ng-container *ngIf="value === ''; else nonEmptyValue">
-                <div class="unset surface-color">Empty string set</div>
+                <div class="unset neutral-color">Empty string set</div>
             </ng-container>
             <ng-template #nonEmptyValue>
-                <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
+                <div class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
                     {{ value }}
                 </div>
                 <ng-template #valueWithTitle>
-                    <div class="accent-color font-medium" [title]="title">{{ value }}</div>
+                    <div class="tertiary-color font-medium" [title]="title">{{ value }}</div>
                 </ng-template>
             </ng-template>
         </ng-container>
         <ng-template #nullValue>
-            <div class="unset surface-color">No value set</div>
+            <div class="unset neutral-color">No value set</div>
         </ng-template>
     </ng-template>
     <ng-template #formatContentValue let-value let-title="title">
         <ng-container *ngIf="value != null; else nullValue">
-            <div class="accent-color font-medium" *ngIf="title == null; else valueWithTitle">
+            <div class="tertiary-color font-medium" *ngIf="title == null; else valueWithTitle">
                 {{ value }}
             </div>
             <ng-template #valueWithTitle>
-                <div class="accent-color font-medium" [title]="title">{{ value }}</div>
+                <div class="tertiary-color font-medium" [title]="title">{{ value }}</div>
             </ng-template>
         </ng-container>
         <ng-template #nullValue>
-            <div class="unset surface-color">No value previously set</div>
+            <div class="unset neutral-color">No value previously set</div>
         </ng-template>
     </ng-template>
     <mat-dialog-actions align="end">
-        <button color="primary" mat-button mat-dialog-close>Ok</button>
+        <button mat-flat-button class="secondary-button" mat-dialog-close>Ok</button>
     </mat-dialog-actions>
 </div>

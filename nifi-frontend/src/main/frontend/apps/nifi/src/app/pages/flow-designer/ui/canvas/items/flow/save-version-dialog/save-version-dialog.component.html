@@ -23,30 +23,30 @@
             <div class="flex flex-col gap-y-4 mb-6">
                 <div>
                     <div>Registry</div>
-                    <div class="accent-color font-medium">{{ versionControlInformation.registryName }}</div>
+                    <div class="tertiary-color font-medium">{{ versionControlInformation.registryName }}</div>
                 </div>
                 @if (versionControlInformation.branch) {
                     <div>
                         <div>Branch</div>
-                        <div class="accent-color font-medium">{{ versionControlInformation.branch }}</div>
+                        <div class="tertiary-color font-medium">{{ versionControlInformation.branch }}</div>
                     </div>
                 }
                 <div>
                     <div>Bucket</div>
-                    <div class="accent-color font-medium">{{ versionControlInformation.bucketName }}</div>
+                    <div class="tertiary-color font-medium">{{ versionControlInformation.bucketName }}</div>
                 </div>
                 <div>
                     <div>
                         <div>Flow Name</div>
-                        <div class="accent-color font-medium">{{ versionControlInformation.flowName }}</div>
+                        <div class="tertiary-color font-medium">{{ versionControlInformation.flowName }}</div>
                     </div>
                 </div>
                 <div>
                     <div>Flow Description</div>
                     @if (!versionControlInformation.flowDescription) {
-                        <div class="unset surface-color">No value set</div>
+                        <div class="unset neutral-color">No value set</div>
                     } @else {
-                        <div class="accent-color font-medium">{{ versionControlInformation.flowDescription }}</div>
+                        <div class="tertiary-color font-medium">{{ versionControlInformation.flowDescription }}</div>
                     }
                 </div>
             </div>
@@ -129,13 +129,13 @@
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
         <button
             [disabled]="saveVersionForm.invalid || saving()"
             type="button"
-            color="primary"
             (click)="submitForm()"
-            mat-button>
+            mat-flat-button
+            class="secondary-button">
             <span *nifiSpinner="saving()">Save</span>
         </button>
     </mat-dialog-actions>

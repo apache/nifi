@@ -18,52 +18,78 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $supplemental-theme) {
-    // Get the color config from the theme.
-    $material-theme-color-config: mat.m2-get-color-config($material-theme);
-    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
-
-    // Get the color palette from the color-config.
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
-    $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
-
-    // Get hues from palette
-    $material-theme-primary-palette-darker: mat.m2-get-color-from-palette($material-theme-primary-palette, darker);
-    $material-theme-accent-palette-default: mat.m2-get-color-from-palette($material-theme-accent-palette, default);
-
-    $is-dark: map-get($supplemental-theme-color-config, is-dark);
-    $material-theme-warn-palette-darker: mat.m2-get-color-from-palette($material-theme-warn-palette, darker);
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-primary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        primary,
+        map.get(map.get($config, primary), lighter)
+    );
+    $material-theme-primary-palette-darker: mat.get-theme-color(
+        $material-theme,
+        primary,
+        map.get(map.get($config, primary), darker)
+    );
+    $material-theme-tertiary-palette-default: mat.get-theme-color(
+        $material-theme,
+        tertiary,
+        map.get(map.get($config, tertiary), default)
+    );
+    $material-theme-error-palette-default: mat.get-theme-color(
+        $material-theme,
+        error,
+        map.get(map.get($config, error), default)
+    );
+    $material-theme-error-palette-darker: mat.get-theme-color(
+        $material-theme,
+        error,
+        map.get(map.get($config, error), darker)
+    );
 
     #lineage {
         canvas,
         svg {
             text.event-type {
-                @extend .surface-contrast;
-                font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+                @extend .neutral-contrast;
+                font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
             }
 
             text.event-type.expand-parents,
             text.event-type.expand-children {
-                font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+                font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
             }
 
             path.link.selected {
-                stroke: $material-theme-warn-palette-darker;
+                stroke: if(
+                    $is-material-dark,
+                    $material-theme-error-palette-default,
+                    $material-theme-error-palette-darker
+                );
             }
 
             g.event circle.selected {
-                fill: $material-theme-warn-palette-darker;
+                fill: if(
+                    $is-material-dark,
+                    $material-theme-error-palette-default,
+                    $material-theme-error-palette-darker
+                );
             }
 
             g.event circle.context {
-                stroke: $material-theme-primary-palette-darker;
+                stroke: if(
+                    $is-material-dark,
+                    $material-theme-primary-palette-darker,
+                    $material-theme-primary-palette-lighter
+                );
             }
 
             g.flowfile circle.context,
             g.event circle.context {
-                stroke: if($is-dark, $material-theme-accent-palette-default, $material-theme-primary-palette-darker);
+                stroke: if(
+                    $is-material-dark,
+                    $material-theme-tertiary-palette-default,
+                    $material-theme-tertiary-palette-default
+                );
             }
         }
     }

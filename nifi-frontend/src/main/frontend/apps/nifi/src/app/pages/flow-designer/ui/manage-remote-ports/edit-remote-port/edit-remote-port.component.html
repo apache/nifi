@@ -23,7 +23,7 @@
             <div class="flex flex-col mb-5">
                 <div>Name</div>
                 <div
-                    class="overflow-ellipsis overflow-hidden whitespace-nowrap accent-color font-medium"
+                    class="overflow-ellipsis overflow-hidden whitespace-nowrap tertiary-color font-medium"
                     [title]="request.entity.name">
                     {{ request.entity.name }}
                 </div>
@@ -44,7 +44,7 @@
         </div>
         <div class="mb-3.5">
             <mat-label>Compressed</mat-label>
-            <mat-checkbox color="primary" formControlName="compressed"></mat-checkbox>
+            <mat-checkbox formControlName="compressed"></mat-checkbox>
         </div>
         <div>
             <mat-form-field>
@@ -88,13 +88,13 @@
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-button mat-dialog-close>Cancel</button>
+            <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
             <button
                 [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
                 type="button"
-                color="primary"
                 (click)="editRemotePort()"
-                mat-button>
+                mat-flat-button
+                class="secondary-button">
                 <span *nifiSpinner="saving.value">Apply</span>
             </button>
         </mat-dialog-actions>

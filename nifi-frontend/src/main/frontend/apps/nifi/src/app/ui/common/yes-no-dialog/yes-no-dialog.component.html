@@ -20,6 +20,8 @@
     <div class="text-base" data-qa="yes-no-message">{{ request.message }}</div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close (click)="noClicked()">No</button>
-    <button mat-button mat-dialog-close cdkFocusInitial color="primary" (click)="yesClicked()">Yes</button>
+    <button mat-button class="secondary-button" mat-dialog-close (click)="noClicked()">No</button>
+    <button mat-flat-button class="secondary-button" mat-dialog-close cdkFocusInitial (click)="yesClicked()">
+        Yes
+    </button>
 </mat-dialog-actions>

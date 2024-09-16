@@ -1458,7 +1458,7 @@ export class CanvasUtils {
                         case ComponentType.Processor:
                         case ComponentType.InputPort:
                         case ComponentType.OutputPort:
-                            return `active-thread-count accent-color`;
+                            return `active-thread-count tertiary-color`;
                         default:
                             return `active-thread-count primary-contrast`;
                     }
@@ -1492,9 +1492,9 @@ export class CanvasUtils {
                         case ComponentType.InputPort:
                         case ComponentType.OutputPort:
                             if (terminatedThreads > 0) {
-                                return `active-thread-count-icon warn-color-darker`;
+                                return `active-thread-count-icon error-color-darker`;
                             } else {
-                                return `active-thread-count-icon primary-color`;
+                                return `active-thread-count-icon secondary-color`;
                             }
                         default:
                             return `active-thread-count-icon primary-contrast`;

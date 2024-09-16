@@ -17,16 +17,23 @@
 
 <div class="run-duration-slider flex flex-col">
     @if (isDisabled) {
-        <div class="accent-color font-medium">{{ formatLabel(runDurationIndex) }}</div>
+        <div class="tertiary-color font-medium">{{ formatLabel(runDurationIndex) }}</div>
     } @else {
         <div class="pl-4 pr-7">
-            <mat-slider [min]="0" [max]="7" [step]="1" showTickMarks discrete [displayWith]="formatLabel">
+            <mat-slider
+                class="secondary-slider"
+                [min]="0"
+                [max]="7"
+                [step]="1"
+                showTickMarks
+                discrete
+                [displayWith]="formatLabel">
                 <input matSliderThumb [value]="runDurationIndex" (valueChange)="runDurationChanged($event)" />
             </mat-slider>
         </div>
         <div class="flex justify-between items-center">
-            <div class="accent-color font-medium">Lower latency</div>
-            <div class="accent-color font-medium">Higher throughput</div>
+            <div class="tertiary-color font-medium">Lower latency</div>
+            <div class="tertiary-color font-medium">Higher throughput</div>
         </div>
     }
 </div>

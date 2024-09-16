@@ -27,7 +27,6 @@ import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';
 import { AllowableValue, Parameter, ParameterConfig, PropertyDescriptor } from '../../../../../state/shared';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { TextTip, NifiTooltipDirective, NiFiCommon } from '@nifi/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
@@ -53,7 +52,6 @@ export interface AllowableValueItem extends AllowableValue {
         MatOptionModule,
         MatSelectModule,
         NgForOf,
-        MatTooltipModule,
         NgIf,
         A11yModule,
         NgxSkeletonLoaderModule

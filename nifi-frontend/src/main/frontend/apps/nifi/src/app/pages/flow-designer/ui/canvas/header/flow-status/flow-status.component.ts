@@ -50,7 +50,7 @@ export class FlowStatus {
     @Input() flowAnalysisOpen = initialState.flowAnalysisOpen;
     @Input() set flowAnalysisState(state: FlowAnalysisState) {
         if (!state.ruleViolations.length) {
-            this.flowAnalysisNotificationClass = 'primary-color';
+            this.flowAnalysisNotificationClass = 'secondary-color';
         } else {
             const isEnforcedRuleViolated = state.ruleViolations.find((v) => {
                 return v.enforcementPolicy === 'ENFORCE';
@@ -107,10 +107,10 @@ export class FlowStatus {
             this.clusterSummary?.connectedToCluster === false ||
             this.clusterSummary?.connectedNodeCount != this.clusterSummary?.totalNodeCount
         ) {
-            return 'warn-color-darker';
+            return 'error-color-darker';
         }
 
-        return 'primary-color';
+        return 'secondary-color';
     }
 
     formatActiveThreads(): string {
@@ -133,16 +133,16 @@ export class FlowStatus {
         if (this.hasTerminatedThreads()) {
             return 'warning';
         } else if (this.controllerStatus.activeThreadCount === 0) {
-            return 'zero primary-color-lighter';
+            return 'zero primary-color';
         }
-        return 'primary-color';
+        return 'secondary-color';
     }
 
     getQueuedStyle(): string {
         if (this.controllerStatus.queued.indexOf('0 / 0') == 0) {
-            return 'zero primary-color-lighter';
+            return 'zero primary-color';
         }
-        return 'primary-color';
+        return 'secondary-color';
     }
 
     formatValue(value: number | undefined) {
@@ -154,7 +154,7 @@ export class FlowStatus {
 
     getActiveStyle(value: number | undefined, activeStyle: string): string {
         if (value === undefined || value <= 0) {
-            return 'zero primary-color-lighter';
+            return 'zero primary-color';
         }
         return activeStyle;
     }

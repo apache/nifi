@@ -103,10 +103,10 @@
                     >
                 </mat-form-field>
                 <div class="mb-5">
-                    <mat-checkbox color="primary" formControlName="keepParameterContexts">
+                    <mat-checkbox formControlName="keepParameterContexts">
                         Keep existing Parameter Contexts
                         <i
-                            class="fa fa-info-circle primary-color"
+                            class="fa fa-info-circle secondary-color"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
                             tooltipInputData="When not selected, only directly associated Parameter Contexts will be copied, inherited Contexts with no direct assignment to a Process Group are ignored."></i>
@@ -114,7 +114,7 @@
                 </div>
                 <div class="flex flex-col mb-5">
                     <div>Flow Description</div>
-                    <div class="accent-color font-medium">
+                    <div class="tertiary-color font-medium">
                         {{ selectedFlowDescription || 'No description provided' }}
                     </div>
                 </div>
@@ -173,13 +173,13 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
         <button
             [disabled]="importFromRegistryForm.invalid || saving.value || !selectedFlowVersion"
             type="button"
-            color="primary"
             (click)="importFromRegistry()"
-            mat-button>
+            mat-flat-button
+            class="secondary-button">
             <span *nifiSpinner="saving.value">Import</span>
         </button>
     </mat-dialog-actions>

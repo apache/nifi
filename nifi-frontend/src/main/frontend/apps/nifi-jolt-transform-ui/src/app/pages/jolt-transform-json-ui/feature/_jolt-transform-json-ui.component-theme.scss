@@ -18,7 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $supplemental-theme) {
+@mixin generate-theme($material-theme, $config) {
     .jolt-transform-json-ui {
         @include mat.button-density(-1);
 

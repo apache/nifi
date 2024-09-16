@@ -20,7 +20,7 @@
         <div class="font-bold">Required field</div>
         @if (!isDisabled) {
             <div>
-                <button mat-icon-button color="primary" type="button" (click)="newPropertyClicked()">
+                <button mat-icon-button class="secondary-icon-button" type="button" (click)="newPropertyClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             </div>
@@ -40,7 +40,7 @@
                                 {{ item.descriptor.displayName }}
                             </div>
                             <i
-                                class="fa fa-info-circle primary-color"
+                                class="fa fa-info-circle secondary-color"
                                 nifiTooltip
                                 [tooltipComponentType]="PropertyTip"
                                 [tooltipInputData]="getPropertyTipData(item)"
@@ -60,7 +60,7 @@
                             #trigger="cdkOverlayOrigin"
                             (click)="openEditor(trigger, item, $event)">
                             @if (isNull(item.value)) {
-                                <div class="unset surface-color">No value set</div>
+                                <div class="unset neutral-color">No value set</div>
                             } @else {
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -68,7 +68,7 @@
                                         context: { $implicit: resolvePropertyValue(item) }
                                     "></ng-container>
                                 <ng-template #sensitive>
-                                    <div class="sensitive surface-color">Sensitive value set</div>
+                                    <div class="sensitive neutral-color">Sensitive value set</div>
                                 </ng-template>
                                 <ng-template #nonSensitive let-resolvedValue>
                                     <ng-container
@@ -78,7 +78,7 @@
                                         "></ng-container>
                                 </ng-template>
                                 <ng-template #blank>
-                                    <div class="empty surface-color">Empty string set</div>
+                                    <div class="empty neutral-color">Empty string set</div>
                                 </ng-template>
                                 <ng-template #nonBlank let-resolvedValue>
                                     <div class="flex justify-between items-center">
@@ -89,7 +89,7 @@
                                         </div>
                                         @if (hasExtraWhitespace(resolvedValue)) {
                                             <div
-                                                class="fa fa-info-circle primary-color"
+                                                class="fa fa-info-circle secondary-color"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 tooltipInputData="The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional."></div>
@@ -126,32 +126,32 @@
                             <mat-menu #actionMenu="matMenu" xPosition="before">
                                 @if (canGoToParameter(item)) {
                                     <button mat-menu-item (click)="goToParameterClicked(item)">
-                                        <i class="fa fa-long-arrow-right primary-color mr-2"></i>
+                                        <i class="fa fa-long-arrow-right secondary-color mr-2"></i>
                                         Go to Parameter
                                     </button>
                                 }
                                 @if (canGoToService(item)) {
                                     <button mat-menu-item (click)="goToServiceClicked(item)">
-                                        <i class="fa fa-long-arrow-right primary-color mr-2"></i>
+                                        <i class="fa fa-long-arrow-right secondary-color mr-2"></i>
                                         Go to Service
                                     </button>
                                 }
                                 @if (!isDisabled) {
                                     @if (item.descriptor.identifiesControllerService) {
                                         <button mat-menu-item (click)="createNewControllerService(item)">
-                                            <i class="fa fa-plus primary-color mr-2"></i>
+                                            <i class="fa fa-plus secondary-color mr-2"></i>
                                             Create new service
                                         </button>
                                     }
                                     @if (canConvertToParameter(item)) {
                                         <button mat-menu-item (click)="convertToParameterClicked(item)">
-                                            <i class="fa fa-level-up primary-color mr-2"></i>
+                                            <i class="fa fa-level-up secondary-color mr-2"></i>
                                             Convert to Parameter
                                         </button>
                                     }
                                     @if (item.type == 'userDefined') {
                                         <button mat-menu-item (click)="deleteProperty(item)">
-                                            <i class="fa fa-trash primary-color mr-2"></i>
+                                            <i class="fa fa-trash secondary-color mr-2"></i>
                                             Delete
                                         </button>
                                     }

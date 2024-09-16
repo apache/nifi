@@ -998,7 +998,7 @@ export class ConnectionManager {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('stopped warn-color-lighter', function () {
+                                .classed('stopped error-color-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
@@ -1113,7 +1113,7 @@ export class ConnectionManager {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('stopped warn-color-lighter', function () {
+                                .classed('stopped error-color-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
@@ -1271,7 +1271,7 @@ export class ConnectionManager {
                         // expiration icon
                         queued
                             .append('text')
-                            .attr('class', 'expiration-icon primary-color')
+                            .attr('class', 'expiration-icon secondary-color')
                             .attr('x', 208)
                             .attr('y', 14)
                             .text(function () {
@@ -1458,7 +1458,7 @@ export class ConnectionManager {
                         .classed('load-balance-icon-active fa-rotate-90 success-color', function (d: any) {
                             return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
                         })
-                        .classed('primary-color', function (d: any) {
+                        .classed('secondary-color', function (d: any) {
                             return d.permissions.canRead && d.component.loadBalanceStatus !== 'LOAD_BALANCE_ACTIVE';
                         })
                         .classed('load-balance-icon-184', function () {
@@ -1603,7 +1603,7 @@ export class ConnectionManager {
             connectionLabelContainer
                 .select('g.queued-container')
                 .append('text')
-                .attr('class', 'penalized-icon primary-color')
+                .attr('class', 'penalized-icon secondary-color')
                 .attr('y', 14)
                 .text(function () {
                     return '\uf252';
@@ -1723,7 +1723,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? -1;
                     if (predicted >= 0) {
-                        return 'unset surface-color';
+                        return 'unset neutral-color';
                     } else {
                         // don't show it if there is not a valid prediction
                         return 'none';
@@ -1791,7 +1791,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? -1;
                     if (predicted >= 0) {
-                        return 'unset surface-color';
+                        return 'unset neutral-color';
                     } else {
                         // don't show it if there not a valid prediction
                         return 'none';

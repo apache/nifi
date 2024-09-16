@@ -612,7 +612,7 @@ export class RemoteProcessGroupManager {
             .classed('transmitting success-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
-            .classed('not-transmitting surface-color', function (d: any) {
+            .classed('not-transmitting neutral-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (this: any, d: any) {

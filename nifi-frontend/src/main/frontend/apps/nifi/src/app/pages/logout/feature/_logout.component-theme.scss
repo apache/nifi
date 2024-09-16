@@ -18,20 +18,25 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $nifi-theme) {
-    // Get the color config from the theme.
-    $nifi-theme-color-config: mat.m2-get-color-config($nifi-theme);
-
-    // Get the color palettes from the color-config.
-    $nifi-theme-surface-palette: map.get($nifi-theme-color-config, 'primary');
-
-    // Get hues from palette
-    $is-dark: map-get($nifi-theme-color-config, is-dark);
-    $nifi-theme-surface-palette-darker: mat.m2-get-color-from-palette($nifi-theme-surface-palette, darker);
-    $nifi-theme-surface-palette-lighter: mat.m2-get-color-from-palette($nifi-theme-surface-palette, lighter);
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-neutral-palette-darker: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), darker)
+    );
+    $material-theme-neutral-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), lighter)
+    );
 
     .logout-background {
-        background: if($is-dark, $nifi-theme-surface-palette-darker, $nifi-theme-surface-palette-lighter)
+        background: if(
+                $is-material-dark,
+                $material-theme-neutral-palette-darker,
+                $material-theme-neutral-palette-lighter
+            )
             url(../../../../../../../libs/shared/src/assets/icons/bg-error.png) left top no-repeat;
     }
 }

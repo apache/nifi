@@ -50,7 +50,7 @@
                         [tooltipComponentType]="TextTip"
                         tooltipInputData="When using the Stateless Engine, if any FlowFile is routed to a port marked as a Failure Port, all data in the transaction is rolled back, and the input FlowFile, if any, is routed to the Failure Port."></i>
                 </mat-label>
-                <mat-checkbox color="primary" formControlName="portFunction"></mat-checkbox>
+                <mat-checkbox formControlName="portFunction"></mat-checkbox>
             </div>
         }
         <div>
@@ -63,15 +63,15 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (readonly) {
-                <button mat-button mat-dialog-close color="primary">Close</button>
+                <button mat-flat-button class="secondary-button" mat-dialog-close>Close</button>
             } @else {
-                <button mat-button mat-dialog-close>Cancel</button>
+                <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
                 <button
                     [disabled]="!editPortForm.dirty || editPortForm.invalid || saving.value"
                     type="button"
-                    color="primary"
                     (click)="editPort()"
-                    mat-button>
+                    mat-flat-button
+                    class="secondary-button">
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             }

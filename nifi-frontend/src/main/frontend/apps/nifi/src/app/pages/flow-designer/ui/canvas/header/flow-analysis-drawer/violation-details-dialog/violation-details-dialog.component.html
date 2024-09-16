@@ -32,11 +32,11 @@
         <p>{{ violation.violationMessage }}</p>
 
         <button mat-menu-item (click)="viewDocumentation()">
-            <i class="fa fa-book primary-color mr-2"></i>
+            <i class="fa fa-book secondary-color mr-2"></i>
             View Documentation
         </button>
     </div>
     <mat-dialog-actions align="end">
-        <button mat-button mat-dialog-close color="primary">Close</button>
+        <button mat-flat-button class="secondary-button" mat-dialog-close>Close</button>
     </mat-dialog-actions>
 </mat-dialog-content>

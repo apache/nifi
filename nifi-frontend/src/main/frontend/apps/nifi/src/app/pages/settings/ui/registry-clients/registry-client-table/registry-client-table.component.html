@@ -40,7 +40,7 @@
                             }
                             @if (hasBulletins(item)) {
                                 <div
-                                    class="mr-3 pointer fa fa-sticky-note-o primary-color"
+                                    class="mr-3 pointer fa fa-sticky-note-o secondary-color"
                                     nifiTooltip
                                     [tooltipComponentType]="BulletinsTip"
                                     [tooltipInputData]="getBulletinsTipData(item)"></div>
@@ -57,7 +57,7 @@
                     @if (canRead(item)) {
                         {{ item.component.name }}
                     } @else {
-                        <div class="unset surface-color">{{ item.id }}</div>
+                        <div class="unset neutral-color">{{ item.id }}</div>
                     }
                 </td>
             </ng-container>
@@ -69,7 +69,7 @@
                     @if (canRead(item)) {
                         {{ item.component.description }}
                     } @else {
-                        <div class="unset surface-color">{{ item.id }}</div>
+                        <div class="unset neutral-color">{{ item.id }}</div>
                     }
                 </td>
             </ng-container>
@@ -111,13 +111,13 @@
                         <mat-menu #actionMenu="matMenu" xPosition="before">
                             @if (canConfigure(item)) {
                                 <button mat-menu-item (click)="configureClicked(item)">
-                                    <i class="fa fa-cog primary-color mr-2"></i>
+                                    <i class="fa fa-cog secondary-color mr-2"></i>
                                     Edit
                                 </button>
                             }
                             @if (canDelete(item)) {
                                 <button mat-menu-item (click)="deleteClicked(item)">
-                                    <i class="fa fa-trash primary-color mr-2"></i>
+                                    <i class="fa fa-trash secondary-color mr-2"></i>
                                     Delete
                                 </button>
                             }

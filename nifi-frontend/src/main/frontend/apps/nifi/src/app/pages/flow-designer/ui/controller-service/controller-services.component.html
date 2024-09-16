@@ -20,7 +20,7 @@
         <navigation></navigation>
     </header>
     <div class="pb-5 px-5 flex-1 flex flex-col">
-        <h3 class="primary-color">Controller Services</h3>
+        <h3 class="secondary-color">Controller Services</h3>
         @if (serviceState$ | async; as serviceState) {
             @if (isInitialLoading(serviceState)) {
                 <div>
@@ -33,7 +33,10 @@
                             [entity]="serviceState.breadcrumb"
                             [currentProcessGroupId]="serviceState.processGroupId"></breadcrumbs>
                         @if (serviceState.breadcrumb.permissions.canWrite) {
-                            <button mat-icon-button color="primary" (click)="openNewControllerServiceDialog()">
+                            <button
+                                mat-icon-button
+                                class="secondary-icon-button"
+                                (click)="openNewControllerServiceDialog()">
                                 <i class="fa fa-plus"></i>
                             </button>
                         }
@@ -63,11 +66,14 @@
                     }
                     <div class="flex justify-between">
                         <div class="text-sm flex items-center gap-x-2">
-                            <button mat-icon-button color="primary" (click)="refreshControllerServiceListing()">
+                            <button
+                                mat-icon-button
+                                class="secondary-icon-button"
+                                (click)="refreshControllerServiceListing()">
                                 <i class="fa fa-refresh" [class.fa-spin]="serviceState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ serviceState.loadedTimestamp }}
                             </div>
                         </div>

@@ -18,37 +18,33 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $supplemental-theme) {
-    // Get the color config from the theme.
-    $material-theme-color-config: mat.m2-get-color-config($material-theme);
-    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
-
-    // Get the color palette from the color-config.
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
-
-    // Get hues from palette
-    $is-dark: map-get($supplemental-theme-color-config, is-dark);
-    $supplemental-theme-surface-palette-darker: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-primary-palette-default: mat.get-theme-color(
+        $material-theme,
+        primary,
+        map.get(map.get($config, primary), default)
     );
-    $supplemental-theme-surface-palette-lighter: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter
+    $material-theme-neutral-palette-darker: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), darker)
     );
-    $material-theme-primary-palette-default: mat.m2-get-color-from-palette($material-theme-primary-palette, default);
-    $material-theme-primary-palette-lighter: mat.m2-get-color-from-palette($material-theme-primary-palette, lighter);
+    $material-theme-neutral-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), lighter)
+    );
 
     #birdseye {
         background: if(
-            $is-dark,
-            $supplemental-theme-surface-palette-darker,
-            $supplemental-theme-surface-palette-lighter
+            $is-material-dark,
+            $material-theme-neutral-palette-darker,
+            $material-theme-neutral-palette-lighter
         );
 
         rect.birdseye-brush {
-            stroke: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-lighter);
+            stroke: $material-theme-primary-palette-default;
             fill: transparent;
         }
     }

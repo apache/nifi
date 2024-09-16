@@ -21,7 +21,7 @@
             <div>
                 Available Parameter Contexts
                 <i
-                    class="fa fa-info-circle primary-color"
+                    class="fa fa-info-circle secondary-color"
                     nifiTooltip
                     [tooltipComponentType]="TextTip"
                     tooltipInputData="Available Parameter Contexts that could be inherited from."></i>
@@ -59,7 +59,7 @@
                 Parameter Contexts
             }
             <i
-                class="fa fa-info-circle primary-color"
+                class="fa fa-info-circle secondary-color"
                 nifiTooltip
                 [tooltipComponentType]="TextTip"
                 tooltipInputData="Parameter Contexts selected for inheritance. Multiple selected Parameter Contexts will be considered in order from top to bottom."></i>
@@ -101,7 +101,7 @@
                 </div>
                 @if (hasDescription(item)) {
                     <i
-                        class="pl-1 fa fa-info-circle surface-color"
+                        class="pl-1 fa fa-info-circle neutral-color"
                         nifiTooltip
                         [tooltipComponentType]="TextTip"
                         [tooltipInputData]="item.component.description"></i>
@@ -109,15 +109,15 @@
             </div>
             @if (canClose) {
                 <button class="pr-1" type="button" (click)="removeSelected(item, i)">
-                    <i class="fa fa-times surface-contrast"></i>
+                    <i class="fa fa-times neutral-contrast"></i>
                 </button>
             }
         } @else {
-            <div class="flex items-center accent-color font-medium">
+            <div class="flex items-center tertiary-color font-medium">
                 <div>{{ item.component.name }}</div>
                 @if (hasDescription(item)) {
                     <i
-                        class="pl-1 fa fa-info-circle surface-color"
+                        class="pl-1 fa fa-info-circle neutral-color"
                         nifiTooltip
                         [tooltipComponentType]="TextTip"
                         [tooltipInputData]="item.description"></i>
@@ -126,7 +126,7 @@
         }
     </ng-template>
     <ng-template #unauthorizedInheritedParameterContext let-item>
-        <div class="flex items-center accent-color font-medium">
+        <div class="flex items-center tertiary-color font-medium">
             <div>{{ item.id }}</div>
         </div>
     </ng-template>

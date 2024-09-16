@@ -151,16 +151,16 @@
                                                 mat-menu-item
                                                 [routerLink]="getRemoteProcessGroupLink(item)"
                                                 (click)="$event.stopPropagation()">
-                                                <i class="fa fa-long-arrow-right primary-color mr-2"></i>
+                                                <i class="fa fa-long-arrow-right secondary-color mr-2"></i>
                                                 Go To Remote Process Group
                                             </button>
                                             <button mat-menu-item (click)="viewStatusHistoryClicked(item)">
-                                                <i class="fa fa-area-chart primary-color mr-2"></i>
+                                                <i class="fa fa-area-chart secondary-color mr-2"></i>
                                                 View Status History
                                             </button>
                                             @if (connectedToCluster) {
                                                 <button mat-menu-item (click)="viewClusteredDetailsClicked(item)">
-                                                    <i class="fa fa-cubes primary-color mr-2"></i>
+                                                    <i class="fa fa-cubes secondary-color mr-2"></i>
                                                     View Clustered Details
                                                 </button>
                                             }
@@ -184,11 +184,11 @@
     </div>
     <div class="flex justify-between align-middle">
         <div class="text-sm flex items-center gap-x-2">
-            <button mat-icon-button color="primary" (click)="refresh.next()">
+            <button mat-icon-button class="secondary-icon-button" (click)="refresh.next()">
                 <i class="fa fa-refresh" [class.fa-spin]="summaryListingStatus === 'loading'"></i>
             </button>
             <div>Last updated:</div>
-            <div class="accent-color font-medium">{{ loadedTimestamp }}</div>
+            <div class="tertiary-color font-medium">{{ loadedTimestamp }}</div>
         </div>
         <div>
             <mat-paginator

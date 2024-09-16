@@ -24,15 +24,15 @@
                     <div>
                         Enter Attribute Values
                         <i
-                            class="fa fa-info-circle primary-color"
+                            class="fa fa-info-circle secondary-color"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
                             tooltipInputData="Supply attribute values that should be considered when performing property verification."></i>
                     </div>
                     <button
                         mat-icon-button
+                        class="secondary-icon-button"
                         [disabled]="isEmpty()"
-                        color="primary"
                         type="button"
                         (click)="clearAttributesClicked()">
                         <i class="fa fa-eraser"></i>
@@ -42,7 +42,9 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-        <button mat-button mat-dialog-close>Cancel</button>
-        <button mat-button mat-dialog-close cdkFocusInitial (click)="verifyClicked()" color="primary">Verify</button>
+        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
+        <button mat-flat-button class="secondary-button" mat-dialog-close cdkFocusInitial (click)="verifyClicked()">
+            Verify
+        </button>
     </mat-dialog-actions>
 </form>

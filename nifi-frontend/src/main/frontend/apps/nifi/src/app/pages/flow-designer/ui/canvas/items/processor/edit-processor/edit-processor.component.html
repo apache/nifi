@@ -41,17 +41,17 @@
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="accent-color font-medium">{{ request.entity.id }}</div>
+                            <div class="tertiary-color font-medium">{{ request.entity.id }}</div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Type</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ formatType(request.entity) }}
                             </div>
                         </div>
                         <div class="flex flex-col mb-6">
                             <div>Bundle</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ formatBundle(request.entity) }}
                             </div>
                         </div>
@@ -214,7 +214,7 @@
                                 <div>
                                     Run Duration
                                     <i
-                                        class="fa fa-info-circle primary-color"
+                                        class="fa fa-info-circle secondary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
                                         tooltipInputData="When scheduled to run, the processor will continue running for up to this duration. A run duration of 0ms will execute once when scheduled."></i>
@@ -266,7 +266,7 @@
                     @if (request.entity.component.relationships.length > 0) {
                         <relationship-settings formControlName="relationshipConfiguration"></relationship-settings>
                     } @else {
-                        <div class="unset surface-color">This processor has no relationships.</div>
+                        <div class="unset neutral-color">This processor has no relationships.</div>
                     }
                 </div>
             </mat-dialog-content>
@@ -290,15 +290,15 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (readonly) {
-                <button mat-button mat-dialog-close color="primary">Close</button>
+                <button mat-flat-button class="secondary-button" mat-dialog-close>Close</button>
             } @else {
-                <button mat-button mat-dialog-close>Cancel</button>
+                <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
                 <button
                     [disabled]="!editProcessorForm.dirty || editProcessorForm.invalid || saving.value"
                     type="button"
-                    color="primary"
                     (click)="submitForm()"
-                    mat-button>
+                    mat-flat-button
+                    class="secondary-button">
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             }
