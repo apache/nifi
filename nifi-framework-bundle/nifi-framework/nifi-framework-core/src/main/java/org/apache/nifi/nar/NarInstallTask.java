@@ -99,6 +99,13 @@ public class NarInstallTask implements Runnable {
                 final BundleCoordinate loadedCoordinate = loadedBundle.getBundleDetails().getCoordinate();
                 LOGGER.info("NAR [{}] was installed", loadedCoordinate);
                 if (loadedCoordinate.equals(coordinate)) {
+                    // If the NAR that was just uploaded was successfully loaded, attempt to access the class of each extension to prove that each
+                    // class can load successfully, if not then we want to bounce out to the catch block and set the state as FAILED
+                    final Set<ExtensionDefinition> loadedExtensionDefinitions = extensionManager.getTypes(coordinate);
+                    for (final ExtensionDefinition loadedExtensionDefinition : loadedExtensionDefinitions) {
+                        final Class<?> extensionClass = extensionManager.getClass(loadedExtensionDefinition);
+                        LOGGER.debug("Loaded [{}] from bundle [{}]", extensionClass.getCanonicalName(), coordinate);
+                    }
                     narNode.setState(NarState.INSTALLED);
                 } else {
                     try {
@@ -133,10 +140,10 @@ public class NarInstallTask implements Runnable {
             // Notify the NAR Manager that the install task complete for the current NAR
             narManager.completeInstall(narNode.getIdentifier());
 
-        } catch (final Exception e) {
-            LOGGER.error("Failed to install NAR [{}]", coordinate, e);
+        } catch (final Throwable t) {
+            LOGGER.error("Failed to install NAR [{}]", coordinate, t);
             narNode.setState(NarState.FAILED);
-            narNode.setFailureMessage(e.getMessage());
+            narNode.setFailureMessage(t.getMessage());
         }
     }
 
