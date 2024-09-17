@@ -45,7 +45,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -253,38 +252,44 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodes) {
-        boolean shouldStart = true;
+        for (ControllerServiceNode controllerServiceNode : filterStartableControllerServices(serviceNodes)) {
+            try {
+                final Future<Void> future = enableControllerServiceAndDependencies(controllerServiceNode);
 
-        Iterator<ControllerServiceNode> serviceIter = serviceNodes.iterator();
-        while (serviceIter.hasNext() && shouldStart) {
-            ControllerServiceNode controllerServiceNode = serviceIter.next();
-            List<ControllerServiceNode> requiredServices = controllerServiceNode.getRequiredControllerServices();
+                future.get(30, TimeUnit.SECONDS);
+                logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
+            } catch (final ControllerServiceNotValidException csnve) {
+                logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
+            } catch (Exception e) {
+                logger.error("Failed to enable {}", controllerServiceNode, e);
+                if (this.bulletinRepo != null) {
+                    this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
+                            Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
+                }
+            }
+        }
+    }
+
+    private Collection<ControllerServiceNode> filterStartableControllerServices(final Collection<ControllerServiceNode> serviceNodes) {
+        Collection<ControllerServiceNode> startableServiceNodes = new HashSet<>();
+        for (ControllerServiceNode serviceNode : serviceNodes) {
+            boolean isStartable = true;
+            List<ControllerServiceNode> requiredServices = serviceNode.getRequiredControllerServices();
             for (ControllerServiceNode requiredService : requiredServices) {
                 if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
-                    shouldStart = false;
-                    logger.debug("Will not start {} because required service {} is not active and is not part of the collection of things to start", serviceNodes, requiredService);
+                    isStartable = false;
+                    logger.error("Will not start {} because its required service {} is not active and is not part of the collection of things to start", serviceNode, requiredService);
                 }
             }
-        }
-
-        if (shouldStart) {
-            for (ControllerServiceNode controllerServiceNode : serviceNodes) {
-                try {
-                    final Future<Void> future = enableControllerServiceAndDependencies(controllerServiceNode);
-
-                    future.get(30, TimeUnit.SECONDS);
-                    logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
-                } catch (final ControllerServiceNotValidException csnve) {
-                    logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
-                } catch (Exception e) {
-                    logger.error("Failed to enable {}", controllerServiceNode, e);
-                    if (this.bulletinRepo != null) {
-                        this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
-                                Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
-                    }
-                }
+            if (isStartable) {
+                startableServiceNodes.add(serviceNode);
             }
         }
+        if (startableServiceNodes.size() < serviceNodes.size()) {
+            // If any service was removed, then recheck all remaining services because the removed one might be required by another service.
+            startableServiceNodes = filterStartableControllerServices(startableServiceNodes);
+        }
+        return startableServiceNodes;
     }
 
     @Override
