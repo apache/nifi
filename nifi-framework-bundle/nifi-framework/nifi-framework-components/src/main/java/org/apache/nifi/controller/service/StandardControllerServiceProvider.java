@@ -45,6 +45,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -251,8 +252,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodes) {
-        for (ControllerServiceNode controllerServiceNode : filterStartableControllerServices(serviceNodes)) {
+    public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodesIn) {
+        Collection<ControllerServiceNode> serviceNodes = new HashSet<>(serviceNodesIn);
+        for (ControllerServiceNode controllerServiceNode : removeControllerServicesWithUnavailableRequirements(serviceNodes)) {
             try {
                 final Future<Void> future = enableControllerServiceAndDependencies(controllerServiceNode);
 
@@ -270,26 +272,29 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
     }
 
-    private Collection<ControllerServiceNode> filterStartableControllerServices(final Collection<ControllerServiceNode> serviceNodes) {
-        Collection<ControllerServiceNode> startableServiceNodes = new HashSet<>();
-        for (ControllerServiceNode serviceNode : serviceNodes) {
-            boolean isStartable = true;
-            List<ControllerServiceNode> requiredServices = serviceNode.getRequiredControllerServices();
-            for (ControllerServiceNode requiredService : requiredServices) {
-                if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
-                    isStartable = false;
-                    logger.error("Will not start {} because its required service {} is not active and is not part of the collection of things to start", serviceNode, requiredService);
+    private Collection<ControllerServiceNode> removeControllerServicesWithUnavailableRequirements(final Collection<ControllerServiceNode> serviceNodes) {
+        boolean recheckNeeded;
+        do {
+            recheckNeeded = false;
+            for (Iterator<ControllerServiceNode> iter = serviceNodes.iterator(); iter.hasNext();) {
+                boolean skipStarting = false;
+                final ControllerServiceNode serviceNode = iter.next();
+                final List<ControllerServiceNode> requiredServices = serviceNode.getRequiredControllerServices();
+                for (ControllerServiceNode requiredService : requiredServices) {
+                    if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
+                        skipStarting = true;
+                        logger.error("Will not start {} because its required service {} is not active and is not part of the collection of things to start", serviceNode, requiredService);
+                    }
+                }
+                if (skipStarting) {
+                    // If any service was removed, then recheck all remaining services because the removed one might be required by another service in the list.
+                    recheckNeeded = true;
+                    iter.remove();
                 }
             }
-            if (isStartable) {
-                startableServiceNodes.add(serviceNode);
-            }
-        }
-        if (startableServiceNodes.size() < serviceNodes.size()) {
-            // If any service was removed, then recheck all remaining services because the removed one might be required by another service.
-            startableServiceNodes = filterStartableControllerServices(startableServiceNodes);
-        }
-        return startableServiceNodes;
+        } while (recheckNeeded);
+
+        return serviceNodes;
     }
 
     @Override
