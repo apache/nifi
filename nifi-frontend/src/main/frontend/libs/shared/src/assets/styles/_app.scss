@@ -38,6 +38,7 @@
     }
 
     .tooltip {
+        max-height: 90vh;
         max-width: 500px;
         padding: 10px;
         border-radius: 2px;
@@ -419,12 +420,10 @@
     $primary-contrast: map.get(map.get($config, primary), contrast);
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
     $alternate-surface: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
-    $success-default: map.get($config, success-default);
-    $success-darker: map.get($config, success-darker);
-    $success-lighter: map.get($config, success-lighter);
-    $caution-default: map.get($config, caution-default);
-    $caution-darker: map.get($config, caution-darker);
-    $caution-lighter: map.get($config, caution-lighter);
+    $success-default: map.get(map.get($config, success), default);
+    $success-darker: map.get(map.get($config, success), darker);
+    $success-lighter: map.get(map.get($config, success), lighter);
+    $caution: map.get($config, caution);
     $selected-row-color: if(
         $is-material-dark,
         $material-theme-tertiary-palette-darker,
@@ -494,13 +493,8 @@
     }
 
     .caution-color {
-        color: $caution-default;
-        fill: $caution-default;
-    }
-
-    .caution-color-darker {
-        color: $caution-darker;
-        fill: $caution-darker;
+        color: $caution;
+        fill: $caution;
     }
 
     // semantic classes for contrast colors determined based on the light/dark mode of the theme.

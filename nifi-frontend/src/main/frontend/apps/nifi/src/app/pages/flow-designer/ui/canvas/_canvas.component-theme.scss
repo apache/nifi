@@ -69,7 +69,6 @@
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
     $alternate-surface: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     $success-lighter: map.get($config, success-lighter);
-    $caution-darker: map.get($config, caution-darker);
 
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
     $drop-shadow-color: black;
@@ -357,7 +356,7 @@
         }
 
         g.connection.selected rect.border {
-            stroke: $caution-darker;
+            stroke: #ffcc00;
         }
 
         path.connector {
@@ -433,7 +432,7 @@
         }
 
         g.connection rect.backpressure-percent.warning {
-            fill: $caution-darker;
+            fill: #ffcc00;
         }
 
         g.connection rect.backpressure-percent.error {
@@ -448,7 +447,7 @@
         }
 
         g.connection path.connection-selection-path {
-            stroke: $caution-darker;
+            stroke: #ffcc00;
             fill: none;
         }
 
@@ -462,8 +461,8 @@
         }
 
         g.connection rect.midpoint {
-            stroke: $caution-darker;
-            fill: $caution-darker;
+            stroke: #ffcc00;
+            fill: #ffcc00;
         }
 
         g.connection rect.endpoint {
