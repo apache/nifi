@@ -528,11 +528,11 @@
         @include mat.slider-color($material-theme, $color-variant: secondary);
     }
 
-    .warn-button {
+    .error-button {
         @include mat.button-color($material-theme, $color-variant: error);
     }
 
-    .warn-spinner {
+    .error-spinner {
         @include mat.progress-spinner-color($material-theme, $color-variant: error);
     }
 
@@ -698,19 +698,11 @@
     }
 
     .mat-expansion-panel {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
+        background-color: mat.get-theme-color($material-theme, neutral, if($is-material-dark, 12, 100));
     }
 
     .mat-datepicker-content {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
+        background-color: mat.get-theme-color($material-theme, neutral, if($is-material-dark, 12, 100));
         box-shadow:
             0px 2px 4px -1px rgba(0, 0, 0, 0.2),
             0px 4px 5px 0px rgba(0, 0, 0, 0.14),
@@ -718,19 +710,11 @@
     }
 
     .mat-mdc-dialog-surface {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
+        background-color: mat.get-theme-color($material-theme, neutral, if($is-material-dark, 12, 100));
     }
 
     .mat-mdc-table {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
+        background-color: mat.get-theme-color($material-theme, neutral, if($is-material-dark, 12, 100));
     }
 
     .mat-drawer-backdrop.mat-drawer-shown {

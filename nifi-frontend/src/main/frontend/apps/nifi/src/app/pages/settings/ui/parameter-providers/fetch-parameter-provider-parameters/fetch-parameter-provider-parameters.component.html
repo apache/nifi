@@ -237,6 +237,7 @@
                                                     <ng-container matColumnDef="sensitive">
                                                         <th mat-header-cell *matHeaderCellDef>
                                                             <mat-checkbox
+                                                                class="tertiary-checkbox"
                                                                 [checked]="areAllSelected(parameterGroupConfig)"
                                                                 [indeterminate]="areAnySelected(parameterGroupConfig)"
                                                                 (change)="selectAllChanged($event)"></mat-checkbox>
