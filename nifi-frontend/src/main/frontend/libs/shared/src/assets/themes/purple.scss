@@ -335,12 +335,13 @@ $m3-light-theme-config: (
         default: 40,
         lighter: 90
     ),
-    success-default: #52bf7e,
-    success-darker: #016131,
-    success-lighter: #9dd9b2,
-    caution-default: #cf9f5d,
-    caution-darker: #ffcc00,
-    caution-lighter: #f8bf47,
+    success: (
+        darker: #016131,
+        default: #52bf7e,
+        lighter: #9dd9b2
+    ),
+    alternate-surface: #ffffff,
+    caution: #cf9f5d,
     neutral: (
         darker: 4,
         default: 35,
@@ -372,12 +373,13 @@ $m3-dark-theme-config: (
         default: 70,
         lighter: 80
     ),
-    success-default: #52bf7e,
-    success-darker: #016131,
-    success-lighter: #9dd9b2,
-    caution-default: #cf9f5d,
-    caution-darker: #ffcc00,
-    caution-lighter: #f8bf47,
+    success: (
+        darker: #016131,
+        default: #52bf7e,
+        lighter: #9dd9b2
+    ),
+    alternate-surface: #444444,
+    caution: #cf9f5d,
     neutral: (
         darker: 10,
         default: 40,

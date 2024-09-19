@@ -417,9 +417,10 @@
         neutral,
         map.get(map.get($config, neutral), lighter)
     );
+    $alternate-surface: map.get($config, alternate-surface);
     $primary-contrast: map.get(map.get($config, primary), contrast);
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
-    $alternate-surface: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     $success-default: map.get(map.get($config, success), default);
     $success-darker: map.get(map.get($config, success), darker);
     $success-lighter: map.get(map.get($config, success), lighter);
@@ -506,9 +507,9 @@
     }
 
     // will be a darker light grey for light mode and a brighter light grey for dark mode
-    .alternate-surface {
-        color: $alternate-surface;
-        fill: $alternate-surface;
+    .border-color {
+        color: $border-color;
+        fill: $border-color;
     }
 
     // color variants for theming angular material widgets
@@ -579,7 +580,7 @@
 
     *:not([class^='mat-']):not([class^='mdc-']):not([class^='resizable-triangle']) {
         // Tailwind sets a default that doesn't shift with light and dark themes
-        border-color: $alternate-surface;
+        border-color: $border-color;
     }
 
     * {
@@ -698,11 +699,11 @@
     }
 
     .mat-expansion-panel {
-        background-color: mat.get-theme-color($material-theme, neutral, if($is-material-dark, 12, 100));
+        background-color: $alternate-surface;
     }
 
     .mat-datepicker-content {
-        background-color: mat.get-theme-color($material-theme, neutral, if($is-material-dark, 12, 100));
+        background-color: $alternate-surface;
         box-shadow:
             0px 2px 4px -1px rgba(0, 0, 0, 0.2),
             0px 4px 5px 0px rgba(0, 0, 0, 0.14),
@@ -710,23 +711,23 @@
     }
 
     .mat-mdc-dialog-surface {
-        background-color: mat.get-theme-color($material-theme, neutral, if($is-material-dark, 12, 100));
+        background-color: $alternate-surface;
     }
 
     .mat-mdc-table {
-        background-color: mat.get-theme-color($material-theme, neutral, if($is-material-dark, 12, 100));
+        background-color: $alternate-surface;
     }
 
     .mat-drawer-backdrop.mat-drawer-shown {
         background-color: if($is-material-dark, rgba(189, 189, 189, 0.6), rgba(0, 0, 0, 0.6));
     }
 
+    .mat-mdc-card {
+        background-color: $alternate-surface;
+    }
+
     .mat-drawer {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
+        background-color: $alternate-surface;
     }
 
     .cdk-drop-list {
@@ -798,7 +799,7 @@
     }
 
     ngx-skeleton-loader .skeleton-loader {
-        background: $alternate-surface;
+        background: $border-color;
     }
 
     ngx-extended-pdf-viewer {

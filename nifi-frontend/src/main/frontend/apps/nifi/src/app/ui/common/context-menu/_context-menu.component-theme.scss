@@ -20,7 +20,7 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $alternate-surface: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
 
     div.context-menu {
         .context-menu-item {
@@ -36,7 +36,7 @@
         }
 
         .context-menu-item:active {
-            background-color: $alternate-surface;
+            background-color: $border-color;
         }
 
         &.show-focused {

@@ -20,9 +20,9 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $alternate-surface: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     .resizable-triangle {
-        border-right-color: $alternate-surface;
-        border-bottom-color: $alternate-surface;
+        border-right-color: $border-color;
+        border-bottom-color: $border-color;
     }
 }

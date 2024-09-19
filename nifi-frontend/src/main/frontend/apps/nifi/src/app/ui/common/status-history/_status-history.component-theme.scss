@@ -20,18 +20,18 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $alternate-surface: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
 
     #status-history-chart-container,
     #status-history-chart-control-container {
         .axis path,
         .axis line {
-            stroke: $alternate-surface;
+            stroke: $border-color;
         }
 
         .brush {
             .selection {
-                stroke: $alternate-surface;
+                stroke: $border-color;
             }
         }
     }

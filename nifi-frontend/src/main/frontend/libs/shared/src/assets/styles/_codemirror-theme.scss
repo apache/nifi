@@ -51,7 +51,7 @@
         map.get(map.get($config, neutral), lighter)
     );
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
-    $alternate-surface: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
 
     .ngx-codemirror {
         display: none;

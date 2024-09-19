@@ -31,7 +31,7 @@
         map.get(map.get($config, neutral), lighter)
     );
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
-    $alternate-surface: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
 
     .preview {
         .processor {
@@ -58,7 +58,7 @@
         }
 
         .row-border {
-            border-top: 1px solid $alternate-surface;
+            border-top: 1px solid $border-color;
         }
     }
 }

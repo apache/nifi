@@ -67,7 +67,7 @@
     );
     $primary-contrast: map.get(map.get($config, primary), contrast);
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
-    $alternate-surface: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     $success-lighter: map.get($config, success-lighter);
 
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
@@ -130,7 +130,7 @@
         }
 
         rect.row-border {
-            fill: $alternate-surface;
+            fill: $border-color;
         }
 
         g.component rect.body.unauthorized {
@@ -143,7 +143,7 @@
 
         g.component rect.border,
         g.connections rect.border {
-            stroke: $alternate-surface;
+            stroke: $border-color;
             stroke-width: if(
                 $is-material-dark,
                 2,
@@ -210,7 +210,7 @@
                 $material-theme-primary-palette-default,
                 $material-theme-primary-palette-darker
             );
-            stroke: $alternate-surface;
+            stroke: $border-color;
         }
 
         /*
@@ -256,7 +256,7 @@
         }
 
         rect.processor-stats-border {
-            fill: $alternate-surface;
+            fill: $border-color;
         }
 
         text.processor-name {
@@ -403,7 +403,7 @@
 
         g.connection rect.backpressure-tick.data-size-prediction,
         g.connection rect.backpressure-tick.object-prediction {
-            fill: $alternate-surface;
+            fill: $border-color;
         }
 
         g.connection rect.backpressure-tick.data-size-prediction.not-configured,
@@ -419,7 +419,7 @@
 
         g.connection rect.backpressure-object,
         g.connection rect.backpressure-data-size {
-            fill: $alternate-surface;
+            fill: $border-color;
         }
 
         g.connection rect.backpressure-object.not-configured,
@@ -544,7 +544,7 @@
         /* remote process group */
 
         rect.remote-process-group-stats-border {
-            fill: $alternate-surface;
+            fill: $border-color;
         }
 
         rect.remote-process-group-received-stats {
