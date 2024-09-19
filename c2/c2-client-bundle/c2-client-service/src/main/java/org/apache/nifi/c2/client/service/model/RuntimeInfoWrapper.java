@@ -21,6 +21,7 @@ import java.util.Map;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.protocol.api.ProcessorBulletin;
+import org.apache.nifi.c2.protocol.api.ProcessorStatus;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 
 public class RuntimeInfoWrapper {
@@ -28,12 +29,15 @@ public class RuntimeInfoWrapper {
     final RuntimeManifest manifest;
     final Map<String, FlowQueueStatus> queueStatus;
     final List<ProcessorBulletin> processorBulletins;
+    final List<ProcessorStatus> processorStatus;
 
-    public RuntimeInfoWrapper(AgentRepositories repos, RuntimeManifest manifest, Map<String, FlowQueueStatus> queueStatus, List<ProcessorBulletin> processorBulletins) {
+    public RuntimeInfoWrapper(AgentRepositories repos, RuntimeManifest manifest, Map<String, FlowQueueStatus> queueStatus, List<ProcessorBulletin> processorBulletins,
+                              List<ProcessorStatus> processorStatus) {
         this.repos = repos;
         this.manifest = manifest;
         this.queueStatus = queueStatus;
         this.processorBulletins = processorBulletins;
+        this.processorStatus = processorStatus;
     }
 
     public AgentRepositories getAgentRepositories() {
@@ -50,5 +54,9 @@ public class RuntimeInfoWrapper {
 
     public List<ProcessorBulletin> getProcessorBulletins() {
         return processorBulletins;
+    }
+
+    public List<ProcessorStatus> getProcessorStatus() {
+        return processorStatus;
     }
 }
