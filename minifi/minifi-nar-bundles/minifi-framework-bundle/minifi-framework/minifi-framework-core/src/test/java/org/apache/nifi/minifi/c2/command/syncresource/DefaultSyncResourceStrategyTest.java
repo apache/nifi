@@ -70,7 +70,7 @@ public class DefaultSyncResourceStrategyTest {
         (url, persistFunction) -> url.endsWith(FAIL_DOWNLOAD_URL) ? empty() : persistFunction.apply(new ByteArrayInputStream(url.getBytes()));
 
     private static String ENRICH_PREFIX = "pre_";
-    private static final Function<String, Optional<String>> PREFIXING_ENRICH_FUNCTION = url -> ofNullable(url).map(arg -> ENRICH_PREFIX + arg);
+    private static final Function<String, String> PREFIXING_ENRICH_FUNCTION = url -> ofNullable(url).map(arg -> ENRICH_PREFIX + arg).orElse("");
 
     @Mock
     private ResourceRepository mockResourceRepository;

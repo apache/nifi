@@ -42,7 +42,7 @@ public abstract class NiFiRestApiClient {
     private static final String HTTPS_SCHEME = "https";
 
     protected static final String ACCEPT_HEADER = "Accept";
-    protected static final String X_REQUEST_REPLICATED_HEADER = "X-Request-Replicated";
+    protected static final String REQUEST_REPLICATED_HEADER = "request-replicated";
     protected static final String APPLICATION_JSON = "application/json";
     protected static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 

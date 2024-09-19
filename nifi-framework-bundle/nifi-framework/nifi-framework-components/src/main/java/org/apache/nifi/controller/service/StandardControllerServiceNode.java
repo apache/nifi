@@ -620,7 +620,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     final ConfigurationContext configContext = new StandardConfigurationContext(StandardControllerServiceNode.this, controllerServiceProvider, null);
 
                     if (!isActive()) {
-                        LOG.warn("{} is no longer active so will no longer attempt to enable it", StandardControllerServiceNode.this);
+                        LOG.warn("Enabling {} stopped: no active status", StandardControllerServiceNode.this);
                         stateTransition.disable();
                         future.complete(null);
                         return;
@@ -629,21 +629,21 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     final ValidationStatus validationStatus = getValidationStatus();
                     if (validationStatus != ValidationStatus.VALID) {
                         final ValidationState validationState = getValidationState();
-                        LOG.debug("Cannot enable {} because it is not currently valid. (Validation State is {}: {}). Will try again in 1 second",
-                            StandardControllerServiceNode.this, validationState, validationState.getValidationErrors());
+                        LOG.debug("Enabling {} failed: Validation Status [{}] Errors {} Attempt [{}] Retrying...",
+                            StandardControllerServiceNode.this, validationStatus, validationState.getValidationErrors(), enablingAttemptCount.get());
 
                         enablingAttemptCount.incrementAndGet();
                         if (enablingAttemptCount.get() == 120 || enablingAttemptCount.get() % 3600 == 0) {
                             final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this,
                                     new StandardLoggingContext(StandardControllerServiceNode.this));
-                            componentLog.error("Encountering difficulty enabling. (Validation State is {}: {}). Will continue trying to enable.",
-                                    validationState, validationState.getValidationErrors());
+                            componentLog.error("Enabling {} failed: Validation Status [{}] Errors {}",
+                                    service, validationStatus, validationState.getValidationErrors());
                         }
 
                         try {
                             scheduler.schedule(this, 1, TimeUnit.SECONDS);
                         } catch (RejectedExecutionException rejectedExecutionException) {
-                            LOG.error("Unable to enable {}.  Last known validation state was {} : {}", StandardControllerServiceNode.this, validationState, validationState.getValidationErrors(),
+                            LOG.error("Enabling {} failed: Validation Status [{}] Errors {}", StandardControllerServiceNode.this, validationStatus, validationState.getValidationErrors(),
                                     rejectedExecutionException);
                         }
                         future.complete(null);
@@ -661,14 +661,14 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         }
 
                         if (!shouldEnable) {
-                            LOG.info("Disabling service {} after it has been enabled due to disable action being initiated.", service);
+                            LOG.info("Disabling {} after enabled due to disable action initiated", service);
                             // Can only happen if user initiated DISABLE operation before service finished enabling. It's state will be
                             // set to DISABLING (see disable() operation)
                             invokeDisable(configContext);
                             stateTransition.disable();
                             future.complete(null);
                         } else {
-                            LOG.info("Successfully enabled {}", service);
+                            LOG.info("Enabled {}", service);
                         }
                     } catch (Exception e) {
                         future.completeExceptionally(e);

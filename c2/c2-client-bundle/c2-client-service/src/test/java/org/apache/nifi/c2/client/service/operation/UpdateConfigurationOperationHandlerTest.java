@@ -22,6 +22,8 @@ import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOpe
 import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.LOCATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -72,7 +74,7 @@ public class UpdateConfigurationOperationHandlerTest {
         C2Operation operation = new C2Operation();
         operation.setArgs(INCORRECT_LOCATION_MAP);
 
-        when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(INCORRECT_LOCATION));
+        when(client.getCallbackUrl(any(), any())).thenReturn(INCORRECT_LOCATION);
 
         C2OperationAck response = handler.handle(operation);
 
@@ -81,10 +83,10 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleFlowIdInArg() {
-        UpdateConfigurationStrategy successUpdate = flow -> true;
+        UpdateConfigurationStrategy successUpdate = mock(UpdateConfigurationStrategy.class);
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
-        when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(INCORRECT_LOCATION));
+        when(client.getCallbackUrl(any(), any())).thenReturn(INCORRECT_LOCATION);
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
@@ -103,7 +105,7 @@ public class UpdateConfigurationOperationHandlerTest {
     @Test
     void testHandleReturnsNoOperationWithNoContent() {
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
-        when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(CORRECT_LOCATION));
+        when(client.getCallbackUrl(any(), any())).thenReturn(CORRECT_LOCATION);
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, null, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setArgs(CORRECT_LOCATION_MAP);
@@ -116,10 +118,11 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleReturnsNotAppliedWithContentApplyIssues() {
-        UpdateConfigurationStrategy failedToUpdate = flow -> false;
+        UpdateConfigurationStrategy failedToUpdate = mock(UpdateConfigurationStrategy.class);
+        doThrow(new IllegalStateException()).when(failedToUpdate).update(any());
         when(flowIdHolder.getFlowId()).thenReturn("previous_flow_id");
         when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
-        when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(CORRECT_LOCATION));
+        when(client.getCallbackUrl(any(), any())).thenReturn(CORRECT_LOCATION);
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, failedToUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
@@ -133,9 +136,9 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleReturnsFullyApplied() {
-        UpdateConfigurationStrategy successUpdate = flow -> true;
+        UpdateConfigurationStrategy successUpdate = mock(UpdateConfigurationStrategy.class);
         when(flowIdHolder.getFlowId()).thenReturn("previous_flow_id");
-        when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(CORRECT_LOCATION));
+        when(client.getCallbackUrl(any(), any())).thenReturn(CORRECT_LOCATION);
         when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();

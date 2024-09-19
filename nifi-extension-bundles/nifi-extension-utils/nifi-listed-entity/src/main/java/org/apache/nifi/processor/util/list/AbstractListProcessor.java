@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processor.util.list;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -34,14 +33,10 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
-import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -55,11 +50,8 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -68,7 +60,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -170,17 +161,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     }
 
     private static final Long IGNORE_MIN_TIMESTAMP_VALUE = 0L;
-
-    public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new Builder()
-            .name("Distributed Cache Service")
-            .description("NOTE: This property is used merely for migration from old NiFi version before state management was introduced at version 0.5.0. "
-                    + "The stored value in the cache service will be migrated into the state when this processor is started at the first time. "
-                    + "The specified Controller Service was used to maintain state about what had been pulled from the remote server so that if a new node "
-                    + "begins pulling data, it won't duplicate all of the work that has been done. If not specified, the information was not shared across the cluster. "
-                    + "This property did not need to be set for standalone instances of NiFi but was supposed to be configured if NiFi had been running within a cluster.")
-            .required(false)
-            .identifiesControllerService(DistributedMapCacheClient.class)
-            .build();
 
     public static final AllowableValue PRECISION_AUTO_DETECT = new AllowableValue("auto-detect", "Auto Detect",
             "Automatically detect time unit deterministically based on candidate entries timestamp."
@@ -290,8 +270,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     static final String LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY = "processed.timestamp";
     static final String IDENTIFIER_PREFIX = "id";
 
-    public File getPersistenceFile() {
-        return new File("conf/state/" + getIdentifier());
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.removeProperty("Distributed Cache Service");
     }
 
     @Override
@@ -391,20 +372,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     @OnScheduled
     public final void updateState(final ProcessContext context) throws IOException {
-        final String path = getPath(context);
-        final DistributedMapCacheClient client = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
-
-        // Check if state already exists for this path. If so, we have already migrated the state.
         final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
-        if (stateMap.getStateVersion().isEmpty()) {
-            try {
-                // Migrate state from the old way of managing state (distributed cache service and local file)
-                // to the new mechanism (State Manager).
-                migrateState(path, client, context.getStateManager(), getStateScope(context));
-            } catch (final IOException ioe) {
-                throw new IOException("Failed to properly migrate state to State Manager", ioe);
-            }
-        }
 
         // When scheduled to run, check if the associated timestamp is null, signifying a clearing of state and reset the internal timestamp
         if (lastListedLatestEntryTimestampMillis != null && stateMap.get(LATEST_LISTED_ENTRY_TIMESTAMP_KEY) == null) {
@@ -418,75 +386,9 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
     }
 
-    /**
-     * This processor used to use the DistributedMapCacheClient in order to store cluster-wide state, before the introduction of
-     * the StateManager. This method will migrate state from that DistributedMapCacheClient, or from a local file, to the StateManager,
-     * if any state already exists. More specifically, this will extract out the relevant timestamp for when the processor last ran
-     *
-     * @param path         the path to migrate state for
-     * @param client       the DistributedMapCacheClient that is capable of obtaining the current state
-     * @param stateManager the StateManager to use in order to store the new state
-     * @param scope        the scope to use
-     * @throws IOException if unable to retrieve or store the state
-     */
-    private void migrateState(final String path, final DistributedMapCacheClient client, final StateManager stateManager, final Scope scope) throws IOException {
-        Long minTimestamp = null;
-
-        // Retrieve state from Distributed Cache Client, establishing the latest file seen
-        if (client != null) {
-            final StringSerDe serde = new StringSerDe();
-            final String serializedState = client.get(getKey(path), serde, serde);
-            if (serializedState != null && !serializedState.isEmpty()) {
-                final EntityListing listing = deserialize(serializedState);
-                minTimestamp = listing.getLatestTimestamp().getTime();
-            }
-
-            // remove entry from distributed cache server
-            try {
-                client.remove(path, new StringSerDe());
-            } catch (final IOException ioe) {
-                getLogger().warn("Failed to remove entry from Distributed Cache Service. However, the state has already been migrated to use the new "
-                    + "State Management service, so the Distributed Cache Service is no longer needed.");
-            }
-        }
-
-        // Retrieve state from locally persisted file, and compare these to the minTimestamp established from the distributedCache, if there was one
-        final File persistenceFile = getPersistenceFile();
-        if (persistenceFile.exists()) {
-            final Properties props = new Properties();
-
-            try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
-                props.load(fis);
-            }
-
-            final String locallyPersistedValue = props.getProperty(path);
-            if (locallyPersistedValue != null) {
-                final EntityListing listing = deserialize(locallyPersistedValue);
-                final long localTimestamp = listing.getLatestTimestamp().getTime();
-                // if the local file's latest timestamp is beyond that of the value provided from the cache, replace
-                if (minTimestamp == null || localTimestamp > minTimestamp) {
-                    minTimestamp = localTimestamp;
-                    latestIdentifiersProcessed.clear();
-                    latestIdentifiersProcessed.addAll(listing.getMatchingIdentifiers());
-                }
-            }
-
-            // delete the local file, since it is no longer needed
-            if (persistenceFile.exists() && !persistenceFile.delete()) {
-                getLogger().warn("Migrated state but failed to delete local persistence file");
-            }
-        }
-
-        if (minTimestamp != null) {
-            final Map<String, String> updatedState = createStateMap(minTimestamp, minTimestamp, latestIdentifiersProcessed);
-            stateManager.setState(updatedState, scope);
-        }
-    }
-
     private Map<String, String> createStateMap(final long latestListedEntryTimestampThisCycleMillis,
                                                final long lastProcessedLatestEntryTimestampMillis,
-                                               final List<String> processedIdentifiesWithLatestTimestamp) throws IOException {
-
+                                               final List<String> processedIdentifiesWithLatestTimestamp) {
         final Map<String, String> updatedState = new HashMap<>(processedIdentifiesWithLatestTimestamp.size() + 2);
         updatedState.put(LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(latestListedEntryTimestampThisCycleMillis));
         updatedState.put(LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(lastProcessedLatestEntryTimestampMillis));
@@ -507,11 +409,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     protected String getKey(final String directory) {
         return getIdentifier() + ".lastListingTime." + directory;
-    }
-
-    private EntityListing deserialize(final String serializedState) throws IOException {
-        final ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(serializedState, EntityListing.class);
     }
 
     @Override
@@ -1072,23 +969,6 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      * @return The user-friendly name for the container
      */
     protected abstract String getListingContainerName(final ProcessContext context);
-
-    private static class StringSerDe implements Serializer<String>, Deserializer<String> {
-
-        @Override
-        public String deserialize(final byte[] value) throws DeserializationException, IOException {
-            if (value == null) {
-                return null;
-            }
-
-            return new String(value, StandardCharsets.UTF_8);
-        }
-        @Override
-        public void serialize(final String value, final OutputStream out) throws SerializationException, IOException {
-            out.write(value.getBytes(StandardCharsets.UTF_8));
-        }
-
-    }
 
     @OnScheduled
     public void initListedEntityTracker(ProcessContext context) {

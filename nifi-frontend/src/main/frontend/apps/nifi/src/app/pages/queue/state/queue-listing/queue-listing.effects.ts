@@ -296,6 +296,7 @@ export class QueueListingEffects {
                                     QueueListingActions.viewFlowFileContent({
                                         request: {
                                             uri: request.flowfile.uri,
+                                            mimeType: request.flowfile.mimeType,
                                             clusterNodeId: request.clusterNodeId
                                         }
                                     })

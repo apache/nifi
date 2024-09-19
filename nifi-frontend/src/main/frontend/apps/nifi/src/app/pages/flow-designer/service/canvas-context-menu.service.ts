@@ -903,15 +903,19 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 clazz: 'fa fa-area-chart',
                 text: 'View Status History',
                 action: (selection: any) => {
-                    const selectionData = selection.datum();
-                    this.store.dispatch(
-                        navigateToViewStatusHistoryForComponent({
-                            request: {
-                                type: selectionData.type,
-                                id: selectionData.id
-                            }
-                        })
-                    );
+                    if (this.canvasUtils.emptySelection(selection)) {
+                        this.store.dispatch(FlowActions.navigateToViewStatusHistoryForCurrentProcessGroup());
+                    } else {
+                        const selectionData = selection.datum();
+                        this.store.dispatch(
+                            navigateToViewStatusHistoryForComponent({
+                                request: {
+                                    type: selectionData.type,
+                                    id: selectionData.id
+                                }
+                            })
+                        );
+                    }
                 }
             },
             {

@@ -48,7 +48,6 @@ import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
 import org.apache.nifi.controller.inheritance.ConnectionMissingCheck;
 import org.apache.nifi.controller.inheritance.FlowInheritability;
 import org.apache.nifi.controller.inheritance.FlowInheritabilityCheck;
-import org.apache.nifi.controller.inheritance.MissingComponentsCheck;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
@@ -180,13 +179,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         // serialize controller state to bytes
         checkFlowInheritability(existingDataFlow, proposedFlow, controller, bundleUpdateStrategy);
-
-        logger.debug("Checking missing component inheritability");
-        final FlowInheritabilityCheck missingComponentsCheck = new MissingComponentsCheck();
-        final FlowInheritability componentInheritability = missingComponentsCheck.checkInheritability(existingDataFlow, proposedFlow, controller);
-        if (!componentInheritability.isInheritable()) {
-            throw new UninheritableFlowException("Proposed Flow is not inheritable by the flow controller because of differences in missing components: " + componentInheritability.getExplanation());
-        }
 
         FlowComparison flowComparison = null;
         AffectedComponentSet affectedComponents = null;
@@ -1061,9 +1053,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             providedParameters = Collections.emptyMap();
         } else {
             final ParameterProviderNode parameterProviderNode = flowManager.getParameterProvider(parameterProviderId);
-
-            // Wait for Validation as needed for Parameter Providers with Controller Services
-            final ValidationStatus validationStatus = parameterProviderNode.getValidationStatus(10, TimeUnit.SECONDS);
+            final ValidationStatus validationStatus = getParameterProviderValidationStatus(parameterProviderNode);
 
             final String parameterGroupName = versionedParameterContext.getParameterGroupName();
             if (ValidationStatus.VALID == validationStatus) {
@@ -1077,8 +1067,14 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private Map<String, Parameter> getProvidedParameters(final ParameterProviderNode parameterProviderNode, final String parameterGroupName) {
-        logger.debug("Fetching Parameters for Group [{}] from Provider [{}]", parameterGroupName, parameterProviderNode.getIdentifier());
-        parameterProviderNode.fetchParameters();
+        final String providerId = parameterProviderNode.getIdentifier();
+        logger.debug("Fetching Parameters for Group [{}] from Provider [{}]", parameterGroupName, providerId);
+
+        try {
+            parameterProviderNode.fetchParameters();
+        } catch (final Exception e) {
+            logger.warn("Fetching Parameters for Group [{}] from Provider [{}] failed", parameterGroupName, providerId, e);
+        }
 
         final Map<String, Parameter> parameters;
         final Optional<ParameterGroup> foundParameterGroup = parameterProviderNode.findFetchedParameterGroup(parameterGroupName);
@@ -1092,8 +1088,31 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             parameters = Collections.emptyMap();
         }
 
-        logger.info("Fetched Parameters [{}] for Group [{}] from Provider [{}]", parameters.size(), parameterGroupName, parameterProviderNode.getIdentifier());
+        logger.info("Fetched Parameters [{}] for Group [{}] from Provider [{}]", parameters.size(), parameterGroupName, providerId);
         return parameters;
+    }
+
+    private ValidationStatus getParameterProviderValidationStatus(final ParameterProviderNode parameterProviderNode) {
+        final ValidationStatus workingValidationStatus;
+
+        final ValidationStatus currentValidationStatus = parameterProviderNode.getValidationStatus();
+        if (ValidationStatus.VALIDATING == currentValidationStatus) {
+            // Perform validation to determine status before fetching Parameters
+            workingValidationStatus = parameterProviderNode.performValidation();
+        } else {
+            workingValidationStatus = currentValidationStatus;
+        }
+
+        final ValidationStatus validationStatus;
+        if (ValidationStatus.INVALID == workingValidationStatus) {
+            // Wait for Validation as needed for Parameter Providers with Controller Services or other dependencies
+            parameterProviderNode.resetValidationState();
+            validationStatus = parameterProviderNode.getValidationStatus(10, TimeUnit.SECONDS);
+        } else {
+            validationStatus = workingValidationStatus;
+        }
+
+        return validationStatus;
     }
 
     private void removeMissingServices(final FlowController controller, final VersionedDataflow dataflow) {

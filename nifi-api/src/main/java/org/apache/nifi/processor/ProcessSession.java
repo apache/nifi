@@ -848,7 +848,7 @@ public interface ProcessSession {
     /**
      * Updates the value of the component's state, setting it to given value.
      * <p>
-     * This method does update the remote State Provider immediately but rather caches the value until the session is committed.
+     * This method does not update the remote State Provider immediately but rather caches the value until the session is committed.
      * At that point, it will publish the state to the remote State Provider, if the state is the latest according to the remote State Provider.
      *
      * @param state the value to change the state to
@@ -876,7 +876,7 @@ public interface ProcessSession {
      * The oldValue will be compared against the value of the state as it is known to {@code this} {@link ProcessSession}.
      * If the Process Session does not currently know the state, it will be fetched from the StateProvider.
      * <p>
-     * This method does update the remote State Provider immediately but rather caches the value until the session is committed.
+     * This method does not update the remote State Provider immediately but rather caches the value until the session is committed.
      * At that point, it will publish the state to the remote State Provider, if the state is the latest according to the remote State Provider.
      *
      * @param oldValue the value to compare the state's current value against
@@ -891,7 +891,7 @@ public interface ProcessSession {
     /**
      * Clears all keys and values from the component's state.
      * <p>
-     * This method does update the remote State Provider immediately but rather caches the value until the session is committed.
+     * This method does not update the remote State Provider immediately but rather caches the value until the session is committed.
      * At that point, it will publish the state to the remote State Provider, if the state is the latest according to the remote State Provider.
      *
      * @param scope the {@link Scope} to use for clearing the state

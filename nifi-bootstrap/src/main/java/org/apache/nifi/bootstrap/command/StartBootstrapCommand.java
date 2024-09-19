@@ -19,6 +19,7 @@ package org.apache.nifi.bootstrap.command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,13 +38,16 @@ class StartBootstrapCommand implements BootstrapCommand {
 
     private final BootstrapCommand statusCommand;
 
+    private final Duration startWatchDelay;
+
     private final ScheduledExecutorService scheduledExecutorService;
 
     private CommandStatus commandStatus = CommandStatus.ERROR;
 
-    StartBootstrapCommand(final BootstrapCommand runCommand, final BootstrapCommand statusCommand) {
+    StartBootstrapCommand(final BootstrapCommand runCommand, final BootstrapCommand statusCommand, final Duration startWatchDelay) {
         this.runCommand = Objects.requireNonNull(runCommand);
         this.statusCommand = Objects.requireNonNull(statusCommand);
+        this.startWatchDelay = Objects.requireNonNull(startWatchDelay);
 
         this.scheduledExecutorService = Executors.newScheduledThreadPool(1, command -> {
             final Thread thread = new Thread(command);
@@ -63,12 +67,29 @@ class StartBootstrapCommand implements BootstrapCommand {
         commandStatus = runCommand.getCommandStatus();
 
         if (CommandStatus.SUCCESS == commandStatus) {
-            logger.info("Application watch started");
-            final WatchCommand watchCommand = new WatchCommand();
-            scheduledExecutorService.scheduleAtFixedRate(watchCommand, MONITOR_INTERVAL, MONITOR_INTERVAL, TimeUnit.SECONDS);
+            final StartWatchCommand startWatchCommand = new StartWatchCommand();
+            scheduledExecutorService.schedule(startWatchCommand, startWatchDelay.toMillis(), TimeUnit.MILLISECONDS);
             commandStatus = CommandStatus.RUNNING;
         } else {
             scheduledExecutorService.shutdown();
+        }
+    }
+
+    private class StartWatchCommand implements Runnable {
+
+        @Override
+        public void run() {
+            statusCommand.run();
+            final CommandStatus status = statusCommand.getCommandStatus();
+            if (CommandStatus.SUCCESS == status) {
+                final WatchCommand watchCommand = new WatchCommand();
+                scheduledExecutorService.scheduleAtFixedRate(watchCommand, MONITOR_INTERVAL, MONITOR_INTERVAL, TimeUnit.SECONDS);
+                logger.info("Application monitoring started");
+            } else {
+                logger.warn("Application monitoring failed with status [{}]", status);
+                scheduledExecutorService.shutdown();
+                commandStatus = status;
+            }
         }
     }
 
@@ -80,11 +101,6 @@ class StartBootstrapCommand implements BootstrapCommand {
             final CommandStatus status = statusCommand.getCommandStatus();
             if (CommandStatus.SUCCESS == status) {
                 logger.debug("Application running");
-            } else if (CommandStatus.FAILED == status) {
-                logger.error("Application watch failed");
-                scheduledExecutorService.shutdown();
-                logger.info("Application watch stopped");
-                commandStatus = CommandStatus.FAILED;
             } else {
                 logger.warn("Application not running [{}]", status);
                 runCommand.run();

@@ -18,6 +18,7 @@
 package org.apache.nifi.cluster.coordination.http.replication;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Map;
 
 import jakarta.ws.rs.core.Response;
@@ -26,6 +27,6 @@ public interface HttpReplicationClient {
 
     PreparedRequest prepareRequest(String method, Map<String, String> headers, Object entity);
 
-    Response replicate(PreparedRequest request, String uri) throws IOException;
+    Response replicate(PreparedRequest request, URI uri) throws IOException;
 
 }

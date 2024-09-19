@@ -114,13 +114,15 @@ public class DocGenerator {
                         }
                     }
                     case JAVA -> {
-                        final Class<?> extensionClass = extensionManager.getClass(extensionDefinition);
-                        final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
+                        // Catch Throwable here to protect against an extension that may have been registered, but throws an Error when attempting to access the Class,
+                        // this method is called during start-up, and we don't want to fail starting just because one bad extension class can't be loaded
                         try {
+                            final Class<?> extensionClass = extensionManager.getClass(extensionDefinition);
+                            final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
                             logger.debug("Documentation generation started: Component Class [{}]", componentClass);
                             document(extensionManager, componentDirectory, componentClass, coordinate);
-                        } catch (Exception e) {
-                            logger.warn("Documentation generation failed: Component Class [{}]", componentClass, e);
+                        } catch (Throwable t) {
+                            logger.warn("Documentation generation failed: Component Class [{}]", extensionDefinition.getImplementationClassName(), t);
                         }
                     }
                 }

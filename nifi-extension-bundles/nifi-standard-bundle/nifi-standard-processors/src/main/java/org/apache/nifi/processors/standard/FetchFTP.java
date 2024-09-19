@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.file.transfer.FetchFileTransfer;
 import org.apache.nifi.processor.util.file.transfer.FileTransfer;
@@ -102,11 +103,6 @@ public class FetchFTP extends FetchFileTransfer {
             FTPTransfer.CONNECTION_MODE,
             FTPTransfer.TRANSFER_MODE,
             FTPTransfer.PROXY_CONFIGURATION_SERVICE,
-            FTPTransfer.PROXY_TYPE,
-            FTPTransfer.PROXY_HOST,
-            FTPTransfer.PROXY_PORT,
-            FTPTransfer.HTTP_PROXY_USERNAME,
-            FTPTransfer.HTTP_PROXY_PASSWORD,
             FTPTransfer.BUFFER_SIZE,
             FILE_NOT_FOUND_LOG_LEVEL,
             FTPTransfer.UTF8_ENCODING
@@ -115,6 +111,12 @@ public class FetchFTP extends FetchFileTransfer {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        FTPTransfer.migrateProxyProperties(config);
     }
 
     @Override

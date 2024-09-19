@@ -94,7 +94,7 @@ public class UpdateAssetOperationHandlerTest {
 
     @BeforeEach
     public void setup() {
-        lenient().when(c2Client.getCallbackUrl(any(), any())).thenReturn(Optional.of(ASSET_URL));
+        lenient().when(c2Client.getCallbackUrl(any(), any())).thenReturn(ASSET_URL);
     }
 
     @ParameterizedTest(name = "c2Client={0} operandPropertiesProvider={1} bundleFileList={2} contentFilter={3}")
@@ -115,7 +115,7 @@ public class UpdateAssetOperationHandlerTest {
     public void testAssetUrlCanNotBeNull() {
         // given
         C2Operation operation = operation(null, ASSET_FILE_NAME, FORCE_DOWNLOAD);
-        when(c2Client.getCallbackUrl(any(), any())).thenReturn(Optional.empty());
+        when(c2Client.getCallbackUrl(any(), any())).thenThrow(new IllegalArgumentException());
 
         // when
         C2OperationAck result = testHandler.handle(operation);

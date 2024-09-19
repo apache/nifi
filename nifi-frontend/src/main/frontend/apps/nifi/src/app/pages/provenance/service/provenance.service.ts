@@ -20,12 +20,16 @@ import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ProvenanceRequest } from '../state/provenance-event-listing';
 import { LineageRequest } from '../state/lineage';
+import { Client } from '../../../service/client.service';
 
 @Injectable({ providedIn: 'root' })
 export class ProvenanceService {
     private static readonly API: string = '../nifi-api';
 
-    constructor(private httpClient: HttpClient) {}
+    constructor(
+        private httpClient: HttpClient,
+        private client: Client
+    ) {}
 
     getSearchOptions(): Observable<any> {
         return this.httpClient.get(`${ProvenanceService.API}/provenance/search-options`);
@@ -88,7 +92,8 @@ export class ProvenanceService {
         contentViewerUrl: string,
         eventId: number,
         direction: string,
-        clusterNodeId?: string
+        clusterNodeId?: string,
+        mimeType?: string
     ): void {
         // build the uri to the data
         let dataUri = `${nifiUrl}provenance-events/${encodeURIComponent(eventId)}/content/${encodeURIComponent(
@@ -112,15 +117,19 @@ export class ProvenanceService {
         // least one query parameter
         let contentViewer: string = contentViewerUrl;
         if (contentViewer.indexOf('?') === -1) {
-            contentViewer += '?';
+            contentViewer += '/?';
         } else {
             contentViewer += '&';
         }
 
         const contentViewerParameters: any = {
-            mode: 'Formatted',
-            ref: dataUri
+            ref: dataUri,
+            clientId: this.client.getClientId()
         };
+
+        if (mimeType) {
+            contentViewerParameters['mimeType'] = mimeType;
+        }
 
         // open the content viewer
         const contentViewerQuery: string = new URLSearchParams(contentViewerParameters).toString();

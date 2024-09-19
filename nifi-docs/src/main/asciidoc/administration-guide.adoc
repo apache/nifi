@@ -3112,6 +3112,9 @@ available again. These properties govern how that process occurs.
 |`nifi.swap.manager.implementation`| The Swap Manager implementation. The default value is `org.apache.nifi.controller.FileSystemSwapManager`.
 |`nifi.queue.swap.threshold`|The queue threshold at which NiFi starts to swap FlowFile information to disk. The default value is `20000`.
 |====
+NOTE: When a queue begins swapping to disk, NiFi does not guarantee that all the FlowFiles in the queue are sorted in the
+order specified by the <<user-guide.adoc#_prioritization,prioritizers>> configured on the queue. New FlowFiles arriving at the queue are written to
+the swap file without considering prioritizers. They are prioritized when the swap file is read back into memory.
 
 === Content Repository
 
@@ -3160,7 +3163,6 @@ When not set, the default value is derived as 2% greater than `nifi.content.repo
 For example, if `nifi.content.repository.archive.max.usage.percentage` is `50%` and `nifi.content.repository.archive.backpressure.percentage` is not set, the effective value of `nifi.content.repository.archive.backpressure.percentage` will be `52%`.
 |`nifi.content.repository.archive.enabled`|To enable content archiving, set this to `true` and specify a value for the `nifi.content.repository.archive.max.usage.percentage` property above. Content archiving enables the provenance UI to view or replay content that is no longer in a dataflow queue. By default, archiving is enabled.
 |`nifi.content.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
-|`nifi.content.viewer.url`|The URL for a web-based content viewer if one is available. The default is `../nifi-content-viewer/`.
 |`nifi.content.repository.archive.cleanup.frequency`| The frequency with which to schedule the content archive clean up task. The default value is `1 Second`. A value lower than `1 Second` is not allowed.
 |====
 

@@ -34,6 +34,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.file.transfer.FileInfo;
@@ -89,7 +90,6 @@ public class ListSFTP extends ListFileTransfer {
             SFTPTransfer.PRIVATE_KEY_PASSPHRASE,
             REMOTE_PATH,
             RECORD_WRITER,
-            DISTRIBUTED_CACHE_SERVICE,
             SFTPTransfer.RECURSIVE_SEARCH,
             SFTPTransfer.FOLLOW_SYMLINK,
             SFTPTransfer.FILE_FILTER_REGEX,
@@ -104,11 +104,6 @@ public class ListSFTP extends ListFileTransfer {
             TARGET_SYSTEM_TIMESTAMP_PRECISION,
             SFTPTransfer.USE_COMPRESSION,
             SFTPTransfer.PROXY_CONFIGURATION_SERVICE,
-            FTPTransfer.PROXY_TYPE,
-            FTPTransfer.PROXY_HOST,
-            FTPTransfer.PROXY_PORT,
-            FTPTransfer.HTTP_PROXY_USERNAME,
-            FTPTransfer.HTTP_PROXY_PASSWORD,
             ListedEntityTracker.TRACKING_STATE_CACHE,
             ListedEntityTracker.TRACKING_TIME_WINDOW,
             ListedEntityTracker.INITIAL_LISTING_TARGET,
@@ -127,6 +122,12 @@ public class ListSFTP extends ListFileTransfer {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        FTPTransfer.migrateProxyProperties(config);
     }
 
     @Override

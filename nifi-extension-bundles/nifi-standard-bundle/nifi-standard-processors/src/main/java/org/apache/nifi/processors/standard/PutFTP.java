@@ -30,6 +30,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.file.transfer.PutFileTransfer;
@@ -94,11 +95,6 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
             FTPTransfer.PERMISSIONS,
             FTPTransfer.USE_COMPRESSION,
             FTPTransfer.PROXY_CONFIGURATION_SERVICE,
-            FTPTransfer.PROXY_TYPE,
-            FTPTransfer.PROXY_HOST,
-            FTPTransfer.PROXY_PORT,
-            FTPTransfer.HTTP_PROXY_USERNAME,
-            FTPTransfer.HTTP_PROXY_PASSWORD,
             FTPTransfer.BUFFER_SIZE,
             FTPTransfer.UTF8_ENCODING
     );
@@ -106,6 +102,12 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        FTPTransfer.migrateProxyProperties(config);
     }
 
     @Override

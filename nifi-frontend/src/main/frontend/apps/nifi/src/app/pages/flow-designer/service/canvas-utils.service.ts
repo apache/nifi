@@ -696,6 +696,11 @@ export class CanvasUtils {
      * @param {selection} selection
      */
     public canViewStatusHistory(selection: any): boolean {
+        // no selection is treated as the current process group
+        if (selection.empty()) {
+            return true;
+        }
+
         if (selection.size() !== 1) {
             return false;
         }

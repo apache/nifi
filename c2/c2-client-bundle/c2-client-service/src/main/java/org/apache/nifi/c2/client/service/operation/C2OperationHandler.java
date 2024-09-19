@@ -20,14 +20,18 @@ package org.apache.nifi.c2.client.service.operation;
 import static java.util.Optional.ofNullable;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
+import org.apache.nifi.c2.protocol.api.FailureCause;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 import org.apache.nifi.c2.serializer.C2Serializer;
+import org.apache.nifi.minifi.validator.ValidationException;
 
 /**
  * Handler interface for the different operation types
@@ -79,11 +83,36 @@ public interface C2OperationHandler {
      * @param details        additional status info to detail the state
      * @return the created state
      */
-    default C2OperationState operationState(C2OperationState.OperationState operationState, String details) {
+    default C2OperationState operationState(C2OperationState.OperationState operationState, String details, Exception e) {
         C2OperationState state = new C2OperationState();
         state.setState(operationState);
         state.setDetails(details);
+        ofNullable(e).map(this::toFailureCause).ifPresent(state::setFailureCause);
         return state;
+    }
+
+    private FailureCause toFailureCause(Exception exception) {
+        FailureCause failureCause = new FailureCause();
+        failureCause.setExceptionMessage(exception.getMessage());
+        List<String> causeList = new LinkedList<>();
+        populateCausedChain(ofNullable(exception.getCause()), causeList);
+        failureCause.setCausedByMessages(causeList);
+        if (exception instanceof ValidationException validationException) {
+            failureCause.setValidationResults(validationException.getValidationResults());
+        }
+        return failureCause;
+    }
+
+    private List<String> populateCausedChain(Optional<Throwable> cause, List<String> causeList) {
+        cause.ifPresent(c -> {
+            causeList.add(c.getMessage());
+            populateCausedChain(cause.map(Throwable::getCause), causeList);
+        });
+        return causeList;
+    }
+
+    default C2OperationState operationState(C2OperationState.OperationState operationState, String details) {
+        return operationState(operationState, details, null);
     }
 
     /**
@@ -122,9 +151,10 @@ public interface C2OperationHandler {
      * @param serializer the serializer used to converting to the target class
      * @return the optional retrieved and converted argument value
      */
-    default <T> Optional<T> getOperationArg(C2Operation operation, String argument, TypeReference<T> type, C2Serializer serializer) {
+    default <T> T getOperationArg(C2Operation operation, String argument, TypeReference<T> type, C2Serializer serializer) {
         return ofNullable(operation.getArgs())
             .map(args -> args.get(argument))
-            .flatMap(arg -> serializer.convert(arg, type));
+            .flatMap(arg -> serializer.convert(arg, type))
+            .orElseThrow(() -> new IllegalArgumentException("Failed to parse argument " + argument + " of operation " + operation));
     }
 }

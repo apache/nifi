@@ -2865,14 +2865,14 @@ provides several functions for evaluating the same conditions against groups of 
 
 *Return Type*: [.returnType]#String#
 
-*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world",
-	and "filename" contains "file.txt" consider the following examples:
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "goodbye world",
+	consider the following examples:
 
 .join Examples
 |=======================================================================================
 | Expression | Value
-| `${allMatchingAttributes("[ax].*"):substringBefore(" "):join("-")}` | `hello-good`
-| `${allAttributes("abc", "xyz"):join(" now")}` | `hello world nowgood bye world now`
+| `${allMatchingAttributes("[ax].*"):substringBefore(" "):join("-")}` | `hello-goodbye`
+| `${allAttributes("abc", "xyz"):join(" now ")}` | `hello world now goodbye world`
 |=======================================================================================
 
 

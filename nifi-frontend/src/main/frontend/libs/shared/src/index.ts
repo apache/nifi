@@ -60,6 +60,11 @@ export enum ComponentType {
     Flow = 'Flow'
 }
 
+export interface SelectGroup {
+    text: string;
+    options: SelectOption[];
+}
+
 export interface SelectOption {
     text: string;
     value: string | null;

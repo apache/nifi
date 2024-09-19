@@ -257,6 +257,8 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
 import jakarta.ws.rs.WebApplicationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.text.Collator;
@@ -288,20 +290,17 @@ import java.util.stream.Collectors;
 
 public final class DtoFactory {
 
-   @SuppressWarnings("rawtypes")
-   private final static Comparator<Class> CLASS_NAME_COMPARATOR = new Comparator<Class>() {
-       @Override
-       public int compare(final Class class1, final Class class2) {
-           return Collator.getInstance(Locale.US).compare(class1.getSimpleName(), class2.getSimpleName());
-       }
-   };
-   public static final String SENSITIVE_VALUE_MASK = "********";
+    private static final Logger logger = LoggerFactory.getLogger(DtoFactory.class);
 
-   private BulletinRepository bulletinRepository;
-   private ControllerServiceProvider controllerServiceProvider;
-   private EntityFactory entityFactory;
-   private Authorizer authorizer;
-   private ExtensionManager extensionManager;
+    @SuppressWarnings("rawtypes")
+    private final static Comparator<Class> CLASS_NAME_COMPARATOR = (class1, class2) -> Collator.getInstance(Locale.US).compare(class1.getSimpleName(), class2.getSimpleName());
+    public static final String SENSITIVE_VALUE_MASK = "********";
+
+    private BulletinRepository bulletinRepository;
+    private ControllerServiceProvider controllerServiceProvider;
+    private EntityFactory entityFactory;
+    private Authorizer authorizer;
+    private ExtensionManager extensionManager;
 
    public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
        final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
@@ -632,6 +631,7 @@ public final class DtoFactory {
        final FlowFileSummaryDTO dto = new FlowFileSummaryDTO();
        dto.setUuid(summary.getUuid());
        dto.setFilename(summary.getFilename());
+       dto.setMimeType(summary.getMimeType());
 
        dto.setPenalized(summary.isPenalized());
        final long penaltyExpiration = summary.getPenaltyExpirationMillis() - now.getTime();
@@ -660,6 +660,7 @@ public final class DtoFactory {
        final FlowFileDTO dto = new FlowFileDTO();
        dto.setUuid(record.getAttribute(CoreAttributes.UUID.key()));
        dto.setFilename(record.getAttribute(CoreAttributes.FILENAME.key()));
+       dto.setMimeType(record.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
        dto.setPenalized(record.isPenalized());
        final long penaltyExpiration = record.getPenaltyExpirationMillis() - now.getTime();
@@ -3289,9 +3290,15 @@ public final class DtoFactory {
                continue;
            }
 
-           final Class cls = extensionManager.getClass(extensionDefinition);
-           if (cls != null) {
-               classBundles.put(cls, extensionDefinition.getBundle());
+           // Catch Throwable here to protect against an extension that may have been registered, but throws an Error when attempting to access the Class,
+           // we don't need to fail the overall request since we can still return all the other components that are still usable
+           try {
+               final Class cls = extensionManager.getClass(extensionDefinition);
+               if (cls != null) {
+                   classBundles.put(cls, extensionDefinition.getBundle());
+               }
+           } catch (final Throwable t) {
+               logger.warn("Unable to get extension class for [{}]", extensionDefinition.getImplementationClassName(), t);
            }
        }
 

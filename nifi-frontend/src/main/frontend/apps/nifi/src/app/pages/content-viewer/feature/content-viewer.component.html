@@ -1,0 +1,65 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="content-viewer-background h-screen flex flex-col gap-y-2 p-4">
+    <div class="flex justify-between items-center">
+        <div>
+            <img ngSrc="assets/icons/nifi-logo-about.svg" priority width="150" height="64" alt="NiFi Logo" />
+        </div>
+        <form [formGroup]="viewerForm" class="flex flex-col justify-between gap-y-2">
+            <mat-form-field subscriptSizing="dynamic" class="w-72">
+                <mat-label>View</mat-label>
+                <mat-select
+                    formControlName="viewAs"
+                    (selectionChange)="viewAsChanged($event)"
+                    [panelWidth]="panelWidth">
+                    @for (groupOption of viewAsOptions; track groupOption.text) {
+                        @if (groupOption.options.length > 1) {
+                            <mat-optgroup [label]="groupOption.text">
+                                @for (option of groupOption.options; track option.value) {
+                                    <mat-option [value]="option.value">{{ option.text }}</mat-option>
+                                }
+                            </mat-optgroup>
+                        } @else {
+                            <mat-option [value]="groupOption.options[0].value">{{ groupOption.text }}</mat-option>
+                        }
+                    }
+                </mat-select>
+            </mat-form-field>
+            <div class="flex justify-end gap-x-2 items-center">
+                <div>mime.type</div>
+                @if (mimeType) {
+                    <div class="font-medium accent-color">{{ mimeType }}</div>
+                } @else {
+                    <div class="unset">unknown</div>
+                    <div
+                        class="fa fa-warning caution-color"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="The mime type for this content is not known. By default, content will be displayed as hex. Setting the mime.type attribute will ensure the appropriate viewer is selected automatically."></div>
+                }
+            </div>
+        </form>
+    </div>
+    <div class="p-2 flex-1 flex border overflow-y-auto">
+        @if (viewerSelected) {
+            <router-outlet></router-outlet>
+        } @else {
+            <div class="unset">No data reference specified</div>
+        }
+    </div>
+</div>

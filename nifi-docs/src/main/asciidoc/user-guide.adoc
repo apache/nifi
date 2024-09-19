@@ -1444,6 +1444,10 @@ processing order is not further specified but an implementation detail that migh
 
 NOTE: With a <<load_balance_strategy>> configured, the connection has a queue per node in addition to the local queue. The prioritizer will sort the data in each queue independently.
 
+NOTE: When a connection has more FlowFiles than the `nifi.queue.swap.threshold`, new FlowFiles arriving at that connection
+are not prioritized against the active queue, instead they are sent directly to swap. They will be prioritized when they
+get brought back into memory.
+
 ==== Changing Configuration and Context Menu Options
 After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
@@ -2069,7 +2073,7 @@ image:align-horizontally-after.png["Align Horizontally Example Before"]
 [[search]]
 == Search Components in DataFlow
 
-NiFi UI provides searching functionality in order to help easily find components on the canvas. You can use search to find components by name, type, identifier, configuration properties, and their values. Search also makes it possible to refine and narrow the search result based on certain conditions using Filters and Keywords.
+NiFi UI provides searching functionality in order to help easily find components on the canvas. You can use search to find components by name, type, identifier, bundle, configuration properties, and configuration values. Search also makes it possible to refine and narrow the search result based on certain conditions using Filters and Keywords.
 
 [caption="Example 1: "]
 .The result will contain components that match for "processor1".
@@ -2408,9 +2412,7 @@ a Connection's context menu. The listing will return the top 100 FlowFiles in th
 configured priority. The listing can be performed even if the source and destination are actively running.
 
 Additionally, details for a FlowFile in the listing can be viewed by clicking the "Details" button (image:iconDetails.png["Details"]) in the left most column. From here, the FlowFile details and attributes are available as well as buttons for
-downloading or viewing the content. Viewing the content is only available if the `nifi.content.viewer.url` has been configured.
-If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will
-no longer be in the active queue.
+downloading or viewing the content. If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will no longer be in the active queue.
 
 The FlowFiles enqueued in a Connection can also be deleted when necessary. The removal of the FlowFiles is initiated
 via `Empty queue` in the Connection's context menu. This action can also be performed if the source and destination

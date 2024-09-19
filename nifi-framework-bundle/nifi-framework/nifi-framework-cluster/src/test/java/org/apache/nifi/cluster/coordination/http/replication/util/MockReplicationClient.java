@@ -17,7 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.util;
 
-import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.net.URI;
 import java.util.Collections;
@@ -71,7 +70,7 @@ public class MockReplicationClient implements HttpReplicationClient {
     }
 
     @Override
-    public Response replicate(PreparedRequest request, String uri) throws IOException {
+    public Response replicate(PreparedRequest request, URI uri) {
         return new Response() {
 
             @Override
@@ -173,7 +172,7 @@ public class MockReplicationClient implements HttpReplicationClient {
 
             @Override
             public URI getLocation() {
-                return URI.create(uri);
+                return uri;
             }
 
             @Override

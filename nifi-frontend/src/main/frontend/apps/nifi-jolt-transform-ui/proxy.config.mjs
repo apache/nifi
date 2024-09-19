@@ -21,6 +21,7 @@ const target = {
     logLevel: 'debug',
     changeOrigin: true,
     headers: {
+        'X-ProxyScheme': 'http',
         'X-ProxyPort': 4201
     },
     configure: (proxy, _options) => {

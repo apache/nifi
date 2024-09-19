@@ -17,13 +17,7 @@
 
 package org.apache.nifi.record.path;
 
-import org.apache.nifi.json.JsonRecordSource;
-import org.apache.nifi.json.JsonSchemaInference;
-import org.apache.nifi.json.JsonTreeRowRecordReader;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.record.path.exception.RecordPathException;
-import org.apache.nifi.schema.inference.TimeValueInference;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -31,2331 +25,3169 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.uuid5.Uuid5Util;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.function.Executable;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import static java.util.Map.entry;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SuppressWarnings("OptionalGetWithoutIsPresent")
+@SuppressWarnings({"SameParameterValue"})
 public class TestRecordPath {
 
-    private static final String USER_TIMEZONE_PROPERTY = "user.timezone";
+    private static final String USER_TIMEZONE_PROPERTY_NAME = "user.timezone";
+    private static final String INITIAL_USER_TIMEZONE = System.getProperty(USER_TIMEZONE_PROPERTY_NAME);
+    private static final TimeZone INITIAL_DEFAULT_TIMEZONE = TimeZone.getDefault();
 
-    private static final String SYSTEM_TIMEZONE = System.getProperty(USER_TIMEZONE_PROPERTY);
-
-    private static final String TEST_TIMEZONE = "America/Phoenix";
-
-    private static final int TEST_OFFSET_HOURS = 2;
-
-    private static final String TEST_TIMEZONE_OFFSET = String.format("GMT+0%d:00", TEST_OFFSET_HOURS);
+    private static final ZoneId TEST_ZONE_ID = ZoneId.of("America/Phoenix");
+    private static final TimeZone TEST_TIME_ZONE = TimeZone.getTimeZone(TEST_ZONE_ID);
 
     @BeforeAll
     public static void setTestTimezone() {
-        System.setProperty(USER_TIMEZONE_PROPERTY, TEST_TIMEZONE);
+        System.setProperty(USER_TIMEZONE_PROPERTY_NAME, TEST_ZONE_ID.getId());
+        TimeZone.setDefault(TEST_TIME_ZONE);
     }
 
     @AfterAll
     public static void setSystemTimezone() {
-        if (SYSTEM_TIMEZONE != null) {
-            System.setProperty(USER_TIMEZONE_PROPERTY, SYSTEM_TIMEZONE);
+        if (INITIAL_USER_TIMEZONE != null) {
+            System.setProperty(USER_TIMEZONE_PROPERTY_NAME, INITIAL_USER_TIMEZONE);
+        }
+        if (INITIAL_DEFAULT_TIMEZONE != null) {
+            TimeZone.setDefault(INITIAL_DEFAULT_TIMEZONE);
         }
     }
 
-    @Test
-    public void testCompile() {
-        RecordPath.compile("/person/name/last");
-        RecordPath.compile("/person[2]");
-        RecordPath.compile("//person[2]");
-        RecordPath.compile("/person/child[1]//sibling/name");
-
-        // contains is a 'filter function' so can be used as the predicate
-        RecordPath.compile("/name[contains(., 'hello')]");
-
-        // substring is not a filter function so cannot be used as a predicate
-        assertThrows(RecordPathException.class, () -> RecordPath.compile("/name[substring(., 1, 2)]"));
-
-        // substring is not a filter function so can be used as *part* of a predicate but not as the entire predicate
-        RecordPath.compile("/name[substring(., 1, 2) = 'e']");
-    }
+    private final Record record = createExampleRecord();
+    private final Record mainAccountRecord = record.getAsRecord("mainAccount", getAccountSchema());
 
     @Test
-    public void testChildField() {
-        final Map<String, Object> accountValues = new HashMap<>();
-        accountValues.put("id", 1);
-        accountValues.put("balance", 123.45D);
-        final Record accountRecord = new MapRecord(getAccountSchema(), accountValues);
+    void supportsReferenceToRootRecord() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/"));
 
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("mainAccount", accountRecord);
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals(48, RecordPath.compile("/id").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(record, RecordPath.compile("/id").evaluate(record).getSelectedFields().findFirst().get().getParentRecord().get());
-
-        assertEquals("John Doe", RecordPath.compile("/name").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(record, RecordPath.compile("/name").evaluate(record).getSelectedFields().findFirst().get().getParentRecord().get());
-
-        assertEquals(accountRecord, RecordPath.compile("/mainAccount").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(record, RecordPath.compile("/mainAccount").evaluate(record).getSelectedFields().findFirst().get().getParentRecord().get());
-
-        assertEquals(1, RecordPath.compile("/mainAccount/id").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(accountRecord, RecordPath.compile("/mainAccount/id").evaluate(record).getSelectedFields().findFirst().get().getParentRecord().get());
-
-        assertEquals(123.45D, RecordPath.compile("/mainAccount/balance").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(accountRecord, RecordPath.compile("/mainAccount/id").evaluate(record).getSelectedFields().findFirst().get().getParentRecord().get());
-    }
-
-    @Test
-    public void testRootRecord() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        final FieldValue fieldValue = RecordPath.compile("/").evaluate(record).getSelectedFields().findFirst().get();
+        final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
         assertEquals(Optional.empty(), fieldValue.getParent());
         assertEquals(record, fieldValue.getValue());
     }
 
     @Test
-    public void testWildcardChild() {
-        final Map<String, Object> accountValues = new HashMap<>();
-        accountValues.put("id", 1);
-        accountValues.put("balance", 123.45D);
-        final Record accountRecord = new MapRecord(getAccountSchema(), accountValues);
+    void supportsReferenceToDirectChildField() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/name"));
 
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("mainAccount", accountRecord);
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("/mainAccount/*").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(2, fieldValues.size());
-
-        for (final FieldValue fieldValue : fieldValues) {
-            assertEquals(accountRecord, fieldValue.getParentRecord().get());
-        }
-
-        assertEquals("id", fieldValues.get(0).getField().getFieldName());
-        assertEquals(1, fieldValues.get(0).getValue());
-
-        assertEquals("balance", fieldValues.get(1).getField().getFieldName());
-        assertEquals(123.45D, fieldValues.get(1).getValue());
-
-        RecordPath.compile("/mainAccount/*[. > 100]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(122.44D));
-        assertEquals(1, accountValues.get("id"));
-        assertEquals(122.44D, accountValues.get("balance"));
-    }
-
-    @Test
-    public void testWildcardWithArray() {
-        final Map<String, Object> accountValues = new HashMap<>();
-        accountValues.put("id", 1);
-        accountValues.put("balance", 123.45D);
-        final Record accountRecord = new MapRecord(getAccountSchema(), accountValues);
-
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("accounts", new Object[] {accountRecord});
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("/*[0]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-
-        final FieldValue fieldValue = fieldValues.get(0);
-        assertEquals("accounts", fieldValue.getField().getFieldName());
-        assertEquals(record, fieldValue.getParentRecord().get());
-        assertEquals(accountRecord, fieldValue.getValue());
-
-        final Map<String, Object> updatedAccountValues = new HashMap<>(accountValues);
-        updatedAccountValues.put("balance", 122.44D);
-        final Record updatedAccountRecord = new MapRecord(getAccountSchema(), updatedAccountValues);
-        RecordPath.compile("/*[0]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(updatedAccountRecord));
-
-        final Object[] accountRecords = (Object[]) record.getValue("accounts");
-        assertEquals(1, accountRecords.length);
-        final Record recordToVerify = (Record) accountRecords[0];
-        assertEquals(122.44D, recordToVerify.getValue("balance"));
-        assertEquals(48, record.getValue("id"));
-        assertEquals("John Doe", record.getValue("name"));
-    }
-
-    @Test
-    public void testDescendantField() {
-        final Map<String, Object> accountValues = new HashMap<>();
-        accountValues.put("id", 1);
-        accountValues.put("balance", 123.45D);
-        final Record accountRecord = new MapRecord(getAccountSchema(), accountValues);
-
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("mainAccount", accountRecord);
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("//id").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(2, fieldValues.size());
-
-        final FieldValue first = fieldValues.get(0);
-        final FieldValue second = fieldValues.get(1);
-
-        assertEquals(RecordFieldType.INT, first.getField().getDataType().getFieldType());
-        assertEquals(RecordFieldType.INT, second.getField().getDataType().getFieldType());
-
-        assertEquals(48, first.getValue());
-        assertEquals(1, second.getValue());
-    }
-
-    @Test
-    public void testDescendantFieldWithArrayOfRecords() throws IOException, MalformedRecordException {
-        final String recordJson = """
-            {
-              "container" : {
-                "id" : "0",
-                "metadata" : {
-                  "filename" : "file1.pdf",
-                  "page.count" : "165"
-                },
-                "textElement" : null,
-                "containers" : [ {
-                  "id" : "1",
-                  "title" : null,
-                  "metadata" : {
-                    "end.page" : 1,
-                    "start.page" : 1
-                  },
-                  "textElement" : {
-                    "text" : "Table of Contents",
-                    "metadata" : { }
-                  },
-                  "containers" : [ ]
-                } ]
-              }
-            }
-            """;
-
-        final JsonSchemaInference schemaInference = new JsonSchemaInference(new TimeValueInference("MM/dd/yyyy", "HH:mm:ss", "MM/dd/yyyy HH:mm:ss"));
-        final JsonRecordSource jsonRecordSource = new JsonRecordSource(new ByteArrayInputStream(recordJson.getBytes(StandardCharsets.UTF_8)));
-        final RecordSchema schema = schemaInference.inferSchema(jsonRecordSource);
-
-        final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(new ByteArrayInputStream(recordJson.getBytes(StandardCharsets.UTF_8)), Mockito.mock(ComponentLog.class),
-            schema, "MM/dd/yyyy", "HH:mm:ss", "MM/dd/yyyy HH:mm:ss");
-        final Record record = reader.nextRecord();
-
-        final List<FieldValue> fieldValues = RecordPath.compile("//textElement[./text = 'Table of Contents']/metadata/insertion").evaluate(record).getSelectedFields().toList();
-        assertEquals(1, fieldValues.size());
-        fieldValues.getFirst().updateValue("Hello");
-        record.incorporateInactiveFields();
-
-        final Record container = (Record) record.getValue("container");
-        final Object[] containers = (Object[]) container.getValue("containers");
-        final Record textElement = (Record) (((Record) containers[0]).getValue("textElement"));
-        final Record metadata = (Record) textElement.getValue("metadata");
-        assertEquals("Hello", metadata.getValue("insertion"));
-
-        final List<RecordField> metadataFields = metadata.getSchema().getFields();
-        assertEquals(1, metadataFields.size());
-        assertEquals("insertion", metadataFields.getFirst().getFieldName());
-    }
-
-    private Record createAccountRecord(final int id, final double balance) {
-        final Map<String, Object> accountValues = new HashMap<>();
-        accountValues.put("id", id);
-        accountValues.put("balance", balance);
-        return new MapRecord(getAccountSchema(), accountValues);
-    }
-
-    @Test
-    public void testParent() {
-        final Record accountRecord = createAccountRecord(1, 123.45D);
-
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("mainAccount", accountRecord);
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("//id/..").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(2, fieldValues.size());
-
-        final FieldValue first = fieldValues.get(0);
-        final FieldValue second = fieldValues.get(1);
-
-        assertEquals(RecordFieldType.RECORD, first.getField().getDataType().getFieldType());
-        assertEquals(RecordFieldType.RECORD, second.getField().getDataType().getFieldType());
-
-        assertEquals(record, first.getValue());
-        assertEquals(accountRecord, second.getValue());
-    }
-
-    @Test
-    public void testMapKey() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("city", "New York");
-        attributes.put("state", "NY");
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("attributes", attributes);
-        final Record record = new MapRecord(schema, values);
-
-        final FieldValue fieldValue = RecordPath.compile("/attributes['city']").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("attributes", fieldValue.getField().getFieldName());
-        assertEquals("New York", fieldValue.getValue());
-        assertEquals(record, fieldValue.getParentRecord().get());
-    }
-
-    @Test
-    public void testMapKeyReferencedWithCurrentField() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("city", "New York");
-        attributes.put("state", "NY");
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("attributes", attributes);
-        final Record record = new MapRecord(schema, values);
-
-        final FieldValue fieldValue = RecordPath.compile("/attributes/.['city']").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("attributes", fieldValue.getField().getFieldName());
-        assertEquals("New York", fieldValue.getValue());
-        assertEquals(record, fieldValue.getParentRecord().get());
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testUpdateMap() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("city", "New York");
-        attributes.put("state", "NY");
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("attributes", attributes);
-        final Record record = new MapRecord(schema, values);
-
-        RecordPath.compile("/attributes['city']").evaluate(record).getSelectedFields().findFirst().get().updateValue("Boston");
-        assertEquals("Boston", ((Map<String, Object>) record.getValue("attributes")).get("city"));
-    }
-
-    @Test
-    public void testMapWildcard() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("city", "New York");
-        attributes.put("state", "NY");
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("attributes", attributes);
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("/attributes[*]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(2, fieldValues.size());
-
-        assertEquals("New York", fieldValues.get(0).getValue());
-        assertEquals("NY", fieldValues.get(1).getValue());
-
-        for (final FieldValue fieldValue : fieldValues) {
-            assertEquals("attributes", fieldValue.getField().getFieldName());
-            assertEquals(record, fieldValue.getParentRecord().get());
-        }
-
-        RecordPath.compile("/attributes[*]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue("Unknown"));
-        assertEquals("Unknown", attributes.get("city"));
-        assertEquals("Unknown", attributes.get("state"));
-
-        RecordPath.compile("/attributes[*][fieldName(.) = 'attributes']").evaluate(record).getSelectedFields().forEach(field -> field.updateValue("Unknown"));
-        assertEquals("Unknown", attributes.get("city"));
-        assertEquals("Unknown", attributes.get("state"));
-
-    }
-
-    @Test
-    public void testMapMultiKey() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("city", "New York");
-        attributes.put("state", "NY");
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("attributes", attributes);
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("/attributes['city', 'state']").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(2, fieldValues.size());
-
-        assertEquals("New York", fieldValues.get(0).getValue());
-        assertEquals("NY", fieldValues.get(1).getValue());
-
-        for (final FieldValue fieldValue : fieldValues) {
-            assertEquals("attributes", fieldValue.getField().getFieldName());
-            assertEquals(record, fieldValue.getParentRecord().get());
-        }
-
-        RecordPath.compile("/attributes['city', 'state']").evaluate(record).getSelectedFields().forEach(field -> field.updateValue("Unknown"));
-        assertEquals("Unknown", attributes.get("city"));
-        assertEquals("Unknown", attributes.get("state"));
-    }
-
-    @Test
-    public void testEscapedFieldName() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name,date", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name,date", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        final FieldValue fieldValue = RecordPath.compile("/'name,date'").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("name,date", fieldValue.getField().getFieldName());
-        assertEquals("John Doe", fieldValue.getValue());
-        assertEquals(record, fieldValue.getParentRecord().get());
-    }
-
-    @Test
-    public void testSingleArrayIndex() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-        final Record record = new MapRecord(schema, values);
-
-        final FieldValue fieldValue = RecordPath.compile("/numbers[3]").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("numbers", fieldValue.getField().getFieldName());
-        assertEquals(3, fieldValue.getValue());
-        assertEquals(record, fieldValue.getParentRecord().get());
-    }
-
-    @Test
-    public void testSingleArrayRange() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("/numbers[0..1]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        for (final FieldValue fieldValue : fieldValues) {
-            assertEquals("numbers", fieldValue.getField().getFieldName());
-            assertEquals(record, fieldValue.getParentRecord().get());
-        }
-
-        assertEquals(2, fieldValues.size());
-        for (int i = 0; i < 1; i++) {
-            assertEquals(i, fieldValues.get(0).getValue());
-        }
-    }
-
-
-    @Test
-    public void testMultiArrayIndex() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("/numbers[3,6, -1, -2]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        int i = 0;
-        final int[] expectedValues = new int[] {3, 6, 9, 8};
-        for (final FieldValue fieldValue : fieldValues) {
-            assertEquals("numbers", fieldValue.getField().getFieldName());
-            assertEquals(expectedValues[i++], fieldValue.getValue());
-            assertEquals(record, fieldValue.getParentRecord().get());
-        }
-
-        RecordPath.compile("/numbers[3,6, -1, -2]").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(99));
-        assertArrayEquals(new Object[] {0, 1, 2, 99, 4, 5, 99, 7, 99, 99}, (Object[]) values.get("numbers"));
-    }
-
-    @Test
-    public void testMultiArrayIndexWithRanges() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-        final Record record = new MapRecord(schema, values);
-
-        List<FieldValue> fieldValues = RecordPath.compile("/numbers[0, 2, 4..7, 9]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        for (final FieldValue fieldValue : fieldValues) {
-            assertEquals("numbers", fieldValue.getField().getFieldName());
-            assertEquals(record, fieldValue.getParentRecord().get());
-        }
-
-        int[] expectedValues = new int[] {0, 2, 4, 5, 6, 7, 9};
-        assertEquals(expectedValues.length, fieldValues.size());
-        for (int i = 0; i < expectedValues.length; i++) {
-            assertEquals(expectedValues[i], fieldValues.get(i).getValue());
-        }
-
-        fieldValues = RecordPath.compile("/numbers[0..-1]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        for (final FieldValue fieldValue : fieldValues) {
-            assertEquals("numbers", fieldValue.getField().getFieldName());
-            assertEquals(record, fieldValue.getParentRecord().get());
-        }
-        expectedValues = new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        assertEquals(expectedValues.length, fieldValues.size());
-        for (int i = 0; i < expectedValues.length; i++) {
-            assertEquals(expectedValues[i], fieldValues.get(i).getValue());
-        }
-
-
-        fieldValues = RecordPath.compile("/numbers[-1..-1]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        for (final FieldValue fieldValue : fieldValues) {
-            assertEquals("numbers", fieldValue.getField().getFieldName());
-            assertEquals(record, fieldValue.getParentRecord().get());
-        }
-        expectedValues = new int[] {9};
-        assertEquals(expectedValues.length, fieldValues.size());
-        for (int i = 0; i < expectedValues.length; i++) {
-            assertEquals(expectedValues[i], fieldValues.get(i).getValue());
-        }
-
-        fieldValues = RecordPath.compile("/numbers[*]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        for (final FieldValue fieldValue : fieldValues) {
-            assertEquals("numbers", fieldValue.getField().getFieldName());
-            assertEquals(record, fieldValue.getParentRecord().get());
-        }
-        expectedValues = new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        assertEquals(expectedValues.length, fieldValues.size());
-        for (int i = 0; i < expectedValues.length; i++) {
-            assertEquals(expectedValues[i], fieldValues.get(i).getValue());
-        }
-
-        fieldValues = RecordPath.compile("/xx[1,2,3]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(0, fieldValues.size());
-    }
-
-    @Test
-    public void testEqualsPredicate() {
-        final Map<String, Object> accountValues = new HashMap<>();
-        accountValues.put("id", 1);
-        accountValues.put("balance", 123.45D);
-        final Record accountRecord = new MapRecord(getAccountSchema(), accountValues);
-
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("mainAccount", accountRecord);
-        values.put("numbers", new Object[] {1, 2, 3, 4, 4, 4, 5});
-        final Record record = new MapRecord(schema, values);
-
-
-        List<FieldValue> fieldValues = RecordPath.compile("/numbers[0..-1][. = 4]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(3, fieldValues.size());
-
-        for (final FieldValue fieldValue : fieldValues) {
-            final String fieldName = fieldValue.getField().getFieldName();
-            assertEquals("numbers", fieldName);
-            assertEquals(RecordFieldType.INT, fieldValue.getField().getDataType().getFieldType());
-            assertEquals(4, fieldValue.getValue());
-            assertEquals(record, fieldValue.getParentRecord().get());
-        }
-
-        fieldValues = RecordPath.compile("//id[. = 48]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-        final FieldValue fieldValue = fieldValues.get(0);
-
-        assertEquals("id", fieldValue.getField().getFieldName());
-        assertEquals(RecordFieldType.INT.getDataType(), fieldValue.getField().getDataType());
-        assertEquals(48, fieldValue.getValue());
-        assertEquals(record, fieldValue.getParentRecord().get());
-    }
-
-    @Test
-    public void testRelativePath() {
-        final Map<String, Object> accountValues = new HashMap<>();
-        accountValues.put("id", 1);
-        accountValues.put("balance", 123.45D);
-        final Record accountRecord = new MapRecord(getAccountSchema(), accountValues);
-
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("mainAccount", accountRecord);
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("/mainAccount/././balance/.").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-
-        final FieldValue fieldValue = fieldValues.get(0);
-        assertEquals(accountRecord, fieldValue.getParentRecord().get());
-        assertEquals(123.45D, fieldValue.getValue());
-        assertEquals("balance", fieldValue.getField().getFieldName());
-
-        RecordPath.compile("/mainAccount/././balance/.").evaluate(record).getSelectedFields().forEach(field -> field.updateValue(123.44D));
-        assertEquals(123.44D, accountValues.get("balance"));
-    }
-
-    @Test
-    public void testCompareToLiteral() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("numbers", new Object[] {0, 1, 2});
-        final Record record = new MapRecord(schema, values);
-
-        List<FieldValue> fieldValues = RecordPath.compile("/id[. > 42]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-
-        fieldValues = RecordPath.compile("/id[. < 42]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(0, fieldValues.size());
-    }
-
-    @Test
-    public void testCompareToAbsolute() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("numbers", new Object[] {0, 1, 2});
-        final Record record = new MapRecord(schema, values);
-
-        List<FieldValue> fieldValues = RecordPath.compile("/numbers[0..-1][. < /id]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(3, fieldValues.size());
-
-        fieldValues = RecordPath.compile("/id[. > /numbers[-1]]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-    }
-
-    @Test
-    public void testCompareWithEmbeddedPaths() {
-        final Map<String, Object> accountValues1 = new HashMap<>();
-        accountValues1.put("id", 1);
-        accountValues1.put("balance", 10_000.00D);
-        final Record accountRecord1 = new MapRecord(getAccountSchema(), accountValues1);
-
-        final Map<String, Object> accountValues2 = new HashMap<>();
-        accountValues2.put("id", 2);
-        accountValues2.put("balance", 48.02D);
-        final Record accountRecord2 = new MapRecord(getAccountSchema(), accountValues2);
-
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("accounts", new Object[] {accountRecord1, accountRecord2});
-        final Record record = new MapRecord(schema, values);
-
-        final RecordPath recordPath = RecordPath.compile("/accounts[0..-1][./balance > 100]");
-        List<FieldValue> fieldValues = recordPath.evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-
-        final FieldValue fieldValue = fieldValues.get(0);
-        assertEquals("accounts", fieldValue.getField().getFieldName());
-        assertEquals(0, ((ArrayIndexFieldValue) fieldValue).getArrayIndex());
-        assertEquals(record, fieldValue.getParentRecord().get());
-        assertEquals(accountRecord1, fieldValue.getValue());
-    }
-
-    @Test
-    public void testPredicateInMiddleOfPath() {
-        final Map<String, Object> accountValues1 = new HashMap<>();
-        accountValues1.put("id", 1);
-        accountValues1.put("balance", 10_000.00D);
-        final Record accountRecord1 = new MapRecord(getAccountSchema(), accountValues1);
-
-        final Map<String, Object> accountValues2 = new HashMap<>();
-        accountValues2.put("id", 2);
-        accountValues2.put("balance", 48.02D);
-        final Record accountRecord2 = new MapRecord(getAccountSchema(), accountValues2);
-
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("accounts", new Object[] {accountRecord1, accountRecord2});
-        final Record record = new MapRecord(schema, values);
-
-        final RecordPath recordPath = RecordPath.compile("/accounts[0..-1][./balance > 100]/id");
-        List<FieldValue> fieldValues = recordPath.evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-
-        final FieldValue fieldValue = fieldValues.get(0);
-        assertEquals("id", fieldValue.getField().getFieldName());
-        assertEquals(accountRecord1, fieldValue.getParentRecord().get());
-        assertEquals(1, fieldValue.getValue());
-    }
-
-    @Test
-    public void testUpdateValueOnMatchingFields() {
-        final Map<String, Object> accountValues1 = new HashMap<>();
-        accountValues1.put("id", 1);
-        accountValues1.put("balance", 10_000.00D);
-        final Record accountRecord1 = new MapRecord(getAccountSchema(), accountValues1);
-
-        final Map<String, Object> accountValues2 = new HashMap<>();
-        accountValues2.put("id", 2);
-        accountValues2.put("balance", 48.02D);
-        final Record accountRecord2 = new MapRecord(getAccountSchema(), accountValues2);
-
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        values.put("accounts", new Object[] {accountRecord1, accountRecord2});
-        final Record record = new MapRecord(schema, values);
-
-        final RecordPath recordPath = RecordPath.compile("/accounts[0..-1][./balance > 100]/id");
-        recordPath.evaluate(record).getSelectedFields().findFirst().get().updateValue(100);
-
-        assertEquals(48, record.getValue("id"));
-        assertEquals(100, accountRecord1.getValue("id"));
-        assertEquals(2, accountRecord2.getValue("id"));
-    }
-
-    @Test
-    public void testPredicateDoesNotIncludeFieldsThatDontHaveRelativePath() {
-        final List<RecordField> addressFields = new ArrayList<>();
-        addressFields.add(new RecordField("city", RecordFieldType.STRING.getDataType()));
-        addressFields.add(new RecordField("state", RecordFieldType.STRING.getDataType()));
-        addressFields.add(new RecordField("zip", RecordFieldType.STRING.getDataType()));
-        final RecordSchema addressSchema = new SimpleRecordSchema(addressFields);
-
-        final List<RecordField> detailsFields = new ArrayList<>();
-        detailsFields.add(new RecordField("position", RecordFieldType.STRING.getDataType()));
-        detailsFields.add(new RecordField("managerName", RecordFieldType.STRING.getDataType()));
-        final RecordSchema detailsSchema = new SimpleRecordSchema(detailsFields);
-
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("address", RecordFieldType.RECORD.getRecordDataType(addressSchema)));
-        fields.add(new RecordField("details", RecordFieldType.RECORD.getRecordDataType(detailsSchema)));
-        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
-
-        final Record record = new MapRecord(recordSchema, new HashMap<>());
-        record.setValue("name", "John Doe");
-
-        final Record addressRecord = new MapRecord(addressSchema, new HashMap<>());
-        addressRecord.setValue("city", "San Francisco");
-        addressRecord.setValue("state", "CA");
-        addressRecord.setValue("zip", "12345");
-        record.setValue("address", addressRecord);
-
-        final Record detailsRecord = new MapRecord(detailsSchema, new HashMap<>());
-        detailsRecord.setValue("position", "Developer");
-        detailsRecord.setValue("managerName", "Jane Doe");
-        record.setValue("details", detailsRecord);
-
-        final RecordPath recordPath = RecordPath.compile("/*[./state != 'NY']");
-        final RecordPathResult result = recordPath.evaluate(record);
-        final List<FieldValue> fieldValues = result.getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-
-        final FieldValue fieldValue = fieldValues.get(0);
-        assertEquals("address", fieldValue.getField().getFieldName());
-
-        assertEquals("12345", RecordPath.compile("/*[./state != 'NY']/zip").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testPredicateWithAbsolutePath() {
-        final List<RecordField> addressFields = new ArrayList<>();
-        addressFields.add(new RecordField("city", RecordFieldType.STRING.getDataType()));
-        addressFields.add(new RecordField("state", RecordFieldType.STRING.getDataType()));
-        addressFields.add(new RecordField("zip", RecordFieldType.STRING.getDataType()));
-        final RecordSchema addressSchema = new SimpleRecordSchema(addressFields);
-
-        final List<RecordField> detailsFields = new ArrayList<>();
-        detailsFields.add(new RecordField("position", RecordFieldType.STRING.getDataType()));
-        detailsFields.add(new RecordField("preferredState", RecordFieldType.STRING.getDataType()));
-        final RecordSchema detailsSchema = new SimpleRecordSchema(detailsFields);
-
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("address1", RecordFieldType.RECORD.getRecordDataType(addressSchema)));
-        fields.add(new RecordField("address2", RecordFieldType.RECORD.getRecordDataType(addressSchema)));
-        fields.add(new RecordField("details", RecordFieldType.RECORD.getRecordDataType(detailsSchema)));
-        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
-
-        final Record record = new MapRecord(recordSchema, new HashMap<>());
-        record.setValue("name", "John Doe");
-
-        final Record address1Record = new MapRecord(addressSchema, new HashMap<>());
-        address1Record.setValue("city", "San Francisco");
-        address1Record.setValue("state", "CA");
-        address1Record.setValue("zip", "12345");
-        record.setValue("address1", address1Record);
-
-        final Record address2Record = new MapRecord(addressSchema, new HashMap<>());
-        address2Record.setValue("city", "New York");
-        address2Record.setValue("state", "NY");
-        address2Record.setValue("zip", "01234");
-        record.setValue("address2", address2Record);
-
-        final Record detailsRecord = new MapRecord(detailsSchema, new HashMap<>());
-        detailsRecord.setValue("position", "Developer");
-        detailsRecord.setValue("preferredState", "NY");
-        record.setValue("details", detailsRecord);
-
-        final RecordPath recordPath = RecordPath.compile("/*[./state = /details/preferredState]");
-        final RecordPathResult result = recordPath.evaluate(record);
-        final List<FieldValue> fieldValues = result.getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-
-        final FieldValue fieldValue = fieldValues.get(0);
-        assertEquals("address2", fieldValue.getField().getFieldName());
-    }
-
-    @Test
-    public void testRelativePathOnly() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        final FieldValue recordFieldValue = new StandardFieldValue(record, new RecordField("record", RecordFieldType.RECORD.getDataType()), null);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("./name").evaluate(record, recordFieldValue).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-
-        final FieldValue fieldValue = fieldValues.get(0);
-        assertEquals("John Doe", fieldValue.getValue());
-        assertEquals(record, fieldValue.getParentRecord().get());
-        assertEquals("name", fieldValue.getField().getFieldName());
-    }
-
-    @Test
-    public void testRelativePathAgainstNonRecordField() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        final FieldValue recordFieldValue = new StandardFieldValue(record, new RecordField("root", RecordFieldType.RECORD.getRecordDataType(record.getSchema())), null);
-        final FieldValue nameFieldValue = new StandardFieldValue("John Doe", new RecordField("name", RecordFieldType.STRING.getDataType()), recordFieldValue);
-
-        final List<FieldValue> fieldValues = RecordPath.compile(".").evaluate(record, nameFieldValue).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-
-        final FieldValue fieldValue = fieldValues.get(0);
-        assertEquals("John Doe", fieldValue.getValue());
-        assertEquals(record, fieldValue.getParentRecord().get());
-        assertEquals("name", fieldValue.getField().getFieldName());
-
-        fieldValue.updateValue("Jane Doe");
-        assertEquals("Jane Doe", record.getValue("name"));
-    }
-
-    @Test
-    public void testSubstringFunction() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        final FieldValue fieldValue = RecordPath.compile("substring(/name, 0, 4)").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("John", fieldValue.getValue());
-
-        assertEquals("John", RecordPath.compile("substring(/name, 0, -5)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("substring(/name, 1000, 1005)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("substring(/name, 4, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substring(/name, 0, 10000)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("substring(/name, -50, -1)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testSubstringBeforeFunction() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("John", RecordPath.compile("substringBefore(/name, ' ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringBefore(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringBefore(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        assertEquals("John D", RecordPath.compile("substringBeforeLast(/name, 'o')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringBeforeLast(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringBeforeLast(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testSubstringAfterFunction() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("hn Doe", RecordPath.compile("substringAfter(/name, 'o')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringAfter(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringAfter(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("n Doe", RecordPath.compile("substringAfter(/name, 'oh')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        assertEquals("e", RecordPath.compile("substringAfterLast(/name, 'o')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringAfterLast(/name, 'XYZ')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("substringAfterLast(/name, '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("n Doe", RecordPath.compile("substringAfterLast(/name, 'oh')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testContains() {
-        final Record record = createSimpleRecord();
-        assertEquals("John Doe", RecordPath.compile("/name[contains(., 'o')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(0L, RecordPath.compile("/name[contains(., 'x')]").evaluate(record).getSelectedFields().count());
-
-        record.setValue("name", "John Doe 48");
-        assertEquals("John Doe 48", RecordPath.compile("/name[contains(., /id)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testStartsWith() {
-        final Record record = createSimpleRecord();
-        assertEquals("John Doe", RecordPath.compile("/name[startsWith(., 'J')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(0L, RecordPath.compile("/name[startsWith(., 'x')]").evaluate(record).getSelectedFields().count());
-        assertEquals("John Doe", RecordPath.compile("/name[startsWith(., '')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testEndsWith() {
-        final Record record = createSimpleRecord();
-        assertEquals("John Doe", RecordPath.compile("/name[endsWith(., 'e')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(0L, RecordPath.compile("/name[endsWith(., 'x')]").evaluate(record).getSelectedFields().count());
-        assertEquals("John Doe", RecordPath.compile("/name[endsWith(., '')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testIsEmpty() {
-        final Record record = createSimpleRecord();
-        assertEquals("John Doe", RecordPath.compile("/name[isEmpty(../missing)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("/name[isEmpty(/missing)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(0L, RecordPath.compile("/name[isEmpty(../id)]").evaluate(record).getSelectedFields().count());
-
-        record.setValue("missing", "   ");
-        assertEquals(0L, RecordPath.compile("/name[isEmpty(/missing)]").evaluate(record).getSelectedFields().count());
-    }
-
-
-    @Test
-    public void testIsBlank() {
-        final Record record = createSimpleRecord();
-        assertEquals("John Doe", RecordPath.compile("/name[isBlank(../missing)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        record.setValue("missing", "   ");
-        assertEquals("John Doe", RecordPath.compile("/name[isBlank(../missing)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("/name[isBlank(/missing)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(0L, RecordPath.compile("/name[isBlank(../id)]").evaluate(record).getSelectedFields().count());
-    }
-
-    @Test
-    public void testContainsRegex() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("John Doe", RecordPath.compile("/name[containsRegex(., 'o')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("/name[containsRegex(., '[xo]')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(0L, RecordPath.compile("/name[containsRegex(., 'x')]").evaluate(record).getSelectedFields().count());
+        final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+        assertFieldValue(record, "name", "John Doe", fieldValue);
     }
 
     @Test
-    public void testNot() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+    void supportsReferenceToNestedChildField() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/mainAccount/balance"));
 
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("John Doe", RecordPath.compile("/name[not(contains(., 'x'))]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(0L, RecordPath.compile("/name[not(. = 'John Doe')]").evaluate(record).getSelectedFields().count());
-        assertEquals("John Doe", RecordPath.compile("/name[not(. = 'Jane Doe')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testChainingFunctions() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("John Doe", RecordPath.compile("/name[contains(substringAfter(., 'o'), 'h')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-
-
-    @Test
-    public void testMatchesRegex() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals(0L, RecordPath.compile("/name[matchesRegex(., 'John D')]").evaluate(record).getSelectedFields().count());
-        assertEquals("John Doe", RecordPath.compile("/name[matchesRegex(., '[John Doe]{8}')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testReplace() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("John Doe", RecordPath.compile("/name[replace(../id, 48, 18) = 18]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(0L, RecordPath.compile("/name[replace(../id, 48, 18) = 48]").evaluate(record).getSelectedFields().count());
-
-        assertEquals("Jane Doe", RecordPath.compile("replace(/name, 'ohn', 'ane')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("replace(/name, 'ohnny', 'ane')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        assertEquals("John 48", RecordPath.compile("replace(/name, 'Doe', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("23", RecordPath.compile("replace(/id, 48, 23)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testReplaceRegex() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("ohn oe", RecordPath.compile("replaceRegex(/name, '[JD]', '')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("replaceRegex(/name, 'ohnny', 'ane')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        assertEquals("11", RecordPath.compile("replaceRegex(/id, '[0-9]', 1)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        assertEquals("Jxohn Dxoe", RecordPath.compile("replaceRegex(/name, '([JD])', '$1x')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        assertEquals("Jxohn Dxoe", RecordPath.compile("replaceRegex(/name, '(?<hello>[JD])', '${hello}x')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        assertEquals("48ohn 48oe", RecordPath.compile("replaceRegex(/name, '(?<hello>[JD])', /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-    }
-
-    @Test
-    public void testReplaceRegexEscapedCharacters() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        final Record record = new MapRecord(schema, values);
-
-        // Special character cases
-        values.put("name", "John Doe");
-        assertEquals("John\nDoe", RecordPath.compile("replaceRegex(/name, '[\\s]', '\\n')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Replacing whitespace to new line");
-
-        values.put("name", "John\nDoe");
-        assertEquals("John Doe", RecordPath.compile("replaceRegex(/name, '\\n', ' ')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Replacing new line to whitespace");
-
-        values.put("name", "John Doe");
-        assertEquals("John\tDoe", RecordPath.compile("replaceRegex(/name, '[\\s]', '\\t')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Replacing whitespace to tab");
-
-        values.put("name", "John\tDoe");
-        assertEquals("John Doe", RecordPath.compile("replaceRegex(/name, '\\t', ' ')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Replacing tab to whitespace");
-
-    }
-
-    @Test
-    public void testReplaceRegexEscapedQuotes() {
-
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        final Record record = new MapRecord(schema, values);
-
-        // Quotes
-        // NOTE: At Java code, a single back-slash needs to be escaped with another-back slash, but needn't do so at NiFi UI.
-        //       The test record path is equivalent to replaceRegex(/name, '\'', '"')
-        values.put("name", "'John' 'Doe'");
-        assertEquals("\"John\" \"Doe\"", RecordPath.compile("replaceRegex(/name, '\\'', '\"')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Replacing quote to double-quote");
-
-        values.put("name", "\"John\" \"Doe\"");
-        assertEquals("'John' 'Doe'", RecordPath.compile("replaceRegex(/name, '\"', '\\'')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Replacing double-quote to single-quote");
-
-        values.put("name", "'John' 'Doe'");
-        assertEquals("\"John\" \"Doe\"", RecordPath.compile("replaceRegex(/name, \"'\", \"\\\"\")")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Replacing quote to double-quote, the function arguments are wrapped by double-quote");
-
-        values.put("name", "\"John\" \"Doe\"");
-        assertEquals("'John' 'Doe'", RecordPath.compile("replaceRegex(/name, \"\\\"\", \"'\")")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Replacing double-quote to single-quote, the function arguments are wrapped by double-quote");
-
-    }
-
-    @Test
-    public void testReplaceRegexEscapedBackSlashes() {
-
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        final Record record = new MapRecord(schema, values);
-
-        // Back-slash
-        // NOTE: At Java code, a single back-slash needs to be escaped with another-back slash, but needn't do so at NiFi UI.
-        //       The test record path is equivalent to replaceRegex(/name, '\\', '/')
-        values.put("name", "John\\Doe");
-        assertEquals("John/Doe", RecordPath.compile("replaceRegex(/name, '\\\\', '/')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Replacing a back-slash to forward-slash");
-
-        values.put("name", "John/Doe");
-        assertEquals("John\\Doe", RecordPath.compile("replaceRegex(/name, '/', '\\\\')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Replacing a forward-slash to back-slash");
-
-    }
-
-    @Test
-    public void testReplaceRegexEscapedBrackets() {
-
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        final Record record = new MapRecord(schema, values);
-
-        // Brackets
-        values.put("name", "J[o]hn Do[e]");
-        assertEquals("J(o)hn Do(e)", RecordPath.compile("replaceRegex(replaceRegex(/name, '\\[', '('), '\\]', ')')")
-                .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Square brackets can be escaped with back-slash");
-
-        values.put("name", "J(o)hn Do(e)");
-        assertEquals("J[o]hn Do[e]", RecordPath.compile("replaceRegex(replaceRegex(/name, '\\(', '['), '\\)', ']')")
-                        .evaluate(record).getSelectedFields().findFirst().get().getValue(),
-                "Brackets can be escaped with back-slash");
-    }
-
-    @Test
-    public void testReplaceNull() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("missing", RecordFieldType.LONG.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals(48, RecordPath.compile("replaceNull(/missing, /id)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(14, RecordPath.compile("replaceNull(/missing, 14)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(48, RecordPath.compile("replaceNull(/id, 14)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testConcat() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("fullName", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("firstName", RecordFieldType.LONG.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("lastName", "Doe");
-        values.put("firstName", "John");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("John Doe: 48", RecordPath.compile("concat(/firstName, ' ', /lastName, ': ', 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testJoinWithTwoFields() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("fullName", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("firstName", RecordFieldType.LONG.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("lastName", "Doe");
-        values.put("firstName", "John");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("Doe, John", RecordPath.compile("join(', ', /lastName, /firstName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testJoinWithArray() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("names", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("names", new String[] {"John", "Jane", "Jacob", "Judy"});
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("John,Jane,Jacob,Judy", RecordPath.compile("join(',', /names)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testJoinWithArrayAndMultipleFields() {
-        final List<RecordField> personFields = new ArrayList<>();
-        personFields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
-        personFields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
-        personFields.add(new RecordField("friends", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
-        final RecordSchema personSchema = new SimpleRecordSchema(personFields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("friends", new String[] {"John", "Jane", "Jacob", "Judy"});
-        values.put("firstName", "John");
-        values.put("lastName", "Doe");
-        final Record record = new MapRecord(personSchema, values);
-
-        assertEquals("Doe\nJohn\nJane\nJacob", RecordPath.compile("join('\\n', /lastName, /firstName, /friends[1..2])").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testAnchored() {
-        final List<RecordField> personFields = new ArrayList<>();
-        personFields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
-        personFields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
-        final RecordSchema personSchema = new SimpleRecordSchema(personFields);
-
-        final List<RecordField> employeeFields = new ArrayList<>();
-        employeeFields.add(new RecordField("self", RecordFieldType.RECORD.getRecordDataType(personSchema)));
-        employeeFields.add(new RecordField("manager", RecordFieldType.RECORD.getRecordDataType(personSchema)));
-        employeeFields.add(new RecordField("directReports", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(personSchema))));
-        final RecordSchema employeeSchema = new SimpleRecordSchema(employeeFields);
-
-        final Record directReport1 = createPerson("John", "Doe", personSchema);
-        final Record directReport2 = createPerson("John", "Jingleheimer", personSchema);
-        final Record directReport3 = createPerson("John", "Jacob", personSchema);
-        final Record manager = createPerson("Jane", "Smith", personSchema);
-        final Record employee = new MapRecord(employeeSchema, Map.of(
-            "self", createPerson("John", "Schmidt", personSchema),
-            "manager", manager,
-            "directReports", new Record[] {directReport1, directReport2, directReport3}
-        ));
-
-        assertEquals("John", RecordPath.compile("anchored(/directReports[0], /firstName)").evaluate(employee).getSelectedFields().findFirst().get().getValue());
-        assertEquals(List.of("John", "John", "John"), RecordPath.compile("anchored(/directReports, /firstName)").evaluate(employee).getSelectedFields().map(FieldValue::getValue).toList());
-        assertEquals(List.of(), RecordPath.compile("anchored(/self/lastName, / )").evaluate(employee).getSelectedFields().map(FieldValue::getValue).toList());
-    }
-
-    private Record createPerson(final String firstName, final String lastName, final RecordSchema schema) {
-        final Map<String, Object> values = Map.of(
-            "firstName", firstName,
-            "lastName", lastName);
-        return new MapRecord(schema, values);
-    }
-
-    @Test
-    public void testMapOf() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
-        fields.add(new RecordField("missing", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 83);
-        values.put("name", "John Doe");
-        values.put("balance", 123.45);
-        final Record record = new MapRecord(schema, values);
-        final FieldValue fv = RecordPath.compile("mapOf('id', /id, 'name', /name, 'money', /balance, 'nullableString', /missing)").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(fv.getField().getDataType().getFieldType(), RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()).getFieldType());
-        assertEquals(Map.of("id", "83", "name", "John Doe", "money", "123.45", "nullableString", "null"), fv.getValue());
-
-        assertThrows(RecordPathException.class, () -> RecordPath.compile("mapOf('firstName', /firstName, 'lastName')").evaluate(record));
-    }
-
-
-    @Test
-    public void testCoalesce() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", "1234");
-        values.put("name", null);
-        Record record = new MapRecord(schema, values);
-
-        final RecordPath recordPath = RecordPath.compile("coalesce(/id, /name)");
-
-        // Test where the first value is populated
-        FieldValue fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("1234", fieldValue.getValue());
-        assertEquals("id", fieldValue.getField().getFieldName());
-
-        // Test different value populated
-        values.clear();
-        values.put("id", null);
-        values.put("name", "John Doe");
-
-        record = new MapRecord(schema, values);
-        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("John Doe", fieldValue.getValue());
-        assertEquals("name", fieldValue.getField().getFieldName());
-
-        // Test all null
-        values.clear();
-        values.put("id", null);
-        values.put("name", null);
-
-        record = new MapRecord(schema, values);
-        assertFalse(recordPath.evaluate(record).getSelectedFields().findFirst().isPresent());
-
-        // Test none is null
-        values.clear();
-        values.put("id", "1234");
-        values.put("name", "John Doe");
-
-        record = new MapRecord(schema, values);
-        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("1234", fieldValue.getValue());
-        assertEquals("id", fieldValue.getField().getFieldName());
-
-        // Test missing field
-        values.clear();
-        values.put("name", "John Doe");
-
-        record = new MapRecord(schema, values);
-        fieldValue = recordPath.evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("John Doe", fieldValue.getValue());
-        assertEquals("name", fieldValue.getField().getFieldName());
-    }
-
-    private Record getCaseTestRecord() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("middleName", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("lastName", "Doe");
-        values.put("firstName", "John");
-        values.put("middleName", "Smith");
-        return new MapRecord(schema, values);
-    }
-
-    @Test
-    public void testToUpperCase() {
-        final Record record = getCaseTestRecord();
-
-        assertEquals("JOHN SMITH DOE", RecordPath.compile("toUpperCase(concat(/firstName, ' ', /middleName, ' ', /lastName))").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("toLowerCase(/notDefined)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testToLowerCase() {
-        final Record record = getCaseTestRecord();
-
-        assertEquals("john smith doe", RecordPath.compile("toLowerCase(concat(/firstName, ' ', /middleName, ' ', /lastName))").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("toLowerCase(/notDefined)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testTrimString() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("fullName", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("fullName", "   John Smith     ");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("John Smith", RecordPath.compile("trim(/fullName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("", RecordPath.compile("trim(/missing)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testTrimArray() {
-        final List<RecordField> fields = new ArrayList<>();
-        final DataType dataType = new ArrayDataType(RecordFieldType.STRING.getDataType());
-        fields.add(new RecordField("names", dataType));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("names", new String[]{"   John Smith     ", "   Jane Smith     "});
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> results = RecordPath.compile("trim(/names[*])").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals("John Smith", results.get(0).getValue());
-        assertEquals("Jane Smith", results.get(1).getValue());
-    }
-
-    @Test
-    public void testFieldName() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("name", RecordPath.compile("fieldName(/name)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("name", RecordPath.compile("fieldName(/*)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("//*[startsWith(fieldName(.), 'na')]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("name", RecordPath.compile("fieldName(//*[startsWith(fieldName(.), 'na')])").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("//name[not(startsWith(fieldName(.), 'xyz'))]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(0L, RecordPath.compile("//name[not(startsWith(fieldName(.), 'n'))]").evaluate(record).getSelectedFields().count());
-    }
-
-    @Test
-    public void testRecursiveWithMap() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("map", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType())));
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, String> mapValues = new HashMap<>();
-        mapValues.put("a", "z");
-        mapValues.put("b", "Y");
-        mapValues.put("c", "x");
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("map", mapValues);
-
-        final Record record = new MapRecord(schema, values);
-        assertEquals("Y", RecordPath.compile("//*[. = toUpperCase(.)]").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testRecursiveWithChoiceThatIncludesRecord() {
-        final RecordSchema personSchema = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("name", RecordFieldType.STRING.getDataType()),
-            new RecordField("age", RecordFieldType.INT.getDataType())
-        ));
-
-        final DataType personDataType = RecordFieldType.RECORD.getRecordDataType(personSchema);
-        final DataType stringDataType = RecordFieldType.STRING.getDataType();
-
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("person", RecordFieldType.CHOICE.getChoiceDataType(stringDataType, personDataType)));
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> personValueMap = new HashMap<>();
-        personValueMap.put("name", "John Doe");
-        personValueMap.put("age", 30);
-        final Record personRecord = new MapRecord(personSchema, personValueMap);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("person", personRecord);
-
-        final Record record = new MapRecord(schema, values);
-        final List<Object> expectedValues = List.of(personRecord, "John Doe", 30);
-        assertEquals(expectedValues, RecordPath.compile("//*").evaluate(record).getSelectedFields().map(FieldValue::getValue).toList());
-    }
-
-
-    @Test
-    public void testToDateFromString() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("date", "2017-10-20T11:00:00Z");
-        final Record record = new MapRecord(schema, values);
-
-        final Object evaluated = RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
-        assertInstanceOf(java.util.Date.class, evaluated);
-
-        final Object evaluatedTimeZone = RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
-        assertInstanceOf(java.util.Date.class, evaluatedTimeZone);
-    }
-
-    @Test
-    public void testToDateFromLong() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("date", RecordFieldType.LONG.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final long dateValue = 0L;
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("date", dateValue);
-        final Record record = new MapRecord(schema, values);
-
-        // since the field is a long it shouldn't do the conversion and should return the value unchanged
-        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Long);
-        assertTrue(RecordPath.compile("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get().getValue() instanceof Long);
-    }
-
-    @Test
-    public void testToDateFromNonDateString() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.DATE.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        // since the field is a string it shouldn't do the conversion and should return the value unchanged
-        final FieldValue fieldValue = RecordPath.compile("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\")").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("John Doe", fieldValue.getValue());
-        final FieldValue fieldValue2 = RecordPath.compile("toDate(/name, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", \"GMT+8:00\")").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("John Doe", fieldValue2.getValue());
-    }
-
-    @Test
-    public void testFormatDateFromString() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-
-        final String localDateFormatted = "2017-10-20";
-        final String localDateTimeFormatted = String.format("%sT12:45:30", localDateFormatted);
-        final LocalDateTime localDateTime = LocalDateTime.parse(localDateTimeFormatted);
-
-        values.put("date", localDateTimeFormatted);
-        final Record record = new MapRecord(schema, values);
-
-        final FieldValue fieldValue = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(localDateFormatted, fieldValue.getValue());
-        final FieldValue fieldValue2 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' , '%s')", TEST_TIMEZONE_OFFSET))
-            .evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(localDateFormatted, fieldValue2.getValue());
-
-        final FieldValue fieldValue3 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), \"yyyy-MM-dd'T'HH:mm:ss\", '%s')", TEST_TIMEZONE_OFFSET))
-            .evaluate(record).getSelectedFields().findFirst().get();
-
-        final ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneOffset.systemDefault());
-        final ZonedDateTime adjustedZoneDateTime = zonedDateTime.withZoneSameInstant(ZoneOffset.ofHours(TEST_OFFSET_HOURS));
-        final LocalDateTime adjustedLocalDateTime = adjustedZoneDateTime.toLocalDateTime();
-        final String adjustedDateTime = adjustedLocalDateTime.toString();
-        assertEquals(adjustedDateTime, fieldValue3.getValue());
-
-        final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertInstanceOf(java.util.Date.class, fieldValueUnchanged.getValue());
-        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' , 'INVALID')")
-            .evaluate(record).getSelectedFields().findFirst().get();
-        assertInstanceOf(java.util.Date.class, fieldValueUnchanged2.getValue());
-    }
-
-    @Test
-    public void testFormatDateFromLong() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("date", RecordFieldType.LONG.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final String localDate = "2017-10-20";
-        final String instantFormatted = String.format("%sT12:30:45Z", localDate);
-        final long epochMillis = Instant.parse(instantFormatted).toEpochMilli();
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("date", epochMillis);
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals(localDate, RecordPath.compile("format(/date, 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(instantFormatted, RecordPath.compile("format(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(epochMillis, fieldValueUnchanged.getValue());
-        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format(/date, 'INVALID', 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(epochMillis, fieldValueUnchanged2.getValue());
-    }
-
-    @Test
-    public void testFormatDateFromDate() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final String localDate = "2017-10-20";
-        final String instantFormatted = String.format("%sT12:30:45Z", localDate);
-        final Instant instant = Instant.parse(instantFormatted);
-        final Date dateValue = new Date(instant.toEpochMilli());
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("date", dateValue);
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals(localDate, RecordPath.compile("format(/date, 'yyyy-MM-dd')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(instantFormatted, RecordPath.compile("format(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID')").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(dateValue, fieldValueUnchanged.getValue());
-        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format(/date, 'INVALID', 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(dateValue, fieldValueUnchanged2.getValue());
-    }
-
-    @Test
-    public void testFormatDateWhenNotDate() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("John Doe", RecordPath.compile("format(/name, 'yyyy-MM')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("John Doe", RecordPath.compile("format(/name, 'yyyy-MM', 'GMT+8:00')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testToString() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("bytes", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()))));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("Hello World!", RecordPath.compile("toString(/bytes, \"UTF-16\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+        assertFieldValue(mainAccountRecord, "balance", 123.45, fieldValue);
     }
 
     @Test
-    public void testToStringBadCharset() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("bytes", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()))));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
-        final Record record = new MapRecord(schema, values);
+    void supportsReferenceToSelf() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/name/."));
 
-        assertThrows(IllegalCharsetNameException.class, () ->
-                RecordPath.compile("toString(/bytes, \"NOT A REAL CHARSET\")").evaluate(record)
-                        .getSelectedFields().findFirst().get().getValue());
+        final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+        assertFieldValue(record, "name", "John Doe", fieldValue);
     }
 
     @Test
-    public void testToBytes() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("s", RecordFieldType.STRING.getDataType()));
+    void supportsReferenceToParentField() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/mainAccount/balance/.."));
 
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("s", "Hello World!");
-        final Record record = new MapRecord(schema, values);
-
-        assertArrayEquals("Hello World!".getBytes(StandardCharsets.UTF_16LE),
-                (byte[]) RecordPath.compile("toBytes(/s, \"UTF-16LE\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+        assertFieldValue(record, "mainAccount", record.getValue("mainAccount"), fieldValue);
     }
 
     @Test
-    public void testToBytesBadCharset() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("s", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("s", "Hello World!");
-        final Record record = new MapRecord(schema, values);
+    void supportsReferenceWithRelativePath() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/mainAccount/././balance"));
 
-        assertThrows(IllegalCharsetNameException.class, () -> RecordPath.compile("toBytes(/s, \"NOT A REAL CHARSET\")").evaluate(record)
-                .getSelectedFields().findFirst().get().getValue());
+        final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+        assertFieldValue(mainAccountRecord, "balance", 123.45, fieldValue);
     }
 
     @Test
-    public void testBase64Encode() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("b", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
-        final RecordSchema schema = new SimpleRecordSchema(fields);
+    void supportsReferenceStartingWithRelativePath() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("./../mainAccount"));
 
-        final List<Object> expectedValues = Arrays.asList(
-                Base64.getEncoder().encodeToString("John".getBytes(StandardCharsets.UTF_8)),
-                Base64.getEncoder().encodeToString("Doe".getBytes(StandardCharsets.UTF_8)),
-                Base64.getEncoder().encode("xyz".getBytes(StandardCharsets.UTF_8))
+        final FieldValue relativeParentPathContext = new StandardFieldValue(
+                record, recordFieldOf("root", recordTypeOf(record.getSchema())), null
         );
-        final Map<String, Object> values = new HashMap<>();
-        values.put("firstName", "John");
-        values.put("lastName", "Doe");
-        values.put("b", "xyz".getBytes(StandardCharsets.UTF_8));
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals(Base64.getEncoder().encodeToString("John".getBytes(StandardCharsets.UTF_8)),
-                RecordPath.compile("base64Encode(/firstName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(Base64.getEncoder().encodeToString("Doe".getBytes(StandardCharsets.UTF_8)),
-                RecordPath.compile("base64Encode(/lastName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertArrayEquals(Base64.getEncoder().encode("xyz".getBytes(StandardCharsets.UTF_8)),
-                (byte[]) RecordPath.compile("base64Encode(/b)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        List<Object> actualValues = RecordPath.compile("base64Encode(/*)").evaluate(record).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
-        IntStream.range(0, 3).forEach(i -> {
-            Object expectedObject = expectedValues.get(i);
-            Object actualObject = actualValues.get(i);
-            if (actualObject instanceof String) {
-                assertEquals(expectedObject, actualObject);
-            } else if (actualObject instanceof byte[]) {
-                assertArrayEquals((byte[]) expectedObject, (byte[]) actualObject);
-            }
-        });
-    }
-
-    @Test
-    public void testBase64Decode() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("b", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final List<Object> expectedValues = Arrays.asList("John", "Doe", "xyz".getBytes(StandardCharsets.UTF_8));
-        final Map<String, Object> values = new HashMap<>();
-        values.put("firstName", Base64.getEncoder().encodeToString("John".getBytes(StandardCharsets.UTF_8)));
-        values.put("lastName", Base64.getEncoder().encodeToString("Doe".getBytes(StandardCharsets.UTF_8)));
-        values.put("b", Base64.getEncoder().encode("xyz".getBytes(StandardCharsets.UTF_8)));
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("John", RecordPath.compile("base64Decode(/firstName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("Doe", RecordPath.compile("base64Decode(/lastName)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertArrayEquals("xyz".getBytes(StandardCharsets.UTF_8), (byte[]) RecordPath.compile("base64Decode(/b)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        List<Object> actualValues = RecordPath.compile("base64Decode(/*)").evaluate(record).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
-        IntStream.range(0, 3).forEach(i -> {
-            Object expectedObject = expectedValues.get(i);
-            Object actualObject = actualValues.get(i);
-            if (actualObject instanceof String) {
-                assertEquals(expectedObject, actualObject);
-            } else if (actualObject instanceof byte[]) {
-                assertArrayEquals((byte[]) expectedObject, (byte[]) actualObject);
-            }
-        });
-    }
-
-    @Test
-    public void testEscapeJson() {
-        final RecordSchema address = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField("address_1", RecordFieldType.STRING.getDataType())
-        ));
-
-        final RecordSchema person = new SimpleRecordSchema(Arrays.asList(
-                new RecordField("firstName", RecordFieldType.STRING.getDataType()),
-                new RecordField("age", RecordFieldType.INT.getDataType()),
-                new RecordField("nicknames", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())),
-                new RecordField("addresses", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(address)))
-        ));
-
-        final RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField("person", RecordFieldType.RECORD.getRecordDataType(person))
-        ));
-
-        final Map<String, Object> values = Map.of(
-                "person", new MapRecord(person, Map.of(
-                        "firstName", "John",
-                        "age", 30,
-                        "nicknames", new String[] {"J", "Johnny"},
-                        "addresses", new MapRecord[]{
-                                new MapRecord(address, Collections.singletonMap("address_1", "123 Somewhere Street")),
-                                new MapRecord(address, Collections.singletonMap("address_1", "456 Anywhere Road"))
-                        }
-                ) )
+        final FieldValue relativePathContext = new StandardFieldValue(
+                "John Doe", recordFieldOf("name", RecordFieldType.STRING), relativeParentPathContext
         );
+        // relative paths work on the context instead of base record; to showcase this we pass an empty record
+        final Record emptyRecord = new MapRecord(recordSchemaOf(), Collections.emptyMap());
+        final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, emptyRecord, relativePathContext);
+        assertFieldValue(record, "mainAccount", record.getValue("mainAccount"), fieldValue);
+    }
 
-        final Record record = new MapRecord(schema, values);
+    @Test
+    public void supportsReferenceToEscapedFieldName() {
+        final RecordSchema schema = recordSchemaOf(
+                recordFieldOf("full,name", RecordFieldType.STRING)
+        );
+        final Record record = new MapRecord(schema, Map.of("full,name", "John Doe"));
 
-        assertEquals("\"John\"", RecordPath.compile("escapeJson(/person/firstName)").evaluate(record).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
-        assertEquals("30", RecordPath.compile("escapeJson(/person/age)").evaluate(record).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
-        assertEquals(
-                """
-                {"firstName":"John","age":30,"nicknames":["J","Johnny"],"addresses":[{"address_1":"123 Somewhere Street"},{"address_1":"456 Anywhere Road"}]}""",
-                RecordPath.compile("escapeJson(/person)").evaluate(record).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
+        final FieldValue fieldValue = evaluateSingleFieldValue("/'full,name'", record);
+        assertFieldValue(record, "full,name", "John Doe", fieldValue);
+    }
+
+    @Test
+    void supportsWildcardReference() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/mainAccount/*"));
+
+        final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+        final Record targetParent = mainAccountRecord;
+        assertAll(
+                () -> assertEquals(3, fieldValues.size()),
+                () -> assertFieldValue(targetParent, "id", 1, fieldValues.getFirst()),
+                () -> assertFieldValue(targetParent, "balance", 123.45, fieldValues.get(1)),
+                () -> assertFieldValue(targetParent, "address", getAddressRecord(targetParent), fieldValues.get(2))
         );
     }
 
     @Test
-    public void testUnescapeJson() {
-        final RecordSchema address = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField("address_1", RecordFieldType.STRING.getDataType())
-        ));
+    void supportsReferenceToDescendant() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("//id"));
 
-        final RecordSchema person = new SimpleRecordSchema(Arrays.asList(
-                new RecordField("firstName", RecordFieldType.STRING.getDataType()),
-                new RecordField("age", RecordFieldType.INT.getDataType()),
-                new RecordField("nicknames", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())),
-                new RecordField("addresses", RecordFieldType.CHOICE.getChoiceDataType(
-                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(address)),
-                        RecordFieldType.RECORD.getRecordDataType(address)
-                ))
-        ));
-
-        final RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
-                new RecordField("person", RecordFieldType.RECORD.getRecordDataType(person)),
-                new RecordField("json_str", RecordFieldType.STRING.getDataType())
-        ));
-
-        // test CHOICE resulting in nested ARRAY of Records
-        final Record mapAddressesArray = new MapRecord(schema,
-                Collections.singletonMap(
-                        "json_str",
-                        """
-                        {"firstName":"John","age":30,"nicknames":["J","Johnny"],"addresses":[{"address_1":"123 Somewhere Street"},{"address_1":"456 Anywhere Road"}]}""")
+        final Record record = reduceRecord(this.record, "id", "mainAccount", "accounts");
+        final Record mainAccountRecord = TestRecordPath.this.mainAccountRecord;
+        final Record[] accountRecords = (Record[]) record.getAsArray("accounts");
+        final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+        assertAll(
+                () -> assertEquals(4, fieldValues.size()),
+                () -> assertFieldValue(record, "id", 48, fieldValues.getFirst()),
+                () -> assertFieldValue(mainAccountRecord, "id", 1, fieldValues.get(1)),
+                () -> assertFieldValue(accountRecords[0], "id", 6, fieldValues.get(2)),
+                () -> assertFieldValue(accountRecords[1], "id", 9, fieldValues.get(3))
         );
-        assertEquals(
-                Map.of(
-                    "firstName", "John",
-                    "age", 30,
-                    "nicknames", Arrays.asList("J", "Johnny"),
-                    "addresses", Arrays.asList(
-                            Collections.singletonMap("address_1", "123 Somewhere Street"),
-                            Collections.singletonMap("address_1", "456 Anywhere Road")
+    }
+
+    @Test
+    void supportsReferenceToChildFieldOfDescendant() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("//address/city"));
+
+        final Record record = reduceRecord(this.record, "id", "mainAccount", "accounts");
+        final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+        final Record mainAccountRecord = TestRecordPath.this.mainAccountRecord;
+        final Record[] accountRecords = (Record[]) record.getAsArray("accounts");
+        assertAll(
+                () -> assertEquals(3, fieldValues.size()),
+                () -> assertFieldValue(getAddressRecord(mainAccountRecord), "city", "Boston", fieldValues.getFirst()),
+                () -> assertFieldValue(getAddressRecord(accountRecords[0]), "city", "Las Vegas", fieldValues.get(1)),
+                () -> assertFieldValue(getAddressRecord(accountRecords[1]), "city", "Austin", fieldValues.get(2))
+        );
+    }
+
+    @Test
+    void supportsReferenceToDescendantWithWildcard() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/mainAccount//*"));
+
+        final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+        final Record mainAccountRecord = TestRecordPath.this.mainAccountRecord;
+        final Record addressRecord = getAddressRecord(mainAccountRecord);
+        assertAll(
+                () -> assertEquals(5, fieldValues.size()),
+                () -> assertFieldValue(mainAccountRecord, "id", 1, fieldValues.getFirst()),
+                () -> assertFieldValue(mainAccountRecord, "balance", 123.45, fieldValues.get(1)),
+                () -> assertFieldValue(mainAccountRecord, "address", addressRecord, fieldValues.get(2)),
+                () -> assertFieldValue(addressRecord, "city", "Boston", fieldValues.get(3)),
+                () -> assertFieldValue(addressRecord, "state", "Massachusetts", fieldValues.get(4))
+        );
+    }
+
+    @Test
+    void supportsReferenceToDescendantFieldsInRecordInsideArray() {
+        final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("//city"));
+
+        final RecordSchema schema = recordSchemaOf(
+                recordFieldOf("array", arrayTypeOf(RecordFieldType.RECORD))
+        );
+        final Record addressRecord = createAddressRecord("Paris", "France");
+        final Record accountRecord = createAccountRecord();
+        final Record record = new MapRecord(schema, new HashMap<>(Map.of(
+                "array", new Record[]{accountRecord, addressRecord}
+        )));
+        final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+        assertAll(
+                () -> assertEquals(2, fieldValues.size()),
+                () -> assertFieldValue(getAddressRecord(accountRecord), "city", "Boston", fieldValues.getFirst()),
+                () -> assertFieldValue(addressRecord, "city", "Paris", fieldValues.get(1))
+        );
+    }
+
+    @Test
+    public void supportsToEscapeQuotesInLiterals() {
+        record.setValue("attributes", new HashMap<>(Map.of(
+                "Joe's Lama", "cute",
+                "Angela \"Mutti\" Merkel", "powerful"
+        )));
+
+        assertFieldValue(record, "attributes", "cute", evaluateSingleFieldValue("/attributes['Joe\\'s Lama']", record));
+        assertFieldValue(record, "attributes", "powerful", evaluateSingleFieldValue("/attributes[\"Angela \\\"Mutti\\\" Merkel\"]", record));
+    }
+
+    @Test
+    public void supportsJavaEscapeSequencesInLiterals() {
+        record.setValue("attributes", new HashMap<>(Map.of(
+                " \t\r\n", "whitespace"
+        )));
+
+        assertFieldValue(record, "attributes", "whitespace", evaluateSingleFieldValue("/attributes[' \\t\\r\\n']", record));
+    }
+
+    @Nested
+    class ArrayReferences {
+        private final String[] friendValues = (String[]) record.getAsArray("friends");
+
+        @Test
+        public void supportReferenceToSingleArrayIndex() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[0]"));
+
+            final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "friends", friendValues[0], fieldValue);
+        }
+
+        @Test
+        public void supportReferenceToMultipleArrayIndices() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[1, 3]"));
+
+            String[] expectedValues = new String[]{friendValues[1], friendValues[3]};
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertSingleFieldMultipleValueResult(record, "friends", expectedValues, fieldValues);
+        }
+
+        @Test
+        public void supportReferenceToNegativeArrayIndex() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[-2]"));
+
+            final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "friends", friendValues[friendValues.length - 2], fieldValue);
+        }
+
+        @Test
+        public void supportReferenceToRangeOfArrayIndices() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[1..2]"));
+
+            String[] expectedValues = new String[]{friendValues[1], friendValues[2]};
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertSingleFieldMultipleValueResult(record, "friends", expectedValues, fieldValues);
+        }
+
+        @Test
+        public void supportReferenceWithWildcardAsArrayIndex() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[*]"));
+
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertSingleFieldMultipleValueResult(record, "friends", friendValues, fieldValues);
+        }
+
+        @Test
+        public void canReferenceSameArrayItemMultipleTimes() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[1, 1..1, -3]"));
+
+            String[] expectedValues = new String[]{friendValues[1], friendValues[1], friendValues[1]};
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertSingleFieldMultipleValueResult(record, "friends", expectedValues, fieldValues);
+        }
+
+        @Test
+        public void supportReferenceWithCombinationOfArrayAccesses() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[1..2, 0, -1]"));
+
+            String[] expectedValues = new String[]{
+                    friendValues[1], friendValues[2], friendValues[0], friendValues[friendValues.length - 1]
+            };
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertSingleFieldMultipleValueResult(record, "friends", expectedValues, fieldValues);
+        }
+
+        @Test
+        public void canReferenceArrayItemsUsingRelativePath() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends/.[3]"));
+
+            final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "friends", friendValues[3], fieldValue);
+        }
+
+        @Test
+        public void predicateCanBeAppliedOnSingleArrayItem() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[1][. = 'Jane']"));
+
+            final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "friends", friendValues[1], fieldValue);
+        }
+
+        @Test
+        public void predicateCanBeAppliedOnMultipleArrayItems() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[0, 1, 2][. != 'Jane']"));
+
+            String[] expectedValues = new String[]{friendValues[0], friendValues[2]};
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertSingleFieldMultipleValueResult(record, "friends", expectedValues, fieldValues);
+        }
+
+        @Test
+        public void supportsUpdatingArrayItem() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[0]"));
+
+            final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+            fieldValue.updateValue("Theo");
+
+            final FieldValue updatedFieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "friends", "Theo", updatedFieldValue);
+        }
+
+        @Test
+        public void yieldsNoResultWhenArrayRangeCountsDown() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[3..2]"));
+
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertEquals(List.of(), fieldValues);
+        }
+
+        @Test
+        public void yieldsNoResultWhenArrayIndexOutOfBounds() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[9001]"));
+
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertEquals(List.of(), fieldValues);
+        }
+    }
+
+    @Nested
+    class MapReferences {
+        private final Map<String, String> attributes = Map.of(
+                "key1", "value1",
+                "key2", "value2",
+                "key3", "value3"
+        );
+
+        @BeforeEach
+        public void setUp() {
+            record.setValue("attributes", new LinkedHashMap<>(attributes));
+        }
+
+        @Test
+        public void supportReferenceToSingleMapKey() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes['key1']"));
+
+            final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "attributes", attributes.get("key1"), fieldValue);
+
+            fieldValue.updateValue("updatedKey");
+            final FieldValue updatedFieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "attributes", "updatedKey", updatedFieldValue);
+        }
+
+        @Test
+        public void supportReferenceToMultipleMapKeys() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes['key1', 'key3']"));
+
+            String[] expectedValues = new String[]{attributes.get("key1"), attributes.get("key3")};
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertSingleFieldMultipleValueResult(record, "attributes", expectedValues, fieldValues);
+        }
+
+        @Test
+        public void supportReferenceWithWildcardAsMapKey() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes[*]"));
+
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertSingleFieldMultipleValueResult(record, "attributes", attributes.values().toArray(), fieldValues);
+        }
+
+        @Test
+        public void canReferenceSameMapItemMultipleTimes() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes['key1', 'key3', 'key1']"));
+
+            String[] expectedValues = new String[]{
+                    attributes.get("key1"), attributes.get("key3"), attributes.get("key1")
+            };
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertSingleFieldMultipleValueResult(record, "attributes", expectedValues, fieldValues);
+        }
+
+        @Test
+        public void canReferenceMapItemsUsingRelativePath() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes/.['key3']"));
+
+            final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "attributes", attributes.get("key3"), fieldValue);
+        }
+
+        @Test
+        public void predicateCanBeAppliedOnSingleMapItem() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes['key2'][. = 'value2']"));
+
+            final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "attributes", attributes.get("key2"), fieldValue);
+        }
+
+        @Test
+        public void predicateCanBeAppliedOnMultipleMapItems() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes['key1', 'key2', 'key3'][. != 'value2']"));
+
+            String[] expectedValues = new String[]{
+                    attributes.get("key1"), attributes.get("key3")
+            };
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+            assertSingleFieldMultipleValueResult(record, "attributes", expectedValues, fieldValues);
+        }
+
+        @Test
+        public void supportsUpdatingMapItem() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes['key1']"));
+
+            final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+            fieldValue.updateValue("updatedKey");
+
+            final FieldValue updatedFieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "attributes", "updatedKey", updatedFieldValue);
+        }
+
+        @Test
+        public void yieldsNullWhenMapKeyNotFound() {
+            final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes['nope']"));
+
+            final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+            assertFieldValue(record, "attributes", null, fieldValue);
+        }
+    }
+
+    @Nested
+    class FieldTypes {
+        @Test
+        public void supportsReferenceToFieldOfTypeBigInt() {
+            supportsRecordFieldType(
+                    RecordFieldType.BIGINT,
+                    List.of(
+                            BigInteger.valueOf(5623351),
+                            BigInteger.ZERO,
+                            BigInteger.valueOf(Long.MIN_VALUE).subtract(BigInteger.ONE),
+                            BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE)
+
+                    ),
+                    List.of(
+                            (short) 1, // SHORT
+                            (byte) 2, // BYTE
+                            43, // INT
+                            47L // LONG
                     )
-                ),
-                RecordPath.compile("unescapeJson(/json_str)").evaluate(mapAddressesArray).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
-        );
+            );
+        }
 
-        // test CHOICE resulting in nested single RECORD
-        final Record mapAddressesSingle = new MapRecord(schema,
-                Collections.singletonMap(
-                        "json_str",
-                        """
-                        {"firstName":"John","age":30,"nicknames":["J","Johnny"],"addresses":{"address_1":"123 Somewhere Street"}}""")
-        );
-        assertEquals(
-                Map.of(
-                    "firstName", "John",
-                    "age", 30,
-                    "nicknames", Arrays.asList("J", "Johnny"),
-                    "addresses", Collections.singletonMap("address_1", "123 Somewhere Street")
-                ),
-                RecordPath.compile("unescapeJson(/json_str, 'false')").evaluate(mapAddressesSingle).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
-        );
+        @Test
+        public void supportsReferenceToFieldOfTypeBoolean() {
+            supportsRecordFieldType(
+                    RecordFieldType.BOOLEAN,
+                    List.of(
+                            false,
+                            true
+                    )
+            );
+        }
 
-        // test single Record converted from Map Object
-        final Record recordFromMap = new MapRecord(schema,
-                Collections.singletonMap(
-                        "json_str",
-                        """
-                        {"firstName":"John","age":30}""")
-        );
-        Map<String, Object> expectedMap = new LinkedHashMap<>();
-        expectedMap.put("firstName", "John");
-        expectedMap.put("age", 30);
-        assertEquals(
-                DataTypeUtils.toRecord(expectedMap, "json_str"),
-                RecordPath.compile("unescapeJson(/json_str, 'true')").evaluate(recordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
-        );
+        @Test
+        public void supportsReferenceToFieldOfTypeByte() {
+            supportsRecordFieldType(
+                    RecordFieldType.BYTE,
+                    List.of(
+                            (byte) 0,
+                            (byte) 1,
+                            Byte.MIN_VALUE,
+                            Byte.MAX_VALUE
+                    )
+            );
+        }
 
-        // test nested Record converted from Map Object
-        final Record nestedRecordFromMap = new MapRecord(schema,
-                Collections.singletonMap(
-                        "json_str",
-                        """
-                        {"firstName":"John","age":30,"addresses":[{"address_1":"123 Fake Street"}]}""")
-        );
-        // recursively convert Maps to Records (addresses becomes and ARRAY or RECORDs)
-        expectedMap.put("addresses", new Object[] {DataTypeUtils.toRecord(Collections.singletonMap("address_1", "123 Fake Street"), "addresses")});
-        assertRecordsMatch(
-                DataTypeUtils.toRecord(expectedMap, "json_str"),
-                RecordPath.compile("unescapeJson(/json_str, 'true', 'true')").evaluate(nestedRecordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
-        );
-        // convert Map to Record, without recursion (addresses becomes an ARRAY, but contents are still Maps)
-        expectedMap.put("addresses", new Object[] {Collections.singletonMap("address_1", "123 Fake Street")});
-        assertRecordsMatch(
-                DataTypeUtils.toRecord(expectedMap, "json_str"),
-                RecordPath.compile("unescapeJson(/json_str, 'true', 'false')").evaluate(nestedRecordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
-        );
-        // without Map conversion to Record (addresses remains a Collection, Maps are unchanged)
-        assertMapsMatch(
-                expectedMap,
-                RecordPath.compile("unescapeJson(/json_str, 'false')").evaluate(nestedRecordFromMap).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue(),
-                false
-        );
+        @Test
+        public void supportsReferenceToFieldOfTypeChar() {
+            supportsRecordFieldType(
+                    RecordFieldType.CHAR,
+                    List.of(
+                            '0',
+                            'a',
+                            ' ',
+                            Character.MIN_VALUE,
+                            Character.MAX_VALUE
+                    )
+            );
+        }
 
-        // test collection of Record converted from Map collection
-        final Record recordCollectionFromMaps = new MapRecord(schema,
-                Collections.singletonMap(
-                        "json_str",
-                        """
-                        [{"address_1":"123 Somewhere Street"},{"address_1":"456 Anywhere Road"}]""")
-        );
-        assertEquals(
-                Arrays.asList(
-                        DataTypeUtils.toRecord(Collections.singletonMap("address_1", "123 Somewhere Street"), "json_str"),
-                        DataTypeUtils.toRecord(Collections.singletonMap("address_1", "456 Anywhere Road"), "json_str")
-                ),
-                RecordPath.compile("unescapeJson(/json_str, 'true')").evaluate(recordCollectionFromMaps).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
-        );
+        @Test
+        public void supportsReferenceToFieldOfTypeDate() {
+            supportsRecordFieldType(
+                    RecordFieldType.DATE,
+                    List.of(
+                            Date.valueOf("2024-08-18")
+                    ),
+                    List.of(
+                            Timestamp.valueOf("2024-08-18 09:45:27") // TIMESTAMP
+                    )
+            );
+        }
 
-        // test simple String field
-        final Record recordJustName = new MapRecord(schema, Collections.singletonMap("json_str",
-                """
-                {"firstName":"John"}"""));
-        assertEquals(
-                Map.of("firstName", "John"),
-                RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustName).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue()
-        );
+        @Test
+        public void supportsReferenceToFieldOfTypeDecimal() {
+            supportsRecordFieldType(
+                    RecordFieldType.DECIMAL,
+                    List.of(
+                            BigDecimal.valueOf(1.234567890123456789),
+                            BigDecimal.valueOf(0)
+                    ),
+                    List.of(
+                            2.4f, // FLOAT
+                            6.8d // DOUBLE
+                    )
+            );
+        }
 
-        // test simple String
-        final Record recordJustString = new MapRecord(schema, Collections.singletonMap("json_str", "\"John\""));
-        assertEquals("John", RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustString).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
+        @Test
+        public void supportsReferenceToFieldOfTypeDouble() {
+            supportsRecordFieldType(
+                    RecordFieldType.DOUBLE,
+                    List.of(
+                            0d,
+                            1d,
+                            1.1d,
+                            -1.1d,
+                            Double.MIN_VALUE,
+                            Double.MAX_VALUE,
+                            Double.NaN
+                    ),
+                    List.of(
+                            2.4f // FLOAT
+                    )
+            );
+        }
 
-        // test simple Int
-        final Record recordJustInt = new MapRecord(schema, Collections.singletonMap("json_str", "30"));
-        assertEquals(30, RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustInt).getSelectedFields().findFirst().orElseThrow(AssertionError::new).getValue());
+        @Test
+        public void supportsReferenceToFieldOfTypeFloat() {
+            supportsRecordFieldType(
+                    RecordFieldType.FLOAT,
+                    List.of(
+                            0f,
+                            1f,
+                            1.1f,
+                            -1.1f,
+                            Float.MIN_VALUE,
+                            Float.MAX_VALUE,
+                            Float.NaN
+                    )
+            );
+        }
 
-        // test invalid JSON
-        final Record recordInvalidJson = new MapRecord(schema, Collections.singletonMap("json_str", "{\"invalid\": \"json"));
+        @Test
+        public void supportsReferenceToFieldOfTypeInt() {
+            supportsRecordFieldType(
+                    RecordFieldType.INT,
+                    List.of(
+                            0,
+                            1,
+                            -1,
+                            Integer.MIN_VALUE,
+                            Integer.MAX_VALUE
+                    ),
+                    List.of(
+                            (short) 2, // SHORT
+                            (byte) 43 // BYTE
+                    )
+            );
+        }
 
-        RecordPathException rpe = assertThrows(RecordPathException.class,
-                () -> RecordPath.compile("unescapeJson(/json_str)")
-                        .evaluate(recordInvalidJson).getSelectedFields()
-                        .findFirst().orElseThrow(AssertionError::new).getValue());
-        assertEquals("Unable to deserialise JSON String into Record Path value", rpe.getMessage());
+        @Test
+        public void supportsReferenceToFieldOfTypeLong() {
+            supportsRecordFieldType(
+                    RecordFieldType.LONG,
+                    List.of(
+                            1234567890L,
+                            0L,
+                            ((long) Integer.MAX_VALUE) + 1L,
+                            ((long) Integer.MIN_VALUE) - 1L,
+                            Long.MIN_VALUE,
+                            Long.MAX_VALUE
 
-        // test not String
-        final Record recordNotString = new MapRecord(schema, Collections.singletonMap("person", new MapRecord(person, Collections.singletonMap("age", 30))));
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> RecordPath.compile("unescapeJson(/person/age)")
-                        .evaluate(recordNotString).getSelectedFields()
-                        .findFirst().orElseThrow(AssertionError::new).getValue());
-        assertEquals("Argument supplied to unescapeJson must be a String", iae.getMessage());
+                    ),
+                    List.of(
+                            (short) 1, // SHORT
+                            (byte) 2, // BYTE
+                            43 // INT
+                    )
+            );
+        }
+
+        @Test
+        public void supportsReferenceToFieldOfTypeShort() {
+            supportsRecordFieldType(
+                    RecordFieldType.SHORT,
+                    List.of(
+                            (short) 2412,
+                            (short) 0,
+                            Short.MIN_VALUE,
+                            Short.MAX_VALUE
+
+                    ),
+                    List.of(
+                            (byte) 2 // BYTE
+                    )
+            );
+        }
+
+        @Test
+        public void supportsReferenceToFieldOfTypeEnum() {
+            final List<String> enumValues = List.of("alice", "Bob", "EVE");
+
+            supportsRecordFieldType(
+                    RecordFieldType.ENUM.getEnumDataType(enumValues),
+                    enumValues
+            );
+        }
+
+        @Test
+        public void supportsReferenceToFieldOfTypeString() {
+            supportsRecordFieldType(
+                    RecordFieldType.STRING,
+                    List.of(
+                            "Test",
+                            "X",
+                            "",
+                            " \n\r\t"
+                    ),
+                    List.of(
+                            true, // BOOLEAN
+                            (byte) 5, // BYTE
+                            'c', // CHAR
+                            (short) 123, // SHORT
+                            0, // INT
+                            BigInteger.TWO, // BIGINT
+                            44L, // LONG
+                            12.3f, // FLOAT
+                            0.79f, // DOUBLE
+                            BigDecimal.valueOf(10.32547698), // DECIMAL
+                            Date.valueOf("2024-08-18"), // DATE
+                            Time.valueOf("09:45:27"), // TIME
+                            Timestamp.valueOf("2024-08-18 09:45:27") // TIMESTAMP
+                            // ENUM is represented as a String value and thus does not need to be tested
+                    )
+            );
+        }
+
+        @Test
+        public void supportsReferenceToFieldOfTypeTime() {
+            supportsRecordFieldType(
+                    RecordFieldType.TIME,
+                    List.of(
+                            Time.valueOf("09:45:27")
+                    ),
+                    List.of(
+                            Timestamp.valueOf("2024-08-18 09:45:27") // TIMESTAMP
+                    )
+            );
+        }
+
+        @Test
+        public void supportsReferenceToFieldOfTypeTimestamp() {
+            supportsRecordFieldType(
+                    RecordFieldType.TIMESTAMP,
+                    List.of(
+                            Timestamp.valueOf("2024-08-18 09:45:27")
+                    )
+            );
+        }
+
+        @Test
+        public void supportsReferenceToFieldOfTypeUuid() {
+            supportsRecordFieldType(
+                    RecordFieldType.UUID,
+                    List.of(
+                            UUID.randomUUID(),
+                            UUID.fromString("cca14e57-c79e-4fb9-8235-afeb503380df"),
+                            UUID.nameUUIDFromBytes(new byte[0])
+                    )
+            );
+        }
+
+        @Test
+        public void supportsReferenceToFieldOfTypeArray() {
+            supportsRecordFieldType(
+                    arrayTypeOf(RecordFieldType.STRING),
+                    List.of(
+                            new String[0],
+                            new String[]{"CAT"},
+                            new String[]{"a", "b", "c", "x", "y", "z"}
+                    )
+            );
+        }
+
+        @Test
+        public void supportsReferenceToFieldOfTypeMap() {
+            supportsRecordFieldType(
+                    mapTypeOf(RecordFieldType.INT),
+                    List.of(
+                            Map.of(),
+                            Map.of("first", 1),
+                            Map.of("a", 1, "b", 2, "c", 3)
+                    )
+            );
+        }
+
+        @Test
+        public void supportsReferenceToFieldOfTypeRecord() {
+            supportsRecordFieldType(
+                    recordTypeOf(getAccountSchema()),
+                    List.of(
+                            createAccountRecord()
+                    )
+            );
+        }
+
+        @Test
+        public void supportsReferenceToFieldOfTypeChoice() {
+            supportsRecordFieldType(
+                    choiceTypeOf(
+                            RecordFieldType.INT,
+                            RecordFieldType.STRING,
+                            recordTypeOf(getAccountSchema())
+                    ),
+                    List.of(
+                            25,
+                            "Alice",
+                            createAccountRecord()
+                    )
+            );
+        }
+
+        private static <T> void supportsRecordFieldType(
+                final RecordFieldType expectedType,
+                final List<T> expectedUnchangedValues) {
+            supportsRecordFieldType(expectedType, expectedUnchangedValues, List.of());
+        }
+
+        private static <T> void supportsRecordFieldType(
+                final RecordFieldType expectedType,
+                final List<T> expectedUnchangedValues,
+                final List<Object> expectedAdjustedValues) {
+            supportsRecordFieldType(expectedType.getDataType(), expectedUnchangedValues, expectedAdjustedValues);
+        }
+
+        private static <T> void supportsRecordFieldType(
+                final DataType expectedType,
+                final List<T> expectedUnchangedValues) {
+            supportsRecordFieldType(expectedType, expectedUnchangedValues, List.of());
+        }
+
+        private static <T> void supportsRecordFieldType(
+                final DataType expectedType,
+                final List<T> expectedUnchangedValues,
+                final List<Object> expectedAdjustedValues) {
+            final Stream<Map.Entry<Object, Object>> expectedValues = Stream.concat(
+                    expectedUnchangedValues.stream().map(value -> Map.entry(value, value)),
+                    expectedAdjustedValues.stream().map(
+                            value -> Map.entry(value, DataTypeUtils.convertType(value, expectedType, "field"))
+                    )
+            );
+
+            final Executable nullCheck = () -> {
+                final Record record = createSingleFieldRecord(expectedType);
+
+                final FieldValue initialFieldValue = evaluateSingleFieldValue("/field", record);
+                assertDoesNotThrow(() -> initialFieldValue.updateValue(null));
+
+                final FieldValue updatedFieldValue = evaluateSingleFieldValue("/field", record);
+                assertAll(
+                        () -> assertEquals(record, updatedFieldValue.getParentRecord().orElseThrow()),
+                        () -> assertEquals(expectedType, updatedFieldValue.getField().getDataType()),
+                        () -> assertEquals("field", updatedFieldValue.getField().getFieldName()),
+                        () -> assertNull(updatedFieldValue.getValue())
+                );
+            };
+
+            Stream<Executable> valueChecks = expectedValues.map(originalAndExpectedValue -> () -> {
+                final Record record = createSingleFieldRecord(expectedType);
+
+                final FieldValue initialFieldValue = evaluateSingleFieldValue("/field", record);
+                assertDoesNotThrow(() -> initialFieldValue.updateValue(originalAndExpectedValue.getKey()));
+                final FieldValue fieldValue = evaluateSingleFieldValue("/field", record);
+
+                assertAll(
+                        () -> assertEquals(record, fieldValue.getParentRecord().orElseThrow()),
+                        () -> assertEquals(expectedType, fieldValue.getField().getDataType()),
+                        () -> assertEquals("field", fieldValue.getField().getFieldName()),
+                        () -> assertEquals(originalAndExpectedValue.getValue(), fieldValue.getValue())
+                );
+            });
+
+            assertAll(Stream.concat(Stream.of(nullCheck), valueChecks));
+        }
+
+        private static Record createSingleFieldRecord(DataType expectedType) {
+            final RecordSchema schema = recordSchemaOf(recordFieldOf("field", expectedType));
+            return new MapRecord(schema, new HashMap<>(), true, true);
+        }
     }
 
-    private void assertRecordsMatch(final Record expectedRecord, final Object result) {
-        assertInstanceOf(Record.class, result);
-        final Record resultRecord = (Record) result;
-        assertMapsMatch(expectedRecord.toMap(), resultRecord.toMap(), true);
-    }
+    @Nested
+    class StandaloneFunctions {
 
-    @SuppressWarnings("unchecked")
-    private void assertMapsMatch(final Map<String, Object> expectedMap, final Object result, final boolean convertMapToRecord) {
-        assertInstanceOf(Map.class, result);
-        final Map<String, Object> resultMap = (Map<String, Object>) result;
-        assertEquals(expectedMap.size(), resultMap.size());
+        @Test
+        public void standaloneFunctionsCanBeUsedAsRecordPath() {
+            final FieldValue fieldValue = evaluateSingleFieldValue("substringBefore(/name, ' ')", record);
+            assertEquals("John", fieldValue.getValue());
+        }
 
-        for (final Map.Entry<String, Object> e : expectedMap.entrySet()) {
-            // can't directly assertEquals two Object[] as the #equals method checks whether they're the same Object, rather than comparing the array content
-            if (e.getValue() instanceof Object[] expectedArray) {
-                final Object resultObj = resultMap.get(e.getKey());
-                // Record conversion changes Collections to Arrays, otherwise they remain Collections
-                final Object[] resultArray = convertMapToRecord ? (Object[]) resultObj : ((Collection<?>) resultObj).toArray();
-                assertArrayEquals(expectedArray, resultArray);
-            } else {
-                assertEquals(e.getValue(), resultMap.get(e.getKey()));
+        @Test
+        public void standaloneFunctionsCanBeChainedTogether() {
+            final FieldValue fieldValue = evaluateSingleFieldValue("substringAfter(substringBefore(/name, 'n'), 'J')", record);
+            assertEquals("oh", fieldValue.getValue());
+        }
+
+        @Test
+        public void supportsUsingStandaloneFunctionAsPartOfPredicate() {
+            final FieldValue fieldValue = evaluateSingleFieldValue("/name[substring(., 1, 2) = 'o']", record);
+            assertFieldValue(record, "name", "John Doe", fieldValue);
+        }
+
+        @Test
+        public void throwsRecordPathExceptionWhenUsingStandaloneFunctionAsPredicate() {
+            assertThrows(RecordPathException.class, () -> RecordPath.compile("/name[substring(., 1, 2)]"));
+        }
+
+        @Test
+        public void canReferenceRecordRootInStandaloneFunction() {
+            final Record record = reduceRecord(TestRecordPath.this.record, "id", "name", "missing");
+
+            final FieldValue singleArgumentFieldValue = evaluateSingleFieldValue("escapeJson(/)", record);
+            assertEquals("{\"id\":48,\"name\":\"John Doe\",\"missing\":null}", singleArgumentFieldValue.getValue());
+
+            final FieldValue multipleArgumentsFieldValue = evaluateSingleFieldValue("mapOf(\"copy\",/)", record);
+            assertEquals(Map.of("copy", record.toString()), multipleArgumentsFieldValue.getValue());
+        }
+
+        @Nested
+        class Anchored {
+            @Test
+            public void allowsAnchoringRootContextOnAChildRecord() {
+                final RecordPath recordPath = assertDoesNotThrow(
+                        () -> RecordPath.compile("anchored(/mainAccount, concat(/id, '->', /balance))")
+                );
+
+                final FieldValue fieldValue = evaluateSingleFieldValue(recordPath, record);
+                assertEquals("1->123.45", fieldValue.getValue());
+            }
+
+            @Test
+            public void allowsAnchoringRootContextOnAnArray() {
+                final RecordPath recordPath = assertDoesNotThrow(
+                        () -> RecordPath.compile("anchored(/accounts, concat(/id, '->', /balance))")
+                );
+
+                final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
+                assertAll(
+                        () -> assertEquals(2, fieldValues.size()),
+                        () -> assertEquals("6->10000.0", fieldValues.getFirst().getValue()),
+                        () -> assertEquals("9->48.02", fieldValues.get(1).getValue())
+                );
+            }
+        }
+
+        @Nested
+        class Base64Decode {
+            private final Base64.Encoder encoder = Base64.getEncoder();
+
+            @Test
+            public void allowsToDecodeBase64EncodedByteArray() {
+                final byte[] expectedBytes = "My bytes".getBytes(StandardCharsets.UTF_8);
+                record.setValue("bytes", encoder.encode(expectedBytes));
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("base64Decode(/bytes)", record);
+                assertArrayEquals(expectedBytes, (byte[]) fieldValue.getValue());
+            }
+
+            @Test
+            public void allowsToDecodeBase64EncodedUtf8String() {
+                final String expectedString = "My string";
+                record.setValue("name", encoder.encodeToString(expectedString.getBytes(StandardCharsets.UTF_8)));
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("base64Decode(/name)", record);
+                assertEquals(expectedString, fieldValue.getValue());
+            }
+        }
+
+        @Nested
+        class Base64Encode {
+            private final Base64.Encoder encoder = Base64.getEncoder();
+
+            @Test
+            public void allowsToBase64EncodeByteArray() {
+                final byte[] exampleBytes = "My bytes".getBytes(StandardCharsets.UTF_8);
+                record.setValue("bytes", exampleBytes);
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("base64Encode(/bytes)", record);
+                assertArrayEquals(encoder.encode(exampleBytes), (byte[]) fieldValue.getValue());
+            }
+
+            @Test
+            public void allowsToBase64EncodeUtf8String() {
+                final String exampleString = "My string";
+                record.setValue("name", "My string");
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("base64Encode(/name)", record);
+                assertEquals(encoder.encodeToString(exampleString.getBytes(StandardCharsets.UTF_8)), fieldValue.getValue());
+            }
+        }
+
+        @Nested
+        class Coalesce {
+            @Test
+            public void resolvesToFirstNonNullValueAmongNullValues() {
+                record.setValue("name", null);
+                record.setValue("firstName", null);
+                record.setValue("lastName", "Eve");
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("coalesce(/name, /firstName, /lastName)", record);
+                assertEquals("Eve", fieldValue.getValue());
+            }
+
+            @Test
+            public void resolvesToFirstValueAmongNonNullValues() {
+                record.setValue("name", "Alice");
+                record.setValue("firstName", "Bob");
+                record.setValue("lastName", "Eve");
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("coalesce(/name, /firstName, /lastName)", record);
+                assertEquals("Alice", fieldValue.getValue());
+            }
+
+            @Test
+            public void resolvesToNullWhenAllValuesAreNull() {
+                record.setValue("name", null);
+                record.setValue("firstName", null);
+                record.setValue("lastName", null);
+
+                final List<FieldValue> fieldValues =
+                        evaluateMultiFieldValue("coalesce(/name, /firstName, /lastName)", record);
+                assertEquals(List.of(), fieldValues);
+            }
+
+            @Test
+            public void supportsLiteralValues() {
+                record.setValue("name", null);
+                record.setValue("firstName", "other");
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("coalesce(/name, 'default', /firstName)", record);
+                assertEquals("default", fieldValue.getValue());
+            }
+
+            @Test
+            public void supportsVariableNumberOfArguments() {
+                final FieldValue singleArgumentFieldValue = evaluateSingleFieldValue("coalesce('single')", record);
+                assertEquals("single", singleArgumentFieldValue.getValue());
+
+                final String multiVariableRecordPath = Stream.concat(
+                        Stream.generate(() -> "/missing").limit(1_000),
+                        Stream.of("'multiple'")
+                ).collect(Collectors.joining(", ", "coalesce(", ")"));
+                final FieldValue multipleArgumentsFieldValue = evaluateSingleFieldValue(multiVariableRecordPath, record);
+                assertEquals("multiple", multipleArgumentsFieldValue.getValue());
+            }
+        }
+
+        @Nested
+        class Concat {
+            @Test
+            public void concatenatesArgumentsIntoAString() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("concat(/firstName, /attributes['state'])", record);
+                assertEquals("JohnNY", fieldValue.getValue());
+            }
+
+            @Test
+            public void supportsNumericalValues() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("concat(/id, /mainAccount/balance)", record);
+                assertEquals("48123.45", fieldValue.getValue());
+            }
+
+            @Test
+            public void usesStringLiteralNullForNullValues() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("concat(/firstName, /missing)", record);
+                assertEquals("Johnnull", fieldValue.getValue());
+            }
+
+            @Test
+            public void supportsLiteralValues() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("concat('Hello NiFi', ' ', 2)", record);
+                assertEquals("Hello NiFi 2", fieldValue.getValue());
+
+            }
+        }
+
+        @Nested
+        class Count {
+            @Test
+            public void countsTheNumberOfResultsOfARecordPath() {
+                assertEquals(2L, evaluateSingleFieldValue("count(/attributes[*])", record).getValue());
+                assertEquals(3L, evaluateSingleFieldValue("count(/friends[0, 1, 3])", record).getValue());
+                assertEquals(1L, evaluateSingleFieldValue("count(/*[fieldName(.) = 'bytes'])", record).getValue());
+            }
+
+            @Test
+            public void yieldsOneForReferencesToASingleFieldRegardlessOfItsValue() {
+                assertAll(Stream.of("id", "name", "missing", "attributes", "friends", "mainAccount")
+                        .map(fieldName -> () -> {
+                                    FieldValue fieldValue = evaluateSingleFieldValue("count(/%s)".formatted(fieldName), record);
+                                    assertEquals(1L, fieldValue.getValue());
+                                }
+                        ));
+            }
+
+            @Test
+            public void yieldsOneForLiteralValues() {
+                assertEquals(1L, evaluateSingleFieldValue("count('hello')", record).getValue());
+                assertEquals(1L, evaluateSingleFieldValue("count(56)", record).getValue());
+            }
+        }
+
+        @Nested
+        class EscapeJson {
+            @Test
+            public void escapesReferencedStringValueAsStringLiteral() {
+                assertEquals("\"John Doe\"", evaluateSingleFieldValue("escapeJson(/name)", record).getValue());
+            }
+
+            @Test
+            public void escapesReferencedNumericValueAsNumberLiteral() {
+                assertEquals("48", evaluateSingleFieldValue("escapeJson(/id)", record).getValue());
+                assertEquals("123.45", evaluateSingleFieldValue("escapeJson(/mainAccount/balance)", record).getValue());
+            }
+
+            @Test
+            public void escapesReferencedArrayValueAsArray() {
+                assertEquals("[0,1,2,3,4,5,6,7,8,9]", evaluateSingleFieldValue("escapeJson(/numbers)", record).getValue());
+                assertEquals("[\"John\",\"Jane\",\"Jacob\",\"Judy\"]", evaluateSingleFieldValue("escapeJson(/friends)", record).getValue());
+            }
+
+            @Test
+            public void escapesReferencedMapValueAsObject() {
+                assertEquals("{\"city\":\"New York\",\"state\":\"NY\"}", evaluateSingleFieldValue("escapeJson(/attributes)", record).getValue());
+            }
+
+            @Test
+            public void escapesReferencedRecordValueAsObject() {
+                assertEquals("{\"id\":1,\"balance\":123.45,\"address\":{\"city\":\"Boston\",\"state\":\"Massachusetts\"}}", evaluateSingleFieldValue("escapeJson(/mainAccount)", record).getValue());
+            }
+
+            @Test
+            public void supportsEscapingWholeRecord() {
+                final Record record = reduceRecord(TestRecordPath.this.record, "id", "attributes", "mainAccount", "numbers");
+
+                assertEquals(
+                        "{\"id\":48,\"attributes\":{\"city\":\"New York\",\"state\":\"NY\"}," +
+                                "\"mainAccount\":{\"id\":1,\"balance\":123.45,\"address\":{\"city\":\"Boston\",\"state\":\"Massachusetts\"}}," +
+                                "\"numbers\":[0,1,2,3,4,5,6,7,8,9]}",
+                        evaluateSingleFieldValue("escapeJson(/)", record).getValue()
+                );
+            }
+        }
+
+        @Nested
+        class FieldName {
+            @Test
+            public void yieldsNameOfReferencedFieldRegardlessOfItsValue() {
+                assertEquals("id", evaluateSingleFieldValue("fieldName(/id)", record).getValue());
+                assertEquals("missing", evaluateSingleFieldValue("fieldName(/missing)", record).getValue());
+            }
+
+            @Test
+            public void supportsRecordPathsWithNoResults() {
+                final List<FieldValue> fieldValues = evaluateMultiFieldValue("fieldName(/name[/id != /id])", record);
+                assertEquals(List.of(), fieldValues);
+            }
+
+            @Test
+            public void supportsRecordPathsWithMultipleResults() {
+                final List<FieldValue> fieldValues = evaluateMultiFieldValue("fieldName(/mainAccount/*)", record);
+                assertEquals(List.of("id", "balance", "address"), fieldValues.stream().map(FieldValue::getValue).toList());
+            }
+
+            @Test
+            public void yieldsNameOfFunctionWhenPassedAFunction() {
+                assertEquals("concat", evaluateSingleFieldValue("fieldName(concat('enate'))", record).getValue());
+            }
+
+            @Test
+            public void throwsExceptionWhenPassedLiteralValue() {
+                assertThrows(Exception.class, () -> evaluateSingleFieldValue("fieldName('whoops')", record));
+            }
+        }
+
+        @Nested
+        class Format {
+            @Test
+            public void supportsFormattingLongAsDateString() {
+                final String localDate = "2017-10-20";
+                final String instantFormatted = String.format("%sT12:30:45Z", localDate);
+
+                record.setValue("id", Instant.parse(instantFormatted).toEpochMilli());
+
+                assertEquals(localDate, evaluateSingleFieldValue("format(/id, 'yyyy-MM-dd')", record).getValue());
+                assertEquals(instantFormatted, evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record).getValue());
+            }
+
+            @Test
+            public void supportsFormattingDateAsDateString() {
+                final String localDate = "2017-10-20";
+                final String instantFormatted = String.format("%sT12:30:45Z", localDate);
+
+                record.setValue("id", new Date(Instant.parse(instantFormatted).toEpochMilli()));
+
+                assertEquals(localDate, evaluateSingleFieldValue("format(/id, 'yyyy-MM-dd')", record).getValue());
+                assertEquals(instantFormatted, evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningFormatAsPathReference() {
+                record.setValue("id", Date.valueOf("2024-08-18"));
+                record.setValue("name", "yyyy-MM-dd");
+
+                assertEquals("2024-08-18", evaluateSingleFieldValue("format(/id, /name)", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningTimezoneAsPathReference() {
+                final String instantFormatted = "2017-10-20T12:30:45Z";
+                record.setValue("id", new Date(Instant.parse(instantFormatted).toEpochMilli()));
+                record.setValue("name", "GMT");
+
+                assertEquals(instantFormatted, evaluateSingleFieldValue("format(/id, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", /name)", record).getValue());
+            }
+
+            @Test
+            public void yieldsValueUnchangedWhenFormatIsInvalid() {
+                final Date originalValue = Date.valueOf("2024-08-18");
+                record.setValue("id", originalValue);
+
+                assertEquals(originalValue, evaluateSingleFieldValue("format(/id, 'INVALID')", record).getValue());
+            }
+
+            @Test
+            public void yieldsValueUnchangedWhenAppliedOnAFieldWithNeitherLongNorDateCompatibleValue() {
+                final List<String> nonLongOrDateFields = List.of("date", "attributes", "mainAccount", "numbers", "bytes");
+
+                assertAll(nonLongOrDateFields.stream().map(fieldName -> () -> {
+                    final FieldValue fieldValue = evaluateSingleFieldValue("format(/%s, 'yyyy-MM-dd')".formatted(fieldName), record);
+                    assertEquals(record.getValue(fieldName), fieldValue.getValue());
+                }));
+            }
+        }
+
+        @Nested
+        class Hash {
+            @Test
+            public void canCalculateSha512HashValues() {
+                assertEquals(
+                        "1fcb45d41a91df3139cb682a7895cf39636bab30d7f464943ca4f2287f72c06f4c34b10d203b26ccca06e9051c024252657302dd8ad3b2086c6bfd9bd34fa407",
+                        evaluateSingleFieldValue("hash(/name, 'SHA-512')", record).getValue()
+                );
+            }
+
+            @Test
+            public void canCalculateMd5HashValues() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("hash(/name, 'MD5')", record);
+                assertEquals("4c2a904bafba06591225113ad17b5cec", fieldValue.getValue());
+            }
+
+            @Test
+            public void canCalculateSha384HashValues() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("hash(/name, 'SHA-384')", record);
+                assertEquals("d0e24ff9f82e2a6b35409aec172e64b363f2dd26d8881d19f63214d5552357a40e32ac874a587d3fcf43ec86299eb001", fieldValue.getValue());
+            }
+
+            @Test
+            public void canCalculateSha224HashValues() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("hash(/name, 'SHA-224')", record);
+                assertEquals("20b058bc065abdbbd674123ed539286fa2765589424c38cd9e27b748", fieldValue.getValue());
+            }
+
+            @Test
+            public void canCalculateSha256HashValues() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("hash(/name, 'SHA-256')", record);
+                assertEquals("6cea57c2fb6cbc2a40411135005760f241fffc3e5e67ab99882726431037f908", fieldValue.getValue());
+            }
+
+            @Test
+            public void canCalculateMd2HashValues() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("hash(/name, 'MD2')", record);
+                assertEquals("bb4d5a2fb65820445e54f00d629e1127", fieldValue.getValue());
+            }
+
+            @Test
+            public void canCalculateShaHashValues() {
+                final FieldValue fieldValue = evaluateSingleFieldValue("hash(/name, 'SHA')", record);
+                assertEquals("ae6e4d1209f17b460503904fad297b31e9cf6362", fieldValue.getValue());
+            }
+
+            @Test
+            public void throwsRecordPathExceptionOnUnsupportedAlgorithm() {
+                assertThrows(RecordPathException.class, () -> evaluateSingleFieldValue("hash(/name, 'NOT_A_ALGO')", record));
+            }
+
+            @Test
+            public void supportsProvidingAlgorithmAsReference() {
+                record.setValue("name", "MD5");
+                assertEquals("7f138a09169b250e9dcb378140907378", evaluateSingleFieldValue("hash(/name, /name)", record).getValue());
+            }
+        }
+
+        @Nested
+        class Join {
+            @Test
+            public void yieldsStringConsistingOfPassedArgumentsJoinedByDeclaredSeparator() {
+                assertEquals("John, Doe, John Doe", evaluateSingleFieldValue("join(', ', /firstName, /lastName, /name)", record).getValue());
+            }
+
+            @Test
+            public void yieldsArgumentsAsIsWhenGivenSingleArgumentBesidesSeparator() {
+                assertEquals("John Doe", evaluateSingleFieldValue("join('---', /name)", record).getValue());
+            }
+
+            @Test
+            public void supportsLiteralValuesAsArguments() {
+                assertEquals("Nyan Cat", evaluateSingleFieldValue("join(' ', 'Nyan', 'Cat')", record).getValue());
+            }
+
+            @Test
+            public void usesItemsAsArgumentsWhenGivenAnArray() {
+                assertEquals("John Jane Jacob Doe", evaluateSingleFieldValue("join(' ', /firstName, /friends[1..2], /lastName)", record).getValue());
+            }
+        }
+
+        @Nested
+        class MapOf {
+            @Test
+            public void generatesMapOfStringFromProvidedArguments() {
+                Map<String, String> expectedResult = Map.of(
+                        "id", "48",
+                        "fullName", "John Doe",
+                        "money", "123.45",
+                        "nullStringLiteral", "null"
+                );
+
+                final FieldValue fieldValue = evaluateSingleFieldValue(
+                        "mapOf('id', /id, 'fullName', /name, 'money', /mainAccount/balance, 'nullStringLiteral', /missing)", record
+                );
+
+                assertEquals(expectedResult, fieldValue.getValue());
+            }
+
+            @Test
+            public void throwsRecordPathExceptionWhenPassedAnOddAmountOfArguments() {
+                assertThrows(RecordPathException.class, () -> RecordPath.compile("mapOf('firstName', /firstName, 'lastName')").evaluate(record));
+            }
+        }
+
+        @Nested
+        class PadLeft {
+            @Test
+            public void padsLeftOfStringWithUnderscoresUpToDesiredLength() {
+                assertEquals("___John Doe", evaluateSingleFieldValue("padLeft(/name, 11)", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningSingleCharacterPadValue() {
+                assertEquals("@@John Doe", evaluateSingleFieldValue("padLeft(/name, 10, '@')", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningMultiCharacterPadValue() {
+                assertEquals("abcJohn Doe", evaluateSingleFieldValue("padLeft(/name, 11, 'abc')", record).getValue());
+                assertEquals("aJohn Doe", evaluateSingleFieldValue("padLeft(/name, 9, 'abc')", record).getValue());
+                assertEquals("abcabJohn Doe", evaluateSingleFieldValue("padLeft(/name, 13, 'abc')", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningPadValueByPathReference() {
+                assertEquals("JohnDoe", evaluateSingleFieldValue("padLeft(/lastName, 7, /firstName)", record).getValue());
+            }
+
+            @Test
+            public void usesDefaultPadValueWhenProvidedEmptyPadValue() {
+                assertEquals("___John Doe", evaluateSingleFieldValue("padLeft(/name, 11, '')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenAppliedOnAFieldWithStringValueOfDesiredLength() {
+                assertEquals("John Doe", evaluateSingleFieldValue("padLeft(/name, 8)", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenAppliedOnAFieldWithStringValueLongerDesiredLength() {
+                assertEquals("John Doe", evaluateSingleFieldValue("padLeft(/name, 3)", record).getValue());
+            }
+
+            @Test
+            public void yieldsNullWhenAppliedOnAFieldWithValueOfNull() {
+                assertNull(evaluateSingleFieldValue("padLeft(/missing, 10)", record).getValue());
+            }
+        }
+
+        @Nested
+        class PadRight {
+            @Test
+            public void padsRightOfStringWithUnderscoresUpToDesiredLength() {
+                assertEquals("John Doe___", evaluateSingleFieldValue("padRight(/name, 11)", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningSingleCharacterPadValue() {
+                assertEquals("John Doe@@", evaluateSingleFieldValue("padRight(/name, 10, '@')", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningMultiCharacterPadValue() {
+                assertEquals("John Doeabc", evaluateSingleFieldValue("padRight(/name, 11, 'abc')", record).getValue());
+                assertEquals("John Doea", evaluateSingleFieldValue("padRight(/name, 9, 'abc')", record).getValue());
+                assertEquals("John Doeabcab", evaluateSingleFieldValue("padRight(/name, 13, 'abc')", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningPadValueByPathReference() {
+                assertEquals("DoeJohn", evaluateSingleFieldValue("padRight(/lastName, 7, /firstName)", record).getValue());
+            }
+
+            @Test
+            public void usesDefaultPadValueWhenProvidedEmptyPadValue() {
+                assertEquals("John Doe___", evaluateSingleFieldValue("padRight(/name, 11, '')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenAppliedOnAFieldWithStringValueOfDesiredLength() {
+                assertEquals("John Doe", evaluateSingleFieldValue("padRight(/name, 8)", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenAppliedOnAFieldWithStringValueLongerDesiredLength() {
+                assertEquals("John Doe", evaluateSingleFieldValue("padRight(/name, 3)", record).getValue());
+            }
+
+            @Test
+            public void yieldsNullWhenAppliedOnAFieldWithValueOfNull() {
+                assertNull(evaluateSingleFieldValue("padRight(/missing, 10)", record).getValue());
+            }
+        }
+
+        @Nested
+        class RecordOf {
+            @Test
+            public void createsRecordFromReferencedFields() {
+                assertRecordOf(
+                        "recordOf('mappedLong', /id, 'mappedString', /name)",
+                        Map.of("id", "mappedLong", "name", "mappedString")
+                );
+            }
+
+            @Test
+            public void throwsRecordPathExceptionWhenPassedAnOddAmountOfArguments() {
+                assertThrows(RecordPathException.class, () -> RecordPath.compile("recordOf('firstName', /firstName, 'lastName')").evaluate(record));
+            }
+
+            @Test
+            public void supportsReferencesToFieldsOfTypeMap() {
+                assertRecordOf(
+                        "recordOf('mappedMap', /attributes)",
+                        Map.of("attributes", "mappedMap")
+                );
+            }
+
+            @Test
+            public void supportsReferencesToFieldsOfTypeArray() {
+                assertRecordOf(
+                        "recordOf('mappedArray', /bytes)",
+                        Map.of("bytes", "mappedArray")
+                );
+            }
+
+            @Test
+            public void supportsReferencesToFieldsOfTypeRecord() {
+                assertRecordOf(
+                        "recordOf('mappedRecord', /mainAccount)",
+                        Map.of("mainAccount", "mappedRecord")
+                );
+            }
+
+            @Test
+            public void supportsPathReferenceToMissingValue() {
+                final Map<String, DataType> expectedFieldTypes = Map.of(
+                        "missingValue", record.getSchema().getDataType("missing").orElseThrow(),
+                        "nonExisting", choiceTypeOf(RecordFieldType.STRING, RecordFieldType.RECORD) // fallback used when field is not defined in source
+                );
+                final Map<String, Object> expectedFieldValues = new HashMap<>();
+                expectedFieldValues.put("nonExisting", null);
+
+                assertRecordOf(
+                        "recordOf('missingValue', /missing, 'nonExisting', /nonExistingField)",
+                        expectedFieldTypes,
+                        expectedFieldValues
+                );
+            }
+
+            @Test
+            public void supportsCreatingRecordWithFieldNameFromPathReference() {
+                final Map<String, DataType> expectedFieldTypes = Map.of(
+                        "John", RecordFieldType.STRING.getDataType()
+                );
+                final Map<String, Object> expectedFieldValues = Map.of(
+                        "John", "Doe"
+                );
+
+                assertRecordOf(
+                        "recordOf(/firstName, /lastName)",
+                        expectedFieldTypes,
+                        expectedFieldValues
+                );
+            }
+
+            @Test
+            public void supportsCreatingRecordFromLiteralValue() {
+                final Map<String, DataType> expectedFieldTypes = Map.of(
+                        "aNumber", RecordFieldType.INT.getDataType(),
+                        "aString", RecordFieldType.STRING.getDataType()
+                );
+                final Map<String, Object> expectedFieldValues = Map.of(
+                        "aNumber", 2012,
+                        "aString", "aValue"
+                );
+
+                assertRecordOf(
+                        "recordOf('aNumber', 2012, 'aString', 'aValue')",
+                        expectedFieldTypes,
+                        expectedFieldValues
+                );
+            }
+
+            private void assertRecordOf(final String path, final Map<String, String> originalToMappedFieldNames) {
+                final Map<String, DataType> expectedFieldTypes = originalToMappedFieldNames.entrySet().stream()
+                        .collect(Collectors.toMap(
+                                Map.Entry::getValue,
+                                originalToMappedFieldName -> {
+                                    final String originalFieldName = originalToMappedFieldName.getKey();
+                                    return record.getSchema().getDataType(originalFieldName).orElseThrow();
+                                }
+                        ));
+                final Map<String, Object> expectedFieldValues = originalToMappedFieldNames.entrySet().stream()
+                        .collect(Collectors.toMap(
+                                Map.Entry::getValue,
+                                originalToMappedFieldName -> {
+                                    final String originalFieldName = originalToMappedFieldName.getKey();
+                                    return record.getValue(originalFieldName);
+                                }
+                        ));
+
+                assertRecordOf(path, expectedFieldTypes, expectedFieldValues);
+            }
+
+            private void assertRecordOf(
+                    final String path,
+                    final Map<String, DataType> expectedFieldTypes,
+                    final Map<String, Object> expectedFieldValues
+            ) {
+                final FieldValue result = evaluateSingleFieldValue(path, record);
+
+                assertEquals(RecordFieldType.RECORD, result.getField().getDataType().getFieldType());
+
+                final Object fieldValue = result.getValue();
+                assertInstanceOf(Record.class, fieldValue);
+                final Record recordValue = (Record) fieldValue;
+
+                assertAll(Stream.concat(
+                        expectedFieldTypes.entrySet().stream().map(expectation -> () -> {
+                            final DataType expectedFieldType = expectation.getValue();
+                            final RecordField actualRecordField =
+                                    recordValue.getSchema().getField(expectation.getKey()).orElseThrow();
+
+                            assertEquals(expectedFieldType, actualRecordField.getDataType());
+                        }),
+                        expectedFieldValues.entrySet().stream().map(expectation ->
+                                () -> assertEquals(expectation.getValue(), recordValue.getValue(expectation.getKey()))
+                        )
+                ));
+            }
+        }
+
+        @Nested
+        class Replace {
+            @Test
+            public void replacesSearchTermInsideStringWithReplacementValue() {
+                assertEquals("Jane Doe", evaluateSingleFieldValue("replace(/name, 'ohn', 'ane')", record).getValue());
+            }
+
+            @Test
+            public void replacesAllOccurrencesOfTheSearchTerm() {
+                assertEquals("JXhn DXe", evaluateSingleFieldValue("replace(/name, 'o', 'X')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenItDoesNotContainSearchTerm() {
+                assertEquals("John Doe", evaluateSingleFieldValue("replace(/name, 'nomatch', 'X')", record).getValue());
+            }
+        }
+
+        @Nested
+        class ReplaceNull {
+            @Test
+            public void yieldsReplacementValueWhenAppliedOnAFieldWithValueOfNull() {
+                assertEquals(14, evaluateSingleFieldValue("replaceNull(/missing, 14)", record).getValue());
+            }
+
+            @Test
+            public void yieldsValueUnchangedWhenAppliedOnAFieldWithNonNullValue() {
+                assertEquals("John", evaluateSingleFieldValue("replaceNull(/firstName, 17)", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningReplacementValueByPathReference() {
+                assertEquals(48, evaluateSingleFieldValue("replaceNull(/missing, /id)", record).getValue());
+            }
+        }
+
+        @Nested
+        class ReplaceRegex {
+            @Test
+            public void supportsReplacementOfLiteralValue() {
+                assertEquals("Jane Doe", evaluateSingleFieldValue("replaceRegex(/name, 'ohn', 'ane')", record).getValue());
+            }
+
+            @Test
+            public void replacesAllMatches() {
+                assertEquals("JXhn DXe", evaluateSingleFieldValue("replaceRegex(/name, 'o', 'X')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenPatternDoesNotMatch() {
+                assertEquals("John Doe", evaluateSingleFieldValue("replaceRegex(/name, 'nomatch', 'X')", record).getValue());
+            }
+
+            @Test
+            public void supportsReplacementOfCharacterSet() {
+                assertEquals("Jxhn Dxx", evaluateSingleFieldValue("replaceRegex(/name, '[aeiou]', 'x')", record).getValue());
+            }
+
+            @Test
+            public void supportsReplacementOfPreDefinedCharacterSet() {
+                assertEquals("xxxx xxx", evaluateSingleFieldValue("replaceRegex(/name, '\\w', 'x')", record).getValue());
+            }
+
+            @Test
+            public void supportsReplacementUsingOrCondition() {
+                assertEquals("Xohn Xoe", evaluateSingleFieldValue("replaceRegex(/name, 'J|D', 'X')", record).getValue());
+            }
+
+            @Test
+            public void supportsReplacementUsingDotWildcard() {
+                record.setValue("name", "Joe");
+                assertEquals("XXX", evaluateSingleFieldValue("replaceRegex(/name, '.', 'X')", record).getValue());
+            }
+
+            @Test
+            public void dotWildcardMatchesSpaceAndTabButNotCarriageReturnAndNewlineCharacters() {
+                record.setValue("name", " \n\r\t");
+                assertEquals("W\n\rW", evaluateSingleFieldValue("replaceRegex(/name, '.', 'W')", record).getValue());
+            }
+
+            @Test
+            public void supportsMatchingFromStart() {
+                record.setValue("name", "Bob Bobby");
+                assertEquals("Hello Bobby", evaluateSingleFieldValue("replaceRegex(/name, '^Bob', 'Hello')", record).getValue());
+            }
+
+            @Test
+            public void supportsMatchingToEnd() {
+                record.setValue("name", "Bobby Bob");
+                assertEquals("Bobby Bobson", evaluateSingleFieldValue("replaceRegex(/name, 'Bob$', 'Bobson')", record).getValue());
+            }
+
+            @Test
+            public void supportsUsingValueOfCaptureGroup() {
+                assertEquals("Jxohn Dxoe", evaluateSingleFieldValue("replaceRegex(/name, '([JD])', '$1x')", record).getValue());
+            }
+
+            @Test
+            public void supportsUsingValueOfNamedCaptureGroup() {
+                assertEquals("Jxohn Dxoe", evaluateSingleFieldValue("replaceRegex(/name, '(?<hello>[JD])', '${hello}x')", record).getValue());
+            }
+
+            @Test
+            public void supportsToEscapeRegexReservedCharacters() {
+                record.setValue("name", ".^$*+?()[{\\|");
+                // NOTE: At Java code, a single back-slash needs to be escaped with another-back slash, but needn't do so at NiFi UI.
+                //       The test record path is equivalent to replaceRegex(/name, '\.', 'x')
+                assertEquals("x^$*+?()[{\\|", evaluateSingleFieldValue("replaceRegex(/name, '\\.', 'x')", record).getValue());
+                assertEquals(".x$*+?()[{\\|", evaluateSingleFieldValue("replaceRegex(/name, '\\^', 'x')", record).getValue());
+                assertEquals(".^x*+?()[{\\|", evaluateSingleFieldValue("replaceRegex(/name, '\\$', 'x')", record).getValue());
+                assertEquals(".^$x+?()[{\\|", evaluateSingleFieldValue("replaceRegex(/name, '\\*', 'x')", record).getValue());
+                assertEquals(".^$*x?()[{\\|", evaluateSingleFieldValue("replaceRegex(/name, '\\+', 'x')", record).getValue());
+                assertEquals(".^$*+x()[{\\|", evaluateSingleFieldValue("replaceRegex(/name, '\\?', 'x')", record).getValue());
+                assertEquals(".^$*+?x)[{\\|", evaluateSingleFieldValue("replaceRegex(/name, '\\(', 'x')", record).getValue());
+                assertEquals(".^$*+?(x[{\\|", evaluateSingleFieldValue("replaceRegex(/name, '\\)', 'x')", record).getValue());
+                assertEquals(".^$*+?()x{\\|", evaluateSingleFieldValue("replaceRegex(/name, '\\[', 'x')", record).getValue());
+                assertEquals(".^$*+?()[x\\|", evaluateSingleFieldValue("replaceRegex(/name, '\\{', 'x')", record).getValue());
+                assertEquals(".^$*+?()[{x|", evaluateSingleFieldValue("replaceRegex(/name, '\\\\', 'x')", record).getValue());
+                assertEquals(".^$*+?()[{\\x", evaluateSingleFieldValue("replaceRegex(/name, '\\|', 'x')", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningTargetValueAsLiteralValue() {
+                assertEquals("Jane Doe", evaluateSingleFieldValue("replaceRegex('John Doe', 'John', 'Jane')", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningPatternByPathReference() {
+                record.setValue("firstName", "ohn");
+                assertEquals("Jane Doe", evaluateSingleFieldValue("replaceRegex(/name, /firstName, 'ane')", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningReplacementValueByPathReference() {
+                assertEquals("J48n Doe", evaluateSingleFieldValue("replaceRegex(/name, 'oh', /id)", record).getValue());
+            }
+        }
+
+        @Nested
+        class Substring {
+            @Test
+            public void yieldsTheSubstringBetweenTheDefinedStartIndexInclusiveAndEndIndexExclusive() {
+                assertEquals("hn D", evaluateSingleFieldValue("substring(/name, 2, 6)", record).getValue());
+            }
+
+            @Test
+            public void coercesEndIndexToStringLengthWhenDefinedEndIndexIsGreaterThanStringLength() {
+                assertEquals(" Doe", evaluateSingleFieldValue("substring(/name, 4, 10000)", record).getValue());
+            }
+
+            @Test
+            public void supportsIndexBasedOnEndOfString() {
+                assertEquals("hn D", evaluateSingleFieldValue("substring(/name, -7, -3)", record).getValue());
+            }
+
+            @Test
+            public void yieldsEmptyStringWhenStartIndexIsGreaterThanOrEqualToStringLength() {
+                assertEquals("", evaluateSingleFieldValue("substring(/name, 8, 10)", record).getValue());
+            }
+
+            @Test
+            public void yieldsEmptyStringWhenStartIndexEqualsEndIndex() {
+                assertEquals("", evaluateSingleFieldValue("substring(/name, 3, 3)", record).getValue());
+            }
+
+            @Test
+            public void yieldsNoResultWhenAppliedOnAFieldWithValueOfNull() {
+                final List<FieldValue> fieldValues = evaluateMultiFieldValue("substring(/missing, 1, 2)", record);
+                assertEquals(List.of(), fieldValues);
+            }
+
+            @Test
+            public void supportsLiteralAsTargetValue() {
+                assertEquals("Bobby", evaluateSingleFieldValue("substring('Bob Bobby Bobson', 4, 9)", record).getValue());
+            }
+
+            @Test
+            public void supportsPathReferencesAsIndices() {
+                record.setValue("id", 2);
+                final Record mainAccountRecord = TestRecordPath.this.mainAccountRecord;
+                mainAccountRecord.setValue("id", 6);
+
+                assertEquals("hn D", evaluateSingleFieldValue("substring(/name, /id, /mainAccount/id)", record).getValue());
+            }
+        }
+
+        @Nested
+        class SubstringAfter {
+            @Test
+            public void yieldsSubstringAfterFirstOccurrenceOfSearchTerm() {
+                assertEquals("hn Doe", evaluateSingleFieldValue("substringAfter(/name, 'o')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenSearchTermIsNotPartOfString() {
+                assertEquals("John Doe", evaluateSingleFieldValue("substringAfter(/name, 'x')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenSearchTermIsEmpty() {
+                assertEquals("John Doe", evaluateSingleFieldValue("substringAfter(/name, '')", record).getValue());
+            }
+
+            @Test
+            public void yieldsEmptyStringWhenFirstOccurrenceOfSearchTermIsAtEndOfString() {
+                assertEquals("", evaluateSingleFieldValue("substringAfter(/name, 'e')", record).getValue());
+            }
+
+            @Test
+            public void supportsMultiCharacterSearchTerms() {
+                assertEquals("n Doe", evaluateSingleFieldValue("substringAfter(/name, 'oh')", record).getValue());
+            }
+
+            @Test
+            public void supportsLiteralAsTargetValue() {
+                assertEquals(" Bobson", evaluateSingleFieldValue("substringAfter('Bob Bobby Bobson', 'y')", record).getValue());
+            }
+
+            @Test
+            public void supportsPathReferencesAsSearchTerm() {
+                assertEquals(" Doe", evaluateSingleFieldValue("substringAfter(/name, /firstName)", record).getValue());
+            }
+        }
+
+        @Nested
+        class SubstringAfterLast {
+            @Test
+            public void yieldsSubstringAfterLastOccurrenceOfSearchTerm() {
+                assertEquals("e", evaluateSingleFieldValue("substringAfterLast(/name, 'o')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenSearchTermIsNotPartOfString() {
+                assertEquals("John Doe", evaluateSingleFieldValue("substringAfterLast(/name, 'x')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenSearchTermIsEmpty() {
+                assertEquals("John Doe", evaluateSingleFieldValue("substringAfterLast(/name, '')", record).getValue());
+            }
+
+            @Test
+            public void yieldsEmptyStringWhenLastOccurrenceOfSearchTermIsAtEndOfString() {
+                assertEquals("", evaluateSingleFieldValue("substringAfterLast(/name, 'e')", record).getValue());
+            }
+
+            @Test
+            public void supportsMultiCharacterSearchTerms() {
+                assertEquals("n Doe", evaluateSingleFieldValue("substringAfterLast(/name, 'oh')", record).getValue());
+            }
+
+            @Test
+            public void supportsLiteralAsTargetValue() {
+                assertEquals(" Bobson", evaluateSingleFieldValue("substringAfterLast('Bob Bobby Bobson', 'y')", record).getValue());
+            }
+
+            @Test
+            public void supportsPathReferencesAsSearchTerm() {
+                assertEquals(" Doe", evaluateSingleFieldValue("substringAfterLast(/name, /firstName)", record).getValue());
+            }
+        }
+
+        @Nested
+        class SubstringBefore {
+            @Test
+            public void yieldsSubstringBeforeFirstOccurrenceOfSearchTerm() {
+                assertEquals("John", evaluateSingleFieldValue("substringBefore(/name, ' ')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenSearchTermIsNotPartOfString() {
+                assertEquals("John Doe", evaluateSingleFieldValue("substringBefore(/name, 'x')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenSearchTermIsEmpty() {
+                assertEquals("John Doe", evaluateSingleFieldValue("substringBefore(/name, '')", record).getValue());
+            }
+
+            @Test
+            public void yieldsEmptyStringWhenFirstOccurrenceOfSearchTermIsAtStartOfString() {
+                assertEquals("", evaluateSingleFieldValue("substringBefore(/name, 'J')", record).getValue());
+            }
+
+            @Test
+            public void supportsMultiCharacterSearchTerms() {
+                assertEquals("John ", evaluateSingleFieldValue("substringBefore(/name, 'Do')", record).getValue());
+            }
+
+            @Test
+            public void supportsLiteralAsTargetValue() {
+                assertEquals("Bob Bobb", evaluateSingleFieldValue("substringBefore('Bob Bobby Bobson', 'y')", record).getValue());
+            }
+
+            @Test
+            public void supportsPathReferencesAsSearchTerm() {
+                assertEquals("John ", evaluateSingleFieldValue("substringBefore(/name, /lastName)", record).getValue());
+            }
+        }
+
+        @Nested
+        class SubstringBeforeLast {
+            @Test
+            public void yieldsSubstringBeforeLastOccurrenceOfSearchTerm() {
+                assertEquals("John D", evaluateSingleFieldValue("substringBeforeLast(/name, 'o')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenSearchTermIsNotPartOfString() {
+                assertEquals("John Doe", evaluateSingleFieldValue("substringBeforeLast(/name, 'x')", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenSearchTermIsEmpty() {
+                assertEquals("John Doe", evaluateSingleFieldValue("substringBeforeLast(/name, '')", record).getValue());
+            }
+
+            @Test
+            public void yieldsEmptyStringWhenLastOccurrenceOfSearchTermIsAtStartOfString() {
+                assertEquals("", evaluateSingleFieldValue("substringBeforeLast(/name, 'J')", record).getValue());
+            }
+
+            @Test
+            public void supportsMultiCharacterSearchTerms() {
+                assertEquals("John ", evaluateSingleFieldValue("substringBeforeLast(/name, 'Do')", record).getValue());
+            }
+
+            @Test
+            public void supportsLiteralAsTargetValue() {
+                assertEquals("Bob Bobb", evaluateSingleFieldValue("substringBeforeLast('Bob Bobby Bobson', 'y')", record).getValue());
+            }
+
+            @Test
+            public void supportsPathReferencesAsSearchTerm() {
+                assertEquals("John ", evaluateSingleFieldValue("substringBeforeLast(/name, /lastName)", record).getValue());
+            }
+        }
+
+        @Nested
+        class ToBytes {
+            @Test
+            public void encodesStringAsBytesUsingTheDefinedCharset() {
+                final String originalValue = "Hello World!";
+                record.setValue("name", originalValue);
+
+                assertArrayEquals(originalValue.getBytes(StandardCharsets.UTF_16LE), (byte[]) evaluateSingleFieldValue("toBytes(/name, 'UTF-16LE')", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningCharsetAsPathReference() {
+                final String originalValue = "Hello World!";
+                record.setValue("name", originalValue);
+                record.setValue("firstName", "UTF-8");
+
+                assertArrayEquals(originalValue.getBytes(StandardCharsets.UTF_8), (byte[]) evaluateSingleFieldValue("toBytes(/name, /firstName)", record).getValue());
+            }
+
+            @Test
+            public void throwsExceptionWhenPassedAnNonExistingCharset() {
+                assertThrows(IllegalCharsetNameException.class, () -> evaluateSingleFieldValue("toBytes(/name, 'NOT A REAL CHARSET')", record));
+            }
+        }
+
+        @Nested
+        class ToDate {
+            @Test
+            public void supportsParsingStringToDateUsingSystemTimezone() {
+                final String localDateString = "2017-10-20T12:30:45";
+                final Date expectedValue = new Date(LocalDateTime.parse(localDateString).atZone(TEST_ZONE_ID).toInstant().toEpochMilli());
+
+                record.setValue("date", localDateString);
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\")", record);
+                assertEquals(expectedValue, fieldValue.getValue());
+            }
+
+            @Test
+            public void supportsParsingStringToDateUsingDefinedTimezone() {
+                final String localDateTimeString = "2017-10-20T12:30:45";
+                final ZonedDateTime expectedZonedDateTime = LocalDateTime.parse(localDateTimeString)
+                        .atZone(TimeZone.getTimeZone("GMT+8:00").toZoneId());
+                final Date expectedValue = new Date(expectedZonedDateTime.toInstant().toEpochMilli());
+
+                record.setValue("date", localDateTimeString);
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\", 'GMT+8:00')", record);
+                assertEquals(expectedValue, fieldValue.getValue());
+            }
+
+            @Test
+            public void supportsDefiningFormatAsPathReference() {
+                final String localDateString = "2017-10-20T12:30:45";
+                final Date expectedValue = new Date(LocalDateTime.parse(localDateString).atZone(TEST_ZONE_ID).toInstant().toEpochMilli());
+
+                record.setValue("date", localDateString);
+                record.setValue("name", "yyyy-MM-dd'T'HH:mm:ss");
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, /name)", record);
+                assertEquals(expectedValue, fieldValue.getValue());
+            }
+
+            @Test
+            public void supportsDefiningTimezoneAsPathReference() {
+                final String localDateTimeString = "2017-10-20T12:30:45";
+                final String timeZone = "GMT+8:00";
+                final ZonedDateTime expectedZonedDateTime = LocalDateTime.parse(localDateTimeString)
+                        .atZone(TimeZone.getTimeZone(timeZone).toZoneId());
+                final Date expectedValue = new Date(expectedZonedDateTime.toInstant().toEpochMilli());
+
+                record.setValue("date", localDateTimeString);
+                record.setValue("name", timeZone);
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\", /name)", record);
+                assertEquals(expectedValue, fieldValue.getValue());
+            }
+
+            @Test
+            public void yieldsValueUnchangedWhenValueDoesNotMatchFormat() {
+                final String originalValue = record.getAsString("date");
+
+                assertEquals(originalValue, evaluateSingleFieldValue("toDate(/date, 'yyyy-MM-dd')", record).getValue());
+            }
+
+            @Test
+            public void yieldsValueUnchangedWhenFormatIsInvalid() {
+                final String originalValue = record.getAsString("date");
+
+                assertEquals(originalValue, evaluateSingleFieldValue("toDate(/date, 'INVALID')", record).getValue());
+            }
+
+            @Test
+            public void yieldsValueUnchangedWhenAppliedOnAFieldWithNonStringValue() {
+                final List<String> nonStringFields = List.of("id", "attributes", "mainAccount", "numbers", "bytes");
+
+                assertAll(nonStringFields.stream().map(fieldName -> () -> {
+                    final FieldValue fieldValue = evaluateSingleFieldValue("toDate(/%s, 'yyyy-MM-dd')".formatted(fieldName), record);
+                    assertEquals(record.getValue(fieldName), fieldValue.getValue());
+                }));
+            }
+        }
+
+        @Nested
+        class ToLowerCase {
+            @Test
+            public void yieldsLowercaseRepresentationOfString() {
+                assertEquals("john doe", evaluateSingleFieldValue("toLowerCase(/name)", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenStringIsLowercaseAlready() {
+                record.setValue("name", "lower");
+
+                assertEquals("lower", evaluateSingleFieldValue("toLowerCase(/name)", record).getValue());
+            }
+
+            @Test
+            public void yieldsEmptyStringWhenAppliedOnAFieldWithValueOfNull() {
+                assertEquals("", evaluateSingleFieldValue("toLowerCase(/missing)", record).getValue());
+            }
+
+            @Test
+            public void supportsLiteralValue() {
+                assertEquals("upper lower", evaluateSingleFieldValue("toLowerCase('UPPER lower')", record).getValue());
+            }
+
+            @Test
+            public void canBeAppliedToReferenceResolvingMultipleFields() {
+                record.setValue("friends", new String[]{"John Doe", "Jane Smith"});
+
+                final List<FieldValue> results = evaluateMultiFieldValue("toLowerCase(/friends[*])", record);
+                assertEquals("john doe", results.get(0).getValue());
+                assertEquals("jane smith", results.get(1).getValue());
+            }
+        }
+
+        @Nested
+        class ToString {
+            @Test
+            public void decodesBytesAsStringUsingTheDefinedCharset() {
+                record.setValue("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
+
+                assertEquals("Hello World!", evaluateSingleFieldValue("toString(/bytes, 'UTF-16')", record).getValue());
+            }
+
+            @Test
+            public void supportsDefiningCharsetAsPathReference() {
+                record.setValue("bytes", "Hello World!".getBytes(StandardCharsets.UTF_8));
+                record.setValue("name", "UTF-8");
+
+                assertEquals("Hello World!", evaluateSingleFieldValue("toString(/bytes, /name)", record).getValue());
+            }
+
+            @Test
+            public void throwsExceptionWhenPassedAnNonExistingCharset() {
+                assertThrows(IllegalCharsetNameException.class, () -> evaluateSingleFieldValue("toString(/bytes, 'NOT A REAL CHARSET')", record));
+            }
+        }
+
+        @Nested
+        class ToUpperCase {
+            @Test
+            public void yieldsUppercaseRepresentationOfString() {
+                assertEquals("JOHN DOE", evaluateSingleFieldValue("toUpperCase(/name)", record).getValue());
+            }
+
+            @Test
+            public void yieldsStringUnchangedWhenStringIsUppercaseAlready() {
+                record.setValue("name", "UPPER");
+                assertEquals("UPPER", evaluateSingleFieldValue("toUpperCase(/name)", record).getValue());
+            }
+
+            @Test
+            public void yieldsEmptyStringWhenAppliedOnAFieldWithValueOfNull() {
+                assertEquals("", evaluateSingleFieldValue("toUpperCase(/missing)", record).getValue());
+            }
+
+            @Test
+            public void supportsLiteralValue() {
+                assertEquals("UPPER LOWER", evaluateSingleFieldValue("toUpperCase('UPPER lower')", record).getValue());
+            }
+
+            @Test
+            public void canBeAppliedToReferenceResolvingMultipleFields() {
+                record.setValue("friends", new String[]{"John Doe", "Jane Smith"});
+
+                final List<FieldValue> results = evaluateMultiFieldValue("toUpperCase(/friends[*])", record);
+                assertEquals("JOHN DOE", results.get(0).getValue());
+                assertEquals("JANE SMITH", results.get(1).getValue());
+            }
+        }
+
+        @Nested
+        class Trim {
+            @Test
+            public void removesWhitespaceFromStartOfString() {
+                record.setValue("name", " \n\r\tJohn");
+
+                assertEquals("John", evaluateSingleFieldValue("trim(/name)", record).getValue());
+            }
+
+            @Test
+            public void removesWhitespaceFromEndOfString() {
+                record.setValue("name", "John \n\r\t");
+
+                assertEquals("John", evaluateSingleFieldValue("trim(/name)", record).getValue());
+            }
+
+            @Test
+            public void keepsWhitespaceInBetweenNonWhitespaceCharacters() {
+                record.setValue("name", " \n\r\tJohn Smith \n\r\t");
+
+                assertEquals("John Smith", evaluateSingleFieldValue("trim(/name)", record).getValue());
+            }
+
+            @Test
+            public void yieldsEmptyStringForMissingField() {
+                assertEquals("", evaluateSingleFieldValue("trim(/missing)", record).getValue());
+            }
+
+            @Test
+            public void supportsLiteralValue() {
+                assertEquals("Bonjour", evaluateSingleFieldValue("trim(' Bonjour  ')", record).getValue());
+            }
+
+            @Test
+            public void canBeAppliedToReferenceResolvingMultipleFields() {
+                record.setValue("friends", new String[]{"   John Smith     ", "   Jane Smith     "});
+
+                final List<FieldValue> results = evaluateMultiFieldValue("trim(/friends[*])", record);
+                assertEquals("John Smith", results.get(0).getValue());
+                assertEquals("Jane Smith", results.get(1).getValue());
+            }
+        }
+
+        @Nested
+        class UnescapeJson {
+            @Test
+            public void unescapesReferencedStringLiteralAsStringValue() {
+                record.setValue("name", "\"John Doe\"");
+                assertEquals("John Doe", evaluateSingleFieldValue("unescapeJson(/name)", record).getValue());
+            }
+
+            @Test
+            public void unescapesReferencedNumberLiteralAsNumericValue() {
+                record.setValue("id", "48");
+                assertEquals(48, evaluateSingleFieldValue("unescapeJson(/id)", record).getValue());
+
+                record.setValue("id", "123.45");
+                assertEquals(123.45, evaluateSingleFieldValue("unescapeJson(/id)", record).getValue());
+            }
+
+            @Test
+            public void unescapesReferencedArrayAsArrayValue() {
+                record.setValue("numbers", "[0,1,2,3,4,5,6,7,8,9]");
+                assertArrayEquals(new Integer[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, (Object[]) evaluateSingleFieldValue("unescapeJson(/numbers)", record).getValue());
+
+                record.setValue("friends", "[\"John\",\"Jane\",\"Jacob\",\"Judy\"]");
+                assertArrayEquals(new String[]{"John", "Jane", "Jacob", "Judy"}, (Object[]) evaluateSingleFieldValue("unescapeJson(/friends)", record).getValue());
+            }
+
+            @Test
+            public void unescapesReferencedObjectAsMapValue() {
+                record.setValue("name", "{\"id\":1,\"balance\":2.3,\"address\":{\"city\":\"New York\",\"state\":\"NY\"}}");
+                final Map<String, Object> expectedMap = Map.of(
+                        "id", 1,
+                        "balance", 2.3,
+                        "address", Map.of(
+                                "city", "New York",
+                                "state", "NY"
+                        )
+                );
+
+                assertEquals(expectedMap, evaluateSingleFieldValue("unescapeJson(/name, 'false')", record).getValue());
+                assertEquals(expectedMap, evaluateSingleFieldValue("unescapeJson(/name)", record).getValue());
+            }
+
+            @Test
+            public void supportsToUnescapeReferencedObjectAsRecordValue() {
+                record.setValue("name", "{\"id\":1,\"balance\":2.3,\"address\":{\"city\":\"New York\",\"state\":\"NY\"}}");
+                final Record expectedRecord = createAccountRecord(1, 2.3, "New York", "NY");
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("unescapeJson(/name, 'true')", record);
+                assertEquals(expectedRecord, fieldValue.getValue());
+            }
+
+            @Test
+            public void supportsToUnescapeReferencedObjectAsRecordValueAndNestedObjectsAsMapValue() {
+                record.setValue("name", "{\"id\":1,\"balance\":2.3,\"nested\":[{\"city\":\"New York\",\"state\":\"NY\"}]}");
+                final Object[] expectedNestedValue = {Map.of("city", "New York", "state", "NY")};
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("unescapeJson(/name, 'true', 'false')", record);
+                assertInstanceOf(Record.class, fieldValue.getValue());
+                final Record actualRecord = (Record) fieldValue.getValue();
+                assertEquals(1, actualRecord.getValue("id"));
+                assertEquals(2.3, actualRecord.getValue("balance"));
+                assertArrayEquals(expectedNestedValue, actualRecord.getAsArray("nested"));
+            }
+
+            @Test
+            public void supportsToUnescapeReferencedObjectAndNestedObjectsAsRecordValue() {
+                record.setValue("name", "{\"id\":1,\"balance\":2.3,\"nested\":[{\"city\":\"New York\",\"state\":\"NY\"}]}");
+                Record[] expectedNestedValue = {createAddressRecord("New York", "NY")};
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("unescapeJson(/name, 'true', 'true')", record);
+                assertInstanceOf(Record.class, fieldValue.getValue());
+                final Record actualRecord = (Record) fieldValue.getValue();
+                assertEquals(1, actualRecord.getValue("id"));
+                assertEquals(2.3, actualRecord.getValue("balance"));
+                assertArrayEquals(expectedNestedValue, actualRecord.getAsArray("nested"));
+            }
+
+            @Test
+            public void throwsExceptionWhenAppliedToNonStringValue() {
+                final List<String> nonStringFields = List.of("id", "attributes", "mainAccount", "numbers", "bytes");
+
+                assertAll(nonStringFields.stream().map(fieldName -> () -> {
+                    Exception exception =
+                            assertThrows(Exception.class, () -> evaluateSingleFieldValue("unescapeJson(/%s)".formatted(fieldName), record));
+                    assertEquals("Argument supplied to unescapeJson must be a String", exception.getMessage());
+                }));
+            }
+
+            @Test
+            public void throwsExceptionWhenAppliedToNonJsonStringValue() {
+                record.setValue("name", "<xml>value</xml>");
+                Exception exception =
+                        assertThrows(Exception.class, () -> evaluateSingleFieldValue("unescapeJson(/name)", record));
+                assertEquals("Unable to deserialise JSON String into Record Path value", exception.getMessage());
+            }
+        }
+
+        @Nested
+        class UUID5 {
+
+            @Test
+            public void supportsGenerationWithoutExplicitNamespace() {
+                final String input = "testing NiFi functionality";
+
+                record.setValue("firstName", input);
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("uuid5(/firstName)", record);
+
+                final String value = fieldValue.getValue().toString();
+                assertEquals(Uuid5Util.fromString(input, null), value);
+            }
+
+            @Test
+            public void supportsGenerationWithExplicitNamespace() {
+                final UUID namespace = UUID.fromString("67eb2232-f06e-406a-b934-e17f5fa31ae4");
+                final String input = "testing NiFi functionality";
+
+                record.setValue("firstName", input);
+                record.setValue("lastName", namespace.toString());
+
+                final FieldValue fieldValue = evaluateSingleFieldValue("uuid5(/firstName, /lastName)", record);
+
+                final String value = fieldValue.getValue().toString();
+                assertEquals(Uuid5Util.fromString(input, namespace.toString()), value);
             }
         }
     }
 
-    @Test
-    public void testHash() {
-        final Record record = getCaseTestRecord();
-        assertEquals("61409aa1fd47d4a5332de23cbf59a36f", RecordPath.compile("hash(/firstName, 'MD5')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("5753a498f025464d72e088a9d5d6e872592d5f91", RecordPath.compile("hash(/firstName, 'SHA-1')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    @Nested
+    class FilterFunctions {
+        @Test
+        public void singleResultRecordPathCanBeFiltered() {
+            assertMatches("/name[contains(., 'John')]", record);
+            assertNotMatches("/name[contains(., 'Jane')]", record);
+        }
+
+        @Test
+        public void multiResultRecordPathCanBeFiltered() {
+            final Record record = reduceRecord(TestRecordPath.this.record, "firstName", "lastName", "name");
+            List<FieldValue> fieldValues = evaluateMultiFieldValue("/*[contains(., 'John')]", record);
+            assertAll(
+                    () -> assertEquals(2, fieldValues.size()),
+                    () -> assertEquals("John", fieldValues.getFirst().getValue()),
+                    () -> assertEquals("John Doe", fieldValues.get(1).getValue())
+            );
+            assertNotMatches("/*[contains(., 'Friedrich')]", record);
+        }
+
+        @Test
+        public void filterCanBeAppliedOnRelativePath() {
+            assertMatches("/mainAccount[./balance > 100]", record);
+            assertNotMatches("/mainAccount[./balance <= 100]", record);
+        }
+
+        @Test
+        public void filterReceivesNullForNonExistingRelativePath() {
+            assertMatches("/name[isBlank(./nonExisting)]", record);
+            assertMatches("/mainAccount[isBlank(./nonExisting)]", record);
+            assertNotMatches("/mainAccount[isBlank(./balance)]", record);
+        }
+
+        @Test
+        public void filterCanBeAppliedOnAbsolutePath() {
+            assertMatches("/lastName[contains(/firstName, 'Jo')]", record);
+            assertNotMatches("/lastName[contains(/firstName, 'Do')]", record);
+        }
+
+        @Test
+        public void recordPathCanBuiltUponFilteredPath() {
+            final FieldValue fieldValue = evaluateSingleFieldValue("/mainAccount[./balance > 100]/id", record);
+            assertFieldValue(mainAccountRecord, "id", 1, fieldValue);
+
+            assertNotMatches("/mainAccount[./balance < 100]/id", record);
+        }
+
+        @Test
+        public void filterFunctionsCanBeUsedStandalone() {
+            record.setValue("name", null);
+
+            assertEquals(Boolean.TRUE, evaluateSingleFieldValue("isEmpty(/name)", record).getValue());
+            assertEquals(Boolean.FALSE, evaluateSingleFieldValue("isEmpty(/id)", record).getValue());
+
+            assertEquals(Boolean.TRUE, evaluateSingleFieldValue("/id = 48", record).getValue());
+            assertEquals(Boolean.FALSE, evaluateSingleFieldValue("/id > 48", record).getValue());
+
+            assertEquals(Boolean.FALSE, evaluateSingleFieldValue("not(/id = 48)", record).getValue());
+        }
+
+        @Test
+        public void filterFunctionsCanBeChained() {
+            assertMatches("/name[startsWith(contains(., 'John'), 't')]", record);
+            assertNotMatches("/name[startsWith(contains(., 'Jane'), 't')]", record);
+        }
+
+        @Nested
+        class Contains {
+            @Test
+            public void supportsComparingWithStringLiteralValues() {
+                assertMatches("/name[contains(., 'o')]", record);
+                assertNotMatches("/name[contains(., 'x')]", record);
+            }
+
+            @Test
+            public void supportsComparingWithStringReference() {
+                assertMatches("/name[contains(., /friends[0])]", record);
+                assertNotMatches("/name[contains(., /friends[1])]", record);
+            }
+
+            @Test
+            public void matchesWhenTargetMatchesSearchValue() {
+                record.setArrayValue("friends", 2, record.getValue("name"));
+                assertMatches("/name[contains(., /friends[2])]", record);
+            }
+        }
+
+        @Nested
+        class ContainsRegex {
+            @Test
+            public void supportsComparingWithStringLiteralValues() {
+                assertMatches("/name[containsRegex(., 'o[gh]n')]", record);
+                assertNotMatches("/name[containsRegex(., 'o[xy]n')]", record);
+            }
+
+            @Test
+            public void supportsComparingWithStringReference() {
+                record.setValue("friends", new String[]{"o[gh]n", "o[xy]n"});
+                assertMatches("/name[containsRegex(., /friends[0])]", record);
+                assertNotMatches("/name[containsRegex(., /friends[1])]", record);
+            }
+
+            @Test
+            public void matchesWhenTargetMatchesSearchValue() {
+                record.setArrayValue("friends", 2, record.getValue("name"));
+                assertMatches("/name[containsRegex(., /friends[2])]", record);
+            }
+        }
+
+        @Nested
+        class EndsWith {
+            @Test
+            public void supportsComparingWithStringLiteralValues() {
+                assertMatches("/name[endsWith(., 'n Doe')]", record);
+                assertNotMatches("/name[endsWith(., 'n Dont')]", record);
+            }
+
+            @Test
+            public void supportsComparingWithStringReference() {
+                record.setValue("friends", new String[]{"n Doe", "n Dont"});
+                assertMatches("/name[endsWith(., /friends[0])]", record);
+                assertNotMatches("/name[endsWith(., /friends[1])]", record);
+            }
+
+            @Test
+            public void matchesWhenTargetMatchesSearchValue() {
+                record.setArrayValue("friends", 2, record.getValue("name"));
+                assertMatches("/name[endsWith(., /friends[2])]", record);
+            }
+
+            @Test
+            public void matchesWhenSearchValueIsEmpty() {
+                assertMatches("/name[endsWith(., '')]", record);
+            }
+        }
+
+        @Nested
+        class Equals {
+            @Test
+            public void supportsArrayValuesByReference() {
+                assertMatches("/friends[. = /friends]", record);
+                assertNotMatches("/friends[. = /bytes]", record);
+            }
+
+            @Test
+            public void supportsBigIntValuesByReference() {
+                record.setValue("firstName", BigInteger.valueOf(42));
+                record.setValue("lastName", BigInteger.valueOf(43));
+                assertMatches("/firstName[. = /firstName]", record);
+                assertNotMatches("/firstName[. = /lastName]", record);
+            }
+
+            @Test
+            public void supportsBooleanValuesByReference() {
+                record.setValue("firstName", true);
+                record.setValue("lastName", false);
+                assertMatches("/firstName[. = /firstName]", record);
+                assertNotMatches("/firstName[. = /lastName]", record);
+                assertNotMatches("/lastName[. = /firstName]", record);
+                assertMatches("/lastName[. = /lastName]", record);
+            }
+
+            @Test
+            public void supportsByteValuesByReference() {
+                assertMatches("/bytes[0][. = /bytes[0]]", record);
+                assertNotMatches("/bytes[0][. = /bytes[1]]", record);
+            }
+
+            @Test
+            public void supportsCharValuesByReference() {
+                record.setValue("firstName", 'k');
+                record.setValue("lastName", 'o');
+                assertMatches("/firstName[. = /firstName]", record);
+                assertNotMatches("/firstName[. = /lastName]", record);
+            }
+
+            @Test
+            public void supportsChoiceValuesByReference() {
+                final DataType choiceType = choiceTypeOf(RecordFieldType.INT, RecordFieldType.STRING);
+                final RecordSchema schema = recordSchemaOf(
+                        recordFieldOf("firstChoice", choiceType),
+                        recordFieldOf("secondChoice", choiceType)
+                );
+                final Record record = new MapRecord(schema, new HashMap<>(Map.of(
+                        "firstChoice", "text",
+                        "secondChoice", 4911
+                )));
+
+                assertMatches("/firstChoice[. = /firstChoice]", record);
+                assertNotMatches("/firstChoice[. = /secondChoice]", record);
+            }
+
+            @Test
+            public void supportsDateValuesByReference() {
+                record.setValue("firstName", Date.valueOf("1998-04-29"));
+                record.setValue("lastName", Date.valueOf("2001-12-06"));
+                assertMatches("/firstName[. = /firstName]", record);
+                assertNotMatches("/firstName[. = /lastName]", record);
+            }
+
+            @Test
+            public void supportsEnumValuesByReference() {
+                record.setValue("firstName", RecordFieldType.ENUM);
+                record.setValue("lastName", RecordFieldType.BOOLEAN);
+                assertMatches("/firstName[. = /firstName]", record);
+                assertNotMatches("/firstName[. = /lastName]", record);
+            }
+
+            @Test
+            public void supportsMapValuesByReference() {
+                record.setValue("friends", new HashMap<>(Map.of("different", "entries")));
+                assertMatches("/attributes[. = /attributes]", record);
+                assertNotMatches("/attributes[. = /friends]", record);
+            }
+
+            @Test
+            public void supportsNumericalValuesByLiteralValues() {
+                assertMatches("/id[. = 48]", record);
+                assertNotMatches("/id[. = 49]", record);
+                assertMatches("/mainAccount/balance[. = '123.45']", record);
+                assertNotMatches("/mainAccount/balance[. = '123.46']", record);
+            }
+
+            @Test
+            public void supportsNumericalValuesByReference() {
+                record.setValue("numbers", new Integer[]{48, 49});
+                assertMatches("/id[. = /numbers[0]]", record);
+                assertNotMatches("/id[. = /numbers[1]]", record);
+                record.setValue("numbers", new Double[]{123.45, 123.46});
+                assertMatches("/mainAccount/balance[. = /numbers[0]]", record);
+                assertNotMatches("/mainAccount/balance[. = /numbers[1]]", record);
+            }
+
+            @Test
+            public void supportsRecordValuesByReference() {
+                assertMatches("/mainAccount[. = /mainAccount]", record);
+                assertNotMatches("/mainAccount[. = /accounts[1]]", record);
+            }
+
+            @Test
+            public void supportsStringValuesByLiteralValues() {
+                assertMatches("/name[. = 'John Doe']", record);
+                assertNotMatches("/name[. = 'Jane Doe']", record);
+            }
+
+            @Test
+            public void supportsStringValuesByReference() {
+                record.setValue("name", record.getAsArray("friends")[0]);
+                assertMatches("/name[. = /friends[0]]", record);
+                assertNotMatches("/name[. = /friends[1]]", record);
+            }
+
+            @Test
+            public void supportsTimeValuesByReference() {
+                record.setValue("firstName", Time.valueOf("22:56:37"));
+                record.setValue("lastName", Time.valueOf("20:53:14"));
+                assertMatches("/firstName[. = /firstName]", record);
+                assertNotMatches("/firstName[. = /lastName]", record);
+            }
+
+            @Test
+            public void supportsTimestampValuesByReference() {
+                record.setValue("firstName", Timestamp.valueOf("1998-04-29 22:56:37"));
+                record.setValue("lastName", Timestamp.valueOf("2001-12-06 20:53:14"));
+                assertMatches("/firstName[. = /firstName]", record);
+                assertNotMatches("/firstName[. = /lastName]", record);
+            }
+
+            @Test
+            public void supportsUUIDValuesByReference() {
+                record.setValue("firstName", UUID.fromString("d0fb6ab5-20e6-4823-8190-1ab9f6173d12"));
+                record.setValue("lastName", UUID.fromString("01234567-9012-3456-7890-123456789012"));
+                assertMatches("/firstName[. = /firstName]", record);
+                assertNotMatches("/firstName[. = /lastName]", record);
+            }
+        }
+
+        @Nested
+        class GreaterThan {
+            @Test
+            public void supportsComparingWithLongCompatibleLiteralValues() {
+                assertMatches("/id[. > 47]", record);
+                assertNotMatches("/id[. > 48]", record);
+            }
+
+            @Test
+            public void supportsComparingWithLongCompatibleReference() {
+                record.setValue("numbers", new Integer[]{47, 48});
+                assertMatches("/id[. > /numbers[0]]", record);
+                assertNotMatches("/id[. > /numbers[1]]", record);
+            }
+
+            @Test
+            public void supportsComparingWithDoubleCompatibleLiteralValues() {
+                assertMatches("/mainAccount/balance[. > '122.99']", record);
+                assertNotMatches("/mainAccount/balance[. > '123.45']", record);
+            }
+
+            @Test
+            public void supportsComparingWithDoubleCompatibleReference() {
+                record.setValue("numbers", new Double[]{122.99d, 123.45d});
+                assertMatches("/mainAccount/balance[. > /numbers[0]]", record);
+                assertNotMatches("/mainAccount/balance[. > /numbers[1]]", record);
+            }
+
+            @Test
+            public void doesNotMatchOnNonNumberComparisons() {
+                assertNotMatches("/name[. > 'Jane']", record);
+                assertNotMatches("/name['Jane' > .]", record);
+            }
+        }
+
+        @Nested
+        class GreaterThanOrEqual {
+            @Test
+            public void supportsComparingWithLongCompatibleLiteralValues() {
+                assertMatches("/id[. >= 48]", record);
+                assertNotMatches("/id[. >= 49]", record);
+            }
+
+            @Test
+            public void supportsComparingWithLongCompatibleReference() {
+                record.setValue("numbers", new Integer[]{48, 49});
+                assertMatches("/id[. >= /numbers[0]]", record);
+                assertNotMatches("/id[. >= /numbers[1]]", record);
+            }
+
+            @Test
+            public void supportsComparingWithDoubleCompatibleLiteralValues() {
+                assertMatches("/mainAccount/balance[. >= '122.99']", record);
+                assertNotMatches("/mainAccount/balance[. >= '123.46']", record);
+            }
+
+            @Test
+            public void supportsComparingWithDoubleCompatibleReference() {
+                record.setValue("numbers", new Double[]{122.99d, 124.00d});
+                assertMatches("/mainAccount/balance[. >= /numbers[0]]", record);
+                assertNotMatches("/mainAccount/balance[. >= /numbers[1]]", record);
+            }
+
+            @Test
+            public void doesNotMatchOnNonNumberComparisons() {
+                assertNotMatches("/name[. >= 'Jane']", record);
+                assertNotMatches("/name['Jane' >= .]", record);
+            }
+        }
+
+        @Nested
+        class IsBlank {
+            @Test
+            public void supportsStringLiteralValues() {
+                assertMatches("/name[isBlank('')]", record);
+            }
+
+            @Test
+            public void supportsStringReferenceValues() {
+                record.setValue("firstName", "");
+                assertMatches("/name[isBlank(/firstName)]", record);
+            }
+
+            @Test
+            public void matchesOnNullValues() {
+                assertMatches("/name[isBlank(/missing)]", record);
+            }
+
+            @Test
+            public void matchesOnEmptyStringValues() {
+                record.setValue("firstName", "");
+                assertMatches("/name[isBlank(/firstName)]", record);
+            }
+
+            @Test
+            public void matchesOnBlankStringValues() {
+                record.setValue("firstName", " \r\n\t");
+                assertMatches("/name[isBlank(/firstName)]", record);
+            }
+
+            @Test
+            public void doesNotMatchOnStringContainingNonWhitespace() {
+                record.setValue("firstName", " u ");
+                assertNotMatches("/name[isBlank(/firstName)]", record);
+            }
+        }
+
+        @Nested
+        class IsEmpty {
+            @Test
+            public void supportsStringLiteralValues() {
+                assertMatches("/name[isEmpty('')]", record);
+            }
+
+            @Test
+            public void supportsStringReferenceValues() {
+                record.setValue("firstName", "");
+                assertMatches("/name[isEmpty(/firstName)]", record);
+            }
+
+            @Test
+            public void matchesOnNullValues() {
+                assertMatches("/name[isEmpty(/missing)]", record);
+            }
+
+            @Test
+            public void matchesOnEmptyStringValues() {
+                record.setValue("firstName", "");
+                assertMatches("/name[isEmpty(/firstName)]", record);
+            }
+
+            @Test
+            public void doesNotMatchesOnBlankStringValues() {
+                record.setValue("firstName", " \r\n\t");
+                assertNotMatches("/name[isEmpty(/firstName)]", record);
+            }
+
+            @Test
+            public void doesNotMatchOnStringContainingNonWhitespace() {
+                record.setValue("firstName", "u");
+                assertNotMatches("/name[isEmpty(/firstName)]", record);
+            }
+        }
+
+        @Nested
+        class LessThan {
+            @Test
+            public void supportsComparingWithLongCompatibleLiteralValues() {
+                assertMatches("/id[. < 49]", record);
+                assertNotMatches("/id[. < 48]", record);
+            }
+
+            @Test
+            public void supportsComparingWithLongCompatibleReference() {
+                record.setValue("numbers", new Integer[]{49, 48});
+                assertMatches("/id[. < /numbers[0]]", record);
+                assertNotMatches("/id[. < /numbers[1]]", record);
+            }
+
+            @Test
+            public void supportsComparingWithDoubleCompatibleLiteralValues() {
+                assertMatches("/mainAccount/balance[. < '123.46']", record);
+                assertNotMatches("/mainAccount/balance[. < '122.99']", record);
+            }
+
+            @Test
+            public void supportsComparingWithDoubleCompatibleReference() {
+                record.setValue("numbers", new Double[]{124.00d, 122.99d});
+                assertMatches("/mainAccount/balance[. < /numbers[0]]", record);
+                assertNotMatches("/mainAccount/balance[. < /numbers[1]]", record);
+            }
+
+            @Test
+            public void doesNotMatchOnNonNumberComparisons() {
+                assertNotMatches("/name[. < 'Jane']", record);
+                assertNotMatches("/name['Jane' < .]", record);
+            }
+        }
+
+        @Nested
+        class LessThanOrEqual {
+            @Test
+            public void supportsComparingWithLongCompatibleLiteralValues() {
+                assertMatches("/id[. <= 48]", record);
+                assertNotMatches("/id[. <= 47]", record);
+            }
+
+            @Test
+            public void supportsComparingWithLongCompatibleReference() {
+                record.setValue("numbers", new Integer[]{48, 47});
+                assertMatches("/id[. <= /numbers[0]]", record);
+                assertNotMatches("/id[. <= /numbers[1]]", record);
+            }
+
+            @Test
+            public void supportsComparingWithDoubleCompatibleLiteralValues() {
+                assertMatches("/mainAccount/balance[. <= '123.45']", record);
+                assertNotMatches("/mainAccount/balance[. <= '122.99']", record);
+            }
+
+            @Test
+            public void supportsComparingWithDoubleCompatibleReference() {
+                record.setValue("numbers", new Double[]{123.45d, 122.99d});
+                assertMatches("/mainAccount/balance[. <= /numbers[0]]", record);
+                assertNotMatches("/mainAccount/balance[. <= /numbers[1]]", record);
+            }
+
+            @Test
+            public void doesNotMatchOnNonNumberComparisons() {
+                assertNotMatches("/name[. <= 'Jane']", record);
+                assertNotMatches("/name['Jane' <= .]", record);
+            }
+        }
+
+        @Nested
+        class MatchesRegex {
+            @Test
+            public void matchesOnComparisonWithExactLiteralValue() {
+                assertMatches("/name[matchesRegex(., 'John Doe')]", record);
+                assertNotMatches("/name[matchesRegex(., 'Jon Doe')]", record);
+            }
+
+            @Test
+            public void supportsCharacterSetInPattern() {
+                assertMatches("/name[matchesRegex(., 'John D[aeiou]{2}')]", record);
+            }
+
+            @Test
+            public void supportsPreDefinedCharacterSetInPattern() {
+                assertMatches("/name[matchesRegex(., '\\w+ \\w+')]", record);
+            }
+
+            @Test
+            public void supportsUsingOrConditionInPattern() {
+                assertMatches("/name[matchesRegex(., '(J|D)ohn (J|D)oe')]", record);
+            }
+
+            @Test
+            public void supportsUsingDotWildcardInPattern() {
+                assertMatches("/name[matchesRegex(., 'J.*n Doe')]", record);
+            }
+
+            @Test
+            public void dotWildcardMatchesSpaceAndTabButNotCarriageReturnAndNewlineCharacters() {
+                record.setValue("name", " \t");
+                assertMatches("/name[matchesRegex(., '.+')]", record);
+                record.setValue("name", "\n\r");
+                assertNotMatches("/name[matchesRegex(., '.+')]", record);
+            }
+
+            @Test
+            public void supportsToEscapeRegexReservedCharacters() {
+                record.setValue("name", ".^$*+?()[{\\|");
+                // NOTE: At Java code, a single back-slash needs to be escaped with another-back slash, but needn't do so at NiFi UI.
+                //       The test record path is equivalent to /name[matchesRegex(., '\.\^\$\*\+\?\(\)\[\{\\\|')]
+                assertMatches("/name[matchesRegex(., '\\.\\^\\$\\*\\+\\?\\(\\)\\[\\{\\\\\\|')]", record);
+            }
+
+            @Test
+            public void supportsDefiningPatternByPathReference() {
+                record.setValue("firstName", ".+");
+                assertMatches("/name[matchesRegex(., /firstName)]", record);
+            }
+        }
+
+        @Nested
+        class NotEquals {
+
+            @Test
+            public void supportsArrayValuesByReference() {
+                assertNotMatches("/friends[. != /friends]", record);
+                assertMatches("/friends[. != /bytes]", record);
+            }
+
+            @Test
+            public void supportsBigIntValuesByReference() {
+                record.setValue("firstName", BigInteger.valueOf(42));
+                record.setValue("lastName", BigInteger.valueOf(43));
+                assertNotMatches("/firstName[. != /firstName]", record);
+                assertMatches("/firstName[. != /lastName]", record);
+            }
+
+            @Test
+            public void supportsBooleanValuesByReference() {
+                record.setValue("firstName", true);
+                record.setValue("lastName", false);
+                assertNotMatches("/firstName[. != /firstName]", record);
+                assertMatches("/firstName[. != /lastName]", record);
+                assertMatches("/lastName[. != /firstName]", record);
+                assertNotMatches("/lastName[. != /lastName]", record);
+            }
+
+            @Test
+            public void supportsByteValuesByReference() {
+                assertNotMatches("/bytes[0][. != /bytes[0]]", record);
+                assertMatches("/bytes[0][. != /bytes[1]]", record);
+            }
+
+            @Test
+            public void supportsCharValuesByReference() {
+                record.setValue("firstName", 'k');
+                record.setValue("lastName", 'o');
+                assertNotMatches("/firstName[. != /firstName]", record);
+                assertMatches("/firstName[. != /lastName]", record);
+            }
+
+            @Test
+            public void supportsDateValuesByReference() {
+                record.setValue("firstName", Date.valueOf("1998-04-29"));
+                record.setValue("lastName", Date.valueOf("2001-12-06"));
+                assertNotMatches("/firstName[. != /firstName]", record);
+                assertMatches("/firstName[. != /lastName]", record);
+            }
+
+            @Test
+            public void supportsEnumValuesByReference() {
+                record.setValue("firstName", RecordFieldType.ENUM);
+                record.setValue("lastName", RecordFieldType.BOOLEAN);
+                assertNotMatches("/firstName[. != /firstName]", record);
+                assertMatches("/firstName[. != /lastName]", record);
+            }
+
+            @Test
+            public void supportsMapValuesByReference() {
+                record.setValue("friends", new HashMap<>(Map.of("different", "entries")));
+                assertNotMatches("/attributes[. != /attributes]", record);
+                assertMatches("/attributes[. != /friends]", record);
+            }
+
+            @Test
+            public void supportsNumericalValuesByReference() {
+                record.setValue("numbers", new Integer[]{48, 49});
+                assertNotMatches("/id[. != /numbers[0]]", record);
+                assertMatches("/id[. != /numbers[1]]", record);
+                record.setValue("numbers", new Double[]{123.45, 123.46});
+                assertNotMatches("/mainAccount/balance[. != /numbers[0]]", record);
+                assertMatches("/mainAccount/balance[. != /numbers[1]]", record);
+            }
+
+            @Test
+            public void supportsRecordValuesByReference() {
+                assertNotMatches("/mainAccount[. != /mainAccount]", record);
+                assertMatches("/mainAccount[. != /accounts[1]]", record);
+            }
+
+            @Test
+            public void supportsStringValuesByLiteralValues() {
+                assertNotMatches("/name[. != 'John Doe']", record);
+                assertMatches("/name[. != 'Jane Doe']", record);
+            }
+
+            @Test
+            public void supportsStringValuesByReference() {
+                record.setValue("name", record.getAsArray("friends")[0]);
+                assertNotMatches("/name[. != /friends[0]]", record);
+                assertMatches("/name[. != /friends[1]]", record);
+            }
+
+            @Test
+            public void supportsTimeValuesByReference() {
+                record.setValue("firstName", Time.valueOf("22:56:37"));
+                record.setValue("lastName", Time.valueOf("20:53:14"));
+                assertNotMatches("/firstName[. != /firstName]", record);
+                assertMatches("/firstName[. != /lastName]", record);
+            }
+
+            @Test
+            public void supportsTimestampValuesByReference() {
+                record.setValue("firstName", Timestamp.valueOf("1998-04-29 22:56:37"));
+                record.setValue("lastName", Timestamp.valueOf("2001-12-06 20:53:14"));
+                assertNotMatches("/firstName[. != /firstName]", record);
+                assertMatches("/firstName[. != /lastName]", record);
+            }
+
+            @Test
+            public void supportsUUIDValuesByReference() {
+                record.setValue("firstName", UUID.fromString("d0fb6ab5-20e6-4823-8190-1ab9f6173d12"));
+                record.setValue("lastName", UUID.fromString("01234567-9012-3456-7890-123456789012"));
+                assertNotMatches("/firstName[. != /firstName]", record);
+                assertMatches("/firstName[. != /lastName]", record);
+            }
+        }
+
+        @Nested
+        class Not {
+            @Test
+            public void invertsOperatorResults() {
+                assertMatches("/name[not(. = 'other')]", record);
+                assertNotMatches("/name[not(. = /name)]", record);
+            }
+
+            @Test
+            public void invertsFilterResults() {
+                assertMatches("/name[not(contains(., 'other'))]", record);
+                assertNotMatches("/name[not(contains(., /name))]", record);
+            }
+        }
+
+        @Nested
+        class StartsWith {
+            @Test
+            public void supportsComparingWithStringLiteralValues() {
+                assertMatches("/name[startsWith(., 'John D')]", record);
+                assertNotMatches("/name[startsWith(., 'Jonn N')]", record);
+            }
+
+            @Test
+            public void supportsComparingWithStringReference() {
+                record.setValue("friends", new String[]{"John D", "John N"});
+                assertMatches("/name[startsWith(., /friends[0])]", record);
+                assertNotMatches("/name[startsWith(., /friends[1])]", record);
+            }
+
+            @Test
+            public void matchesWhenTargetMatchesSearchValue() {
+                record.setArrayValue("friends", 2, record.getValue("name"));
+                assertMatches("/name[startsWith(., /friends[2])]", record);
+            }
+
+            @Test
+            public void matchesWhenSearchValueIsEmpty() {
+                assertMatches("/name[startsWith(., '')]", record);
+            }
+        }
+
+        private static void assertMatches(final String path, final Record record) {
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(path, record);
+
+            assertEquals(
+                    1,
+                    fieldValues.size(),
+                    () -> "Expected \"" + path + "\" to match a single field on record " + record + " but got: " + fieldValues
+            );
+        }
+
+        private static void assertNotMatches(final String path, final Record record) {
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue(path, record);
+
+            assertEquals(
+                    0,
+                    fieldValues.size(),
+                    () -> "Expected \"" + path + "\" to not match any fields on record " + record + " but got: " + fieldValues
+            );
+        }
     }
 
-    @Test
-    public void testHashFailure() {
-        final Record record = getCaseTestRecord();
-        assertThrows(RecordPathException.class, () -> RecordPath.compile("hash(/firstName, 'NOT_A_ALGO')").evaluate(record)
-                .getSelectedFields().findFirst().get().getValue());
+    private static <T> void assertFieldValue(
+            final Record expectedParent,
+            final String expectedFieldName,
+            final T expectedValue,
+            final FieldValue actualFieldValue
+    ) {
+        if (expectedParent == null) {
+            assertFalse(actualFieldValue.getParent().isPresent());
+        } else {
+            assertEquals(expectedParent, actualFieldValue.getParentRecord().orElseThrow());
+        }
+        assertEquals(expectedFieldName, actualFieldValue.getField().getFieldName());
+        assertEquals(expectedValue, actualFieldValue.getValue());
     }
 
-    @Test
-    public void testPadLeft() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("emptyString", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("nullString", RecordFieldType.STRING.getDataType()));
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("someString", "MyString");
-        values.put("emptyString", "");
-        values.put("nullString", null);
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("##MyString", RecordPath.compile("padLeft(/someString, 10, '#')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("__MyString", RecordPath.compile("padLeft(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyString", RecordPath.compile("padLeft(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyString", RecordPath.compile("padLeft(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("@@@@@@@@@@", RecordPath.compile("padLeft(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertNull(RecordPath.compile("padLeft(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("xyMyString", RecordPath.compile("padLeft(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("aVMyString", RecordPath.compile("padLeft(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("fewfewfewfewMyString", RecordPath.compile("padLeft(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    private static <T> void assertSingleFieldMultipleValueResult(
+            final Record expectedParent,
+            final String expectedFieldName,
+            final T[] expectedValues,
+            final List<FieldValue> fieldValues
+    ) {
+        assertAll(Stream.concat(
+                Stream.of(() -> assertEquals(expectedValues.length, fieldValues.size())),
+                IntStream.range(0, expectedValues.length).mapToObj(index ->
+                        () -> assertFieldValue(expectedParent, expectedFieldName, expectedValues[index], fieldValues.get(index))
+                )
+        ));
     }
 
-    @Test
-    public void testPadRight() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("someString", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("emptyString", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("nullString", RecordFieldType.STRING.getDataType()));
-        final RecordSchema schema = new SimpleRecordSchema(fields);
+    private static RecordSchema getExampleSchema() {
+        final DataType accountDataType = recordTypeOf(getAccountSchema());
 
-        final Map<String, Object> values = new HashMap<>();
-        values.put("someString", "MyString");
-        values.put("emptyString", "");
-        values.put("nullString", null);
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals("MyString##", RecordPath.compile("padRight(/someString, 10, \"#\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyString__", RecordPath.compile("padRight(/someString, 10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyString", RecordPath.compile("padRight(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyString", RecordPath.compile("padRight(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("@@@@@@@@@@", RecordPath.compile("padRight(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertNull(RecordPath.compile("padRight(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyStringxy", RecordPath.compile("padRight(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyStringaV", RecordPath.compile("padRight(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("MyStringfewfewfewfew", RecordPath.compile("padRight(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testUuidV5() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("input", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("namespace", RecordFieldType.STRING.getDataType(), true));
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-        final UUID namespace = UUID.fromString("67eb2232-f06e-406a-b934-e17f5fa31ae4");
-        final String input = "testing NiFi functionality";
-        final Map<String, Object> values = new HashMap<>();
-        values.put("input", input);
-        values.put("namespace", namespace.toString());
-        final Record record = new MapRecord(schema, values);
-
-        /*
-         * Test with a namespace
-         */
-
-        RecordPath path = RecordPath.compile("uuid5(/input, /namespace)");
-        RecordPathResult result = path.evaluate(record);
-
-        Optional<FieldValue> fieldValueOpt = result.getSelectedFields().findFirst();
-        assertTrue(fieldValueOpt.isPresent());
-
-        String value = fieldValueOpt.get().getValue().toString();
-        assertEquals(Uuid5Util.fromString(input, namespace.toString()), value);
-
-        /*
-         * Test with no namespace
-         */
-        final Map<String, Object> values2 = new HashMap<>();
-        values2.put("input", input);
-        final Record record2 = new MapRecord(schema, values2);
-
-        path = RecordPath.compile("uuid5(/input)");
-        result = path.evaluate(record2);
-        fieldValueOpt = result.getSelectedFields().findFirst();
-        assertTrue(fieldValueOpt.isPresent());
-
-        value = fieldValueOpt.get().getValue().toString();
-        assertEquals(Uuid5Util.fromString(input, null), value);
-    }
-
-    @Test
-    public void testPredicateAsPath() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", null);
-        final Record record = new MapRecord(schema, values);
-
-        assertEquals(Boolean.TRUE, RecordPath.compile("isEmpty( /name )").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(Boolean.FALSE, RecordPath.compile("isEmpty( /id )").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        assertEquals(Boolean.TRUE, RecordPath.compile("/id = 48").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals(Boolean.FALSE, RecordPath.compile("/id > 48").evaluate(record).getSelectedFields().findFirst().get().getValue());
-
-        assertEquals(Boolean.FALSE, RecordPath.compile("not(/id = 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
-    }
-
-    @Test
-    public void testCountArrayElements() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("count(/numbers[*])").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-        assertEquals(10L, fieldValues.get(0).getValue());
-    }
-
-    @Test
-    public void testCountComparison() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("count(/numbers[*]) > 9").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-        assertEquals(true, fieldValues.get(0).getValue());
-    }
-
-    @Test
-    public void testCountAsFilter() {
-        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
-        final Record record = new MapRecord(schema, values);
-
-        final List<FieldValue> fieldValues = RecordPath.compile("/id[count(/numbers[*]) > 2]").evaluate(record).getSelectedFields().collect(Collectors.toList());
-        assertEquals(1, fieldValues.size());
-        assertEquals(48, fieldValues.get(0).getValue());
-    }
-
-    @Test
-    public void testRecordRootReferenceInFunction() {
-        final Record record = createSimpleRecord();
-
-        final FieldValue singleArgumentFieldValue = evaluateSingleFieldValue("escapeJson(/)", record);
-        assertEquals("{\"id\":48,\"name\":\"John Doe\",\"missing\":null}", singleArgumentFieldValue.getValue());
-        final FieldValue multipleArgumentsFieldValue = evaluateSingleFieldValue("mapOf(\"copy\",/)", record);
-        assertInstanceOf(Map.class, multipleArgumentsFieldValue.getValue());
-        assertEquals(record.toString(), ((Map<?, ?>) multipleArgumentsFieldValue.getValue()).get("copy"));
-    }
-
-    private List<RecordField> getDefaultFields() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("attributes", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType())));
-        fields.add(new RecordField("mainAccount", RecordFieldType.RECORD.getRecordDataType(getAccountSchema())));
-        fields.add(new RecordField("numbers", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType())));
-
-        final DataType accountDataType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
-        final DataType accountsType = RecordFieldType.ARRAY.getArrayDataType(accountDataType);
-        final RecordField accountsField = new RecordField("accounts", accountsType);
-        fields.add(accountsField);
-
-        final DataType bankType = RecordFieldType.CHOICE.getChoiceDataType(
-            RecordFieldType.STRING.getDataType(),
-            RecordFieldType.RECORD.getRecordDataType(getBankSchema())
+        return recordSchemaOf(
+                recordFieldOf("id", RecordFieldType.INT),
+                recordFieldOf("firstName", RecordFieldType.STRING),
+                recordFieldOf("lastName", RecordFieldType.STRING),
+                recordFieldOf("name", RecordFieldType.STRING),
+                recordFieldOf("missing", RecordFieldType.STRING),
+                recordFieldOf("date", RecordFieldType.DATE),
+                recordFieldOf("attributes", mapTypeOf(RecordFieldType.STRING)),
+                recordFieldOf("mainAccount", recordTypeOf(getAccountSchema())),
+                recordFieldOf("accounts", arrayTypeOf(accountDataType)),
+                recordFieldOf("numbers", arrayTypeOf(RecordFieldType.INT)),
+                recordFieldOf("friends", arrayTypeOf(RecordFieldType.STRING)),
+                recordFieldOf("bytes", arrayTypeOf(RecordFieldType.BYTE))
         );
-        final RecordField banksField = new RecordField("banks", RecordFieldType.ARRAY.getArrayDataType(bankType));
-        fields.add(banksField);
-
-        return fields;
     }
 
-    private RecordSchema getBankSchema() {
-        final DataType accountDataType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
-        final DataType accountsType = RecordFieldType.ARRAY.getArrayDataType(accountDataType);
-        final RecordSchema bankSchema = new SimpleRecordSchema(List.of(new RecordField("accounts", accountsType)));
-        return bankSchema;
+    private static RecordSchema getAccountSchema() {
+        return recordSchemaOf(
+                recordFieldOf("id", RecordFieldType.INT),
+                recordFieldOf("balance", RecordFieldType.DOUBLE),
+                recordFieldOf("address", recordTypeOf(getAddressSchema()))
+        );
     }
 
-    private RecordSchema getAccountSchema() {
-        final List<RecordField> accountFields = new ArrayList<>();
-        accountFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        accountFields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
-
-        return new SimpleRecordSchema(accountFields);
+    private static RecordSchema getAddressSchema() {
+        return recordSchemaOf(
+                recordFieldOf("city", RecordFieldType.STRING),
+                recordFieldOf("state", RecordFieldType.STRING)
+        );
     }
 
-    private Record createSimpleRecord() {
-        final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
-        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-        fields.add(new RecordField("missing", RecordFieldType.STRING.getDataType()));
+    private static Record createExampleRecord() {
+        final Map<String, Object> values = Map.ofEntries(
+                entry("id", 48),
+                entry("firstName", "John"),
+                entry("lastName", "Doe"),
+                entry("name", "John Doe"),
+                // field "missing" is missing purposely
+                entry("date", "2017-10-20T11:00:00Z"),
+                entry("attributes", new HashMap<>(Map.of(
+                        "city", "New York",
+                        "state", "NY"
+                ))),
+                entry("mainAccount", createAccountRecord()),
+                entry("accounts", new Record[]{
+                        createAccountRecord(6, 10_000.00D, "Las Vegas", "Nevada"),
+                        createAccountRecord(9, 48.02D, "Austin", "Texas")
+                }),
+                entry("numbers", new Integer[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}),
+                entry("friends", new String[]{"John", "Jane", "Jacob", "Judy"}),
+                entry("bytes", boxBytes("Hello World!".getBytes(StandardCharsets.UTF_8)))
+        );
 
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
-        final Map<String, Object> values = new HashMap<>();
-        values.put("id", 48);
-        values.put("name", "John Doe");
-        return new MapRecord(schema, values);
+        return new MapRecord(getExampleSchema(), new HashMap<>(values));
     }
 
-    private static FieldValue evaluateSingleFieldValue(RecordPath recordPath, Record record) {
-        return recordPath.evaluate(record).getSelectedFields().findFirst().get();
+    private static Record createAccountRecord() {
+        return createAccountRecord(1);
     }
 
-    private static FieldValue evaluateSingleFieldValue(String path, Record record) {
-        return evaluateSingleFieldValue(RecordPath.compile(path), record);
+    private static Record createAccountRecord(final int id) {
+        return createAccountRecord(id, 123.45D);
+    }
+
+    private static Record createAccountRecord(final int id, final Double balance) {
+        return createAccountRecord(id, balance, "Boston", "Massachusetts");
+    }
+
+    private static Record createAccountRecord(final int id, final Double balance, final String city, final String state) {
+        return new MapRecord(getAccountSchema(), new HashMap<>(Map.of(
+                "id", id,
+                "balance", balance,
+                "address", createAddressRecord(city, state)
+        )));
+    }
+
+    private static Record createAddressRecord(String city, String state) {
+        return new MapRecord(getAddressSchema(), new HashMap<>(Map.of(
+                "city", city,
+                "state", state
+        )));
+    }
+
+    private static Record reduceRecord(final Record record, String... fieldsToRetain) {
+        final RecordSchema schema = record.getSchema();
+
+        final RecordField[] retainedFields = Arrays.stream(fieldsToRetain)
+                .map(fieldName -> schema.getField(fieldName).orElseThrow())
+                .toArray(RecordField[]::new);
+        final RecordSchema reducedSchema = recordSchemaOf(retainedFields);
+
+        return new MapRecord(reducedSchema, new HashMap<>(record.toMap()), false, true);
+    }
+
+    private static Record getAddressRecord(final Record parentRecord) {
+        return parentRecord.getAsRecord("address", getAddressSchema());
+    }
+
+    private static FieldValue evaluateSingleFieldValue(final RecordPath path, final Record record, final FieldValue contextNode) {
+        return path.evaluate(record, contextNode).getSelectedFields().findFirst().orElseThrow(AssertionError::new);
+    }
+
+    private static FieldValue evaluateSingleFieldValue(final String path, final Record record, final FieldValue contextNode) {
+        return evaluateSingleFieldValue(RecordPath.compile(path), record, contextNode);
+    }
+
+    private static FieldValue evaluateSingleFieldValue(final RecordPath path, final Record record) {
+        return evaluateSingleFieldValue(path, record, null);
+    }
+
+    private static FieldValue evaluateSingleFieldValue(final String path, final Record record) {
+        return evaluateSingleFieldValue(path, record, null);
+    }
+
+    private static List<FieldValue> evaluateMultiFieldValue(final RecordPath path, final Record record, final FieldValue contextNode) {
+        return path.evaluate(record, contextNode).getSelectedFields().toList();
+    }
+
+    private static List<FieldValue> evaluateMultiFieldValue(final String path, final Record record, final FieldValue contextNode) {
+        return evaluateMultiFieldValue(RecordPath.compile(path), record, contextNode);
+    }
+
+    private static List<FieldValue> evaluateMultiFieldValue(final RecordPath path, final Record record) {
+        return evaluateMultiFieldValue(path, record, null);
+    }
+
+    private static List<FieldValue> evaluateMultiFieldValue(final String path, final Record record) {
+        return evaluateMultiFieldValue(path, record, null);
+    }
+
+    private static RecordSchema recordSchemaOf(RecordField... fields) {
+        return new SimpleRecordSchema(Arrays.asList(fields));
+    }
+
+    private static RecordField recordFieldOf(final String fieldName, final DataType fieldType) {
+        return new RecordField(fieldName, fieldType);
+    }
+
+    private static RecordField recordFieldOf(final String fieldName, final RecordFieldType fieldType) {
+        return recordFieldOf(fieldName, fieldType.getDataType());
+    }
+
+    private static DataType mapTypeOf(final RecordFieldType fieldType) {
+        return RecordFieldType.MAP.getMapDataType(fieldType.getDataType());
+    }
+
+    private static DataType arrayTypeOf(final DataType fieldType) {
+        return RecordFieldType.ARRAY.getArrayDataType(fieldType);
+    }
+
+    private static DataType arrayTypeOf(final RecordFieldType fieldType) {
+        return arrayTypeOf(fieldType.getDataType());
+    }
+
+    private static DataType choiceTypeOf(final Object... fieldTypes) {
+        final List<DataType> typedFieldTypes = Arrays.stream(fieldTypes).map(rawFieldType -> {
+            if (rawFieldType instanceof RecordFieldType recordFieldType) {
+                return recordFieldType.getDataType();
+            } else if (rawFieldType instanceof DataType dataType) {
+                return dataType;
+            }
+            throw new IllegalArgumentException("fieldTypes passed to choiceTypeOf must be either RecordFieldType or DataType");
+        }).toList();
+
+        return RecordFieldType.CHOICE.getChoiceDataType(typedFieldTypes);
+    }
+
+    private static DataType recordTypeOf(final RecordSchema childSchema) {
+        return RecordFieldType.RECORD.getRecordDataType(childSchema);
+    }
+
+    private static Byte[] boxBytes(final byte[] bytes) {
+        Byte[] boxedBytes = new Byte[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            boxedBytes[i] = bytes[i];
+        }
+        return boxedBytes;
     }
 }

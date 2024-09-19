@@ -33,6 +33,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processor.util.file.transfer.ListFileTransfer;
@@ -81,7 +82,6 @@ public class ListFTP extends ListFileTransfer {
             FTPTransfer.PASSWORD,
             REMOTE_PATH,
             RECORD_WRITER,
-            DISTRIBUTED_CACHE_SERVICE,
             FTPTransfer.RECURSIVE_SEARCH,
             FTPTransfer.FOLLOW_SYMLINK,
             FTPTransfer.FILE_FILTER_REGEX,
@@ -93,11 +93,6 @@ public class ListFTP extends ListFileTransfer {
             FTPTransfer.CONNECTION_MODE,
             FTPTransfer.TRANSFER_MODE,
             FTPTransfer.PROXY_CONFIGURATION_SERVICE,
-            FTPTransfer.PROXY_TYPE,
-            FTPTransfer.PROXY_HOST,
-            FTPTransfer.PROXY_PORT,
-            FTPTransfer.HTTP_PROXY_USERNAME,
-            FTPTransfer.HTTP_PROXY_PASSWORD,
             FTPTransfer.BUFFER_SIZE,
             TARGET_SYSTEM_TIMESTAMP_PRECISION,
             ListedEntityTracker.TRACKING_STATE_CACHE,
@@ -109,6 +104,12 @@ public class ListFTP extends ListFileTransfer {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        FTPTransfer.migrateProxyProperties(config);
     }
 
     @Override

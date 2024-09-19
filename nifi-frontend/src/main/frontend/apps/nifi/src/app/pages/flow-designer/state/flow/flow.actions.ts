@@ -356,6 +356,10 @@ export const navigateToViewStatusHistoryForComponent = createAction(
     props<{ request: OpenComponentDialogRequest }>()
 );
 
+export const navigateToViewStatusHistoryForCurrentProcessGroup = createAction(
+    `${CANVAS_PREFIX} Navigate To Status History For Current Process Group`
+);
+
 export const viewStatusHistoryForComponent = createAction(
     `${CANVAS_PREFIX} View Status History for Component`,
     props<{ request: StatusHistoryRequest }>()

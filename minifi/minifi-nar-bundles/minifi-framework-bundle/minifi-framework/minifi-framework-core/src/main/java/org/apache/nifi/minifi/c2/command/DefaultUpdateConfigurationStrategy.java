@@ -54,6 +54,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.minifi.commons.service.FlowEnrichService;
 import org.apache.nifi.minifi.commons.service.FlowPropertyEncryptor;
 import org.apache.nifi.minifi.commons.service.FlowSerDeService;
+import org.apache.nifi.minifi.validator.ValidationException;
 import org.apache.nifi.services.FlowService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +92,7 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
     }
 
     @Override
-    public boolean update(byte[] rawFlow) {
+    public void update(byte[] rawFlow) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Attempting to update flow with content: \n{}", new String(rawFlow, UTF_8));
         }
@@ -116,22 +117,24 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
 
             reloadFlow(findAllProposedConnectionIds(enrichedFlowCandidate.getRootGroup()));
 
-            return true;
         } catch (IllegalStateException e) {
             LOGGER.error("Configuration update failed. Reverting and reloading previous flow", e);
             revert(backupFlowConfigurationFile, flowConfigurationFile);
             revert(backupRawFlowConfigurationFile, rawFlowConfigurationFile);
             try {
                 reloadFlow(originalConnectionIds);
-            } catch (IOException ex) {
-                LOGGER.error("Unable to reload the reverted flow", e);
+            } catch (ValidationException ex) {
+                LOGGER.error("Unable to reload the reverted flow", ex);
+                throw ex;
+            } catch (Exception exception) {
+                throw new RuntimeException(exception);
             }
-            return false;
+            throw e;
         } catch (Exception e) {
             LOGGER.error("Configuration update failed. Reverting to previous flow, no reload is necessary", e);
             revert(backupFlowConfigurationFile, flowConfigurationFile);
             revert(backupRawFlowConfigurationFile, rawFlowConfigurationFile);
-            return false;
+            throw new RuntimeException(e);
         } finally {
             removeIfExists(backupFlowConfigurationFile);
             removeIfExists(backupRawFlowConfigurationFile);
@@ -148,7 +151,7 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         List<ValidationResult> validationErrors = validate(flowController.getFlowManager());
         if (!validationErrors.isEmpty()) {
             LOGGER.error("Validation errors found when reloading the flow: {}", validationErrors);
-            throw new IllegalStateException("Unable to start flow due to validation errors");
+            throw new ValidationException("Unable to start flow due to validation errors", validationErrors);
         }
 
         flowController.getFlowManager().getRootGroup().startProcessing();

@@ -29,8 +29,9 @@
         <module>nifi-standard-reporting-tasks</module>
         <module>nifi-standard-rules</module>
         <module>nifi-standard-parameter-providers</module>
-        <module>nifi-standard-content-viewer</module>
         <module>nifi-standard-nar</module>
+        <module>nifi-standard-content-viewer</module>
+        <module>nifi-standard-content-viewer-nar</module>
     </modules>
     <properties>
         <org.apache.sshd.version>2.13.2</org.apache.sshd.version>
@@ -64,15 +65,9 @@
                 <version>2.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-standard-content-viewer</artifactId>
-                <type>war</type>
-                <version>2.0.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
                 <groupId>com.hierynomus</groupId>
                 <artifactId>sshj</artifactId>
-                <version>0.38.0</version>
+                <version>0.39.0</version>
             </dependency>
             <dependency>
                 <groupId>jakarta.activation</groupId>

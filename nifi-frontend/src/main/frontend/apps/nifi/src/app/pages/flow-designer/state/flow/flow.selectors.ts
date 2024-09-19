@@ -142,6 +142,15 @@ export const selectViewStatusHistoryComponent = createSelector(selectCurrentRout
     return selectedComponent;
 });
 
+export const selectViewStatusHistoryCurrentProcessGroup = createSelector(selectCurrentRoute, (route) => {
+    if (route?.routeConfig?.path == 'history') {
+        if (route.params.processGroupId) {
+            return route.params.processGroupId;
+        }
+    }
+    return null;
+});
+
 export const selectTransitionRequired = createSelector(selectFlowState, (state: FlowState) => state.transitionRequired);
 
 export const selectDragging = createSelector(selectFlowState, (state: FlowState) => state.dragging);

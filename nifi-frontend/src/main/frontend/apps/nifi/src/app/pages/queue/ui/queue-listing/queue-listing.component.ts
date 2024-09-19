@@ -116,6 +116,7 @@ export class QueueListing implements OnInit, OnDestroy {
             viewFlowFileContent({
                 request: {
                     uri: flowfileSummary.uri,
+                    mimeType: flowfileSummary.mimeType,
                     clusterNodeId: flowfileSummary.clusterNodeId
                 }
             })

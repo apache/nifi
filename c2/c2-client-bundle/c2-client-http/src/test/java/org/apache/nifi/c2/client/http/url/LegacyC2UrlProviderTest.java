@@ -18,6 +18,7 @@
 package org.apache.nifi.c2.client.http.url;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -33,6 +34,9 @@ public class LegacyC2UrlProviderTest {
 
     private static final String C2_HEARTBEAT_URL = "https://host:8080/c2/api/heartbeat";
     private static final String C2_ACKNOWLEDGE_URL = "https://host:8080/c2/api/acknowledge";
+    private static final String ABSOLUTE_URL = "http://c2/api/callback";
+    private static final String RELATIVE_URL = "any_url";
+    private static final String EXPECTED_URL = "http://c2/api/callback";
 
     @Test
     public void testProviderIsCreatedAndReturnsProperHeartbeatAndAcknowledgeUrls() {
@@ -44,9 +48,15 @@ public class LegacyC2UrlProviderTest {
 
     @MethodSource("testCallbackUrlProvidedArguments")
     @ParameterizedTest(name = "{index} => absoluteUrl={0}, relativeUrl={1}, expectedCallbackUrl={2}")
-    public void testCallbackUrlProvidedFor(String absoluteUrl, String relativeUrl, Optional<String> expectedCallbackUrl) {
+    public void testCallbackUrlProvidedForInvalidInputs(String absoluteUrl, String relativeUrl) {
         LegacyC2UrlProvider testProvider = new LegacyC2UrlProvider(C2_HEARTBEAT_URL, C2_ACKNOWLEDGE_URL);
-        assertEquals(expectedCallbackUrl, testProvider.getCallbackUrl(absoluteUrl, relativeUrl));
+        assertThrows(IllegalArgumentException.class, () -> testProvider.getCallbackUrl(absoluteUrl, relativeUrl));
+    }
+
+    @Test
+    public void testCallbackUrlProvidedFor() {
+        LegacyC2UrlProvider testProvider = new LegacyC2UrlProvider(C2_HEARTBEAT_URL, C2_ACKNOWLEDGE_URL);
+        assertEquals(EXPECTED_URL, testProvider.getCallbackUrl(ABSOLUTE_URL, RELATIVE_URL));
     }
 
     private static Stream<Arguments> testCallbackUrlProvidedArguments() {
@@ -54,8 +64,7 @@ public class LegacyC2UrlProviderTest {
             Arguments.of(null, null, Optional.empty()),
             Arguments.of(null, "any_url", Optional.empty()),
             Arguments.of("", "", Optional.empty()),
-            Arguments.of("", "any_url", Optional.empty()),
-            Arguments.of("http://c2/api/callback", "any_url", Optional.of("http://c2/api/callback"))
+            Arguments.of("", "any_url", Optional.empty())
         );
     }
 }

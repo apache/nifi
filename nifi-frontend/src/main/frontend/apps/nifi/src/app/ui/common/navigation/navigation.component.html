@@ -111,14 +111,17 @@
                             <i class="fa fa-area-chart primary-color mr-2"></i>
                             Node Status History
                         </button>
-                        <button
-                            mat-menu-item
-                            class="global-menu-item"
-                            [disabled]="!user.systemPermissions.canRead"
-                            (click)="viewSystemDiagnostics()">
-                            <i class="fa mr-2"></i>
-                            System Diagnostics
-                        </button>
+
+                        @if (!clusterSummary()?.clustered) {
+                            <button
+                                mat-menu-item
+                                class="global-menu-item"
+                                [disabled]="!user.systemPermissions.canRead"
+                                (click)="viewSystemDiagnostics()">
+                                <i class="fa mr-2"></i>
+                                System Diagnostics
+                            </button>
+                        }
                         @if (flowConfiguration(); as flowConfig) {
                             @if (flowConfig.supportsManagedAuthorizer) {
                                 <mat-divider></mat-divider>

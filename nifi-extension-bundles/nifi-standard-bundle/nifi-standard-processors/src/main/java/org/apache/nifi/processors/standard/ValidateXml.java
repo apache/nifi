@@ -217,7 +217,7 @@ public class ValidateXml extends AbstractProcessor {
                     reader.next();
                 }
             } catch (final XMLStreamException e) {
-                throw new ProcessingException("Reading stream failed", e);
+                throw new ProcessingException("Reading stream failed: " + e.getMessage(), e);
             }
         } else {
             final XMLStreamReaderProvider readerProvider = new StandardXMLStreamReaderProvider();

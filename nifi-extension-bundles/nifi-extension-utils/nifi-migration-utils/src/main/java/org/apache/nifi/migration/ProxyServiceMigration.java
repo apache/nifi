@@ -35,7 +35,7 @@ public final class ProxyServiceMigration {
     private ProxyServiceMigration() { }
 
     /**
-     * Migrates component level proxy properties to ProxyConfigurationService.
+     * Migrates component level proxy properties to ProxyConfigurationService with HTTP proxy type.
      *
      * @param config the component's property config to be migrated
      * @param proxyServiceProperty the component's property descriptor referencing ProxyConfigurationService
@@ -47,9 +47,50 @@ public final class ProxyServiceMigration {
     public static void migrateProxyProperties(final PropertyConfiguration config, final PropertyDescriptor proxyServiceProperty,
                                               final String proxyHostProperty, final String proxyPortProperty,
                                               final String proxyUsernameProperty, final String proxyPasswordProperty) {
+        migrateProxyProperties(config,
+                proxyServiceProperty,
+                Proxy.Type.HTTP,
+                proxyHostProperty,
+                proxyPortProperty,
+                proxyUsernameProperty,
+                proxyPasswordProperty);
+    }
+
+    /**
+     * Migrates component level proxy properties to ProxyConfigurationService with the specified proxy type.
+     *
+     * @param config the component's property config to be migrated
+     * @param proxyServiceProperty the component's property descriptor referencing ProxyConfigurationService
+     * @param proxyTypeProperty the name of the component level Proxy Type property
+     * @param proxyHostProperty the name of the component level Proxy Host property
+     * @param proxyPortProperty the name of the component level Proxy Port property
+     * @param proxyUsernameProperty the name of the component level Proxy Username property
+     * @param proxyPasswordProperty the name of the component level Proxy Password property
+     */
+    public static void migrateProxyProperties(final PropertyConfiguration config, final PropertyDescriptor proxyServiceProperty,
+                                              final String proxyTypeProperty,
+                                              final String proxyHostProperty, final String proxyPortProperty,
+                                              final String proxyUsernameProperty, final String proxyPasswordProperty) {
+        final Proxy.Type proxyType = Proxy.Type.valueOf(config.getRawPropertyValue(proxyTypeProperty).orElse(Proxy.Type.DIRECT.name()));
+
+        migrateProxyProperties(config,
+                proxyServiceProperty,
+                proxyType,
+                proxyHostProperty,
+                proxyPortProperty,
+                proxyUsernameProperty,
+                proxyPasswordProperty);
+
+        config.removeProperty(proxyTypeProperty);
+    }
+
+    private static void migrateProxyProperties(final PropertyConfiguration config, final PropertyDescriptor proxyServiceProperty,
+                                              final Proxy.Type proxyType,
+                                              final String proxyHostProperty, final String proxyPortProperty,
+                                              final String proxyUsernameProperty, final String proxyPasswordProperty) {
         if (config.isPropertySet(proxyHostProperty)) {
             final Map<String, String> proxyProperties = new HashMap<>();
-            proxyProperties.put(PROXY_SERVICE_TYPE, Proxy.Type.HTTP.name());
+            proxyProperties.put(PROXY_SERVICE_TYPE, proxyType.name());
             proxyProperties.put(PROXY_SERVICE_HOST, config.getRawPropertyValue(proxyHostProperty).get());
 
             // Map any optional proxy configs

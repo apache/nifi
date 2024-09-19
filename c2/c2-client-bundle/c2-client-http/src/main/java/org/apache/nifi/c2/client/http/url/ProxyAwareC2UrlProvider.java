@@ -59,11 +59,12 @@ public class ProxyAwareC2UrlProvider implements C2UrlProvider {
     }
 
     @Override
-    public Optional<String> getCallbackUrl(String absoluteUrl, String relativeUrl) {
+    public String getCallbackUrl(String absoluteUrl, String relativeUrl) {
         return Optional.ofNullable(relativeUrl)
             .map(this::toAbsoluteUrl)
             .filter(Optional::isPresent)
-            .orElseGet(() -> Optional.ofNullable(absoluteUrl).filter(StringUtils::isNotBlank));
+            .orElseGet(() -> Optional.ofNullable(absoluteUrl).filter(StringUtils::isNotBlank))
+            .orElseThrow(() -> new IllegalArgumentException("Unable to return non empty c2 url."));
     }
 
     private Optional<String> toAbsoluteUrl(String path) {
