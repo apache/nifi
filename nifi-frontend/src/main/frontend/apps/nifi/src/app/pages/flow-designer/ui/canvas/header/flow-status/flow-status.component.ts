@@ -110,7 +110,7 @@ export class FlowStatus {
             return 'error-color-darker';
         }
 
-        return 'primary-color';
+        return 'secondary-color';
     }
 
     formatActiveThreads(): string {
@@ -135,14 +135,14 @@ export class FlowStatus {
         } else if (this.controllerStatus.activeThreadCount === 0) {
             return 'zero secondary-color';
         }
-        return 'primary-color';
+        return 'secondary-color';
     }
 
     getQueuedStyle(): string {
         if (this.controllerStatus.queued.indexOf('0 / 0') == 0) {
             return 'zero secondary-color';
         }
-        return 'primary-color';
+        return 'secondary-color';
     }
 
     formatValue(value: number | undefined) {
