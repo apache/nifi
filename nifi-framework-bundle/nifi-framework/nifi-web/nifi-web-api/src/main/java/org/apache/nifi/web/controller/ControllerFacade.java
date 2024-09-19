@@ -32,6 +32,12 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
+import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
+import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
+import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
+import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
+import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -128,8 +134,10 @@ import org.apache.nifi.web.search.query.SearchQueryParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -150,6 +158,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ControllerFacade implements Authorizable {
 
@@ -240,7 +249,7 @@ public class ControllerFacade implements Authorizable {
     /**
      * Gets the cached temporary instance of the component for the given type and bundle.
      *
-     * @param type type of the component
+     * @param type   type of the component
      * @param bundle the bundle of the component
      * @return the temporary component
      * @throws IllegalStateException if no temporary component exists for the given type and bundle
@@ -277,6 +286,7 @@ public class ControllerFacade implements Authorizable {
 
     /**
      * Gets the remotely accessible InputPorts in any ProcessGroup.
+     *
      * @return input ports
      */
     public Set<Port> getPublicInputPorts() {
@@ -285,6 +295,7 @@ public class ControllerFacade implements Authorizable {
 
     /**
      * Gets the remotely accessible OutputPorts in any ProcessGroup.
+     *
      * @return output ports
      */
     public Set<Port> getPublicOutputPorts() {
@@ -300,7 +311,7 @@ public class ControllerFacade implements Authorizable {
         final boolean authorized = isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         final StatusHistoryDTO statusHistory = flowController.getNodeStatusHistory();
 
-        if (!authorized)  {
+        if (!authorized) {
             statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_TYPE, "Node");
         }
 
@@ -466,9 +477,9 @@ public class ControllerFacade implements Authorizable {
     /**
      * Gets the FlowFileProcessor types that this controller supports.
      *
-     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleGroupFilter    if specified, must be member of bundle group
      * @param bundleArtifactFilter if specified, must be member of bundle artifact
-     * @param typeFilter if specified, type must match
+     * @param typeFilter           if specified, type must match
      * @return types
      */
     public Set<DocumentedTypeDTO> getFlowFileProcessorTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
@@ -488,7 +499,7 @@ public class ControllerFacade implements Authorizable {
      * Returns whether the specified type implements the specified serviceType.
      *
      * @param serviceType type
-     * @param type type
+     * @param type        type
      * @return whether the specified type implements the specified serviceType
      */
     private boolean implementsServiceType(final Class serviceType, final Class type) {
@@ -505,13 +516,13 @@ public class ControllerFacade implements Authorizable {
     /**
      * Gets the ControllerService types that this controller supports.
      *
-     * @param serviceType type
-     * @param serviceBundleGroup if serviceType specified, the bundle group of the serviceType
+     * @param serviceType           type
+     * @param serviceBundleGroup    if serviceType specified, the bundle group of the serviceType
      * @param serviceBundleArtifact if serviceType specified, the bundle artifact of the serviceType
-     * @param serviceBundleVersion if serviceType specified, the bundle version of the serviceType
-     * @param bundleGroupFilter if specified, must be member of bundle group
-     * @param bundleArtifactFilter if specified, must be member of bundle artifact
-     * @param typeFilter if specified, type must match
+     * @param serviceBundleVersion  if serviceType specified, the bundle version of the serviceType
+     * @param bundleGroupFilter     if specified, must be member of bundle group
+     * @param bundleArtifactFilter  if specified, must be member of bundle artifact
+     * @param typeFilter            if specified, type must match
      * @return the ControllerService types that this controller supports
      */
     public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
@@ -561,9 +572,9 @@ public class ControllerFacade implements Authorizable {
     /**
      * Gets the ReportingTask types that this controller supports.
      *
-     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleGroupFilter    if specified, must be member of bundle group
      * @param bundleArtifactFilter if specified, must be member of bundle artifact
-     * @param typeFilter if specified, type must match
+     * @param typeFilter           if specified, type must match
      * @return the ReportingTask types that this controller supports
      */
     public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
@@ -573,9 +584,9 @@ public class ControllerFacade implements Authorizable {
     /**
      * Gets the FlowAnalysisRule types that this controller supports.
      *
-     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleGroupFilter    if specified, must be member of bundle group
      * @param bundleArtifactFilter if specified, must be member of bundle artifact
-     * @param typeFilter if specified, type must match
+     * @param typeFilter           if specified, type must match
      * @return the FlowAnalysisRule types that this controller supports
      */
     public Set<DocumentedTypeDTO> getFlowAnalysisRuleTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
@@ -600,12 +611,65 @@ public class ControllerFacade implements Authorizable {
         return runtimeManifestService.getManifest();
     }
 
+    private ComponentManifest getComponentManifest(String group, String artifact, String version) {
+        final RuntimeManifest manifest = runtimeManifestService.getManifestForBundle(group, artifact, version);
+        final List<org.apache.nifi.c2.protocol.component.api.Bundle> manifestBundles = manifest.getBundles();
+
+        if (manifestBundles.isEmpty()) {
+            throw new ResourceNotFoundException("Unable to find bundle [%s:%s:%s]".formatted(group, artifact, version));
+        }
+
+        org.apache.nifi.c2.protocol.component.api.Bundle manifestBundle = manifestBundles.getFirst();
+        return manifestBundle.getComponentManifest();
+    }
+
+    public ProcessorDefinition getProcessorDefinition(String group, String artifact, String version, String type) {
+        final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
+        return componentManifest.getProcessors().stream().filter(processorDefinition -> type.equals(processorDefinition.getType())).findFirst().orElse(null);
+    }
+
+    public ControllerServiceDefinition getControllerServiceDefinition(String group, String artifact, String version, String type) {
+        final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
+        return componentManifest.getControllerServices().stream().filter(controllerServiceDefinition -> type.equals(controllerServiceDefinition.getType())).findFirst().orElse(null);
+    }
+
+    public ReportingTaskDefinition getReportingTaskDefinition(String group, String artifact, String version, String type) {
+        final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
+        return componentManifest.getReportingTasks().stream().filter(reportingTaskDefinition -> type.equals(reportingTaskDefinition.getType())).findFirst().orElse(null);
+    }
+
+    public ParameterProviderDefinition getParameterProviderDefinition(String group, String artifact, String version, String type) {
+        final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
+        return componentManifest.getParameterProviders().stream().filter(parameterProviderDefinition -> type.equals(parameterProviderDefinition.getType())).findFirst().orElse(null);
+    }
+
+    public FlowAnalysisRuleDefinition getFlowAnalysisRuleDefinition(String group, String artifact, String version, String type) {
+        final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
+        return componentManifest.getFlowAnalysisRules().stream().filter(flowAnalysisRuleDefinition -> type.equals(flowAnalysisRuleDefinition.getType())).findFirst().orElse(null);
+    }
+
+    public String getAdditionalDetails(String group, String artifact, String version, String type) {
+        final Map<String, File> additionalDetailsMap = runtimeManifestService.discoverAdditionalDetails(group, artifact, version);
+        final File additionalDetailsFile = additionalDetailsMap.get(type);
+
+        if (additionalDetailsFile == null) {
+            throw new ResourceNotFoundException("Unable to find additional details for [%s]".formatted(type));
+        }
+
+        try (final Stream<String> additionalDetailsLines = Files.lines(additionalDetailsFile.toPath())) {
+            return additionalDetailsLines.collect(Collectors.joining("\n"));
+        } catch (final IOException e) {
+            throw new RuntimeException("Unable to load additional details content for "
+                    + additionalDetailsFile.getAbsolutePath() + " due to: " + e.getMessage(), e);
+        }
+    }
+
     /**
      * Gets the ParameterProvider types that this controller supports.
      *
-     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleGroupFilter    if specified, must be member of bundle group
      * @param bundleArtifactFilter if specified, must be member of bundle artifact
-     * @param typeFilter if specified, type must match
+     * @param typeFilter           if specified, type must match
      * @return the ParameterProvider types that this controller supports
      */
     public Set<DocumentedTypeDTO> getParameterProviderTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
@@ -682,7 +746,7 @@ public class ControllerFacade implements Authorizable {
     /**
      * Gets the status for the specified process group.
      *
-     * @param groupId group id
+     * @param groupId              group id
      * @param recursiveStatusDepth the number of levels deep that we want to go before deciding to stop including component statuses
      * @return the status for the specified process group
      */
@@ -874,7 +938,7 @@ public class ControllerFacade implements Authorizable {
      * Site-to-Site communications
      *
      * @return the socket port that the local instance is listening on for
-     *         Site-to-Site communications
+     * Site-to-Site communications
      */
     public Integer getRemoteSiteListeningPort() {
         return flowController.getRemoteSiteListeningPort();
@@ -885,7 +949,7 @@ public class ControllerFacade implements Authorizable {
      * Site-to-Site communications
      *
      * @return the socket port that the local instance is listening on for
-     *         Site-to-Site communications
+     * Site-to-Site communications
      */
     public Integer getRemoteSiteListeningHttpPort() {
         return flowController.getRemoteSiteListeningHttpPort();
@@ -896,7 +960,7 @@ public class ControllerFacade implements Authorizable {
      * instance are secure
      *
      * @return whether or not Site-to-Site communications with the local
-     *         instance are secure
+     * instance are secure
      */
     public Boolean isRemoteSiteCommsSecure() {
         return flowController.isRemoteSiteCommsSecure();
@@ -1316,8 +1380,8 @@ public class ControllerFacade implements Authorizable {
     /**
      * Gets the content for the specified claim.
      *
-     * @param eventId event id
-     * @param uri uri
+     * @param eventId          event id
+     * @param uri              uri
      * @param contentDirection direction
      * @return the content for the specified claim
      */
@@ -1405,6 +1469,7 @@ public class ControllerFacade implements Authorizable {
 
     /**
      * Submits for replay the latest provenance event that is cached for the component with the given ID
+     *
      * @param componentId the ID of the component
      * @return the ProvenanceEventDTO representing the event that was replayed, or <code>null</code> if the no event was available
      * @throws AccessDeniedException if an event is available but the current user is not permitted to replay the event
@@ -1458,7 +1523,7 @@ public class ControllerFacade implements Authorizable {
      * method is invoked may have already verified these permissions. Using a flag here as it forces the caller to acknowledge this fact
      * limiting the possibility of overlooking it.
      *
-     * @param event event
+     * @param event                    event
      * @param checkReadDataPermissions whether to verify read data permissions
      */
     private AuthorizationResult checkAuthorizationForReplay(final ProvenanceEventRecord event, final boolean checkReadDataPermissions) {
@@ -1779,7 +1844,7 @@ public class ControllerFacade implements Authorizable {
     }
 
     public ProcessorDiagnosticsDTO getProcessorDiagnostics(final ProcessorNode processor, final ProcessorStatus processorStatus, final BulletinRepository bulletinRepository,
-            final Function<String, ControllerServiceEntity> serviceEntityFactory) {
+                                                           final Function<String, ControllerServiceEntity> serviceEntityFactory) {
         return dtoFactory.createProcessorDiagnosticsDto(processor, processorStatus, bulletinRepository, flowController, serviceEntityFactory);
     }
 
@@ -1789,6 +1854,7 @@ public class ControllerFacade implements Authorizable {
 
     /**
      * Returns the storage usage of all provenance repositories
+     *
      * @return the map of all the storage usage
      */
     public Map<String, StorageUsage> getProvenanceRepositoryStorageUsage() {
@@ -1797,6 +1863,7 @@ public class ControllerFacade implements Authorizable {
 
     /**
      * Returns the storage usage of all content repositories
+     *
      * @return the map of all the storage usage
      */
     public Map<String, StorageUsage> getContentRepositoryStorageUsage() {
@@ -1805,6 +1872,7 @@ public class ControllerFacade implements Authorizable {
 
     /**
      * Returns the storage usage of the flow file repository
+     *
      * @return the storage usage
      */
     public StorageUsage getFlowFileRepositoryStorageUsage() {

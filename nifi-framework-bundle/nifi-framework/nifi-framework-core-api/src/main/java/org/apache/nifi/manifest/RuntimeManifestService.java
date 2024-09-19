@@ -18,6 +18,9 @@ package org.apache.nifi.manifest;
 
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 
+import java.io.File;
+import java.util.Map;
+
 /**
  * Produces a RuntimeManifest for the current NiFi instance.
  */
@@ -28,4 +31,24 @@ public interface RuntimeManifestService {
      */
     RuntimeManifest getManifest();
 
+    /**
+     * Returns a RuntimeManifest that is only populated with the components from the
+     * specified bundle. If the bundle is not found, there will be no components.
+     *
+     * @param group The bundle group
+     * @param artifact The bundle artifact
+     * @param version The bundle version
+     * @return the RuntimeManifest
+     */
+    RuntimeManifest getManifestForBundle(String group, String artifact, String version);
+
+    /**
+     * Returns a mapping of additionalDetails for the speicfied bundle.
+     *
+     * @param group The bundle group
+     * @param artifact The bundle artifact
+     * @param version The bundle version
+     * @return The additionaDetails mapping
+     */
+    Map<String, File> discoverAdditionalDetails(String group, String artifact, String version);
 }

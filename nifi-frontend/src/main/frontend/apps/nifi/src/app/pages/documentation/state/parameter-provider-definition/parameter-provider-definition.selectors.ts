@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { documentationFeatureKey, DocumentationState } from './index';
+import { createSelector } from '@ngrx/store';
+import { DocumentationState, selectDocumentationState } from '../index';
+import { parameterProviderDefinitionFeatureKey } from './index';
 
-export const selectDocumentationState = createFeatureSelector<DocumentationState>(documentationFeatureKey);
-
-export const selectDocumentationParameters = createSelector(
+export const selectParameterProviderDefinitionState = createSelector(
     selectDocumentationState,
-    (state: DocumentationState) => state.documentationParameters
+    (state: DocumentationState) => state[parameterProviderDefinitionFeatureKey]
 );

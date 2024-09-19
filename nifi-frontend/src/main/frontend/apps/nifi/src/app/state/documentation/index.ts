@@ -16,8 +16,7 @@
  */
 
 import { BackNavigation } from '../navigation';
-
-export const documentationFeatureKey = 'documentation';
+import { ComponentType } from '@nifi/shared';
 
 export interface DocumentationRequest {
     backNavigation?: BackNavigation;
@@ -25,9 +24,9 @@ export interface DocumentationRequest {
 }
 
 export interface DocumentationParameters {
-    [key: string]: string;
-}
-
-export interface DocumentationState {
-    documentationParameters: DocumentationParameters | null;
+    componentType: ComponentType;
+    group: string;
+    artifact: string;
+    version: string;
+    type: string;
 }

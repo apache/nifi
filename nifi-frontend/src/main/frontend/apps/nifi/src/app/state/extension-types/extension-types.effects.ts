@@ -128,6 +128,43 @@ export class ExtensionTypesEffects {
         )
     );
 
+    loadExtensionTypesForDocumentation$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ExtensionTypesActions.loadExtensionTypesForDocumentation),
+            switchMap(() =>
+                combineLatest([
+                    this.extensionTypesService.getProcessorTypes(),
+                    this.extensionTypesService.getControllerServiceTypes(),
+                    this.extensionTypesService.getReportingTaskTypes(),
+                    this.extensionTypesService.getParameterProviderTypes(),
+                    this.extensionTypesService.getFlowAnalysisRuleTypes()
+                ]).pipe(
+                    map(
+                        ([
+                            processorTypes,
+                            controllerServiceTypes,
+                            reportingTaskTypes,
+                            parameterProviderTypes,
+                            flowAnalysisRuleTypes
+                        ]) =>
+                            ExtensionTypesActions.loadExtensionTypesForDocumentationSuccess({
+                                response: {
+                                    processorTypes: processorTypes.processorTypes,
+                                    controllerServiceTypes: controllerServiceTypes.controllerServiceTypes,
+                                    reportingTaskTypes: reportingTaskTypes.reportingTaskTypes,
+                                    parameterProviderTypes: parameterProviderTypes.parameterProviderTypes,
+                                    flowAnalysisRuleTypes: flowAnalysisRuleTypes.flowAnalysisRuleTypes
+                                }
+                            })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(ExtensionTypesActions.extensionTypesApiError({ error: errorResponse }))
+                    )
+                )
+            )
+        )
+    );
+
     extensionTypesApiError$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ExtensionTypesActions.extensionTypesApiError),

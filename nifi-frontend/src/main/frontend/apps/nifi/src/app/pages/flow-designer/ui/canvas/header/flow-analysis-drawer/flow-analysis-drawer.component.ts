@@ -28,15 +28,15 @@ import { FormsModule } from '@angular/forms';
 import { selectFlowAnalysisState } from '../../../../state/flow-analysis/flow-analysis.selectors';
 import {
     navigateToEditFlowAnalysisRule,
-    startPollingFlowAnalysis,
-    openRuleDetailsDialog
+    openRuleDetailsDialog,
+    startPollingFlowAnalysis
 } from '../../../../state/flow-analysis/flow-analysis.actions';
 import { FlowAnalysisRule, FlowAnalysisRuleViolation } from '../../../../state/flow-analysis';
 import { selectBreadcrumbs, selectCurrentProcessGroupId } from '../../../../state/flow/flow.selectors';
 import { RouterLink } from '@angular/router';
 import { NifiSpinnerDirective } from '../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { MatIconButton } from '@angular/material/button';
-import { ComponentContext } from '@nifi/shared';
+import { ComponentContext, ComponentType } from '@nifi/shared';
 import { BreadcrumbEntity } from '../../../../state/shared';
 
 @Component({
@@ -135,7 +135,8 @@ export class FlowAnalysisDrawerComponent {
                         context: 'Canvas'
                     },
                     parameters: {
-                        select: rule.type,
+                        componentType: ComponentType.FlowAnalysisRule,
+                        type: rule.type,
                         group: rule.bundle.group,
                         artifact: rule.bundle.artifact,
                         version: rule.bundle.version

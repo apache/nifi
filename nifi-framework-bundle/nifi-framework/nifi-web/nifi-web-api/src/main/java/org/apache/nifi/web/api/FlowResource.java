@@ -53,6 +53,11 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
+import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
+import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
+import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
+import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
@@ -96,6 +101,7 @@ import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.entity.AboutEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
+import org.apache.nifi.web.api.entity.AdditionalDetailsEntity;
 import org.apache.nifi.web.api.entity.BannerEntity;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
 import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
@@ -1699,6 +1705,344 @@ public class FlowResource extends ApplicationResource {
         // create response entity
         final RuntimeManifestEntity entity = new RuntimeManifestEntity();
         entity.setRuntimeManifest(serviceFacade.getRuntimeManifest());
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("processor-definition/{group}/{artifact}/{version}/{type}")
+    @Operation(
+            summary = "Retrieves the Processor Definition for the specified component type.",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ProcessorDefinition.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The processor definition for the coordinates could not be located.")
+            }
+    )
+    public Response getProcessorDefinition(
+            @Parameter(
+                    description = "The bundle group",
+                    required = true
+            )
+            @PathParam("group") String group,
+            @Parameter(
+                    description = "The bundle artifact",
+                    required = true
+            )
+            @PathParam("artifact") String artifact,
+            @Parameter(
+                    description = "The bundle version",
+                    required = true
+            )
+            @PathParam("version") String version,
+            @Parameter(
+                    description = "The processor type",
+                    required = true
+            )
+            @PathParam("type") String type
+    ) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final ProcessorDefinition entity = serviceFacade.getProcessorDefinition(group, artifact, version, type);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("controller-service-definition/{group}/{artifact}/{version}/{type}")
+    @Operation(
+            summary = "Retrieves the Controller Service Definition for the specified component type.",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ControllerServiceDefinition.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The controller service definition for the coordinates could not be located.")
+            }
+    )
+    public Response getControllerServiceDefinition(
+            @Parameter(
+                    description = "The bundle group",
+                    required = true
+            )
+            @PathParam("group") String group,
+            @Parameter(
+                    description = "The bundle artifact",
+                    required = true
+            )
+            @PathParam("artifact") String artifact,
+            @Parameter(
+                    description = "The bundle version",
+                    required = true
+            )
+            @PathParam("version") String version,
+            @Parameter(
+                    description = "The controller service type",
+                    required = true
+            )
+            @PathParam("type") String type
+    ) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final ControllerServiceDefinition entity = serviceFacade.getControllerServiceDefinition(group, artifact, version, type);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("reporting-task-definition/{group}/{artifact}/{version}/{type}")
+    @Operation(
+            summary = "Retrieves the Reporting Task Definition for the specified component type.",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ReportingTaskDefinition.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The reporting task definition for the coordinates could not be located.")
+            }
+    )
+    public Response getReportingTaskDefinition(
+            @Parameter(
+                    description = "The bundle group",
+                    required = true
+            )
+            @PathParam("group") String group,
+            @Parameter(
+                    description = "The bundle artifact",
+                    required = true
+            )
+            @PathParam("artifact") String artifact,
+            @Parameter(
+                    description = "The bundle version",
+                    required = true
+            )
+            @PathParam("version") String version,
+            @Parameter(
+                    description = "The reporting task type",
+                    required = true
+            )
+            @PathParam("type") String type
+    ) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final ReportingTaskDefinition entity = serviceFacade.getReportingTaskDefinition(group, artifact, version, type);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("parameter-provider-definition/{group}/{artifact}/{version}/{type}")
+    @Operation(
+            summary = "Retrieves the Parameter Provider Definition for the specified component type.",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = ParameterProviderDefinition.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The reporting task definition for the coordinates could not be located.")
+            }
+    )
+    public Response getParameterProviderDefinition(
+            @Parameter(
+                    description = "The bundle group",
+                    required = true
+            )
+            @PathParam("group") String group,
+            @Parameter(
+                    description = "The bundle artifact",
+                    required = true
+            )
+            @PathParam("artifact") String artifact,
+            @Parameter(
+                    description = "The bundle version",
+                    required = true
+            )
+            @PathParam("version") String version,
+            @Parameter(
+                    description = "The parameter provider type",
+                    required = true
+            )
+            @PathParam("type") String type
+    ) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final ParameterProviderDefinition entity = serviceFacade.getParameterProviderDefinition(group, artifact, version, type);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rule-definition/{group}/{artifact}/{version}/{type}")
+    @Operation(
+            summary = "Retrieves the Flow Analysis Rule Definition for the specified component type.",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = FlowAnalysisRuleDefinition.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The flow analysis rule definition for the coordinates could not be located.")
+            }
+    )
+    public Response getFlowAnalysisRuleDefinition(
+            @Parameter(
+                    description = "The bundle group",
+                    required = true
+            )
+            @PathParam("group") String group,
+            @Parameter(
+                    description = "The bundle artifact",
+                    required = true
+            )
+            @PathParam("artifact") String artifact,
+            @Parameter(
+                    description = "The bundle version",
+                    required = true
+            )
+            @PathParam("version") String version,
+            @Parameter(
+                    description = "The flow analysis rule type",
+                    required = true
+            )
+            @PathParam("type") String type
+    ) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final FlowAnalysisRuleDefinition entity = serviceFacade.getFlowAnalysisRuleDefinition(group, artifact, version, type);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("additional-details/{group}/{artifact}/{version}/{type}")
+    @Operation(
+            summary = "Retrieves the additional details for the specified component type.",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = AdditionalDetailsEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The additional details for the coordinates could not be located.")
+            }
+    )
+    public Response getAdditionalDetails(
+            @Parameter(
+                    description = "The bundle group",
+                    required = true
+            )
+            @PathParam("group") String group,
+            @Parameter(
+                    description = "The bundle artifact",
+                    required = true
+            )
+            @PathParam("artifact") String artifact,
+            @Parameter(
+                    description = "The bundle version",
+                    required = true
+            )
+            @PathParam("version") String version,
+            @Parameter(
+                    description = "The processor type",
+                    required = true
+            )
+            @PathParam("type") String type
+    ) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final String additionalDetails = serviceFacade.getAdditionalDetails(group, artifact, version, type);
+        final AdditionalDetailsEntity entity = new AdditionalDetailsEntity();
+        entity.setAdditionalDetails(additionalDetails);
 
         // generate the response
         return generateOkResponse(entity).build();
