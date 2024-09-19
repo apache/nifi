@@ -59,7 +59,7 @@
                                 name="applyParameterContextRecursively">
                                 Apply Recursively
                                 <i
-                                    class="fa fa-info-circle secondary-color"
+                                    class="fa fa-info-circle primary-color"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
                                     tooltipInputData="When checked Parameter Context will be applied to the Process Group and all the embedded Process Groups recursively, if the user has the proper permissions on all the respective components. If the user does not have the proper permissions on any embedded Process Group, then the Parameter Context will not be applied for any components."></i>
@@ -208,16 +208,15 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (readonly) {
-                <button mat-flat-button class="secondary-button" mat-dialog-close>Close</button>
+                <button mat-flat-button mat-dialog-close>Close</button>
             } @else {
-                <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
+                <button mat-button mat-dialog-close>Cancel</button>
                 <button
                     [disabled]="!editProcessGroupForm.dirty || editProcessGroupForm.invalid || saving.value"
                     class="h-8"
                     type="button"
                     (click)="submitForm()"
-                    mat-flat-button
-                    class="secondary-button">
+                    mat-flat-button>
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             }

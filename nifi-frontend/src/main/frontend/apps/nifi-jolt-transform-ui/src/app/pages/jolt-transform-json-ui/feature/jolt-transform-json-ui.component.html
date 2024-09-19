@@ -17,7 +17,7 @@
 
 <div class="jolt-transform-json-ui p-5 flex flex-col h-full min-h-[495px] overflow-auto">
     <div class="flex-1 flex flex-col">
-        <h3 class="secondary-color">Advanced</h3>
+        <h3 class="primary-color">Advanced</h3>
         @if (processorDetails$ | async; as processorDetails) {
             <form [formGroup]="editJoltTransformJSONProcessorForm" class="h-full flex flex-row">
                 <div class="w-1/3 pr-2 flex-1">
@@ -27,7 +27,7 @@
                             <mat-card-subtitle>
                                 <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
                                     <i
-                                        class="fa fa-info-circle secondary-color mr-2"
+                                        class="fa fa-info-circle primary-color mr-2"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
                                         tooltipInputData="Select the 'Jolt Transform' and enter the 'Jolt Specification' properties to be used when transforming the input."></i
@@ -71,7 +71,7 @@
                                             <div class="font-bold">
                                                 Jolt Specification
                                                 <i
-                                                    class="fa fa-info-circle secondary-color ml-2"
+                                                    class="fa fa-info-circle primary-color ml-2"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     tooltipInputData="Jolt Specification for transformation of JSON data. The value for this property may be the text of a Jolt specification or the path to a file containing a Jolt specification. 'Jolt Specification' must be set, or the value is ignored if the Jolt Sort Transformation is selected."></i>
@@ -80,7 +80,7 @@
                                         <div class="flex justify-end mb-2">
                                             <button
                                                 mat-icon-button
-                                                class="secondary-icon-button"
+                                                class="primary-icon-button"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 [tooltipInputData]="getFormatTooltip()"
@@ -175,7 +175,7 @@
                                         joltState.validate().validationFailureResponse === null
                                     ) {
                                         <i
-                                            class="fa fa-info-circle secondary-color mr-2"
+                                            class="fa fa-info-circle primary-color mr-2"
                                             nifiTooltip
                                             [tooltipComponentType]="TextTip"
                                             tooltipInputData="Click the validate button to verify the specification for the selected transformation. Click the save button to apply the current values to the processor's configuration."></i>
@@ -196,11 +196,7 @@
                                         [disabled]="isValidateDisabled()">
                                         Validate
                                     </button>
-                                    <button
-                                        mat-flat-button
-                                        class="secondary-button"
-                                        (click)="saveProperties()"
-                                        [disabled]="isSaveDisabled()">
+                                    <button mat-flat-button (click)="saveProperties()" [disabled]="isSaveDisabled()">
                                         Save
                                     </button>
                                 </div>
@@ -214,7 +210,7 @@
                             <mat-card-subtitle>
                                 <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
                                     <i
-                                        class="fa fa-info-circle secondary-color mr-2"
+                                        class="fa fa-info-circle primary-color mr-2"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
                                         tooltipInputData="Enter 'Example Data' and/or 'Attributes' to be transformed by the 'Jolt Transform' and 'Jolt Specification'."></i
@@ -233,7 +229,7 @@
                                                     <div>
                                                         Content
                                                         <i
-                                                            class="fa fa-info-circle secondary-color ml-2"
+                                                            class="fa fa-info-circle primary-color ml-2"
                                                             nifiTooltip
                                                             [tooltipComponentType]="TextTip"
                                                             tooltipInputData="Enter a JSON formatted input string to be transformed by the 'Jolt Transform' and 'Jolt Specification'."></i>
@@ -245,7 +241,7 @@
                                             <div class="flex justify-end mb-4">
                                                 <button
                                                     mat-icon-button
-                                                    class="secondary-icon-button"
+                                                    class="primary-icon-button"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     [tooltipInputData]="getFormatTooltip()"
@@ -269,7 +265,7 @@
                                                     <div>
                                                         Attributes
                                                         <i
-                                                            class="fa fa-info-circle secondary-color ml-2"
+                                                            class="fa fa-info-circle primary-color ml-2"
                                                             nifiTooltip
                                                             [tooltipComponentType]="TextTip"
                                                             tooltipInputData="Enter test attributes to be transformed according to the specification along with the flow file input. NOTE: These attributes are not saved and will only be available during testing and not when executing the actual flow."></i>
@@ -287,7 +283,7 @@
                                                         <button
                                                             title="Clear All"
                                                             mat-icon-button
-                                                            class="secondary-icon-button"
+                                                            class="primary-icon-button"
                                                         [disabled]="isEmpty()"
                                                             type="button"
                                                             (click)="clearAttributesClicked()">
@@ -329,7 +325,7 @@
                                                 }}</mat-hint>
                                             } @else {
                                                 <i
-                                                    class="fa fa-info-circle secondary-color mr-2"
+                                                    class="fa fa-info-circle primary-color mr-2"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     tooltipInputData="Click the transform button below to view the output of the transformation."></i
@@ -362,7 +358,7 @@
                             <mat-card-subtitle>
                                 <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">
                                     <i
-                                        class="fa fa-info-circle secondary-color mr-2"
+                                        class="fa fa-info-circle primary-color mr-2"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
                                         tooltipInputData="The output of the transformation given the specification, flow file content, and (optional) attributes."></i

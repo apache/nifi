@@ -24,7 +24,7 @@
                     <div class="flex gap-x-4">
                         <div class="w-full flex flex-col gap-y-3">
                             <div class="flex flex-col">
-                                <div class="font-bold secondary-color">FlowFile Details</div>
+                                <div class="font-bold primary-color">FlowFile Details</div>
                             </div>
                             <div class="flex flex-col">
                                 <div>UUID</div>
@@ -106,7 +106,7 @@
                         </div>
                         <div class="w-full flex flex-col gap-y-3">
                             <div class="flex flex-col">
-                                <div class="font-bold secondary-color">Content Claim</div>
+                                <div class="font-bold primary-color">Content Claim</div>
                             </div>
                             <div
                                 class="flex flex-col gap-y-3"
@@ -182,7 +182,7 @@
                 <div class="dialog-tab-content">
                     <div class="flex flex-col gap-y-4">
                         <div class="flex">
-                            <div class="font-bold secondary-color">Attribute Values</div>
+                            <div class="font-bold primary-color">Attribute Values</div>
                         </div>
                         <div class="flex flex-col">
                             <div *ngFor="let attribute of request.flowfile.attributes | keyvalue">
@@ -233,6 +233,6 @@
         </ng-template>
     </ng-template>
     <mat-dialog-actions align="end">
-        <button mat-flat-button class="secondary-button" mat-dialog-close>Ok</button>
+        <button mat-flat-button mat-dialog-close>Ok</button>
     </mat-dialog-actions>
 </div>

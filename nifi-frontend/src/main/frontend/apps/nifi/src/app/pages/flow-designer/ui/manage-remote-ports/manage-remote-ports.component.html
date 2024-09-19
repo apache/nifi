@@ -20,7 +20,7 @@
         <navigation></navigation>
     </header>
     <div class="pb-5 px-5 flex-1 flex flex-col">
-        <h3 class="secondary-color">Manage Remote Ports</h3>
+        <h3 class="primary-color">Manage Remote Ports</h3>
         @if (portsState$ | async; as portsState) {
             <div class="grid-container grid grid-cols-2">
                 <div class="col-span-1 pr-5">
@@ -68,7 +68,7 @@
                                             <div class="flex items-center gap-x-2">
                                                 @if (hasComments(item)) {
                                                     <div
-                                                        class="pointer fa fa-comment secondary-color"
+                                                        class="pointer fa fa-comment primary-color"
                                                         nifiTooltip
                                                         [delayClose]="false"
                                                         [tooltipComponentType]="TextTip"
@@ -209,7 +209,7 @@
                                                         port.transmitting === false
                                                     ) {
                                                         <button mat-menu-item (click)="configureClicked(port)">
-                                                            <i class="fa fa-cog secondary-color mr-2"></i>
+                                                            <i class="fa fa-cog primary-color mr-2"></i>
                                                             Edit Port
                                                         </button>
                                                     }
@@ -218,7 +218,7 @@
                                                         @if (port.transmitting) {
                                                             <button mat-menu-item (click)="toggleTransmission(port)">
                                                                 <i
-                                                                    class="fa fa-bullseye transmitting secondary-color mr-2"></i>
+                                                                    class="fa fa-bullseye transmitting primary-color mr-2"></i>
                                                                 Transmitting: click to toggle port transmission
                                                             </button>
                                                         } @else {
@@ -227,7 +227,7 @@
                                                                     mat-menu-item
                                                                     (click)="toggleTransmission(port)">
                                                                     <i
-                                                                        class="not-transmitting icon icon-transmit-false secondary-color mr-2"></i>
+                                                                        class="not-transmitting icon icon-transmit-false primary-color mr-2"></i>
                                                                     Not Transmitting: click to toggle port transmission
                                                                 </button>
                                                             }
@@ -253,7 +253,7 @@
                         <div class="text-sm flex items-center gap-x-2">
                             <button
                                 mat-icon-button
-                                class="secondary-icon-button"
+                                class="primary-icon-button"
                                 (click)="refreshManageRemotePortsListing()">
                                 <i class="fa fa-refresh" [class.fa-spin]="portsState.status === 'loading'"></i>
                             </button>

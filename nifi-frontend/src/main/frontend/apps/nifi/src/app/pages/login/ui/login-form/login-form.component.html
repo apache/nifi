@@ -17,7 +17,7 @@
 
 <div class="login-form w-96 flex flex-col gap-y-5">
     <div class="flex justify-between items-start">
-        <h3 class="secondary-color">Log In</h3>
+        <h3 class="primary-color">Log In</h3>
         <div class="flex gap-x-2">
             @if (logoutSupported()) {
                 <a (click)="logout()">log out</a>
@@ -40,13 +40,7 @@
                 </mat-form-field>
             </div>
             <div class="flex justify-end">
-                <button
-                    [disabled]="!loginForm.dirty || loginForm.invalid"
-                    type="submit"
-                    mat-flat-button
-                    class="secondary-button">
-                    Log in
-                </button>
+                <button [disabled]="!loginForm.dirty || loginForm.invalid" type="submit" mat-flat-button>Log in</button>
             </div>
         </form>
     </div>

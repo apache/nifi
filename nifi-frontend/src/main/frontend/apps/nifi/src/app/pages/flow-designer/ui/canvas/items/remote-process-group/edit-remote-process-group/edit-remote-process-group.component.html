@@ -166,15 +166,14 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (readonly) {
-                <button mat-flat-button class="secondary-button" mat-dialog-close>Close</button>
+                <button mat-flat-button mat-dialog-close>Close</button>
             } @else {
-                <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
+                <button mat-button mat-dialog-close>Cancel</button>
                 <button
                     [disabled]="!editRemoteProcessGroupForm.dirty || editRemoteProcessGroupForm.invalid || saving.value"
                     type="button"
                     (click)="submitForm()"
-                    mat-flat-button
-                    class="secondary-button">
+                    mat-flat-button>
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             }

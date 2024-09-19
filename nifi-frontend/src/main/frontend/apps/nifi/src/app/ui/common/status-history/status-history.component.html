@@ -25,7 +25,7 @@
             @if (instances.length > 0 && fieldDescriptors.length > 0) {
                 @if (!dialogMaximized) {
                     <button
-                        class="mt-2 mr-2 secondary-icon-button"
+                        class="primary-icon-button mt-2 mr-2"
                         mat-icon-button
                         (click)="maximize()"
                         title="Maximize dialog size">
@@ -33,7 +33,7 @@
                     </button>
                 } @else {
                     <button
-                        class="mt-2 mr-2 secondary-icon-button"
+                        class="primary-icon-button mt-2 mr-2"
                         mat-icon-button
                         (click)="minimize()"
                         title="Restore default dialog size">
@@ -191,7 +191,7 @@
                     <div class="flex-1">
                         @if (instances.length > 0 && fieldDescriptors.length > 0) {
                             <div class="text-sm flex items-center gap-x-2">
-                                <button mat-icon-button class="secondary-icon-button" (click)="refresh()">
+                                <button mat-icon-button class="primary-icon-button" (click)="refresh()">
                                     <i
                                         class="fa fa-refresh"
                                         [class.fa-spin]="statusHistoryState.status === 'loading'"></i>
@@ -204,7 +204,7 @@
                         }
                     </div>
                     <div>
-                        <button mat-button class="secondary-button" mat-dialog-close>Close</button>
+                        <button mat-button mat-dialog-close>Close</button>
                     </div>
                 </div>
             </mat-dialog-actions>

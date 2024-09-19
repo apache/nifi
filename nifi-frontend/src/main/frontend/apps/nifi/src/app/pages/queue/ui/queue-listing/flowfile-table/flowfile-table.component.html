@@ -16,7 +16,7 @@
   -->
 
 <div class="flowfile-table h-full flex flex-col">
-    <h3 class="queue-listing-header secondary-color">{{ selectedConnection?.label }}</h3>
+    <h3 class="queue-listing-header primary-color">{{ selectedConnection?.label }}</h3>
     <error-banner></error-banner>
     <div class="flex justify-between mb-2">
         <div class="tertiary-color font-medium">
@@ -127,18 +127,18 @@
                             }
                             <mat-menu #actionMenu="matMenu" xPosition="before">
                                 <button mat-menu-item (click)="viewFlowFileClicked(item)">
-                                    <i class="fa fa-info-circle secondary-color mr-2"></i>
+                                    <i class="fa fa-info-circle primary-color mr-2"></i>
                                     View Details
                                 </button>
                                 @if (item.size > 0) {
                                     <button mat-menu-item (click)="downloadContentClicked(item)">
-                                        <i class="fa fa-download secondary-color mr-2"></i>
+                                        <i class="fa fa-download primary-color mr-2"></i>
                                         Download content
                                     </button>
                                 }
                                 @if (contentViewerAvailable && item.size > 0) {
                                     <button mat-menu-item (click)="viewContentClicked(item)">
-                                        <i class="fa fa-eye secondary-color mr-2"></i>
+                                        <i class="fa fa-eye primary-color mr-2"></i>
                                         View content
                                     </button>
                                 }
@@ -154,7 +154,7 @@
                                                 context: 'Queue'
                                             }
                                         }">
-                                        <i class="icon icon-provenance secondary-color mr-2"></i>
+                                        <i class="icon icon-provenance primary-color mr-2"></i>
                                         Provenance
                                     </button>
                                 }

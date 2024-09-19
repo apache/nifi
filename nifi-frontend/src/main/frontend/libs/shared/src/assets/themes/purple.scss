@@ -321,14 +321,15 @@ $m3-light-theme: mat.define-theme(
 $m3-light-theme-config: (
     primary: (
         darker: 10,
-        default: 35,
-        lighter: 50,
+        default: 40,
+        lighter: 80,
         contrast: #000000
     ),
     secondary: (
         darker: 10,
-        default: 40,
-        lighter: 80
+        default: 35,
+        lighter: 50,
+        contrast: #ffffff
     ),
     tertiary: (
         darker: 30,
@@ -358,15 +359,16 @@ $m3-light-theme-config: (
 
 $m3-dark-theme-config: (
     primary: (
+        darker: 10,
+        default: 40,
+        lighter: 80,
+        contrast: #000000
+    ),
+    secondary: (
         darker: 0,
         default: 50,
         lighter: 99,
         contrast: #000000
-    ),
-    secondary: (
-        darker: 10,
-        default: 40,
-        lighter: 80
     ),
     tertiary: (
         darker: 10,

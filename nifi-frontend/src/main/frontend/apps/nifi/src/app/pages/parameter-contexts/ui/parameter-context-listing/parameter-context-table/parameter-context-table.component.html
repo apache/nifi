@@ -75,19 +75,19 @@
                         <mat-menu #actionMenu="matMenu" xPosition="before">
                             @if (canRead(item)) {
                                 <button mat-menu-item (click)="editClicked(item)">
-                                    <i class="fa fa-cog secondary-color mr-2"></i>
+                                    <i class="fa fa-cog primary-color mr-2"></i>
                                     {{ canWrite(item) ? 'Edit' : 'View Configuration' }}
                                 </button>
                             }
                             @if (canDelete(item)) {
                                 <button mat-menu-item (click)="deleteClicked(item)">
-                                    <i class="fa fa-trash secondary-color mr-2"></i>
+                                    <i class="fa fa-trash primary-color mr-2"></i>
                                     Delete
                                 </button>
                             }
                             @if (canManageAccessPolicies()) {
                                 <button mat-menu-item (click)="manageAccessPoliciesClicked(item)">
-                                    <i class="fa fa-key secondary-color mr-2"></i>
+                                    <i class="fa fa-key primary-color mr-2"></i>
                                     Manage Access Policies
                                 </button>
                             }
@@ -96,7 +96,7 @@
                                     mat-menu-item
                                     (click)="$event.stopPropagation()"
                                     [routerLink]="getParameterProviderLink(item)">
-                                    <i class="fa fa-long-arrow-right secondary-color mr-2"></i>
+                                    <i class="fa fa-long-arrow-right primary-color mr-2"></i>
                                     Go to Parameter Provider
                                 </button>
                             }

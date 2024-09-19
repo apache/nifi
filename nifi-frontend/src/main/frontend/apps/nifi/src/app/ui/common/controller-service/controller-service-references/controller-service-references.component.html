@@ -81,7 +81,7 @@
         <ng-template #nonService let-references let-referenceTypeLabel="referenceTypeLabel">
             @if (references.length > 0) {
                 <li>
-                    <h4 class="secondary-color">
+                    <h4 class="primary-color">
                         <span class="tertiary-color font-medium">{{ referenceTypeLabel }}</span>
                         ({{ references.length }})
                     </h4>
@@ -103,7 +103,7 @@
                                 }}</a>
                                 @if (hasBulletins(reference)) {
                                     <div
-                                        class="pointer fa fa-sticky-note-o secondary-color"
+                                        class="pointer fa fa-sticky-note-o primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="BulletinsTip"
                                         [tooltipInputData]="getBulletinsTipData(reference)"
@@ -140,7 +140,7 @@
                                     }}</a>
                                     @if (hasBulletins(service)) {
                                         <div
-                                            class="pointer fa fa-sticky-note-o secondary-color"
+                                            class="pointer fa fa-sticky-note-o primary-color"
                                             nifiTooltip
                                             [tooltipComponentType]="BulletinsTip"
                                             [tooltipInputData]="getBulletinsTipData(service)"></div>

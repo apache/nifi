@@ -20,20 +20,20 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-primary-palette-default: mat.get-theme-color(
+    $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), default)
+        secondary,
+        map.get(map.get($config, secondary), default)
     );
-    $material-theme-primary-palette-darker: mat.get-theme-color(
+    $material-theme-secondary-palette-darker: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), darker)
+        secondary,
+        map.get(map.get($config, secondary), darker)
     );
-    $material-theme-primary-palette-lighter: mat.get-theme-color(
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), lighter)
+        secondary,
+        map.get(map.get($config, secondary), lighter)
     );
     $material-theme-neutral-palette-darker: mat.get-theme-color(
         $material-theme,
@@ -52,8 +52,8 @@
         .icon {
             color: if(
                 $is-material-dark,
-                $material-theme-primary-palette-darker,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-darker,
+                $material-theme-secondary-palette-darker
             );
 
             &.hovering {
@@ -75,8 +75,8 @@
                         ),
                         if(
                                 $is-material-dark,
-                                $material-theme-primary-palette-default,
-                                $material-theme-primary-palette-darker
+                                $material-theme-secondary-palette-default,
+                                $material-theme-secondary-palette-darker
                             )
                             4px,
                         transparent 4px,
@@ -86,7 +86,7 @@
             }
 
             &.cdk-drag-dragging {
-                color: $material-theme-primary-palette-lighter;
+                color: $material-theme-secondary-palette-lighter;
                 mix-blend-mode: difference; // Make sure the dragged icon is always visible
             }
         }

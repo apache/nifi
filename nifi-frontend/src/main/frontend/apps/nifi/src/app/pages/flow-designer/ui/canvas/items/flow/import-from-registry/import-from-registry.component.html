@@ -106,7 +106,7 @@
                     <mat-checkbox formControlName="keepParameterContexts">
                         Keep existing Parameter Contexts
                         <i
-                            class="fa fa-info-circle secondary-color"
+                            class="fa fa-info-circle primary-color"
                             nifiTooltip
                             [tooltipComponentType]="TextTip"
                             tooltipInputData="When not selected, only directly associated Parameter Contexts will be copied, inherited Contexts with no direct assignment to a Process Group are ignored."></i>
@@ -173,13 +173,12 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end" *ngIf="{ value: (saving$ | async)! } as saving">
-        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
+        <button mat-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="importFromRegistryForm.invalid || saving.value || !selectedFlowVersion"
             type="button"
             (click)="importFromRegistry()"
-            mat-flat-button
-            class="secondary-button">
+            mat-flat-button>
             <span *nifiSpinner="saving.value">Import</span>
         </button>
     </mat-dialog-actions>

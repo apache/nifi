@@ -419,6 +419,7 @@
     );
     $alternate-surface: map.get($config, alternate-surface);
     $primary-contrast: map.get(map.get($config, primary), contrast);
+    $secondary-contrast: map.get(map.get($config, secondary), contrast);
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
     $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     $success-default: map.get(map.get($config, success), default);
@@ -448,9 +449,19 @@
         fill: $material-theme-primary-palette-default;
     }
 
+    .secondary-contrast {
+        color: $secondary-contrast;
+        fill: $secondary-contrast;
+    }
+
     .secondary-color {
         color: $material-theme-secondary-palette-default;
         fill: $material-theme-secondary-palette-default;
+    }
+
+    .secondary-color-lighter {
+        color: $material-theme-secondary-palette-lighter;
+        fill: $material-theme-secondary-palette-lighter;
     }
 
     .tertiary-color {
@@ -471,6 +482,11 @@
     .error-color-darker {
         color: $material-theme-error-palette-darker;
         fill: $material-theme-error-palette-darker;
+    }
+
+    .neutral-contrast {
+        color: $neutral-contrast;
+        fill: $neutral-contrast;
     }
 
     .neutral-color {
@@ -517,16 +533,8 @@
         @include mat.checkbox-color($material-theme, $color-variant: tertiary);
     }
 
-    .secondary-button {
-        @include mat.button-color($material-theme, $color-variant: secondary);
-    }
-
-    .secondary-icon-button {
-        @include mat.icon-button-color($material-theme, $color-variant: secondary);
-    }
-
-    .secondary-slider {
-        @include mat.slider-color($material-theme, $color-variant: secondary);
+    .primary-icon-button {
+        @include mat.icon-button-color($material-theme, $color-variant: primary);
     }
 
     .error-button {
@@ -731,14 +739,18 @@
     }
 
     .cdk-drop-list {
-        color: if($is-material-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker);
+        color: if(
+            $is-material-dark,
+            $material-theme-secondary-palette-default,
+            $material-theme-secondary-palette-darker
+        );
     }
 
     .cdk-drop-list-dragging {
         background-color: if(
             $is-material-dark,
-            $material-theme-primary-palette-darker,
-            $material-theme-primary-palette-default
+            $material-theme-secondary-palette-darker,
+            $material-theme-secondary-palette-default
         ) !important;
     }
 
@@ -746,8 +758,8 @@
         .cdk-drag {
             background-color: if(
                 $is-material-dark,
-                $material-theme-primary-palette-default,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-default,
+                $material-theme-secondary-palette-darker
             );
         }
     }
@@ -780,17 +792,17 @@
     .cdk-drag-selected {
         .cdk-drag {
             // invert the contrast colors since the surface is dark in light mode and light in dark mode
-            color: $primary-contrast;
+            color: $secondary-contrast;
         }
 
         span.grip {
             // invert the contrast colors since the surface is dark in light mode and light in dark mode
-            color: $primary-contrast;
+            color: $secondary-contrast;
         }
 
         .fa {
             // invert the contrast colors since the surface is dark in light mode and light in dark mode
-            color: $primary-contrast;
+            color: $secondary-contrast;
         }
     }
 

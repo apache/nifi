@@ -20,10 +20,10 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-primary-palette-default: mat.get-theme-color(
+    $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), default)
+        secondary,
+        map.get(map.get($config, secondary), default)
     );
     $material-theme-neutral-palette-darker: mat.get-theme-color(
         $material-theme,
@@ -44,7 +44,7 @@
         );
 
         rect.birdseye-brush {
-            stroke: $material-theme-primary-palette-default;
+            stroke: $material-theme-secondary-palette-default;
             fill: transparent;
         }
     }

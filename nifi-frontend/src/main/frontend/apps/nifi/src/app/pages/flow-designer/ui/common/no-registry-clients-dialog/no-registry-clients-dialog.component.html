@@ -27,15 +27,9 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
     @if (request.controllerPermissions.canRead) {
-        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
-        <button
-            mat-flat-button
-            class="secondary-button"
-            mat-dialog-close
-            [routerLink]="['/settings', 'registry-clients']">
-            Configure
-        </button>
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-flat-button mat-dialog-close [routerLink]="['/settings', 'registry-clients']">Configure</button>
     } @else {
-        <button mat-flat-button class="secondary-button" mat-dialog-close>Ok</button>
+        <button mat-flat-button mat-dialog-close>Ok</button>
     }
 </mat-dialog-actions>

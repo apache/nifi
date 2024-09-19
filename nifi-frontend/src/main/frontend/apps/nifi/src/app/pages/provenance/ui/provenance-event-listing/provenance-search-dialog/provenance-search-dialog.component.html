@@ -111,13 +111,12 @@
         }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
+        <button mat-button mat-dialog-close>Cancel</button>
         <button
             [disabled]="provenanceOptionsForm.invalid"
             type="button"
             (click)="searchClicked()"
             mat-flat-button
-            class="secondary-button"
             mat-dialog-close>
             <span>Search</span>
         </button>

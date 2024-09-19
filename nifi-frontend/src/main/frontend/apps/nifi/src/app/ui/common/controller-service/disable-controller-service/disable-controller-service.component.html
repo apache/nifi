@@ -36,7 +36,7 @@
                                 <div>
                                     <span class="tertiary-color font-medium">Service and referencing components</span>
                                     <i
-                                        class="fa fa-info-circle ml-1 secondary-color"
+                                        class="fa fa-info-circle ml-1 primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
                                         tooltipInputData="Referencing components must be disabled/stopped in order to disable this service."></i>
@@ -47,7 +47,7 @@
                             <div>
                                 Referencing Components
                                 <i
-                                    class="fa fa-info-circle secondary-color"
+                                    class="fa fa-info-circle primary-color"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
                                     tooltipInputData="Other components referencing this controller service."></i>
@@ -65,10 +65,8 @@
                     </div>
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
-                    <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
-                    <button type="button" (click)="submitForm()" mat-flat-button class="secondary-button">
-                        Disable
-                    </button>
+                    <button mat-button mat-dialog-close>Cancel</button>
+                    <button type="button" (click)="submitForm()" mat-flat-button>Disable</button>
                 </mat-dialog-actions>
             } @else {
                 <mat-dialog-content>
@@ -151,7 +149,7 @@
                             <div>
                                 Referencing Components
                                 <i
-                                    class="fa fa-info-circle secondary-color"
+                                    class="fa fa-info-circle primary-color"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
                                     tooltipInputData="Other components referencing this controller service."></i>
@@ -170,11 +168,9 @@
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
                     @if (disableRequest.currentStep === SetEnableStep.Completed || disableRequest.error) {
-                        <button mat-button class="secondary-button" mat-dialog-close>Close</button>
+                        <button mat-button mat-dialog-close>Close</button>
                     } @else {
-                        <button (click)="cancelClicked()" mat-button class="secondary-button" mat-dialog-close>
-                            Cancel
-                        </button>
+                        <button (click)="cancelClicked()" mat-button mat-dialog-close>Cancel</button>
                     }
                 </mat-dialog-actions>
             }
@@ -182,7 +178,7 @@
     }
 }
 <ng-template #stepInProgress>
-    <div class="fa fa-spin fa-circle-o-notch secondary-color"></div>
+    <div class="fa fa-spin fa-circle-o-notch primary-color"></div>
 </ng-template>
 <ng-template #stepComplete>
     <div class="complete fa fa-check success-color"></div>

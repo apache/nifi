@@ -37,7 +37,7 @@
                                     @if (updateStep.complete) {
                                         <div class="fa fa-check success-color"></div>
                                     } @else {
-                                        <div class="fa fa-spin fa-circle-o-notch secondary-color"></div>
+                                        <div class="fa fa-spin fa-circle-o-notch primary-color"></div>
                                     }
                                 }
                             </div>
@@ -64,7 +64,7 @@
                         <div>
                             Referencing Components
                             <i
-                                class="fa fa-info-circle secondary-color"
+                                class="fa fa-info-circle primary-color"
                                 nifiTooltip
                                 [tooltipComponentType]="TextTip"
                                 tooltipInputData="Components referencing the modified parameters grouped by process group."></i>
@@ -127,7 +127,7 @@
                             <div>
                                 Referencing Components
                                 <i
-                                    class="fa fa-info-circle secondary-color"
+                                    class="fa fa-info-circle primary-color"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
                                     tooltipInputData="Other components referencing this parameter context."></i>
@@ -171,24 +171,23 @@
     @if ((updateRequest | async)!; as requestEntity) {
         <mat-dialog-actions align="end">
             @if (requestEntity.request.complete) {
-                <button mat-flat-button class="secondary-button" mat-dialog-close>Close</button>
+                <button mat-flat-button mat-dialog-close>Close</button>
             } @else {
-                <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
+                <button mat-button mat-dialog-close>Cancel</button>
             }
         </mat-dialog-actions>
     } @else {
         @if ({ value: (saving$ | async)! }; as saving) {
             <mat-dialog-actions align="end">
                 @if (readonly) {
-                    <button mat-flat-button class="secondary-button" mat-dialog-close>Close</button>
+                    <button mat-flat-button mat-dialog-close>Close</button>
                 } @else {
-                    <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
+                    <button mat-button mat-dialog-close>Cancel</button>
                     <button
                         [disabled]="!editParameterContextForm.dirty || editParameterContextForm.invalid || saving.value"
                         type="button"
                         (click)="submitForm()"
-                        mat-flat-button
-                        class="secondary-button">
+                        mat-flat-button>
                         <span *nifiSpinner="saving.value">Apply</span>
                     </button>
                 }

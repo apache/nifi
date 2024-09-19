@@ -36,12 +36,8 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
-        <button
-            mat-flat-button
-            class="secondary-button"
-            [disabled]="!newPropertyForm.dirty || newPropertyForm.invalid"
-            (click)="addProperty()">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-flat-button [disabled]="!newPropertyForm.dirty || newPropertyForm.invalid" (click)="addProperty()">
             Ok
         </button>
     </mat-dialog-actions>

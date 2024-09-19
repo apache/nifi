@@ -129,13 +129,8 @@
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="saveVersionForm.invalid || saving()"
-            type="button"
-            (click)="submitForm()"
-            mat-flat-button
-            class="secondary-button">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button [disabled]="saveVersionForm.invalid || saving()" type="button" (click)="submitForm()" mat-flat-button>
             <span *nifiSpinner="saving()">Save</span>
         </button>
     </mat-dialog-actions>

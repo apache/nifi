@@ -1271,7 +1271,7 @@ export class ConnectionManager {
                         // expiration icon
                         queued
                             .append('text')
-                            .attr('class', 'expiration-icon secondary-color')
+                            .attr('class', 'expiration-icon primary-color')
                             .attr('x', 208)
                             .attr('y', 14)
                             .text(function () {
@@ -1458,7 +1458,7 @@ export class ConnectionManager {
                         .classed('load-balance-icon-active fa-rotate-90 success-color', function (d: any) {
                             return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
                         })
-                        .classed('secondary-color', function (d: any) {
+                        .classed('primary-color', function (d: any) {
                             return d.permissions.canRead && d.component.loadBalanceStatus !== 'LOAD_BALANCE_ACTIVE';
                         })
                         .classed('load-balance-icon-184', function () {
@@ -1603,7 +1603,7 @@ export class ConnectionManager {
             connectionLabelContainer
                 .select('g.queued-container')
                 .append('text')
-                .attr('class', 'penalized-icon secondary-color')
+                .attr('class', 'penalized-icon primary-color')
                 .attr('y', 14)
                 .text(function () {
                     return '\uf252';

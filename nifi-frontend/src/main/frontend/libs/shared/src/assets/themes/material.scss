@@ -25,24 +25,6 @@
 $m3-material-primary-light-palette: (
     primary: (
         0: #000000,
-        10: #004849,
-        20: #3f5863,
-        25: #4e6c79,
-        30: #597b8a,
-        35: #728e9b,
-        40: #8aa2ad,
-        50: #abbdc5,
-        60: #abbdc5,
-        70: #abbdc5,
-        80: #cbd8dd,
-        90: #cbd8dd,
-        95: #cbd8dd,
-        98: #cbd8dd,
-        99: #cbd8dd,
-        100: #ffffff
-    ),
-    secondary: (
-        0: #000000,
         10: #002020,
         20: #003738,
         25: #004344,
@@ -57,6 +39,24 @@ $m3-material-primary-light-palette: (
         95: #c1fbfc,
         98: #e2ffff,
         99: #f1fffe,
+        100: #ffffff
+    ),
+    secondary: (
+        0: #000000,
+        10: #004849,
+        20: #3f5863,
+        25: #4e6c79,
+        30: #597b8a,
+        35: #728e9b,
+        40: #8aa2ad,
+        50: #abbdc5,
+        60: #abbdc5,
+        70: #abbdc5,
+        80: #cbd8dd,
+        90: #cbd8dd,
+        95: #cbd8dd,
+        98: #cbd8dd,
+        99: #cbd8dd,
         100: #ffffff
     ),
     tertiary: (
@@ -152,10 +152,10 @@ $m3-material-primary-dark-palette: (
         30: #597b8a,
         35: #728e9b,
         40: #8aa2ad,
-        50: #abbdc5,
-        60: #abbdc5,
-        70: #abbdc5,
-        80: #cbd8dd,
+        50: #8aa2ad,
+        60: #8aa2ad,
+        70: #8aa2ad,
+        80: #8aa2ad,
         90: #cbd8dd,
         95: #cbd8dd,
         98: #cbd8dd,
@@ -170,10 +170,10 @@ $m3-material-primary-dark-palette: (
         30: #597b8a,
         35: #728e9b,
         40: #8aa2ad,
-        50: #8aa2ad,
-        60: #8aa2ad,
-        70: #8aa2ad,
-        80: #8aa2ad,
+        50: #abbdc5,
+        60: #abbdc5,
+        70: #abbdc5,
+        80: #cbd8dd,
         90: #cbd8dd,
         95: #cbd8dd,
         98: #cbd8dd,
@@ -325,14 +325,15 @@ $m3-light-theme: mat.define-theme(
 $m3-light-theme-config: (
     primary: (
         darker: 10,
-        default: 30,
-        lighter: 70,
+        default: 40,
+        lighter: 80,
         contrast: #000000
     ),
     secondary: (
         darker: 10,
-        default: 40,
-        lighter: 80
+        default: 30,
+        lighter: 70,
+        contrast: #ffffff
     ),
     tertiary: (
         darker: 30,
@@ -370,7 +371,8 @@ $m3-dark-theme-config: (
     secondary: (
         darker: 0,
         default: 40,
-        lighter: 99
+        lighter: 99,
+        contrast: #000000
     ),
     tertiary: (
         darker: 10,

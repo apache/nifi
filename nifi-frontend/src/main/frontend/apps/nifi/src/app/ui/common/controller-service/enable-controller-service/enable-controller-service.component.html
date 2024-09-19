@@ -53,7 +53,7 @@
                             <div>
                                 Referencing Components
                                 <i
-                                    class="fa fa-info-circle secondary-color"
+                                    class="fa fa-info-circle primary-color"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
                                     tooltipInputData="Other components referencing this controller service."></i>
@@ -71,13 +71,12 @@
                     </div>
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
-                    <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
+                    <button mat-button mat-dialog-close>Cancel</button>
                     <button
                         [disabled]="enableControllerServiceForm.invalid"
                         type="button"
                         (click)="submitForm()"
-                        mat-flat-button
-                        class="secondary-button">
+                        mat-flat-button>
                         Enable
                     </button>
                 </mat-dialog-actions>
@@ -163,7 +162,7 @@
                             <div>
                                 Referencing Components
                                 <i
-                                    class="fa fa-info-circle secondary-color"
+                                    class="fa fa-info-circle primary-color"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
                                     tooltipInputData="Other components referencing this controller service."></i>
@@ -182,11 +181,9 @@
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
                     @if (enableRequest.currentStep === SetEnableStep.Completed || enableRequest.error) {
-                        <button mat-button class="secondary-button" mat-dialog-close>Close</button>
+                        <button mat-button mat-dialog-close>Close</button>
                     } @else {
-                        <button (click)="cancelClicked()" mat-button class="secondary-button" mat-dialog-close>
-                            Cancel
-                        </button>
+                        <button (click)="cancelClicked()" mat-button mat-dialog-close>Cancel</button>
                     }
                 </mat-dialog-actions>
             }
@@ -194,7 +191,7 @@
     }
 }
 <ng-template #stepInProgress>
-    <div class="fa fa-spin fa-circle-o-notch secondary-color"></div>
+    <div class="fa fa-spin fa-circle-o-notch primary-color"></div>
 </ng-template>
 <ng-template #stepComplete>
     <div class="complete fa fa-check success-color"></div>

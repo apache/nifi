@@ -20,32 +20,32 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-primary-palette-default: mat.get-theme-color(
+    $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), default)
+        secondary,
+        map.get(map.get($config, secondary), default)
     );
-    $material-theme-primary-palette-lighter: mat.get-theme-color(
+    $material-theme-secondary-palette-darker: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), lighter)
+        secondary,
+        map.get(map.get($config, secondary), darker)
     );
-    $material-theme-primary-palette-darker: mat.get-theme-color(
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), darker)
+        secondary,
+        map.get(map.get($config, secondary), lighter)
     );
-    $primary-contrast: map.get(map.get($config, primary), contrast);
+    $secondary-contrast: map.get(map.get($config, secondary), contrast);
 
     .nifi-navigation {
         background-color: if(
             $is-material-dark,
-            $material-theme-primary-palette-default,
-            $material-theme-primary-palette-lighter
+            $material-theme-secondary-palette-default,
+            $material-theme-secondary-palette-lighter
         );
 
         .global-menu-icon.global-menu {
-            @extend .primary-contrast;
+            @extend .secondary-contrast;
         }
 
         .global-menu-icon.global-menu:disabled {
@@ -53,13 +53,13 @@
         }
 
         .current-user {
-            @extend .primary-contrast;
+            @extend .secondary-contrast;
             font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
         }
 
         a {
-            @extend .primary-contrast;
-            text-decoration-color: $primary-contrast;
+            @extend .secondary-contrast;
+            text-decoration-color: $secondary-contrast;
         }
 
         a:hover {

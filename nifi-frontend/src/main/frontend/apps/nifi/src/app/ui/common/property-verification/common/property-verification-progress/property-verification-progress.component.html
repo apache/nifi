@@ -38,9 +38,7 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         @if (verificationRequest$ | async; as verificationRequest) {
-            <button mat-flat-button class="secondary-button" mat-dialog-close (click)="stop(verificationRequest)">
-                Stop
-            </button>
+            <button mat-flat-button mat-dialog-close (click)="stop(verificationRequest)">Stop</button>
         }
     </mat-dialog-actions>
 </div>

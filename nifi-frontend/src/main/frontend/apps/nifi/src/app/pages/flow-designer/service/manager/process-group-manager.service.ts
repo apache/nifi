@@ -131,7 +131,7 @@ export class ProcessGroupManager {
             .attr('y', 20)
             .attr('width', 300)
             .attr('height', 16)
-            .attr('class', 'process-group-name primary-contrast');
+            .attr('class', 'process-group-name secondary-contrast');
 
         // process group name
         processGroup.append('text').attr('x', 10).attr('y', 21).attr('class', 'version-control');
@@ -253,7 +253,7 @@ export class ProcessGroupManager {
                         .append('text')
                         .attr('x', 10)
                         .attr('y', 49)
-                        .attr('class', 'process-group-transmitting process-group-contents-icon primary-color')
+                        .attr('class', 'process-group-transmitting process-group-contents-icon secondary-color')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf140')
                         .append('title')
@@ -269,7 +269,7 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-not-transmitting process-group-contents-icon primary-color')
+                        .attr('class', 'process-group-not-transmitting process-group-contents-icon secondary-color')
                         .attr('font-family', 'flowfont')
                         .text('\ue80a')
                         .append('title')
@@ -285,7 +285,7 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-running process-group-contents-icon primary-color')
+                        .attr('class', 'process-group-running process-group-contents-icon secondary-color')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf04b')
                         .append('title')
@@ -301,7 +301,7 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-stopped process-group-contents-icon primary-color')
+                        .attr('class', 'process-group-stopped process-group-contents-icon secondary-color')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf04d')
                         .append('title')
@@ -317,7 +317,7 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-invalid process-group-contents-icon primary-color')
+                        .attr('class', 'process-group-invalid process-group-contents-icon secondary-color')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf071')
                         .append('title')
@@ -333,7 +333,7 @@ export class ProcessGroupManager {
                     details
                         .append('text')
                         .attr('y', 49)
-                        .attr('class', 'process-group-disabled process-group-contents-icon primary-color')
+                        .attr('class', 'process-group-disabled process-group-contents-icon secondary-color')
                         .attr('font-family', 'flowfont')
                         .text('\ue802')
                         .append('title')
@@ -352,7 +352,7 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-up-to-date process-group-contents-icon primary-color')
+                        .attr('class', 'process-group-up-to-date process-group-contents-icon secondary-color')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf00c')
                         .append('title')
@@ -372,7 +372,7 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-locally-modified process-group-contents-icon primary-color')
+                        .attr('class', 'process-group-locally-modified process-group-contents-icon secondary-color')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf069')
                         .append('title')
@@ -392,7 +392,7 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-stale process-group-contents-icon primary-color')
+                        .attr('class', 'process-group-stale process-group-contents-icon secondary-color')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf0aa')
                         .append('title')
@@ -414,7 +414,7 @@ export class ProcessGroupManager {
                         })
                         .attr(
                             'class',
-                            'process-group-locally-modified-and-stale process-group-contents-icon primary-color'
+                            'process-group-locally-modified-and-stale process-group-contents-icon secondary-color'
                         )
                         .attr('font-family', 'FontAwesome')
                         .text('\uf06a')
@@ -435,7 +435,7 @@ export class ProcessGroupManager {
                         .attr('y', function () {
                             return processGroupData.dimensions.height - 7;
                         })
-                        .attr('class', 'process-group-sync-failure process-group-contents-icon primary-color')
+                        .attr('class', 'process-group-sync-failure process-group-contents-icon secondary-color')
                         .attr('font-family', 'FontAwesome')
                         .text('\uf128')
                         .append('title')

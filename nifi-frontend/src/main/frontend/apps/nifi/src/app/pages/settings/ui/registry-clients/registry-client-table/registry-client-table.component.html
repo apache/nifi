@@ -40,7 +40,7 @@
                             }
                             @if (hasBulletins(item)) {
                                 <div
-                                    class="mr-3 pointer fa fa-sticky-note-o secondary-color"
+                                    class="mr-3 pointer fa fa-sticky-note-o primary-color"
                                     nifiTooltip
                                     [tooltipComponentType]="BulletinsTip"
                                     [tooltipInputData]="getBulletinsTipData(item)"></div>
@@ -111,13 +111,13 @@
                         <mat-menu #actionMenu="matMenu" xPosition="before">
                             @if (canConfigure(item)) {
                                 <button mat-menu-item (click)="configureClicked(item)">
-                                    <i class="fa fa-cog secondary-color mr-2"></i>
+                                    <i class="fa fa-cog primary-color mr-2"></i>
                                     Edit
                                 </button>
                             }
                             @if (canDelete(item)) {
                                 <button mat-menu-item (click)="deleteClicked(item)">
-                                    <i class="fa fa-trash secondary-color mr-2"></i>
+                                    <i class="fa fa-trash primary-color mr-2"></i>
                                     Delete
                                 </button>
                             }

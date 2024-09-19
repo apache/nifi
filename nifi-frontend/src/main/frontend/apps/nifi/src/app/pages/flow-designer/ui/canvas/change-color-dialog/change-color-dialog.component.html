@@ -57,9 +57,7 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
-        <button mat-flat-button class="secondary-button" [disabled]="changeColorForm.invalid" (click)="applyClicked()">
-            Apply
-        </button>
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-flat-button [disabled]="changeColorForm.invalid" (click)="applyClicked()">Apply</button>
     </mat-dialog-actions>
 </form>

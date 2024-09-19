@@ -120,13 +120,8 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="!isSelectionValid()"
-            type="button"
-            (click)="changeFlowVersion()"
-            mat-flat-button
-            class="secondary-button">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button [disabled]="!isSelectionValid()" type="button" (click)="changeFlowVersion()" mat-flat-button>
             Change
         </button>
     </mat-dialog-actions>

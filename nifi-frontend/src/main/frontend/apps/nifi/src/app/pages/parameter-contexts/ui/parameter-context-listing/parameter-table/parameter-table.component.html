@@ -19,7 +19,7 @@
     <div class="flex basis-2/3 flex-col gap-y-3">
         @if (canAddParameters && !isDisabled) {
             <div class="flex justify-end items-center">
-                <button mat-icon-button class="secondary-icon-button" type="button" (click)="newParameterClicked()">
+                <button mat-icon-button class="primary-icon-button" type="button" (click)="newParameterClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             </div>
@@ -46,7 +46,7 @@
                                 </div>
                                 @if (hasDescription(item)) {
                                     <i
-                                        class="fa fa-info-circle secondary-color"
+                                        class="fa fa-info-circle primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
                                         [tooltipInputData]="getDescription(item)"
@@ -54,7 +54,7 @@
                                 }
                                 @if (canOverride(item)) {
                                     <i
-                                        class="fa fa-level-down secondary-color"
+                                        class="fa fa-level-down primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="TextTip"
                                         tooltipInputData="This parameter is inherited form another Parameter Context."
@@ -99,7 +99,7 @@
                                             </div>
                                             @if (hasExtraWhitespace(value)) {
                                                 <div
-                                                    class="fa fa-info-circle secondary-color"
+                                                    class="fa fa-info-circle primary-color"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     tooltipInputData="The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional."></div>
@@ -132,7 +132,7 @@
                                 <mat-menu #actionMenu="matMenu" xPosition="before">
                                     @if (canGoToParameter(item)) {
                                         <button mat-menu-item [routerLink]="getParameterLink(item)">
-                                            <i class="fa fa-long-arrow-right secondary-color mr-2"></i>
+                                            <i class="fa fa-long-arrow-right primary-color mr-2"></i>
                                             Go to
                                         </button>
                                     }
@@ -144,13 +144,13 @@
                                     }
                                     @if (canEdit(item) && !isDisabled) {
                                         <button mat-menu-item (click)="editClicked(item)">
-                                            <i class="fa fa-cog secondary-color mr-2"></i>
+                                            <i class="fa fa-cog primary-color mr-2"></i>
                                             Edit
                                         </button>
                                     }
                                     @if (canDelete(item) && !isDisabled) {
                                         <button mat-menu-item (click)="deleteClicked(item)">
-                                            <i class="fa fa-trash secondary-color mr-2"></i>
+                                            <i class="fa fa-trash primary-color mr-2"></i>
                                             Delete
                                         </button>
                                     }
@@ -185,7 +185,7 @@
             <div>
                 Referencing Components
                 <i
-                    class="fa fa-info-circle secondary-color"
+                    class="fa fa-info-circle primary-color"
                     nifiTooltip
                     [tooltipComponentType]="TextTip"
                     tooltipInputData="Components referencing this parameter grouped by process group."></i>

@@ -20,20 +20,20 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-primary-palette-default: mat.get-theme-color(
+    $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), default)
+        secondary,
+        map.get(map.get($config, secondary), default)
     );
-    $material-theme-primary-palette-darker: mat.get-theme-color(
+    $material-theme-secondary-palette-darker: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), darker)
+        secondary,
+        map.get(map.get($config, secondary), darker)
     );
-    $material-theme-primary-palette-lighter: mat.get-theme-color(
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), lighter)
+        secondary,
+        map.get(map.get($config, secondary), lighter)
     );
     $material-theme-error-palette-default: mat.get-theme-color(
         $material-theme,
@@ -60,8 +60,8 @@
     .pill.warn {
         background-color: if(
             $is-material-dark,
-            $material-theme-primary-palette-lighter,
-            $material-theme-primary-palette-darker
+            $material-theme-secondary-palette-lighter,
+            $material-theme-secondary-palette-darker
         );
         color: $neutral-contrast;
     }

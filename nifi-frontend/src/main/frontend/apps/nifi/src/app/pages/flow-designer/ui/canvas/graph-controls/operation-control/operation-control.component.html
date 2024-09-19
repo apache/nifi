@@ -18,14 +18,14 @@
 <div class="operation-control border flex flex-col gap-y-2">
     <div class="operation-control-header pointer flex justify-between" (click)="toggleCollapsed()">
         <div class="flex items-center">
-            <div class="fa fa-hand-o-up secondary-color"></div>
+            <div class="fa fa-hand-o-up primary-color"></div>
             @if (!operationCollapsed || !shouldDockWhenCollapsed) {
                 <div class="text-sm">Operation</div>
             }
         </div>
         @if (!operationCollapsed || !shouldDockWhenCollapsed) {
             <div
-                class="fa operation-control-expansion secondary-color"
+                class="fa operation-control-expansion primary-color"
                 [class.fa-minus-square-o]="!operationCollapsed"
                 [class.fa-plus-square-o]="operationCollapsed"></div>
         }
@@ -41,7 +41,7 @@
                     <div class="flex gap-x-1">
                         <button
                             mat-icon-button
-                            class="secondary-icon-button mb-2"
+                            class="primary-icon-button mb-2"
                             type="button"
                             [disabled]="!canConfigure(selection)"
                             (click)="configure(selection)">
@@ -50,7 +50,7 @@
                         @if (supportsManagedAuthorizer()) {
                             <button
                                 mat-icon-button
-                                class="secondary-icon-button mr-2"
+                                class="primary-icon-button mr-2"
                                 type="button"
                                 [disabled]="!canManageAccess(selection)"
                                 (click)="manageAccess(selection)">
@@ -59,7 +59,7 @@
                         }
                         <button
                             mat-icon-button
-                            class="secondary-icon-button"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canEnable(selection)"
                             (click)="enable(selection)">
@@ -67,7 +67,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            class="secondary-icon-button mr-2"
+                            class="primary-icon-button mr-2"
                             type="button"
                             [disabled]="!canDisable(selection)"
                             (click)="disable(selection)">
@@ -75,7 +75,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            class="secondary-icon-button"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canStart(selection)"
                             (click)="start(selection)">
@@ -83,7 +83,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            class="secondary-icon-button"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canStop(selection)"
                             (click)="stop(selection)">
@@ -93,7 +93,7 @@
                     <div class="flex gap-x-1">
                         <button
                             mat-icon-button
-                            class="secondary-icon-button"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canCopy(selection)"
                             (click)="copy(selection)">
@@ -101,7 +101,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            class="secondary-icon-button mr-2"
+                            class="primary-icon-button mr-2"
                             type="button"
                             [disabled]="!canPaste()"
                             (click)="paste()">
@@ -109,7 +109,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            class="secondary-icon-button mr-2"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canGroup(selection)"
                             (click)="group(selection)">
@@ -117,7 +117,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            class="secondary-icon-button mr-2"
+                            class="primary-icon-button mr-2"
                             type="button"
                             [disabled]="!canColor(selection)"
                             (click)="color(selection)">
@@ -125,7 +125,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            class="secondary-icon-button"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canDelete(selection)"
                             (click)="delete(selection)">

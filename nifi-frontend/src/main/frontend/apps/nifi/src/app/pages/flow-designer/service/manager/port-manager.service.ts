@@ -375,7 +375,7 @@ export class PortManager {
         updated
             .select('text.run-status-icon')
             .attr('class', function (d: any) {
-                let clazz = 'secondary-color';
+                let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'invalid caution-color';

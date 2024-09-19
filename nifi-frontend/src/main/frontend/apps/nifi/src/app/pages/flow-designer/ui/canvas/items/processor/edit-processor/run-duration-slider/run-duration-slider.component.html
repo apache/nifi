@@ -20,14 +20,7 @@
         <div class="tertiary-color font-medium">{{ formatLabel(runDurationIndex) }}</div>
     } @else {
         <div class="pl-4 pr-7">
-            <mat-slider
-                class="secondary-slider"
-                [min]="0"
-                [max]="7"
-                [step]="1"
-                showTickMarks
-                discrete
-                [displayWith]="formatLabel">
+            <mat-slider [min]="0" [max]="7" [step]="1" showTickMarks discrete [displayWith]="formatLabel">
                 <input matSliderThumb [value]="runDurationIndex" (valueChange)="runDurationChanged($event)" />
             </mat-slider>
         </div>

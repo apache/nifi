@@ -50,15 +50,16 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-primary-palette-lighter: mat.get-theme-color(
+
+    $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), lighter)
+        secondary,
+        map.get(map.get($config, secondary), default)
     );
-    $material-theme-primary-palette-default: mat.get-theme-color(
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), default)
+        secondary,
+        map.get(map.get($config, secondary), lighter)
     );
     $material-theme-tertiary-palette-darker: mat.get-theme-color(
         $material-theme,
@@ -81,16 +82,16 @@
     .listing-table {
         table {
             th {
-                @extend .primary-contrast;
+                @extend .secondary-contrast;
                 background-color: if(
                     $is-material-dark,
-                    $material-theme-primary-palette-default,
-                    $material-theme-primary-palette-lighter
+                    $material-theme-secondary-palette-default,
+                    $material-theme-secondary-palette-lighter
                 ) !important;
                 user-select: none;
 
                 .mat-sort-header-arrow {
-                    @extend .primary-contrast;
+                    @extend .secondary-contrast;
                 }
             }
 

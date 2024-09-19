@@ -43,21 +43,17 @@
                             <a (click)="logout()">log out</a>
                         }
                     </div>
-                    <button
-                        mat-button
-                        class="secondary-button"
-                        [matMenuTriggerFor]="globalMenu"
-                        class="global-menu-icon global-menu">
+                    <button mat-button [matMenuTriggerFor]="globalMenu" class="global-menu-icon global-menu">
                         <i class="fa fa-navicon text-[32px]"></i>
                     </button>
                     <mat-menu #globalMenu="matMenu" xPosition="before">
                         <button mat-menu-item class="global-menu-item" [routerLink]="getCanvasLink()">
-                            <i class="icon icon-drop secondary-color mr-2"></i>
+                            <i class="icon icon-drop primary-color mr-2"></i>
                             Canvas
                         </button>
                         <mat-divider></mat-divider>
                         <button mat-menu-item class="global-menu-item" [routerLink]="['/summary']">
-                            <i class="fa fa-table secondary-color mr-2"></i>
+                            <i class="fa fa-table primary-color mr-2"></i>
                             Summary
                         </button>
                         <button
@@ -65,11 +61,11 @@
                             class="global-menu-item"
                             [routerLink]="['/counters']"
                             [disabled]="!user.countersPermissions.canRead">
-                            <i class="icon icon-counter secondary-color mr-2"></i>
+                            <i class="icon icon-counter primary-color mr-2"></i>
                             Counter
                         </button>
                         <button mat-menu-item class="global-menu-item" [routerLink]="['/bulletins']">
-                            <i class="fa fa-sticky-note-o secondary-color mr-2"></i>
+                            <i class="fa fa-sticky-note-o primary-color mr-2"></i>
                             Bulletin Board
                         </button>
                         <mat-divider></mat-divider>
@@ -78,7 +74,7 @@
                             class="global-menu-item"
                             [routerLink]="['/provenance']"
                             [disabled]="!user.provenancePermissions.canRead">
-                            <i class="icon icon-provenance secondary-color mr-2"></i>
+                            <i class="icon icon-provenance primary-color mr-2"></i>
                             Data Provenance
                         </button>
                         <mat-divider></mat-divider>
@@ -87,7 +83,7 @@
                             class="global-menu-item"
                             [routerLink]="['/settings']"
                             [disabled]="!user.controllerPermissions.canRead">
-                            <i class="fa fa-wrench secondary-color mr-2"></i>
+                            <i class="fa fa-wrench primary-color mr-2"></i>
                             Controller Settings
                         </button>
                         <button mat-menu-item class="global-menu-item" [routerLink]="['/parameter-contexts']">
@@ -100,16 +96,16 @@
                                 class="global-menu-item"
                                 [disabled]="!user.controllerPermissions.canRead"
                                 [routerLink]="['/cluster']">
-                                <i class="fa fa-cubes secondary-color mr-2"></i>
+                                <i class="fa fa-cubes primary-color mr-2"></i>
                                 Cluster
                             </button>
                         }
                         <button mat-menu-item class="global-menu-item" [routerLink]="['/flow-configuration-history']">
-                            <i class="fa fa-history secondary-color mr-2"></i>
+                            <i class="fa fa-history primary-color mr-2"></i>
                             Flow Configuration History
                         </button>
                         <button mat-menu-item class="global-menu-item" (click)="viewNodeStatusHistory()">
-                            <i class="fa fa-area-chart secondary-color mr-2"></i>
+                            <i class="fa fa-area-chart primary-color mr-2"></i>
                             Node Status History
                         </button>
 
@@ -131,7 +127,7 @@
                                     class="global-menu-item"
                                     [routerLink]="['/users']"
                                     [disabled]="!user.tenantsPermissions.canRead">
-                                    <i class="fa fa-users secondary-color mr-2"></i>
+                                    <i class="fa fa-users primary-color mr-2"></i>
                                     Users
                                 </button>
                                 <button
@@ -143,18 +139,18 @@
                                         !user.policiesPermissions.canRead ||
                                         !user.policiesPermissions.canWrite
                                     ">
-                                    <i class="fa fa-key secondary-color mr-2"></i>
+                                    <i class="fa fa-key primary-color mr-2"></i>
                                     Policies
                                 </button>
                                 <mat-divider></mat-divider>
                             }
                         }
                         <button mat-menu-item class="global-menu-item" [routerLink]="['/documentation']">
-                            <i class="fa fa-question-circle secondary-color mr-2"></i>
+                            <i class="fa fa-question-circle primary-color mr-2"></i>
                             Help
                         </button>
                         <button mat-menu-item class="global-menu-item" (click)="viewAbout()">
-                            <i class="fa fa-info-circle secondary-color mr-2"></i>
+                            <i class="fa fa-info-circle primary-color mr-2"></i>
                             About
                         </button>
                         <button mat-menu-item [matMenuTriggerFor]="theming">
@@ -169,7 +165,7 @@
                     <mat-menu #theming="matMenu" xPosition="before">
                         <button mat-menu-item class="global-menu-item" (click)="toggleTheme(LIGHT_THEME)">
                             @if (theme === LIGHT_THEME) {
-                                <i class="fa fa-check secondary-color mr-2"></i>
+                                <i class="fa fa-check primary-color mr-2"></i>
                             }
                             @if (theme !== LIGHT_THEME) {
                                 <i class="fa mr-2"></i>
@@ -178,7 +174,7 @@
                         </button>
                         <button mat-menu-item class="global-menu-item" (click)="toggleTheme(DARK_THEME)">
                             @if (theme === DARK_THEME) {
-                                <i class="fa fa-check secondary-color mr-2"></i>
+                                <i class="fa fa-check primary-color mr-2"></i>
                             }
                             @if (theme !== DARK_THEME) {
                                 <i class="fa mr-2"></i>
@@ -187,7 +183,7 @@
                         </button>
                         <button mat-menu-item class="global-menu-item" (click)="toggleTheme(OS_SETTING)">
                             @if (theme === OS_SETTING || theme === null) {
-                                <i class="fa fa-check secondary-color mr-2"></i>
+                                <i class="fa fa-check primary-color mr-2"></i>
                             }
                             @if (theme !== OS_SETTING && theme !== null) {
                                 <i class="fa mr-2"></i>
@@ -198,7 +194,7 @@
                     <mat-menu #animations="matMenu" xPosition="before">
                         <button mat-menu-item class="global-menu-item" (click)="toggleAnimations('false')">
                             @if (disableAnimations === 'false') {
-                                <i class="fa fa-check secondary-color mr-2"></i>
+                                <i class="fa fa-check primary-color mr-2"></i>
                             } @else {
                                 <i class="fa mr-2"></i>
                             }
@@ -206,7 +202,7 @@
                         </button>
                         <button mat-menu-item class="global-menu-item" (click)="toggleAnimations('true')">
                             @if (disableAnimations === 'true') {
-                                <i class="fa fa-check secondary-color mr-2"></i>
+                                <i class="fa fa-check primary-color mr-2"></i>
                             } @else {
                                 <i class="fa mr-2"></i>
                             }
@@ -214,7 +210,7 @@
                         </button>
                         <button mat-menu-item class="global-menu-item" (click)="toggleAnimations()">
                             @if (disableAnimations === null) {
-                                <i class="fa fa-check secondary-color mr-2"></i>
+                                <i class="fa fa-check primary-color mr-2"></i>
                             } @else {
                                 <i class="fa mr-2"></i>
                             }
@@ -228,7 +224,7 @@
     @if (backNavigation(); as navigation) {
         <div class="pl-2 py-2">
             <a [routerLink]="navigation.route">
-                <i class="fa fa-arrow-left secondary-color mr-2"></i>
+                <i class="fa fa-arrow-left primary-color mr-2"></i>
                 Back to {{ navigation.context }}
             </a>
         </div>

@@ -40,7 +40,7 @@
         </div>
         <div class="flex flex-col justify-center">
             @if (canModifyTenants(currentUser)) {
-                <button mat-icon-button class="secondary-icon-button" (click)="createClicked()">
+                <button mat-icon-button class="primary-icon-button" (click)="createClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             }
@@ -61,7 +61,7 @@
                     <th mat-header-cell *matHeaderCellDef mat-sort-header>User</th>
                     <td mat-cell *matCellDef="let item" class="items-center">
                         @if (item.tenantType === 'userGroup') {
-                            <i class="fa fa-users secondary-color mr-3"></i>
+                            <i class="fa fa-users primary-color mr-3"></i>
                         }
                         {{ item.user }}
                     </td>
@@ -93,19 +93,19 @@
                             <mat-menu #actionMenu="matMenu" xPosition="before">
                                 @if (canEditOrDelete(currentUser, item)) {
                                     <button mat-menu-item (click)="editClicked(item)">
-                                        <i class="fa fa-cog secondary-color mr-2"></i>
+                                        <i class="fa fa-cog primary-color mr-2"></i>
                                         Edit
                                     </button>
                                 }
                                 @if (canEditOrDelete(currentUser, item)) {
                                     <button mat-menu-item (click)="deleteClicked(item)">
-                                        <i class="fa fa-trash secondary-color mr-2"></i>
+                                        <i class="fa fa-trash primary-color mr-2"></i>
                                         Remove
                                     </button>
                                 }
                                 @if (hasAccessPolicies(item)) {
                                     <button mat-menu-item (click)="viewAccessPoliciesClicked(item)">
-                                        <i class="fa fa-key secondary-color mr-2"></i>
+                                        <i class="fa fa-key primary-color mr-2"></i>
                                         Manage User Policies
                                     </button>
                                 }

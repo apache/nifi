@@ -33,7 +33,7 @@
                         <div class="flex items-center gap-x-2">
                             @if (hasComments(item)) {
                                 <div
-                                    class="pointer fa fa-comment secondary-color"
+                                    class="pointer fa fa-comment primary-color"
                                     [delayClose]="false"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
@@ -49,7 +49,7 @@
                             }
                             @if (hasBulletins(item)) {
                                 <div
-                                    class="pointer fa fa-sticky-note-o secondary-color"
+                                    class="pointer fa fa-sticky-note-o primary-color"
                                     [delayClose]="false"
                                     nifiTooltip
                                     [tooltipComponentType]="BulletinsTip"
@@ -120,42 +120,42 @@
                         </button>
                         <mat-menu #actionMenu="matMenu" xPosition="before">
                             <button mat-menu-item (click)="configureClicked(item)">
-                                <i class="fa fa-cog secondary-color mr-2"></i>
+                                <i class="fa fa-cog primary-color mr-2"></i>
                                 {{ canConfigure(item) ? 'Edit' : 'View Configuration' }}
                             </button>
                             @if (canDisable(item)) {
                                 <button mat-menu-item (click)="disableClicked(item)">
-                                    <i class="icon icon-enable-false secondary-color mr-2"></i>
+                                    <i class="icon icon-enable-false primary-color mr-2"></i>
                                     Disable
                                 </button>
                             }
                             @if (canEnable(item)) {
                                 <button mat-menu-item (click)="enabledClicked(item)">
-                                    <i class="fa fa-flash secondary-color mr-2"></i>
+                                    <i class="fa fa-flash primary-color mr-2"></i>
                                     Enable
                                 </button>
                             }
                             @if (canChangeVersion(item)) {
                                 <button mat-menu-item (click)="changeVersionClicked(item)">
-                                    <i class="fa fa-exchange secondary-color mr-2"></i>
+                                    <i class="fa fa-exchange primary-color mr-2"></i>
                                     Change Version
                                 </button>
                             }
                             @if (canDelete(item)) {
                                 <button mat-menu-item (click)="deleteClicked(item)">
-                                    <i class="fa fa-trash secondary-color mr-2"></i>
+                                    <i class="fa fa-trash primary-color mr-2"></i>
                                     Delete
                                 </button>
                             }
                             @if (canViewState(item)) {
                                 <button mat-menu-item (click)="viewStateClicked(item)">
-                                    <i class="fa fa-tasks secondary-color mr-2"></i>
+                                    <i class="fa fa-tasks primary-color mr-2"></i>
                                     View State
                                 </button>
                             }
                             @if (canRead(item)) {
                                 <button mat-menu-item (click)="viewDocumentationClicked(item)">
-                                    <i class="fa fa-book secondary-color mr-2"></i>
+                                    <i class="fa fa-book primary-color mr-2"></i>
                                     View Documentation
                                 </button>
                             }

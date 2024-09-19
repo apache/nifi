@@ -58,7 +58,7 @@
                     </div>
                 </div>
                 <div class="flex flex-col justify-center">
-                    <button mat-icon-button class="secondary-icon-button" (click)="searchClicked()">
+                    <button mat-icon-button class="primary-icon-button" (click)="searchClicked()">
                         <i class="fa fa-search"></i>
                     </button>
                 </div>
@@ -146,16 +146,16 @@
                                 </button>
                                 <mat-menu #actionMenu="matMenu" xPosition="before">
                                     <button mat-menu-item (click)="viewDetailsClicked(item)">
-                                        <i class="fa fa-info-circle secondary-color mr-2"></i>
+                                        <i class="fa fa-info-circle primary-color mr-2"></i>
                                         View Details
                                     </button>
                                     <button mat-menu-item (click)="showLineageGraph(item)">
-                                        <i class="icon icon-lineage secondary-color mr-2"></i>
+                                        <i class="icon icon-lineage primary-color mr-2"></i>
                                         Show Lineage
                                     </button>
                                     @if (supportsGoTo(item)) {
                                         <button mat-menu-item (click)="goToClicked(item)">
-                                            <i class="fa fa-long-arrow-right secondary-color mr-2"></i>
+                                            <i class="fa fa-long-arrow-right primary-color mr-2"></i>
                                             Go To
                                         </button>
                                     }
@@ -176,7 +176,7 @@
         </div>
         <div class="flex justify-between mt-2">
             <div class="text-sm flex items-center gap-x-2">
-                <button mat-icon-button class="secondary-icon-button" (click)="refreshClicked()">
+                <button mat-icon-button class="primary-icon-button" (click)="refreshClicked()">
                     <i class="fa fa-refresh" [class.fa-spin]="loading"></i>
                 </button>
                 <div>Last updated:</div>
@@ -190,14 +190,13 @@
     <div [class.hidden]="!showLineage" class="lineage border h-full relative">
         <div class="lineage-controls flex">
             <div
-                class="pointer fa fa-long-arrow-left secondary-color"
+                class="pointer fa fa-long-arrow-left primary-color"
                 (click)="hideLineageGraph()"
                 title="Go back to event list"></div>
         </div>
         <div class="lineage-slider flex flex-col pl-4">
             <div class="w-80">
                 <mat-slider
-                    class="secondary-slider"
                     [min]="minEventTimestamp"
                     [max]="maxEventTimestamp"
                     [step]="eventTimestampStep"

@@ -25,7 +25,7 @@
             @if (currentUser$ | async; as currentUser) {
                 @if (currentUser.parameterContextPermissions.canWrite) {
                     <div class="flex justify-end">
-                        <button mat-icon-button class="secondary-icon-button" (click)="openNewParameterContextDialog()">
+                        <button mat-icon-button class="primary-icon-button" (click)="openNewParameterContextDialog()">
                             <i class="fa fa-plus"></i>
                         </button>
                     </div>
@@ -43,10 +43,7 @@
                 </div>
                 <div class="flex justify-between">
                     <div class="text-sm flex items-center gap-x-2">
-                        <button
-                            mat-icon-button
-                            class="secondary-icon-button"
-                            (click)="refreshParameterContextListing()">
+                        <button mat-icon-button class="primary-icon-button" (click)="refreshParameterContextListing()">
                             <i
                                 class="fa fa-refresh"
                                 [class.fa-spin]="parameterContextListingState.status === 'loading'"></i>

@@ -685,7 +685,7 @@ export class ProcessorManager {
         updated
             .select('text.run-status-icon')
             .attr('class', (d: any) => {
-                let clazz = 'secondary-color';
+                let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
                     clazz = 'validating neutral-color';

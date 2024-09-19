@@ -20,7 +20,7 @@
         <div class="font-bold">Required field</div>
         @if (!isDisabled) {
             <div>
-                <button mat-icon-button class="secondary-icon-button" type="button" (click)="newPropertyClicked()">
+                <button mat-icon-button class="primary-icon-button" type="button" (click)="newPropertyClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             </div>
@@ -40,7 +40,7 @@
                                 {{ item.descriptor.displayName }}
                             </div>
                             <i
-                                class="fa fa-info-circle secondary-color"
+                                class="fa fa-info-circle primary-color"
                                 nifiTooltip
                                 [tooltipComponentType]="PropertyTip"
                                 [tooltipInputData]="getPropertyTipData(item)"
@@ -89,7 +89,7 @@
                                         </div>
                                         @if (hasExtraWhitespace(resolvedValue)) {
                                             <div
-                                                class="fa fa-info-circle secondary-color"
+                                                class="fa fa-info-circle primary-color"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 tooltipInputData="The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional."></div>
@@ -126,32 +126,32 @@
                             <mat-menu #actionMenu="matMenu" xPosition="before">
                                 @if (canGoToParameter(item)) {
                                     <button mat-menu-item (click)="goToParameterClicked(item)">
-                                        <i class="fa fa-long-arrow-right secondary-color mr-2"></i>
+                                        <i class="fa fa-long-arrow-right primary-color mr-2"></i>
                                         Go to Parameter
                                     </button>
                                 }
                                 @if (canGoToService(item)) {
                                     <button mat-menu-item (click)="goToServiceClicked(item)">
-                                        <i class="fa fa-long-arrow-right secondary-color mr-2"></i>
+                                        <i class="fa fa-long-arrow-right primary-color mr-2"></i>
                                         Go to Service
                                     </button>
                                 }
                                 @if (!isDisabled) {
                                     @if (item.descriptor.identifiesControllerService) {
                                         <button mat-menu-item (click)="createNewControllerService(item)">
-                                            <i class="fa fa-plus secondary-color mr-2"></i>
+                                            <i class="fa fa-plus primary-color mr-2"></i>
                                             Create new service
                                         </button>
                                     }
                                     @if (canConvertToParameter(item)) {
                                         <button mat-menu-item (click)="convertToParameterClicked(item)">
-                                            <i class="fa fa-level-up secondary-color mr-2"></i>
+                                            <i class="fa fa-level-up primary-color mr-2"></i>
                                             Convert to Parameter
                                         </button>
                                     }
                                     @if (item.type == 'userDefined') {
                                         <button mat-menu-item (click)="deleteProperty(item)">
-                                            <i class="fa fa-trash secondary-color mr-2"></i>
+                                            <i class="fa fa-trash primary-color mr-2"></i>
                                             Delete
                                         </button>
                                     }

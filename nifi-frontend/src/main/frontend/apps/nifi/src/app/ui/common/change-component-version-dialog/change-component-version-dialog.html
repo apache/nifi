@@ -75,15 +75,8 @@
             </div>
         </mat-dialog-content>
         <mat-dialog-actions align="end">
-            <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
-            <button
-                type="button"
-                mat-flat-button
-                class="secondary-button"
-                (click)="apply()"
-                [disabled]="isCurrent(selected)">
-                Apply
-            </button>
+            <button mat-button mat-dialog-close>Cancel</button>
+            <button type="button" mat-flat-button (click)="apply()" [disabled]="isCurrent(selected)">Apply</button>
         </mat-dialog-actions>
     </form>
 </div>

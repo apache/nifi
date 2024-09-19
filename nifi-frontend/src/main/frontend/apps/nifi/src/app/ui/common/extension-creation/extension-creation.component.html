@@ -77,7 +77,7 @@
                                 {{ formatVersion(item) }}
                                 @if (implementsControllerService(item)) {
                                     <div
-                                        class="fa fa-list secondary-color"
+                                        class="fa fa-list primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="ControllerServiceApiTip"
                                         [tooltipInputData]="getControllerServiceApiTipData(item)"></div>
@@ -126,12 +126,8 @@
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-        <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="selectedType == null || saving"
-            (click)="createExtension(selectedType)"
-            mat-flat-button
-            class="secondary-button">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button [disabled]="selectedType == null || saving" (click)="createExtension(selectedType)" mat-flat-button>
             <span *nifiSpinner="saving">Add</span>
         </button>
     </mat-dialog-actions>

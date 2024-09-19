@@ -20,20 +20,20 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-primary-palette-default: mat.get-theme-color(
+    $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), default)
+        secondary,
+        map.get(map.get($config, secondary), default)
     );
-    $material-theme-primary-palette-darker: mat.get-theme-color(
+    $material-theme-secondary-palette-darker: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), darker)
+        secondary,
+        map.get(map.get($config, secondary), darker)
     );
-    $material-theme-primary-palette-lighter: mat.get-theme-color(
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
         $material-theme,
-        primary,
-        map.get(map.get($config, primary), lighter)
+        secondary,
+        map.get(map.get($config, secondary), lighter)
     );
     $material-theme-tertiary-palette-default: mat.get-theme-color(
         $material-theme,
@@ -65,7 +65,6 @@
         neutral,
         map.get(map.get($config, neutral), lighter)
     );
-    $primary-contrast: map.get(map.get($config, primary), contrast);
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
     $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     $success-lighter: map.get($config, success-lighter);
@@ -174,8 +173,8 @@
         g.component.selected rect.border {
             stroke: if(
                 $is-material-dark,
-                $material-theme-primary-palette-default,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-default,
+                $material-theme-secondary-palette-darker
             ) !important;
         }
 
@@ -191,8 +190,8 @@
         text.stats-info {
             fill: if(
                 $is-material-dark,
-                $material-theme-primary-palette-default,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-default,
+                $material-theme-secondary-palette-darker
             );
         }
 
@@ -207,8 +206,8 @@
         text.component-comments {
             fill: if(
                 $is-material-dark,
-                $material-theme-primary-palette-default,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-default,
+                $material-theme-secondary-palette-darker
             );
             stroke: $border-color;
         }
@@ -226,8 +225,8 @@
         rect.label-drag {
             stroke: if(
                 $is-material-dark,
-                $material-theme-primary-palette-lighter,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-lighter,
+                $material-theme-secondary-palette-darker
             );
             fill: transparent;
         }
@@ -235,8 +234,8 @@
         text.add-connect {
             fill: if(
                 $is-material-dark,
-                $material-theme-primary-palette-default,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-default,
+                $material-theme-secondary-palette-darker
             );
         }
 
@@ -266,8 +265,8 @@
         text.processor-type {
             fill: if(
                 $is-material-dark,
-                $material-theme-primary-palette-default,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-default,
+                $material-theme-secondary-palette-darker
             );
         }
 
@@ -506,8 +505,8 @@
         rect.process-group-stats-border {
             fill: if(
                 $is-material-dark,
-                $material-theme-primary-palette-default,
-                $material-theme-primary-palette-lighter
+                $material-theme-secondary-palette-default,
+                $material-theme-secondary-palette-lighter
             );
         }
 
@@ -515,8 +514,8 @@
         rect.remote-process-group-banner {
             fill: if(
                 $is-material-dark,
-                $material-theme-primary-palette-default,
-                $material-theme-primary-palette-lighter
+                $material-theme-secondary-palette-default,
+                $material-theme-secondary-palette-lighter
             );
         }
 
@@ -558,24 +557,24 @@
         text.remote-process-group-uri {
             fill: if(
                 $is-material-dark,
-                $material-theme-primary-palette-lighter,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-lighter,
+                $material-theme-secondary-palette-darker
             );
         }
 
         text.remote-process-group-transmission-secure {
             fill: if(
                 $is-material-dark,
-                $material-theme-primary-palette-lighter,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-lighter,
+                $material-theme-secondary-palette-darker
             );
         }
 
         text.remote-process-group-last-refresh {
             fill: if(
                 $is-material-dark,
-                $material-theme-primary-palette-lighter,
-                $material-theme-primary-palette-darker
+                $material-theme-secondary-palette-lighter,
+                $material-theme-secondary-palette-darker
             );
         }
     }

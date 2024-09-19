@@ -36,7 +36,7 @@
                 <mat-selection-list formControlName="userGroups" class="border">
                     @for (userGroup of filteredUserGroups; track userGroup) {
                         <mat-list-option togglePosition="before" [value]="userGroup.id">
-                            <i class="fa fa-users secondary-color mr-3"></i>{{ userGroup.component.identity }}
+                            <i class="fa fa-users primary-color mr-3"></i>{{ userGroup.component.identity }}
                         </mat-list-option>
                     }
                 </mat-selection-list>
@@ -48,12 +48,8 @@
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
-            <button mat-button class="secondary-button" mat-dialog-close>Cancel</button>
-            <button
-                mat-flat-button
-                class="secondary-button"
-                [disabled]="addTenantsForm.invalid || saving.value"
-                (click)="addClicked()">
+            <button mat-button mat-dialog-close>Cancel</button>
+            <button mat-flat-button [disabled]="addTenantsForm.invalid || saving.value" (click)="addClicked()">
                 <span *nifiSpinner="saving.value">Add</span>
             </button>
         </mat-dialog-actions>

@@ -25,7 +25,7 @@
         <ng-template #pgListing let-pg>
             <ul>
                 <li>
-                    <h4 class="secondary-color">
+                    <h4 class="primary-color">
                         <b>{{ pg.name }}</b>
                     </h4>
                     @if (parameterReferenceMap.get(pg.id); as references) {
@@ -71,7 +71,7 @@
                                 }}</a>
                                 @if (hasBulletins(reference)) {
                                     <div
-                                        class="pointer fa fa-sticky-note-o secondary-color"
+                                        class="pointer fa fa-sticky-note-o primary-color"
                                         nifiTooltip
                                         [tooltipComponentType]="BulletinsTip"
                                         [tooltipInputData]="getBulletinsTipData(reference)"></div>
@@ -107,7 +107,7 @@
                                     </a>
                                     @if (hasBulletins(service)) {
                                         <div
-                                            class="pointer fa fa-sticky-note-o secondary-color"
+                                            class="pointer fa fa-sticky-note-o primary-color"
                                             nifiTooltip
                                             [tooltipComponentType]="BulletinsTip"
                                             [tooltipInputData]="getBulletinsTipData(service)"></div>
