@@ -27,7 +27,7 @@
     <description>Apache NiFi reporting module for aggregating code coverage information</description>
 
     <properties>
-        <ant.version>1.10.14</ant.version>
+        <ant.version>1.10.15</ant.version>
         <org.apache.sshd.version>2.13.2</org.apache.sshd.version>
         <mime4j.version>0.8.11</mime4j.version>
     </properties>

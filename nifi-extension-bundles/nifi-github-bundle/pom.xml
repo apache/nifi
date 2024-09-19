@@ -26,7 +26,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <github-api.version>1.324</github-api.version>
+        <github-api.version>1.326</github-api.version>
     </properties>
 
     <modules>
