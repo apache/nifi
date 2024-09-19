@@ -588,6 +588,10 @@
         text-shadow: if($is-material-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
     }
 
+    .zero {
+        opacity: if($is-material-dark, .6, 0.4) !important;
+    }
+
     /* overriding 3rd party styles */
 
     *:not([class^='mat-']):not([class^='mdc-']):not([class^='resizable-triangle']) {
