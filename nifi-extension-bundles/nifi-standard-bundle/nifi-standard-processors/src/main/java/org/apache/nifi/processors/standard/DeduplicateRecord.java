@@ -391,7 +391,7 @@ public class DeduplicateRecord extends AbstractProcessor {
     private FilterWrapper getFilter(ProcessContext context) {
         if (useInMemoryStrategy) {
             boolean useHashSet = context.getProperty(FILTER_TYPE).getValue()
-                    .equals(context.getProperty(HASH_SET_VALUE.getValue()).getValue());
+                    .equals(HASH_SET_VALUE.getValue());
             final int filterCapacity = context.getProperty(FILTER_CAPACITY_HINT).asInteger();
             return useHashSet
                     ? new HashSetFilterWrapper(new HashSet<>(filterCapacity))
