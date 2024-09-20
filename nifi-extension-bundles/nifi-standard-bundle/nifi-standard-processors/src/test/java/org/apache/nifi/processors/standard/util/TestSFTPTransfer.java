@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import com.hierynomus.sshj.sftp.RemoteResourceSelector;
 import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.FileMode;
 import net.schmizz.sshj.sftp.PathComponents;
-import net.schmizz.sshj.sftp.RemoteResourceFilter;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.Response;
 import net.schmizz.sshj.sftp.SFTPClient;
@@ -263,7 +263,7 @@ public class TestSFTPTransfer {
         when(processContext.getProperty(eq(FileTransfer.REMOTE_PATH))).thenReturn(new MockPropertyValue("."));
 
         try (SFTPClient sftpClient = mock(SFTPClient.class)) {
-            when(sftpClient.ls(any(), ArgumentMatchers.<RemoteResourceFilter>any())).then(invocation -> {
+            when(sftpClient.ls(any(), ArgumentMatchers.<RemoteResourceSelector>any())).then(invocation -> {
                 final Map<String, String> extended = new LinkedHashMap<>();
                 final List<RemoteResourceInfo> list = new ArrayList<>();
                 list.add(new RemoteResourceInfo(
@@ -272,8 +272,8 @@ public class TestSFTPTransfer {
                 list.add(new RemoteResourceInfo(
                         new PathComponents("./", "regular.txt", "/"),
                         new FileAttributes(FileAttributes.Flag.MODE.get(), 0, 0, 0, new FileMode(FILE_MASK_REGULAR_777), 0, 0, extended)));
-                final RemoteResourceFilter filter = invocation.getArgument(1, RemoteResourceFilter.class);
-                list.forEach(filter::accept);
+                final RemoteResourceSelector selector = invocation.getArgument(1, RemoteResourceSelector.class);
+                list.forEach(selector::select);
                 return list;
             });
 

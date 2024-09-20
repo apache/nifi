@@ -26,7 +26,7 @@
     <artifactId>nifi-standard-content-viewer</artifactId>
     <packaging>war</packaging>
     <properties>
-        <spring.boot.version>3.3.3</spring.boot.version>
+        <spring.boot.version>3.3.4</spring.boot.version>
         <standard-content-viewer.ui.working.dir>${project.build.directory}/standard-content-viewer-ui-working-directory</standard-content-viewer.ui.working.dir>
     </properties>
     <dependencies>
