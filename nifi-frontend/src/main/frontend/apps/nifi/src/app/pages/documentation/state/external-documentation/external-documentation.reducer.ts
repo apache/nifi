@@ -23,64 +23,64 @@ export const initialState: ExternalDocumentationState = {
         {
             name: 'overview',
             displayName: 'Overview',
-            url: '../nifi-docs/html/overview.html'
+            url: '../nifi-api/html/overview.html'
         },
         {
             name: 'getting-started',
             displayName: 'Getting Started',
-            url: '../nifi-docs/html/getting-started.html'
+            url: '../nifi-api/html/getting-started.html'
         },
         {
             name: 'user-guide',
             displayName: 'User Guide',
-            url: '../nifi-docs/html/user-guide.html'
+            url: '../nifi-api/html/user-guide.html'
         },
         {
             name: 'expression-language-guide',
             displayName: 'Expression Language Guide',
-            url: '../nifi-docs/html/expression-language-guide.html'
+            url: '../nifi-api/html/expression-language-guide.html'
         },
         {
             name: 'record-path-guide',
             displayName: 'Record Path Guide',
-            url: '../nifi-docs/html/record-path-guide.html'
+            url: '../nifi-api/html/record-path-guide.html'
         },
         {
             name: 'admin-guide',
             displayName: 'Admin Guide',
-            url: '../nifi-docs/html/administration-guide.html'
+            url: '../nifi-api/html/administration-guide.html'
         },
         {
             name: 'toolkit-guide',
             displayName: 'Toolkit Guide',
-            url: '../nifi-docs/html/toolkit-guide.html'
+            url: '../nifi-api/html/toolkit-guide.html'
         },
         {
             name: 'walkthroughs',
             displayName: 'Walkthroughs',
-            url: '../nifi-docs/html/walkthroughs.html'
+            url: '../nifi-api/html/walkthroughs.html'
         }
     ],
     developerDocumentation: [
         {
             name: 'rest-api',
             displayName: 'REST API',
-            url: '../nifi-docs/rest-api/index.html'
+            url: '../nifi-api/rest-api/index.html'
         },
         {
             name: 'developer-guide',
             displayName: 'Developer Guide',
-            url: '../nifi-docs/html/developer-guide.html'
+            url: '../nifi-api/html/developer-guide.html'
         },
         {
             name: 'python-developer-guide',
             displayName: 'Python Developer Guide',
-            url: '../nifi-docs/html/python-developer-guide.html'
+            url: '../nifi-api/html/python-developer-guide.html'
         },
         {
             name: 'apache-nifi-in-depth',
             displayName: 'Apache NiFi In Depth',
-            url: '../nifi-docs/html/nifi-in-depth.html'
+            url: '../nifi-api/html/nifi-in-depth.html'
         }
     ]
 };

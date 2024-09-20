@@ -19,7 +19,6 @@ package org.apache.nifi.nar;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
-import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,18 +119,6 @@ public class StandardNarLoader implements NarLoader {
                 discoverPythonExtensions(loadedBundles);
             }
 
-            // Call the DocGenerator for the classes that were loaded from each Bundle
-            for (final Bundle bundle : loadedBundles) {
-                final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
-                final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getTypes(bundleCoordinate);
-                if (extensionDefinitions.isEmpty()) {
-                    LOGGER.debug("No documentation to generate for {} because no extensions were found", bundleCoordinate);
-                } else {
-                    LOGGER.debug("Generating documentation for {} extensions in {}", extensionDefinitions.size(), bundleCoordinate);
-                    DocGenerator.documentConfigurableComponent(extensionDefinitions, docsWorkingDir, extensionManager);
-                }
-            }
-
             if (extensionUiLoader != null) {
                 LOGGER.debug("Loading custom UI extensions");
                 extensionUiLoader.loadExtensionUis(loadedBundles);
@@ -175,8 +162,6 @@ public class StandardNarLoader implements NarLoader {
         } else {
             LOGGER.debug("NAR working directory does not exist at [{}]", workingDirectory.getAbsolutePath());
         }
-
-        DocGenerator.removeBundleDocumentation(docsWorkingDir, bundleCoordinate);
     }
 
     private void discoverPythonExtensions(final Set<Bundle> loadedBundles) {
