@@ -82,5 +82,29 @@
                 color: mat.get-theme-color($material-theme, surface);
             }
         }
+
+        .flow-analysis-notifications.warn {
+            background-color: if(
+                $is-material-dark,
+                $material-theme-secondary-palette-lighter,
+                $material-theme-secondary-palette-darker
+            );
+
+            .fa {
+                color: mat.get-theme-color($material-theme, surface);
+            }
+        }
+
+        .flow-analysis-notifications.enforce {
+            background-color: if(
+                    $is-material-dark,
+                    $material-theme-error-palette-default,
+                    $material-theme-error-palette-darker
+            );
+
+            .fa {
+                color: mat.get-theme-color($material-theme, surface);
+            }
+        }
     }
 }

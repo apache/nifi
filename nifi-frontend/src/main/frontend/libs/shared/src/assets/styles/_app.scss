@@ -38,7 +38,6 @@
     }
 
     .tooltip {
-        max-height: 90vh;
         max-width: 500px;
         padding: 10px;
         border-radius: 2px;
@@ -551,7 +550,7 @@
     }
 
     .zero {
-        opacity: if($is-material-dark, .6, 0.4) !important;
+        opacity: if($is-material-dark, 0.6, 0.4) !important;
     }
 
     /* overriding 3rd party styles */
