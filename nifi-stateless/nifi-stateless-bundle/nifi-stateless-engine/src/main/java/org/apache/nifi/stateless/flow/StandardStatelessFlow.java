@@ -230,7 +230,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     @Override
-    public void initialize() {
+    public void initialize(final StatelessDataflowInitializationContext initializationContext) {
         if (initialized) {
             logger.debug("{} initialize() was called, but dataflow has already been initialized. Returning without doing anything.", this);
             return;
@@ -248,9 +248,14 @@ public class StandardStatelessFlow implements StatelessDataflow {
         // before proceeding any further.
         try {
             final long serviceEnableStart = System.currentTimeMillis();
-            enableControllerServices(rootGroup);
 
-            waitForServicesEnabled(rootGroup);
+            if (initializationContext.isEnableControllerServices()) {
+                enableControllerServices(rootGroup);
+                waitForServicesEnabled(rootGroup);
+            } else {
+                logger.debug("Skipping Controller Service enablement because initializationContext.isEnableControllerServices() returned false");
+            }
+
             final long serviceEnableMillis = System.currentTimeMillis() - serviceEnableStart;
 
             // Perform validation again so that any processors that reference controller services that were just
@@ -474,9 +479,14 @@ public class StandardStatelessFlow implements StatelessDataflow {
             try {
                 future.get(this.componentEnableTimeoutMillis, TimeUnit.MILLISECONDS);
             } catch (final Exception e) {
-                final String validationErrors = performValidation().toString();
-                throw new IllegalStateException("Processor " + processor + " has not fully enabled. Current Validation Status is "
-                    + processor.getValidationStatus() + ". All validation errors: " + validationErrors);
+                final StatelessDataflowValidation validation = performValidation();
+                if (validation.isValid()) {
+                    throw new IllegalStateException("Processor " + processor + " is valid but has not fully started", e);
+                } else {
+                    final String validationErrors = performValidation().toString();
+                    throw new IllegalStateException("Processor " + processor + " has not fully started. Current Validation Status is "
+                                                    + processor.getValidationStatus() + ". All validation errors: " + validationErrors);
+                }
             }
 
             final long millis = System.currentTimeMillis() - start;

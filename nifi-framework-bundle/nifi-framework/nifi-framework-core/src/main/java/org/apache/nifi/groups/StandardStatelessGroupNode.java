@@ -56,6 +56,7 @@ import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.engine.StatelessProcessContextFactory;
 import org.apache.nifi.stateless.flow.StandardDataflowDefinition;
 import org.apache.nifi.stateless.flow.StandardStatelessFlow;
+import org.apache.nifi.stateless.flow.StatelessDataflowInitializationContext;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.util.FormatUtils;
@@ -355,7 +356,20 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
             lifecycleStateManager,
             Duration.of(10, ChronoUnit.SECONDS));
 
-        dataflow.initialize();
+        // We don't want to enable Controller Services because we want to use the actual Controller Services that exist within the
+        // Standard NiFi instance, not the ephemeral ones that created during the initialization of the Stateless Group.
+        // This may not matter for Controller Services such as Record Readers and Writers, but it can matter for other types
+        // of Controller Services, such as connection pooling services. We don't want to create a new instance of a Connection Pool
+        // for each Concurrent Task in a Stateless Group, for example.
+        // Since we will not be using the ephemeral Controller Services, we also do not want to enable them.
+        final StatelessDataflowInitializationContext initializationContext = new StatelessDataflowInitializationContext() {
+            @Override
+            public boolean isEnableControllerServices() {
+                return false;
+            }
+        };
+
+        dataflow.initialize(initializationContext);
 
         return dataflow;
     }

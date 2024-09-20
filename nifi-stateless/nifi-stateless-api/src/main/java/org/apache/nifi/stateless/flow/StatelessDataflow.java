@@ -31,7 +31,7 @@ public interface StatelessDataflow {
      * Triggers the dataflow to run, returning a DataflowTrigger that can be used to wait for the result. Uses the {@link DataflowTriggerContext#IMPLICIT_CONTEXT}.
      * @return a DataflowTrigger that can be used to wait for the result
      *
-     * @throws IllegalStateException if called before {@link #initialize()} is called.
+     * @throws IllegalStateException if called before {@link #initialize(StatelessDataflowInitializationContext)} is called.
      */
     default DataflowTrigger trigger() {
         return trigger(DataflowTriggerContext.IMPLICIT_CONTEXT);
@@ -43,7 +43,7 @@ public interface StatelessDataflow {
      * @param triggerContext the trigger context to use
      * @return a DataflowTrigger that can be used to wait for the result
      *
-     * @throws IllegalStateException if called before {@link #initialize()} is called.
+     * @throws IllegalStateException if called before {@link #initialize(StatelessDataflowInitializationContext)} is called.
      */
     DataflowTrigger trigger(DataflowTriggerContext triggerContext);
 
@@ -66,7 +66,7 @@ public interface StatelessDataflow {
      *     This method MUST be called prior to calling {@link #trigger()}.
      * </p>
      */
-    void initialize();
+    void initialize(StatelessDataflowInitializationContext initializationContext);
 
     default void shutdown() {
         shutdown(true, false);

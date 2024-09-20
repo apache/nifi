@@ -33,6 +33,7 @@ import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.StatelessDataflowInitializationContext;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -232,7 +233,12 @@ public class StatelessSystemIT {
 
         final StatelessBootstrap bootstrap = StatelessBootstrap.bootstrap(getEngineConfiguration());
         final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition);
-        dataflow.initialize();
+        dataflow.initialize(new StatelessDataflowInitializationContext() {
+            @Override
+            public boolean isEnableControllerServices() {
+                return true;
+            }
+        });
 
         createdFlows.add(dataflow);
         return dataflow;
