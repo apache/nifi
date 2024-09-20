@@ -31,13 +31,14 @@
                         <exclude>src/test/resources/excel/collegeScorecard.xlsx</exclude>
                         <exclude>src/test/resources/excel/dataformatting.xlsx</exclude>
                         <exclude>src/test/resources/excel/dataWithSharedFormula.xlsx</exclude>
-                        <exclude>src/test/resources/excel/dates.xlsx</exclude>
                         <exclude>src/test/resources/excel/notExcel.txt</exclude>
                         <exclude>src/test/resources/excel/numbers.xlsx</exclude>
                         <exclude>src/test/resources/excel/olderFormat.xls</exclude>
                         <exclude>src/test/resources/excel/sheetsWithEmptySheet.xlsx</exclude>
                         <exclude>src/test/resources/excel/simpleDataFormatting.xlsx</exclude>
                         <exclude>src/test/resources/excel/twoSheets.xlsx</exclude>
+                        <exclude>src/test/resources/excel/dateTimeTimestamp.xlsx</exclude>
+                        <exclude>src/test/resources/dateTimeTimestampSchema.avsc</exclude>
                     </excludes>
                 </configuration>
             </plugin>

@@ -47,7 +47,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -141,7 +140,7 @@ public class TestExcelRecordReader {
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(DATA_FORMATTING_FILE), logger);
-        List<Record> records = getRecords(recordReader, false, false);
+        List<Record> records = getRecords(recordReader, false);
 
         assertEquals(9, records.size());
     }
@@ -149,7 +148,7 @@ public class TestExcelRecordReader {
     private RecordSchema getDataFormattingSchema() {
         final List<RecordField> fields = Arrays.asList(
                 new RecordField("Numbers", RecordFieldType.DOUBLE.getDataType()),
-                new RecordField("Timestamps", RecordFieldType.DATE.getDataType()),
+                new RecordField("Timestamps", RecordFieldType.STRING.getDataType()),
                 new RecordField("Money", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("Flags", RecordFieldType.BOOLEAN.getDataType()));
 
@@ -165,10 +164,10 @@ public class TestExcelRecordReader {
         return resourceStream;
     }
 
-    private List<Record> getRecords(ExcelRecordReader recordReader, boolean coerceTypes, boolean dropUnknownFields) throws MalformedRecordException {
+    private List<Record> getRecords(ExcelRecordReader recordReader, boolean dropUnknownFields) throws MalformedRecordException {
         Record record;
         List<Record> records = new ArrayList<>();
-        while ((record = recordReader.nextRecord(coerceTypes, dropUnknownFields)) != null) {
+        while ((record = recordReader.nextRecord(false, dropUnknownFields)) != null) {
             records.add(record);
         }
 
@@ -180,14 +179,14 @@ public class TestExcelRecordReader {
     public void testDropUnknownFields(boolean dropUnknownFields) throws MalformedRecordException {
         final List<RecordField> fields = Arrays.asList(
                 new RecordField("Numbers", RecordFieldType.DOUBLE.getDataType()),
-                new RecordField("Timestamps", RecordFieldType.DATE.getDataType()));
+                new RecordField("Timestamps", RecordFieldType.STRING.getDataType()));
 
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(new SimpleRecordSchema(fields))
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(DATA_FORMATTING_FILE), logger);
-        List<Record> records = getRecords(recordReader, false, dropUnknownFields);
+        List<Record> records = getRecords(recordReader, dropUnknownFields);
 
         assertEquals(9, records.size());
         if (dropUnknownFields) {
@@ -208,28 +207,9 @@ public class TestExcelRecordReader {
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(DATA_FORMATTING_FILE), logger);
-        List<Record> records = getRecords(recordReader, false, false);
+        List<Record> records = getRecords(recordReader, false);
 
         assertEquals(4, records.size());
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void tesCoerceTypes(boolean coerceTypes) throws MalformedRecordException {
-        String fieldName = "dates";
-        RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(new RecordField(fieldName, RecordFieldType.TIMESTAMP.getDataType())));
-        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
-                .withDateFormat("MM/dd/yyyy")
-                .withTimeFormat(RecordFieldType.TIME.getDefaultFormat())
-                .withTimestampFormat(RecordFieldType.TIMESTAMP.getDefaultFormat())
-                .withSchema(schema)
-                .build();
-
-        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream("dates.xlsx"), logger);
-        List<Record> records = getRecords(recordReader, coerceTypes, false);
-
-        assertEquals(6, records.size());
-        records.forEach(record -> assertInstanceOf(Timestamp.class, record.getValue(fieldName)));
     }
 
     @Test
@@ -243,7 +223,7 @@ public class TestExcelRecordReader {
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger);
-        List<Record> records = getRecords(recordReader, false, false);
+        List<Record> records = getRecords(recordReader, false);
 
         assertEquals(3, records.size());
     }
@@ -279,7 +259,7 @@ public class TestExcelRecordReader {
                 .build();
 
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger);
-        List<Record> records = getRecords(recordReader, false, false);
+        List<Record> records = getRecords(recordReader, false);
 
         assertEquals(7, records.size());
     }
@@ -295,7 +275,7 @@ public class TestExcelRecordReader {
 
         InputStream inputStream = new ByteArrayInputStream(PASSWORD_PROTECTED.toByteArray());
         ExcelRecordReader recordReader = new ExcelRecordReader(configuration, inputStream, logger);
-        List<Record> records = getRecords(recordReader, false, false);
+        List<Record> records = getRecords(recordReader, false);
 
         assertEquals(DATA.length, records.size());
     }
