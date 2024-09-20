@@ -17,13 +17,17 @@
 
 package org.apache.nifi.python.processor;
 
+import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import py4j.Py4JNetworkException;
 
 import java.util.Map;
@@ -31,6 +35,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
+@SupportsBatching(defaultDuration = DefaultRunDuration.NO_BATCHING)
+@DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class FlowFileSourceProxy extends PythonProcessorProxy<FlowFileSource> {
 
     protected static final Relationship REL_SUCCESS = new Relationship.Builder()
