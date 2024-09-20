@@ -141,11 +141,12 @@
                     [tooltipComponentType]="BulletinsTip"
                     [tooltipInputData]="getBulletins()"
                     [position]="getBulletinTooltipPosition()"
+                    [ngClass]="getMostSevereBulletinLevel()"
                     class="h-8 w-8 controller-bulletins border-l has-bulletins">
                     <i class="fa fa-sticky-note-o"></i>
                 </button>
             } @else {
-                <button class="h-8 w-8 controller-bulletins">
+                <button class="h-8 w-8 controller-bulletins border-l">
                     <i class="fa fa-sticky-note-o"></i>
                 </button>
             }
