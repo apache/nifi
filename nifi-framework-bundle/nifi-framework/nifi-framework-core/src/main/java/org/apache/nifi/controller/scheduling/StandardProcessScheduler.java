@@ -62,6 +62,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -438,18 +439,32 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                 // Start each Processor. This won't trigger the Processor to run because the Execution Engine will be Stateless.
                 // However, it will transition its scheduled state to the appropriate value.
+                LOG.debug("All Controller Services for {} have been enabled; starting Processors and ports.", groupNode);
                 groupNode.getProcessGroup().findAllProcessors().forEach(proc -> startProcessor(proc, false));
                 groupNode.getProcessGroup().findAllInputPorts().forEach(port -> startConnectable(port));
                 groupNode.getProcessGroup().findAllOutputPorts().forEach(port -> startConnectable(port));
-                groupNode.getProcessGroup().findAllControllerServices().forEach(service -> enableControllerService(service));
 
                 getSchedulingAgent(groupNode).schedule(groupNode, lifecycleState);
                 future.complete(null);
             }
         };
 
-        LOG.info("Starting {}", groupNode);
-        groupNode.start(componentMonitoringThreadPool, callback, lifecycleState);
+        // Enable all of the Controller Services. Once they have all become enabled, we will start the Process Group
+        // We have to enable the Controller Services first in case any of the Processors use a Controller Service in its
+        // @OnScheduled method. While a new copy of the Processor is created for each Concurrent Task in the stateless group,
+        // we do not use a separate copy of the Controller Service, because doing so would cause problems for services that
+        // perform functions such as caching or connection pooling.
+        final List<CompletableFuture<?>> serviceStartFutures = new ArrayList<>();
+        for (final ControllerServiceNode serviceNode : groupNode.getProcessGroup().findAllControllerServices()) {
+            serviceStartFutures.add(enableControllerService(serviceNode));
+        }
+
+        final CompletableFuture<?> allServiceStartFutures = CompletableFuture.allOf(serviceStartFutures.toArray(new CompletableFuture<?>[0]));
+        allServiceStartFutures.thenRun(() -> {
+            LOG.info("Starting {}", groupNode);
+            groupNode.start(componentMonitoringThreadPool, callback, lifecycleState);
+        });
+
         return future;
     }
 
