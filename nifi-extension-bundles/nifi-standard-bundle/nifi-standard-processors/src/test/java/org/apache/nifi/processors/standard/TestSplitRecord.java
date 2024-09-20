@@ -27,33 +27,42 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSplitRecord {
 
-    @Test
-    public void testIndividualRecordPerSplit() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
+    private final MockRecordParser readerService = new MockRecordParser();
+    private final MockRecordWriter writerService = new MockRecordWriter("header", false);
 
-        final TestRunner runner = TestRunners.newTestRunner(SplitRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
+    private final TestRunner runner = TestRunners.newTestRunner(SplitRecord.class);
 
-        runner.setProperty(SplitRecord.RECORD_READER, "reader");
-        runner.setProperty(SplitRecord.RECORD_WRITER, "writer");
-        runner.setProperty(SplitRecord.RECORDS_PER_SPLIT, "1");
-
+    @BeforeEach
+    void setUp() throws InitializationException {
         readerService.addSchemaField("name", RecordFieldType.STRING);
         readerService.addSchemaField("age", RecordFieldType.INT);
+
+        runner.addControllerService("defaultReader", readerService);
+        runner.enableControllerService(readerService);
+        runner.setProperty(SplitRecord.RECORD_READER, "defaultReader");
+
+        runner.addControllerService("defaultWriter", writerService);
+        runner.enableControllerService(writerService);
+        runner.setProperty(SplitRecord.RECORD_WRITER, "defaultWriter");
+
+        runner.setProperty(SplitRecord.RECORDS_PER_SPLIT, "3");
+    }
+
+    @Test
+    public void testIndividualRecordPerSplit() {
+        runner.setProperty(SplitRecord.RECORDS_PER_SPLIT, "1");
 
         readerService.addRecord("John Doe", 48);
         readerService.addRecord("Jane Doe", 47);
@@ -93,22 +102,8 @@ public class TestSplitRecord {
     }
 
     @Test
-    public void testMultipleRecordsPerSplit() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
-
-        final TestRunner runner = TestRunners.newTestRunner(SplitRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
-
-        runner.setProperty(SplitRecord.RECORD_READER, "reader");
-        runner.setProperty(SplitRecord.RECORD_WRITER, "writer");
+    public void testMultipleRecordsPerSplit() {
         runner.setProperty(SplitRecord.RECORDS_PER_SPLIT, "2");
-
-        readerService.addSchemaField("name", RecordFieldType.STRING);
-        readerService.addSchemaField("age", RecordFieldType.INT);
 
         readerService.addRecord("John Doe", 48);
         readerService.addRecord("Jane Doe", 47);
@@ -130,22 +125,8 @@ public class TestSplitRecord {
     }
 
     @Test
-    public void testAllSplitsOneDesintation() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
-
-        final TestRunner runner = TestRunners.newTestRunner(SplitRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
-
-        runner.setProperty(SplitRecord.RECORD_READER, "reader");
-        runner.setProperty(SplitRecord.RECORD_WRITER, "writer");
+    public void testAllSplitsOneDestination() {
         runner.setProperty(SplitRecord.RECORDS_PER_SPLIT, "3");
-
-        readerService.addSchemaField("name", RecordFieldType.STRING);
-        readerService.addSchemaField("age", RecordFieldType.INT);
 
         readerService.addRecord("John Doe", 48);
         readerService.addRecord("Jane Doe", 47);
@@ -165,35 +146,57 @@ public class TestSplitRecord {
         out.assertContentEquals("header\nJohn Doe,48\nJane Doe,47\nJimmy Doe,14\n");
     }
 
-
     @Test
-    public void testReadFailure() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser(2);
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
-
-        final TestRunner runner = TestRunners.newTestRunner(SplitRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
-
-        runner.setProperty(SplitRecord.RECORD_READER, "reader");
-        runner.setProperty(SplitRecord.RECORD_WRITER, "writer");
+    public void testMaximumSplitsPerInvocation() {
         runner.setProperty(SplitRecord.RECORDS_PER_SPLIT, "1");
-
-        readerService.addSchemaField("name", RecordFieldType.STRING);
-        readerService.addSchemaField("age", RecordFieldType.INT);
+        runner.setProperty(SplitRecord.MAXIMUM_SPLITS_PER_INVOCATION, "2");
 
         readerService.addRecord("John Doe", 48);
         readerService.addRecord("Jane Doe", 47);
         readerService.addRecord("Jimmy Doe", 14);
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(SplitRecord.REL_SPLITS, 2);
+        runner.assertTransferCount(SplitRecord.REL_ORIGINAL, 0);
+        runner.assertQueueNotEmpty();
+
+        runner.run();
+
+        runner.assertTransferCount(SplitRecord.REL_SPLITS, 3);
+        final List<MockFlowFile> fragmentFlowFiles = runner.getFlowFilesForRelationship(SplitRecord.REL_SPLITS);
+        final String expectedFragmentId = fragmentFlowFiles.getFirst().getAttribute(SplitRecord.FRAGMENT_ID);
+        assertEquals("0", fragmentFlowFiles.get(0).getAttribute(SplitRecord.FRAGMENT_INDEX));
+        assertEquals("1", fragmentFlowFiles.get(1).getAttribute(SplitRecord.FRAGMENT_INDEX));
+        assertEquals("2", fragmentFlowFiles.get(2).getAttribute(SplitRecord.FRAGMENT_INDEX));
+        runner.assertAllFlowFiles(SplitRecord.REL_SPLITS, flowFile -> {
+            assertEquals(expectedFragmentId, flowFile.getAttribute(SplitRecord.FRAGMENT_ID));
+            assertEquals("3", flowFile.getAttribute(SplitRecord.FRAGMENT_COUNT));
+        });
+        runner.assertTransferCount(SplitRecord.REL_ORIGINAL, 1);
+        runner.assertQueueEmpty();
+    }
+
+    @Test
+    public void testReadFailure() throws InitializationException {
+        final MockRecordParser failingReaderService = new MockRecordParser(2);
+        runner.addControllerService("failingReader", failingReaderService);
+        runner.enableControllerService(failingReaderService);
+        runner.setProperty(SplitRecord.RECORD_READER, "failingReader");
+
+        failingReaderService.addSchemaField("name", RecordFieldType.STRING);
+        failingReaderService.addSchemaField("age", RecordFieldType.INT);
+        failingReaderService.addRecord("John Doe", 48);
+        failingReaderService.addRecord("Jane Doe", 47);
+        failingReaderService.addRecord("Jimmy Doe", 14);
 
         final MockFlowFile original = runner.enqueue("");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(SplitRecord.REL_FAILURE, 1);
         final MockFlowFile failed = runner.getFlowFilesForRelationship(SplitRecord.REL_FAILURE).get(0);
-        assertTrue(original == failed);
+        assertSame(original, failed);
 
         final MockComponentLog logger = runner.getLogger();
         final Optional<LogMessage> logMessage = logger.getErrorMessages().stream()
@@ -201,5 +204,4 @@ public class TestSplitRecord {
                 .findFirst();
         assertTrue((logMessage.isPresent()));
     }
-
 }
