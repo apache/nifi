@@ -45,7 +45,7 @@ export class SeeAlsoComponent {
     }
 
     formatExtensionName(extensionType: string): string {
-        return this.nifiCommon.substringAfterLast(extensionType, '.');
+        return this.nifiCommon.getComponentTypeLabel(extensionType);
     }
 
     protected readonly TextTip = TextTip;

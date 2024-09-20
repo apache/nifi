@@ -188,7 +188,7 @@ export class Documentation implements OnInit, AfterViewInit {
     }
 
     getExtensionName(extensionType: string): string {
-        return this.nifiCommon.substringAfterLast(extensionType, '.');
+        return this.nifiCommon.getComponentTypeLabel(extensionType);
     }
 
     protected readonly ComponentType = ComponentType;

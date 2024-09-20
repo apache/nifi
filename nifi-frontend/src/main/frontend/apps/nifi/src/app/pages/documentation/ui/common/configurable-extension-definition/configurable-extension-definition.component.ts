@@ -45,7 +45,7 @@ export class ConfigurableExtensionDefinitionComponent {
     constructor(private nifiCommon: NiFiCommon) {}
 
     formatExtensionName(extensionType: string): string {
-        return this.nifiCommon.substringAfterLast(extensionType, '.');
+        return this.nifiCommon.getComponentTypeLabel(extensionType);
     }
 
     formatStatefulScope(stateful: Stateful): string {

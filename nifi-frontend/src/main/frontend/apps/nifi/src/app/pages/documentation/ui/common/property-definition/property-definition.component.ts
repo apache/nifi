@@ -95,11 +95,11 @@ export class PropertyDefinitionComponent {
     }
 
     formatServiceApi(serviceType: DefinedType): string {
-        return this.nifiCommon.substringAfterLast(serviceType.type, '.');
+        return this.nifiCommon.getComponentTypeLabel(serviceType.type);
     }
 
     formatImplementationName(service: DocumentedType): string {
-        return this.nifiCommon.substringAfterLast(service.type, '.');
+        return this.nifiCommon.getComponentTypeLabel(service.type);
     }
 
     sortDependencies(dependencies: PropertyDependency[]): PropertyDependency[] {

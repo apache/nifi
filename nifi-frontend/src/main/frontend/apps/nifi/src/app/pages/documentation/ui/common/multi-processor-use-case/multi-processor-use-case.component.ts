@@ -63,7 +63,7 @@ export class MultiProcessorUseCaseComponent {
     }
 
     formatProcessorName(processorType: string): string {
-        return this.nifiCommon.substringAfterLast(processorType, '.');
+        return this.nifiCommon.getComponentTypeLabel(processorType);
     }
 
     protected readonly ComponentType = ComponentType;
