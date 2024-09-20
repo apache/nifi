@@ -125,7 +125,7 @@ export class Prioritizers implements ControlValueAccessor {
     }
 
     getPrioritizerLabel(entity: DocumentedType): string {
-        return this.nifiCommon.substringAfterLast(entity.type, '.');
+        return this.nifiCommon.getComponentTypeLabel(entity.type);
     }
 
     hasDescription(entity: DocumentedType): boolean {
