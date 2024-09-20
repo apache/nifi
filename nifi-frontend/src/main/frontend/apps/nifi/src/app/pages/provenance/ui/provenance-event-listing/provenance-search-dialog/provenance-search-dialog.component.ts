@@ -242,7 +242,7 @@ export class ProvenanceSearchDialog extends CloseOnEscapeDialog {
         const searchableFields: SearchableField[] = this.request.options.searchableFields;
         searchableFields.forEach((searchableField) => {
             // @ts-ignore
-            const searchableFieldForm: FormGroup = this.provenanceOptionsForm.get(searchableField.id);
+            const searchableFieldForm: FormGroup = this.provenanceOptionsForm.get([searchableField.id]);
             if (searchableFieldForm) {
                 const searchableFieldValue: string = searchableFieldForm.get('value')?.value;
                 if (searchableFieldValue) {
