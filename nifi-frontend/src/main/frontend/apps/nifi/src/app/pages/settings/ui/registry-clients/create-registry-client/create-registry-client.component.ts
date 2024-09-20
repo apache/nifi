@@ -80,7 +80,7 @@ export class CreateRegistryClient extends CloseOnEscapeDialog {
     }
 
     formatType(option: DocumentedType): string {
-        return this.nifiCommon.substringAfterLast(option.type, '.');
+        return this.nifiCommon.getComponentTypeLabel(option.type);
     }
 
     createRegistryClientClicked() {

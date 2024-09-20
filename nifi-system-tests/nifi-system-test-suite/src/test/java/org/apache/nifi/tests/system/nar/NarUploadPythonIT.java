@@ -47,7 +47,7 @@ public class NarUploadPythonIT extends NiFiSystemIT {
     private static final Logger logger = LoggerFactory.getLogger(NarUploadPythonIT.class);
 
     private static final String PYTHON_TEXT_EXTENSIONS_NAR_ID = "nifi-python-test-extensions-nar";
-    private static final String PYTHON_WRITE_BECH_32_CHARSET = "python.WriteBech32Charset";
+    private static final String PYTHON_WRITE_BECH_32_CHARSET = "WriteBech32Charset";
     private static final String EXPECTED_FLOW_FILE_CONTENT = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 
     @Override
