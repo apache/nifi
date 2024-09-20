@@ -1187,6 +1187,7 @@ export class CanvasUtils {
      */
     public canvasTooltip<C>(type: Type<C>, selection: any, tooltipData: any): void {
         let closeTimer = -1;
+        let openTimer = -1;
         const overlay = this.overlay;
         let overlayRef: OverlayRef | null = null;
 
@@ -1212,31 +1213,37 @@ export class CanvasUtils {
                         ])
                         .withPush(true);
 
-                    overlayRef = overlay.create({ positionStrategy });
+                    openTimer = window.setTimeout(() => {
+                        overlayRef = overlay.create({ positionStrategy });
+
+                        const tooltipReference = overlayRef.attach(new ComponentPortal(type));
+                        tooltipReference.setInput('data', tooltipData);
+
+                        // register mouse events
+                        tooltipReference.location.nativeElement.addEventListener('mouseenter', () => {
+                            if (closeTimer > 0) {
+                                window.clearTimeout(closeTimer);
+                                closeTimer = -1;
+                            }
+                        });
+                        tooltipReference.location.nativeElement.addEventListener('mouseleave', () => {
+                            overlayRef?.detach();
+                            overlayRef?.dispose();
+                            overlayRef = null;
+                        });
+                    }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
                 }
-
-                const tooltipReference = overlayRef.attach(new ComponentPortal(type));
-                tooltipReference.setInput('data', tooltipData);
-
-                // register mouse events
-                tooltipReference.location.nativeElement.addEventListener('mouseenter', () => {
-                    if (closeTimer > 0) {
-                        window.clearTimeout(closeTimer);
-                        closeTimer = -1;
-                    }
-                });
-                tooltipReference.location.nativeElement.addEventListener('mouseleave', () => {
-                    overlayRef?.detach();
-                    overlayRef?.dispose();
-                    overlayRef = null;
-                });
             })
             .on('mouseleave', function () {
+                if (openTimer > 0) {
+                    window.clearTimeout(openTimer);
+                    openTimer = -1;
+                }
                 closeTimer = window.setTimeout(() => {
                     overlayRef?.detach();
                     overlayRef?.dispose();
                     overlayRef = null;
-                }, 400);
+                }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
             });
     }
 
