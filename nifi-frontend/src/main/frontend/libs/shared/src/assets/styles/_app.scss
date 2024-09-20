@@ -300,44 +300,6 @@
     .mat-mdc-menu-content .mat-mdc-menu-item {
         min-height: 2.25rem;
     }
-
-    ngx-extended-pdf-viewer {
-        width: 100vw;
-
-        #sidebarContent {
-            width: calc(100% + 16px) !important;
-        }
-
-        #toolbarContainer {
-            .toolbarButton {
-                svg {
-                    margin-left: 4px !important;
-                }
-            }
-        }
-
-        .highlight {
-            animation: pdf-viewer-search-match-animation 1s linear 0s 1 normal forwards;
-        }
-    }
-
-    @keyframes pdf-viewer-search-match-animation {
-        from {
-            opacity: 0.8;
-        }
-        to {
-            opacity: 0.16;
-        }
-        0% {
-            box-shadow: none;
-        }
-        50% {
-            box-shadow: 0 0 0 6px rgba(0, 0, 0, 0.25);
-        }
-        100% {
-            box-shadow: none;
-        }
-    }
 }
 
 @mixin generate-material-theme($material-theme, $config) {
@@ -799,17 +761,14 @@
 
     .cdk-drag-selected {
         .cdk-drag {
-            // invert the contrast colors since the surface is dark in light mode and light in dark mode
             color: $primary-contrast;
         }
 
         span.grip {
-            // invert the contrast colors since the surface is dark in light mode and light in dark mode
             color: $primary-contrast;
         }
 
         .fa {
-            // invert the contrast colors since the surface is dark in light mode and light in dark mode
             color: $primary-contrast;
         }
     }
@@ -820,11 +779,5 @@
 
     ngx-skeleton-loader .skeleton-loader {
         background: $border-color;
-    }
-
-    ngx-extended-pdf-viewer {
-        .highlight {
-            background: $material-theme-tertiary-palette-darker;
-        }
     }
 }

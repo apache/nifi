@@ -59,11 +59,11 @@
         "@angular/cli": "~18.2.0",
         "@angular/compiler-cli": "18.2.4",
         "@happy-dom/jest-environment": "^14.10.1",
-        "@nx/angular": "19.7.3",
-        "@nx/eslint": "19.7.3",
-        "@nx/eslint-plugin": "19.7.3",
-        "@nx/jest": "19.7.3",
-        "@nx/workspace": "19.7.3",
+        "@nx/angular": "19.7.4",
+        "@nx/eslint": "19.7.4",
+        "@nx/eslint-plugin": "19.7.4",
+        "@nx/jest": "19.7.4",
+        "@nx/workspace": "19.7.4",
         "@schematics/angular": "18.2.4",
         "@types/codemirror": "^5.60.15",
         "@types/d3": "^7.4.3",
@@ -85,7 +85,7 @@
         "jest-preset-angular": "14.1.1",
         "ng-mocks": "^14.12.2",
         "ng-packagr": "18.2.1",
-        "nx": "19.7.3",
+        "nx": "19.7.4",
         "postcss": "^8.4.32",
         "prettier": "^3.2.5",
         "tailwindcss": "^3.3.6",
@@ -101,6 +101,7 @@
         "system": false
     },
     "resolutions": {
+        "vite": "^5.4.6",
         "underscore": "1.13.6"
     }
 }
