@@ -74,7 +74,6 @@ import org.apache.nifi.stateless.repository.StatelessFlowFileRepository;
 import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 import org.apache.nifi.stateless.repository.StatelessRepositoryContextFactory;
 
-import javax.net.ssl.SSLContext;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -89,6 +88,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
 
 public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFactory {
     private final FlowController flowController;
@@ -296,8 +296,10 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
 
         child.synchronizeFlow(versionedExternalFlow, synchronizationOptions, flowMappingOptions);
         child.setParent(group);
+
         return child;
     }
+
 
     private FlowEngine lazyInitializeThreadPool(final AtomicReference<FlowEngine> reference, final Supplier<FlowEngine> factory) {
         FlowEngine threadPool = reference.get();

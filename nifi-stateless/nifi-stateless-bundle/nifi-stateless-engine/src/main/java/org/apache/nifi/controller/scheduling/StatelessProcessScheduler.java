@@ -147,7 +147,6 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         final Supplier<ProcessContext> processContextSupplier = () -> processContextFactory.createProcessContext(procNode);
         procNode.start(componentMonitoringThreadPool, ADMINISTRATIVE_YIELD_MILLIS, this.processorStartTimeoutMillis, processContextSupplier, callback, failIfStopping, true);
         return future;
-
     }
 
     @Override

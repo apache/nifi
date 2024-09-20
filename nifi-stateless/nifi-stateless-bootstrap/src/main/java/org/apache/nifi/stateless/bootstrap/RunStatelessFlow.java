@@ -24,6 +24,7 @@ import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.StatelessDataflowInitializationContext;
 import org.apache.nifi.stateless.flow.StatelessDataflowValidation;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.slf4j.Logger;
@@ -92,7 +93,12 @@ public class RunStatelessFlow {
         final DataflowDefinition dataflowDefinition = bootstrap.parseDataflowDefinition(flowDefinitionFile, parameterOverrides);
 
         final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition);
-        dataflow.initialize();
+        dataflow.initialize(new StatelessDataflowInitializationContext() {
+            @Override
+            public boolean isEnableControllerServices() {
+                return true;
+            }
+        });
 
         final StatelessDataflowValidation validation = dataflow.performValidation();
         if (!validation.isValid()) {
