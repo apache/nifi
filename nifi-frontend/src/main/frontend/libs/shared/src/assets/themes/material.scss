@@ -333,7 +333,11 @@ $m3-light-theme-config: (
         darker: 10,
         default: 30,
         lighter: 70,
-        contrast: #000000
+        contrast: #000000,
+        new-canvas-item: (
+            grip: #ffffff,
+            hover: #ffffff
+        )
     ),
     tertiary: (
         darker: 30,
@@ -372,7 +376,11 @@ $m3-dark-theme-config: (
         darker: 0,
         default: 40,
         lighter: 99,
-        contrast: #000000
+        contrast: #000000,
+        new-canvas-item: (
+            grip: #000000,
+            hover: #ffffff
+        )
     ),
     tertiary: (
         darker: 10,

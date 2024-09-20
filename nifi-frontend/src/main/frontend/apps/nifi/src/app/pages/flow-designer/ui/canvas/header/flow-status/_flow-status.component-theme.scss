@@ -97,9 +97,9 @@
 
         .flow-analysis-notifications.enforce {
             background-color: if(
-                    $is-material-dark,
-                    $material-theme-error-palette-default,
-                    $material-theme-error-palette-darker
+                $is-material-dark,
+                $material-theme-error-palette-default,
+                $material-theme-error-palette-darker
             );
 
             .fa {

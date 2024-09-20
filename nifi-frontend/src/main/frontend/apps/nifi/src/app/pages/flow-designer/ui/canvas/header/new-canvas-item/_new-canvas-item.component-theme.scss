@@ -45,8 +45,8 @@
         neutral,
         map.get(map.get($config, neutral), lighter)
     );
-
-    $hover: var(--mat-menu-item-hover-state-layer-color);
+    $grip: map.get(map.get(map.get($config, secondary), new-canvas-item), grip);
+    $hover: map.get(map.get(map.get($config, secondary), new-canvas-item), hover);
 
     .new-canvas-item {
         .icon {
@@ -59,20 +59,12 @@
             &.hovering {
                 @extend .mat-elevation-z2;
 
-                // This solution re-uses the highlight value used throughout the UI, but because we need to hide the non-hover
-                // version of the icons, we create a double layered gradient with the matching background color of the
-                // navigation bar, then put the highlight on top of it.
-                background: linear-gradient($hover, $hover),
-                    linear-gradient($material-theme-neutral-palette-lighter, $material-theme-neutral-palette-lighter) !important;
+                background: linear-gradient($hover, $hover) !important;
 
                 .component-button-grip {
                     background: repeating-linear-gradient(
                         90deg,
-                        if(
-                            $is-material-dark,
-                            $material-theme-neutral-palette-darker,
-                            $material-theme-neutral-palette-lighter
-                        ),
+                        $grip,
                         if(
                                 $is-material-dark,
                                 $material-theme-secondary-palette-default,
