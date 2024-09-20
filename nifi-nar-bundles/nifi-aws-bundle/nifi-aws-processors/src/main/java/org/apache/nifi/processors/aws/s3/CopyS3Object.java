@@ -18,9 +18,19 @@ package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
+import com.amazonaws.services.s3.model.CopyPartRequest;
+import com.amazonaws.services.s3.model.CopyPartResult;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartETag;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -30,15 +40,20 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @Tags({"Amazon", "S3", "AWS", "Archive", "Copy"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Copies a file from one bucket and key to another in AWS S3")
 @SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, TagS3Object.class, DeleteS3Object.class, FetchS3Object.class})
 public class CopyS3Object extends AbstractS3Processor {
+    public static final long MULTIPART_THRESHOLD = 5L * 1024L * 1024L * 1024L;
 
     static final PropertyDescriptor SOURCE_BUCKET = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(BUCKET)
@@ -119,22 +134,96 @@ public class CopyS3Object extends AbstractS3Processor {
         final String destinationBucket = context.getProperty(DESTINATION_BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String destinationKey = context.getProperty(DESTINATION_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
+        GetObjectMetadataRequest sourceMetadataRequest = new GetObjectMetadataRequest(sourceBucket, sourceKey);
+        ObjectMetadata metadataResult = s3.getObjectMetadata(sourceMetadataRequest);
+
+        if (metadataResult == null) {
+            session.transfer(flowFile, REL_FAILURE);
+        }
+
+        final AtomicReference<String> multipartIdRef = new AtomicReference<>();
+        final boolean isMultiPart = metadataResult.getContentLength() > MULTIPART_THRESHOLD;
+
         try {
-            final CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceKey, destinationBucket, destinationKey);
-            final AccessControlList acl = createACL(context, flowFile);
-            if (acl != null) {
-                request.setAccessControlList(acl);
-            }
+            if (!isMultiPart) {
+                final CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceKey, destinationBucket, destinationKey);
+                final AccessControlList acl = createACL(context, flowFile);
+                if (acl != null) {
+                    request.setAccessControlList(acl);
+                }
 
-            final CannedAccessControlList cannedAccessControlList = createCannedACL(context, flowFile);
-            if (cannedAccessControlList != null) {
-                request.setCannedAccessControlList(cannedAccessControlList);
-            }
+                final CannedAccessControlList cannedAccessControlList = createCannedACL(context, flowFile);
+                if (cannedAccessControlList != null) {
+                    request.setCannedAccessControlList(cannedAccessControlList);
+                }
 
-            s3.copyObject(request);
+                s3.copyObject(request);
+            } else {
+                InitiateMultipartUploadRequest initRequest = new InitiateMultipartUploadRequest(destinationBucket,
+                        destinationKey);
+                InitiateMultipartUploadResult initResult = s3.initiateMultipartUpload(initRequest);
+
+                multipartIdRef.set(initResult.getUploadId());
+
+                long objectSize = metadataResult.getContentLength();
+
+                long bytePosition = 0;
+                int partNumber = 1;
+                List<CopyPartResult> responses = new ArrayList<>();
+                while (bytePosition < objectSize) {
+                    long lastByte = Math.min(bytePosition + MULTIPART_THRESHOLD - 1, objectSize - 1);
+
+                    CopyPartRequest copyRequest = new CopyPartRequest()
+                            .withSourceBucketName(sourceBucket)
+                            .withSourceKey(sourceKey)
+                            .withDestinationBucketName(destinationBucket)
+                            .withDestinationKey(destinationKey)
+                            .withUploadId(initResult.getUploadId())
+                            .withFirstByte(bytePosition)
+                            .withLastByte(lastByte)
+                            .withPartNumber(partNumber++);
+                    boolean partIsDone = false;
+                    int retryIndex = 0;
+
+                    while (!partIsDone && retryIndex < 3) {
+                        try {
+                            responses.add(s3.copyPart(copyRequest));
+                            partIsDone = true;
+                        } catch (AmazonS3Exception e) {
+                            if (e.getStatusCode() == 503) {
+                                retryIndex++;
+                            } else {
+                                throw e;
+                            }
+                        }
+                    }
+                    bytePosition += MULTIPART_THRESHOLD;
+                }
+
+                CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest(
+                        destinationBucket,
+                        destinationKey,
+                        initResult.getUploadId(),
+                        responses.stream().map(response -> new PartETag(response.getPartNumber(), response.getETag()))
+                                .collect(Collectors.toList()));
+                s3.completeMultipartUpload(completeRequest);
+            }
             session.getProvenanceReporter().send(flowFile, getTransitUrl(destinationBucket, destinationKey));
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (final IllegalArgumentException | AmazonClientException e) {
+        } catch (final ProcessException | IllegalArgumentException | AmazonClientException e) {
+            if (isMultiPart) {
+                String requestId = multipartIdRef.get();
+                if (StringUtils.isNotBlank(requestId)) {
+                    try {
+                        AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(destinationBucket, destinationKey, requestId);
+                        s3.abortMultipartUpload(abortRequest);
+                    } catch (AmazonS3Exception ignored) {
+                        getLogger().error("Failed to cleanup the partial upload to bucket {} and key {}", destinationBucket, destinationKey);
+                        getLogger().error("Abort exception", ignored);
+                    }
+                }
+            }
+
             flowFile = extractExceptionDetails(e, session, flowFile);
             getLogger().error("Failed to copy S3 object from Bucket [{}] Key [{}]", sourceBucket, sourceKey, e);
             session.transfer(flowFile, REL_FAILURE);
