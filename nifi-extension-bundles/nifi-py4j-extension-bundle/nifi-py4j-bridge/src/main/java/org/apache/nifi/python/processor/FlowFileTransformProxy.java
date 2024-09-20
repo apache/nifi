@@ -27,6 +27,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import py4j.Py4JNetworkException;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -40,22 +41,19 @@ public class FlowFileTransformProxy extends PythonProcessorProxy<FlowFileTransfo
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile original = session.get();
-        if (original == null) {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
             return;
         }
 
-        FlowFile transformed = session.clone(original);
-
         final FlowFileTransformResult result;
-        try (final StandardInputFlowFile inputFlowFile = new StandardInputFlowFile(session, original)) {
+        try (final StandardInputFlowFile inputFlowFile = new StandardInputFlowFile(session, flowFile)) {
             result = getTransform().transformFlowFile(inputFlowFile);
         } catch (final Py4JNetworkException e) {
             throw new ProcessException("Failed to communicate with Python Process", e);
         } catch (final Exception e) {
-            getLogger().error("Failed to transform {}", original, e);
-            session.remove(transformed);
-            session.transfer(original, REL_FAILURE);
+            getLogger().error("Failed to transform {}", flowFile, e);
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
@@ -65,26 +63,37 @@ public class FlowFileTransformProxy extends PythonProcessorProxy<FlowFileTransfo
             final Map<String, String> attributes = result.getAttributes();
 
             if (REL_FAILURE.getName().equals(relationshipName)) {
-                session.remove(transformed);
                 if (attributes != null) {
-                    original = session.putAllAttributes(original, attributes);
+                    flowFile = session.putAllAttributes(flowFile, attributes);
                 }
 
-                session.transfer(original, REL_FAILURE);
+                session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
+            //Clone before making modifications if needed for original relationship
+            final Optional<FlowFile> clone;
+            if (context.isAutoTerminated(REL_ORIGINAL)) {
+                clone = Optional.empty();
+            } else {
+                clone = Optional.of(session.clone(flowFile));
+            }
+
             if (attributes != null) {
-                transformed = session.putAllAttributes(transformed, attributes);
+                flowFile = session.putAllAttributes(flowFile, attributes);
             }
 
             final byte[] contents = result.getContents();
             if (contents != null) {
-                transformed = session.write(transformed, out -> out.write(contents));
+                flowFile = session.write(flowFile, out -> out.write(contents));
             }
 
-            session.transfer(transformed, relationship);
-            session.transfer(original, REL_ORIGINAL);
+            session.transfer(flowFile, relationship);
+
+            if (clone.isPresent()) {
+                session.transfer(clone.get(), REL_ORIGINAL);
+            }
+
         } finally {
             result.free();
         }
