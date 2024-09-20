@@ -36,7 +36,7 @@ public interface PythonProcessorBridge {
     void replaceController(PythonController controller);
 
     /**
-     * @return the name of the Processor implementation. This will not contain a 'python.' prefix.
+     * @return the name of the Processor implementation.
      */
     String getProcessorType();
 

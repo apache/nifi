@@ -87,7 +87,6 @@ import java.util.stream.Collectors;
 public class StandardExtensionDiscoveringManager implements ExtensionDiscoveringManager {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardExtensionDiscoveringManager.class);
-    private static final String PYTHON_TYPE_PREFIX = "python.";
 
     // Maps a service definition (interface) to those classes that implement the interface
     private final Map<Class<?>, Set<ExtensionDefinition>> definitionMap = new HashMap<>();
@@ -234,8 +233,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             final BundleDetails bundleDetails = createBundleDetailsWithOverriddenVersion(pythonBundle.getBundleDetails(), details.getProcessorVersion());
             final Bundle bundle = new Bundle(bundleDetails, pythonBundle.getClassLoader());
 
-            // TODO: This is a workaround because the UI has a bug that causes it not to work properly if the type doesn't have a '.' in it
-            final String className = PYTHON_TYPE_PREFIX + details.getProcessorType();
+            final String className = details.getProcessorType();
             final ExtensionDefinition extensionDefinition = new ExtensionDefinition.Builder()
                     .implementationClassName(className)
                     .runtime(ExtensionRuntime.PYTHON)
@@ -274,8 +272,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
     @Override
     public synchronized PythonProcessorDetails getPythonProcessorDetails(final String processorType, final String version) {
-        final String canonicalProcessorType = stripPythonTypePrefix(processorType);
-        final List<PythonProcessorDetails> detailsList = this.pythonProcessorDetails.get(canonicalProcessorType);
+        final List<PythonProcessorDetails> detailsList = this.pythonProcessorDetails.get(processorType);
         if (detailsList == null) {
             return null;
         }
@@ -785,19 +782,18 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         final String tempComponentKey = getClassBundleKey(removeExtensionClassName, extensionDefinitionCoordinate);
         final ConfigurableComponent removedTempComponent = tempComponentLookup.remove(tempComponentKey);
 
-        if (removeExtensionClassName.startsWith(PYTHON_TYPE_PREFIX)) {
-            final String strippedClassName = stripPythonTypePrefix(removeExtensionClassName);
-            logger.debug("Removing Python processor type {} - {}", strippedClassName, extensionDefinition.getVersion());
+        if (PythonBundle.isPythonCoordinate(extensionDefinitionCoordinate)) {
+            logger.debug("Removing Python processor type {} - {}", removeExtensionClassName, extensionDefinition.getVersion());
 
-            final List<PythonProcessorDetails> processorDetailsList = Optional.ofNullable(pythonProcessorDetails.get(strippedClassName)).orElse(Collections.emptyList());
-            processorDetailsList.removeIf(processorDetails -> processorDetails.getProcessorType().equals(strippedClassName)
+            final List<PythonProcessorDetails> processorDetailsList = Optional.ofNullable(pythonProcessorDetails.get(removeExtensionClassName)).orElse(Collections.emptyList());
+            processorDetailsList.removeIf(processorDetails -> processorDetails.getProcessorType().equals(removeExtensionClassName)
                     && processorDetails.getProcessorVersion().equals(extensionDefinition.getVersion()));
 
             if (removedTempComponent != null) {
-                final String pythonTempComponentId = getPythonTempComponentId(strippedClassName);
-                pythonBridge.onProcessorRemoved(pythonTempComponentId, strippedClassName, extensionDefinition.getVersion());
+                final String pythonTempComponentId = getPythonTempComponentId(removeExtensionClassName);
+                pythonBridge.onProcessorRemoved(pythonTempComponentId, removeExtensionClassName, extensionDefinition.getVersion());
             }
-            pythonBridge.removeProcessorType(strippedClassName, extensionDefinition.getVersion());
+            pythonBridge.removeProcessorType(removeExtensionClassName, extensionDefinition.getVersion());
         }
     }
 
@@ -861,11 +857,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(bundleClassLoader)) {
             final ConfigurableComponent tempComponent;
             if (PythonBundle.isPythonCoordinate(bundle.getBundleDetails().getCoordinate())) {
-                // TODO: This is a workaround due to bug in UI. Fix bug in UI.
-                final String type = stripPythonTypePrefix(classType);
-
-                final String procId = getPythonTempComponentId(type);
-                tempComponent = pythonBridge.createProcessor(procId, type, bundleCoordinate.getVersion(), false, false);
+                final String procId = getPythonTempComponentId(classType);
+                tempComponent = pythonBridge.createProcessor(procId, classType, bundleCoordinate.getVersion(), false, false);
             } else {
                 final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
                 tempComponent = (ConfigurableComponent) componentClass.getDeclaredConstructor().newInstance();
@@ -888,17 +881,6 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
     private static String getPythonTempComponentId(final String type) {
         return "temp-component-" + type;
-    }
-
-    private static String stripPythonTypePrefix(final String value) {
-        if (value == null) {
-            return null;
-        }
-        if (value.startsWith(PYTHON_TYPE_PREFIX)) {
-            return value.substring(PYTHON_TYPE_PREFIX.length());
-        }
-
-        return value;
     }
 
     private static String getClassBundleKey(final String classType, final BundleCoordinate bundleCoordinate) {

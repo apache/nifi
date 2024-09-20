@@ -50,8 +50,7 @@ class ComponentNodeDefinitionPredicate implements Predicate<ComponentNode> {
 
         if (PythonBundle.isPythonCoordinate(componentCoordinate)) {
             final String componentType = componentNode.getComponentType();
-            final String pythonComponentType = "python." + componentType;
-            return pythonComponentType.equals(extensionDefinitionClassName) && componentCoordinate.equals(extensionDefinitionCoordinate);
+            return componentType.equals(extensionDefinitionClassName) && componentCoordinate.equals(extensionDefinitionCoordinate);
         } else if (componentNode.isExtensionMissing()) {
             return componentClassName.equals(extensionDefinitionClassName)
                     && componentCoordinate.getGroup().equals(extensionDefinitionCoordinate.getGroup())

@@ -40,7 +40,6 @@ public class ComponentNodeDefinitionPredicateTest {
     private static final BundleCoordinate STANDARD_BUNDLE_COORDINATE_V2 = new BundleCoordinate("org.apache.nifi", "my-processors-nar", "2.0.0");
 
     private static final String PYTHON_PROCESSOR_TYPE = "PythonProcessor";
-    private static final String FULL_PYTHON_PROCESSOR_TYPE = "python." + PYTHON_PROCESSOR_TYPE;
     private static final String OTHER_PYTHON_PROCESSOR_TYPE = "OtherPythonProcessor";
     private static final BundleCoordinate PYTHON_BUNDLE_COORDINATE = new BundleCoordinate(PythonBundle.GROUP_ID, PythonBundle.ARTIFACT_ID, "0.0.1");
 
@@ -66,7 +65,7 @@ public class ComponentNodeDefinitionPredicateTest {
         when(pythonBundle.getBundleDetails()).thenReturn(pythonBundleDetails);
 
         pythonProcessorDefinition = mock(ExtensionDefinition.class);
-        when(pythonProcessorDefinition.getImplementationClassName()).thenReturn(FULL_PYTHON_PROCESSOR_TYPE);
+        when(pythonProcessorDefinition.getImplementationClassName()).thenReturn(PYTHON_PROCESSOR_TYPE);
         when(pythonProcessorDefinition.getBundle()).thenReturn(pythonBundle);
     }
 
