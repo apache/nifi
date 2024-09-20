@@ -16,9 +16,9 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-standard-shared-bom</artifactId>
+        <artifactId>nifi-standard-services-api-bom</artifactId>
         <version>2.0.0-SNAPSHOT</version>
-        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
+        <relativePath>../nifi-standard-services-api-bom</relativePath>
     </parent>
     <artifactId>nifi-kafka-bundle</artifactId>
     <packaging>pom</packaging>
