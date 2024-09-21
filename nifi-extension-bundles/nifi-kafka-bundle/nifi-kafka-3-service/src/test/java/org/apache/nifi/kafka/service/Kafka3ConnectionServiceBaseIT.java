@@ -188,7 +188,6 @@ public class Kafka3ConnectionServiceBaseIT {
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, null, RECORD_VALUE, Collections.emptyList());
         final List<KafkaRecord> kafkaRecords = Collections.singletonList(kafkaRecord);
-        producerService.init();
         producerService.send(kafkaRecords.iterator(), new PublishContext(TOPIC + "-produce", null, null, null));
         final RecordSummary summary = producerService.complete();
         assertNotNull(summary);
@@ -200,46 +199,43 @@ public class Kafka3ConnectionServiceBaseIT {
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, null, RECORD_VALUE, Collections.emptyList());
         final List<KafkaRecord> kafkaRecords = Collections.singletonList(kafkaRecord);
-        producerService.init();
         producerService.send(kafkaRecords.iterator(), new PublishContext(TOPIC + "-produce", null, null, null));
         final RecordSummary summary = producerService.complete();
         assertNotNull(summary);
     }
 
     @Test
-    void testProduceConsumeRecord() throws Exception {
+    void testProduceConsumeRecord() {
         final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
 
         final long timestamp = System.currentTimeMillis();
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, timestamp, RECORD_KEY, RECORD_VALUE, Collections.emptyList());
         final List<KafkaRecord> kafkaRecords = Collections.singletonList(kafkaRecord);
-        producerService.init();
         producerService.send(kafkaRecords.iterator(), new PublishContext(TOPIC, null, null, null));
         final RecordSummary summary = producerService.complete();
         assertNotNull(summary);
 
-        try (KafkaConsumerService consumerService = service.getConsumerService(null)) {
-            final PollingContext pollingContext = new PollingContext(
-                    GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
-            final Iterator<ByteRecord> consumerRecords = poll(consumerService, pollingContext);
+        final KafkaConsumerService consumerService = service.getConsumerService(null);
+        final PollingContext pollingContext = new PollingContext(
+                GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
+        final Iterator<ByteRecord> consumerRecords = poll(consumerService, pollingContext);
 
-            assertTrue(consumerRecords.hasNext(), "Consumer Records not found");
+        assertTrue(consumerRecords.hasNext(), "Consumer Records not found");
 
-            final ByteRecord consumerRecord = consumerRecords.next();
-            assertEquals(TOPIC, consumerRecord.getTopic());
-            assertEquals(0, consumerRecord.getOffset());
-            assertEquals(0, consumerRecord.getPartition());
-            assertEquals(timestamp, consumerRecord.getTimestamp());
+        final ByteRecord consumerRecord = consumerRecords.next();
+        assertEquals(TOPIC, consumerRecord.getTopic());
+        assertEquals(0, consumerRecord.getOffset());
+        assertEquals(0, consumerRecord.getPartition());
+        assertEquals(timestamp, consumerRecord.getTimestamp());
 
-            final Optional<byte[]> keyFound = consumerRecord.getKey();
-            assertTrue(keyFound.isPresent());
+        final Optional<byte[]> keyFound = consumerRecord.getKey();
+        assertTrue(keyFound.isPresent());
 
-            assertArrayEquals(RECORD_KEY, keyFound.get());
-            assertArrayEquals(RECORD_VALUE, consumerRecord.getValue());
+        assertArrayEquals(RECORD_KEY, keyFound.get());
+        assertArrayEquals(RECORD_VALUE, consumerRecord.getValue());
 
-            assertFalse(consumerRecords.hasNext());
-        }
+        assertFalse(consumerRecords.hasNext());
     }
 
     @Test

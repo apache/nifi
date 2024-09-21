@@ -44,8 +44,8 @@ import org.apache.nifi.kafka.service.api.producer.KafkaProducerService;
 import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
 import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
 import org.apache.nifi.kafka.service.producer.Kafka3ProducerService;
-import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.IsolationLevel;
+import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
@@ -175,7 +175,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .name("default.api.timeout.ms")
             .displayName("Client Timeout")
             .description("Default timeout for Kafka client operations. Mapped to Kafka default.api.timeout.ms. The Kafka request.timeout.ms property is derived from half of the configured timeout")
-            .defaultValue("60 s")
+            .defaultValue("60 sec")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -191,7 +191,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .defaultValue("5 s")
+            .defaultValue("5 sec")
             .build();
 
     public static final PropertyDescriptor ACK_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -204,7 +204,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
-            .defaultValue("5 s")
+            .defaultValue("5 sec")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -244,7 +244,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     @OnDisabled
     public void onDisabled() {
         if (consumerService == null) {
-            getLogger().warn("Consumer Service not configured");
+            getLogger().debug("Consumer Service not configured");
         } else {
             consumerService.close();
         }
@@ -278,6 +278,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         if (partitionClass != null && partitionClass.startsWith("org.apache.kafka")) {
             propertiesProducer.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, partitionClass);
         }
+
         return new Kafka3ProducerService(propertiesProducer, serviceConfiguration, producerConfiguration);
     }
 

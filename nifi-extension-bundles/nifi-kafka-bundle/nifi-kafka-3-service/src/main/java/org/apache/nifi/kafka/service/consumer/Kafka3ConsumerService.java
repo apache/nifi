@@ -34,6 +34,8 @@ import org.apache.nifi.kafka.service.consumer.pool.ConsumerObjectPool;
 import org.apache.nifi.kafka.service.consumer.pool.Subscription;
 import org.apache.nifi.logging.ComponentLog;
 
+import java.io.Closeable;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -43,14 +45,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
  * Kafka 3 Consumer Service implementation with Object Pooling for subscribed Kafka Consumers
  */
-public class Kafka3ConsumerService implements KafkaConsumerService {
+public class Kafka3ConsumerService implements KafkaConsumerService, Closeable {
     private final ComponentLog componentLog;
 
     private final ConsumerObjectPool consumerObjectPool;
@@ -68,10 +69,14 @@ public class Kafka3ConsumerService implements KafkaConsumerService {
         final Map<TopicPartition, OffsetAndMetadata> offsets = getOffsets(pollingSummary);
 
         final long started = System.currentTimeMillis();
-        final long elapsed = runConsumerFunction(subscription, (consumer) -> {
+        final Consumer<byte[], byte[]> consumer = borrowConsumer(subscription);
+        final long elapsed;
+        try {
             consumer.commitSync(offsets);
-            return started - System.currentTimeMillis();
-        });
+            elapsed = started - System.currentTimeMillis();
+        } finally {
+            returnConsumer(subscription, consumer);
+        }
 
         componentLog.debug("Committed Records in [{} ms] for {}", elapsed, pollingSummary);
     }
@@ -81,10 +86,13 @@ public class Kafka3ConsumerService implements KafkaConsumerService {
         Objects.requireNonNull(pollingContext, "Polling Context required");
         final Subscription subscription = getSubscription(pollingContext);
 
-        return runConsumerFunction(subscription, (consumer) -> {
+        final Consumer<byte[], byte[]> consumer = borrowConsumer(subscription);
+        try {
             final ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(pollingContext.getMaxUncommittedTime());
             return new RecordIterable(consumerRecords);
-        });
+        } finally {
+            returnConsumer(subscription, consumer);
+        }
     }
 
     @Override
@@ -96,12 +104,16 @@ public class Kafka3ConsumerService implements KafkaConsumerService {
 
         if (topics.hasNext()) {
             final String topic = topics.next();
-            partitionStates = runConsumerFunction(subscription, (consumer) ->
-                    consumer.partitionsFor(topic)
-                            .stream()
-                            .map(partitionInfo -> new PartitionState(partitionInfo.topic(), partitionInfo.partition()))
-                            .collect(Collectors.toList())
-            );
+
+            final Consumer<byte[], byte[]> consumer = borrowConsumer(subscription);
+            try {
+                partitionStates = consumer.partitionsFor(topic)
+                    .stream()
+                    .map(partitionInfo -> new PartitionState(partitionInfo.topic(), partitionInfo.partition()))
+                    .collect(Collectors.toList());
+            } finally {
+                returnConsumer(subscription, consumer);
+            }
         } else {
             partitionStates = Collections.emptyList();
         }
@@ -140,21 +152,26 @@ public class Kafka3ConsumerService implements KafkaConsumerService {
         return offsets;
     }
 
-    private <T> T runConsumerFunction(final Subscription subscription, final Function<Consumer<byte[], byte[]>, T> consumerFunction) {
-        Consumer<byte[], byte[]> consumer = null;
+    private Consumer<byte[], byte[]> borrowConsumer(final Subscription subscription) {
         try {
-            consumer = consumerObjectPool.borrowObject(subscription);
-            return consumerFunction.apply(consumer);
+            return consumerObjectPool.borrowObject(subscription);
         } catch (final Exception e) {
             throw new ConsumerException("Borrow Consumer failed", e);
-        } finally {
-            if (consumer != null) {
-                try {
-                    consumerObjectPool.returnObject(subscription, consumer);
-                } catch (final Exception e) {
-                    componentLog.warn("Return Consumer failed", e);
-                }
+        }
+    }
+
+    private void returnConsumer(final Subscription subscription, final Consumer<byte[], byte[]> consumer) {
+        try {
+            consumerObjectPool.returnObject(subscription, consumer);
+        } catch (final Exception e) {
+            try {
+                consumerObjectPool.invalidateObject(subscription, consumer);
+            } catch (final Exception e2) {
+                componentLog.debug("Failed to invalidate Kafka Consumer", e2);
             }
+
+            consumer.close(Duration.ofSeconds(30));
+            componentLog.warn("Failed to return Kafka Consumer to pool", e);
         }
     }
 
@@ -191,6 +208,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService {
                 final RecordHeader recordHeader = new RecordHeader(header.key(), header.value());
                 recordHeaders.add(recordHeader);
             });
+
             return new ByteRecord(
                     consumerRecord.topic(),
                     consumerRecord.partition(),

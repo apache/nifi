@@ -23,11 +23,9 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
@@ -330,17 +328,13 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         } else {
             headerNamePattern = null;
         }
+
         keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asAllowableValue(KeyEncoding.class);
         commitOffsets = context.getProperty(COMMIT_OFFSETS).asBoolean();
         outputStrategy = context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
         keyFormat = context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class);
     }
 
-    @OnStopped
-    public void onStopped() {
-        // discard reference; leave controller service state intact
-        consumerService = null;
-    }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
@@ -399,9 +393,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     }
 
     private Iterator<ByteRecord> transformDemarcator(final ProcessContext context, final Iterator<ByteRecord> consumerRecords) {
-        final PropertyValue propertyValueDemarcator = context.getProperty(ConsumeKafka.MESSAGE_DEMARCATOR);
-        if (propertyValueDemarcator.isSet()) {
-            final byte[] demarcator = propertyValueDemarcator.getValue().getBytes(StandardCharsets.UTF_8);
+        final String demarcatorValue = context.getProperty(ConsumeKafka.MESSAGE_DEMARCATOR).getValue();
+        if (demarcatorValue != null) {
+            final byte[] demarcator = demarcatorValue.getBytes(StandardCharsets.UTF_8);
             final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
             return new ByteRecordBundler(demarcator, separateByKey, keyEncoding, headerNamePattern, headerEncoding, commitOffsets).bundle(consumerRecords);
         } else {

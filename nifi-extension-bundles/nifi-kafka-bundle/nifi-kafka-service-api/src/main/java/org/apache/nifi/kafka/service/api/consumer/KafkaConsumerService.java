@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * Kafka Consumer Service must be closed to avoid leaking connection resources
  */
-public interface KafkaConsumerService extends AutoCloseable {
+public interface KafkaConsumerService {
     /**
      * Commit record information to Kafka Brokers
      *
