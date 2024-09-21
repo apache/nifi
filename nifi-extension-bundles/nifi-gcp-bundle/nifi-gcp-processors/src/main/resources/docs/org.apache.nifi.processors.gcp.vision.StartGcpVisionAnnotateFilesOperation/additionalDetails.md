@@ -77,15 +77,9 @@ You can find more details at [Google Vision Feature List](https://cloud.google.c
 
 Prerequisites
 
+* Create an input and output bucket
 * Input files should be available in a GCS bucket
 * This bucket must not contain anything else but the input files
-
-Create the following flow
-
-![](vision-annotate-files.png)
-
-* Create an input and output bucket
-* Make sure the input files(s) are available in the input GCS bucket
 * Set the bucket property of ListGCSBucket processor to your input bucket name
 * Keep the default value of JSON PAYLOAD property in StartGcpVisionAnnotateFilesOperation
 * Set the Output Bucket property to your output bucket name in StartGcpVisionAnnotateFilesOperation

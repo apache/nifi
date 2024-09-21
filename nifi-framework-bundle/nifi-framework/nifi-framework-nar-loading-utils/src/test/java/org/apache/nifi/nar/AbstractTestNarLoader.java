@@ -86,7 +86,6 @@ public abstract class AbstractTestNarLoader {
         // Create class we are testing
         narLoader = new StandardNarLoader(
                 properties.getExtensionsWorkingDirectory(),
-                properties.getComponentDocumentationWorkingDirectory(),
                 narClassLoaders,
                 extensionManager,
                 extensionMapping,

@@ -17,13 +17,12 @@
 
 ## Usage Description
 
-The pairing of this Processor with
-a [HandleHttpResponse](../org.apache.nifi.processors.standard.HandleHttpResponse/index.html) Processor provides the
+The pairing of this Processor with a HandleHttpResponse Processor provides the
 ability to use NiFi to visually construct a web server that can carry out any functionality that is available through
 the existing Processors. For example, one could construct a Web-based front end to an SFTP Server by constructing a flow
 such as:
 
-[HandleHttpRequest](index.html) -> [PutSFTP](../org.apache.nifi.processors.standard.PutSFTP/index.html) -> [HandleHttpResponse](../org.apache.nifi.processors.standard.HandleHttpResponse/index.html)
+HandleHttpRequest -> PutSFTP -> HandleHttpResponse
 
 The HandleHttpRequest Processor provides several Properties to configure which methods are supported, the paths that are
 supported, and SSL configuration.

@@ -42,9 +42,7 @@ splitting apart the FlowFile and processing all the data within a Process Group.
 FlowFile Concurrency of "Single FlowFile per Node" means that only one FlowFile will be brought into the Process Group.
 Once that happens, the FlowFile can be split apart and each part processed. Configuring the Process Group with an
 Outbound Policy of "Batch Output" means that none of the FlowFiles will leave the Process Group until all have finished
-processing. As a result, we can build a flow like the following:
-
-![](ListSFTP-batch-high-level-flow.png)
+processing.
 
 In this flow, we perform a listing of a directory with ListSFTP. The processor is configured with a Record Writer (in
 this case a CSV Writer, but any Record Writer can be used) so that only a single FlowFile is generated for the entire
@@ -55,11 +53,8 @@ At the same time, the original listing is to be sent to the "Processing Complete
 to accomplish this, the Process Group must be configured with a FlowFile Concurrency of "Single FlowFile per Node" and
 an Outbound Policy of "Batch Output."
 
-The "Process Listing" Process Group that is described above looks like this:
-
-![](ListSFTP-batch-processing.png)
-
-A listing is received via the "Listing" Input Port. This is then sent directly to the "Listing of Processed Data" Output
+The "Process Listing" Process Group a listing is received via the "Listing" Input Port. This is then sent directly to
+the "Listing of Processed Data" Output
 Port so that when all processing completes, the original listing will be sent out also.
 
 Next, the listing is broken apart into an individual FlowFile per record. Because we want to use FetchSFTP to fetch the

@@ -43,9 +43,7 @@ The processor automatically takes connection from dbcp service before executing 
 transaction:  
 database transactions automatically rolled back on script exception and committed on success.  
 Or you can manage transaction manually.  
-NOTE: Script must not disconnect connection.  
-![](SQL.gif)  
-![](SQL2.gif)
+NOTE: Script must not disconnect connection.
 
 ## SessionFile - flow file extension
 
@@ -67,7 +65,7 @@ flowFile = session.putAttribute(flowFile, "ATTRIBUTE_NAME", ATTRIBUTE_VALUE)
 _remove attribute_
 
 ```groovy
-flowFile.ATTRIBUTE \ _NAME = null
+flowFile.ATTRIBUTE_NAME = null
 // equals to
 flowFile = session.removeAttribute(flowFile, "ATTRIBUTE_NAME")
 ```
@@ -122,7 +120,7 @@ import groovy.sql.Sql
 // and assign into flowfile attribute `db.yesterday`
 def daysAdd = -1
 def row = SQL.db.firstRow("select dateadd('DAY', ${daysAdd}, sysdate) as DB_DATE from dual")
-flowFile.'db.yesterday' = row.DB \ _DATE
+flowFile.'db.yesterday' = row.DB_DATE
 
 // to work with BLOBs and CLOBs in the database
 // use parameter casting using groovy.sql.Sql.BLOB(Stream) and groovy.sql.Sql.CLOB(Reader)

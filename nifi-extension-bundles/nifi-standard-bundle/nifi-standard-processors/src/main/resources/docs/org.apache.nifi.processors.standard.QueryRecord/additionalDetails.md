@@ -126,7 +126,7 @@ following JSON as input:
 Consider a query that will select the title and name of any person who has a home address in a different state than
 their work address. Here, we can only select the fields `name`, `title`, `age`, and `addresses`. In this scenario,
 `addresses` represents an Array of complex objects - records. In order to accommodate for this, QueryRecord provides
-User-Defined Functions to enable [Record Path](../../../../../html/record-path-guide.html) to be used. Record Path is a
+User-Defined Functions to enable Record Path to be used. Record Path is a
 simple NiFi Domain Specific Language (DSL) that allows users to reference a nested structure.
 
 The primary User-Defined Function that will be used is named `RPATH` (short for Record Path). This function expects

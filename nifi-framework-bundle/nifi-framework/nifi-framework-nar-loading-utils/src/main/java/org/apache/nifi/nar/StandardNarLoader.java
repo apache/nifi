@@ -47,7 +47,6 @@ public class StandardNarLoader implements NarLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(StandardNarLoader.class);
 
     private final File extensionsWorkingDir;
-    private final File docsWorkingDir;
     private final NarClassLoaders narClassLoaders;
     private final ExtensionDiscoveringManager extensionManager;
     private final ExtensionMapping extensionMapping;
@@ -57,14 +56,12 @@ public class StandardNarLoader implements NarLoader {
     private Set<BundleDetails> previouslySkippedBundles;
 
     public StandardNarLoader(final File extensionsWorkingDir,
-                             final File docsWorkingDir,
                              final NarClassLoaders narClassLoaders,
                              final ExtensionDiscoveringManager extensionManager,
                              final ExtensionMapping extensionMapping,
                              final ExtensionUiLoader extensionUiLoader,
                              final NarUnpackMode narUnpackMode) {
         this.extensionsWorkingDir = extensionsWorkingDir;
-        this.docsWorkingDir = docsWorkingDir;
         this.narClassLoaders = narClassLoaders;
         this.extensionManager = extensionManager;
         this.extensionMapping = extensionMapping;
@@ -148,7 +145,6 @@ public class StandardNarLoader implements NarLoader {
     }
 
     private void removeBundle(final Bundle bundle) {
-        final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
         narClassLoaders.removeBundle(bundle);
 
         final File workingDirectory = bundle.getBundleDetails().getWorkingDirectory();
@@ -201,7 +197,7 @@ public class StandardNarLoader implements NarLoader {
             }
 
             final File unpackedExtension = NarUnpacker.unpackNar(narFile, extensionsWorkingDir, true, narUnpackMode);
-            NarUnpacker.mapExtension(unpackedExtension, coordinate, docsWorkingDir, extensionMapping);
+            NarUnpacker.mapExtension(unpackedExtension, coordinate, extensionMapping);
             return unpackedExtension;
 
         } catch (Exception e) {

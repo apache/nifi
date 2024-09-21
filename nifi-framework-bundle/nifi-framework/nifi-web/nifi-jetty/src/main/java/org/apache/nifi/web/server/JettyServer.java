@@ -845,7 +845,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             final NarUnpackMode unpackMode = props.isUnpackNarsToUberJar() ? NarUnpackMode.UNPACK_TO_UBER_JAR : NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
             final NarLoader narLoader = new StandardNarLoader(
                     props.getExtensionsWorkingDirectory(),
-                    props.getComponentDocumentationWorkingDirectory(),
                     NarClassLoadersHolder.getInstance(),
                     extensionManager,
                     extensionMapping,

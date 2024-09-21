@@ -15,8 +15,7 @@
 
 # LookupRecord
 
-LookupRecord makes use of the
-NiFi [RecordPath Domain-Specific Language (DSL)](../../../../../html/record-path-guide.html) to allow the user to
+LookupRecord makes use of the NiFi RecordPath Domain-Specific Language (DSL) to allow the user to
 indicate which field(s), depending on the Record Update Strategy, in the Record should be updated. The Record will be
 updated using the value returned by the provided Lookup Service.
 

@@ -96,7 +96,6 @@ public class MiNiFiPropertiesGenerator {
         Triple.of(NiFiProperties.NAR_LIBRARY_DIRECTORY, "./lib", EMPTY),
         Triple.of(NiFiProperties.NAR_WORKING_DIRECTORY, "./work/nar/", EMPTY),
         Triple.of(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, "./extensions", EMPTY),
-        Triple.of(NiFiProperties.COMPONENT_DOCS_DIRECTORY, "./work/docs/components", EMPTY),
         Triple.of(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, "./conf/state-management.xml", "# State Management"),
         Triple.of(NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID, "local-provider", "# The ID of the local state provider"),
         Triple.of(NiFiProperties.REPOSITORY_DATABASE_DIRECTORY, "./database_repository", "# H2 Settings"),

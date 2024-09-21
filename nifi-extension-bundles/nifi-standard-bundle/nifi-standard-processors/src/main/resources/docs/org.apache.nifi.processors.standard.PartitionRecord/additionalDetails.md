@@ -17,7 +17,7 @@
 
 PartitionRecord allows the user to separate out records in a FlowFile such that each outgoing FlowFile consists only of
 records that are "alike." To define what it means for two records to be alike, the Processor makes use of
-NiFi's [RecordPath](../../../../../html/record-path-guide.html) DSL.
+NiFi's RecordPath DSL.
 
 In order to make the Processor valid, at least one user-defined property must be added to the Processor. The value of
 the property must be a valid RecordPath. Expression Language is supported and will be evaluated before attempting to

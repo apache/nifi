@@ -20,8 +20,7 @@
 The ./conf/bootstrap-hashicorp-vault.conf file that comes with Apache NiFi is a convenient way to configure this
 controller service in a manner consistent with the HashiCorpVault sensitive property provider. Since this file is
 already used for configuring the Vault client for protecting sensitive properties in the NiFi configuration files (see
-the [Administrator's Guide](../../../../../html/administration-guide.html#hashicorp-vault-providers)), it's a natural
-starting point for configuring the controller service as well.
+the Administrator's Guide), it's a natural starting point for configuring the controller service as well.
 
 An example configuration of this properties file is as follows:
 

@@ -18,8 +18,7 @@
 ## RemoveRecordField processor usage with examples
 
 The RemoveRecordField processor is capable of removing fields from a NiFi record. The fields that should be removed from
-the record are identified by a RecordPath expression. To learn about RecordPath, please read
-the [RecordPath Guide](../../../../../html/record-path-guide.html).
+the record are identified by a RecordPath expression. To learn about RecordPath, please read the RecordPath Guide.
 
 RemoveRecordField will update all Records within the FlowFile based upon the RecordPath(s) configured for removal. The
 Schema associated with the Record Reader configured to read the FlowFile content will be updated based upon the same

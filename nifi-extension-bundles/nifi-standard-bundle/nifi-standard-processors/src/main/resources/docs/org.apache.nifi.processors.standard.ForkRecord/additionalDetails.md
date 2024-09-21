@@ -16,8 +16,7 @@
 # ForkRecord
 
 ForkRecord allows the user to fork a record into multiple records. To do that, the user must specify one or
-multiple [RecordPath](../../../../../html/record-path-guide.html) (as dynamic properties of the processor) pointing to a
-field of type ARRAY containing RECORD elements.
+multiple RecordPath (as dynamic properties of the processor) pointing to a field of type ARRAY containing RECORD elements.
 
 The processor accepts two modes:
 

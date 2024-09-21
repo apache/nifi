@@ -20,7 +20,6 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,8 +60,6 @@ public final class NarUnpacker {
 
     private static final String BUNDLED_DEPENDENCIES_PREFIX = "META-INF/bundled-dependencies";
 
-    private static final String JAR_DOCUMENTATION_ROOT_PATH = "docs";
-
     private static final Logger logger = LoggerFactory.getLogger(NarUnpacker.class);
     private static final String HASH_FILENAME = "nar-digest";
     private static final FileFilter NAR_FILTER = pathname -> {
@@ -79,18 +76,16 @@ public final class NarUnpacker {
         final List<Path> narLibraryDirs = props.getNarLibraryDirectories();
         final File frameworkWorkingDir = props.getFrameworkWorkingDirectory();
         final File extensionsWorkingDir = props.getExtensionsWorkingDirectory();
-        final File docsWorkingDir = props.getComponentDocumentationWorkingDirectory();
 
-        return unpackNars(systemBundle, frameworkWorkingDir, frameworkNarId, extensionsWorkingDir, docsWorkingDir, narLibraryDirs, unpackMode);
+        return unpackNars(systemBundle, frameworkWorkingDir, frameworkNarId, extensionsWorkingDir, narLibraryDirs, unpackMode);
     }
 
     public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final String frameworkNarId,
-                                              final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs,
-                                              final NarUnpackMode unpackMode) {
-        return unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narLibraryDirs, true, frameworkNarId, true, true, unpackMode, (coordinate) -> true);
+                                              final File extensionsWorkingDir, final List<Path> narLibraryDirs, final NarUnpackMode unpackMode) {
+        return unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, narLibraryDirs, true, frameworkNarId, true, true, unpackMode, (coordinate) -> true);
     }
 
-    public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final File extensionsWorkingDir, final File docsWorkingDir, final List<Path> narLibraryDirs,
+    public static ExtensionMapping unpackNars(final Bundle systemBundle, final File frameworkWorkingDir, final File extensionsWorkingDir, final List<Path> narLibraryDirs,
                                               final boolean requireFrameworkNar, final String frameworkNarId,
                                               final boolean requireJettyNar, final boolean verifyHash, final NarUnpackMode unpackMode,
                                               final Predicate<BundleCoordinate> narFilter) {
@@ -106,10 +101,6 @@ public final class NarUnpacker {
             }
 
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(extensionsWorkingDir);
-
-            if (docsWorkingDir != null) {
-                FileUtils.ensureDirectoryExistAndCanReadAndWrite(docsWorkingDir);
-            }
 
             for (Path narLibraryDir : narLibraryDirs) {
 
@@ -215,11 +206,10 @@ public final class NarUnpacker {
             }
 
             final Map<File, BundleCoordinate> unpackedNars = new HashMap<>(createUnpackedNarBundleCoordinateMap(extensionsWorkingDir));
-            final ExtensionMapping extensionMapping = new ExtensionMapping();
-            mapExtensions(unpackedNars, docsWorkingDir, extensionMapping);
 
-            // unpack docs for the system bundle which will catch any JARs directly in the lib directory that might have docs
-            unpackBundleDocs(docsWorkingDir, extensionMapping, systemBundle.getBundleDetails().getCoordinate(), systemBundle.getBundleDetails().getWorkingDirectory());
+            final ExtensionMapping extensionMapping = new ExtensionMapping();
+            mapExtensions(unpackedNars, extensionMapping);
+            populateExtensionMapping(extensionMapping, systemBundle.getBundleDetails().getCoordinate(), systemBundle.getBundleDetails().getWorkingDirectory());
 
             return extensionMapping;
         } catch (IOException e) {
@@ -262,31 +252,25 @@ public final class NarUnpacker {
         return new BundleCoordinate(groupId, narId, version);
     }
 
-    private static void mapExtensions(final Map<File, BundleCoordinate> unpackedNars, final File docsDirectory, final ExtensionMapping mapping) throws IOException {
+    private static void mapExtensions(final Map<File, BundleCoordinate> unpackedNars, final ExtensionMapping mapping) throws IOException {
         for (final Map.Entry<File, BundleCoordinate> entry : unpackedNars.entrySet()) {
             final File unpackedNar = entry.getKey();
             final BundleCoordinate bundleCoordinate = entry.getValue();
-
-            final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
-
-            if (docsDirectory != null) {
-                unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
-            }
+            mapExtension(unpackedNar, bundleCoordinate, mapping);
         }
     }
 
-    public static void mapExtension(final File unpackedNar, final BundleCoordinate bundleCoordinate, final File docsDirectory, final ExtensionMapping mapping) throws IOException {
+    public static void mapExtension(final File unpackedNar, final BundleCoordinate bundleCoordinate, final ExtensionMapping mapping) throws IOException {
         final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
-        // If docsDirectory is null, assume NiFi is "headless" (no UI or REST API) and thus no docs are to be generated
-        unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
+        populateExtensionMapping(mapping, bundleCoordinate, bundledDependencies);
     }
 
-    private static void unpackBundleDocs(final File docsDirectory, final ExtensionMapping mapping, final BundleCoordinate bundleCoordinate, final File bundledDirectory) throws IOException {
+    private static void populateExtensionMapping(final ExtensionMapping mapping, final BundleCoordinate bundleCoordinate, final File bundledDirectory) throws IOException {
         final File[] directoryContents = bundledDirectory.listFiles();
         if (directoryContents != null) {
             for (final File file : directoryContents) {
                 if (file.getName().toLowerCase().endsWith(".jar")) {
-                    unpackDocumentation(bundleCoordinate, file, docsDirectory, mapping);
+                    determineNiFiComponents(bundleCoordinate, file, mapping);
                 }
             }
         }
@@ -538,60 +522,19 @@ public final class NarUnpacker {
         }
     }
 
-    private static void unpackDocumentation(final BundleCoordinate coordinate, final File jar, final File docsDirectory, final ExtensionMapping extensionMapping) throws IOException {
-        final ExtensionMapping jarExtensionMapping = determineDocumentedNiFiComponents(coordinate, jar);
+    private static void determineNiFiComponents(final BundleCoordinate coordinate, final File jar, final ExtensionMapping extensionMapping) throws IOException {
+        final ExtensionMapping jarExtensionMapping = getJarExtensionMapping(coordinate, jar);
 
-        // skip if there are not components to document
+        // skip if there are no components
         if (jarExtensionMapping.isEmpty()) {
             return;
         }
 
         // merge the extension mapping found in this jar
         extensionMapping.merge(jarExtensionMapping);
-
-        if (docsDirectory == null) {
-            return;
-        }
-
-        // look for all documentation related to each component
-        try (final JarFile jarFile = new JarFile(jar)) {
-            for (final String componentName : jarExtensionMapping.getAllExtensionNames().keySet()) {
-                // Build documentation path based on component class using Paths.get() for platform compatibility
-                final String componentDocumentationDirectory = Paths.get(JAR_DOCUMENTATION_ROOT_PATH, componentName).toString();
-
-                // go through each entry in this jar
-                for (final Enumeration<JarEntry> jarEnumeration = jarFile.entries(); jarEnumeration.hasMoreElements();) {
-                    final JarEntry jarEntry = jarEnumeration.nextElement();
-                    final File jarEntryFile = getJarEntryFile(docsDirectory, jarEntry.getName());
-                    final String jarEntryFileAbsolutePath = jarEntryFile.getAbsolutePath();
-
-                    // if this entry is documentation for this component
-                    if (jarEntryFileAbsolutePath.contains(componentDocumentationDirectory)) {
-                        final String relativePath = StringUtils.substringAfter(jarEntryFileAbsolutePath, componentDocumentationDirectory);
-                        final String outputPath = Paths.get(coordinate.getGroup(), coordinate.getId(), coordinate.getVersion(), componentName, relativePath).toString();
-
-                        // if this is a directory create it
-                        if (jarEntry.isDirectory()) {
-                            final File componentDocsDirectory = new File(docsDirectory, outputPath);
-
-                            // ensure the documentation directory can be created
-                            if (!componentDocsDirectory.exists() && !componentDocsDirectory.mkdirs()) {
-                                logger.warn("Unable to create docs directory {}", componentDocsDirectory.getAbsolutePath());
-                                break;
-                            }
-                        } else {
-                            // if this is a file, write to it
-                            final File componentDoc = new File(docsDirectory, outputPath);
-                            makeFile(jarFile.getInputStream(jarEntry), componentDoc);
-                        }
-                    }
-                }
-
-            }
-        }
     }
 
-    private static ExtensionMapping determineDocumentedNiFiComponents(final BundleCoordinate coordinate, final File jar) throws IOException {
+    private static ExtensionMapping getJarExtensionMapping(final BundleCoordinate coordinate, final File jar) throws IOException {
         final ExtensionMapping mapping = new ExtensionMapping();
 
         try (final JarFile jarFile = new JarFile(jar)) {
@@ -606,17 +549,17 @@ public final class NarUnpacker {
                 return mapping;
             }
 
-            mapping.addAllProcessors(coordinate, determineDocumentedNiFiComponents(jarFile, processorEntry));
-            mapping.addAllReportingTasks(coordinate, determineDocumentedNiFiComponents(jarFile, reportingTaskEntry));
-            mapping.addAllFlowAnalysisRules(coordinate, determineDocumentedNiFiComponents(jarFile, flowAnalysisRuleEntry));
-            mapping.addAllControllerServices(coordinate, determineDocumentedNiFiComponents(jarFile, controllerServiceEntry));
-            mapping.addAllParameterProviders(coordinate, determineDocumentedNiFiComponents(jarFile, parameterProviderEntry));
-            mapping.addAllFlowRegistryClients(coordinate, determineDocumentedNiFiComponents(jarFile, flowRegistryClientEntry));
+            mapping.addAllProcessors(coordinate, detectNiFiComponents(jarFile, processorEntry));
+            mapping.addAllReportingTasks(coordinate, detectNiFiComponents(jarFile, reportingTaskEntry));
+            mapping.addAllFlowAnalysisRules(coordinate, detectNiFiComponents(jarFile, flowAnalysisRuleEntry));
+            mapping.addAllControllerServices(coordinate, detectNiFiComponents(jarFile, controllerServiceEntry));
+            mapping.addAllParameterProviders(coordinate, detectNiFiComponents(jarFile, parameterProviderEntry));
+            mapping.addAllFlowRegistryClients(coordinate, detectNiFiComponents(jarFile, flowRegistryClientEntry));
             return mapping;
         }
     }
 
-    private static List<String> determineDocumentedNiFiComponents(final JarFile jarFile, final JarEntry jarEntry) throws IOException {
+    private static List<String> detectNiFiComponents(final JarFile jarFile, final JarEntry jarEntry) throws IOException {
         final List<String> componentNames = new ArrayList<>();
 
         if (jarEntry == null) {

@@ -17,8 +17,7 @@
 
 The JsonPathReader Controller Service, parses FlowFiles that are in the JSON format. User-defined properties specify how
 to extract all relevant fields from the JSON in order to create a Record. The Controller Service will not be valid
-unless at least one JSON Path is provided. Unlike
-the [JsonTreeReader](../org.apache.nifi.json.JsonTreeReader/additionalDetails) Controller Service, this service
+unless at least one JSON Path is provided. Unlike the JsonTreeReader Controller Service, this service
 will return a record that contains only those fields that have been configured via JSON Path.
 
 If the root of the FlowFile's JSON is a JSON Array, each JSON Object found in that array will be treated as a separate

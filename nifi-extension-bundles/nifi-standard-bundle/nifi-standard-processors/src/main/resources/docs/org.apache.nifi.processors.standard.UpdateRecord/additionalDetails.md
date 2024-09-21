@@ -15,8 +15,7 @@
 
 # UpdateRecord
 
-UpdateRecord makes use of the
-NiFi [RecordPath Domain-Specific Language (DSL)](../../../../../html/record-path-guide.html) to allow the user to
+UpdateRecord makes use of the NiFi RecordPath Domain-Specific Language (DSL) to allow the user to
 indicate which field(s) in the Record should be updated. Users do this by adding a User-defined Property to the
 Processor's configuration. The name of the User-defined Property must be the RecordPath text that should be evaluated
 against each Record. The value of the Property specifies what value should go into that selected Record field.
@@ -32,8 +31,7 @@ Properties will still be evaluated. If the RecordPath matches exactly one field,
 corresponding value. If multiple fields match the RecordPath, then all fields that match will be updated. If the
 replacement value is itself a RecordPath that does not match, then a `null` value will be set for the field. For
 instances where this is not the desired behavior, RecordPath predicates can be used to filter the fields that match so
-that no fields will be selected. See [RecordPath Predicates](../../../../../html/record-path-guide.html#predicates) for
-more information.
+that no fields will be selected. See RecordPath Predicates for more information.
 
 Below, we lay out some examples in order to provide clarity about the Processor's behavior. For all the examples below,
 consider the example to operate on the following set of 2 (JSON) records:
