@@ -27,14 +27,11 @@ import java.util.regex.Pattern;
  * Polling Context for consuming records from Kafka Topics
  */
 public class PollingContext {
+
     private final String groupId;
-
     private final Collection<String> topics;
-
     private final Pattern topicPattern;
-
     private final AutoOffsetReset autoOffsetReset;
-
     private final Duration maxUncommittedTime;
 
     public PollingContext(final String groupId, final Collection<String> topics,

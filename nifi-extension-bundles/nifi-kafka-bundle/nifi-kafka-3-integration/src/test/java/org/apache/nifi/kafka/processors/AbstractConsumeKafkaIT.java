@@ -45,8 +45,8 @@ public abstract class AbstractConsumeKafkaIT extends AbstractKafkaBaseIT {
     }
 
     protected void produceOne(final String topic, final Integer partition,
-                              final String key, final String value, final List<Header> headers)
-            throws ExecutionException, InterruptedException {
+                              final String key, final String value, final List<Header> headers) throws ExecutionException, InterruptedException {
+
         try (final KafkaProducer<String, String> producer = new KafkaProducer<>(getKafkaProducerProperties())) {
             final ProducerRecord<String, String> record = new ProducerRecord<>(topic, partition, key, value, headers);
             final Future<RecordMetadata> future = producer.send(record);

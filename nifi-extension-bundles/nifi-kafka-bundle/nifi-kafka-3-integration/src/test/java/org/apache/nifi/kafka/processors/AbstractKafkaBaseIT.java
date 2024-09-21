@@ -42,7 +42,7 @@ public abstract class AbstractKafkaBaseIT {
 
     protected static final String CONNECTION_SERVICE_ID = Kafka3ConnectionService.class.getSimpleName();
 
-    protected static final Duration DURATION_POLL = Duration.ofMillis(1000L);
+    protected static final Duration DURATION_POLL = Duration.ofSeconds(3);
 
     protected static final KafkaContainer kafkaContainer;
 
