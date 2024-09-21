@@ -532,7 +532,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
                 : new AttributeKeyFactory(kafkaKeyAttribute, keyAttributeEncoding);
 
             if (publishStrategy == PublishStrategy.USE_WRAPPER) {
-                return new RecordWrapperStreamKafkaRecordConverter(flowFile, metadataStrategy,readerFactory, writerFactory, keyWriterFactory, maxMessageSize, getLogger());
+                return new RecordWrapperStreamKafkaRecordConverter(flowFile, metadataStrategy, readerFactory, writerFactory, keyWriterFactory, maxMessageSize, getLogger());
             } else {
                 return new RecordStreamKafkaRecordConverter(readerFactory, writerFactory, headersFactory, keyFactory, maxMessageSize, getLogger());
             }
