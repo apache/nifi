@@ -30,9 +30,13 @@ import org.apache.nifi.util.Tuple;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ConsumeWrapperRecord {
+
+    private static final RecordSchema EMPTY_SCHEMA = new SimpleRecordSchema(List.of());
+
     private final Charset headerCharacterSet;
 
     public ConsumeWrapperRecord(final Charset headerCharacterSet) {
@@ -57,7 +61,7 @@ public class ConsumeWrapperRecord {
     }
 
     private Tuple<RecordField, Object> toWrapperRecordValue(final Record record) {
-        final RecordSchema recordSchema = (record == null) ? null : record.getSchema();
+        final RecordSchema recordSchema = (record == null) ? EMPTY_SCHEMA : record.getSchema();
         final RecordField recordField = new RecordField(WrapperRecord.VALUE, RecordFieldType.RECORD.getRecordDataType(recordSchema));
         return new Tuple<>(recordField, record);
     }

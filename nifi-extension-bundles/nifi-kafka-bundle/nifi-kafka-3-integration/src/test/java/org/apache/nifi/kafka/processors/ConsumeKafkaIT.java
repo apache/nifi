@@ -144,18 +144,16 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
      */
     @Test
     public void testTopicNames() throws ExecutionException, InterruptedException {
-        final String topic = UUID.randomUUID().toString();
-        final String groupId = topic.substring(0, topic.indexOf("-"));
-        final String topicTestCase = topic + "-C";
-        final String topicNames = topic + "-D," + topicTestCase;
+        final String topic = "testTopicNames";
+        final String groupId = "testTopicNames";
 
         runner.setProperty(ConsumeKafka.GROUP_ID, groupId);
-        runner.setProperty(ConsumeKafka.TOPICS, topicNames);
+        runner.setProperty(ConsumeKafka.TOPICS, topic + "," + topic + "-2");
         runner.setProperty(ConsumeKafka.TOPIC_FORMAT, ConsumeKafka.TOPIC_NAME);
         runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE.getValue());
         runner.run(1, false, true);
 
-        produceOne(topicTestCase, 0, null, RECORD_VALUE, null);
+        produceOne(topic, 0, null, RECORD_VALUE, null);
         final long pollUntil = System.currentTimeMillis() + DURATION_POLL.toMillis();
         while ((System.currentTimeMillis() < pollUntil) && (runner.getFlowFilesForRelationship("success").isEmpty())) {
             runner.run(1, false, false);

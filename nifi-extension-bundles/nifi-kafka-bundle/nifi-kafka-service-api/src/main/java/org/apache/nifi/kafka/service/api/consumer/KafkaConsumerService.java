@@ -19,12 +19,13 @@ package org.apache.nifi.kafka.service.api.consumer;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 
+import java.io.Closeable;
 import java.util.List;
 
 /**
  * Kafka Consumer Service must be closed to avoid leaking connection resources
  */
-public interface KafkaConsumerService {
+public interface KafkaConsumerService extends Closeable {
     /**
      * Commit record information to Kafka Brokers
      *
@@ -33,18 +34,26 @@ public interface KafkaConsumerService {
     void commit(PollingSummary pollingSummary);
 
     /**
+     * Rolls back the offsets of the records so that any records that have been polled since the last commit are re-polled
+     */
+    void rollback();
+
+    /**
+     * @return <code>true</code> if the service is closed; <code>false</code> otherwise
+     */
+    boolean isClosed();
+
+    /**
      * Poll Subscriptions for Records
      *
-     * @param pollingContext Polling Context containing subscription information
      * @return Stream of Records or empty when none returned
      */
-    Iterable<ByteRecord> poll(PollingContext pollingContext);
+    Iterable<ByteRecord> poll();
 
     /**
      * Get Partition State information for subscription
      *
-     * @param pollingContext Polling Context containing subscription information
      * @return List of Partition State information
      */
-    List<PartitionState> getPartitionStates(PollingContext pollingContext);
+    List<PartitionState> getPartitionStates();
 }

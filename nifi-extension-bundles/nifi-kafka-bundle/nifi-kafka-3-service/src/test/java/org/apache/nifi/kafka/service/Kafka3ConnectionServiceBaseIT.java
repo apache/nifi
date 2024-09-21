@@ -216,10 +216,9 @@ public class Kafka3ConnectionServiceBaseIT {
         final RecordSummary summary = producerService.complete();
         assertNotNull(summary);
 
-        final KafkaConsumerService consumerService = service.getConsumerService(null);
-        final PollingContext pollingContext = new PollingContext(
-                GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
-        final Iterator<ByteRecord> consumerRecords = poll(consumerService, pollingContext);
+        final PollingContext pollingContext = new PollingContext(GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
+        final KafkaConsumerService consumerService = service.getConsumerService(pollingContext);
+        final Iterator<ByteRecord> consumerRecords = poll(consumerService);
 
         assertTrue(consumerRecords.hasNext(), "Consumer Records not found");
 
@@ -282,10 +281,9 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testGetConsumerService() {
-        final KafkaConsumerService consumerService = service.getConsumerService(null);
-        final PollingContext pollingContext = new PollingContext(
-                GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
-        final List<PartitionState> partitionStates = consumerService.getPartitionStates(pollingContext);
+        final PollingContext pollingContext = new PollingContext(GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
+        final KafkaConsumerService consumerService = service.getConsumerService(pollingContext);
+        final List<PartitionState> partitionStates = consumerService.getPartitionStates();
         assertPartitionStatesFound(partitionStates);
     }
 
@@ -296,11 +294,11 @@ public class Kafka3ConnectionServiceBaseIT {
         assertEquals(0, partitionState.getPartition());
     }
 
-    private Iterator<ByteRecord> poll(final KafkaConsumerService consumerService, final PollingContext pollingContext) {
+    private Iterator<ByteRecord> poll(final KafkaConsumerService consumerService) {
         Iterator<ByteRecord> consumerRecords = Collections.emptyIterator();
 
         for (int i = 0; i < POLLING_ATTEMPTS; i++) {
-            final Iterable<ByteRecord> records = consumerService.poll(pollingContext);
+            final Iterable<ByteRecord> records = consumerService.poll();
             assertNotNull(records);
             consumerRecords = records.iterator();
             if (consumerRecords.hasNext()) {
