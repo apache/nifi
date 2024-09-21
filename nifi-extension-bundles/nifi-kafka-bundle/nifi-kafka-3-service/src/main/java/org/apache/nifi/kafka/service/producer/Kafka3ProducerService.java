@@ -33,21 +33,21 @@ import org.apache.nifi.kafka.service.producer.transaction.KafkaProducerWrapper;
 import org.apache.nifi.kafka.service.producer.transaction.KafkaTransactionalProducerWrapper;
 
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
 public class Kafka3ProducerService implements KafkaProducerService {
+
     private final Producer<byte[], byte[]> producer;
-
     private final List<ProducerCallback> callbacks;
-
     private final ServiceConfiguration serviceConfiguration;
-
     private final KafkaProducerWrapper wrapper;
+
+    private volatile boolean closed = false;
 
     public Kafka3ProducerService(final Properties properties,
                                  final ServiceConfiguration serviceConfiguration,
@@ -65,50 +65,69 @@ public class Kafka3ProducerService implements KafkaProducerService {
 
     @Override
     public void close() {
-        producer.close();
+        closed = true;
+        producer.close(Duration.ofSeconds(30));
     }
 
     @Override
-    public void init() {
-        wrapper.init();
+    public boolean isClosed() {
+        return closed;
     }
 
     @Override
     public void send(final Iterator<KafkaRecord> kafkaRecords, final PublishContext publishContext) {
         final ProducerCallback callback = new ProducerCallback(publishContext.getFlowFile());
         callbacks.add(callback);
-        Optional.ofNullable(publishContext.getException()).ifPresent(e -> callback.getExceptions().add(e));
-        if (callback.getExceptions().isEmpty()) {
+
+        final List<Exception> callbackExceptions = callback.getExceptions();
+
+        final Exception publishException = publishContext.getException();
+        if (publishException != null) {
+            callbackExceptions.add(publishException);
+        }
+
+        if (callbackExceptions.isEmpty()) {
             try {
                 wrapper.send(kafkaRecords, publishContext, callback);
             } catch (final UncheckedIOException e) {
-                callback.getExceptions().add(e);
+                // We don't throw the Exception because we will later deal with this by
+                // checking if there are any Exceptions.
+                callbackExceptions.add(e);
+            } catch (final Exception e) {
+                // We re-throw the Exception in this case because it is an unexpected Exception
+                callbackExceptions.add(e);
+                throw e;
             }
         }
     }
 
     @Override
     public RecordSummary complete() {
-        final boolean shouldCommit = callbacks.stream().noneMatch(ProducerCallback::isFailure);
-        if (shouldCommit) {
-            producer.flush();  // finish Kafka processing of in-flight data
-            wrapper.commit();  // commit Kafka transaction (when transactions configured)
-        } else {
-            // rollback on transactions + exception
-            wrapper.abort();
-        }
-
-        final RecordSummary recordSummary = new RecordSummary();  // scrape the Kafka callbacks for disposition of in-flight data
-        final List<FlowFileResult> flowFileResults = recordSummary.getFlowFileResults();
-        for (final ProducerCallback callback : callbacks) {
-            // short-circuit the handling of the flowfile results here
-            if (callback.isFailure()) {
-                flowFileResults.add(callback.toFailureResult());
+        try {
+            final boolean shouldCommit = callbacks.stream().noneMatch(ProducerCallback::isFailure);
+            if (shouldCommit) {
+                producer.flush();  // finish Kafka processing of in-flight data
+                wrapper.commit();  // commit Kafka transaction (when transactions configured)
             } else {
-                flowFileResults.add(callback.waitComplete(serviceConfiguration.getMaxAckWait().toMillis()));
+                // rollback on transactions + exception
+                wrapper.abort();
             }
+
+            final RecordSummary recordSummary = new RecordSummary();  // scrape the Kafka callbacks for disposition of in-flight data
+            final List<FlowFileResult> flowFileResults = recordSummary.getFlowFileResults();
+            for (final ProducerCallback callback : callbacks) {
+                // short-circuit the handling of the flowfile results here
+                if (callback.isFailure()) {
+                    flowFileResults.add(callback.toFailureResult());
+                } else {
+                    flowFileResults.add(callback.waitComplete(serviceConfiguration.getMaxAckWait().toMillis()));
+                }
+            }
+
+            return recordSummary;
+        } finally {
+            callbacks.clear();
         }
-        return recordSummary;
     }
 
     @Override

@@ -17,31 +17,73 @@
 package org.apache.nifi.kafka.service.producer.transaction;
 
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.errors.TimeoutException;
+import org.apache.nifi.kafka.service.api.producer.PublishContext;
+import org.apache.nifi.kafka.service.api.record.KafkaRecord;
+import org.apache.nifi.kafka.service.producer.ProducerCallback;
+
+import java.util.Iterator;
 
 public class KafkaTransactionalProducerWrapper extends KafkaProducerWrapper {
+    private volatile boolean inTransaction = false;
 
     public KafkaTransactionalProducerWrapper(final Producer<byte[], byte[]> producer) {
         super(producer);
+        producer.initTransactions();
     }
 
     @Override
-    public void init() {
-        producer.initTransactions();
-        producer.beginTransaction();
+    public void send(final Iterator<KafkaRecord> kafkaRecords, final PublishContext publishContext, final ProducerCallback callback) {
+        if (!inTransaction) {
+            producer.beginTransaction();
+            inTransaction = true;
+        }
+
+        super.send(kafkaRecords, publishContext, callback);
     }
 
     @Override
     public void commit() {
         try {
-            producer.commitTransaction();
+            // Commit the transaction. If a TimeoutException is thrown, retry up to 3 times.
+            // The producer will throw an Exception if we attempt to abort a transaction
+            // after a commit times out.
+            boolean failure = false;
+            for (int i = 0; i < 3; i++) {
+                try {
+                    producer.commitTransaction();
+
+                    // If we logged any warning that we timed out and will retry, we should log a notification
+                    // that we were successful this time. Otherwise, don't spam the logs.
+                    if (failure) {
+                        logger.info("Successfully commited producer transaction after {} retries", i);
+                    }
+                    break;
+                } catch (final TimeoutException te) {
+                    failure = true;
+                    if (i == 2) {
+                        logger.warn("Failed to commit producer transaction after 3 attempts, each timing out. Aborting transaction.");
+                        throw te;
+                    }
+
+                    logger.warn("Timed out while committing producer transaction. Retrying...");
+                }
+            }
+
+            inTransaction = false;
         } catch (final Exception e) {
-            logger.debug("Failure during producer transaction commit", e);
+            logger.error("Failed to commit producer transaction", e);
             abort();
         }
     }
 
     @Override
     public void abort() {
+        if (!inTransaction) {
+            return;
+        }
+
+        inTransaction = false;
         producer.abortTransaction();
     }
 }

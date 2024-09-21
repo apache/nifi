@@ -19,13 +19,12 @@ package org.apache.nifi.kafka.processors.producer.convert;
 import org.apache.nifi.kafka.processors.producer.common.ProducerUtils;
 import org.apache.nifi.kafka.processors.producer.header.HeadersFactory;
 import org.apache.nifi.kafka.service.api.record.KafkaRecord;
-import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -42,13 +41,16 @@ public class FlowFileStreamKafkaRecordConverter implements KafkaRecordConverter 
     }
 
     @Override
-    public Iterator<KafkaRecord> convert(
-            final Map<String, String> attributes, final InputStream in, final long inputLength) throws IOException {
+    public Iterator<KafkaRecord> convert(final Map<String, String> attributes, final InputStream in, final long inputLength) throws IOException {
         ProducerUtils.checkMessageSize(maxMessageSize, inputLength);
-        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        StreamUtils.copy(in, bos);
-        final KafkaRecord kafkaRecord = new KafkaRecord(
-                null, null, null, null, bos.toByteArray(), headersFactory.getHeaders(attributes));
-        return Collections.singletonList(kafkaRecord).iterator();
+
+        final byte[] recordBytes;
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            in.transferTo(baos);
+            recordBytes = baos.toByteArray();
+        }
+
+        final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, null, recordBytes, headersFactory.getHeaders(attributes));
+        return List.of(kafkaRecord).iterator();
     }
 }
