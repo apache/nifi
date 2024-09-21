@@ -162,6 +162,48 @@ public class TestSplitRecord {
         out.assertContentEquals("header\nJohn Doe,48\nJane Doe,47\nJimmy Doe,14\n");
     }
 
+    @Test
+    public void testMaximumSplitsPerInvocation() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(SplitRecord.class);
+        final MockRecordParser readerService = new MockRecordParser();
+        final MockRecordWriter writerService = new MockRecordWriter("header", false);
+        runner.addControllerService("reader", readerService);
+        runner.enableControllerService(readerService);
+        runner.addControllerService("writer", writerService);
+        runner.enableControllerService(writerService);
+        runner.setProperty(SplitRecord.RECORD_READER, "reader");
+        runner.setProperty(SplitRecord.RECORD_WRITER, "writer");
+
+        runner.setProperty(SplitRecord.RECORDS_PER_SPLIT, "1");
+        runner.setProperty(SplitRecord.MAXIMUM_SPLITS_PER_INVOCATION, "2");
+
+        readerService.addRecord("John Doe", 48);
+        readerService.addRecord("Jane Doe", 47);
+        readerService.addRecord("Jimmy Doe", 14);
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(SplitRecord.REL_SPLITS, 2);
+        runner.assertTransferCount(SplitRecord.REL_ORIGINAL, 0);
+        runner.assertQueueNotEmpty();
+
+        runner.run();
+
+        runner.assertTransferCount(SplitRecord.REL_SPLITS, 3);
+        final List<MockFlowFile> fragmentFlowFiles = runner.getFlowFilesForRelationship(SplitRecord.REL_SPLITS);
+        final String expectedFragmentId = fragmentFlowFiles.get(0).getAttribute(SplitRecord.FRAGMENT_ID);
+        assertEquals("0", fragmentFlowFiles.get(0).getAttribute(SplitRecord.FRAGMENT_INDEX));
+        assertEquals("1", fragmentFlowFiles.get(1).getAttribute(SplitRecord.FRAGMENT_INDEX));
+        assertEquals("2", fragmentFlowFiles.get(2).getAttribute(SplitRecord.FRAGMENT_INDEX));
+        runner.assertAllFlowFiles(SplitRecord.REL_SPLITS, flowFile -> {
+            assertEquals(expectedFragmentId, flowFile.getAttribute(SplitRecord.FRAGMENT_ID));
+            assertEquals("3", flowFile.getAttribute(SplitRecord.FRAGMENT_COUNT));
+        });
+        runner.assertTransferCount(SplitRecord.REL_ORIGINAL, 1);
+        runner.assertQueueEmpty();
+    }
+
 
     @Test
     public void testReadFailure() throws InitializationException {
@@ -192,5 +234,4 @@ public class TestSplitRecord {
         final MockFlowFile failed = runner.getFlowFilesForRelationship(SplitRecord.REL_FAILURE).get(0);
         assertTrue(original == failed);
     }
-
 }
