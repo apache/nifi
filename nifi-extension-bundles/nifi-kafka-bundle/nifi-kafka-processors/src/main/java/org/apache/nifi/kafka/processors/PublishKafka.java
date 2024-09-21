@@ -22,11 +22,13 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.kafka.processors.producer.PartitionStrategy;
 import org.apache.nifi.kafka.processors.producer.common.PublishKafkaUtil;
 import org.apache.nifi.kafka.processors.producer.config.DeliveryGuarantee;
@@ -78,9 +80,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub"})
 @CapabilityDescription("Sends the contents of a FlowFile as either a message or as individual records to Apache Kafka using the Kafka Producer API. "
@@ -211,6 +216,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .description("The format used to publish the incoming FlowFile record to Kafka.")
             .required(true)
             .defaultValue(PublishStrategy.USE_VALUE)
+            .dependsOn(RECORD_READER)
             .allowableValues(PublishStrategy.class)
             .build();
 
@@ -319,6 +325,9 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
 
+    private final Queue<KafkaProducerService> producerServices = new LinkedBlockingQueue<>();
+
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return DESCRIPTORS;
@@ -352,6 +361,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
         final String topicName = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions(attributes).getValue();
         try {
             final List<PartitionState> partitionStates = producerService.getPartitionStates(topicName);
+
             verificationPartitions
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                     .explanation(String.format("Partitions [%d] found for Topic [%s]", partitionStates.size(), topicName));
@@ -366,6 +376,17 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
         return verificationResults;
     }
 
+
+    @OnStopped
+    public void onStopped() {
+        // Ensure that we close all Producer services when stopped
+        KafkaProducerService service;
+
+        while ((service = producerServices.poll()) != null) {
+            service.close();
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final List<FlowFile> flowFiles = PublishKafkaUtil.pollFlowFiles(session);
@@ -373,6 +394,33 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             return;
         }
 
+        final KafkaProducerService producerService = getProducerService(context);
+        try {
+            publishFlowFiles(context, session, flowFiles, producerService);
+        } catch (final Exception e) {
+            final String uuids = flowFiles.stream()
+                .map(ff -> ff.getAttribute(CoreAttributes.UUID.key()))
+                .collect(Collectors.joining(", "));
+
+            getLogger().error("Failed to publish {} FlowFiles to Kafka: uuids={}", flowFiles.size(), uuids, e);
+            producerService.close();
+        } finally {
+            if (!producerService.isClosed()) {
+                producerServices.offer(producerService);
+            }
+        }
+    }
+
+    private KafkaProducerService getProducerService(final ProcessContext context) {
+        final KafkaProducerService producerService = producerServices.poll();
+        if (producerService != null) {
+            return producerService;
+        }
+
+        return createProducerService(context);
+    }
+
+    private KafkaProducerService createProducerService(final ProcessContext context) {
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
 
         final boolean transactionsEnabled = context.getProperty(TRANSACTIONS_ENABLED).asBoolean();
@@ -381,27 +429,36 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
         final String compressionCodec = context.getProperty(COMPRESSION_CODEC).getValue();
         final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
         final ProducerConfiguration producerConfiguration = new ProducerConfiguration(
-                transactionsEnabled, transactionalIdPrefix, deliveryGuarantee, compressionCodec, partitionClass);
+            transactionsEnabled, transactionalIdPrefix, deliveryGuarantee, compressionCodec, partitionClass);
 
-        try (final KafkaProducerService producerService = connectionService.getProducerService(producerConfiguration)) {
-            publishFlowFiles(context, session, flowFiles, producerService);
-        } catch (final Throwable e) {
-            getLogger().error("Publishing FlowFiles failed", e);
-            context.yield();
-        }
+        return connectionService.getProducerService(producerConfiguration);
     }
+
 
     private void publishFlowFiles(final ProcessContext context, final ProcessSession session,
                                   final List<FlowFile> flowFiles, final KafkaProducerService producerService) {
-        producerService.init();
-        for (final FlowFile flowFile : flowFiles) {
-            publishFlowFile(context, session, flowFile, producerService);
-        }
-        final RecordSummary recordSummary = producerService.complete();
-        if (recordSummary.isFailure()) {
-            routeFailureStrategy(context, session, flowFiles);
-        } else {
-            routeResults(session, recordSummary.getFlowFileResults());
+
+        // Publish all FlowFiles and ensure that we call complete() on the producer and route flowfiles as appropriate, regardless
+        // of the outcome. If there are failures, the complete() method will abort the transaction (if transactions are enabled).
+        // Otherwise, it will commit the transaction (if transactions are enabled). We then route the FlowFiles based on the results.
+        try {
+            for (final FlowFile flowFile : flowFiles) {
+                publishFlowFile(context, session, flowFile, producerService);
+            }
+        } finally {
+            RecordSummary recordSummary = null;
+            try {
+                recordSummary = producerService.complete();
+            } catch (final Exception e) {
+                getLogger().warn("Failed to complete transaction with Kafka", e);
+                producerService.close();
+            }
+
+            if (recordSummary == null || recordSummary.isFailure()) {
+                routeFailureStrategy(context, session, flowFiles);
+            } else {
+                routeResults(session, recordSummary.getFlowFileResults());
+            }
         }
     }
 
@@ -420,6 +477,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             final long msgCount = flowFileResult.getSentCount();
             final FlowFile flowFile = session.putAttribute(flowFileResult.getFlowFile(), MSG_COUNT, String.valueOf(msgCount));
             session.adjustCounter("Messages Sent", msgCount, true);
+
             final Relationship relationship = flowFileResult.getExceptions().isEmpty() ? REL_SUCCESS : REL_FAILURE;
             session.transfer(flowFile, relationship);
         }
@@ -427,26 +485,31 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
     private void publishFlowFile(final ProcessContext context, final ProcessSession session,
                                  final FlowFile flowFile, final KafkaProducerService producerService) {
-        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final RecordSetWriterFactory keyWriterFactory = context.getProperty(RECORD_KEY_WRITER).asControllerService(RecordSetWriterFactory.class);
 
         final String topic = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions(flowFile.getAttributes()).getValue();
         final Integer partition = getPartition(context, flowFile);
         final PublishContext publishContext = new PublishContext(topic, partition, null, flowFile);
 
-        final PropertyValue propertyDemarcator = context.getProperty(MESSAGE_DEMARCATOR);
-        final int maxMessageSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).intValue();
+        final KafkaRecordConverter kafkaRecordConverter = getKafkaRecordConverter(context, flowFile);
+        final PublishCallback callback = new PublishCallback(producerService, publishContext, kafkaRecordConverter, flowFile.getAttributes(), flowFile.getSize());
 
-        final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty(PUBLISH_STRATEGY).getValue());
-        final RecordMetadataStrategy metadataStrategy = RecordMetadataStrategy.valueOf(context.getProperty(RECORD_METADATA_STRATEGY).getValue());
+        session.read(flowFile, callback);
+    }
 
-        final String kafkaKeyAttribute = context.getProperty(KAFKA_KEY).getValue();
-        final String keyAttributeEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
-        final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
-        final KeyFactory keyFactory = ((PublishStrategy.USE_VALUE == publishStrategy) && (messageKeyField != null))
-                 ? new MessageKeyFactory(flowFile, messageKeyField, keyWriterFactory, getLogger())
-                 : new AttributeKeyFactory(kafkaKeyAttribute, keyAttributeEncoding);
+    private Integer getPartition(final ProcessContext context, final FlowFile flowFile) {
+        final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
+
+        if (PartitionStrategy.EXPRESSION_LANGUAGE_PARTITIONING.getValue().equals(partitionClass)) {
+            final String partition = context.getProperty(PARTITION).evaluateAttributeExpressions(flowFile).getValue();
+            return Objects.hashCode(partition);
+        }
+
+        return null;
+    }
+
+    private KafkaRecordConverter getKafkaRecordConverter(final ProcessContext context, final FlowFile flowFile) {
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
         final String attributeHeaderPatternProperty = context.getProperty(ATTRIBUTE_HEADER_PATTERN).getValue();
         final Pattern attributeHeaderPattern = (attributeHeaderPatternProperty == null) ? null : Pattern.compile(attributeHeaderPatternProperty);
@@ -454,53 +517,36 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
         final Charset headerEncodingCharacterSet = Charset.forName(headerEncoding);
         final HeadersFactory headersFactory = new AttributesHeadersFactory(attributeHeaderPattern, headerEncodingCharacterSet);
 
-        final KafkaRecordConverter kafkaRecordConverter = getKafkaRecordConverter(
-                publishStrategy, metadataStrategy, readerFactory, writerFactory, keyWriterFactory,
-                keyFactory, headersFactory, propertyDemarcator, flowFile, maxMessageSize);
-        final PublishCallback callback = new PublishCallback(
-                producerService, publishContext, kafkaRecordConverter, flowFile.getAttributes(), flowFile.getSize());
-        session.read(flowFile, callback);
-    }
+        final int maxMessageSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).intValue();
 
-    private Integer getPartition(final ProcessContext context, final FlowFile flowFile) {
-        final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
-        if (PartitionStrategy.EXPRESSION_LANGUAGE_PARTITIONING.getValue().equals(partitionClass)) {
-            final String partition = context.getProperty(PARTITION).evaluateAttributeExpressions(flowFile).getValue();
-            return Objects.hashCode(partition);
-        }
-        return null;
-    }
+        if (readerFactory != null && writerFactory != null) {
+            final RecordSetWriterFactory keyWriterFactory = context.getProperty(RECORD_KEY_WRITER).asControllerService(RecordSetWriterFactory.class);
+            final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty(PUBLISH_STRATEGY).getValue());
+            final RecordMetadataStrategy metadataStrategy = RecordMetadataStrategy.valueOf(context.getProperty(RECORD_METADATA_STRATEGY).getValue());
 
-    private KafkaRecordConverter getKafkaRecordConverter(
-            final PublishStrategy publishStrategy,
-            final RecordMetadataStrategy metadataStrategy,
-            final RecordReaderFactory readerFactory,
-            final RecordSetWriterFactory writerFactory,
-            final RecordSetWriterFactory keyWriterFactory,
-            final KeyFactory keyFactory,
-            final HeadersFactory headersFactory,
-            final PropertyValue propertyValueDemarcator,
-            final FlowFile flowFile,
-            final int maxMessageSize
-    ) {
-        final KafkaRecordConverter kafkaRecordConverter;
-        if ((readerFactory != null) && (writerFactory != null)) {
+            final String kafkaKeyAttribute = context.getProperty(KAFKA_KEY).getValue();
+            final String keyAttributeEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
+            final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
+            final KeyFactory keyFactory = ((PublishStrategy.USE_VALUE == publishStrategy) && (messageKeyField != null))
+                ? new MessageKeyFactory(flowFile, messageKeyField, keyWriterFactory, getLogger())
+                : new AttributeKeyFactory(kafkaKeyAttribute, keyAttributeEncoding);
+
             if (publishStrategy == PublishStrategy.USE_WRAPPER) {
-                kafkaRecordConverter = new RecordWrapperStreamKafkaRecordConverter(flowFile, metadataStrategy,
-                        readerFactory, writerFactory, keyWriterFactory, maxMessageSize, getLogger());
+                return new RecordWrapperStreamKafkaRecordConverter(flowFile, metadataStrategy, readerFactory, writerFactory, keyWriterFactory, maxMessageSize, getLogger());
             } else {
-                kafkaRecordConverter = new RecordStreamKafkaRecordConverter(
-                        readerFactory, writerFactory, headersFactory, keyFactory, maxMessageSize, getLogger());
+                return new RecordStreamKafkaRecordConverter(readerFactory, writerFactory, headersFactory, keyFactory, maxMessageSize, getLogger());
             }
-        } else if (propertyValueDemarcator.isSet()) {
-            final String demarcator = propertyValueDemarcator.evaluateAttributeExpressions(flowFile).getValue();
-            kafkaRecordConverter = new DelimitedStreamKafkaRecordConverter(
-                    demarcator.getBytes(StandardCharsets.UTF_8), maxMessageSize, headersFactory);
-        } else {
-            kafkaRecordConverter = new FlowFileStreamKafkaRecordConverter(maxMessageSize, headersFactory);
         }
-        return kafkaRecordConverter;
+
+        final PropertyValue demarcatorValue = context.getProperty(MESSAGE_DEMARCATOR);
+        if (demarcatorValue.isSet()) {
+            final String demarcator = demarcatorValue.evaluateAttributeExpressions(flowFile).getValue();
+            return new DelimitedStreamKafkaRecordConverter(demarcator.getBytes(StandardCharsets.UTF_8), maxMessageSize, headersFactory);
+        }
+
+        return new FlowFileStreamKafkaRecordConverter(maxMessageSize, headersFactory);
     }
+
 
     private static class PublishCallback implements InputStreamCallback {
         private final KafkaProducerService producerService;
@@ -515,6 +561,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
                 final KafkaRecordConverter kafkaConverter,
                 final Map<String, String> attributes,
                 final long inputLength) {
+
             this.producerService = producerService;
             this.publishContext = publishContext;
             this.kafkaConverter = kafkaConverter;

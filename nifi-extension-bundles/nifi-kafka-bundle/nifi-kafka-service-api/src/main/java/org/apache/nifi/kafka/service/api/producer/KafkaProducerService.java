@@ -26,12 +26,6 @@ import java.util.List;
 public interface KafkaProducerService extends Closeable {
 
     /**
-     * Initialize the Kafka `Producer` for the publish API call sequence.  This has significance in the case of
-     * transactional publish activity.
-     */
-    void init();
-
-    /**
      * Send the record(s) associated with a single FlowFile.
      *
      * @param records        the NiFi representation of the Kafka records to be published
@@ -50,6 +44,11 @@ public interface KafkaProducerService extends Closeable {
      * `ControllerService` misconfiguration issues (NIFI-12194).
      */
     void close();
+
+    /**
+     * @return true if the producer is closed, false otherwise
+     */
+    boolean isClosed();
 
     /**
      * Fetch metadata associated with the Kafka partitions associated with the topic.
