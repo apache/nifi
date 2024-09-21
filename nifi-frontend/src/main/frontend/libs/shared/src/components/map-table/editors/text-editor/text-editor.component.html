@@ -33,11 +33,12 @@
                     @if (!readonly) {
                         <mat-checkbox
                             formControlName="setEmptyString"
-                        (mousedown)="preventDrag($event)"
-                        (change)="setEmptyStringChanged()"
-                        >Set empty string
-                    </mat-checkbox>
-                }</div>
+                            (mousedown)="preventDrag($event)"
+                            (change)="setEmptyStringChanged()"
+                            >Set empty string
+                        </mat-checkbox>
+                    }
+                </div>
             </div>
             <div class="flex justify-end items-center gap-x-2">
                 @if (readonly) {
