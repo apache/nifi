@@ -20,13 +20,15 @@ import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.admin.TopicListing;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -38,11 +40,13 @@ import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 import org.apache.nifi.kafka.service.api.common.ServiceConfiguration;
-import org.apache.nifi.kafka.service.api.consumer.ConsumerConfiguration;
+import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
+import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.producer.KafkaProducerService;
 import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
 import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
+import org.apache.nifi.kafka.service.consumer.pool.Subscription;
 import org.apache.nifi.kafka.service.producer.Kafka3ProducerService;
 import org.apache.nifi.kafka.shared.property.IsolationLevel;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
@@ -58,8 +62,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
@@ -222,33 +229,20 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     );
 
     private static final Duration VERIFY_TIMEOUT = Duration.ofSeconds(2);
-
     private static final String CONNECTION_STEP = "Kafka Broker Connection";
-
     private static final String TOPIC_LISTING_STEP = "Kafka Topic Listing";
 
-    private Properties clientProperties;
-
-    private ServiceConfiguration serviceConfiguration;
-
-    private Kafka3ConsumerService consumerService;
+    private volatile Properties clientProperties;
+    private volatile ServiceConfiguration serviceConfiguration;
+    private volatile Properties consumerProperties;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext configurationContext) {
         clientProperties = getClientProperties(configurationContext);
         serviceConfiguration = getServiceConfiguration(configurationContext);
-        final Properties consumerProperties = getConsumerProperties(configurationContext, clientProperties);
-        consumerService = new Kafka3ConsumerService(getLogger(), consumerProperties);
+        consumerProperties = getConsumerProperties(configurationContext, clientProperties);
     }
 
-    @OnDisabled
-    public void onDisabled() {
-        if (consumerService == null) {
-            getLogger().debug("Consumer Service not configured");
-        } else {
-            consumerService.close();
-        }
-    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -256,8 +250,40 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     }
 
     @Override
-    public KafkaConsumerService getConsumerService(final ConsumerConfiguration consumerConfiguration) {
+    public KafkaConsumerService getConsumerService(final PollingContext pollingContext) {
+        Objects.requireNonNull(pollingContext, "Polling Context required");
+
+        final Subscription subscription = createSubscription(pollingContext);
+
+        final Properties properties = new Properties();
+        properties.putAll(consumerProperties);
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, subscription.getGroupId());
+        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, subscription.getAutoOffsetReset().getValue());
+
+        final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
+        final Consumer<byte[], byte[]> consumer = new KafkaConsumer<>(properties, deserializer, deserializer);
+
+        final Optional<Pattern> topicPatternFound = subscription.getTopicPattern();
+        if (topicPatternFound.isPresent()) {
+            final Pattern topicPattern = topicPatternFound.get();
+            consumer.subscribe(topicPattern);
+        } else {
+            final Collection<String> topics = subscription.getTopics();
+            consumer.subscribe(topics);
+        }
+
+        final Kafka3ConsumerService consumerService = new Kafka3ConsumerService(getLogger(), consumer, subscription, pollingContext.getMaxUncommittedTime());
         return consumerService;
+    }
+
+    private Subscription createSubscription(final PollingContext pollingContext) {
+        final String groupId = pollingContext.getGroupId();
+        final Optional<Pattern> topicPatternFound = pollingContext.getTopicPattern();
+        final AutoOffsetReset autoOffsetReset = pollingContext.getAutoOffsetReset();
+
+        return topicPatternFound
+            .map(pattern -> new Subscription(groupId, pattern, autoOffsetReset))
+            .orElseGet(() -> new Subscription(groupId, pollingContext.getTopics(), autoOffsetReset));
     }
 
     @Override

@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -39,7 +40,6 @@ import org.apache.nifi.kafka.processors.consumer.convert.WrapperRecordStreamKafk
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
-import org.apache.nifi.kafka.service.api.consumer.ConsumerConfiguration;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
@@ -59,16 +59,18 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.StringUtils;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Pattern;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
@@ -162,7 +164,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                     + "of a message demarcator. When using a message demarcator we can have far more uncommitted messages "
                     + "than when we're not as there is much less for us to keep track of in memory.")
             .required(true)
-            .defaultValue("1 s")
+            .defaultValue("1 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(COMMIT_OFFSETS, "true")
             .build();
@@ -269,6 +271,11 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .description("FlowFiles containing one or more serialized Kafka Records")
             .build();
 
+    public static final Relationship PARSE_FAILURE = new Relationship.Builder()
+            .name("parse failure")
+            .description("If configured to use a Record Reader, a Kafka message that cannot be parsed using the configured Record Reader will be routed to this relationship")
+            .build();
+
     private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             CONNECTION_SERVICE,
             GROUP_ID,
@@ -290,21 +297,19 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             SEPARATE_BY_KEY
     );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(SUCCESS);
+    private static final Set<Relationship> SUCCESS_RELATIONSHIP = Set.of(SUCCESS);
+    private static final Set<Relationship> SUCCESS_FAILURE_RELATIONSHIPS = Set.of(SUCCESS, PARSE_FAILURE);
 
-    private KafkaConsumerService consumerService;
+    private volatile Charset headerEncoding;
+    private volatile Pattern headerNamePattern;
+    private volatile KeyEncoding keyEncoding;
+    private volatile OutputStrategy outputStrategy;
+    private volatile KeyFormat keyFormat;
+    private volatile boolean commitOffsets;
+    private volatile boolean useReader;
+    private volatile PollingContext pollingContext;
 
-    private Charset headerEncoding;
-
-    private Pattern headerNamePattern;
-
-    private KeyEncoding keyEncoding;
-
-    private OutputStrategy outputStrategy;
-
-    private KeyFormat keyFormat;
-
-    private boolean commitOffsets;
+    private final Queue<KafkaConsumerService> consumerServices = new LinkedBlockingQueue<>();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -313,13 +318,20 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     @Override
     public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
+        return useReader ? SUCCESS_FAILURE_RELATIONSHIPS : SUCCESS_RELATIONSHIP;
+    }
+
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (descriptor.equals(RECORD_READER)) {
+            useReader = newValue != null;
+        }
     }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
-        consumerService = connectionService.getConsumerService(new ConsumerConfiguration());
+        pollingContext = createPollingContext(context);
         headerEncoding = Charset.forName(context.getProperty(HEADER_ENCODING).getValue());
 
         final String headerNamePatternProperty = context.getProperty(HEADER_NAME_PATTERN).getValue();
@@ -335,17 +347,46 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         keyFormat = context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class);
     }
 
+    @OnStopped
+    public void onStopped() {
+        // Ensure that we close all Producer services when stopped
+        KafkaConsumerService service;
+
+        while ((service = consumerServices.poll()) != null) {
+            try {
+                service.close();
+            } catch (IOException e) {
+                getLogger().warn("Failed to close Kafka Consumer Service", e);
+            }
+        }
+    }
+
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final PollingContext pollingContext = getPollingContext(context);
+        final KafkaConsumerService consumerService = getConsumerService(context);
 
-        final Iterator<ByteRecord> consumerRecords = consumerService.poll(pollingContext).iterator();
-        if (consumerRecords.hasNext()) {
-            processConsumerRecords(context, session, pollingContext, consumerRecords);
-        } else {
-            getLogger().debug("No Kafka Records consumed: {}", pollingContext);
-            context.yield();
+        try {
+            final Iterator<ByteRecord> consumerRecords = consumerService.poll().iterator();
+            if (!consumerRecords.hasNext()) {
+                getLogger().debug("No Kafka Records consumed: {}", pollingContext);
+                return;
+            }
+
+            processConsumerRecords(context, session, consumerService, pollingContext, consumerRecords);
+        } catch (final Exception e) {
+            getLogger().error("Failed to consume Kafka Records", e);
+            consumerService.rollback();
+
+            try {
+                consumerService.close();
+            } catch (IOException ex) {
+                getLogger().warn("Failed to close Kafka Consumer Service", ex);
+            }
+        } finally {
+            if (!consumerService.isClosed()) {
+                consumerServices.offer(consumerService);
+            }
         }
     }
 
@@ -354,15 +395,14 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final List<ConfigVerificationResult> verificationResults = new ArrayList<>();
 
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
-        final KafkaConsumerService consumerService = connectionService.getConsumerService(new ConsumerConfiguration());
+        final PollingContext pollingContext = createPollingContext(context);
+        final KafkaConsumerService consumerService = connectionService.getConsumerService(pollingContext);
 
         final ConfigVerificationResult.Builder verificationPartitions = new ConfigVerificationResult.Builder()
                 .verificationStepName("Verify Topic Partitions");
 
-        final PollingContext pollingContext = getPollingContext(context);
-
         try {
-            final List<PartitionState> partitionStates = consumerService.getPartitionStates(pollingContext);
+            final List<PartitionState> partitionStates = consumerService.getPartitionStates();
             verificationPartitions
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                     .explanation(String.format("Partitions [%d] found for Topics %s", partitionStates.size(), pollingContext.getTopics()));
@@ -377,68 +417,69 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         return verificationResults;
     }
 
-    private void processConsumerRecords(final ProcessContext context, final ProcessSession session, final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
-        final ProcessingStrategy processingStrategy = ProcessingStrategy.valueOf(context.getProperty(PROCESSING_STRATEGY).getValue());
-        // model this switch on the existing implementation at `ConsumerLease.processRecords()`
-        if (ProcessingStrategy.FLOW_FILE == processingStrategy) {
-            processInputFlowFile(session, pollingContext, consumerRecords);
-        } else if (ProcessingStrategy.DEMARCATOR == processingStrategy) {
-            final Iterator<ByteRecord> iteratorDemarcator = transformDemarcator(context, consumerRecords);
-            processInputFlowFile(session, pollingContext, iteratorDemarcator);
-        } else if (ProcessingStrategy.RECORD == processingStrategy) {
-            processInputRecords(context, session, pollingContext, consumerRecords);
-        } else {
-            throw new ProcessException(String.format("Processing Strategy not supported [%s]", processingStrategy));
+    private KafkaConsumerService getConsumerService(final ProcessContext context) {
+        final KafkaConsumerService consumerService = consumerServices.poll();
+        if (consumerService != null) {
+            return consumerService;
         }
+
+        final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
+        return connectionService.getConsumerService(pollingContext);
+    }
+
+    private void processConsumerRecords(final ProcessContext context, final ProcessSession session, final KafkaConsumerService consumerService,
+                final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
+
+        final ProcessingStrategy processingStrategy = ProcessingStrategy.valueOf(context.getProperty(PROCESSING_STRATEGY).getValue());
+
+        switch (processingStrategy) {
+            case RECORD -> processInputRecords(context, session, consumerService, pollingContext, consumerRecords);
+            case FLOW_FILE -> processInputFlowFile(session, consumerService, pollingContext, consumerRecords);
+            case DEMARCATOR -> {
+                final Iterator<ByteRecord> demarcatedRecords = transformDemarcator(context, consumerRecords);
+                processInputFlowFile(session, consumerService, pollingContext, demarcatedRecords);
+            }
+        }
+
     }
 
     private Iterator<ByteRecord> transformDemarcator(final ProcessContext context, final Iterator<ByteRecord> consumerRecords) {
         final String demarcatorValue = context.getProperty(ConsumeKafka.MESSAGE_DEMARCATOR).getValue();
-        if (demarcatorValue != null) {
-            final byte[] demarcator = demarcatorValue.getBytes(StandardCharsets.UTF_8);
-            final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
-            return new ByteRecordBundler(demarcator, separateByKey, keyEncoding, headerNamePattern, headerEncoding, commitOffsets).bundle(consumerRecords);
-        } else {
+        if (demarcatorValue == null) {
             return consumerRecords;
         }
+
+        final byte[] demarcator = demarcatorValue.getBytes(StandardCharsets.UTF_8);
+        final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
+        return new ByteRecordBundler(demarcator, separateByKey, keyEncoding, headerNamePattern, headerEncoding, commitOffsets).bundle(consumerRecords);
     }
 
-    private void processInputRecords(final ProcessContext context, final ProcessSession session, final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
+    private void processInputRecords(final ProcessContext context, final ProcessSession session, final KafkaConsumerService consumerService,
+                final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
+
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final OffsetTracker offsetTracker = new OffsetTracker();
+        final Runnable onSuccess = commitOffsets
+            ? () -> session.commitAsync(() -> consumerService.commit(offsetTracker.getPollingSummary(pollingContext)))
+            : session::commitAsync;
+
+        final KafkaMessageConverter converter;
         if (OutputStrategy.USE_VALUE.equals(outputStrategy)) {
-            processOutputStrategyUseValue(context, session, pollingContext, consumerRecords);
+            converter = new RecordStreamKafkaMessageConverter(readerFactory, writerFactory,
+                headerEncoding, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, onSuccess, getLogger());
         } else if (OutputStrategy.USE_WRAPPER.equals(outputStrategy)) {
-            processOutputStrategyUseWrapper(context, session, pollingContext, consumerRecords);
+            final RecordReaderFactory keyReaderFactory = context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class);
+            converter = new WrapperRecordStreamKafkaMessageConverter(readerFactory, writerFactory, keyReaderFactory,
+                headerEncoding, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, onSuccess, getLogger());
         } else {
             throw new ProcessException(String.format("Output Strategy not supported [%s]", outputStrategy));
         }
-    }
 
-    private void processOutputStrategyUseWrapper(final ProcessContext context, final ProcessSession session, final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
-        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final RecordReaderFactory keyReaderFactory = context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final OffsetTracker offsetTracker = new OffsetTracker();
-        final Runnable onSuccess = commitOffsets
-                ? () -> session.commitAsync(() -> consumerService.commit(offsetTracker.getPollingSummary(pollingContext)))
-                : session::commitAsync;
-        final KafkaMessageConverter converter = new WrapperRecordStreamKafkaMessageConverter(readerFactory, writerFactory, keyReaderFactory,
-                headerEncoding, headerNamePattern, keyFormat, keyEncoding, commitOffsets, offsetTracker, onSuccess, getLogger());
         converter.toFlowFiles(session, consumerRecords);
     }
 
-    private void processOutputStrategyUseValue(final ProcessContext context, final ProcessSession session, final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
-        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        final OffsetTracker offsetTracker = new OffsetTracker();
-        final Runnable onSuccess = commitOffsets
-                ? () -> session.commitAsync(() -> consumerService.commit(offsetTracker.getPollingSummary(pollingContext)))
-                : session::commitAsync;
-        final KafkaMessageConverter converter = new RecordStreamKafkaMessageConverter(readerFactory, writerFactory,
-                headerEncoding, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, onSuccess, getLogger());
-        converter.toFlowFiles(session, consumerRecords);
-    }
-
-    private void processInputFlowFile(final ProcessSession session, final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
+    private void processInputFlowFile(final ProcessSession session, final KafkaConsumerService consumerService, final PollingContext pollingContext, final Iterator<ByteRecord> consumerRecords) {
         final OffsetTracker offsetTracker = new OffsetTracker();
         final Runnable onSuccess = commitOffsets
                 ? () -> session.commitAsync(() -> consumerService.commit(offsetTracker.getPollingSummary(pollingContext)))
@@ -448,7 +489,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         converter.toFlowFiles(session, consumerRecords);
     }
 
-    private PollingContext getPollingContext(final ProcessContext context) {
+    private PollingContext createPollingContext(final ProcessContext context) {
         final String groupId = context.getProperty(GROUP_ID).getValue();
         final String offsetReset = context.getProperty(AUTO_OFFSET_RESET).getValue();
         final AutoOffsetReset autoOffsetReset = AutoOffsetReset.valueOf(offsetReset.toUpperCase());
@@ -466,6 +507,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         } else {
             throw new ProcessException(String.format("Topic Format [%s] not supported", topicFormat));
         }
+
         return pollingContext;
     }
 }

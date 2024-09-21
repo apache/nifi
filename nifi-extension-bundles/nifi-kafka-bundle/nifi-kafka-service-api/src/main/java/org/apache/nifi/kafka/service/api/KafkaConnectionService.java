@@ -17,14 +17,14 @@
 package org.apache.nifi.kafka.service.api;
 
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.kafka.service.api.consumer.ConsumerConfiguration;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
+import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.producer.KafkaProducerService;
 import org.apache.nifi.kafka.service.api.producer.ProducerConfiguration;
 
 public interface KafkaConnectionService extends ControllerService {
 
-    KafkaConsumerService getConsumerService(ConsumerConfiguration consumerConfiguration);
+    KafkaConsumerService getConsumerService(PollingContext pollingContext);
 
     KafkaProducerService getProducerService(ProducerConfiguration producerConfiguration);
 }

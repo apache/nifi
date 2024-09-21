@@ -83,7 +83,7 @@ class ConsumeKafkaTest {
     public void testVerifySuccessful() throws InitializationException {
         final PartitionState firstPartitionState = new PartitionState(TEST_TOPIC_NAME, FIRST_PARTITION);
         final List<PartitionState> partitionStates = Collections.singletonList(firstPartitionState);
-        when(kafkaConsumerService.getPartitionStates(any())).thenReturn(partitionStates);
+        when(kafkaConsumerService.getPartitionStates()).thenReturn(partitionStates);
         setConnectionService();
         when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
 
@@ -100,7 +100,7 @@ class ConsumeKafkaTest {
 
     @Test
     public void testVerifyFailed() throws InitializationException {
-        when(kafkaConsumerService.getPartitionStates(any())).thenThrow(new IllegalStateException());
+        when(kafkaConsumerService.getPartitionStates()).thenThrow(new IllegalStateException());
         when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
         setConnectionService();
 
