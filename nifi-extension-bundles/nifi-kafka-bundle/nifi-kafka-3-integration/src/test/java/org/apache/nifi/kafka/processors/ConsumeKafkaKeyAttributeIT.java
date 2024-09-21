@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.kafka.processors;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.kafka.common.header.Header;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
@@ -33,6 +32,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.HexFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -63,7 +63,7 @@ public class ConsumeKafkaKeyAttributeIT extends AbstractConsumeKafkaIT {
     public static Stream<Arguments> permutations() {
         return Stream.of(
                 Arguments.arguments(KeyEncoding.UTF8, RECORD_KEY, RECORD_KEY),
-                Arguments.arguments(KeyEncoding.HEX, RECORD_KEY, Hex.encodeHexString(RECORD_KEY.getBytes(StandardCharsets.UTF_8))),
+                Arguments.arguments(KeyEncoding.HEX, RECORD_KEY, HexFormat.of().formatHex(RECORD_KEY.getBytes(StandardCharsets.UTF_8))),
                 Arguments.arguments(KeyEncoding.DO_NOT_ADD, RECORD_KEY, null),
                 Arguments.arguments(KeyEncoding.UTF8, null, null)
         );
