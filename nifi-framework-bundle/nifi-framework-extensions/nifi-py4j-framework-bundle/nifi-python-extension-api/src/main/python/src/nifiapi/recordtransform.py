@@ -87,8 +87,14 @@ class __RecordTransformResult__:
         return self.processor_result.relationship
 
     def getPartition(self):
-        return self.processor_result.partition
+        if self.processor_result.partition is None:
+            return None
 
+        map = JvmHolder.jvm.java.util.HashMap()
+        for key, value in self.processor_result.partition.items():
+            map.put(key, value)
+
+        return map
 
 
 class RecordTransformResult:
