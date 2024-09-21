@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.kafka.processors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
@@ -43,20 +42,23 @@ public class PublishKafkaDelimitedIT extends AbstractPublishKafkaIT {
 
     private static final int TEST_RECORD_COUNT = 3;
 
+    private static final String DEMARCATOR = "xx";
+
     @Test
     public void test1ProduceOneFlowFile() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PublishKafka.class);
         runner.setValidateExpressionUsage(false);
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
-        runner.setProperty(PublishKafka.MESSAGE_DEMARCATOR, "xx");
+        runner.setProperty(PublishKafka.MESSAGE_DEMARCATOR, DEMARCATOR);
         runner.setProperty(PublishKafka.ATTRIBUTE_HEADER_PATTERN, "a.*");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("a1", "valueA1");
         attributes.put("b1", "valueB1");
 
-        runner.enqueue(StringUtils.repeat(TEST_RECORD_VALUE + "xx", TEST_RECORD_COUNT), attributes);
+        final String value = TEST_RECORD_VALUE + DEMARCATOR + TEST_RECORD_VALUE + DEMARCATOR + TEST_RECORD_VALUE;
+        runner.enqueue(value, attributes);
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PublishKafka.REL_SUCCESS, 1);
     }
