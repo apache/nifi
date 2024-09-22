@@ -76,7 +76,6 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -86,6 +85,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
+import javax.net.ssl.SSLContext;
 
 import static java.util.Objects.requireNonNull;
 
@@ -221,7 +221,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public ProcessGroup createProcessGroup(final String id) {
-        return new StandardProcessGroup(id, statelessEngine.getControllerServiceProvider(),
+        final ProcessGroup created = new StandardProcessGroup(id, statelessEngine.getControllerServiceProvider(),
             statelessEngine.getProcessScheduler(),
             statelessEngine.getPropertyEncryptor(),
             statelessEngine.getExtensionManager(),
@@ -232,6 +232,9 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             null,
             group -> null,
             statelessEngine.getAssetManager());
+
+        onProcessGroupAdded(created);
+        return created;
     }
 
     @Override
