@@ -225,7 +225,8 @@ public class StandardProcessSessionIT {
         stateManager = new MockStateManager(connectable);
         stateManager.setIgnoreAnnotations(true);
 
-        context = new StandardRepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepository, counterRepository, provenanceRepo, stateManager);
+        context = new StandardRepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepository,
+            counterRepository, provenanceRepo, stateManager, 50_000L);
         session = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
     }
 
@@ -3134,7 +3135,8 @@ public class StandardProcessSessionIT {
                 flowFileEventRepository,
                 counterRepository,
                 provenanceRepo,
-                stateManager);
+                stateManager,
+                50_000L);
         return new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
 
     }

@@ -352,7 +352,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_NAR_LIBRARY_DIR = "./lib";
     public static final String DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR = "./extensions";
     public static final String DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL = "20 secs";
-    public static final String DEFAULT_MAX_APPENDABLE_CLAIM_SIZE = "1 MB";
+    public static final String DEFAULT_MAX_APPENDABLE_CLAIM_SIZE = "50 KB";
     public static final int DEFAULT_QUEUE_SWAP_THRESHOLD = 20000;
     public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
     public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
