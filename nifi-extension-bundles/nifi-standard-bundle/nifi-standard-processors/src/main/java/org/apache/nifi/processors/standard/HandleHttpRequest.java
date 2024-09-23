@@ -265,6 +265,13 @@ public class HandleHttpRequest extends AbstractProcessor {
             .defaultValue("200")
             .addValidator(StandardValidators.createLongValidator(8, 1000, true))
             .build();
+    public static final PropertyDescriptor REQUEST_HEADER_MAX_SIZE = new PropertyDescriptor.Builder()
+            .name("Request Header Maximum Size")
+            .description("The maximum supported size of HTTP headers in requests sent to this processor")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("8 KB")
+            .build();
     public static final PropertyDescriptor ADDITIONAL_METHODS = new PropertyDescriptor.Builder()
             .name("Additional HTTP Methods")
             .description("A comma-separated list of non-standard HTTP Methods that should be allowed")
@@ -327,6 +334,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             ALLOW_HEAD,
             ALLOW_OPTIONS,
             MAXIMUM_THREADS,
+            REQUEST_HEADER_MAX_SIZE,
             ADDITIONAL_METHODS,
             CLIENT_AUTH,
             CONTAINER_QUEUE_SIZE,
@@ -380,7 +388,10 @@ public class HandleHttpRequest extends AbstractProcessor {
         final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
         final Server server = createServer(context);
 
+        final int requestHeaderSize = context.getProperty(REQUEST_HEADER_MAX_SIZE).asDataSize(DataUnit.B).intValue();
         final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port);
+        serverConnectorFactory.setRequestHeaderSize(requestHeaderSize);
+
         final boolean needClientAuth = CLIENT_NEED.getValue().equals(clientAuthValue);
         serverConnectorFactory.setNeedClientAuth(needClientAuth);
         final boolean wantClientAuth = CLIENT_WANT.getValue().equals(clientAuthValue);
