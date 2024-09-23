@@ -37,10 +37,12 @@ public class RepositoryContextFactory {
     private final CounterRepository counterRepo;
     private final ProvenanceRepository provenanceRepo;
     private final StateManagerProvider stateManagerProvider;
+    private final long maxAppendableClaimBytes;
 
     public RepositoryContextFactory(final ContentRepository contentRepository, final FlowFileRepository flowFileRepository,
             final FlowFileEventRepository flowFileEventRepository, final CounterRepository counterRepository,
-            final ProvenanceRepository provenanceRepository, final StateManagerProvider stateManagerProvider) {
+            final ProvenanceRepository provenanceRepository, final StateManagerProvider stateManagerProvider,
+            final long maxAppendableClaimBytes) {
 
         this.contentRepo = contentRepository;
         this.flowFileRepo = flowFileRepository;
@@ -48,11 +50,12 @@ public class RepositoryContextFactory {
         this.counterRepo = counterRepository;
         this.provenanceRepo = provenanceRepository;
         this.stateManagerProvider = stateManagerProvider;
+        this.maxAppendableClaimBytes = maxAppendableClaimBytes;
     }
 
     public RepositoryContext newProcessContext(final Connectable connectable, final AtomicLong connectionIndex) {
         final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier());
-        return new StandardRepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo, stateManager);
+        return new StandardRepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo, stateManager, maxAppendableClaimBytes);
     }
 
     public ContentRepository getContentRepository() {

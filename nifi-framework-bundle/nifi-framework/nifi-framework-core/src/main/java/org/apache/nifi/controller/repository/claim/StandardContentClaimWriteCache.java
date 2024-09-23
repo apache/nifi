@@ -17,8 +17,8 @@
 
 package org.apache.nifi.controller.repository.claim;
 
-import org.apache.nifi.controller.repository.io.ContentClaimOutputStream;
 import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.io.ContentClaimOutputStream;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.PerformanceTrackingOutputStream;
 
@@ -35,15 +35,13 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
     private final Map<ResourceClaim, MappedOutputStream> streamMap = new ConcurrentHashMap<>();
     private final Queue<ContentClaim> queue = new LinkedList<>();
     private final PerformanceTracker performanceTracker;
+    private final long maxAppendableClaimBytes;
     private final int bufferSize;
 
-    public StandardContentClaimWriteCache(final ContentRepository contentRepo, final PerformanceTracker performanceTracker) {
-        this(contentRepo, performanceTracker, 8192);
-    }
-
-    public StandardContentClaimWriteCache(final ContentRepository contentRepo, final PerformanceTracker performanceTracker, final int bufferSize) {
+    public StandardContentClaimWriteCache(final ContentRepository contentRepo, final PerformanceTracker performanceTracker, final long maxAppendableClaimBytes, final int bufferSize) {
         this.contentRepo = contentRepo;
         this.performanceTracker = performanceTracker;
+        this.maxAppendableClaimBytes = maxAppendableClaimBytes;
         this.bufferSize = bufferSize;
     }
 
@@ -154,7 +152,10 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
                     scc.setLength(0L);
                 }
 
-                queue.offer(claim);
+                // Add the claim back to the queue if it is still writable
+                if ((scc.getOffset() + scc.getLength()) < maxAppendableClaimBytes) {
+                    queue.offer(claim);
+                }
             }
         };
     }
