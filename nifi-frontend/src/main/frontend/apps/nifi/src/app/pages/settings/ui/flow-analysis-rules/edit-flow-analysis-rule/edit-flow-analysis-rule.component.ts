@@ -17,7 +17,6 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
@@ -63,7 +62,6 @@ import { SelectOption } from 'libs/shared/src';
         PropertyTable,
         AsyncPipe,
         NifiSpinnerDirective,
-        MatTooltipModule,
         NifiTooltipDirective,
         FlowAnalysisRuleTable,
         ErrorBanner,

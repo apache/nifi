@@ -39,7 +39,7 @@
                                     [delayClose]="false">
                                     <span
                                         class="option-text"
-                                        [class.surface-color]="allowableValue.value == null"
+                                        [class.neutral-color]="allowableValue.value == null"
                                         [class.unset]="allowableValue.value == null"
                                         >{{ allowableValue.displayName }}</span
                                     >
@@ -52,7 +52,7 @@
                                     (mousedown)="preventDrag($event)">
                                     <span
                                         class="option-text"
-                                        [class.surface-color]="allowableValue.value == null"
+                                        [class.neutral-color]="allowableValue.value == null"
                                         [class.unset]="allowableValue.value == null"
                                         >{{ allowableValue.displayName }}</span
                                     >
@@ -82,7 +82,7 @@
                                     <span
                                         class="option-text"
                                         [class.unset]="parameterAllowableValue.value == null"
-                                        [class.surface-color]="parameterAllowableValue.value == null"
+                                        [class.neutral-color]="parameterAllowableValue.value == null"
                                         >{{ parameterAllowableValue.displayName }}</span
                                     >
                                 </mat-option>
@@ -95,7 +95,7 @@
                                     <span
                                         class="option-text"
                                         [class.unset]="parameterAllowableValue.value == null"
-                                        [class.surface-color]="parameterAllowableValue.value == null"
+                                        [class.neutral-color]="parameterAllowableValue.value == null"
                                         >{{ parameterAllowableValue.displayName }}</span
                                     >
                                 </mat-option>
@@ -106,12 +106,7 @@
             </div>
             <div class="flex justify-end items-center gap-x-2">
                 @if (readonly) {
-                    <button
-                        mat-button
-                        type="button"
-                        color="primary"
-                        (mousedown)="preventDrag($event)"
-                        (click)="cancelClicked()">
+                    <button mat-flat-button type="button" (mousedown)="preventDrag($event)" (click)="cancelClicked()">
                         Close
                     </button>
                 } @else {
@@ -122,9 +117,8 @@
                         [disabled]="!comboEditorForm.dirty || comboEditorForm.invalid"
                         (mousedown)="preventDrag($event)"
                         type="button"
-                        color="primary"
                         (click)="okClicked()"
-                        mat-button>
+                        mat-flat-button>
                         Ok
                     </button>
                 }

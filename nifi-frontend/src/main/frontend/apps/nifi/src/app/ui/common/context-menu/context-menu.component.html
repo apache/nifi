@@ -17,7 +17,7 @@
 
 <ng-template #menu>
     <div
-        class="context-menu pt-2 pb-2 mat-elevation-z8 primary-color"
+        class="context-menu mat-mdc-menu-panel pt-2 pb-2 mat-elevation-z8 primary-color"
         [class.show-focused]="showFocused$ | async"
         (keydown)="keydown($event)"
         cdkMenu>
@@ -30,7 +30,7 @@
                         <button class="context-menu-item p-2" cdkMenuItem [cdkMenuTriggerFor]="subMenu">
                             <div class="flex gap-x-1">
                                 <div class="context-menu-item-img" [class]="item.clazz"></div>
-                                <div class="context-menu-item-text surface-contrast" [title]="item.text">
+                                <div class="context-menu-item-text neutral-contrast" [title]="item.text">
                                     {{ item.text }}
                                 </div>
                             </div>
@@ -48,12 +48,12 @@
                         cdkMenuItem>
                         <div class="flex gap-x-1">
                             <div class="context-menu-item-img" [class]="item.clazz"></div>
-                            <div class="context-menu-item-text surface-contrast" [title]="item.text">
+                            <div class="context-menu-item-text neutral-contrast" [title]="item.text">
                                 {{ item.text }}
                             </div>
                         </div>
                         @if (item.shortcut) {
-                            <div class="context-menu-item-shortcut surface-contrast justify-end opacity-40">
+                            <div class="context-menu-item-shortcut neutral-contrast justify-end opacity-40">
                                 @if (item.shortcut.shift) {
                                     ⇧
                                 }

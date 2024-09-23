@@ -107,7 +107,7 @@
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="accent-color font-medium">{{ dialogRequest.entity.id }}</div>
+                            <div class="tertiary-color font-medium">{{ dialogRequest.entity.id }}</div>
                         </div>
                         <div>
                             <mat-form-field>
@@ -251,15 +251,14 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (connectionReadonly || sourceReadonly || destinationReadonly) {
-                <button mat-button mat-dialog-close color="primary">Close</button>
+                <button mat-flat-button mat-dialog-close>Close</button>
             } @else {
                 <button mat-button mat-dialog-close="CANCELLED">Cancel</button>
                 <button
                     [disabled]="!editConnectionForm.dirty || editConnectionForm.invalid || saving.value"
                     type="button"
-                    color="primary"
                     (click)="editConnection()"
-                    mat-button>
+                    mat-flat-button>
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             }

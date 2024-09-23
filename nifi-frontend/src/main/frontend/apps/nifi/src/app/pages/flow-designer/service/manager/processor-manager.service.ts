@@ -603,7 +603,7 @@ export class ProcessorManager {
             //update the processor icon
             processor
                 .select('text.processor-icon')
-                .classed('unauthorized accent-color', !processorData.permissions.canRead);
+                .classed('unauthorized tertiary-color', !processorData.permissions.canRead);
 
             //update the processor border
             processor.select('rect.border').classed('unauthorized', !processorData.permissions.canRead);
@@ -651,7 +651,7 @@ export class ProcessorManager {
                 } else {
                     // undo changes made above
                     processor.select('text.processor-icon').attr('class', () => {
-                        return 'processor-icon accent-color';
+                        return 'processor-icon tertiary-color';
                     });
                     processor.select('rect.processor-icon-container').style('fill', null);
                     processor.select('rect.border').style('stroke', null);
@@ -688,13 +688,13 @@ export class ProcessorManager {
                 let clazz = 'primary-color';
 
                 if (d.status.aggregateSnapshot.runStatus === 'Validating') {
-                    clazz = 'validating surface-color';
+                    clazz = 'validating neutral-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'invalid caution-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                     clazz = 'running success-color-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'stopped warn-color-lighter';
+                    clazz = 'stopped error-color-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;

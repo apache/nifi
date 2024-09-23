@@ -26,7 +26,7 @@
                     <div>
                         <div>Registry</div>
                         <div
-                            class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                             [title]="versionControlInformation.registryName">
                             {{ versionControlInformation.registryName }}
                         </div>
@@ -34,7 +34,7 @@
                     <div>
                         <div>Bucket</div>
                         <div
-                            class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                             [title]="versionControlInformation.bucketName">
                             {{ versionControlInformation.bucketName }}
                         </div>
@@ -45,7 +45,7 @@
                         @if (versionControlInformation.branch) {
                             <div>Branch</div>
                             <div
-                                class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                                 [title]="versionControlInformation.branch">
                                 {{ versionControlInformation.branch }}
                             </div>
@@ -54,7 +54,7 @@
                     <div>
                         <div>Flow Name</div>
                         <div
-                            class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                             [title]="versionControlInformation.flowName">
                             {{ versionControlInformation.flowName }}
                         </div>
@@ -63,7 +63,7 @@
             </div>
             <div>
                 <div>Flow Description</div>
-                <div class="accent-color font-medium break-words">
+                <div class="tertiary-color font-medium break-words">
                     {{ versionControlInformation.flowDescription || 'No description provided' }}
                 </div>
             </div>
@@ -121,7 +121,7 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button [disabled]="!isSelectionValid()" type="button" color="primary" (click)="changeFlowVersion()" mat-button>
+        <button [disabled]="!isSelectionValid()" type="button" (click)="changeFlowVersion()" mat-flat-button>
             Change
         </button>
     </mat-dialog-actions>

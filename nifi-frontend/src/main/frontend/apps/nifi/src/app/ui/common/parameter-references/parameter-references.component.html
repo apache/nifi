@@ -17,7 +17,7 @@
 
 <div class="parameter-references">
     @if (parameterReferenceMap == null || parameterReferenceMap.size == 0) {
-        <div class="accent-color font-medium">No referencing components</div>
+        <div class="tertiary-color font-medium">No referencing components</div>
     } @else {
         @for (pg of processGroups; track pg.id) {
             <ng-container *ngTemplateOutlet="pgListing; context: { $implicit: pg }"></ng-container>
@@ -53,7 +53,7 @@
         <ng-template #processor let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4 class="accent-color">Processors ({{ references.length }})</h4>
+                    <h4 class="tertiary-color">Processors ({{ references.length }})</h4>
                     <div class="references">
                         @for (reference of references; track reference.component.id) {
                             <div class="flex items-center gap-x-2">
@@ -88,7 +88,7 @@
         <ng-template #service let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4 class="accent-color">Controller Services ({{ references.length }})</h4>
+                    <h4 class="tertiary-color">Controller Services ({{ references.length }})</h4>
                     <div class="references">
                         @for (service of references; track service.component.id) {
                             <div class="flex flex-col">
@@ -122,11 +122,11 @@
         <ng-template #unauthorized let-references>
             @if (references.length > 0) {
                 <li>
-                    <h4 class="accent-color">Unauthorized ({{ references.length }})</h4>
+                    <h4 class="tertiary-color">Unauthorized ({{ references.length }})</h4>
                     <div class="references">
                         @for (reference of references; track reference.id) {
                             <div class="flex">
-                                <div class="unset surface-color">{{ reference.id }}</div>
+                                <div class="unset neutral-color">{{ reference.id }}</div>
                             </div>
                         }
                     </div>

@@ -48,9 +48,8 @@
             <button
                 [disabled]="!createProcessGroupForm.dirty || createProcessGroupForm.invalid || saving.value"
                 type="button"
-                color="primary"
                 (click)="createProcessGroup()"
-                mat-button>
+                mat-flat-button>
                 <span *nifiSpinner="saving.value">Add</span>
             </button>
         </mat-dialog-actions>

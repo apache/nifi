@@ -161,12 +161,12 @@ export class FlowAnalysisRuleTable {
 
     getStateIcon(entity: FlowAnalysisRuleEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
-            return 'validating surface-color fa fa-spin fa-circle-o-notch';
+            return 'validating neutral-color fa fa-spin fa-circle-o-notch';
         } else if (entity.status.validationStatus === 'INVALID') {
             return 'invalid fa fa-warning caution-color';
         } else {
             if (entity.status.runStatus === 'DISABLED') {
-                return 'disabled surface-color icon icon-enable-false';
+                return 'disabled neutral-color icon icon-enable-false';
             } else if (entity.status.runStatus === 'ENABLED') {
                 return 'enabled success-color fa fa-flash';
             }

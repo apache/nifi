@@ -20,18 +20,18 @@
     <div class="node-details flex flex-col gap-y-4">
         <div class="flex flex-col">
             <div>Address</div>
-            <div class="accent-color font-medium">{{ node.address }}:{{ node.apiPort }}</div>
+            <div class="tertiary-color font-medium">{{ node.address }}:{{ node.apiPort }}</div>
         </div>
         <div class="flex flex-col">
             <div>Node Id</div>
-            <div class="accent-color font-medium">
+            <div class="tertiary-color font-medium">
                 {{ node.nodeId }}
             </div>
         </div>
         <div class="flex flex-col">
             <div>Node Events</div>
             @if (node.events && node.events.length > 0) {
-                <div class="accent-color font-medium text-base">
+                <div class="tertiary-color font-medium text-base">
                     <ul>
                         @for (event of node.events; track event) {
                             <li>{{ event.timestamp }} - {{ event.message }}</li>
@@ -39,11 +39,11 @@
                     </ul>
                 </div>
             } @else {
-                <div class="unset surface-color">No Events</div>
+                <div class="unset neutral-color">No Events</div>
             }
         </div>
     </div>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-    <button type="button" color="primary" mat-button mat-dialog-close>Close</button>
+    <button type="button" mat-flat-button mat-dialog-close>Close</button>
 </mat-dialog-actions>

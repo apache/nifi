@@ -62,9 +62,8 @@
             <button
                 [disabled]="!createPortForm.dirty || createPortForm.invalid || saving.value"
                 type="submit"
-                color="primary"
                 (click)="createPort()"
-                mat-button>
+                mat-flat-button>
                 <span *nifiSpinner="saving.value">Add</span>
             </button>
         </mat-dialog-actions>

@@ -25,7 +25,7 @@
             <div class="flex flex-col h-full gap-y-2">
                 @if (currentUser.controllerPermissions.canWrite) {
                     <div class="flex justify-end">
-                        <button mat-icon-button color="primary" (click)="openNewControllerServiceDialog()">
+                        <button mat-icon-button class="primary-icon-button" (click)="openNewControllerServiceDialog()">
                             <i class="fa fa-plus"></i>
                         </button>
                     </div>
@@ -52,11 +52,11 @@
                 </div>
                 <div class="flex justify-between">
                     <div class="text-sm flex items-center gap-x-2">
-                        <button mat-icon-button color="primary" (click)="refreshControllerServiceListing()">
+                        <button mat-icon-button class="primary-icon-button" (click)="refreshControllerServiceListing()">
                             <i class="fa fa-refresh" [class.fa-spin]="serviceState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="accent-color font-medium">
+                        <div class="tertiary-color font-medium">
                             {{ serviceState.loadedTimestamp }}
                         </div>
                     </div>

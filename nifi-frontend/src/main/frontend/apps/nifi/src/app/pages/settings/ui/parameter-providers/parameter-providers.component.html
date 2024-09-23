@@ -27,7 +27,7 @@
                     <div class="flex justify-end">
                         <button
                             mat-icon-button
-                            color="primary"
+                            class="primary-icon-button"
                             (click)="openNewParameterProviderDialog()"
                             title="Add a new parameter provider">
                             <i class="fa fa-plus"></i>
@@ -50,11 +50,14 @@
                 </div>
                 <div class="flex justify-between">
                     <div class="text-sm flex items-center gap-x-2">
-                        <button mat-icon-button color="primary" (click)="refreshParameterProvidersListing()">
+                        <button
+                            mat-icon-button
+                            class="primary-icon-button"
+                            (click)="refreshParameterProvidersListing()">
                             <i class="fa fa-refresh" [class.fa-spin]="parameterProvidersState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="accent-color font-medium">
+                        <div class="tertiary-color font-medium">
                             {{ parameterProvidersState.loadedTimestamp }}
                         </div>
                     </div>

@@ -30,18 +30,18 @@
             <div class="flex justify-between">
                 <div class="text-sm flex items-center gap-x-2">
                     <div class="mr-6">
-                        <mat-slide-toggle color="primary" [checked]="autoRefresh" (change)="autoRefreshToggle($event)"
+                        <mat-slide-toggle [checked]="autoRefresh" (change)="autoRefreshToggle($event)"
                             >Auto-refresh</mat-slide-toggle
                         >
                     </div>
                     <button
                         mat-icon-button
-                        color="primary"
+                        class="primary-icon-button"
                         (click)="refreshBulletinBoard(bulletinBoardState.lastBulletinId)">
                         <i class="fa fa-refresh" [class.fa-spin]="bulletinBoardState.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="accent-color font-medium">
+                    <div class="tertiary-color font-medium">
                         {{ bulletinBoardState.loadedTimestamp }}
                     </div>
                 </div>

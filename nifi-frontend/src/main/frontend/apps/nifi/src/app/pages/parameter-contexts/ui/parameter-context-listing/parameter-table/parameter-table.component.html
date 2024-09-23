@@ -19,7 +19,7 @@
     <div class="flex basis-2/3 flex-col gap-y-3">
         @if (canAddParameters && !isDisabled) {
             <div class="flex justify-end items-center">
-                <button mat-icon-button color="primary" type="button" (click)="newParameterClicked()">
+                <button mat-icon-button class="primary-icon-button" type="button" (click)="newParameterClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             </div>
@@ -72,7 +72,7 @@
                                 *ngTemplateOutlet="renderValue; context: { $implicit: getValue(item) }"></ng-container>
                             <ng-template #renderValue let-parameterValue>
                                 @if (isNull(parameterValue)) {
-                                    <div class="unset surface-color">No value set</div>
+                                    <div class="unset neutral-color">No value set</div>
                                 } @else {
                                     <ng-container
                                         *ngTemplateOutlet="
@@ -80,7 +80,7 @@
                                             context: { $implicit: parameterValue }
                                         "></ng-container>
                                     <ng-template #sensitive>
-                                        <div class="sensitive surface-color">Sensitive value set</div>
+                                        <div class="sensitive neutral-color">Sensitive value set</div>
                                     </ng-template>
                                     <ng-template #nonSensitive let-value>
                                         <ng-container
@@ -90,7 +90,7 @@
                                             "></ng-container>
                                     </ng-template>
                                     <ng-template #blank>
-                                        <div class="empty surface-color">Empty string set</div>
+                                        <div class="empty neutral-color">Empty string set</div>
                                     </ng-template>
                                     <ng-template #nonBlank let-value>
                                         <div class="flex justify-between items-center">
@@ -173,11 +173,11 @@
     <div class="flex basis-1/3 flex-col justify-between gap-y-3 w-full">
         <div class="flex flex-col">
             <div>Parameter</div>
-            <div class="accent-color font-medium">
+            <div class="tertiary-color font-medium">
                 @if (selectedItem) {
                     <span>{{ selectedItem.originalEntity.parameter.name }}</span>
                 } @else {
-                    <span class="unset surface-color">None</span>
+                    <span class="unset neutral-color">None</span>
                 }
             </div>
         </div>

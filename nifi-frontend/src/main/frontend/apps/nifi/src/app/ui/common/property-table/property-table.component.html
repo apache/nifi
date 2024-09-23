@@ -20,7 +20,7 @@
         <div class="font-bold">Required field</div>
         @if (!isDisabled) {
             <div>
-                <button mat-icon-button color="primary" type="button" (click)="newPropertyClicked()">
+                <button mat-icon-button class="primary-icon-button" type="button" (click)="newPropertyClicked()">
                     <i class="fa fa-plus"></i>
                 </button>
             </div>
@@ -60,7 +60,7 @@
                             #trigger="cdkOverlayOrigin"
                             (click)="openEditor(trigger, item, $event)">
                             @if (isNull(item.value)) {
-                                <div class="unset surface-color">No value set</div>
+                                <div class="unset neutral-color">No value set</div>
                             } @else {
                                 <ng-container
                                     *ngTemplateOutlet="
@@ -68,7 +68,7 @@
                                         context: { $implicit: resolvePropertyValue(item) }
                                     "></ng-container>
                                 <ng-template #sensitive>
-                                    <div class="sensitive surface-color">Sensitive value set</div>
+                                    <div class="sensitive neutral-color">Sensitive value set</div>
                                 </ng-template>
                                 <ng-template #nonSensitive let-resolvedValue>
                                     <ng-container
@@ -78,7 +78,7 @@
                                         "></ng-container>
                                 </ng-template>
                                 <ng-template #blank>
-                                    <div class="empty surface-color">Empty string set</div>
+                                    <div class="empty neutral-color">Empty string set</div>
                                 </ng-template>
                                 <ng-template #nonBlank let-resolvedValue>
                                     <div class="flex justify-between items-center">

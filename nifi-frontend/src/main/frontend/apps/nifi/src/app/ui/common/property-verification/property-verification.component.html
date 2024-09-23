@@ -19,7 +19,12 @@
     <div class="flex justify-between items-center">
         <div class="font-bold">Verification</div>
         <div>
-            <button mat-icon-button color="primary" type="button" [disabled]="disabled" (click)="verifyClicked()">
+            <button
+                mat-icon-button
+                class="primary-icon-button"
+                type="button"
+                [disabled]="disabled"
+                (click)="verifyClicked()">
                 <i class="fa fa-check"></i>
             </button>
         </div>
@@ -39,10 +44,10 @@
                                     <div class="fa fa-check success-color text-xl"></div>
                                 }
                                 @case (Outcome.FAILED) {
-                                    <div class="fa fa-times warn-color text-xl"></div>
+                                    <div class="fa fa-times error-color text-xl"></div>
                                 }
                                 @case (Outcome.SKIPPED) {
-                                    <div class="fa fa-exclamation warn-color-lighter text-xl"></div>
+                                    <div class="fa fa-exclamation error-color-lighter text-xl"></div>
                                 }
                             }
                             <div class="flex flex-col">

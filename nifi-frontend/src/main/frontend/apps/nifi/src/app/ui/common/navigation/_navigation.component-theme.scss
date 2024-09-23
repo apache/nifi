@@ -18,52 +18,48 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $supplemental-theme) {
-    // Get the color config from the theme.
-    $material-theme-color-config: mat.m2-get-color-config($material-theme);
-
-    // Get the color palette from the color-config.
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-
-    // Get hues from palette
-    $is-dark: map-get($material-theme-color-config, is-dark);
-    $material-theme-primary-palette-lighter-contrast: mat.m2-get-color-from-palette(
-        $material-theme-primary-palette,
-        lighter-contrast
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-secondary-palette-default: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), default)
     );
-    $material-theme-primary-palette-darker-contrast: mat.m2-get-color-from-palette(
-        $material-theme-primary-palette,
-        darker-contrast
+    $material-theme-secondary-palette-darker: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), darker)
     );
-    $material-theme-primary-palette-default: mat.m2-get-color-from-palette($material-theme-primary-palette);
-    $material-theme-primary-palette-darker: mat.m2-get-color-from-palette($material-theme-primary-palette, darker);
-    $material-theme-primary-palette-lighter: mat.m2-get-color-from-palette($material-theme-primary-palette, lighter);
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), lighter)
+    );
+    $secondary-contrast: map.get(map.get($config, secondary), contrast);
 
     .nifi-navigation {
-        background-color: if($is-dark, $material-theme-primary-palette-default, $material-theme-primary-palette-darker);
+        background-color: if(
+            $is-material-dark,
+            $material-theme-secondary-palette-default,
+            $material-theme-secondary-palette-lighter
+        );
 
-        .icon,
-        .icon.global-menu {
-            color: if($is-dark, $material-theme-primary-palette-darker, $material-theme-primary-palette-default);
+        .global-menu-icon.global-menu {
+            @extend .secondary-contrast;
         }
 
-        .icon:disabled,
-        .icon.global-menu:disabled {
-            @extend .surface-color;
+        .global-menu-icon.global-menu:disabled {
+            @extend .neutral-color;
         }
 
         .current-user {
-            @extend .primary-contrast;
-            font-family: mat.get-theme-typography($material-theme, body-1, font-family);
+            @extend .secondary-contrast;
+            font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
         }
 
         a {
-            @extend .primary-contrast;
-            text-decoration-color: if(
-                $is-dark,
-                $material-theme-primary-palette-darker-contrast,
-                $material-theme-primary-palette-lighter-contrast
-            );
+            @extend .secondary-contrast;
+            text-decoration-color: $secondary-contrast;
         }
 
         a:hover {

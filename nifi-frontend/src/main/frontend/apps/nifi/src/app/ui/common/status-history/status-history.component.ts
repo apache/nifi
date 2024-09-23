@@ -289,7 +289,7 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, OnDest
                 return nodeColor.color;
             }
         }
-        return 'unset surface-color';
+        return 'unset neutral-color';
     }
 
     protected readonly NIFI_NODE_CONFIG = NIFI_NODE_CONFIG;

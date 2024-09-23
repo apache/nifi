@@ -48,47 +48,50 @@
     }
 }
 
-@mixin generate-theme($material-theme, $supplemental-theme) {
-    // Get the color config from the theme.
-    $material-theme-color-config: mat.m2-get-color-config($material-theme);
-    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
 
-    // Get the color palette from the color-config.
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
+    $material-theme-secondary-palette-default: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), default)
+    );
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), lighter)
+    );
+    $material-theme-tertiary-palette-darker: mat.get-theme-color(
+        $material-theme,
+        tertiary,
+        map.get(map.get($config, tertiary), darker)
+    );
+    $material-theme-tertiary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        tertiary,
+        map.get(map.get($config, tertiary), lighter)
+    );
 
     // Get hues from palette
-    $is-dark: map-get($supplemental-theme-color-config, is-dark);
-
-    $supplemental-theme-surface-palette-lighter: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter
-    );
-    $supplemental-theme-surface-palette-darker: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker
-    );
     $selected-row-color: if(
-        $is-dark,
-        mat.m2-get-color-from-palette($material-theme-accent-palette, darker),
-        mat.m2-get-color-from-palette($material-theme-accent-palette, lighter)
-    );
-    $header-surface: if(
-        $is-dark,
-        mat.m2-get-color-from-palette($material-theme-primary-palette),
-        mat.m2-get-color-from-palette($material-theme-primary-palette, darker)
+        $is-material-dark,
+        $material-theme-tertiary-palette-darker,
+        $material-theme-tertiary-palette-lighter
     );
 
     .listing-table {
         table {
             th {
-                @extend .primary-contrast;
-                background-color: $header-surface !important;
+                @extend .secondary-contrast;
+                background-color: if(
+                    $is-material-dark,
+                    $material-theme-secondary-palette-default,
+                    $material-theme-secondary-palette-lighter
+                ) !important;
                 user-select: none;
 
                 .mat-sort-header-arrow {
-                    @extend .primary-contrast;
+                    @extend .secondary-contrast;
                 }
             }
 

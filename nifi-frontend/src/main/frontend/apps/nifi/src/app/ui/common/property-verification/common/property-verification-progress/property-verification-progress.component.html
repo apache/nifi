@@ -20,7 +20,7 @@
     <mat-dialog-content>
         <div class="flex flex-col gap-y-4">
             @if (verificationRequest$ | async; as verificationRequest) {
-                <div class="accent-color font-medium">
+                <div class="tertiary-color font-medium">
                     @if (verificationRequest.complete) {
                         Complete
                     } @else {
@@ -31,14 +31,14 @@
                     <mat-progress-bar
                         mode="determinate"
                         [value]="verificationRequest.percentCompleted"></mat-progress-bar>
-                    <div class="accent-color font-medium">{{ verificationRequest.percentCompleted }}%</div>
+                    <div class="tertiary-color font-medium">{{ verificationRequest.percentCompleted }}%</div>
                 </div>
             }
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         @if (verificationRequest$ | async; as verificationRequest) {
-            <button mat-button mat-dialog-close (click)="stop(verificationRequest)" color="primary">Stop</button>
+            <button mat-flat-button mat-dialog-close (click)="stop(verificationRequest)">Stop</button>
         }
     </mat-dialog-actions>
 </div>

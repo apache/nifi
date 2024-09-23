@@ -26,25 +26,25 @@
             }
             <div class="flex items-center gap-x-2" [title]="getActiveThreadsTitle()">
                 <div class="icon icon-threads" [class]="getActiveThreadsStyle()"></div>
-                <div class="accent-color font-medium">{{ formatActiveThreads() }}</div>
+                <div class="tertiary-color font-medium">{{ formatActiveThreads() }}</div>
             </div>
             <div class="flex items-center gap-x-2" title="Total queued data">
                 <div class="fa fa-list" [class]="getQueuedStyle()"></div>
-                <div class="accent-color font-medium">{{ controllerStatus.queued }}</div>
+                <div class="tertiary-color font-medium">{{ controllerStatus.queued }}</div>
             </div>
             <div class="flex items-center gap-x-2" title="Transmitting Remote Process Groups">
                 <div
                     class="fa fa-bullseye"
                     [class]="getActiveStyle(controllerStatus.activeRemotePortCount, 'success-color')"></div>
-                <div class="accent-color font-medium">
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.activeRemotePortCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Not Transmitting Remote Process Groups">
                 <div
                     class="icon icon-transmit-false"
-                    [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'surface-color')"></div>
-                <div class="accent-color font-medium">
+                    [class]="getActiveStyle(controllerStatus.inactiveRemotePortCount, 'neutral-color')"></div>
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.inactiveRemotePortCount) }}
                 </div>
             </div>
@@ -52,15 +52,15 @@
                 <div
                     class="fa fa-play"
                     [class]="getActiveStyle(controllerStatus.runningCount, 'success-color-lighter')"></div>
-                <div class="accent-color font-medium">
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.runningCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Stopped Components">
                 <div
                     class="fa fa-stop"
-                    [class]="getActiveStyle(controllerStatus.stoppedCount, 'warn-color-lighter')"></div>
-                <div class="accent-color font-medium">
+                    [class]="getActiveStyle(controllerStatus.stoppedCount, 'error-color-lighter')"></div>
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.stoppedCount) }}
                 </div>
             </div>
@@ -68,15 +68,15 @@
                 <div
                     class="fa fa-warning invalid"
                     [class]="getActiveStyle(controllerStatus.invalidCount, 'caution-color')"></div>
-                <div class="accent-color font-medium">
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.invalidCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Disabled Components">
                 <div
                     class="icon icon-enable-false"
-                    [class]="getActiveStyle(controllerStatus.disabledCount, 'surface-color')"></div>
-                <div class="accent-color font-medium">
+                    [class]="getActiveStyle(controllerStatus.disabledCount, 'neutral-color')"></div>
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.disabledCount) }}
                 </div>
             </div>
@@ -84,45 +84,47 @@
                 <div
                     class="fa fa-check"
                     [class]="getActiveStyle(controllerStatus.upToDateCount, 'success-color')"></div>
-                <div class="accent-color font-medium">
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.upToDateCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Locally modified Versioned Process Groups">
                 <div
                     class="fa fa-asterisk"
-                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'surface-color')"></div>
-                <div class="accent-color font-medium">
+                    [class]="getActiveStyle(controllerStatus.locallyModifiedCount, 'neutral-color')"></div>
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Stale Versioned Process Groups">
                 <div
                     class="fa fa-arrow-circle-up"
-                    [class]="getActiveStyle(controllerStatus.staleCount, 'warn-color-lighter')"></div>
-                <div class="accent-color font-medium">
+                    [class]="getActiveStyle(controllerStatus.staleCount, 'error-color-lighter')"></div>
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.staleCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Locally modified and stale Versioned Process Groups">
                 <div
                     class="fa fa-exclamation-circle"
-                    [class]="getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'warn-color-lighter')"></div>
-                <div class="accent-color font-medium">
+                    [class]="
+                        getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'error-color-lighter')
+                    "></div>
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedAndStaleCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Sync failure Versioned Process Groups">
                 <div
                     class="fa fa-question"
-                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'surface-color')"></div>
-                <div class="accent-color font-medium">
+                    [class]="getActiveStyle(controllerStatus.syncFailureCount, 'neutral-color')"></div>
+                <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.syncFailureCount) }}
                 </div>
             </div>
             <div class="flex items-center gap-x-2" title="Last refresh">
                 <div class="fa fa-refresh primary-color" [class.fa-spin]="loadingStatus"></div>
-                <div class="accent-color font-medium">{{ lastRefreshed }}</div>
+                <div class="tertiary-color font-medium">{{ lastRefreshed }}</div>
             </div>
         </div>
         <div class="flex">

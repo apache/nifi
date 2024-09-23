@@ -25,14 +25,14 @@
                 <div class="flex flex-col flex-1">
                     <div class="flex flex-col mb-4">
                         <div>Name</div>
-                        <div class="accent-color font-medium">
+                        <div class="tertiary-color font-medium">
                             {{ parameterProvider.component.name }}
                         </div>
                     </div>
 
                     <div class="flex flex-col mb-4">
                         <div>Parameter Groups</div>
-                        <div class="accent-color font-medium">
+                        <div class="tertiary-color font-medium">
                             {{ parameterGroupNames | sort | join }}
                         </div>
                     </div>
@@ -45,7 +45,7 @@
                             <div
                                 *ngFor="let updateStep of requestEntity.updateSteps"
                                 class="flex justify-between items-center">
-                                <div class="accent-color font-medium">
+                                <div class="tertiary-color font-medium">
                                     {{ updateStep.description }}
                                 </div>
                                 <div
@@ -72,7 +72,7 @@
                             </div>
                             <div
                                 *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none"
-                                class="accent-color font-medium">
+                                class="tertiary-color font-medium">
                                 {{ Object.values(parameterContextsToCreate) | sort | join }}
                             </div>
                         </div>
@@ -87,7 +87,7 @@
                             </div>
                             <div
                                 *ngIf="parameterContextsToUpdate.length > 0; else none"
-                                class="accent-color font-medium">
+                                class="tertiary-color font-medium">
                                 {{ parameterContextsToUpdate | sort | join }}
                             </div>
                         </div>
@@ -111,7 +111,7 @@
                         </div>
 
                         <ng-template #none>
-                            <div class="unset surface-color">None</div>
+                            <div class="unset neutral-color">None</div>
                         </ng-template>
                     </div>
                 </div>
@@ -124,7 +124,7 @@
                     <div class="flex flex-col flex-1">
                         <div class="flex flex-col mb-4">
                             <div>Name</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ parameterProvider.component.name }}
                             </div>
                         </div>
@@ -159,7 +159,6 @@
                                     <!-- Not synced, give the user the option to create a parameter context for the group -->
                                     <div class="flex items-center">
                                         <mat-checkbox
-                                            color="primary"
                                             formControlName="createParameterContext"
                                             (change)="createParameterContextToggled($event)">
                                             <mat-label>Create Parameter Context</mat-label>
@@ -183,7 +182,7 @@
                                 <ng-template #paramContextSynced>
                                     <div class="flex flex-col">
                                         <div>Parameter Context Name</div>
-                                        <div class="accent-color font-medium">
+                                        <div class="tertiary-color font-medium">
                                             {{ parameterGroupConfig.parameterContextName }}
                                         </div>
                                     </div>
@@ -207,7 +206,7 @@
                                                         parameterGroupConfig.parameterSensitivities
                                                     )
                                                 "
-                                                class="accent-color font-medium">
+                                                class="tertiary-color font-medium">
                                                 {{ param[0] }}
                                             </li>
                                         </ul>
@@ -238,14 +237,13 @@
                                                     <ng-container matColumnDef="sensitive">
                                                         <th mat-header-cell *matHeaderCellDef>
                                                             <mat-checkbox
-                                                                color="accent"
+                                                                class="tertiary-checkbox"
                                                                 [checked]="areAllSelected(parameterGroupConfig)"
                                                                 [indeterminate]="areAnySelected(parameterGroupConfig)"
                                                                 (change)="selectAllChanged($event)"></mat-checkbox>
                                                         </th>
                                                         <td mat-cell *matCellDef="let item" class="items-center">
                                                             <mat-checkbox
-                                                                color="primary"
                                                                 [formControl]="
                                                                     getFormControl(item, parameterGroupConfig)
                                                                 "
@@ -308,7 +306,7 @@
                                 </div>
                                 <div
                                     *ngIf="Object.keys(parameterContextsToCreate).length > 0; else none"
-                                    class="accent-color font-medium">
+                                    class="tertiary-color font-medium">
                                     {{ Object.values(parameterContextsToCreate) | sort | join }}
                                 </div>
                             </div>
@@ -323,7 +321,7 @@
                                 </div>
                                 <div
                                     *ngIf="parameterContextsToUpdate.length > 0; else none"
-                                    class="accent-color font-medium">
+                                    class="tertiary-color font-medium">
                                     {{ parameterContextsToUpdate | sort | join }}
                                 </div>
                             </div>
@@ -345,7 +343,7 @@
                             </div>
 
                             <ng-template #none>
-                                <div class="unset surface-color">None</div>
+                                <div class="unset neutral-color">None</div>
                             </ng-template>
                         </div>
                     </div>
@@ -365,9 +363,8 @@
                 <button
                     [disabled]="!canSubmitForm() || saving.value"
                     type="button"
-                    color="primary"
                     (click)="submitForm()"
-                    mat-button>
+                    mat-flat-button>
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             </ng-template>

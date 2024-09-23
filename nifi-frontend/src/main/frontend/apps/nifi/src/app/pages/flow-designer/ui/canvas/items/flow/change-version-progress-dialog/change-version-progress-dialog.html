@@ -20,7 +20,7 @@
     <mat-dialog-content>
         <div class="flex flex-col gap-y-4">
             @if (flowUpdateRequest$ | async; as versionChangeRequest) {
-                <div class="accent-color font-medium">
+                <div class="tertiary-color font-medium">
                     @if (versionChangeRequest.request.complete) {
                         This Process Group version has changed.
                     } @else {
@@ -31,7 +31,7 @@
                     <mat-progress-bar
                         mode="determinate"
                         [value]="versionChangeRequest.request.percentCompleted"></mat-progress-bar>
-                    <div class="accent-color font-medium">{{ versionChangeRequest.request.percentCompleted }}%</div>
+                    <div class="tertiary-color font-medium">{{ versionChangeRequest.request.percentCompleted }}%</div>
                 </div>
             }
         </div>
@@ -40,10 +40,9 @@
         @if (flowUpdateRequest$ | async; as versionChangeRequest) {
             <button
                 [disabled]="!versionChangeRequest?.request?.complete"
-                mat-button
+                mat-flat-button
                 mat-dialog-close
-                (click)="close(versionChangeRequest)"
-                color="primary">
+                (click)="close(versionChangeRequest)">
                 Close
             </button>
         }
