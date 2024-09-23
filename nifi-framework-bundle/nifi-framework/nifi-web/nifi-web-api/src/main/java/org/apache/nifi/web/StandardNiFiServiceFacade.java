@@ -3957,7 +3957,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ProcessorDefinition getProcessorDefinition(String group, String artifact, String version, String type) {
         final ProcessorDefinition processorDefinition = controllerFacade.getProcessorDefinition(group, artifact, version, type);
         if (processorDefinition == null) {
-            throw new ResourceNotFoundException("Unable to find definition for %s".formatted(type));
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
         }
         return processorDefinition;
     }
@@ -3966,7 +3966,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ControllerServiceDefinition getControllerServiceDefinition(String group, String artifact, String version, String type) {
         final ControllerServiceDefinition controllerServiceDefinition = controllerFacade.getControllerServiceDefinition(group, artifact, version, type);
         if (controllerServiceDefinition == null) {
-            throw new ResourceNotFoundException("Unable to find definition for %s".formatted(type));
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
         }
         return controllerServiceDefinition;
     }
@@ -3975,7 +3975,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ReportingTaskDefinition getReportingTaskDefinition(String group, String artifact, String version, String type) {
         final ReportingTaskDefinition reportingTaskDefinition = controllerFacade.getReportingTaskDefinition(group, artifact, version, type);
         if (reportingTaskDefinition == null) {
-            throw new ResourceNotFoundException("Unable to find definition for %s".formatted(type));
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
         }
         return reportingTaskDefinition;
     }
@@ -3984,7 +3984,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ParameterProviderDefinition getParameterProviderDefinition(String group, String artifact, String version, String type) {
         final ParameterProviderDefinition parameterProviderDefinition = controllerFacade.getParameterProviderDefinition(group, artifact, version, type);
         if (parameterProviderDefinition == null) {
-            throw new ResourceNotFoundException("Unable to find definition for %s".formatted(type));
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
         }
         return parameterProviderDefinition;
     }
@@ -3993,7 +3993,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public FlowAnalysisRuleDefinition getFlowAnalysisRuleDefinition(String group, String artifact, String version, String type) {
         final FlowAnalysisRuleDefinition flowAnalysisRuleDefinition = controllerFacade.getFlowAnalysisRuleDefinition(group, artifact, version, type);
         if (flowAnalysisRuleDefinition == null) {
-            throw new ResourceNotFoundException("Unable to find definition for %s".formatted(type));
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
         }
         return flowAnalysisRuleDefinition;
     }
