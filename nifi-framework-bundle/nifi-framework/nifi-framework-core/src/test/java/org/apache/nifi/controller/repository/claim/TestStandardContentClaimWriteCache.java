@@ -33,21 +33,22 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class TestContentClaimWriteCache {
+public class TestStandardContentClaimWriteCache {
 
     private FileSystemRepository repository = null;
     private StandardResourceClaimManager claimManager = null;
     private final File rootFile = new File("target/testContentClaimWriteCache");
-    private NiFiProperties nifiProperties;
 
     @BeforeEach
     public void setup() throws IOException {
-        nifiProperties = NiFiProperties.createBasicNiFiProperties(TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
         if (rootFile.exists()) {
             DiskUtils.deleteRecursively(rootFile);
         }
@@ -64,7 +65,7 @@ public class TestContentClaimWriteCache {
 
     @Test
     public void testFlushWriteCorrectData() throws IOException {
-        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, new NopPerformanceTracker(), 4);
+        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, new NopPerformanceTracker(), 50_000L, 4);
 
         final ContentClaim claim1 = cache.getContentClaim();
         assertNotNull(claim1);
@@ -95,6 +96,50 @@ public class TestContentClaimWriteCache {
         final byte[] buff2 = new byte[(int) claim2.getLength()];
         StreamUtils.fillBuffer(in2, buff2);
         assertArrayEquals("good-dayhello".getBytes(), buff2);
+    }
+
+    @Test
+    public void testWriteLargeRollsOverToNewFileOnNext() throws IOException {
+        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, new NopPerformanceTracker(), 50_000L, 4);
+
+        final ContentClaim claim1 = cache.getContentClaim();
+        assertNotNull(claim1);
+
+        try (final OutputStream out = cache.write(claim1)) {
+            assertNotNull(out);
+            out.write("hello".getBytes());
+            out.write("good-bye".getBytes());
+
+            cache.flush();
+        }
+
+        final ContentClaim claim2 = cache.getContentClaim();
+        assertEquals(claim1.getResourceClaim(), claim2.getResourceClaim());
+
+        try (final OutputStream out = cache.write(claim2)) {
+            assertNotNull(out);
+            out.write("greeting".getBytes());
+        }
+
+        final ContentClaim claim3 = cache.getContentClaim();
+        assertEquals(claim1.getResourceClaim(), claim3.getResourceClaim());
+
+        // Write 1 MB to the claim. This should result in the next Content Claim having a different Resource Claim.
+        try (final OutputStream out = cache.write(claim3)) {
+            assertNotNull(out);
+            final byte[] buffer = new byte[1024 * 1024];
+            final Random random = new Random();
+            random.nextBytes(buffer);
+            out.write(buffer);
+        }
+
+        assertEquals(3, claimManager.getClaimantCount(claim1.getResourceClaim()));
+
+        final ContentClaim claim4 = cache.getContentClaim();
+        assertNotNull(claim4);
+        assertNotEquals(claim1.getResourceClaim(), claim4.getResourceClaim());
+
+        assertEquals(1, claimManager.getClaimantCount(claim4.getResourceClaim()));
     }
 
 }
