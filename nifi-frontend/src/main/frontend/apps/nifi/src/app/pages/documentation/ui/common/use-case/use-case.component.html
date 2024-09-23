@@ -20,10 +20,15 @@
         <div class="flex justify-between items-center">
             <div>The list below summarizes some common use cases this Processor supports.</div>
             <div>
-                <button type="button" mat-icon-button color="primary" title="Expand All" (click)="expand()">
+                <button type="button" mat-icon-button class="primary-icon-button" title="Expand All" (click)="expand()">
                     <i class="fa fa-expand fa-rotate-45"></i>
                 </button>
-                <button type="button" mat-icon-button color="primary" title="Collapse All" (click)="collapse()">
+                <button
+                    type="button"
+                    mat-icon-button
+                    class="primary-icon-button"
+                    title="Collapse All"
+                    (click)="collapse()">
                     <i class="fa fa-compress fa-rotate-45"></i>
                 </button>
             </div>
@@ -37,18 +42,18 @@
                     <div class="property-definition flex flex-col gap-y-4">
                         <div>
                             <div>Description</div>
-                            <div class="accent-color font-medium">{{ useCase.description }}</div>
+                            <div class="tertiary-color font-medium">{{ useCase.description }}</div>
                         </div>
                         @if (useCase.notes) {
                             <div>
                                 <div>Notes</div>
-                                <div class="accent-color font-medium">{{ useCase.notes }}</div>
+                                <div class="tertiary-color font-medium">{{ useCase.notes }}</div>
                             </div>
                         }
                         @if (useCase.keywords.length > 0) {
                             <div>
                                 <div>Keywords</div>
-                                <div class="accent-color font-medium">{{ formatKeywords(useCase.keywords) }}</div>
+                                <div class="tertiary-color font-medium">{{ formatKeywords(useCase.keywords) }}</div>
                             </div>
                         }
                         @if (useCase.inputRequirement && useCase.inputRequirement !== InputRequirement.INPUT_ALLOWED) {

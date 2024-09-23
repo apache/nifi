@@ -37,14 +37,14 @@
         }
         <div>
             <div>Bundle</div>
-            <div class="accent-color font-medium">
+            <div class="tertiary-color font-medium">
                 {{ configurableExtensionDefinition.group }} | {{ configurableExtensionDefinition.artifact }}
             </div>
         </div>
         @if (configurableExtensionDefinition.typeDescription) {
             <div>
                 <div>Description</div>
-                <div class="accent-color font-medium">{{ configurableExtensionDefinition.typeDescription }}</div>
+                <div class="tertiary-color font-medium">{{ configurableExtensionDefinition.typeDescription }}</div>
             </div>
         }
         @if (configurableExtensionDefinition.additionalDetails) {
@@ -53,7 +53,7 @@
         }
         <div>
             <div>Tags</div>
-            <div class="accent-color font-medium">{{ configurableExtensionDefinition.tags.join(', ') }}</div>
+            <div class="tertiary-color font-medium">{{ configurableExtensionDefinition.tags.join(', ') }}</div>
         </div>
         @if (configurableExtensionDefinition.propertyDescriptors) {
             <div>
@@ -76,13 +76,13 @@
                     <div class="flex flex-col gap-y-1">
                         <div>
                             <div>Scopes</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ formatStatefulScope(configurableExtensionDefinition.stateful) }}
                             </div>
                         </div>
                         <div>
                             <div>Description</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ configurableExtensionDefinition.stateful.description }}
                             </div>
                         </div>

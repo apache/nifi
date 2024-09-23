@@ -25,7 +25,9 @@
                     [configurableExtensionDefinition]="controllerServiceDefinition"></configurable-extension-definition>
             </div>
         } @else if (controllerServiceDefinitionState.error) {
-            {{ controllerServiceDefinitionState.error }}
+            <div class="p-4">
+                {{ controllerServiceDefinitionState.error }}
+            </div>
         }
     }
 }

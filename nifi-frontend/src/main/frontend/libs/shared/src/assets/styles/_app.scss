@@ -672,7 +672,7 @@
         .mat-expansion-panel-content {
             font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
             letter-spacing: normal;
-            line-height: normal;
+            line-height: 20px;
         }
 
         .mat-mdc-menu-content,

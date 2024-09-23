@@ -25,7 +25,9 @@
                     [configurableExtensionDefinition]="reportingTaskDefinition"></configurable-extension-definition>
             </div>
         } @else if (reportingTaskDefinitionState.error) {
-            {{ reportingTaskDefinitionState.error }}
+            <div class="p-4">
+                {{ reportingTaskDefinitionState.error }}
+            </div>
         }
     }
 }

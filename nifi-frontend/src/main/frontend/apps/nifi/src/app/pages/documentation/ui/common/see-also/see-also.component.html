@@ -16,7 +16,7 @@
   -->
 
 @if (extensionTypes && extensionTypes.length > 0) {
-    <div class="see-also accent-color font-medium">
+    <div class="see-also tertiary-color font-medium">
         <ul class="list-disc list-inside">
             @if (getProcessorFromType(extensionTypes) | async; as seeAlsoTypes) {
                 <ng-container

@@ -25,7 +25,9 @@
                     [configurableExtensionDefinition]="parameterProviderDefinition"></configurable-extension-definition>
             </div>
         } @else if (parameterProviderDefinitionState.error) {
-            {{ parameterProviderDefinitionState.error }}
+            <div class="p-4">
+                {{ parameterProviderDefinitionState.error }}
+            </div>
         }
     }
 }

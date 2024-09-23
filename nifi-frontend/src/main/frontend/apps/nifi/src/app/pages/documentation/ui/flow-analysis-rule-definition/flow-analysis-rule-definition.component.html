@@ -25,7 +25,9 @@
                     [configurableExtensionDefinition]="flowAnalysisRuleDefinition"></configurable-extension-definition>
             </div>
         } @else if (flowAnalysisRuleDefinitionState.error) {
-            {{ flowAnalysisRuleDefinitionState.error }}
+            <div class="p-4">
+                {{ flowAnalysisRuleDefinitionState.error }}
+            </div>
         }
     }
 }
