@@ -337,7 +337,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     @Override
-    public synchronized void loadExtensionUis(final Set<Bundle> bundles) {
+    public synchronized void loadExtensionUis(final Collection<Bundle> bundles) {
         extensionUisToLoad.addAll(bundles);
     }
 
@@ -393,7 +393,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     @Override
-    public synchronized void unloadExtensionUis(final Set<Bundle> bundles) {
+    public synchronized void unloadExtensionUis(final Collection<Bundle> bundles) {
         bundles.forEach(this::unloadExtensionUis);
     }
 
