@@ -70,9 +70,12 @@ public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverte
             final String transitUri = String.format(TRANSIT_URI_FORMAT, consumerRecord.getTopic(), consumerRecord.getPartition());
             provenanceReporter.receive(flowFile, transitUri);
 
+            session.adjustCounter("Records Received from " + consumerRecord.getTopic(), 1, false);
+
             session.transfer(flowFile, ConsumeKafka.SUCCESS);
             offsetTracker.update(consumerRecord);
         }
+
         onSuccess.run();
     }
 }

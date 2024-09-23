@@ -24,7 +24,9 @@ import org.apache.nifi.kafka.service.api.producer.ProducerRecordMetadata;
 import org.apache.nifi.kafka.shared.util.Notifier;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
@@ -36,6 +38,7 @@ public class ProducerCallback implements Callback {
     private final List<ProducerRecordMetadata> metadatas;
     private final List<Exception> exceptions;
     private final Notifier notifier;
+    private final Map<String, Long> countsPerTopic = new HashMap<>();
 
     public List<Exception> getExceptions() {
         return exceptions;
@@ -55,7 +58,8 @@ public class ProducerCallback implements Callback {
         this.notifier = new Notifier();
     }
 
-    public long send() {
+    public long send(final String topic) {
+        countsPerTopic.put(topic, countsPerTopic.getOrDefault(topic, 0L) + 1);
         return sentCount.incrementAndGet();
     }
 
@@ -68,6 +72,7 @@ public class ProducerCallback implements Callback {
             failedCount.addAndGet(1L);
             exceptions.add(exception);
         }
+
         notifier.notifyWaiter();
     }
 
@@ -78,10 +83,10 @@ public class ProducerCallback implements Callback {
     public FlowFileResult waitComplete(final long maxAckWaitMillis) {
         final Supplier<Boolean> conditionComplete = () -> ((acknowledgedCount.get() + failedCount.get()) == sentCount.get());
         notifier.waitForCondition(conditionComplete, maxAckWaitMillis);
-        return new FlowFileResult(flowFile, sentCount.get(), metadatas, exceptions);
+        return new FlowFileResult(flowFile, sentCount.get(), countsPerTopic, metadatas, exceptions);
     }
 
     public FlowFileResult toFailureResult() {
-        return new FlowFileResult(flowFile, sentCount.get(), metadatas, exceptions);
+        return new FlowFileResult(flowFile, sentCount.get(), countsPerTopic, metadatas, exceptions);
     }
 }

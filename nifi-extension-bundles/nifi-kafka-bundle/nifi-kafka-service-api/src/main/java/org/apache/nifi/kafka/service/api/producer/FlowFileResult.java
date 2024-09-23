@@ -19,6 +19,7 @@ package org.apache.nifi.kafka.service.api.producer;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Container for results of processing / sending one FlowFile to Kafka.
@@ -26,13 +27,15 @@ import java.util.List;
 public class FlowFileResult {
     private final FlowFile flowFile;  // source data from NiFi
     private final long sentCount;  // count of converted Kafka records (from NiFi)
+    private final Map<String, Long> sentPerTopic;
     private final List<ProducerRecordMetadata> metadatas;  // success results (from Kafka callback)
     private final List<Exception> exceptions;  // failure results (from Kafka callback)
 
-    public FlowFileResult(final FlowFile flowFile, final long sentCount,
+    public FlowFileResult(final FlowFile flowFile, final long sentCount, final Map<String, Long> sentPerTopic,
                           final List<ProducerRecordMetadata> metadatas, final List<Exception> exceptions) {
         this.flowFile = flowFile;
         this.sentCount = sentCount;
+        this.sentPerTopic = sentPerTopic;
         this.metadatas = metadatas;
         this.exceptions = exceptions;
     }
@@ -43,6 +46,10 @@ public class FlowFileResult {
 
     public long getSentCount() {
         return sentCount;
+    }
+
+    public Map<String, Long> getSentPerTopic() {
+        return sentPerTopic;
     }
 
     public List<ProducerRecordMetadata> getMetadatas() {
