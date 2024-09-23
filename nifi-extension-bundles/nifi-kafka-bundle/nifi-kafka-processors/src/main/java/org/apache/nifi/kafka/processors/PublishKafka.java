@@ -353,27 +353,28 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
         final String partitionClass = context.getProperty(PARTITION_CLASS).getValue();
         final ProducerConfiguration producerConfiguration = new ProducerConfiguration(
                 transactionsEnabled, transactionalIdSupplier.get(), deliveryGuarantee, compressionCodec, partitionClass);
-        final KafkaProducerService producerService = connectionService.getProducerService(producerConfiguration);
 
-        final ConfigVerificationResult.Builder verificationPartitions = new ConfigVerificationResult.Builder()
+        try (final KafkaProducerService producerService = connectionService.getProducerService(producerConfiguration)) {
+            final ConfigVerificationResult.Builder verificationPartitions = new ConfigVerificationResult.Builder()
                 .verificationStepName("Verify Topic Partitions");
 
-        final String topicName = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions(attributes).getValue();
-        try {
-            final List<PartitionState> partitionStates = producerService.getPartitionStates(topicName);
+            final String topicName = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions(attributes).getValue();
+            try {
+                final List<PartitionState> partitionStates = producerService.getPartitionStates(topicName);
 
-            verificationPartitions
+                verificationPartitions
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                     .explanation(String.format("Partitions [%d] found for Topic [%s]", partitionStates.size(), topicName));
-        } catch (final Exception e) {
-            getLogger().error("Topic [%s] Partition verification failed", topicName, e);
-            verificationPartitions
+            } catch (final Exception e) {
+                getLogger().error("Topic [%s] Partition verification failed", topicName, e);
+                verificationPartitions
                     .outcome(ConfigVerificationResult.Outcome.FAILED)
                     .explanation(String.format("Topic [%s] Partition access failed: %s", topicName, e));
-        }
-        verificationResults.add(verificationPartitions.build());
+            }
+            verificationResults.add(verificationPartitions.build());
 
-        return verificationResults;
+            return verificationResults;
+        }
     }
 
 
@@ -477,6 +478,10 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             final long msgCount = flowFileResult.getSentCount();
             final FlowFile flowFile = session.putAttribute(flowFileResult.getFlowFile(), MSG_COUNT, String.valueOf(msgCount));
             session.adjustCounter("Messages Sent", msgCount, true);
+
+            for (final Map.Entry<String, Long> entry : flowFileResult.getSentPerTopic().entrySet()) {
+                session.adjustCounter("Messages Sent to " + entry.getKey(), entry.getValue(), true);
+            }
 
             final Relationship relationship = flowFileResult.getExceptions().isEmpty() ? REL_SUCCESS : REL_FAILURE;
             session.transfer(flowFile, relationship);

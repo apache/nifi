@@ -46,8 +46,9 @@ public abstract class KafkaProducerWrapper {
     public void send(final Iterator<KafkaRecord> kafkaRecords, final PublishContext publishContext, final ProducerCallback callback) {
         while (kafkaRecords.hasNext()) {
             final KafkaRecord kafkaRecord = kafkaRecords.next();
-            producer.send(toProducerRecord(kafkaRecord, publishContext), callback);
-            callback.send();
+            final ProducerRecord<byte[], byte[]> producerRecord = toProducerRecord(kafkaRecord, publishContext);
+            producer.send(producerRecord, callback);
+            callback.send(producerRecord.topic());
         }
     }
 
