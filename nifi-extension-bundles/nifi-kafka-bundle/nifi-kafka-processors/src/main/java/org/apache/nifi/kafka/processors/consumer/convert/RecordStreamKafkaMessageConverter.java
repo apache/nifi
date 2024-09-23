@@ -155,6 +155,7 @@ public class RecordStreamKafkaMessageConverter implements KafkaMessageConverter 
                     flowFile = session.putAllAttributes(flowFile, attributes);
                     flowFile = session.write(flowFile, out -> out.write(value));
                     session.transfer(flowFile, ConsumeKafka.PARSE_FAILURE);
+                    session.adjustCounter("Records Received from " + consumerRecord.getTopic(), 1, false);
 
                     // Track the offsets for the Kafka Record
                     offsetTracker.update(consumerRecord);
@@ -171,6 +172,7 @@ public class RecordStreamKafkaMessageConverter implements KafkaMessageConverter 
                 final RecordGroup recordGroup = entry.getValue();
 
                 final Map<String, String> attributes;
+                final int recordCount;
                 try (final RecordSetWriter writer = recordGroup.writer()) {
                     final WriteResult writeResult = writer.finishRecordSet();
                     attributes = new HashMap<>(writeResult.getAttributes());
@@ -178,6 +180,7 @@ public class RecordStreamKafkaMessageConverter implements KafkaMessageConverter 
                     attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
                     attributes.putAll(criteria.headers());
                     attributes.put(KafkaFlowFileAttribute.KAFKA_CONSUMER_OFFSETS_COMMITTED, String.valueOf(commitOffsets));
+                    recordCount = writeResult.getRecordCount();
                 }
 
                 FlowFile flowFile = recordGroup.flowFile();
@@ -186,6 +189,7 @@ public class RecordStreamKafkaMessageConverter implements KafkaMessageConverter 
                 final String transitUri = String.format(TRANSIT_URI_FORMAT, topic, partition);
                 provenanceReporter.receive(flowFile, transitUri);
                 session.transfer(flowFile, ConsumeKafka.SUCCESS);
+                session.adjustCounter("Records Received from " + topic, recordCount, false);
             }
 
             onSuccess.run();
