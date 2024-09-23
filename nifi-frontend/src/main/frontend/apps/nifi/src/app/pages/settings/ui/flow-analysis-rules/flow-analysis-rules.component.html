@@ -25,7 +25,7 @@
             <div class="flex flex-col h-full gap-y-2">
                 @if (currentUser.controllerPermissions.canWrite) {
                     <div class="flex justify-end">
-                        <button mat-icon-button color="primary" (click)="openNewFlowAnalysisRuleDialog()">
+                        <button mat-icon-button class="primary-icon-button" (click)="openNewFlowAnalysisRuleDialog()">
                             <i class="fa fa-plus"></i>
                         </button>
                     </div>
@@ -46,11 +46,11 @@
                 </div>
                 <div class="flex justify-between">
                     <div class="text-sm flex items-center gap-x-2">
-                        <button mat-icon-button color="primary" (click)="refreshFlowAnalysisRuleListing()">
+                        <button mat-icon-button class="primary-icon-button" (click)="refreshFlowAnalysisRuleListing()">
                             <i class="fa fa-refresh" [class.fa-spin]="flowAnalysisRuleState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="accent-color font-medium">
+                        <div class="tertiary-color font-medium">
                             {{ flowAnalysisRuleState.loadedTimestamp }}
                         </div>
                     </div>

@@ -23,7 +23,7 @@
         <div class="pb-5 px-5 flex-1 flex flex-col">
             <h3 class="primary-color">NiFi Settings</h3>
             <div class="settings-tabs">
-                <nav mat-tab-nav-bar color="primary" [tabPanel]="tabPanel">
+                <nav mat-tab-nav-bar [tabPanel]="tabPanel">
                     @for (tab of tabLinks; track tab) {
                         <a
                             mat-tab-link

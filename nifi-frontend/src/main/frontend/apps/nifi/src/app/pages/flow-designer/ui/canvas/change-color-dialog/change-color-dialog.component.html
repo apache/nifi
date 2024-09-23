@@ -23,7 +23,7 @@
                 <mat-label>Color</mat-label>
                 <input matInput type="color" formControlName="color" (change)="colorChanged()" />
             </mat-form-field>
-            <mat-checkbox color="primary" [checked]="noColor" formControlName="noColor" (change)="noColorChanged()"
+            <mat-checkbox [checked]="noColor" formControlName="noColor" (change)="noColorChanged()"
                 >Use default color</mat-checkbox
             >
         </div>
@@ -34,7 +34,7 @@
                     <div class="flex flex-col">
                         <div class="flex gap-x-2 items-center">
                             <div class="logo flex flex-col items-center" [style.background-color]="color">
-                                <i class="text-3xl accent-color icon-processor p-2" [style.color]="contrastColor"></i>
+                                <i class="text-3xl tertiary-color icon-processor p-2" [style.color]="contrastColor"></i>
                             </div>
                             <div class="flex flex-col flex-1">
                                 <div class="context-name w-full">Processor Name</div>
@@ -58,6 +58,6 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button mat-button [disabled]="changeColorForm.invalid" (click)="applyClicked()" color="primary">Apply</button>
+        <button mat-flat-button [disabled]="changeColorForm.invalid" (click)="applyClicked()">Apply</button>
     </mat-dialog-actions>
 </form>

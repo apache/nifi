@@ -18,152 +18,392 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-$material-primary-light-palette: (
-    50: rgba(#f9fafb, 0.97),
-    100: #e5ebed,
-    200: #cbd8dd,
-    300: #abbdc5,
-    400: #8aa2ad,
-    500: #728e9b,
-    600: #597b8a,
-    700: #4e6c79,
-    800: #3f5863,
-    900: #004849,
-    A100: #666666,
-    A200: #444444,
-    A400: #303030,
-    A700: #121212,
-    contrast: (
-        50: rgba(#000000, 0.87),
-        100: rgba(#000000, 0.87),
-        200: rgba(#000000, 0.87),
-        300: rgba(#000000, 0.87),
-        400: rgba(#000000, 0.87),
-        500: rgba(#000000, 0.87),
-        600: rgba(#000000, 0.87),
-        700: #ffffff,
-        800: #ffffff,
-        900: #ffffff,
-        A100: #ffffff,
-        A200: #ffffff,
-        A400: #ffffff,
-        A700: rgba(#000000, 0.87)
-    )
-);
-
-$material-accent-light-palette: mat.$m2-brown-palette;
-
-$warn-light-palette: (
-    50: #ffebee,
-    100: #ffccd2,
-    200: #f49999,
-    300: #eb7071,
-    400: #f64e4c,
-    500: #fa3b30,
-    600: #ec3030,
-    700: #ff1507,
-    800: #ff0000,
-    900: #ba554a,
-    contrast: (
-        50: rgba(#000000, 0.87),
-        100: rgba(#000000, 0.87),
-        200: rgba(#000000, 0.87),
-        300: rgba(#000000, 0.87),
-        400: #ffffff,
-        500: #ffffff,
-        600: #ffffff,
-        700: #ffffff,
-        800: #ffffff,
-        900: #ffffff
-    )
-);
-
-// Dark and light palettes are identical for NiFi, their "default", "lighter", and "darker" values are different and set below.
-$material-primary-dark-palette: $material-primary-light-palette;
-$material-accent-dark-palette: $material-accent-light-palette;
-$warn-dark-palette: $warn-light-palette;
-
-// For light mode:
-//
-// primary material palette:
-//
-// default hue: must have enough contrast on top of the mat-app-background (#fafafa). For light mode this is a minimum of 600 up to 900. It needs to be dark enough to be displayed on top of the darker hue.
-// lighter hue: is used for the flow run status icons, PG banner run status icons, RPG banner run status icons as well as PG banner background color, RPG banner background color. For light mode this is a minimum of 600 up to 900.
-// darker hue: is used for the navigation header background color. It needs to have enough contrast with the default hue since the default hue is displayed on top of the darker hue. In this case the darker hue is 300 so 900 was chosen for the default hue.
-$material-primary-light: mat.m2-define-palette($material-primary-light-palette, 900, 600, 300);
-// accent material palette:
-//
-// default hue: must have enough contrast on top of the mat-app-background (#fafafa). For light mode this is a minimum of 600 up to 900.
-// lighter hue: snackbar action button text color, Should be light as the action button is on a dark background in light mode.
-// darker hue: nothing
-$material-accent-light: mat.m2-define-palette($material-accent-light-palette, 500, 100, 700);
-// warn material palette color default hue must have enough contrast on top of the mat-app-background. For light mode this is a minimum of 600 up to 900.
-$warn-light: mat.m2-define-palette($warn-light-palette, 400, 200, 900);
-
 @use '@fontsource/roboto/latin.css' as roboto-normal;
 @use '@fontsource/roboto/latin-300-italic.css' as roboto-light-italic;
 @use '@fontsource/roboto/latin-400-italic.css' as roboto-normal-italic;
 
-//https://m2.material.io/design/typography/the-type-system.html#type-scale
-$typography-config: mat.m2-define-typography-config(
-    $font-family: Roboto,
-    // All `<h2>` native elements or use: `.text-xl font-bold`, `.mat-h2`, or `.mat-headline-6`
-    $headline-6: mat.m2-define-typography-level(18px, 28px, 700),
-    // All `<h3>` native elements or use: `.text-2xl font-bold`, `.mat-h3`, or `.mat-subtitle-1`
-    $subtitle-1: mat.m2-define-typography-level(20px, 28px, 700),
-    // All <th> native elements or use: `.mat-body-strong` or `.mat-subtitle-2`
-    $subtitle-2: mat.m2-define-typography-level(14px, 20px, 700),
-    // All `<h4>` native elements or use: `.text-base`, `.mat-h4`, or `.mat-body-1`
-    $body-1: mat.m2-define-typography-level(14px, 20px, 400),
-    // Any body text or use: `.mat-body` or `.mat-body-2`
-    $body-2: mat.m2-define-typography-level(14px, 20px, 400),
-    // Smaller body and hint text like <mat-error> or <mat-hint> or use: `.text-sm`, `.mat-small`, or`.mat-caption`
-    $caption: mat.m2-define-typography-level(12px, 16px, 400, $letter-spacing: 0.4px),
-    // Buttons and anchors.
-    $button: mat.m2-define-typography-level(14px, 20px, 400)
-);
-
-@include mat.typography-hierarchy($typography-config);
-
-// Create the theme objects. We can extract the values we need from the theme passed into the mixins.
-$material-theme-light: mat.m2-define-light-theme(
-    (
-        color: (
-            primary: $material-primary-light,
-            accent: $material-accent-light,
-            warn: $warn-light
-        ),
-        typography: $typography-config,
-        density: -3
+$m3-material-primary-light-palette: (
+    primary: (
+        0: #000000,
+        10: #002020,
+        20: #003738,
+        25: #004344,
+        30: #004849,
+        35: #004849,
+        40: #004849,
+        50: #478081,
+        60: #629a9b,
+        70: #7cb5b6,
+        80: #97d1d1,
+        90: #b3eded,
+        95: #c1fbfc,
+        98: #e2ffff,
+        99: #f1fffe,
+        100: #ffffff
+    ),
+    secondary: (
+        0: #000000,
+        10: #004849,
+        20: #3f5863,
+        25: #4e6c79,
+        30: #597b8a,
+        35: #728e9b,
+        40: #8aa2ad,
+        50: #abbdc5,
+        60: #abbdc5,
+        70: #abbdc5,
+        80: #cbd8dd,
+        90: #cbd8dd,
+        95: #cbd8dd,
+        98: #cbd8dd,
+        99: #cbd8dd,
+        100: #ffffff
+    ),
+    tertiary: (
+        0: #000000,
+        10: #3e2723,
+        20: #4e342e,
+        25: #4e342e,
+        30: #5d4037,
+        35: #6d4c41,
+        40: #795548,
+        50: #8d6e63,
+        60: #a1887f,
+        70: #bcaaa4,
+        80: #d7ccc8,
+        90: #d7ccc8,
+        95: #efebe9,
+        98: #efebe9,
+        99: #efebe9,
+        100: #ffffff
+    ),
+    neutral: (
+        0: #000000,
+        4: #121212,
+        6: #121212,
+        10: #303030,
+        12: #303030,
+        17: #303030,
+        20: #444444,
+        22: #444444,
+        24: #444444,
+        25: #666666,
+        30: #666666,
+        35: #666666,
+        40: #acacac,
+        50: #acacac,
+        60: #acacac,
+        70: #d8d8d8,
+        80: #d8d8d8,
+        87: #d8d8d8,
+        90: #e3e3e3,
+        92: #f4f4f4,
+        94: #f4f4f4,
+        95: #fafafa,
+        96: #fafafa,
+        98: #fafafa,
+        99: #fafafa,
+        100: #ffffff
+    ),
+    neutral-variant: (
+        0: #000000,
+        10: #303030,
+        20: #444444,
+        25: #666666,
+        30: #666666,
+        35: #666666,
+        40: #acacac,
+        50: #d8d8d8,
+        60: #d8d8d8,
+        70: #d8d8d8,
+        80: #d8d8d8,
+        90: #e3e3e3,
+        95: #f4f4f4,
+        98: #fafafa,
+        99: #fafafa,
+        100: #ffffff
+    ),
+    error: (
+        0: #000000,
+        10: #ba554a,
+        20: #ff0000,
+        25: #ff0000,
+        30: #ff1507,
+        35: #ec3030,
+        40: #f64e4c,
+        50: #f64e4c,
+        60: #f64e4c,
+        70: #eb7071,
+        80: #f49999,
+        90: #ffccd2,
+        95: #ffccd2,
+        98: #ffccd2,
+        99: #ffccd2,
+        100: #ffffff
     )
 );
 
-// For dark mode:
-//
-// primary material palette:
-//
-// default hue: default is used for the navigation header background color. It must have enough contrast on top of the mat-app-background (#303030). For dark mode this is a minimum of 200 to 400. It needs to be light enough to have the darker hue displayed on top of it.
-// lighter hue: is used for the flow run status icons, PG banner run status icons, RPG banner run status icons as well as PG banner background color, RPG banner background color. For light mode this is a minimum of 50 up to 200.
-// darker hue: is used for the PG banner background color, RPG banner background color. For light mode this is a minimum of 700 to 900 (or A700). It needs to be dark enough to be displayed on top of the default hue.
-$material-primary-dark: mat.m2-define-palette($material-primary-dark-palette, 400, 200, A700);
-// accent material palette color default hue must have enough contrast on top of the mat-app-background (#303030). For dark mode this is a minimum of 300 up to 500.
-// accent material palette:
-//
-// default hue: must have enough contrast on top of the mat-app-background (#303030). For light mode this is a minimum of 300 up to 400.
-// lighter hue: nothing
-// darker hue: snackbar action button text color, Should be darker as the action button is on a light background in dark mode.
-$material-accent-dark: mat.m2-define-palette($material-accent-dark-palette, 200, 100, 900);
-// warn material palette color default hue must have enough contrast on top of the mat-app-background (#303030). For dark mode this is a minimum of 300 up to 500.
-$warn-dark: mat.m2-define-palette($warn-dark-palette, 600, 200, 300);
+$m3-material-primary-dark-palette: (
+    primary: (
+        0: #000000,
+        10: #004849,
+        20: #3f5863,
+        25: #4e6c79,
+        30: #597b8a,
+        35: #728e9b,
+        40: #8aa2ad,
+        50: #8aa2ad,
+        60: #8aa2ad,
+        70: #8aa2ad,
+        80: #8aa2ad,
+        90: #cbd8dd,
+        95: #cbd8dd,
+        98: #cbd8dd,
+        99: #cbd8dd,
+        100: #ffffff
+    ),
+    secondary: (
+        0: #000000,
+        10: #004849,
+        20: #3f5863,
+        25: #4e6c79,
+        30: #597b8a,
+        35: #728e9b,
+        40: #8aa2ad,
+        50: #abbdc5,
+        60: #abbdc5,
+        70: #abbdc5,
+        80: #cbd8dd,
+        90: #cbd8dd,
+        95: #cbd8dd,
+        98: #cbd8dd,
+        99: #cbd8dd,
+        100: #ffffff
+    ),
+    tertiary: (
+        0: #000000,
+        10: #3e2723,
+        20: #4e342e,
+        25: #4e342e,
+        30: #5d4037,
+        35: #6d4c41,
+        40: #795548,
+        50: #8d6e63,
+        60: #a1887f,
+        70: #bcaaa4,
+        80: #d7ccc8,
+        90: #d7ccc8,
+        95: #efebe9,
+        98: #efebe9,
+        99: #efebe9,
+        100: #ffffff
+    ),
+    neutral: (
+        0: #000000,
+        4: #303030,
+        6: #303030,
+        10: #303030,
+        12: #444444,
+        17: #444444,
+        20: #444444,
+        22: #444444,
+        24: #444444,
+        25: #666666,
+        30: #666666,
+        35: #666666,
+        40: #acacac,
+        50: #acacac,
+        60: #acacac,
+        70: #d8d8d8,
+        80: #d8d8d8,
+        87: #d8d8d8,
+        90: #e3e3e3,
+        92: #e3e3e3,
+        94: #e3e3e3,
+        95: #f4f4f4,
+        96: #f4f4f4,
+        98: #fafafa,
+        99: #fafafa,
+        100: #ffffff
+    ),
+    neutral-variant: (
+        0: #000000,
+        10: #303030,
+        20: #444444,
+        25: #666666,
+        30: #666666,
+        35: #666666,
+        40: #666666,
+        50: #666666,
+        60: #666666,
+        70: #acacac,
+        80: #d8d8d8,
+        90: #e3e3e3,
+        95: #f4f4f4,
+        98: #fafafa,
+        99: #fafafa,
+        100: #ffffff
+    ),
+    error: (
+        0: #000000,
+        10: #ba554a,
+        20: #ff0000,
+        25: #ff0000,
+        30: #ff1507,
+        35: #ec3030,
+        40: #f64e4c,
+        50: #f64e4c,
+        60: #f64e4c,
+        70: #eb7071,
+        80: #f49999,
+        90: #ffccd2,
+        95: #ffccd2,
+        98: #ffccd2,
+        99: #ffccd2,
+        100: #ffffff
+    )
+);
 
-$material-theme-dark: mat.m2-define-dark-theme(
+// Define a dark theme
+$_dark-theme-rest: (
+    secondary: map.get($m3-material-primary-dark-palette, secondary),
+    neutral: map.get($m3-material-primary-dark-palette, neutral),
+    neutral-variant: map.get($m3-material-primary-dark-palette, neutral-variant),
+    error: map.get($m3-material-primary-dark-palette, error)
+);
+$_dark-theme-primary: map.merge(map.get($m3-material-primary-dark-palette, primary), $_dark-theme-rest);
+$_dark-theme-tertiary: map.merge(map.get($m3-material-primary-dark-palette, tertiary), $_dark-theme-rest);
+
+$m3-dark-theme: mat.define-theme(
     (
         color: (
-            primary: $material-primary-dark,
-            accent: $material-accent-dark,
-            warn: $warn-dark
+            theme-type: dark,
+            primary: $_dark-theme-primary,
+            tertiary: $_dark-theme-tertiary
         ),
-        typography: $typography-config,
-        density: -3
+        typography: (
+            plain-family: Roboto,
+            brand-family: Roboto,
+            bold-weight: 700,
+            regular-weight: 400
+        ),
+        density: (
+            scale: -3
+        )
+    )
+);
+
+// Define a light theme
+$_light-theme-rest: (
+    secondary: map.get($m3-material-primary-light-palette, secondary),
+    neutral: map.get($m3-material-primary-light-palette, neutral),
+    neutral-variant: map.get($m3-material-primary-light-palette, neutral-variant),
+    error: map.get($m3-material-primary-light-palette, error)
+);
+$_light-theme-primary: map.merge(map.get($m3-material-primary-light-palette, primary), $_light-theme-rest);
+$_light-theme-tertiary: map.merge(map.get($m3-material-primary-light-palette, tertiary), $_light-theme-rest);
+
+$m3-light-theme: mat.define-theme(
+    (
+        color: (
+            theme-type: light,
+            primary: $_light-theme-primary,
+            tertiary: $_light-theme-tertiary
+        ),
+        typography: (
+            plain-family: Roboto,
+            brand-family: Roboto,
+            bold-weight: 700,
+            regular-weight: 400
+        ),
+        density: (
+            scale: -3
+        )
+    )
+);
+
+$m3-light-theme-config: (
+    primary: (
+        darker: 10,
+        default: 40,
+        lighter: 80,
+        contrast: #ffffff
+    ),
+    secondary: (
+        darker: 10,
+        default: 30,
+        lighter: 70,
+        contrast: #000000,
+        new-canvas-item: (
+            grip: #ffffff,
+            hover: #ffffff
+        )
+    ),
+    tertiary: (
+        darker: 30,
+        default: 40,
+        lighter: 90
+    ),
+    success: (
+        darker: #016131,
+        default: #52bf7e,
+        lighter: #9dd9b2
+    ),
+    alternate-surface: #ffffff,
+    caution: #cf9f5d,
+    neutral: (
+        darker: 4,
+        default: 35,
+        lighter: 99,
+        contrast: #000000
+    ),
+    neutral-variant: 50,
+    error: (
+        darker: 10,
+        default: 50,
+        lighter: 80
+    )
+);
+
+$m3-dark-theme-config: (
+    primary: (
+        darker: 0,
+        default: 40,
+        lighter: 99,
+        contrast: #000000
+    ),
+    secondary: (
+        darker: 0,
+        default: 40,
+        lighter: 99,
+        contrast: #000000,
+        new-canvas-item: (
+            grip: #000000,
+            hover: #ffffff
+        )
+    ),
+    tertiary: (
+        darker: 10,
+        default: 70,
+        lighter: 80
+    ),
+    success: (
+        darker: #016131,
+        default: #52bf7e,
+        lighter: #9dd9b2
+    ),
+    alternate-surface: #444444,
+    caution: #cf9f5d,
+    neutral: (
+        darker: 10,
+        default: 40,
+        lighter: 94,
+        contrast: #ffffff
+    ),
+    neutral-variant: 35,
+    error: (
+        darker: 35,
+        default: 70,
+        lighter: 80
     )
 );

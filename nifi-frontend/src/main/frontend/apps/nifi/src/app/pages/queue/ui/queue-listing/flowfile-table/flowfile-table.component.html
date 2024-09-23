@@ -19,12 +19,12 @@
     <h3 class="queue-listing-header primary-color">{{ selectedConnection?.label }}</h3>
     <error-banner></error-banner>
     <div class="flex justify-between mb-2">
-        <div class="accent-color font-medium">
+        <div class="tertiary-color font-medium">
             Display {{ displayObjectCount }} of {{ formatCount(queueSizeObjectCount) }} ({{
                 formatBytes(queueSizeByteCount)
             }}) bytes
         </div>
-        <div class="listing-message warn-color">
+        <div class="listing-message error-color">
             @if (sourceRunning && destinationRunning) {
                 The source and destination of this queue are currently running. This listing may no longer be accurate.
             } @else {

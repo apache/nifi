@@ -46,15 +46,13 @@
             </mat-form-field>
         </div>
         <div class="-mt-4 mb-4">
-            <mat-checkbox color="primary" formControlName="empty" (change)="setEmptyStringChanged()"
-                >Set empty string</mat-checkbox
-            >
+            <mat-checkbox formControlName="empty" (change)="setEmptyStringChanged()">Set empty string</mat-checkbox>
         </div>
         <div class="flex flex-col mb-4">
             <label>Sensitive Value</label>
             <mat-radio-group formControlName="sensitive">
-                <mat-radio-button color="primary" [value]="true">Yes</mat-radio-button>
-                <mat-radio-button color="primary" [value]="false">No</mat-radio-button>
+                <mat-radio-button [value]="true">Yes</mat-radio-button>
+                <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
         </div>
         <div>
@@ -67,11 +65,7 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>
-            <button
-                mat-button
-                [disabled]="editParameterForm.invalid || saving.value"
-                (click)="okClicked()"
-                color="primary">
+            <button mat-flat-button [disabled]="editParameterForm.invalid || saving.value" (click)="okClicked()">
                 <span *nifiSpinner="saving.value">Ok</span>
             </button>
         </mat-dialog-actions>

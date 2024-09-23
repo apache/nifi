@@ -57,7 +57,7 @@
                                     </div>
                                 </div>
                             </form>
-                            <div class="accent-color font-medium my-2">
+                            <div class="tertiary-color font-medium my-2">
                                 <div>
                                     @switch (accessPolicyState.policyStatus) {
                                         @case (PolicyStatus.NotFound) {
@@ -90,7 +90,7 @@
                             <div class="flex gap-x-2">
                                 <button
                                     mat-icon-button
-                                    color="primary"
+                                    class="primary-icon-button"
                                     title="Add users/groups to this policy"
                                     [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                                     (click)="addTenantToPolicy()">
@@ -98,7 +98,7 @@
                                 </button>
                                 <button
                                     mat-icon-button
-                                    color="primary"
+                                    class="primary-icon-button"
                                     title="Delete this policy"
                                     [disabled]="accessPolicyState.policyStatus !== PolicyStatus.Found"
                                     (click)="deletePolicy()">
@@ -120,11 +120,11 @@
                     }
                     <div class="flex justify-between mt-2">
                         <div class="text-sm flex items-center gap-x-2">
-                            <button mat-icon-button color="primary" (click)="refreshGlobalAccessPolicy()">
+                            <button mat-icon-button class="primary-icon-button" (click)="refreshGlobalAccessPolicy()">
                                 <i class="fa fa-refresh" [class.fa-spin]="accessPolicyState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ accessPolicyState.loadedTimestamp }}
                             </div>
                         </div>

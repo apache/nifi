@@ -43,11 +43,8 @@
                             <a (click)="logout()">log out</a>
                         }
                     </div>
-                    <button
-                        mat-button
-                        [matMenuTriggerFor]="globalMenu"
-                        class="h-16 w-16 flex items-center justify-center icon global-menu">
-                        <i class="fa fa-navicon"></i>
+                    <button mat-button [matMenuTriggerFor]="globalMenu" class="global-menu-icon global-menu">
+                        <i class="fa fa-navicon text-[32px]"></i>
                     </button>
                     <mat-menu #globalMenu="matMenu" xPosition="before">
                         <button mat-menu-item class="global-menu-item" [routerLink]="getCanvasLink()">

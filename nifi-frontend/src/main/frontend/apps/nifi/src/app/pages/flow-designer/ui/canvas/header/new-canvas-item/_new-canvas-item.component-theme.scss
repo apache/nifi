@@ -18,54 +18,59 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $supplemental-theme) {
-    // Get the color config from the theme.
-    $material-theme-color-config: mat.m2-get-color-config($material-theme);
-    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
-
-    // Get the color palette from the color-config.
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
-
-    // Get hues from palette
-    $is-dark: map-get($material-theme-color-config, is-dark);
-    $material-theme-primary-palette-default: mat.m2-get-color-from-palette($material-theme-primary-palette);
-    $material-theme-primary-palette-lighter: mat.m2-get-color-from-palette($material-theme-primary-palette, lighter);
-    $material-theme-primary-palette-darker: mat.m2-get-color-from-palette($material-theme-primary-palette, darker);
-    $supplemental-theme-surface-palette-darker: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-secondary-palette-default: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), default)
     );
-    $supplemental-theme-surface-palette-lighter: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter
+    $material-theme-secondary-palette-darker: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), darker)
     );
-
-    $hover: var(--mat-menu-item-hover-state-layer-color);
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), lighter)
+    );
+    $material-theme-neutral-palette-darker: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), darker)
+    );
+    $material-theme-neutral-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), lighter)
+    );
+    $grip: map.get(map.get(map.get($config, secondary), new-canvas-item), grip);
+    $hover: map.get(map.get(map.get($config, secondary), new-canvas-item), hover);
 
     .new-canvas-item {
         .icon {
+            color: if(
+                $is-material-dark,
+                $material-theme-secondary-palette-darker,
+                $material-theme-secondary-palette-darker
+            );
+
             &.hovering {
                 @extend .mat-elevation-z2;
 
-                // This solution re-uses the highlight value used throughout the UI, but because we need to hide the non-hover
-                // version of the icons, we create a double layered gradient with the matching background color of the
-                // navigation bar, then put the highlight on top of it.
-                background: linear-gradient($hover, $hover),
-                    linear-gradient(
-                        $supplemental-theme-surface-palette-lighter,
-                        $supplemental-theme-surface-palette-lighter
-                    ) !important;
+                background: linear-gradient($hover, $hover) !important;
 
                 .component-button-grip {
                     background: repeating-linear-gradient(
                         90deg,
+                        $grip,
                         if(
-                            $is-dark,
-                            $supplemental-theme-surface-palette-darker,
-                            $supplemental-theme-surface-palette-lighter
-                        ),
-                        $material-theme-primary-palette-default 4px,
+                                $is-material-dark,
+                                $material-theme-secondary-palette-default,
+                                $material-theme-secondary-palette-darker
+                            )
+                            4px,
                         transparent 4px,
                         transparent 6px
                     );
@@ -73,12 +78,13 @@
             }
 
             &.cdk-drag-dragging {
-                color: if($is-dark, $material-theme-primary-palette-lighter, $material-theme-primary-palette-darker);
+                color: $material-theme-secondary-palette-lighter;
                 mix-blend-mode: difference; // Make sure the dragged icon is always visible
             }
         }
 
         .icon:disabled {
+            @extend .neutral-color;
             cursor: not-allowed;
         }
     }

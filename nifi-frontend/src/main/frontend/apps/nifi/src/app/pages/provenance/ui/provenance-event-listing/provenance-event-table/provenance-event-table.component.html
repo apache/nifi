@@ -22,7 +22,7 @@
             <div class="flex justify-between mb-1">
                 <div>
                     Oldest event available:
-                    <span class="accent-color font-medium">{{ oldestEventAvailable }}</span>
+                    <span class="tertiary-color font-medium">{{ oldestEventAvailable }}</span>
                 </div>
                 <div>
                     {{ resultsMessage }}
@@ -53,12 +53,12 @@
                             </div>
                         </div>
                     </form>
-                    <div class="accent-color font-medium my-2">
+                    <div class="tertiary-color font-medium my-2">
                         Filter matched {{ filteredCount }} of {{ totalCount }}
                     </div>
                 </div>
                 <div class="flex flex-col justify-center">
-                    <button mat-icon-button color="primary" (click)="searchClicked()">
+                    <button mat-icon-button class="primary-icon-button" (click)="searchClicked()">
                         <i class="fa fa-search"></i>
                     </button>
                 </div>
@@ -176,11 +176,11 @@
         </div>
         <div class="flex justify-between mt-2">
             <div class="text-sm flex items-center gap-x-2">
-                <button mat-icon-button color="primary" (click)="refreshClicked()">
+                <button mat-icon-button class="primary-icon-button" (click)="refreshClicked()">
                     <i class="fa fa-refresh" [class.fa-spin]="loading"></i>
                 </button>
                 <div>Last updated:</div>
-                <div class="accent-color font-medium">{{ loadedTimestamp }}</div>
+                <div class="tertiary-color font-medium">{{ loadedTimestamp }}</div>
             </div>
             <div>
                 <mat-paginator [pageSize]="100" [hidePageSize]="true" [showFirstLastButtons]="true"></mat-paginator>
@@ -205,7 +205,7 @@
                     <input matSliderThumb [value]="initialEventTimestampThreshold" (input)="handleInput($event)" />
                 </mat-slider>
             </div>
-            <div class="accent-color font-medium">
+            <div class="tertiary-color font-medium">
                 {{ formatLabel(currentEventTimestampThreshold) }}
             </div>
         </div>

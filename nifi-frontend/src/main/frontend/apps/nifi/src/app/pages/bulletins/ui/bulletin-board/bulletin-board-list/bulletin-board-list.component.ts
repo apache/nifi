@@ -144,7 +144,7 @@ export class BulletinBoardList implements AfterViewInit {
     getSeverity(severity: string) {
         switch (severity.toLowerCase()) {
             case 'error':
-                return 'bulletin-error warn-color';
+                return 'bulletin-error error-color-darker';
             case 'warn':
             case 'warning':
                 return 'bulletin-warn caution-color';

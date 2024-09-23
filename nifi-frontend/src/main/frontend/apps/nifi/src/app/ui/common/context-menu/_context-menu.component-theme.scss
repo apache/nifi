@@ -18,43 +18,16 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $supplemental-theme) {
-    // Get the color config from the theme.
-    $material-theme-color-config: mat.m2-get-color-config($material-theme);
-    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
-
-    // Get the color palette from the color-config.
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
-    $supplemental-theme-success-palette: map.get($supplemental-theme-color-config, 'accent');
-
-    // Get hues from palette
-    $is-dark: map-get($supplemental-theme-color-config, is-dark);
-    $material-theme-primary-palette-default: mat.m2-get-color-from-palette($material-theme-primary-palette, default);
-    $supplemental-theme-surface-palette-darker: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker
-    );
-    $supplemental-theme-surface-palette-lighter: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter
-    );
-    $supplemental-theme-surface-palette-darker-contrast: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker-contrast
-    );
-    $supplemental-theme-surface-palette-lighter-contrast: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter-contrast
-    );
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
 
     div.context-menu {
-        background-color: var(--mat-menu-container-color);
-        border-radius: 4px;
-
         .context-menu-item {
             .context-menu-item-text {
-                max-width: #{mat.get-theme-typography($material-theme, body-2, font-size) * 20};
+                font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+                line-height: mat.get-theme-typography($material-theme, body-medium, line-height);
+                max-width: #{mat.get-theme-typography($material-theme, body-medium, font-size) * 20};
             }
 
             &:hover {
@@ -63,11 +36,7 @@
         }
 
         .context-menu-item:active {
-            background-color: if(
-                $is-dark,
-                rgba($supplemental-theme-surface-palette-darker-contrast, 0.28),
-                rgba($supplemental-theme-surface-palette-lighter-contrast, 0.2)
-            );
+            background-color: $border-color;
         }
 
         &.show-focused {

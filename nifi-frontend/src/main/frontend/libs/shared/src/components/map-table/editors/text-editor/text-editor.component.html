@@ -32,7 +32,6 @@
                         (codeMirrorLoaded)="codeMirrorLoaded($event)"></ngx-codemirror>
                     @if (!readonly) {
                         <mat-checkbox
-                            color="primary"
                             formControlName="setEmptyString"
                             (mousedown)="preventDrag($event)"
                             (change)="setEmptyStringChanged()"
@@ -43,12 +42,7 @@
             </div>
             <div class="flex justify-end items-center gap-x-2">
                 @if (readonly) {
-                    <button
-                        mat-button
-                        type="button"
-                        color="primary"
-                        (mousedown)="preventDrag($event)"
-                        (click)="cancelClicked()">
+                    <button mat-flat-button type="button" (mousedown)="preventDrag($event)" (click)="cancelClicked()">
                         Close
                     </button>
                 } @else {
@@ -59,9 +53,8 @@
                         [disabled]="!textEditorForm.dirty || textEditorForm.invalid"
                         (mousedown)="preventDrag($event)"
                         type="button"
-                        color="primary"
                         (click)="okClicked()"
-                        mat-button>
+                        mat-flat-button>
                         Ok
                     </button>
                 }

@@ -30,18 +30,14 @@
         <div class="flex flex-col">
             <label>Sensitive Value</label>
             <mat-radio-group formControlName="sensitive">
-                <mat-radio-button color="primary" [value]="true">Yes</mat-radio-button>
-                <mat-radio-button color="primary" [value]="false">No</mat-radio-button>
+                <mat-radio-button [value]="true">Yes</mat-radio-button>
+                <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button
-            mat-button
-            [disabled]="!newPropertyForm.dirty || newPropertyForm.invalid"
-            (click)="addProperty()"
-            color="primary">
+        <button mat-flat-button [disabled]="!newPropertyForm.dirty || newPropertyForm.invalid" (click)="addProperty()">
             Ok
         </button>
     </mat-dialog-actions>

@@ -60,9 +60,8 @@
             <button
                 [disabled]="!createRegistryClientForm.dirty || createRegistryClientForm.invalid || saving.value"
                 type="button"
-                color="primary"
                 (click)="createRegistryClientClicked()"
-                mat-button>
+                mat-flat-button>
                 <span *nifiSpinner="saving.value">Apply</span>
             </button>
         </mat-dialog-actions>

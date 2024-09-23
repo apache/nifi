@@ -41,9 +41,8 @@
                         <button
                             [disabled]="!controllerForm.dirty || controllerForm.invalid"
                             type="button"
-                            color="primary"
                             (click)="apply()"
-                            mat-button>
+                            mat-flat-button>
                             <span *nifiSpinner="saving.value">Apply</span>
                         </button>
                     }

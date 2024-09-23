@@ -113,29 +113,74 @@
 
     /* overriding 3rd party styles */
 
-    /* material typography begin */
-
-    .mat-h2,
-    .mat-typography .mat-h2,
-    .mat-typography h2 {
-        // Because angular material typography adds bottom margin
-        margin: unset;
+    .mat-mdc-dialog-content {
+        --mat-dialog-with-actions-content-padding: 20px 24px;
     }
 
-    .mat-h4,
-    .mat-typography .mat-h4,
-    .mat-typography h4 {
-        // Because angular material typography adds bottom margin
-        margin: unset;
+    .mat-mdc-dialog-actions {
+        border: none !important;
     }
 
-    /* material typography end */
+    .mat-mdc-dialog-title {
+        --mat-dialog-headline-padding: 0 24px 9px;
+    }
 
-    /* material expansion panels begin (upload NARs and JOLT UI) */
+    .mat-drawer {
+        --mat-sidenav-container-width: auto;
+        --mat-sidenav-container-shape: 0;
+    }
+
+    .mat-mdc-button {
+        --mdc-text-button-container-shape: 4px;
+        --mdc-text-button-label-text-tracking: normal;
+        --mdc-text-button-label-text-weight: 400;
+    }
+
+    .mat-mdc-unelevated-button {
+        --mdc-filled-button-container-shape: 4px;
+        --mdc-filled-button-label-text-tracking: normal;
+        --mdc-filled-button-label-text-weight: 400;
+    }
+
+    .mat-mdc-outlined-button {
+        --mdc-outlined-button-container-shape: 4px;
+        --mdc-outlined-button-label-text-tracking: normal;
+        --mdc-outlined-button-label-text-weight: 400;
+        --mat-outlined-button-horizontal-padding: 15px;
+    }
+
+    .mat-mdc-tab-header {
+        --mdc-secondary-navigation-tab-container-height: 36px;
+        --mat-tab-header-label-text-tracking: normal;
+        --mat-tab-header-label-text-weight: 400;
+    }
+
+    .mat-tree {
+        display: inline !important;
+        background-color: unset !important;
+    }
+
+    .mat-mdc-card-header-text {
+        width: 100%;
+    }
+
+    // center input text in form fields
+    .mdc-text-field--outlined .mat-mdc-form-field-infix {
+        line-height: 24px;
+    }
+
+    .mat-expansion-panel {
+        --mat-expansion-container-shape: 4px;
+    }
+
+    .mat-expansion-panel-body {
+        overflow-y: auto;
+    }
 
     .mat-expansion-panel-header.mat-expanded {
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
+        --mat-expansion-header-expanded-state-height: 50px;
     }
 
     .mat-expansion-panel-header-title,
@@ -145,11 +190,29 @@
 
     .mat-content.mat-content-hide-toggle {
         margin-right: 0 !important;
+        height: 48px;
     }
 
-    /* material expansion panels end */
+    .mat-mdc-menu-panel {
+        max-width: 420px;
 
-    /* material cdk drag and drop begin (connection prioritizers and parameter inheritence) */
+        .fa {
+            width: 14px;
+            height: 14px;
+            text-align: center;
+        }
+
+        .icon {
+            display: inline-block;
+            width: 14px;
+            text-align: center;
+        }
+
+        .mat-divider {
+            --mat-menu-divider-top-spacing: 0;
+            --mat-menu-divider-bottom-spacing: 0;
+        }
+    }
 
     .cdk-drag-disabled {
         cursor: not-allowed !important;
@@ -199,127 +262,141 @@
         }
     }
 
-    /* material cdk drag and drop end */
-
-    /* material dialog overrides begin */
-
-    .mat-mdc-dialog-actions {
-        height: 52px;
-        display: block;
-        padding: 8px;
-    }
-
-    .mdc-dialog__content {
-        font-size: 14px !important;
-    }
-
-    /* material dialog overrides end */
-
-    /* material form field overrides begin */
-
     .mdc-notched-outline__notch {
         border-right: none;
     }
 
-    /* material form field overrides end */
-
-    /* material tab overrides begin */
+    .CodeMirror-hints {
+        z-index: 1000 !important;
+        overflow-y: scroll !important;
+    }
 
     .mat-mdc-tab-header {
         user-select: none;
     }
 
-    /* material tab overrides end *
-
-    /* material button overrides begin */
-
     .mat-mdc-icon-button {
-        --mdc-icon-button-state-layer-size: 28px;
+        --mdc-icon-button-state-layer-size: 36px;
         --mdc-icon-button-icon-size: 14px;
-        line-height: var(--mdc-icon-button-state-layer-size);
-        padding: 0;
 
         &.mat-mdc-button-base.mdc-icon-button {
             padding: 0;
         }
     }
 
-    /* material button overrides end */
-
-    /* material paginator overrides begin */
-
     .mat-mdc-paginator {
         background-color: unset !important;
     }
 
-    /* material paginator overrides end */
+    .mat-mdc-dialog-surface {
+        --mdc-dialog-container-shape: 4px;
+    }
 
-    /* material menu overrides begin */
+    .mdc-dialog__content {
+        font-size: 14px !important;
+    }
 
     .mat-mdc-menu-content .mat-mdc-menu-item {
         min-height: 2.25rem;
     }
-
-    .mat-mdc-menu-panel {
-        max-width: 420px;
-
-        .fa {
-            width: 14px;
-            height: 14px;
-            text-align: center;
-        }
-
-        .icon {
-            display: inline-block;
-            width: 14px;
-            text-align: center;
-        }
-    }
-
-    /* material menu overrides end */
-
-    /* material card overrides begin */
-
-    .mat-mdc-card-header-text {
-        width: 100%;
-    }
-
-    /* material card overrides end */
 }
 
-@mixin generate-material-theme($material-theme) {
-    // Get the color config from the theme.
-    $material-theme-color-config: mat.m2-get-color-config($material-theme);
+@mixin generate-material-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-primary-palette-default: mat.get-theme-color(
+        $material-theme,
+        primary,
+        map.get(map.get($config, primary), default)
+    );
+    $material-theme-primary-palette-darker: mat.get-theme-color(
+        $material-theme,
+        primary,
+        map.get(map.get($config, primary), darker)
+    );
+    $material-theme-primary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        primary,
+        map.get(map.get($config, primary), lighter)
+    );
+    $material-theme-secondary-palette-default: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), default)
+    );
+    $material-theme-secondary-palette-darker: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), darker)
+    );
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), lighter)
+    );
+    $material-theme-tertiary-palette-default: mat.get-theme-color(
+        $material-theme,
+        tertiary,
+        map.get(map.get($config, tertiary), default)
+    );
+    $material-theme-tertiary-palette-darker: mat.get-theme-color(
+        $material-theme,
+        tertiary,
+        map.get(map.get($config, tertiary), darker)
+    );
+    $material-theme-tertiary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        tertiary,
+        map.get(map.get($config, tertiary), lighter)
+    );
+    $material-theme-error-palette-default: mat.get-theme-color(
+        $material-theme,
+        error,
+        map.get(map.get($config, error), default)
+    );
+    $material-theme-error-palette-darker: mat.get-theme-color(
+        $material-theme,
+        error,
+        map.get(map.get($config, error), darker)
+    );
+    $material-theme-error-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        error,
+        map.get(map.get($config, error), lighter)
+    );
+    $material-theme-neutral-palette-default: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), default)
+    );
+    $material-theme-neutral-palette-darker: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), darker)
+    );
+    $material-theme-neutral-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), lighter)
+    );
+    $alternate-surface: map.get($config, alternate-surface);
+    $primary-contrast: map.get(map.get($config, primary), contrast);
+    $secondary-contrast: map.get(map.get($config, secondary), contrast);
+    $neutral-contrast: map.get(map.get($config, neutral), contrast);
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+    $success-default: map.get(map.get($config, success), default);
+    $success-darker: map.get(map.get($config, success), darker);
+    $success-lighter: map.get(map.get($config, success), lighter);
+    $caution: map.get($config, caution);
+    $selected-row-color: if(
+        $is-material-dark,
+        $material-theme-tertiary-palette-darker,
+        $material-theme-tertiary-palette-lighter
+    );
 
-    // Get the palettes
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
-    $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
-
-    // colors from the theme palettes
-    $is-dark: map-get($material-theme-color-config, is-dark);
-    $material-theme-primary-palette-darker-contrast: mat.m2-get-color-from-palette(
-        $material-theme-primary-palette,
-        darker-contrast
-    );
-    $material-theme-primary-palette-lighter-contrast: mat.m2-get-color-from-palette(
-        $material-theme-primary-palette,
-        lighter-contrast
-    );
-    $primary-contrast: if(
-        $is-dark,
-        $material-theme-primary-palette-darker-contrast,
-        $material-theme-primary-palette-lighter-contrast
-    );
-    $material-theme-primary-palette-default: mat.m2-get-color-from-palette($material-theme-primary-palette, default);
-    $material-theme-primary-palette-lighter: mat.m2-get-color-from-palette($material-theme-primary-palette, lighter);
-    $material-theme-primary-palette-darker: mat.m2-get-color-from-palette($material-theme-primary-palette, darker);
-    $material-theme-accent-palette-default: mat.m2-get-color-from-palette($material-theme-accent-palette, default);
-    $material-theme-accent-palette-lighter: mat.m2-get-color-from-palette($material-theme-accent-palette, lighter);
-    $material-theme-accent-palette-darker: mat.m2-get-color-from-palette($material-theme-accent-palette, darker);
-    $material-theme-warn-palette-default: mat.m2-get-color-from-palette($material-theme-warn-palette, default);
-    $material-theme-warn-palette-lighter: mat.m2-get-color-from-palette($material-theme-warn-palette, lighter);
-    $material-theme-warn-palette-darker: mat.m2-get-color-from-palette($material-theme-warn-palette, darker);
+    // support dark-mode browser default inputs (time, color, ...)
+    input {
+        color-scheme: if($is-material-dark, dark, light);
+    }
 
     // semantic classes for the material theme
 
@@ -333,49 +410,134 @@
         fill: $material-theme-primary-palette-default;
     }
 
-    .primary-color-lighter {
-        color: $material-theme-primary-palette-lighter;
-        fill: $material-theme-primary-palette-lighter;
+    .secondary-contrast {
+        color: $secondary-contrast;
+        fill: $secondary-contrast;
     }
 
-    .accent-color {
-        color: $material-theme-accent-palette-default;
-        fill: $material-theme-accent-palette-default;
+    .secondary-color {
+        color: $material-theme-secondary-palette-default;
+        fill: $material-theme-secondary-palette-default;
     }
 
-    .warn-color {
-        color: $material-theme-warn-palette-default;
-        fill: $material-theme-warn-palette-default;
+    .secondary-color-lighter {
+        color: $material-theme-secondary-palette-lighter;
+        fill: $material-theme-secondary-palette-lighter;
     }
 
-    .warn-color-lighter {
-        color: $material-theme-warn-palette-lighter;
-        fill: $material-theme-warn-palette-lighter;
+    .tertiary-color {
+        color: $material-theme-tertiary-palette-default;
+        fill: $material-theme-tertiary-palette-default;
     }
 
-    .warn-color-darker {
-        color: $material-theme-warn-palette-darker;
-        fill: $material-theme-warn-palette-darker;
+    .error-color {
+        color: $material-theme-error-palette-default;
+        fill: $material-theme-error-palette-default;
+    }
+
+    .error-color-lighter {
+        color: $material-theme-error-palette-lighter;
+        fill: $material-theme-error-palette-lighter;
+    }
+
+    .error-color-darker {
+        color: $material-theme-error-palette-darker;
+        fill: $material-theme-error-palette-darker;
+    }
+
+    .neutral-contrast {
+        color: $neutral-contrast;
+        fill: $neutral-contrast;
+    }
+
+    .neutral-color {
+        color: $material-theme-neutral-palette-default;
+        fill: $material-theme-neutral-palette-default;
+    }
+
+    .success-color {
+        color: $success-default;
+        fill: $success-default;
+    }
+
+    .success-color-lighter {
+        color: $success-lighter;
+        fill: $success-lighter;
+    }
+
+    .success-color-darker {
+        color: $success-darker;
+        fill: $success-darker;
+    }
+
+    .caution-color {
+        color: $caution;
+        fill: $caution;
+    }
+
+    // semantic classes for contrast colors determined based on the light/dark mode of the theme.
+
+    // will be black for light mode and white for dark mode
+    .neutral-contrast {
+        color: $neutral-contrast;
+        fill: $neutral-contrast;
+    }
+
+    // will be a darker light grey for light mode and a brighter light grey for dark mode
+    .border-color {
+        color: $border-color;
+        fill: $border-color;
+    }
+
+    // color variants for theming angular material widgets
+    .tertiary-checkbox {
+        @include mat.checkbox-color($material-theme, $color-variant: tertiary);
+    }
+
+    .primary-icon-button {
+        @include mat.icon-button-color($material-theme, $color-variant: primary);
+    }
+
+    .error-button {
+        @include mat.button-color($material-theme, $color-variant: error);
+    }
+
+    .error-spinner {
+        @include mat.progress-spinner-color($material-theme, $color-variant: error);
     }
 
     /* other classes and styles */
 
-    a {
-        color: $material-theme-primary-palette-default;
-        text-decoration-color: $material-theme-primary-palette-lighter;
+    .tooltip {
+        background-color: if(
+            $is-material-dark,
+            $material-theme-neutral-palette-darker,
+            $material-theme-neutral-palette-lighter
+        );
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+        color: $neutral-contrast;
     }
 
-    a:hover {
+    .property-editor {
+        background-color: var(--mat-menu-container-color);
+        border-radius: 4px;
+    }
+
+    a {
+        color: if(
+            $is-material-dark,
+            $material-theme-secondary-palette-default,
+            $material-theme-secondary-palette-darker
+        );
         text-decoration-color: if(
-            $is-dark,
-            $material-theme-primary-palette-default,
-            $material-theme-primary-palette-darker
+            $is-material-dark,
+            $material-theme-secondary-palette-lighter,
+            $material-theme-secondary-palette-default
         );
     }
 
-    // support dark-mode browser default inputs (time, color, ...)
-    input {
-        color-scheme: if($is-dark, dark, light);
+    a:hover {
+        text-decoration-color: $material-theme-secondary-palette-default;
     }
 
     .has-errors,
@@ -384,244 +546,237 @@
     .running,
     .transmitting,
     .text-shadow {
-        text-shadow: if($is-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
+        text-shadow: if($is-material-dark, 0 0 4px rgba(0, 0, 0, 1), 0 0 4px rgba(255, 255, 255, 1));
+    }
+
+    .zero {
+        opacity: if($is-material-dark, 0.6, 0.4) !important;
     }
 
     /* overriding 3rd party styles */
 
-    $is-dark: map.get($material-theme-color-config, is-dark);
+    *:not([class^='mat-']):not([class^='mdc-']):not([class^='resizable-triangle']) {
+        // Tailwind sets a default that doesn't shift with light and dark themes
+        border-color: $border-color;
+    }
 
     * {
         // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
-        --mat-snack-bar-button-color: #{if(
-                $is-dark,
-                $material-theme-accent-palette-darker,
-                $material-theme-accent-palette-lighter
-            )};
+        --mat-snack-bar-button-color: if(
+            $is-material-dark,
+            $material-theme-tertiary-palette-darker,
+            $material-theme-tertiary-palette-lighter
+        );
     }
 
-    /* material cdk drag and drop begin (connection prioritizers and parameter inheritence) */
+    .mat-typography.text-base {
+        font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
+        line-height: mat.get-theme-typography($material-theme, body-medium, line-height);
+        font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+        font-weight: mat.get-theme-typography($material-theme, body-medium, font-weight);
+        letter-spacing: normal;
 
-    // center input text in form fields
-    .mdc-text-field--outlined .mat-mdc-form-field-infix {
-        line-height: 24px;
-    }
+        h2 {
+            margin: unset;
+            line-height: 28px;
+            font-size: 18px;
+            font-weight: 700;
+        }
 
-    .cdk-drop-list {
-        color: $material-theme-primary-palette-default;
-    }
+        h3 {
+            margin: 0 0 16px;
+            line-height: 28px;
+            font-size: 20px;
+            font-weight: 700;
+        }
 
-    .cdk-drop-list-dragging {
-        background-color: $material-theme-primary-palette-darker !important;
-    }
+        h4 {
+            margin: unset;
+            line-height: 20px;
+            font-size: 14px;
+            font-weight: 400;
+        }
 
-    .cdk-drag-selected {
-        .cdk-drag {
-            background-color: $material-theme-primary-palette-default;
+        a {
+            letter-spacing: normal;
+        }
+
+        .mdc-text-field--outlined .mdc-floating-label {
+            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-select {
+            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-card-title {
+            font-size: 18px;
+            letter-spacing: normal;
+            line-height: 28px;
+            font-weight: 700;
+        }
+
+        .mat-mdc-card-subtitle {
+            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            letter-spacing: normal;
+            line-height: 20px;
+            font-weight: 400;
+        }
+
+        .mat-mdc-option {
+            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-form-field {
+            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-tree-node,
+        .mat-nested-tree-node {
+            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-header-cell {
+            font-weight: 700;
+        }
+
+        .mat-expansion-panel-header {
+            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            letter-spacing: normal;
+            line-height: normal;
+            font-weight: 700;
+        }
+
+        .mat-expansion-panel-content {
+            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            letter-spacing: normal;
+            line-height: normal;
+        }
+
+        .mat-mdc-menu-content,
+        .mat-mdc-menu-content .mat-mdc-menu-item .mat-mdc-menu-item-text {
+            --mat-menu-item-label-text-weight: mat.get-theme-typography($material-theme, body-medium, font-weight);
+        }
+
+        .mdc-list-item__primary-text {
+            font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
+            letter-spacing: normal;
+            line-height: normal;
         }
     }
 
-    /* material cdk drag and drop end */
-}
-
-@mixin generate-supplemental-theme($supplemental-theme) {
-    // Get the color config from the theme.
-    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
-
-    // Get the color palettes from the color-config.
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
-    $supplemental-theme-success-palette: map.get($supplemental-theme-color-config, 'accent');
-    $supplemental-theme-caution-palette: map.get($supplemental-theme-color-config, 'warn');
-
-    // default/lighter/darker colors from the supplemental theme palettes
-    $is-dark: map-get($supplemental-theme-color-config, is-dark);
-    $supplemental-theme-surface-palette-default: mat.m2-get-color-from-palette($supplemental-theme-surface-palette);
-    $supplemental-theme-surface-palette-lighter: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter
-    );
-    $supplemental-theme-surface-palette-darker: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker
-    );
-    $supplemental-theme-surface-palette-darker-contrast: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker-contrast
-    );
-    $supplemental-theme-surface-palette-lighter-contrast: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter-contrast
-    );
-    $alternate-surface: if(
-        $is-dark,
-        rgba($supplemental-theme-surface-palette-darker-contrast, 0.28),
-        rgba($supplemental-theme-surface-palette-lighter-contrast, 0.2)
-    );
-    $surface-contrast: if(
-        $is-dark,
-        $supplemental-theme-surface-palette-darker-contrast,
-        $supplemental-theme-surface-palette-lighter-contrast
-    );
-    $supplemental-theme-success-palette-default: mat.m2-get-color-from-palette(
-        $supplemental-theme-success-palette,
-        default
-    );
-    $supplemental-theme-success-palette-lighter: mat.m2-get-color-from-palette(
-        $supplemental-theme-success-palette,
-        lighter
-    );
-    $supplemental-theme-success-palette-darker: mat.m2-get-color-from-palette(
-        $supplemental-theme-success-palette,
-        darker
-    );
-    $supplemental-theme-caution-palette-default: mat.m2-get-color-from-palette(
-        $supplemental-theme-caution-palette,
-        default
-    );
-    $supplemental-theme-caution-palette-darker: mat.m2-get-color-from-palette(
-        $supplemental-theme-caution-palette,
-        darker
-    );
-
-    // semantic classes for contrast colors determined based on the light/dark mode of the theme.
-
-    // will be black for light mode and white for dark mode
-    .surface-contrast {
-        color: $surface-contrast;
-        fill: $surface-contrast;
+    .mat-expansion-panel {
+        background-color: $alternate-surface;
     }
 
-    // will be a darker light grey for light mode and a brighter light grey for dark mode
-    .alternate-surface {
-        color: $alternate-surface;
-        fill: $alternate-surface;
+    .mat-datepicker-content {
+        background-color: $alternate-surface;
+        box-shadow:
+            0px 2px 4px -1px rgba(0, 0, 0, 0.2),
+            0px 4px 5px 0px rgba(0, 0, 0, 0.14),
+            0px 1px 10px 0px rgba(0, 0, 0, 0.12);
     }
 
-    // semantic classes for default/lighter/darker colors for each palette in each theme
-    //
-    // NOTE: supplemental surface palette lighter/darker is purposefully omitted here. Any application of supplemental surface colors should be as a background-color to a surface DOM element. The surface color should switch from light to dark depending on the mode for the theme.
-
-    .surface-color {
-        color: $supplemental-theme-surface-palette-default;
-        fill: $supplemental-theme-surface-palette-default;
+    .mat-mdc-dialog-surface {
+        background-color: $alternate-surface;
     }
 
-    .success-color {
-        color: $supplemental-theme-success-palette-default;
-        fill: $supplemental-theme-success-palette-default;
+    .mat-mdc-table {
+        background-color: $alternate-surface;
     }
 
-    .success-color-lighter {
-        color: $supplemental-theme-success-palette-lighter;
-        fill: $supplemental-theme-success-palette-lighter;
+    .mat-drawer-backdrop.mat-drawer-shown {
+        background-color: if($is-material-dark, rgba(189, 189, 189, 0.6), rgba(0, 0, 0, 0.6));
     }
 
-    .success-color-darker {
-        color: $supplemental-theme-success-palette-darker;
-        fill: $supplemental-theme-success-palette-darker;
+    .mat-mdc-card {
+        background-color: $alternate-surface;
     }
 
-    .caution-color {
-        color: $supplemental-theme-caution-palette-default;
-        fill: $supplemental-theme-caution-palette-default;
+    .mat-drawer {
+        background-color: $alternate-surface;
     }
-
-    .caution-color-darker {
-        color: $supplemental-theme-caution-palette-darker;
-        fill: $supplemental-theme-caution-palette-darker;
-    }
-
-    /* other classes */
-
-    .tooltip {
-        background-color: if(
-            $is-dark,
-            $supplemental-theme-surface-palette-darker,
-            $supplemental-theme-surface-palette-lighter
-        );
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-        color: $surface-contrast;
-    }
-
-    .property-editor {
-        background-color: var(--mat-menu-container-color);
-        border-radius: 4px;
-    }
-
-    /* overriding 3rd party styles */
-
-    * {
-        // Tailwind sets a default that doesn't shift with light and dark themes
-        border-color: $alternate-surface;
-    }
-
-    /* material cdk drag and drop begin (connection prioritizers and parameter inheritence) */
 
     .cdk-drop-list {
-        background: if(
-            $is-dark,
-            $supplemental-theme-surface-palette-default,
-            $supplemental-theme-surface-palette-lighter
+        color: if(
+            $is-material-dark,
+            $material-theme-secondary-palette-default,
+            $material-theme-secondary-palette-darker
         );
     }
 
-    .cdk-drag {
-        background: if(
-            $is-dark,
-            $supplemental-theme-surface-palette-darker,
-            $supplemental-theme-surface-palette-lighter
-        );
-    }
-
-    span.grip {
-        color: $surface-contrast;
-    }
-
-    .cdk-drag-disabled {
-        color: $supplemental-theme-surface-palette-default;
-        background: if(
-            $is-dark,
-            $supplemental-theme-surface-palette-darker,
-            $supplemental-theme-surface-palette-lighter
+    .cdk-drop-list-dragging {
+        background-color: if(
+            $is-material-dark,
+            $material-theme-secondary-palette-darker,
+            $material-theme-secondary-palette-default
         ) !important;
     }
 
     .cdk-drag-selected {
         .cdk-drag {
-            // invert the contrast colors since the surface is dark in light mode and light in dark mode
-            color: if(
-                $is-dark,
-                $supplemental-theme-surface-palette-lighter-contrast,
-                $supplemental-theme-surface-palette-darker-contrast
+            background-color: if(
+                $is-material-dark,
+                $material-theme-secondary-palette-default,
+                $material-theme-secondary-palette-darker
             );
+        }
+    }
+
+    .cdk-drop-list {
+        background: if(
+            $is-material-dark,
+            $material-theme-neutral-palette-default,
+            $material-theme-neutral-palette-lighter
+        );
+    }
+
+    .cdk-drag {
+        background: if(
+            $is-material-dark,
+            $material-theme-neutral-palette-darker,
+            $material-theme-neutral-palette-lighter
+        );
+    }
+
+    .cdk-drag-disabled {
+        color: $material-theme-neutral-palette-default;
+        background: if(
+            $is-material-dark,
+            $material-theme-neutral-palette-darker,
+            $material-theme-neutral-palette-lighter
+        ) !important;
+    }
+
+    .cdk-drag-selected {
+        .cdk-drag {
+            color: $primary-contrast;
         }
 
         span.grip {
-            // invert the contrast colors since the surface is dark in light mode and light in dark mode
-            color: if(
-                $is-dark,
-                $supplemental-theme-surface-palette-lighter-contrast,
-                $supplemental-theme-surface-palette-darker-contrast
-            );
+            color: $primary-contrast;
         }
 
         .fa {
-            // invert the contrast colors since the surface is dark in light mode and light in dark mode
-            color: if(
-                $is-dark,
-                $supplemental-theme-surface-palette-lighter-contrast,
-                $supplemental-theme-surface-palette-darker-contrast
-            );
+            color: $primary-contrast;
         }
     }
 
-    /* material cdk drag and drop end */
-
-    /* ngx-skeleton loader begin */
-
-    ngx-skeleton-loader .skeleton-loader {
-        background: $alternate-surface;
+    span.grip {
+        color: $neutral-contrast;
     }
 
-    /* ngx-skeleton loader end */
+    ngx-skeleton-loader .skeleton-loader {
+        background: $border-color;
+    }
 }

@@ -68,7 +68,7 @@
                                 <div class="jolt-spec-editor grow mb-2">
                                     <div class="h-full flex flex-col">
                                         <div>
-                                            <div class="mat-body-strong">
+                                            <div class="font-bold">
                                                 Jolt Specification
                                                 <i
                                                     class="fa fa-info-circle primary-color ml-2"
@@ -80,7 +80,7 @@
                                         <div class="flex justify-end mb-2">
                                             <button
                                                 mat-icon-button
-                                                color="primary"
+                                                class="primary-icon-button"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 [tooltipInputData]="getFormatTooltip()"
@@ -192,16 +192,11 @@
                             <div class="flex flex-1 justify-between">
                                 <button
                                     mat-stroked-button
-                                    color="primary"
                                     (click)="validateJoltSpec()"
                                     [disabled]="isValidateDisabled()">
                                     Validate
                                 </button>
-                                <button
-                                    color="primary"
-                                    mat-flat-button
-                                    (click)="saveProperties()"
-                                    [disabled]="isSaveDisabled()">
+                                <button mat-flat-button (click)="saveProperties()" [disabled]="isSaveDisabled()">
                                     Save
                                 </button>
                             </div>
@@ -246,7 +241,7 @@
                                             <div class="flex justify-end mb-4">
                                                 <button
                                                     mat-icon-button
-                                                    color="primary"
+                                                    class="primary-icon-button"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     [tooltipInputData]="getFormatTooltip()"
@@ -288,8 +283,8 @@
                                                         <button
                                                             title="Clear All"
                                                             mat-icon-button
+                                                            class="primary-icon-button"
                                                             [disabled]="isEmpty()"
-                                                            color="primary"
                                                             type="button"
                                                             (click)="clearAttributesClicked()">
                                                             <i class="fa fa-eraser"></i>
@@ -348,7 +343,6 @@
                             <div class="flex flex-1 justify-start">
                                 <button
                                     mat-stroked-button
-                                    color="primary"
                                     (click)="transformJoltSpec()"
                                     [disabled]="isTransformDisabled()">
                                     Transform
@@ -396,7 +390,7 @@
         } @else {
             @if (processorDetailsLoading$ | async) {
                 <div class="h-full flex items-center justify-center">
-                    <mat-spinner color="primary"></mat-spinner>
+                    <mat-spinner></mat-spinner>
                 </div>
             } @else if (processorDetailsError()) {
                 <div class="flex flex-1 justify-center items-center">

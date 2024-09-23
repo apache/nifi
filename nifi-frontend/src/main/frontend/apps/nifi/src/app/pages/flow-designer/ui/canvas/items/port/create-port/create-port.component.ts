@@ -27,7 +27,6 @@ import { CreateComponentRequest } from '../../../../../state/flow';
 import { ComponentType, SelectOption } from 'libs/shared/src';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -42,7 +41,6 @@ import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared
         MatDialogModule,
         MatInputModule,
         MatSelectModule,
-        MatTooltipModule,
         ErrorBanner,
         MatButtonModule,
         AsyncPipe,

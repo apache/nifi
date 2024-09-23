@@ -34,21 +34,21 @@
         <div class="w-72 px-2.5 pb-2.5 flex flex-col gap-y-2">
             <div class="flex justify-between">
                 <div class="flex gap-x-1">
-                    <button mat-icon-button color="primary" type="button" (click)="zoomIn()">
+                    <button mat-icon-button class="primary-icon-button" type="button" (click)="zoomIn()">
                         <i class="fa fa-search-plus"></i>
                     </button>
-                    <button mat-icon-button color="primary" class="mr-2" type="button" (click)="zoomOut()">
+                    <button mat-icon-button class="primary-icon-button mr-2" type="button" (click)="zoomOut()">
                         <i class="fa fa-search-minus"></i>
                     </button>
-                    <button mat-icon-button color="primary" type="button" (click)="zoomFit()">
+                    <button mat-icon-button class="primary-icon-button" type="button" (click)="zoomFit()">
                         <i class="ml-1 icon icon-zoom-fit"></i>
                     </button>
-                    <button mat-icon-button color="primary" type="button" (click)="zoomActual()">
+                    <button mat-icon-button class="primary-icon-button" type="button" (click)="zoomActual()">
                         <i class="ml-1 icon icon-zoom-actual"></i>
                     </button>
                 </div>
                 @if (isNotRootGroup()) {
-                    <button mat-icon-button color="primary" type="button" (click)="leaveProcessGroup()">
+                    <button mat-icon-button class="primary-icon-button" type="button" (click)="leaveProcessGroup()">
                         <i class="fa fa-level-up"></i>
                     </button>
                 }

@@ -40,25 +40,25 @@
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ request.controllerService.id }}
                             </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Type</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ formatType(request.controllerService) }}
                             </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Bundle</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ formatBundle(request.controllerService) }}
                             </div>
                         </div>
                         <div class="supports-controller-services flex flex-col mb-5">
                             <div>Supports Controller Service</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 <ul>
                                     @for (
                                         serviceApi of request.controllerService.component.controllerServiceApis;
@@ -160,15 +160,14 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (readonly) {
-                <button mat-button mat-dialog-close color="primary">Close</button>
+                <button mat-flat-button mat-dialog-close>Close</button>
             } @else {
                 <button mat-button mat-dialog-close>Cancel</button>
                 <button
                     [disabled]="!editControllerServiceForm.dirty || editControllerServiceForm.invalid || saving.value"
                     type="button"
-                    color="primary"
                     (click)="submitForm()"
-                    mat-button>
+                    mat-flat-button>
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             }

@@ -20,38 +20,9 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
-
-    .search-container {
-        &:hover,
-        &.open {
-            background-color: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
-        }
-
-        .search-input {
-            background-color: if(
-                $is-material-dark,
-                $material-theme-neutral-palette-darker,
-                $material-theme-neutral-palette-lighter
-            );
-        }
-    }
-
-    .search-results {
-        background-color: var(--mat-menu-container-color);
-        border-radius: 4px;
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+    .resizable-triangle {
+        border-right-color: $border-color;
+        border-bottom-color: $border-color;
     }
 }

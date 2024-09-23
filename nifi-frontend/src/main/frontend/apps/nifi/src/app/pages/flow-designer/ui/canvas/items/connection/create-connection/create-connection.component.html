@@ -96,7 +96,7 @@
                             </div>
                             <div class="flex flex-col mb-5">
                                 <div>Id</div>
-                                <div class="unset surface-color">No value set</div>
+                                <div class="unset neutral-color">No value set</div>
                             </div>
                             <div>
                                 <mat-form-field>
@@ -228,9 +228,8 @@
                 <button
                     [disabled]="createConnectionForm.invalid || saving.value"
                     type="button"
-                    color="primary"
                     (click)="createConnection(breadcrumbs.id)"
-                    mat-button>
+                    mat-flat-button>
                     <span *nifiSpinner="saving.value">Add</span>
                 </button>
             </mat-dialog-actions>

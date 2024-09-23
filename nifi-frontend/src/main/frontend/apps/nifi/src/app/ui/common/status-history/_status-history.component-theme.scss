@@ -18,39 +18,20 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($supplemental-theme) {
-    // Get the color config from the theme.
-    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
-
-    // Get the color palette from the color-config.
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
-
-    // Get hues from palette
-    $is-dark: map-get($supplemental-theme-color-config, is-dark);
-    $supplemental-theme-surface-palette-darker-contrast: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker-contrast
-    );
-    $supplemental-theme-surface-palette-lighter-contrast: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter-contrast
-    );
-    $alternate-surface: if(
-        $is-dark,
-        rgba($supplemental-theme-surface-palette-darker-contrast, 0.28),
-        rgba($supplemental-theme-surface-palette-lighter-contrast, 0.2)
-    );
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
 
     #status-history-chart-container,
     #status-history-chart-control-container {
         .axis path,
         .axis line {
-            stroke: $alternate-surface;
+            stroke: $border-color;
         }
 
         .brush {
             .selection {
-                stroke: $alternate-surface;
+                stroke: $border-color;
             }
         }
     }

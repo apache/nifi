@@ -51,7 +51,7 @@
                     <div class="overflow-ellipsis overflow-hidden whitespace-nowrap">Name</div>
                 </th>
                 <td mat-cell *matCellDef="let item" [title]="formatName(item)">
-                    <span [class.surface-color]="!item.action?.sourceName" [class.blank]="!item.action?.sourceName">{{
+                    <span [class.neutral-color]="!item.action?.sourceName" [class.blank]="!item.action?.sourceName">{{
                         formatName(item)
                     }}</span>
                 </td>
@@ -118,7 +118,7 @@
                 [class.even]="even"
                 (click)="select(row)"
                 [class.unset]="!canRead(row)"
-                [class.surface-color]="!canRead(row)"
+                [class.neutral-color]="!canRead(row)"
                 [class.selected]="isSelected(row)"></tr>
         </table>
     </div>

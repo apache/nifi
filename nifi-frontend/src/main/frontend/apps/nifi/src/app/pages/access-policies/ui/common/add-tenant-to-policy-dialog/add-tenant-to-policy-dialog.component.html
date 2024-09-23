@@ -43,17 +43,13 @@
             </div>
         }
         @if (filteredUsers.length === 0 && filteredUserGroups.length === 0) {
-            <div class="accent-color font-medium">All users and groups are assigned to this policy.</div>
+            <div class="tertiary-color font-medium">All users and groups are assigned to this policy.</div>
         }
     </mat-dialog-content>
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>
-            <button
-                mat-button
-                [disabled]="addTenantsForm.invalid || saving.value"
-                (click)="addClicked()"
-                color="primary">
+            <button mat-flat-button [disabled]="addTenantsForm.invalid || saving.value" (click)="addClicked()">
                 <span *nifiSpinner="saving.value">Add</span>
             </button>
         </mat-dialog-actions>

@@ -130,7 +130,7 @@ export class RemoteProcessGroupManager {
             .attr('y', 20)
             .attr('width', 305)
             .attr('height', 16)
-            .attr('class', 'remote-process-group-name primary-contrast');
+            .attr('class', 'remote-process-group-name secondary-contrast');
 
         this.selectableBehavior.activate(remoteProcessGroup);
         this.quickSelectBehavior.activate(remoteProcessGroup);
@@ -612,7 +612,7 @@ export class RemoteProcessGroupManager {
             .classed('transmitting success-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
-            .classed('not-transmitting surface-color', function (d: any) {
+            .classed('not-transmitting neutral-color', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (this: any, d: any) {

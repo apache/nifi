@@ -103,7 +103,7 @@
                     >
                 </mat-form-field>
                 <div class="mb-5">
-                    <mat-checkbox color="primary" formControlName="keepParameterContexts">
+                    <mat-checkbox formControlName="keepParameterContexts">
                         Keep existing Parameter Contexts
                         <i
                             class="fa fa-info-circle primary-color"
@@ -114,7 +114,7 @@
                 </div>
                 <div class="flex flex-col mb-5">
                     <div>Flow Description</div>
-                    <div class="accent-color font-medium">
+                    <div class="tertiary-color font-medium">
                         {{ selectedFlowDescription || 'No description provided' }}
                     </div>
                 </div>
@@ -177,9 +177,8 @@
         <button
             [disabled]="importFromRegistryForm.invalid || saving.value || !selectedFlowVersion"
             type="button"
-            color="primary"
             (click)="importFromRegistry()"
-            mat-button>
+            mat-flat-button>
             <span *nifiSpinner="saving.value">Import</span>
         </button>
     </mat-dialog-actions>
