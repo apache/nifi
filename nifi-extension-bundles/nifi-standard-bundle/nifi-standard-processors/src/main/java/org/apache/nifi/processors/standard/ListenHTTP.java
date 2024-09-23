@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
@@ -55,8 +56,10 @@ import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
 import org.apache.nifi.stream.io.StreamThrottler;
+import org.apache.nifi.util.NiFiProperties;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
+import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
@@ -88,6 +91,11 @@ import java.util.regex.Pattern;
         + "For details see the documentation of the \"Listening Port for health check requests\" property."
         + "A Record Reader and Record Writer property can be enabled on the processor to process incoming requests as records. "
         + "Record processing is not allowed for multipart requests and request in FlowFileV3 format (minifi).")
+@UseCase(
+        description = """
+                When you want to send large headers in an HTTP request to this processor,
+                the maximum supported request header size can be changed in nifi.properties nifi.web.max.header.size."""
+)
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private static final String MATCH_ALL = ".*";
 
@@ -507,7 +515,19 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
                                                   final ClientAuthentication clientAuthentication,
                                                   final HttpProtocolStrategy httpProtocolStrategy
     ) {
-        final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port);
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null);
+        int requestMaxHeaderSize = DataUnit.parseDataSize(nifiProperties.getWebMaxHeaderSize(), DataUnit.B).intValue();
+
+        // Use NiFiProperties nifi.web.max.header.size for max requestHeaderSize
+        final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port) {
+            @Override
+            protected HttpConfiguration getHttpConfiguration() {
+                final HttpConfiguration httpConfig = super.getHttpConfiguration();
+                httpConfig.setRequestHeaderSize(requestMaxHeaderSize);
+                return httpConfig;
+            }
+        };
+
         final SSLContext sslContext = sslContextService == null ? null : sslContextService.createContext();
         serverConnectorFactory.setSslContext(sslContext);
 

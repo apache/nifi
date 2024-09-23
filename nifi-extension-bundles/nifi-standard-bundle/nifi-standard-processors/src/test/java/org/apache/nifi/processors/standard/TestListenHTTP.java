@@ -783,6 +783,26 @@ public class TestListenHTTP {
         assertEquals(0, multiPartTempFiles, multiPartMessage);
     }
 
+    @Test
+    public void testLargeHTTPRequestHeader() throws Exception {
+        // default Jetty maximum HTTP header size is 8192
+        // test that NiFiProperties nifi.web.max.header.size (default 16384) is used instead
+        String largeHeaderValue = "A".repeat(8193);
+
+        final int port = startWebServer();
+        OkHttpClient client = getOkHttpClient(false, false);
+        final String url = buildUrl(false, port);
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Large-Header", largeHeaderValue)
+                .method("HEAD", null)
+                .build();
+        try (Response response = client.newCall(request).execute()) {
+            int responseCode = response.code();
+            assertEquals(200, responseCode, "Expected 200 response code with large header.");
+        }
+    }
+
     private byte[] generateRandomBinaryData() {
         byte[] bytes = new byte[100];
         new Random().nextBytes(bytes);
