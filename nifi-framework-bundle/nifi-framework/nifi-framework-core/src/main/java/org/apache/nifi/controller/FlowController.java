@@ -1230,6 +1230,13 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                     }
 
                     try {
+                        // During flow synchronization, when inheriting a flow from cluster, it's possible that the component was removed.
+                        final Connectable existingConnectable = connectable.getProcessGroup().getConnectable(connectable.getIdentifier());
+                        if (existingConnectable == null) {
+                            LOG.debug("Will not start {} because it no longer exists", connectable);
+                            continue;
+                        }
+
                         if (connectable instanceof ProcessorNode) {
                             connectable.getProcessGroup().startProcessor((ProcessorNode) connectable, true);
                         } else {
