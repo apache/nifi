@@ -108,10 +108,11 @@ public class QueryAirtableTable extends AbstractProcessor {
             .required(true)
             .build();
 
-    static final PropertyDescriptor API_KEY = new PropertyDescriptor.Builder()
+    // API Keys are deprecated, Airtable now provides Personal Access Tokens instead.
+    static final PropertyDescriptor PAT = new PropertyDescriptor.Builder()
             .name("api-key")
-            .displayName("API Key")
-            .description("The REST API key to use in queries. Should be generated on Airtable's account page.")
+            .displayName("Personal Access Token")
+            .description("The Personal Access Token (PAT) to use in queries. Should be generated on Airtable's account page.")
             .required(true)
             .sensitive(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -195,7 +196,7 @@ public class QueryAirtableTable extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             API_URL,
-            API_KEY,
+            PAT,
             BASE_ID,
             TABLE_ID,
             FIELDS,
@@ -225,11 +226,11 @@ public class QueryAirtableTable extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final String apiUrl = context.getProperty(API_URL).evaluateAttributeExpressions().getValue();
-        final String apiKey = context.getProperty(API_KEY).getValue();
+        final String pat = context.getProperty(PAT).getValue();
         final String baseId = context.getProperty(BASE_ID).evaluateAttributeExpressions().getValue();
         final String tableId = context.getProperty(TABLE_ID).evaluateAttributeExpressions().getValue();
         final WebClientServiceProvider webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
-        airtableRestService = new AirtableRestService(webClientServiceProvider, apiUrl, apiKey, baseId, tableId);
+        airtableRestService = new AirtableRestService(webClientServiceProvider, apiUrl, pat, baseId, tableId);
     }
 
     @Override
