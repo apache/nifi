@@ -192,7 +192,8 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable {
                     consumerRecord.timestamp(),
                     recordHeaders,
                     consumerRecord.key(),
-                    consumerRecord.value()
+                    consumerRecord.value(),
+                    1
             );
         }
     }
