@@ -157,9 +157,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         // handle corner cases involving no proposed flow
         if (isFlowEmpty(proposedFlow)) {
-            if (root.isEmpty()) {
-                return;  // no sync to perform
-            } else {
+            if (!root.isEmpty()) {
                 throw new UninheritableFlowException("Attempted to inherit an empty flow, but this NiFi instance already has a flow loaded.");
             }
         }
