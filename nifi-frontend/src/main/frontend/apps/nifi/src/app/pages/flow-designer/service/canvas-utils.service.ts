@@ -40,7 +40,9 @@ import { CurrentUser } from '../../../state/current-user';
 import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
 import { FlowConfiguration } from '../../../state/flow-configuration';
-import { initialState as initialFlowConfigurationState } from '../../../state/flow-configuration/flow-configuration.reducer';
+import {
+    initialState as initialFlowConfigurationState
+} from '../../../state/flow-configuration/flow-configuration.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import { CopiedSnippet, VersionControlInformation } from '../state/flow';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
@@ -268,7 +270,7 @@ export class CanvasUtils {
     public canModify(selection: any): boolean {
         const selectionSize = selection.size();
         const writableSize = selection
-            .filter(function (d: any) {
+            .filter(function(d: any) {
                 return d.permissions.canWrite;
             })
             .size();
@@ -285,7 +287,7 @@ export class CanvasUtils {
     public canRead(selection: any): boolean {
         const selectionSize = selection.size();
         const readableSize = selection
-            .filter(function (d: any) {
+            .filter(function(d: any) {
                 return d.permissions.canRead;
             })
             .size();
@@ -1192,7 +1194,7 @@ export class CanvasUtils {
         let overlayRef: OverlayRef | null = null;
 
         selection
-            .on('mouseenter', function (this: any) {
+            .on('mouseenter', function(this: any) {
                 if (overlayRef?.hasAttached()) {
                     return;
                 }
@@ -1234,7 +1236,7 @@ export class CanvasUtils {
                     }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
                 }
             })
-            .on('mouseleave', function () {
+            .on('mouseleave', function() {
                 if (openTimer > 0) {
                     window.clearTimeout(openTimer);
                     openTimer = -1;
@@ -1268,19 +1270,34 @@ export class CanvasUtils {
         };
         let mappedLeft = 0;
         let mappedRight = 0;
-        if (left) {
+        if (left.bulletin) {
             mappedLeft = bulletinSeverityMap[left.bulletin.level.toUpperCase()] || 0;
         }
-        if (right) {
+        if (right.bulletin) {
             mappedRight = bulletinSeverityMap[right.bulletin.level.toUpperCase()] || 0;
         }
         return mappedLeft >= mappedRight ? left : right;
     }
 
-    public getMostSevereBulletin(bulletins: BulletinEntity[]): BulletinEntity {
-        return bulletins.reduce((previous, current) => {
-            return this.getHigherSeverityBulletinLevel(previous, current);
-        });
+    public getMostSevereBulletin(bulletins: BulletinEntity[]): BulletinEntity | null {
+        if (bulletins && bulletins.length > 0) {
+            const mostSevere = bulletins.reduce((previous, current) => {
+                return this.getHigherSeverityBulletinLevel(previous, current);
+            });
+            if (mostSevere.bulletin) {
+                return mostSevere;
+            }
+        }
+        return null;
+    }
+
+    private resetBulletin(selection: any) {
+        // reset the bulletin icon/background
+        selection.select('text.bulletin-icon').style('visibility', 'hidden');
+        selection.select('rect.bulletin-background').style('visibility', 'hidden');
+
+        // reset the canvas tooltip
+        this.resetCanvasTooltip(selection);
     }
 
     /**
@@ -1290,45 +1307,53 @@ export class CanvasUtils {
      * @param bulletins
      */
     public bulletins(selection: any, bulletins: BulletinEntity[]): void {
-        if (this.nifiCommon.isEmpty(bulletins)) {
-            // reset the bulletin icon/background
-            selection.select('text.bulletin-icon').style('visibility', 'hidden');
-            selection.select('rect.bulletin-background').style('visibility', 'hidden');
+        let filteredBulletins: BulletinEntity[] = [];
+        if (bulletins) {
+            filteredBulletins = bulletins.filter((bulletin) => bulletin.canRead && bulletin.bulletin);
+        }
 
-            // reset the canvas tooltip
-            this.resetCanvasTooltip(selection);
+        if (this.nifiCommon.isEmpty(filteredBulletins)) {
+            this.resetBulletin(selection);
         } else {
-            // show the bulletin icon/background
-            const bulletinIcon: any = selection.select('text.bulletin-icon').style('visibility', 'visible');
-            selection.select('rect.bulletin-background').style('visibility', 'visible');
-
-            const bulletinBackground: any = selection.select('rect.bulletin-background').style('visibility', 'visible');
-
             // determine the most severe of the bulletins
-            const mostSevere = this.getMostSevereBulletin(bulletins);
-
-            // reset any level-specifying classes that might have been there before
-            bulletinIcon
-                .classed('trace', false)
-                .classed('debug', false)
-                .classed('info', false)
-                .classed('warning', false)
-                .classed('error', false);
-            bulletinBackground
-                .classed('trace', false)
-                .classed('debug', false)
-                .classed('info', false)
-                .classed('warning', false)
-                .classed('error', false);
+            const mostSevere = this.getMostSevereBulletin(filteredBulletins);
 
             // add the proper class to indicate the most severe bulletin
-            bulletinIcon.classed(mostSevere.bulletin.level.toLowerCase(), true);
-            bulletinBackground.classed(mostSevere.bulletin.level.toLowerCase(), true);
+            if (mostSevere) {
+                // show the bulletin icon/background
+                const bulletinIcon: any = selection.select('text.bulletin-icon').style('visibility', 'visible');
+                selection.select('rect.bulletin-background').style('visibility', 'visible');
 
-            // add the tooltip
-            this.canvasTooltip(BulletinsTip, bulletinIcon, {
-                bulletins: bulletins
-            });
+                const bulletinBackground: any = selection
+                    .select('rect.bulletin-background')
+                    .style('visibility', 'visible');
+
+                // reset any level-specifying classes that might have been there before
+                bulletinIcon
+                    .classed('trace', false)
+                    .classed('debug', false)
+                    .classed('info', false)
+                    .classed('warning', false)
+                    .classed('error', false);
+                bulletinBackground
+                    .classed('trace', false)
+                    .classed('debug', false)
+                    .classed('info', false)
+                    .classed('warning', false)
+                    .classed('error', false);
+
+                bulletinIcon.classed(mostSevere.bulletin.level.toLowerCase(), true);
+                bulletinBackground.classed(mostSevere.bulletin.level.toLowerCase(), true);
+
+                // add the tooltip
+                this.canvasTooltip(BulletinsTip, bulletinIcon, {
+                    bulletins: filteredBulletins
+                });
+            } else {
+                // This could be a case where the component producing the previous bulletins has been deleted.
+                // There is no bulletin to display if there is not a most severe, so hide the bulletin icon.
+                this.resetBulletin(selection);
+            }
         }
     }
 
@@ -1371,7 +1396,7 @@ export class CanvasUtils {
                 width -= 5;
 
                 // determine the appropriate index
-                trimLength = this.binarySearch(text.length, function (x: number) {
+                trimLength = this.binarySearch(text.length, function(x: number) {
                     const length = node.getSubStringLength(0, x);
                     if (length > width) {
                         // length is too long, try the lower half
@@ -1482,7 +1507,7 @@ export class CanvasUtils {
 
         // if there is active threads show the count, otherwise hide
         if (activeThreads > 0 || terminatedThreads > 0) {
-            const generateThreadsTip = function () {
+            const generateThreadsTip = function() {
                 let tip = activeThreads + ' active threads';
                 if (terminatedThreads > 0) {
                     tip += ' (' + terminatedThreads + ' terminated)';
@@ -1494,14 +1519,14 @@ export class CanvasUtils {
             // update the active thread count
             const activeThreadCount = selection
                 .select('text.active-thread-count')
-                .text(function () {
+                .text(function() {
                     if (terminatedThreads > 0) {
                         return activeThreads + ' (' + terminatedThreads + ')';
                     } else {
                         return activeThreads;
                     }
                 })
-                .attr('class', function () {
+                .attr('class', function() {
                     switch (d.type) {
                         case ComponentType.Processor:
                         case ComponentType.InputPort:
@@ -1512,11 +1537,11 @@ export class CanvasUtils {
                     }
                 })
                 .style('display', 'block')
-                .each(function (this: any) {
+                .each(function(this: any) {
                     const activeThreadCountText = d3.select(this);
 
                     const bBox = this.getBBox();
-                    activeThreadCountText.attr('x', function () {
+                    activeThreadCountText.attr('x', function() {
                         return d.dimensions.width - bBox.width - 15;
                     });
 
@@ -1530,11 +1555,11 @@ export class CanvasUtils {
             // update the background width
             selection
                 .select('text.active-thread-count-icon')
-                .attr('x', function () {
+                .attr('x', function() {
                     const bBox = activeThreadCount.node().getBBox();
                     return d.dimensions.width - bBox.width - 20;
                 })
-                .attr('class', function () {
+                .attr('class', function() {
                     switch (d.type) {
                         case ComponentType.Processor:
                         case ComponentType.InputPort:
@@ -1549,7 +1574,7 @@ export class CanvasUtils {
                     }
                 })
                 .style('display', 'block')
-                .each(function (this: any) {
+                .each(function(this: any) {
                     const activeThreadCountIcon = d3.select(this);
 
                     // reset the active thread count tooltip
@@ -1561,7 +1586,7 @@ export class CanvasUtils {
             selection
                 .selectAll('text.active-thread-count, text.active-thread-count-icon')
                 .style('display', 'none')
-                .each(function (this: any) {
+                .each(function(this: any) {
                     d3.select(this).selectAll('title').remove();
                 });
         }
