@@ -623,7 +623,9 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
         final int expectedPort = getClientApiPort() + nodeIndex - 1;
 
+        final List<Integer> nodePorts = new ArrayList<>();
         for (final NodeDTO nodeDto : clusterEntity.getCluster().getNodes()) {
+            nodePorts.add(nodeDto.getApiPort());
             if (nodeDto.getApiPort() == expectedPort) {
                 final NodeEntity nodeEntity = new NodeEntity();
                 nodeEntity.setNode(nodeDto);
@@ -631,7 +633,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
             }
         }
 
-        throw new IllegalStateException("Could not find node with API Port of " + expectedPort);
+        throw new IllegalStateException("Could not find node with API Port of " + expectedPort + "; found nodes: " + nodePorts);
     }
 
     protected void waitForNodeState(final int nodeIndex, final NodeConnectionState... nodeStates) throws InterruptedException {

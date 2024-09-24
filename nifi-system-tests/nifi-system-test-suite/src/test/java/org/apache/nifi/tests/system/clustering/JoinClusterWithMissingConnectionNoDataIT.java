@@ -22,7 +22,7 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 import org.junit.jupiter.api.Test;
 
-public class JoinClusterWithMissingConnectionNoData extends NiFiSystemIT {
+public class JoinClusterWithMissingConnectionNoDataIT extends NiFiSystemIT {
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
         return new SpawnedClusterNiFiInstanceFactory(
