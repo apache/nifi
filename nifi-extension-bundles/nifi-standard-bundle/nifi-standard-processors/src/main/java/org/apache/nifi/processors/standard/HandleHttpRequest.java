@@ -33,7 +33,6 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
@@ -60,11 +59,9 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletContextRequest;
 import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
@@ -151,11 +148,6 @@ import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
     @WritesAttribute(attribute = "http.multipart.fragments.total.number",
       description = "For requests with Content-Type \"multipart/form-data\", the count of all parts is recorded into this attribute.")})
 @SeeAlso(value = {HandleHttpResponse.class})
-@UseCase(
-        description = """
-                When you want to send large headers in an HTTP request to this processor,
-                the maximum supported request header size can be changed in nifi.properties nifi.web.max.header.size."""
-)
 public class HandleHttpRequest extends AbstractProcessor {
 
     private static final String MIME_TYPE__MULTIPART_FORM_DATA = "multipart/form-data";
@@ -288,6 +280,13 @@ public class HandleHttpRequest extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
+    public static final PropertyDescriptor REQUEST_HEADERS_MAX_SIZE = new PropertyDescriptor.Builder()
+            .name("HTTP Headers Maximum Size")
+            .description("The maximum supported size of HTTP headers in requests sent to this processor")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("8 KB")
+            .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Authentication")
             .description("Specifies whether or not the Processor should authenticate clients. This value is ignored if the <SSL Context Service> "
@@ -340,7 +339,8 @@ public class HandleHttpRequest extends AbstractProcessor {
             CONTAINER_QUEUE_SIZE,
             MULTIPART_REQUEST_MAX_SIZE,
             MULTIPART_READ_BUFFER_SIZE,
-            PARAMETERS_TO_ATTRIBUTES
+            PARAMETERS_TO_ATTRIBUTES,
+            REQUEST_HEADERS_MAX_SIZE
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -388,18 +388,9 @@ public class HandleHttpRequest extends AbstractProcessor {
         final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
         final Server server = createServer(context);
 
-        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null);
-        int requestMaxHeaderSize = DataUnit.parseDataSize(nifiProperties.getWebMaxHeaderSize(), DataUnit.B).intValue();
-
-        // Use NiFiProperties nifi.web.max.header.size for max requestHeaderSize
-        final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port) {
-            @Override
-            protected HttpConfiguration getHttpConfiguration() {
-                final HttpConfiguration httpConfig = super.getHttpConfiguration();
-                httpConfig.setRequestHeaderSize(requestMaxHeaderSize);
-                return httpConfig;
-            }
-        };
+        final int requestMaxHeaderSize = context.getProperty(REQUEST_HEADERS_MAX_SIZE).asDataSize(DataUnit.B).intValue();
+        final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port);
+        serverConnectorFactory.setMaxRequestHeaderSize(requestMaxHeaderSize);
 
         final boolean needClientAuth = CLIENT_NEED.getValue().equals(clientAuthValue);
         serverConnectorFactory.setNeedClientAuth(needClientAuth);

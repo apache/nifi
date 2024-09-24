@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.documentation.UseCase;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
@@ -56,10 +55,8 @@ import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
 import org.apache.nifi.stream.io.StreamThrottler;
-import org.apache.nifi.util.NiFiProperties;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
-import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
@@ -91,11 +88,6 @@ import java.util.regex.Pattern;
         + "For details see the documentation of the \"Listening Port for health check requests\" property."
         + "A Record Reader and Record Writer property can be enabled on the processor to process incoming requests as records. "
         + "Record processing is not allowed for multipart requests and request in FlowFileV3 format (minifi).")
-@UseCase(
-        description = """
-                When you want to send large headers in an HTTP request to this processor,
-                the maximum supported request header size can be changed in nifi.properties nifi.web.max.header.size."""
-)
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
     private static final String MATCH_ALL = ".*";
 
@@ -208,6 +200,13 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .required(false)
         .build();
+    public static final PropertyDescriptor REQUEST_HEADERS_MAX_SIZE = new PropertyDescriptor.Builder()
+        .name("HTTP Headers Maximum Size")
+        .description("The maximum supported size of HTTP headers in requests sent to this processor")
+        .required(true)
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .defaultValue("8 KB")
+        .build();
     public static final PropertyDescriptor RETURN_CODE = new PropertyDescriptor.Builder()
         .name("Return Code")
         .description("The HTTP return code returned after every HTTP call")
@@ -289,6 +288,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             AUTHORIZED_ISSUER_DN_PATTERN,
             MAX_UNCONFIRMED_TIME,
             HEADERS_AS_ATTRIBUTES_REGEX,
+            REQUEST_HEADERS_MAX_SIZE,
             RETURN_CODE,
             MULTIPART_REQUEST_MAX_SIZE,
             MULTIPART_READ_BUFFER_SIZE,
@@ -402,9 +402,10 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
         final int returnCode = context.getProperty(RETURN_CODE).asInteger();
-        long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
-        int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        int maxThreadPoolSize = context.getProperty(MAX_THREAD_POOL_SIZE).asInteger();
+        final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
+        final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final int maxThreadPoolSize = context.getProperty(MAX_THREAD_POOL_SIZE).asInteger();
+        final int requestMaxHeaderSize = context.getProperty(REQUEST_HEADERS_MAX_SIZE).asDataSize(DataUnit.B).intValue();
         throttlerRef.set(streamThrottler);
 
         final PropertyValue clientAuthenticationProperty = context.getProperty(CLIENT_AUTHENTICATION);
@@ -422,6 +423,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final HttpProtocolStrategy httpProtocolStrategy = context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
         final ServerConnector connector = createServerConnector(server,
                 port,
+                requestMaxHeaderSize,
                 sslContextService,
                 clientAuthentication,
                 httpProtocolStrategy
@@ -433,6 +435,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         if (healthCheckPort != null) {
             final ServerConnector healthCheckConnector = createServerConnector(server,
                     healthCheckPort,
+                    requestMaxHeaderSize,
                     sslContextService,
                     ClientAuthentication.NONE,
                     httpProtocolStrategy
@@ -511,22 +514,13 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
     private ServerConnector createServerConnector(final Server server,
                                                   final int port,
+                                                  final int requestMaxHeaderSize,
                                                   final SSLContextService sslContextService,
                                                   final ClientAuthentication clientAuthentication,
                                                   final HttpProtocolStrategy httpProtocolStrategy
     ) {
-        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null);
-        int requestMaxHeaderSize = DataUnit.parseDataSize(nifiProperties.getWebMaxHeaderSize(), DataUnit.B).intValue();
-
-        // Use NiFiProperties nifi.web.max.header.size for max requestHeaderSize
-        final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port) {
-            @Override
-            protected HttpConfiguration getHttpConfiguration() {
-                final HttpConfiguration httpConfig = super.getHttpConfiguration();
-                httpConfig.setRequestHeaderSize(requestMaxHeaderSize);
-                return httpConfig;
-            }
-        };
+        final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port);
+        serverConnectorFactory.setMaxRequestHeaderSize(requestMaxHeaderSize);
 
         final SSLContext sslContext = sslContextService == null ? null : sslContextService.createContext();
         serverConnectorFactory.setSslContext(sslContext);
