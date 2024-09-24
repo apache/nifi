@@ -61,7 +61,7 @@ public class TestQueryAirtableTable {
         runner.addControllerService("webClientService", webClientServiceProvider);
         runner.enableControllerService(webClientServiceProvider);
 
-        runner.setProperty(QueryAirtableTable.API_KEY, "???");
+        runner.setProperty(QueryAirtableTable.PAT, "???");
         runner.setProperty(QueryAirtableTable.BASE_ID, "baseid");
         runner.setProperty(QueryAirtableTable.TABLE_ID, "tableid");
         runner.setProperty(QueryAirtableTable.WEB_CLIENT_SERVICE_PROVIDER, webClientServiceProvider.getIdentifier());
