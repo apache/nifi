@@ -68,6 +68,9 @@
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
     $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     $success-lighter: map.get($config, success-lighter);
+    $success-default: map.get(map.get($config, success), default);
+    $caution-default: map.get($config, caution);
+    $on-primary: mat.get-theme-color($material-theme, on-primary);
 
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
     $drop-shadow-color: black;
@@ -196,11 +199,31 @@
         }
 
         text.bulletin-icon {
-            fill: mat.get-theme-color($material-theme, surface);
+            &.error,
+            &.warning,
+            &.info,
+            &.debug,
+            &.trace {
+                fill: mat.get-theme-color($material-theme, surface);
+            }
         }
 
         rect.bulletin-background {
-            fill: if($is-material-dark, $material-theme-error-palette-default, $material-theme-error-palette-darker);
+            &.error {
+                fill: if(
+                    $is-material-dark,
+                    $material-theme-error-palette-default,
+                    $material-theme-error-palette-darker
+                );
+            }
+            &.warning {
+                fill: $caution-default;
+            }
+            &.info,
+            &.debug,
+            &.trace {
+                fill: $success-default;
+            }
         }
 
         text.component-comments {

@@ -35,6 +35,11 @@
         error,
         map.get(map.get($config, error), default)
     );
+    $material-theme-error-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        error,
+        map.get(map.get($config, error), lighter)
+    );
     $material-theme-error-palette-darker: mat.get-theme-color(
         $material-theme,
         error,
@@ -50,36 +55,56 @@
         neutral,
         map.get(map.get($config, neutral), lighter)
     );
+    $material-theme-neutral-palette-default: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), default)
+    );
+
+    $material-theme-secondary-palette-default: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), default)
+    );
+
+    $on-primary: mat.get-theme-color($material-theme, on-primary);
+    $success-default: map.get(map.get($config, success), default);
+    $caution-default: map.get($config, caution);
 
     .flow-status {
-        background: if(
+        background-color: if(
             $is-material-dark,
             $material-theme-neutral-palette-darker,
             $material-theme-neutral-palette-lighter
         );
 
         .controller-bulletins {
-            background-color: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-lighter,
-                $material-theme-secondary-palette-darker
-            );
+            background-color: unset;
 
             .fa {
-                // invert the contrast colors since the surface is dark in light mode and light in dark mode
-                color: mat.get-theme-color($material-theme, surface);
+                color: $material-theme-secondary-palette-default;
             }
         }
 
         .controller-bulletins.has-bulletins {
-            background-color: if(
-                $is-material-dark,
-                $material-theme-error-palette-default,
-                $material-theme-error-palette-darker
-            );
-
             .fa {
                 color: mat.get-theme-color($material-theme, surface);
+            }
+
+            &.error {
+                background-color: if(
+                    $is-material-dark,
+                    $material-theme-error-palette-default,
+                    $material-theme-error-palette-darker
+                );
+            }
+            &.warning {
+                background-color: $caution-default;
+            }
+            &.info,
+            &.debug,
+            &.trace {
+                background-color: $success-default;
             }
         }
 
