@@ -156,11 +156,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final ProcessGroup root = flowManager.getRootGroup();
 
         // handle corner cases involving no proposed flow
-        if (proposedFlow == null) {
+        if (isFlowEmpty(proposedFlow)) {
             if (root.isEmpty()) {
                 return;  // no sync to perform
             } else {
-                throw new UninheritableFlowException("Proposed configuration is empty, but the controller contains a data flow.");
+                throw new UninheritableFlowException("Attempted to inherit an empty flow, but this NiFi instance already has a flow loaded.");
             }
         }
 
@@ -455,6 +455,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             inheritAuthorizations(existingFlow, proposedFlow, controller);
 
             removeMissingParameterContexts(controller, versionedFlow);
+            removeMissingRegistryClients(controller.getFlowManager(), versionedFlow);
         } catch (final Exception ex) {
             throw new FlowSynchronizationException(ex);
         }
@@ -539,9 +540,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private void inheritRegistryClients(final FlowController controller, final VersionedDataflow dataflow, final AffectedComponentSet affectedComponentSet) {
         final FlowManager flowManager = controller.getFlowManager();
 
-        final Set<String> versionedClientIds = new HashSet<>();
         for (final VersionedFlowRegistryClient versionedFlowRegistryClient : dataflow.getRegistries()) {
-            versionedClientIds.add(versionedFlowRegistryClient.getInstanceIdentifier());
             final FlowRegistryClientNode existing = flowManager.getFlowRegistryClient(versionedFlowRegistryClient.getIdentifier());
 
             if (existing == null) {
@@ -550,6 +549,14 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 updateRegistry(existing, versionedFlowRegistryClient, controller);
             }
         }
+    }
+
+    private void removeMissingRegistryClients(final FlowManager flowManager, final VersionedDataflow dataflow) {
+        final List<VersionedFlowRegistryClient> versionedRegistryClients = dataflow == null ? null : dataflow.getRegistries();
+        final Set<String> versionedClientIds = versionedRegistryClients == null ? Set.of() :
+            versionedRegistryClients.stream()
+                .map(VersionedFlowRegistryClient::getInstanceIdentifier)
+                .collect(Collectors.toSet());
 
         for (final FlowRegistryClientNode clientNode : flowManager.getAllFlowRegistryClients()) {
             if (!versionedClientIds.contains(clientNode.getIdentifier())) {
