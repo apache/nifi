@@ -30,6 +30,7 @@ import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../../../state';
 import { setFlowAnalysisOpen } from '../../../../state/flow/flow.actions';
+import { CanvasUtils } from '../../../../service/canvas-utils.service';
 
 @Component({
     selector: 'flow-status',
@@ -75,7 +76,8 @@ export class FlowStatus {
 
     constructor(
         private store: Store<NiFiState>,
-        private storage: Storage
+        private storage: Storage,
+        private canvasUtils: CanvasUtils
     ) {
         try {
             const item: { [key: string]: boolean } | null = this.storage.getItem(
@@ -167,6 +169,12 @@ export class FlowStatus {
         return {
             bulletins: this.filteredBulletins
         };
+    }
+
+    getMostSevereBulletinLevel(): string {
+        // determine the most severe of the bulletins
+        const mostSevere = this.canvasUtils.getMostSevereBulletin(this.filteredBulletins);
+        return mostSevere.bulletin.level.toLowerCase();
     }
 
     getBulletinTooltipPosition(): ConnectedPosition {

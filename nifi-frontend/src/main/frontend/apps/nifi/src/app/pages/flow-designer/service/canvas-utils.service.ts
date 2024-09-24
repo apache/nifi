@@ -34,7 +34,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BulletinsTip } from '../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { BreadcrumbEntity, Position } from '../state/shared';
 import { ComponentType } from 'libs/shared/src';
-import { ParameterContextReferenceEntity, Permissions } from '../../../state/shared';
+import { BulletinEntity, ParameterContextReferenceEntity, Permissions } from '../../../state/shared';
 import { NiFiCommon } from '@nifi/shared';
 import { CurrentUser } from '../../../state/current-user';
 import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
@@ -1258,13 +1258,38 @@ export class CanvasUtils {
         selection.on('mouseenter', null).on('mouseleave', null);
     }
 
+    private getHigherSeverityBulletinLevel(left: BulletinEntity, right: BulletinEntity): BulletinEntity {
+        const bulletinSeverityMap: { [key: string]: number } = {
+            TRACE: 0,
+            DEBUG: 1,
+            INFO: 2,
+            WARNING: 3,
+            ERROR: 4
+        };
+        let mappedLeft = 0;
+        let mappedRight = 0;
+        if (left) {
+            mappedLeft = bulletinSeverityMap[left.bulletin.level.toUpperCase()] || 0;
+        }
+        if (right) {
+            mappedRight = bulletinSeverityMap[right.bulletin.level.toUpperCase()] || 0;
+        }
+        return mappedLeft >= mappedRight ? left : right;
+    }
+
+    public getMostSevereBulletin(bulletins: BulletinEntity[]): BulletinEntity {
+        return bulletins.reduce((previous, current) => {
+            return this.getHigherSeverityBulletinLevel(previous, current);
+        });
+    }
+
     /**
      * Sets the bulletin visibility and applies a tooltip if necessary.
      *
      * @param selection
      * @param bulletins
      */
-    public bulletins(selection: any, bulletins: string[]): void {
+    public bulletins(selection: any, bulletins: BulletinEntity[]): void {
         if (this.nifiCommon.isEmpty(bulletins)) {
             // reset the bulletin icon/background
             selection.select('text.bulletin-icon').style('visibility', 'hidden');
@@ -1276,6 +1301,29 @@ export class CanvasUtils {
             // show the bulletin icon/background
             const bulletinIcon: any = selection.select('text.bulletin-icon').style('visibility', 'visible');
             selection.select('rect.bulletin-background').style('visibility', 'visible');
+
+            const bulletinBackground: any = selection.select('rect.bulletin-background').style('visibility', 'visible');
+
+            // determine the most severe of the bulletins
+            const mostSevere = this.getMostSevereBulletin(bulletins);
+
+            // reset any level-specifying classes that might have been there before
+            bulletinIcon
+                .classed('trace', false)
+                .classed('debug', false)
+                .classed('info', false)
+                .classed('warning', false)
+                .classed('error', false);
+            bulletinBackground
+                .classed('trace', false)
+                .classed('debug', false)
+                .classed('info', false)
+                .classed('warning', false)
+                .classed('error', false);
+
+            // add the proper class to indicate the most severe bulletin
+            bulletinIcon.classed(mostSevere.bulletin.level.toLowerCase(), true);
+            bulletinBackground.classed(mostSevere.bulletin.level.toLowerCase(), true);
 
             // add the tooltip
             this.canvasTooltip(BulletinsTip, bulletinIcon, {
