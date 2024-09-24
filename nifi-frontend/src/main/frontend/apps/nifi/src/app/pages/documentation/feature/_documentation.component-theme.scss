@@ -39,6 +39,10 @@
     );
 
     .documentation {
+        h2 {
+            margin-bottom: 12px !important;
+        }
+
         .extension-links,
         .external-links {
             a:hover {
