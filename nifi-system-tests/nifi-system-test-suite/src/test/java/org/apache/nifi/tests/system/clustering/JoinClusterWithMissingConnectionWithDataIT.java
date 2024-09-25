@@ -28,10 +28,14 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class JoinClusterWithMissingConnectionWithData extends NiFiSystemIT {
+public class JoinClusterWithMissingConnectionWithDataIT extends NiFiSystemIT {
+    private static final Logger logger = LoggerFactory.getLogger(JoinClusterWithMissingConnectionWithDataIT.class);
+
     private static final String GENERATE_UUID = "6be9a7e7-016e-1000-0000-00004700499d";
     private static final String CONNECTION_UUID = "6be9a991-016e-1000-ffff-fffffebf0217";
 
@@ -135,8 +139,8 @@ public class JoinClusterWithMissingConnectionWithData extends NiFiSystemIT {
         final FlowDTO flowDto;
         try {
             flowDto = getNifiClient().getFlowClient().getProcessGroup("root").getProcessGroupFlow().getFlow();
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (final Exception e) {
+            logger.error("Failed to retrieve flow", e);
             return false;
         }
 
