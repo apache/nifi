@@ -785,7 +785,7 @@ public class TestListenHTTP {
 
     @Test
     public void testLargeHTTPRequestHeader() throws Exception {
-        runner.setProperty(ListenHTTP.REQUEST_HEADERS_MAX_SIZE, "16 KB");
+        runner.setProperty(ListenHTTP.REQUEST_HEADER_MAX_SIZE, "16 KB");
 
         String largeHeaderValue = "A".repeat(9 * 1024);
 

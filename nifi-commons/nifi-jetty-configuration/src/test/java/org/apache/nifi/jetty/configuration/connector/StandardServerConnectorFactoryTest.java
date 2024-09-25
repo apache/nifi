@@ -61,10 +61,10 @@ class StandardServerConnectorFactoryTest {
     }
 
     @Test
-    void testGetServerConnectorWithMaxRequestHeaderSize() {
+    void testGetServerConnectorWithRequestHeaderSize() {
         final Server server = new Server();
         final StandardServerConnectorFactory factory = new StandardServerConnectorFactory(server, HTTP_PORT);
-        factory.setMaxRequestHeaderSize(16000);
+        factory.setRequestHeaderSize(16000);
 
         final ServerConnector serverConnector = factory.getServerConnector();
 

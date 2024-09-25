@@ -200,8 +200,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .required(false)
         .build();
-    public static final PropertyDescriptor REQUEST_HEADERS_MAX_SIZE = new PropertyDescriptor.Builder()
-        .name("HTTP Headers Maximum Size")
+    public static final PropertyDescriptor REQUEST_HEADER_MAX_SIZE = new PropertyDescriptor.Builder()
+        .name("Request Header Maximum Size")
         .description("The maximum supported size of HTTP headers in requests sent to this processor")
         .required(true)
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -288,7 +288,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             AUTHORIZED_ISSUER_DN_PATTERN,
             MAX_UNCONFIRMED_TIME,
             HEADERS_AS_ATTRIBUTES_REGEX,
-            REQUEST_HEADERS_MAX_SIZE,
+            REQUEST_HEADER_MAX_SIZE,
             RETURN_CODE,
             MULTIPART_REQUEST_MAX_SIZE,
             MULTIPART_READ_BUFFER_SIZE,
@@ -405,7 +405,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
         final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxThreadPoolSize = context.getProperty(MAX_THREAD_POOL_SIZE).asInteger();
-        final int requestMaxHeaderSize = context.getProperty(REQUEST_HEADERS_MAX_SIZE).asDataSize(DataUnit.B).intValue();
+        final int requestHeaderSize = context.getProperty(REQUEST_HEADER_MAX_SIZE).asDataSize(DataUnit.B).intValue();
         throttlerRef.set(streamThrottler);
 
         final PropertyValue clientAuthenticationProperty = context.getProperty(CLIENT_AUTHENTICATION);
@@ -423,7 +423,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final HttpProtocolStrategy httpProtocolStrategy = context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
         final ServerConnector connector = createServerConnector(server,
                 port,
-                requestMaxHeaderSize,
+                requestHeaderSize,
                 sslContextService,
                 clientAuthentication,
                 httpProtocolStrategy
@@ -435,7 +435,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         if (healthCheckPort != null) {
             final ServerConnector healthCheckConnector = createServerConnector(server,
                     healthCheckPort,
-                    requestMaxHeaderSize,
+                    requestHeaderSize,
                     sslContextService,
                     ClientAuthentication.NONE,
                     httpProtocolStrategy
@@ -520,7 +520,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
                                                   final HttpProtocolStrategy httpProtocolStrategy
     ) {
         final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port);
-        serverConnectorFactory.setMaxRequestHeaderSize(requestMaxHeaderSize);
+        serverConnectorFactory.setRequestHeaderSize(requestMaxHeaderSize);
 
         final SSLContext sslContext = sslContextService == null ? null : sslContextService.createContext();
         serverConnectorFactory.setSslContext(sslContext);

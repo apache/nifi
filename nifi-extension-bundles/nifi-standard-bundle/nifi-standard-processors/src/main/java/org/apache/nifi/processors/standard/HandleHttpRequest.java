@@ -280,8 +280,8 @@ public class HandleHttpRequest extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
-    public static final PropertyDescriptor REQUEST_HEADERS_MAX_SIZE = new PropertyDescriptor.Builder()
-            .name("HTTP Headers Maximum Size")
+    public static final PropertyDescriptor REQUEST_HEADER_MAX_SIZE = new PropertyDescriptor.Builder()
+            .name("Request Header Maximum Size")
             .description("The maximum supported size of HTTP headers in requests sent to this processor")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -340,7 +340,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             MULTIPART_REQUEST_MAX_SIZE,
             MULTIPART_READ_BUFFER_SIZE,
             PARAMETERS_TO_ATTRIBUTES,
-            REQUEST_HEADERS_MAX_SIZE
+            REQUEST_HEADER_MAX_SIZE
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -388,9 +388,9 @@ public class HandleHttpRequest extends AbstractProcessor {
         final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
         final Server server = createServer(context);
 
-        final int requestMaxHeaderSize = context.getProperty(REQUEST_HEADERS_MAX_SIZE).asDataSize(DataUnit.B).intValue();
+        final int requestHeaderSize = context.getProperty(REQUEST_HEADER_MAX_SIZE).asDataSize(DataUnit.B).intValue();
         final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port);
-        serverConnectorFactory.setMaxRequestHeaderSize(requestMaxHeaderSize);
+        serverConnectorFactory.setRequestHeaderSize(requestHeaderSize);
 
         final boolean needClientAuth = CLIENT_NEED.getValue().equals(clientAuthValue);
         serverConnectorFactory.setNeedClientAuth(needClientAuth);
