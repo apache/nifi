@@ -171,10 +171,10 @@ export class FlowStatus {
         };
     }
 
-    getMostSevereBulletinLevel(): string {
+    getMostSevereBulletinLevel(): string | null {
         // determine the most severe of the bulletins
         const mostSevere = this.canvasUtils.getMostSevereBulletin(this.filteredBulletins);
-        return mostSevere.bulletin.level.toLowerCase();
+        return mostSevere ? mostSevere.bulletin.level.toLowerCase() : null;
     }
 
     getBulletinTooltipPosition(): ConnectedPosition {
