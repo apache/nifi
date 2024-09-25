@@ -37,7 +37,7 @@
             @for (dynamicProperty of dynamicProperties; track dynamicProperty.name) {
                 <mat-expansion-panel>
                     <mat-expansion-panel-header>
-                        <mat-panel-title>{{ dynamicProperty.name }}</mat-panel-title>
+                        <mat-panel-title [title]="dynamicProperty.name">{{ dynamicProperty.name }}</mat-panel-title>
                         <mat-panel-description [title]="dynamicProperty.description">{{
                             dynamicProperty.description
                         }}</mat-panel-description>

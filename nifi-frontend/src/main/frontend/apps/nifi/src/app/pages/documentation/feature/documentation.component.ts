@@ -35,7 +35,7 @@ import {
     selectProcessorTypes,
     selectReportingTaskTypes
 } from '../../../state/extension-types/extension-types.selectors';
-import { ComponentType, isDefinedAndNotNull, NiFiCommon } from '@nifi/shared';
+import { ComponentType, isDefinedAndNotNull, NiFiCommon, selectCurrentRoute } from '@nifi/shared';
 import { MatAccordion } from '@angular/material/expansion';
 import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
@@ -93,6 +93,17 @@ export class Documentation implements OnInit, AfterViewInit {
             .subscribe((coordinates) => {
                 this.selectedCoordinates = coordinates;
                 this.isOverviewRoute = false;
+            });
+
+        this.store
+            .select(selectCurrentRoute)
+            .pipe(
+                isDefinedAndNotNull(),
+                takeUntilDestroyed(),
+                distinctUntilChanged((a, b) => a === b)
+            )
+            .subscribe(() => {
+                this.scrolledIntoView = false;
             });
 
         this.store

@@ -40,7 +40,9 @@
             @for (propertyDescriptor of propertyDescriptors; track propertyDescriptor.name) {
                 <mat-expansion-panel>
                     <mat-expansion-panel-header>
-                        <mat-panel-title>{{ formatTitle(propertyDescriptor) }}</mat-panel-title>
+                        <mat-panel-title [title]="formatTitle(propertyDescriptor)">{{
+                            formatTitle(propertyDescriptor)
+                        }}</mat-panel-title>
                         <mat-panel-description [title]="propertyDescriptor.description">{{
                             propertyDescriptor.description
                         }}</mat-panel-description>

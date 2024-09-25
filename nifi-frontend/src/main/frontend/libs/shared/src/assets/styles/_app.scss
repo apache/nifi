@@ -187,10 +187,7 @@
         --mat-expansion-header-expanded-state-height: 50px;
     }
 
-    .mat-expansion-panel-header-title {
-        margin-right: 0 !important;
-    }
-
+    .mat-expansion-panel-header-title,
     .mat-expansion-panel-header-description {
         @apply truncate;
         display: block !important;
