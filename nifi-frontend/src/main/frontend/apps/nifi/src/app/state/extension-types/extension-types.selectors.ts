@@ -128,7 +128,7 @@ export const selectExtensionFromTypes = (extensionTypes: string[]) =>
         return {
             processorTypes: state.processorTypes.filter(typeFilter),
             controllerServiceTypes: state.controllerServiceTypes.filter(typeFilter),
-            reportingTaskTypes: state.controllerServiceTypes.filter(typeFilter),
+            reportingTaskTypes: state.reportingTaskTypes.filter(typeFilter),
             parameterProviderTypes: state.parameterProviderTypes.filter(typeFilter),
             flowAnalysisRuleTypes: state.flowAnalysisRuleTypes.filter(typeFilter)
         } as LoadExtensionTypesForDocumentationResponse;
