@@ -18,7 +18,9 @@
 package org.apache.nifi.cluster.coordination.http.replication.io;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.annotation.Annotation;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -43,24 +45,49 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class JacksonResponse extends Response {
+/**
+ * Replicated extension of standard Response with HTTP properties returned
+ */
+public class ReplicatedResponse extends Response {
+    private static final int MAXIMUM_BUFFER_SIZE = 1048576;
+    private static final int CONTENT_LENGTH_UNKNOWN = -1;
+
     private final ObjectMapper codec;
-    private final byte[] responseBody;
+    private final InputStream responseBody;
     private final MultivaluedMap<String, String> responseHeaders;
     private final URI location;
     private final int statusCode;
     private final Runnable closeCallback;
+    private final int contentLength;
 
     private final JsonFactory jsonFactory = new JsonFactory();
 
-    public JacksonResponse(final ObjectMapper codec, final byte[] responseBody, final MultivaluedMap<String, String> responseHeaders, final URI location, final int statusCode,
-            final Runnable closeCallback) {
+    private final byte[] bufferedResponseBody;
+
+    public ReplicatedResponse(
+            final ObjectMapper codec,
+            final InputStream responseBody,
+            final MultivaluedMap<String, String> responseHeaders,
+            final URI location,
+            final int statusCode,
+            final int contentLength,
+            final Runnable closeCallback
+    ) {
         this.codec = codec;
         this.responseBody = responseBody;
         this.responseHeaders = responseHeaders;
         this.location = location;
         this.statusCode = statusCode;
         this.closeCallback = closeCallback;
+
+        if (contentLength == CONTENT_LENGTH_UNKNOWN || contentLength > MAXIMUM_BUFFER_SIZE) {
+            // Avoid buffering unknown Content-Length or greater than maximum buffer size specified
+            bufferedResponseBody = null;
+            this.contentLength = CONTENT_LENGTH_UNKNOWN;
+        } else {
+            bufferedResponseBody = readResponseBody(responseBody, location, statusCode);
+            this.contentLength = bufferedResponseBody.length;
+        }
     }
 
     @Override
@@ -75,8 +102,10 @@ public class JacksonResponse extends Response {
 
     @Override
     public Object getEntity() {
+        final InputStream responseBodyStream = getResponseBodyStream();
+
         try {
-            final JsonParser parser = jsonFactory.createParser(responseBody);
+            final JsonParser parser = jsonFactory.createParser(responseBodyStream);
             parser.setCodec(codec);
             return parser.readValueAs(Object.class);
         } catch (final Exception e) {
@@ -87,16 +116,23 @@ public class JacksonResponse extends Response {
     @Override
     @SuppressWarnings("unchecked")
     public <T> T readEntity(Class<T> entityType) {
+        final InputStream responseBodyStream = getResponseBodyStream();
+
         if (InputStream.class.equals(entityType)) {
-            return (T) new ByteArrayInputStream(responseBody);
+            return (T) responseBodyStream;
         }
 
         if (String.class.equals(entityType)) {
-            return (T) new String(responseBody, StandardCharsets.UTF_8);
+            try {
+                final byte[] responseBytes = responseBodyStream.readAllBytes();
+                return (T) new String(responseBytes, StandardCharsets.UTF_8);
+            } catch (final IOException e) {
+                throw new UncheckedIOException("Read Replicated Response Body to String failed for %s".formatted(location), e);
+            }
         }
 
         try {
-            final JsonParser parser = jsonFactory.createParser(responseBody);
+            final JsonParser parser = jsonFactory.createParser(responseBodyStream);
             parser.setCodec(codec);
             return parser.readValueAs(entityType);
         } catch (final Exception e) {
@@ -121,7 +157,7 @@ public class JacksonResponse extends Response {
 
     @Override
     public boolean hasEntity() {
-        return responseBody != null && responseBody.length > 0;
+        return true;
     }
 
     @Override
@@ -148,7 +184,7 @@ public class JacksonResponse extends Response {
 
     @Override
     public int getLength() {
-        return responseBody == null ? 0 : responseBody.length;
+        return contentLength;
     }
 
     @Override
@@ -238,5 +274,25 @@ public class JacksonResponse extends Response {
         }
 
         return responseHeaders.getFirst(name.toLowerCase());
+    }
+
+    private InputStream getResponseBodyStream() {
+        final InputStream responseBodyStream;
+
+        if (bufferedResponseBody == null) {
+            responseBodyStream = responseBody;
+        } else {
+            responseBodyStream = new ByteArrayInputStream(bufferedResponseBody);
+        }
+
+        return responseBodyStream;
+    }
+
+    private static byte[] readResponseBody(final InputStream inputStream, final URI location, final int statusCode) {
+        try {
+            return inputStream.readAllBytes();
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Buffering Replicated Response Body failed %s HTTP %d".formatted(location, statusCode), e);
+        }
     }
 }
