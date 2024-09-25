@@ -33,10 +33,17 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class RestartWithDifferentPort extends NiFiSystemIT {
+public class RestartWithDifferentPortIT extends NiFiSystemIT {
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
         return createTwoNodeInstanceFactory();
+    }
+
+    @Override
+    protected boolean isAllowFactoryReuse() {
+        // Do not allow reuse of the factory because we are changing the port that node 2 starts on, which can then cause
+        // subsequent tests to fail, if they are attempting to get node by port number.
+        return false;
     }
 
     @Test
