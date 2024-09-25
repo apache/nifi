@@ -1387,6 +1387,11 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public void resetValidationState() {
         lock.lock();
         try {
+            if (!isValidationNecessary()) {
+                logger.debug("Triggered to reset validation state of {} but will leave validation state as {} because validation is not necessary in its current state", this, validationState.get());
+                return;
+            }
+
             validationContext = null;
             validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
 
