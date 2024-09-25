@@ -313,10 +313,10 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     }
 
     private TokenInfo createTokenInfo(final PersonalAccessToken personalAccessToken) {
-        final Set<String> tokenScopes = new HashSet<>(personalAccessToken.getScopes());
+        final Set<String> tokenScopes = new HashSet<>(personalAccessToken.scopes());
         final boolean canReadApi = tokenScopes.contains(READ_API_SCOPE) || tokenScopes.contains(WRITE_API_SCOPE);
         final boolean canWriteApi = tokenScopes.contains(WRITE_API_SCOPE);
-        return new TokenInfo(personalAccessToken.getName(), canReadApi, canWriteApi);
+        return new TokenInfo(personalAccessToken.name(), canReadApi, canWriteApi);
     }
 
     private Optional<PersonalAccessToken> getPersonalAccessToken() {

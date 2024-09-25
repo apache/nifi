@@ -122,6 +122,8 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
             final Set<FlowRegistryBranch> sortedBranches = new TreeSet<>((branch1, branch2) -> {
                 if (branch1.getName().equals(defaultBranch.getName())) {
                     return -1;
+                } else if (branch2.getName().equals(defaultBranch.getName())) {
+                    return 1;
                 }
                 return branch1.getName().compareTo(branch2.getName());
             });

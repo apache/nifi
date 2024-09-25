@@ -17,95 +17,26 @@
 
 package org.apache.nifi.gitlab;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 /**
  * Response from retrieving a personal access token from the GitLab API.
  */
-public class PersonalAccessToken {
-
-    private long id;
-    private long user_id;
-
-    private String name;
-    private String revoked;
-    private String created_at;
-    private String expires_at;
-    private String last_user_at;
-
-    private List<String> scopes;
-
-    private boolean active;
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(final long id) {
-        this.id = id;
-    }
-
-    public long getUser_id() {
-        return user_id;
-    }
-
-    public void setUser_id(final long user_id) {
-        this.user_id = user_id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(final String name) {
-        this.name = name;
-    }
-
-    public String getRevoked() {
-        return revoked;
-    }
-
-    public void setRevoked(final String revoked) {
-        this.revoked = revoked;
-    }
-
-    public String getCreated_at() {
-        return created_at;
-    }
-
-    public void setCreated_at(final String created_at) {
-        this.created_at = created_at;
-    }
-
-    public String getExpires_at() {
-        return expires_at;
-    }
-
-    public void setExpires_at(final String expires_at) {
-        this.expires_at = expires_at;
-    }
-
-    public String getLast_user_at() {
-        return last_user_at;
-    }
-
-    public void setLast_user_at(final String last_user_at) {
-        this.last_user_at = last_user_at;
-    }
-
-    public List<String> getScopes() {
-        return scopes;
-    }
-
-    public void setScopes(final List<String> scopes) {
-        this.scopes = scopes;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(final boolean active) {
-        this.active = active;
-    }
+public record PersonalAccessToken(
+        long id,
+        @JsonProperty("user_id")
+        long userId,
+        String name,
+        String revoked,
+        @JsonProperty("created_at")
+        String createdAt,
+        @JsonProperty("expires_at")
+        String expiresAt,
+        @JsonProperty("last_used_at")
+        String lastUsedAt,
+        List<String> scopes,
+        boolean active) {
 }
+

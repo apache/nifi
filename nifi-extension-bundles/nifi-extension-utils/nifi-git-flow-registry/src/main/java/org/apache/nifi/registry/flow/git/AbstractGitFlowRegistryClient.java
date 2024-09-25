@@ -77,7 +77,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
 
     public static final PropertyDescriptor REPOSITORY_PATH = new PropertyDescriptor.Builder()
             .name("Repository Path")
-            .description("The path with in the repository that this client will use to store all data. " +
+            .description("The path in the repository that this client will use to store all data. " +
                     "If left blank, then the root of the repository will be used.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(false)

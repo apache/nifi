@@ -66,7 +66,7 @@ public class GitLabFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     static final PropertyDescriptor AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
             .name("Authentication Type")
-            .description("The type of authentication to use for accessing GitLan")
+            .description("The type of authentication to use for accessing GitLab")
             .allowableValues(GitLabAuthenticationType.class)
             .defaultValue(GitLabAuthenticationType.ACCESS_TOKEN)
             .required(true)
