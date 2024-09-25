@@ -26,7 +26,7 @@ import jakarta.ws.rs.core.Response;
 import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClient;
 import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
 import org.apache.nifi.cluster.coordination.http.replication.io.EntitySerializer;
-import org.apache.nifi.cluster.coordination.http.replication.io.JacksonResponse;
+import org.apache.nifi.cluster.coordination.http.replication.io.ReplicatedResponse;
 import org.apache.nifi.cluster.coordination.http.replication.io.JsonEntitySerializer;
 import org.apache.nifi.cluster.coordination.http.replication.io.XmlEntitySerializer;
 import org.apache.nifi.web.client.api.HttpEntityHeaders;
@@ -61,6 +61,8 @@ public class StandardHttpReplicationClient implements HttpReplicationClient {
     private static final Set<String> REQUEST_BODY_METHODS = Set.of("PATCH", "POST", "PUT");
 
     private static final Set<String> DISALLOWED_HEADERS = Set.of("connection", "content-length", "expect", "host", "upgrade");
+
+    private static final int CONTENT_LENGTH_NOT_FOUND = -1;
 
     private static final char PSEUDO_HEADER_PREFIX = ':';
 
@@ -199,17 +201,25 @@ public class StandardHttpReplicationClient implements HttpReplicationClient {
     private Response replicate(final HttpRequestBodySpec httpRequestBodySpec, final String method, final URI location) throws IOException {
         final long started = System.currentTimeMillis();
 
-        try (HttpResponseEntity responseEntity = httpRequestBodySpec.retrieve()) {
-            final int statusCode = responseEntity.statusCode();
-            final HttpEntityHeaders headers = responseEntity.headers();
-            final MultivaluedMap<String, String> responseHeaders = getResponseHeaders(headers);
-            final byte[] responseBody = getResponseBody(responseEntity.body(), headers);
+        final HttpResponseEntity responseEntity = httpRequestBodySpec.retrieve();
+        final int statusCode = responseEntity.statusCode();
+        final HttpEntityHeaders headers = responseEntity.headers();
+        final MultivaluedMap<String, String> responseHeaders = getResponseHeaders(headers);
+        final int contentLength = getContentLength(headers);
 
-            final long elapsed = System.currentTimeMillis() - started;
-            logger.debug("Replicated {} {} HTTP {} in {} ms", method, location, statusCode, elapsed);
+        final InputStream responseBody = getResponseBody(responseEntity.body(), headers);
+        final Runnable closeCallback = () -> {
+            try {
+                responseEntity.close();
+            } catch (final IOException e) {
+                logger.warn("Close failed for Replicated {} {} HTTP {}", method, location, statusCode, e);
+            }
+        };
 
-            return new JacksonResponse(objectMapper, responseBody, responseHeaders, location, statusCode, null);
-        }
+        final long elapsed = System.currentTimeMillis() - started;
+        logger.debug("Replicated {} {} HTTP {} in {} ms", method, location, statusCode, elapsed);
+
+        return new ReplicatedResponse(objectMapper, responseBody, responseHeaders, location, statusCode, contentLength, closeCallback);
     }
 
     private URI getRequestUri(final StandardPreparedRequest preparedRequest, final URI location) {
@@ -288,14 +298,32 @@ public class StandardHttpReplicationClient implements HttpReplicationClient {
         return headers;
     }
 
-    private byte[] getResponseBody(final InputStream inputStream, final HttpEntityHeaders responseHeaders) throws IOException {
+    private InputStream getResponseBody(final InputStream inputStream, final HttpEntityHeaders responseHeaders) throws IOException {
         final boolean gzipEncoded = isGzipEncoded(responseHeaders);
+        return gzipEncoded ? new GZIPInputStream(inputStream) : inputStream;
+    }
 
-        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try (InputStream responseBodyStream = gzipEncoded ? new GZIPInputStream(inputStream) : inputStream) {
-            responseBodyStream.transferTo(outputStream);
+    private int getContentLength(final HttpEntityHeaders headers) {
+        final Optional<String> contentLengthFound = headers.getHeaderNames()
+                .stream()
+                .filter(PreparedRequestHeader.CONTENT_LENGTH.getHeader()::equalsIgnoreCase)
+                .findFirst()
+                .flatMap(headers::getFirstHeader);
+
+        int contentLength;
+        if (contentLengthFound.isPresent()) {
+            final String contentLengthHeader = contentLengthFound.get();
+            try {
+                contentLength = Integer.parseInt(contentLengthHeader);
+            } catch (final NumberFormatException e) {
+                logger.warn("Replicated Header Content-Length [{}] parsing failed", contentLengthHeader, e);
+                contentLength = CONTENT_LENGTH_NOT_FOUND;
+            }
+        } else {
+            contentLength = CONTENT_LENGTH_NOT_FOUND;
         }
-        return outputStream.toByteArray();
+
+        return contentLength;
     }
 
     private byte[] getRequestBody(final Object requestEntity, final Map<String, String> headers) {
