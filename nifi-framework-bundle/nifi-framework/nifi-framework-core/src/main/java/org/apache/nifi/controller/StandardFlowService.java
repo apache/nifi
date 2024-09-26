@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.asset.AssetSynchronizer;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
@@ -53,7 +52,6 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
-import org.apache.nifi.controller.serialization.VersionedFlowSynchronizer;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
@@ -450,30 +448,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 logger.trace("InitialFlow = {}", new String(initialFlow.getFlow(), StandardCharsets.UTF_8));
             }
 
-            // Sync the initial flow into the flow controller so that if the flow came from disk we loaded the
-            // whole flow into the flow controller and applied any bundle upgrades
-            writeLock.lock();
-            try {
-                loadFromBytes(initialFlow, true, BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST);
-            } finally {
-                writeLock.unlock();
-            }
-
-            // Get the proposed flow by serializing the flow controller which now has the synced version from above
-            final DataFlow proposedFlow = createDataFlowFromController();
-            if (logger.isTraceEnabled()) {
-                logger.trace("ProposedFlow = {}", new String(proposedFlow.getFlow(), StandardCharsets.UTF_8));
-            }
-
-            /*
-             * Attempt to connect to the cluster. If the manager is able to
-             * provide a data flow, then the manager will send a connection
-             * response. If the manager was unable to be located, then
-             * the response will be null and we should load the local dataflow
-             * and heartbeat until a manager is located.
-             */
-            final boolean localFlowEmpty = VersionedFlowSynchronizer.isFlowEmpty(proposedFlow);
-            final ConnectionResponse response = connect(true, localFlowEmpty, proposedFlow);
+            final ConnectionResponse response = connect(true, true, initialFlow);
 
             // obtain write lock while we are updating the controller. We need to ensure that we don't
             // obtain the lock before calling connect(), though, or we will end up getting a deadlock
@@ -503,30 +478,16 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                      */
                     controller.startHeartbeating();
 
-                    // Initialize the controller after the flow is loaded so we don't take any actions on repos until everything is good
-                    initializeController();
-
-                    // notify controller that flow is initialized
-                    try {
-                        controller.onFlowInitialized(autoResumeState);
-                    } catch (final Exception ex) {
-                        logger.warn("Unable to start all processors due to invalid flow configuration.");
-                        if (logger.isDebugEnabled()) {
-                            logger.warn(StringUtils.EMPTY, ex);
-                        }
-                    }
                 } else {
                     try {
                         loadFromConnectionResponse(response);
+                        dao.save(controller, true);
                     } catch (final Exception e) {
                         logger.error("Failed to load flow from cluster", e);
                         handleConnectionFailure(e);
                         throw new IOException(e);
                     }
                 }
-
-                // save the flow in the controller so we write out the latest flow with any updated bundles to disk
-                dao.save(controller, true);
 
             } finally {
                 writeLock.unlock();
@@ -993,6 +954,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             loadSnippets(dataFlow.getSnippets());
 
             controller.startHeartbeating();
+
         } catch (final UninheritableFlowException ufe) {
             throw new UninheritableFlowException(CONNECTION_EXCEPTION_MSG_PREFIX, ufe);
         } catch (final MissingBundleException mbe) {
