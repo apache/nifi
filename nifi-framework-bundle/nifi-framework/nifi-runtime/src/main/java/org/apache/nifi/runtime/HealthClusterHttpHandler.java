@@ -22,6 +22,7 @@ import org.apache.nifi.NiFiServer;
 import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.cluster.ConnectionState;
 import org.apache.nifi.controller.DecommissionTask;
+import org.apache.nifi.util.HttpExchangeUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -57,28 +58,30 @@ class HealthClusterHttpHandler implements HttpHandler {
 
     @Override
     public void handle(final HttpExchange exchange) throws IOException {
+        HttpExchangeUtils.drainRequestBody(exchange);
+
         final String requestMethod = exchange.getRequestMethod();
 
-        final OutputStream responseBody = exchange.getResponseBody();
+        try (final OutputStream responseBody = exchange.getResponseBody()) {
+            if (GET_METHOD.contentEquals(requestMethod)) {
+                exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, TEXT_PLAIN);
+                final ConnectionState connectionState = getConnectionState();
+                final String status = STATUS.formatted(connectionState);
+                final byte[] response = status.getBytes(StandardCharsets.UTF_8);
+                final int responseCode = getResponseCode(connectionState);
+                exchange.sendResponseHeaders(responseCode, response.length);
+                responseBody.write(response);
+            } else if (DELETE_METHOD.contentEquals(requestMethod)) {
+                startDecommission();
 
-        if (GET_METHOD.contentEquals(requestMethod)) {
-            exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, TEXT_PLAIN);
-            final ConnectionState connectionState = getConnectionState();
-            final String status = STATUS.formatted(connectionState);
-            final byte[] response = status.getBytes(StandardCharsets.UTF_8);
-            final int responseCode = getResponseCode(connectionState);
-            exchange.sendResponseHeaders(responseCode, response.length);
-            responseBody.write(response);
-        } else if (DELETE_METHOD.contentEquals(requestMethod)) {
-            startDecommission();
-
-            exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, TEXT_PLAIN);
-            final String status = STATUS.formatted(ConnectionState.OFFLOADING);
-            final byte[] response = status.getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(HTTP_ACCEPTED, response.length);
-            responseBody.write(response);
-        } else {
-            exchange.sendResponseHeaders(HTTP_BAD_METHOD, NO_RESPONSE_BODY);
+                exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, TEXT_PLAIN);
+                final String status = STATUS.formatted(ConnectionState.OFFLOADING);
+                final byte[] response = status.getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(HTTP_ACCEPTED, response.length);
+                responseBody.write(response);
+            } else {
+                exchange.sendResponseHeaders(HTTP_BAD_METHOD, NO_RESPONSE_BODY);
+            }
         }
     }
 

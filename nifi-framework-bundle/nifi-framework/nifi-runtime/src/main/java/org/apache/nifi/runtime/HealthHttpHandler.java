@@ -18,6 +18,7 @@ package org.apache.nifi.runtime;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import org.apache.nifi.util.HttpExchangeUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -42,17 +43,19 @@ class HealthHttpHandler implements HttpHandler {
 
     @Override
     public void handle(final HttpExchange exchange) throws IOException {
+        HttpExchangeUtils.drainRequestBody(exchange);
+
         final String requestMethod = exchange.getRequestMethod();
 
-        final OutputStream responseBody = exchange.getResponseBody();
-
-        if (GET_METHOD.contentEquals(requestMethod)) {
-            exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, TEXT_PLAIN);
-            final byte[] response = STATUS_UP.getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(HTTP_OK, response.length);
-            responseBody.write(response);
-        } else {
-            exchange.sendResponseHeaders(HTTP_BAD_METHOD, NO_RESPONSE_BODY);
+        try (final OutputStream responseBody = exchange.getResponseBody()) {
+            if (GET_METHOD.contentEquals(requestMethod)) {
+                exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, TEXT_PLAIN);
+                final byte[] response = STATUS_UP.getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(HTTP_OK, response.length);
+                responseBody.write(response);
+            } else {
+                exchange.sendResponseHeaders(HTTP_BAD_METHOD, NO_RESPONSE_BODY);
+            }
         }
     }
 }
