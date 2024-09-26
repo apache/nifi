@@ -21,6 +21,7 @@ import com.sun.net.httpserver.HttpHandler;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
+import org.apache.nifi.util.HttpExchangeUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -54,22 +55,23 @@ class HealthDiagnosticsHttpHandler implements HttpHandler {
 
     @Override
     public void handle(final HttpExchange exchange) throws IOException {
+        HttpExchangeUtils.drainRequestBody(exchange);
+
         final String requestMethod = exchange.getRequestMethod();
+        try (final OutputStream responseBody = exchange.getResponseBody()) {
+            if (GET_METHOD.contentEquals(requestMethod)) {
+                exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, TEXT_PLAIN);
+                exchange.sendResponseHeaders(HTTP_OK, STREAM_RESPONSE_BODY);
 
-        if (GET_METHOD.contentEquals(requestMethod)) {
-            exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, TEXT_PLAIN);
-            exchange.sendResponseHeaders(HTTP_OK, STREAM_RESPONSE_BODY);
+                final URI requestUri = exchange.getRequestURI();
+                final boolean verboseRequested = getVerboseRequested(requestUri);
 
-            final URI requestUri = exchange.getRequestURI();
-            final boolean verboseRequested = getVerboseRequested(requestUri);
-
-            final DiagnosticsFactory diagnosticsFactory = server.getDiagnosticsFactory();
-            final DiagnosticsDump diagnosticsDump = diagnosticsFactory.create(verboseRequested);
-            try (OutputStream responseBody = exchange.getResponseBody()) {
+                final DiagnosticsFactory diagnosticsFactory = server.getDiagnosticsFactory();
+                final DiagnosticsDump diagnosticsDump = diagnosticsFactory.create(verboseRequested);
                 diagnosticsDump.writeTo(responseBody);
+            } else {
+                exchange.sendResponseHeaders(HTTP_BAD_METHOD, NO_RESPONSE_BODY);
             }
-        } else {
-            exchange.sendResponseHeaders(HTTP_BAD_METHOD, NO_RESPONSE_BODY);
         }
     }
 

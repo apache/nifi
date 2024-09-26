@@ -21,6 +21,7 @@ import com.sun.net.httpserver.HttpHandler;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.controller.status.history.StatusHistoryDump;
 import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
+import org.apache.nifi.util.HttpExchangeUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -60,23 +61,24 @@ class HealthStatusHistoryHttpHandler implements HttpHandler {
 
     @Override
     public void handle(final HttpExchange exchange) throws IOException {
+        HttpExchangeUtils.drainRequestBody(exchange);
+
         final String requestMethod = exchange.getRequestMethod();
 
-        if (GET_METHOD.contentEquals(requestMethod)) {
-            exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, APPLICATION_JSON);
-            exchange.sendResponseHeaders(HTTP_OK, STREAM_RESPONSE_BODY);
+        try (final OutputStream responseBody = exchange.getResponseBody()) {
+            if (GET_METHOD.contentEquals(requestMethod)) {
+                exchange.getResponseHeaders().set(CONTENT_TYPE_HEADER, APPLICATION_JSON);
+                exchange.sendResponseHeaders(HTTP_OK, STREAM_RESPONSE_BODY);
 
-            final URI requestUri = exchange.getRequestURI();
-            final int daysRequested = getDaysRequested(requestUri);
+                final URI requestUri = exchange.getRequestURI();
+                final int daysRequested = getDaysRequested(requestUri);
 
-            final StatusHistoryDumpFactory statusHistoryDumpFactory = server.getStatusHistoryDumpFactory();
-            final StatusHistoryDump statusHistoryDump = statusHistoryDumpFactory.create(daysRequested);
-
-            try (OutputStream responseBody = exchange.getResponseBody()) {
+                final StatusHistoryDumpFactory statusHistoryDumpFactory = server.getStatusHistoryDumpFactory();
+                final StatusHistoryDump statusHistoryDump = statusHistoryDumpFactory.create(daysRequested);
                 statusHistoryDump.writeTo(responseBody);
+            } else {
+                exchange.sendResponseHeaders(HTTP_BAD_METHOD, NO_RESPONSE_BODY);
             }
-        } else {
-            exchange.sendResponseHeaders(HTTP_BAD_METHOD, NO_RESPONSE_BODY);
         }
     }
 
