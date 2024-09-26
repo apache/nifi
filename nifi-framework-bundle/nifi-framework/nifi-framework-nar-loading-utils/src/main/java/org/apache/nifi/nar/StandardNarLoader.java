@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.util.stream.Collectors;
 
 /**
  * Loads a set of NARs from the file system into the running application.
@@ -142,15 +141,15 @@ public class StandardNarLoader implements NarLoader {
     }
 
     @Override
-    public synchronized void unload(final Set<Bundle> bundles) {
+    public synchronized void unload(final Collection<Bundle> bundles) {
         if (extensionUiLoader != null) {
             extensionUiLoader.unloadExtensionUis(bundles);
         }
 
-        final Set<BundleCoordinate> bundleCoordinates = bundles.stream()
+        final List<BundleCoordinate> bundleCoordinates = bundles.stream()
                 .map(Bundle::getBundleDetails)
                 .map(BundleDetails::getCoordinate)
-                .collect(Collectors.toSet());
+                .toList();
 
         for (final BundleCoordinate bundleCoordinate : bundleCoordinates) {
             LOGGER.info("Unloading bundle [{}]", bundleCoordinate);

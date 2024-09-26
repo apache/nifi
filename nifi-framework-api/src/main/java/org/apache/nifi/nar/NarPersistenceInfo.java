@@ -42,6 +42,11 @@ public class NarPersistenceInfo {
     }
 
     @Override
+    public String toString() {
+        return "%s:%s:%s".formatted(narProperties.getNarGroup(), narProperties.getNarId(), narProperties.getNarVersion());
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;

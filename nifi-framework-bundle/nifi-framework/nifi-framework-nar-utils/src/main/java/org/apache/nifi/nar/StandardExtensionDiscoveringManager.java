@@ -722,8 +722,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     }
 
     @Override
-    public synchronized Set<Bundle> removeBundles(final Set<BundleCoordinate> bundleCoordinates) {
-        final Set<Bundle> removedBundles = new HashSet<>();
+    public synchronized Set<Bundle> removeBundles(final Collection<BundleCoordinate> bundleCoordinates) {
+        final Set<Bundle> removedBundles = new LinkedHashSet<>();
         for (final BundleCoordinate bundleCoordinate : bundleCoordinates) {
             final Bundle removedBundle = removeBundle(bundleCoordinate);
             if (removedBundle != null) {
