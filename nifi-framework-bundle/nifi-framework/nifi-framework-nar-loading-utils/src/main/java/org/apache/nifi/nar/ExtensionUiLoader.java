@@ -18,7 +18,7 @@ package org.apache.nifi.nar;
 
 import org.apache.nifi.bundle.Bundle;
 
-import java.util.Set;
+import java.util.Collection;
 
 /**
  * Loads WARs from extensions and makes them available to the running application.
@@ -28,10 +28,10 @@ public interface ExtensionUiLoader {
     /**
      * @param bundles the set of bundles to load WARs from
      */
-    void loadExtensionUis(Set<Bundle> bundles);
+    void loadExtensionUis(Collection<Bundle> bundles);
 
     /**
      * @param bundles the set of bundles to unload WARs for
      */
-    void unloadExtensionUis(Set<Bundle> bundles);
+    void unloadExtensionUis(Collection<Bundle> bundles);
 }
