@@ -24,6 +24,8 @@ import { Store } from '@ngrx/store';
 import { selectExtensionFromTypes } from '../../../../../state/extension-types/extension-types.selectors';
 import { RouterLink } from '@angular/router';
 import { LoadExtensionTypesForDocumentationResponse } from '../../../../../state/extension-types';
+import { ComponentDocumentedType } from '../../../state';
+import { DocumentedType } from '../../../../../state/shared';
 
 @Component({
     selector: 'see-also',
@@ -42,6 +44,53 @@ export class SeeAlsoComponent {
 
     getProcessorFromType(extensionTypes: string[]): Observable<LoadExtensionTypesForDocumentationResponse> {
         return this.store.select(selectExtensionFromTypes(extensionTypes));
+    }
+
+    mapExtensionPoint(
+        extensionType: string,
+        documentedTypes: LoadExtensionTypesForDocumentationResponse
+    ): ComponentDocumentedType | undefined {
+        let documentedType: DocumentedType | undefined;
+
+        documentedType = documentedTypes.processorTypes.find((documentedType) => extensionType === documentedType.type);
+        if (documentedType) {
+            return {
+                documentedType,
+                componentType: ComponentType.Processor
+            };
+        }
+
+        documentedType = documentedTypes.controllerServiceTypes.find(
+            (documentedType) => extensionType === documentedType.type
+        );
+        if (documentedType) {
+            return {
+                documentedType,
+                componentType: ComponentType.ControllerService
+            };
+        }
+
+        documentedType = documentedTypes.reportingTaskTypes.find(
+            (documentedType) => extensionType === documentedType.type
+        );
+        if (documentedType) {
+            return {
+                documentedType,
+                componentType: ComponentType.ReportingTask
+            };
+        }
+
+        documentedType = documentedTypes.parameterProviderTypes.find(
+            (documentedType) => extensionType === documentedType.type
+        );
+        if (documentedType) {
+            return {
+                documentedType,
+                componentType: ComponentType.ParameterProvider
+            };
+        }
+
+        return undefined;
     }
 
     formatExtensionName(extensionType: string): string {

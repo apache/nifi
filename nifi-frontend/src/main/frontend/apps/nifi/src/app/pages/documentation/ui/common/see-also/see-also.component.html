@@ -19,60 +19,28 @@
     <div class="see-also tertiary-color font-medium">
         <ul class="list-disc list-inside">
             @if (getProcessorFromType(extensionTypes) | async; as seeAlsoTypes) {
-                <ng-container
-                    *ngTemplateOutlet="
-                        seeAlsoListing;
-                        context: { $implicit: seeAlsoTypes.processorTypes, componentType: ComponentType.Processor }
-                    "></ng-container>
-                <ng-container
-                    *ngTemplateOutlet="
-                        seeAlsoListing;
-                        context: {
-                            $implicit: seeAlsoTypes.controllerServiceTypes,
-                            componentType: ComponentType.ControllerService
-                        }
-                    "></ng-container>
-                <ng-container
-                    *ngTemplateOutlet="
-                        seeAlsoListing;
-                        context: {
-                            $implicit: seeAlsoTypes.reportingTaskTypes,
-                            componentType: ComponentType.ReportingTask
-                        }
-                    "></ng-container>
-                <ng-container
-                    *ngTemplateOutlet="
-                        seeAlsoListing;
-                        context: {
-                            $implicit: seeAlsoTypes.parameterProviderTypes,
-                            componentType: ComponentType.ParameterProvider
-                        }
-                    "></ng-container>
-                <ng-container
-                    *ngTemplateOutlet="
-                        seeAlsoListing;
-                        context: {
-                            $implicit: seeAlsoTypes.flowAnalysisRuleTypes,
-                            componentType: ComponentType.FlowAnalysisRule
-                        }
-                    "></ng-container>
-                <ng-template #seeAlsoListing let-extensions let-componentType="componentType">
-                    @for (seeAlsoExtension of extensions; track seeAlsoExtension) {
+                @for (extensionType of extensionTypes; track extensionType) {
+                    @if (mapExtensionPoint(extensionType, seeAlsoTypes); as componentDocumentedType) {
                         <li>
                             <a
                                 [routerLink]="[
                                     '/documentation',
-                                    componentType,
-                                    seeAlsoExtension.bundle.group,
-                                    seeAlsoExtension.bundle.artifact,
-                                    seeAlsoExtension.bundle.version,
-                                    seeAlsoExtension.type
+                                    componentDocumentedType.componentType,
+                                    componentDocumentedType.documentedType.bundle.group,
+                                    componentDocumentedType.documentedType.bundle.artifact,
+                                    componentDocumentedType.documentedType.bundle.version,
+                                    componentDocumentedType.documentedType.type
                                 ]">
-                                {{ formatExtensionName(seeAlsoExtension.type) }}
+                                {{ formatExtensionName(componentDocumentedType.documentedType.type) }}
                             </a>
                         </li>
+                    } @else {
+                        <li>
+                            {{ formatExtensionName(extensionType) }}
+                            <span class="ml-2 unset">(not currently installed)</span>
+                        </li>
                     }
-                </ng-template>
+                }
             }
         </ul>
     </div>

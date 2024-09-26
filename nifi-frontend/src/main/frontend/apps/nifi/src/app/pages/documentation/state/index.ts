@@ -36,6 +36,8 @@ import {
 import { parameterProviderDefinitionReducer } from './parameter-provider-definition/parameter-provider-definition.reducer';
 import { flowAnalysisRuleDefinitionFeatureKey, FlowAnalysisRuleDefinitionState } from './flow-analysis-rule-definition';
 import { flowAnalysisRuleDefinitionReducer } from './flow-analysis-rule-definition/flow-analysis-rule-definition.reducer';
+import { ComponentType } from '@nifi/shared';
+import { DocumentedType } from '../../../state/shared';
 
 export const documentationFeatureKey = 'documentation';
 
@@ -175,6 +177,11 @@ export interface ExternalDocumentation {
     name: string;
     displayName: string;
     url: string;
+}
+
+export interface ComponentDocumentedType {
+    componentType: ComponentType;
+    documentedType: DocumentedType;
 }
 
 export interface DocumentationState {
