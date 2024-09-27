@@ -72,8 +72,8 @@ public class GitHubFlowRegistryClientTest {
         when(initializationContext.getLogger()).thenReturn(componentLog);
         flowRegistryClient.initialize(initializationContext);
 
-        when(repositoryClient.getCanRead()).thenReturn(true);
-        when(repositoryClient.getCanWrite()).thenReturn(true);
+        when(repositoryClient.hasReadPermission()).thenReturn(true);
+        when(repositoryClient.hasWritePermission()).thenReturn(true);
         when(repositoryClient.getTopLevelDirectoryNames(anyString())).thenReturn(Set.of("existing-bucket"));
     }
 

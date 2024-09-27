@@ -237,11 +237,11 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
         final String commitMessage = DEREGISTER_FLOW_MESSAGE_FORMAT.formatted(flowLocation.getFlowId());
-        final InputStream deletedSnapshotContent = repositoryClient.deleteContent(filePath, commitMessage, branch);
-
-        final RegisteredFlowSnapshot deletedSnapshot = getSnapshot(deletedSnapshotContent);
-        updateBucketReferences(repositoryClient, deletedSnapshot, flowLocation.getBucketId());
-        return deletedSnapshot.getFlow();
+        try (final InputStream deletedSnapshotContent = repositoryClient.deleteContent(filePath, commitMessage, branch)) {
+            final RegisteredFlowSnapshot deletedSnapshot = getSnapshot(deletedSnapshotContent);
+            updateBucketReferences(repositoryClient, deletedSnapshot, flowLocation.getBucketId());
+            return deletedSnapshot.getFlow();
+        }
     }
 
     @Override
@@ -415,9 +415,9 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
 
     private FlowRegistryBucket createFlowRegistryBucket(final GitRepositoryClient repositoryClient, final String name) {
         final FlowRegistryPermissions bucketPermissions = new FlowRegistryPermissions();
-        bucketPermissions.setCanRead(repositoryClient.getCanRead());
-        bucketPermissions.setCanWrite(repositoryClient.getCanWrite());
-        bucketPermissions.setCanDelete(repositoryClient.getCanWrite());
+        bucketPermissions.setCanRead(repositoryClient.hasReadPermission());
+        bucketPermissions.setCanWrite(repositoryClient.hasWritePermission());
+        bucketPermissions.setCanDelete(repositoryClient.hasWritePermission());
 
         final FlowRegistryBucket bucket = new FlowRegistryBucket();
         bucket.setIdentifier(name);
@@ -551,13 +551,13 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     }
 
     private void verifyWritePermissions(final GitRepositoryClient repositoryClient) throws AuthorizationException {
-        if (!repositoryClient.getCanWrite()) {
+        if (!repositoryClient.hasWritePermission()) {
             throw new AuthorizationException("Client does not have write access to the repository");
         }
     }
 
     private void verifyReadPermissions(final GitRepositoryClient repositoryClient) throws AuthorizationException {
-        if (!repositoryClient.getCanRead()) {
+        if (!repositoryClient.hasReadPermission()) {
             throw new AuthorizationException("Client does not have read access to the repository");
         }
     }
@@ -587,15 +587,15 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     // If the client has write permissions to the repo, then ensure the directory for the default bucket is present and if not create it,
     // otherwise the client can only be used to import flows from the repo and won't be able to set up the default bucket
     private void initializeDefaultBucket(final FlowRegistryClientConfigurationContext context) throws IOException, FlowRegistryException {
-        if (!repositoryClient.getCanWrite()) {
-            getLogger().info("Repository client does not have write permissions to the repository, skipping setup of default bucket");
+        if (!repositoryClient.hasWritePermission()) {
+            getLogger().info("Repository client [{}] does not have write permissions to the repository, skipping setup of default bucket", getIdentifier());
             return;
         }
 
         final String branch = context.getProperty(REPOSITORY_BRANCH).getValue();
         final Set<String> bucketDirectoryNames = repositoryClient.getTopLevelDirectoryNames(branch);
         if (!bucketDirectoryNames.isEmpty()) {
-            getLogger().info("Found existing buckets, skipping setup of default bucket");
+            getLogger().debug("Found {} existing buckets, skipping setup of default bucket", bucketDirectoryNames.size());
             return;
         }
 

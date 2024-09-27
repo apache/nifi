@@ -33,12 +33,12 @@ public interface GitRepositoryClient {
     /**
      * @return true if the client can read from the configured repository, false otherwise
      */
-    boolean getCanRead();
+    boolean hasReadPermission();
 
     /**
      * @return true if the client can write from the configured repository, false otherwise
      */
-    boolean getCanWrite();
+    boolean hasWritePermission();
 
     /**
      * Retrieves the names of the branches.
@@ -126,6 +126,8 @@ public interface GitRepositoryClient {
 
     /**
      * Deletes the file at the given path on the given branch.
+     *
+     * The caller of this method is responsible for closing the returned InputStream.
      *
      * @param filePath the path of the file
      * @param commitMessage the commit message

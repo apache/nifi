@@ -138,7 +138,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
      * @return true if the repository is readable by configured credentials
      */
     @Override
-    public boolean getCanRead() {
+    public boolean hasReadPermission() {
         return canRead;
     }
 
@@ -146,7 +146,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
      * @return true if the repository is writable by the configured credentials
      */
     @Override
-    public boolean getCanWrite() {
+    public boolean hasWritePermission() {
         return canWrite;
     }
 

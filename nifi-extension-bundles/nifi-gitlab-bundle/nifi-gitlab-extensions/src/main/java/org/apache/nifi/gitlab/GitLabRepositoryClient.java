@@ -71,8 +71,6 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     private static final String DIRECTORY_MODE = "040000";
 
     private static final int DEFAULT_ITEMS_PER_PAGE = 100;
-    private static final int UNAUTHORIZED = 403;
-    private static final int NOT_FOUND = 404;
 
     private static final TokenInfo UNKNOWN_TOKEN = new TokenInfo("unknown", false, false);
 
@@ -144,12 +142,12 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     }
 
     @Override
-    public boolean getCanRead() {
+    public boolean hasReadPermission() {
         return canRead;
     }
 
     @Override
-    public boolean getCanWrite() {
+    public boolean hasWritePermission() {
         return canWrite;
     }
 
@@ -269,10 +267,10 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
             LOGGER.debug("Successfully retrieved project [{}] for client [{}]", projectPath, clientId);
             return Optional.of(project);
         } catch (final GitLabApiException e) {
-            if (e.getHttpStatus() == UNAUTHORIZED) {
+            if (e.getHttpStatus() == HttpURLConnection.HTTP_UNAUTHORIZED) {
                 LOGGER.warn("Client [{}] does not have permissions to access repository [{}]", clientId, projectPath);
                 return Optional.empty();
-            } else if (e.getHttpStatus() == NOT_FOUND) {
+            } else if (e.getHttpStatus() == HttpURLConnection.HTTP_NOT_FOUND) {
                 throw new FlowRegistryException(String.format("Repository [%s] not found", projectPath), e);
             } else {
                 throw new FlowRegistryException(e.getMessage(), e);
@@ -332,13 +330,17 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
     private PersonalAccessToken retrievePersonalAccessToken() throws FlowRegistryException {
         final int responseCode;
         final String responseContent;
-        final HttpURLConnection connection;
+        HttpURLConnection connection = null;
         try {
             connection = createConnection(PERSONAL_ACCESS_TOKENS_SELF_PATH);
             responseCode = connection.getResponseCode();
             responseContent = IOUtils.toString(connection.getInputStream(), StandardCharsets.UTF_8);
         } catch (final Exception e) {
             throw new FlowRegistryException("Unable to retrieve personal access token details", e);
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
 
         LOGGER.debug("Personal access token response code = {}", responseCode);
@@ -402,8 +404,8 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
             return action.execute();
         } catch (final GitLabApiException e) {
             switch (e.getHttpStatus()) {
-                case UNAUTHORIZED -> throw new FlowRegistryException("Client does not have permission to perform the given action", e);
-                case NOT_FOUND -> throw new FlowRegistryException("Path or Branch not found", e);
+                case HttpURLConnection.HTTP_UNAUTHORIZED -> throw new FlowRegistryException("Client does not have permission to perform the given action", e);
+                case HttpURLConnection.HTTP_NOT_FOUND -> throw new FlowRegistryException("Path or Branch not found", e);
                 default -> throw new FlowRegistryException(e.getMessage(), e);
             }
         }
