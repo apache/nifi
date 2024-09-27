@@ -20,6 +20,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as DocumentationActions from './documentation.actions';
 import { map, tap } from 'rxjs';
 import { Router } from '@angular/router';
+import { DocumentationParameters } from './index';
 
 @Injectable()
 export class DocumentationEffects {
@@ -34,11 +35,22 @@ export class DocumentationEffects {
                 ofType(DocumentationActions.navigateToComponentDocumentation),
                 map((action) => action.request),
                 tap((request) => {
-                    this.router.navigate(['/documentation'], {
-                        state: {
-                            backNavigation: request.backNavigation
+                    const params: DocumentationParameters = request.parameters;
+                    this.router.navigate(
+                        [
+                            '/documentation',
+                            params.componentType,
+                            params.group,
+                            params.artifact,
+                            params.version,
+                            params.type
+                        ],
+                        {
+                            state: {
+                                backNavigation: request.backNavigation
+                            }
                         }
-                    });
+                    );
                 })
             ),
         { dispatch: false }

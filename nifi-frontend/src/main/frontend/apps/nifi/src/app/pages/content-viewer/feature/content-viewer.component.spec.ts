@@ -25,6 +25,8 @@ import { initialState } from '../state/viewer-options/viewer-options.reducer';
 import { MatSelectModule } from '@angular/material/select';
 import { ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatIconModule } from '@angular/material/icon';
+import { NifiTooltipDirective } from '@nifi/shared';
 
 describe('ContentViewerComponent', () => {
     let component: ContentViewerComponent;
@@ -33,7 +35,7 @@ describe('ContentViewerComponent', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [ContentViewerComponent],
-            imports: [MatSelectModule, ReactiveFormsModule, NoopAnimationsModule],
+            imports: [MatSelectModule, ReactiveFormsModule, NoopAnimationsModule, MatIconModule, NifiTooltipDirective],
             providers: [
                 provideMockStore({
                     initialState: {

@@ -1,0 +1,153 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+@if (descriptor) {
+    <div class="property-definition flex flex-col gap-y-4">
+        <div>
+            <div>Name</div>
+            <div class="tertiary-color font-medium">{{ descriptor.displayName }}</div>
+        </div>
+        <div>
+            <div>Description</div>
+            <div class="tertiary-color font-medium">{{ descriptor.description }}</div>
+        </div>
+        <div>
+            <div>API Name</div>
+            <div class="tertiary-color font-medium">{{ descriptor.name }}</div>
+        </div>
+        @if (descriptor.defaultValue) {
+            <div>
+                <div>Default Value</div>
+                <div class="tertiary-color font-medium">{{ formatDefaultValue(descriptor) }}</div>
+            </div>
+        }
+        @if (descriptor.allowableValues) {
+            <div>
+                <div>Allowable Values</div>
+                <div class="tertiary-color font-medium">
+                    <ul class="list-disc list-inside">
+                        @for (allowableValue of descriptor.allowableValues; track allowableValue.value) {
+                            <li>
+                                {{ allowableValue.displayName }}
+                                <i
+                                    class="fa fa-info-circle primary-color"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    [tooltipInputData]="allowableValue.description"
+                                    [delayClose]="false"></i>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+        @if (descriptor.typeProvidedByValue) {
+            <div>
+                <div>Controller Service API</div>
+                <div class="tertiary-color font-medium">
+                    {{ formatServiceApi(descriptor.typeProvidedByValue) }}
+                </div>
+            </div>
+        }
+        @if (serviceImplementations$ | async; as serviceImplementations) {
+            <div>
+                <div>Service Implementations</div>
+                <div class="tertiary-color font-medium">
+                    <ul class="list-disc list-inside">
+                        @for (serviceImplementation of serviceImplementations; track serviceImplementation) {
+                            <li>
+                                <a
+                                    [routerLink]="[
+                                        '/documentation',
+                                        ComponentType.ControllerService,
+                                        serviceImplementation.bundle.group,
+                                        serviceImplementation.bundle.artifact,
+                                        serviceImplementation.bundle.version,
+                                        serviceImplementation.type
+                                    ]">
+                                    {{ formatImplementationName(serviceImplementation) }}
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+        <div>
+            <div>Expression Language Scope</div>
+            <div class="tertiary-color font-medium">{{ descriptor.expressionLanguageScopeDescription }}</div>
+        </div>
+        <div>
+            <div>Sensitive</div>
+            <div class="tertiary-color font-medium">{{ descriptor.sensitive }}</div>
+        </div>
+        @if (descriptor.dependencies) {
+            <div>
+                <div>
+                    Dependencies
+                    <i
+                        class="fa fa-info-circle primary-color"
+                        nifiTooltip
+                        [tooltipComponentType]="TextTip"
+                        tooltipInputData="All dependencies must be satisfied"></i>
+                </div>
+                <div class="tertiary-color font-medium">
+                    <ul class="list-disc list-inside">
+                        @for (
+                            propertyDependency of sortDependencies(descriptor.dependencies);
+                            track propertyDependency.propertyName
+                        ) {
+                            <li>
+                                @if (propertyDependency.dependentValues) {
+                                    {{ propertyDependency.propertyDisplayName }} is set to any of [{{
+                                        formatDependentValue(propertyDependency)
+                                    }}]
+                                } @else {
+                                    {{ propertyDependency.propertyDisplayName }} has any value specified
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+        @if (descriptor.resourceDefinition) {
+            <div>
+                <div>Resources</div>
+                <div class="tertiary-color font-medium">
+                    @if (descriptor.resourceDefinition.cardinality === ResourceCardinality.MULTIPLE) {
+                        @if (descriptor.resourceDefinition.resourceTypes.length === 1) {
+                            This property expects a comma-separated list of
+                            {{ descriptor.resourceDefinition.resourceTypes[0] }} resources.
+                        } @else {
+                            This property expects a comma-separated list of resources. Each of the resources may be of
+                            any of the following types [{{ formatResources(descriptor.resourceDefinition) }}].
+                        }
+                    } @else {
+                        @if (descriptor.resourceDefinition.resourceTypes.length === 1) {
+                            This property requires exactly one {{ descriptor.resourceDefinition.resourceTypes[0] }} to
+                            be provided.
+                        } @else {
+                            This property requires exactly one resource to be provided. That resource may be any of the
+                            following types [{{ formatResources(descriptor.resourceDefinition) }}].
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}

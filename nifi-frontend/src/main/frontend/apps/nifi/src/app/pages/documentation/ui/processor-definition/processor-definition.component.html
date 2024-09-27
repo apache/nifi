@@ -1,0 +1,106 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+@if (processorDefinitionState) {
+    @if (isInitialLoading(processorDefinitionState)) {
+        <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
+    } @else {
+        @if (processorDefinitionState.processorDefinition; as processorDefinition) {
+            <div class="flex flex-col gap-y-4 p-4">
+                <configurable-extension-definition
+                    [configurableExtensionDefinition]="processorDefinition"></configurable-extension-definition>
+                @if (processorDefinition.supportedRelationships) {
+                    <div>
+                        <h2>Relationships</h2>
+                        <relationships-definition
+                            [relationships]="processorDefinition.supportedRelationships"></relationships-definition>
+                    </div>
+                }
+                @if (processorDefinition.dynamicRelationship) {
+                    <div>
+                        <h2>Dynamic Relationship</h2>
+                        <div class="flex flex-col gap-y-1">
+                            <div>
+                                A Dynamic Relationship may be created based on how the user configures the Processor.
+                            </div>
+                            <div>
+                                <div>Name</div>
+                                <div class="tertiary-color font-medium">
+                                    {{ processorDefinition.dynamicRelationship.name }}
+                                </div>
+                            </div>
+                            <div>
+                                <div>Description</div>
+                                <div class="tertiary-color font-medium">
+                                    {{ processorDefinition.dynamicRelationship.description }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (processorDefinition.readsAttributes) {
+                    <div>
+                        <h2>Reads Attributes</h2>
+                        <attributes-definition
+                            [attributes]="processorDefinition.readsAttributes"></attributes-definition>
+                    </div>
+                }
+                @if (processorDefinition.writesAttributes) {
+                    <div>
+                        <h2>Writes Attributes</h2>
+                        <attributes-definition
+                            [attributes]="processorDefinition.writesAttributes"></attributes-definition>
+                    </div>
+                }
+                @if (processorDefinition.inputRequirement) {
+                    <div>
+                        <h2>Input Requirement</h2>
+                        <input-requirement
+                            [inputRequirement]="processorDefinition.inputRequirement"></input-requirement>
+                    </div>
+                }
+                @if (processorDefinition.useCases && processorDefinition.useCases.length > 0) {
+                    <div>
+                        <h2>Use Cases</h2>
+                        <use-case [useCases]="processorDefinition.useCases"></use-case>
+                    </div>
+                }
+                @if (
+                    processorDefinition.multiProcessorUseCases && processorDefinition.multiProcessorUseCases.length > 0
+                ) {
+                    <div>
+                        <h2>Use Cases Involving Other Components</h2>
+                        <multi-processor-use-case
+                            [multiProcessorUseCases]="
+                                processorDefinition.multiProcessorUseCases
+                            "></multi-processor-use-case>
+                    </div>
+                }
+                @if (processorDefinition.seeAlso) {
+                    <div>
+                        <h2>See Also</h2>
+                        <see-also [extensionTypes]="processorDefinition.seeAlso"></see-also>
+                    </div>
+                }
+            </div>
+        } @else if (processorDefinitionState.error) {
+            <div class="p-4">
+                {{ processorDefinitionState.error }}
+            </div>
+        }
+    }
+}

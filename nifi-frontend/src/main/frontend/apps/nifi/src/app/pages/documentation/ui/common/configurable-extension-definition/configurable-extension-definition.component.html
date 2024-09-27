@@ -1,0 +1,115 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+@if (configurableExtensionDefinition) {
+    <h3 class="primary-color">
+        {{ formatExtensionName(configurableExtensionDefinition.type) }} {{ configurableExtensionDefinition.version }}
+    </h3>
+    <div class="flex flex-col gap-y-4">
+        @if (configurableExtensionDefinition.deprecated) {
+            <div class="caution-color-background p-4 flex flex-col gap-y-2">
+                @if (configurableExtensionDefinition.deprecationReason) {
+                    <div>{{ configurableExtensionDefinition.deprecationReason }}</div>
+                } @else {
+                    <div>Please be aware this processor is deprecated and may be removed in the near future.</div>
+                }
+                @if (configurableExtensionDefinition.deprecationAlternatives) {
+                    <div>
+                        <div>See Alternatives</div>
+                        <see-also [extensionTypes]="configurableExtensionDefinition.deprecationAlternatives"></see-also>
+                    </div>
+                }
+            </div>
+        }
+        <div>
+            <div>Bundle</div>
+            <div class="tertiary-color font-medium">
+                {{ configurableExtensionDefinition.group }} | {{ configurableExtensionDefinition.artifact }}
+            </div>
+        </div>
+        @if (configurableExtensionDefinition.typeDescription) {
+            <div>
+                <div>Description</div>
+                <div class="tertiary-color font-medium">{{ configurableExtensionDefinition.typeDescription }}</div>
+            </div>
+        }
+        @if (configurableExtensionDefinition.additionalDetails) {
+            <additional-details
+                [configurableExtensionDefinition]="configurableExtensionDefinition"></additional-details>
+        }
+        <div>
+            <div>Tags</div>
+            <div class="tertiary-color font-medium">{{ configurableExtensionDefinition.tags.join(', ') }}</div>
+        </div>
+        @if (configurableExtensionDefinition.propertyDescriptors) {
+            <div>
+                <h2>Properties</h2>
+                <properties-definition
+                    [configurableExtensionDefinition]="configurableExtensionDefinition"></properties-definition>
+            </div>
+        }
+        @if (configurableExtensionDefinition.dynamicProperties) {
+            <div>
+                <h2>Dynamic Properties</h2>
+                <dynamic-properties-definition
+                    [configurableExtensionDefinition]="configurableExtensionDefinition"></dynamic-properties-definition>
+            </div>
+        }
+        @if (configurableExtensionDefinition.stateful) {
+            <div>
+                <h2>State Management</h2>
+                <div>
+                    <div class="flex flex-col gap-y-4">
+                        <div>
+                            <div>Scopes</div>
+                            <div class="tertiary-color font-medium">
+                                {{ formatStatefulScope(configurableExtensionDefinition.stateful) }}
+                            </div>
+                        </div>
+                        <div>
+                            <div>Description</div>
+                            <div class="tertiary-color font-medium">
+                                {{ configurableExtensionDefinition.stateful.description }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (configurableExtensionDefinition.restricted) {
+            <div>
+                <h2>Restricted</h2>
+                @if (configurableExtensionDefinition.restrictedExplanation) {
+                    <div>{{ configurableExtensionDefinition.restrictedExplanation }}</div>
+                }
+                @if (configurableExtensionDefinition.explicitRestrictions) {
+                    <restrictions-definition
+                        [restrictions]="configurableExtensionDefinition.explicitRestrictions"></restrictions-definition>
+                }
+            </div>
+        }
+        @if (configurableExtensionDefinition.systemResourceConsiderations) {
+            <div>
+                <h2>System Resource Consideration</h2>
+                <resource-considerations
+                    [resourceConsiderations]="
+                        configurableExtensionDefinition.systemResourceConsiderations
+                    "></resource-considerations>
+            </div>
+        }
+    </div>
+}

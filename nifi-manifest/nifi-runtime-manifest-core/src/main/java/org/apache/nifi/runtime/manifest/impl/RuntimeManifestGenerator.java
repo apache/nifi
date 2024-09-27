@@ -133,7 +133,7 @@ public class RuntimeManifestGenerator {
                 final String additionalDetails = additionalDetailsMap.get(extensionType);
                 if (additionalDetails != null) {
                     extensionDir.mkdirs();
-                    final File additionalDetailsFile = new File(extensionDir, "additionalDetails.html");
+                    final File additionalDetailsFile = new File(extensionDir, "additionalDetails.md");
                     Files.write(additionalDetailsFile.toPath(), additionalDetails.getBytes(StandardCharsets.UTF_8));
                 }
             }

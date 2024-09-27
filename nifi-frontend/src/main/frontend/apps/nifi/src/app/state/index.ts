@@ -35,8 +35,6 @@ import { componentStateFeatureKey, ComponentStateState } from './component-state
 import { componentStateReducer } from './component-state/component-state.reducer';
 import { errorFeatureKey, ErrorState } from './error';
 import { errorReducer } from './error/error.reducer';
-import { documentationFeatureKey, DocumentationState } from './documentation';
-import { documentationReducer } from './documentation/documentation.reducer';
 import { clusterSummaryFeatureKey, ClusterSummaryState } from './cluster-summary';
 import { clusterSummaryReducer } from './cluster-summary/cluster-summary.reducer';
 import { loginConfigurationFeatureKey, LoginConfigurationState } from './login-configuration';
@@ -62,7 +60,6 @@ export interface NiFiState {
     [controllerServiceStateFeatureKey]: ControllerServiceState;
     [systemDiagnosticsFeatureKey]: SystemDiagnosticsState;
     [componentStateFeatureKey]: ComponentStateState;
-    [documentationFeatureKey]: DocumentationState;
     [clusterSummaryFeatureKey]: ClusterSummaryState;
     [propertyVerificationFeatureKey]: PropertyVerificationState;
 }
@@ -81,7 +78,6 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [controllerServiceStateFeatureKey]: controllerServiceStateReducer,
     [systemDiagnosticsFeatureKey]: systemDiagnosticsReducer,
     [componentStateFeatureKey]: componentStateReducer,
-    [documentationFeatureKey]: documentationReducer,
     [clusterSummaryFeatureKey]: clusterSummaryReducer,
     [propertyVerificationFeatureKey]: propertyVerificationReducer
 };

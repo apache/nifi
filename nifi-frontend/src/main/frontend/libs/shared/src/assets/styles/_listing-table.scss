@@ -43,6 +43,27 @@
         }
     }
 
+    .informational-table {
+        @extend .listing-table;
+
+        table {
+            td,
+            th {
+                text-wrap: wrap;
+                padding: 8px;
+                word-break: break-word;
+            }
+
+            ul {
+                list-style-type: disc;
+                list-style-position: inside;
+
+                text-wrap: wrap;
+                word-break: break-all;
+            }
+        }
+    }
+
     .mat-sort-header-content {
         overflow: hidden;
     }

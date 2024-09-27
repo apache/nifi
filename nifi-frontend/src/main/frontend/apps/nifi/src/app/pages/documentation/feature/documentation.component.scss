@@ -14,3 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+@use '@angular/material' as mat;
+
+.documentation {
+    .mat-mdc-form-field {
+        width: 100%;
+    }
+
+    .extension-links {
+        a {
+            display: block;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+    }
+}

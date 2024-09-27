@@ -111,6 +111,10 @@
         flex: 1;
     }
 
+    .fa-rotate-45 {
+        transform: rotate(-45deg);
+    }
+
     /* overriding 3rd party styles */
 
     .mat-mdc-dialog-content {
@@ -181,11 +185,6 @@
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
         --mat-expansion-header-expanded-state-height: 50px;
-    }
-
-    .mat-expansion-panel-header-title,
-    .mat-expansion-panel-header-description {
-        margin-right: 0 !important;
     }
 
     .mat-content.mat-content-hide-toggle {
@@ -475,6 +474,10 @@
         fill: $caution;
     }
 
+    .caution-color-background {
+        background-color: $caution;
+    }
+
     // semantic classes for contrast colors determined based on the light/dark mode of the theme.
 
     // will be black for light mode and white for dark mode
@@ -660,7 +663,7 @@
         .mat-expansion-panel-content {
             font-size: mat.get-theme-typography($material-theme, body-medium, font-size);
             letter-spacing: normal;
-            line-height: normal;
+            line-height: 20px;
         }
 
         .mat-mdc-menu-content,

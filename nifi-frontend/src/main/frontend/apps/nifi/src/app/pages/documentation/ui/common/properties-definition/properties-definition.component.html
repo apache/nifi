@@ -1,0 +1,57 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+@if (propertyDescriptors) {
+    <div class="properties-definition flex flex-col gap-y-2">
+        <div class="flex justify-between items-center">
+            <div>
+                In the list below required Properties are shown with an asterisk (*). Other properties are considered
+                optional.
+            </div>
+            <div>
+                <button type="button" mat-icon-button class="primary-icon-button" title="Expand All" (click)="expand()">
+                    <i class="fa fa-expand fa-rotate-45"></i>
+                </button>
+                <button
+                    type="button"
+                    mat-icon-button
+                    class="primary-icon-button"
+                    title="Collapse All"
+                    (click)="collapse()">
+                    <i class="fa fa-compress fa-rotate-45"></i>
+                </button>
+            </div>
+        </div>
+        <mat-accordion multi>
+            @for (propertyDescriptor of propertyDescriptors; track propertyDescriptor.name) {
+                <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                        <mat-panel-title [title]="formatTitle(propertyDescriptor)">{{
+                            formatTitle(propertyDescriptor)
+                        }}</mat-panel-title>
+                        <mat-panel-description [title]="propertyDescriptor.description">{{
+                            propertyDescriptor.description
+                        }}</mat-panel-description>
+                    </mat-expansion-panel-header>
+                    <property-definition
+                        [propertyDescriptor]="propertyDescriptor"
+                        [lookupProperty]="lookupProperty"></property-definition>
+                </mat-expansion-panel>
+            }
+        </mat-accordion>
+    </div>
+}

@@ -114,7 +114,7 @@ public class StatelessBootstrap {
         try {
             // For many environments where Stateless is to be run, the number of open file handles may be constrained. Because of this,
             // we will unpack NARs using the Uber Jar method.
-            NarUnpacker.unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, null, narDirectories, false, NarClassLoaders.FRAMEWORK_NAR_ID, false, false,
+            NarUnpacker.unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, narDirectories, false, NarClassLoaders.FRAMEWORK_NAR_ID, false, false,
                 NarUnpackMode.UNPACK_TO_UBER_JAR, narFilter);
         } finally {
             NarUnpackLock.unlock();

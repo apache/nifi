@@ -117,8 +117,8 @@ public class JASN1ReaderTest {
 
     @Test
     /*
-     * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
-     * In case of changes to this test additionalDetails.html may need to be updated as well.
+     * Checks reported messages of underlying libraries that are explained in additionalDetails.md.
+     * In case of changes to this test additionalDetails.md may need to be updated as well.
      */
     public void testCantParseAsn() {
         String asnFile = Paths.get("src", "test", "resources", "cant_parse.asn").toString();
@@ -134,8 +134,8 @@ public class JASN1ReaderTest {
     @DisabledOnOs({ OS.WINDOWS })
     @Test
     /*
-     * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
-     * In case of changes to this test additionalDetails.html may need to be updated as well.
+     * Checks reported messages of underlying libraries that are explained in additionalDetails.md.
+     * In case of changes to this test additionalDetails.md may need to be updated as well.
      */
     public void testCantCompileAsn() {
         String asnFiles = Paths.get("src", "test", "resources", "cant_compile.asn").toString();
@@ -152,8 +152,8 @@ public class JASN1ReaderTest {
     @EnabledOnOs({ OS.MAC })
     @Test
     /*
-     * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
-     * In case of changes to this test additionalDetails.html may need to be updated as well.
+     * Checks reported messages of underlying libraries that are explained in additionalDetails.md.
+     * In case of changes to this test additionalDetails.md may need to be updated as well.
      */
     public void testCantCompileAsnOnMac() {
         String asnFiles = Paths.get("src", "test", "resources", "cant_compile_mac_windows.asn").toString();
