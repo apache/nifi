@@ -44,8 +44,10 @@ import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -57,6 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class TestExcelReader {
 
     private static final ByteArrayOutputStream ALL_TYPES_CONTENTS = new ByteArrayOutputStream();
+    private static final Map<String, Class<?>> FIELDS_AND_CLASS_TYPES = new LinkedHashMap<>();
 
     @Mock
     private ComponentLog logger;
@@ -68,6 +71,16 @@ public class TestExcelReader {
     static void setUpBeforeAll() throws Exception {
         InputStream inputStream = Files.newInputStream(Paths.get("src/test/resources/excel/all_types.xlsx"));
         IOUtils.copyLarge(inputStream, ALL_TYPES_CONTENTS);
+        FIELDS_AND_CLASS_TYPES.put("Date_Custom", Date.class);
+        FIELDS_AND_CLASS_TYPES.put("Time_Custom", Time.class);
+        FIELDS_AND_CLASS_TYPES.put("Timestamp", Timestamp.class);
+        FIELDS_AND_CLASS_TYPES.put("Boolean_Function", Boolean.class);
+        FIELDS_AND_CLASS_TYPES.put("Number_Function", Integer.class);
+        FIELDS_AND_CLASS_TYPES.put("Blank_Cell", String.class);
+        FIELDS_AND_CLASS_TYPES.put("String", String.class);
+        FIELDS_AND_CLASS_TYPES.put("Numeric", Float.class);
+        FIELDS_AND_CLASS_TYPES.put("Variable_Missing", String.class);
+        FIELDS_AND_CLASS_TYPES.put("Syntax_Error", String.class);
     }
 
     @BeforeEach
@@ -91,7 +104,7 @@ public class TestExcelReader {
         assertRecordSchemaFieldNamesAndTypes(recordSchema);
 
         final Record record = recordReader.nextRecord();
-        assertRecordFieldNamesAndTypes(record);
+        assertRecordFieldNamesAndClassTypes(record);
     }
 
     @Test
@@ -112,7 +125,7 @@ public class TestExcelReader {
         assertRecordSchemaFieldNamesAndTypes(recordSchema);
 
         final Record record = recordReader.nextRecord();
-        assertRecordFieldNamesAndTypes(record);
+        assertRecordFieldNamesAndClassTypes(record);
     }
 
     private void initializeExcelReader() throws Exception {
@@ -124,8 +137,7 @@ public class TestExcelReader {
 
     private void assertRecordSchemaFieldNamesAndTypes(RecordSchema recordSchema) {
         assertEquals(10, recordSchema.getFieldCount());
-        assertEquals(Arrays.asList("Date_Custom", "Time_Custom", "Timestamp", "Boolean_Function", "Number_Function",
-                        "Blank_Cell", "String", "Numeric", "Variable_Missing", "Syntax_Error"), recordSchema.getFieldNames());
+        assertEquals(new ArrayList<>(FIELDS_AND_CLASS_TYPES.keySet()), recordSchema.getFieldNames());
         assertEquals(Arrays.asList(RecordFieldType.DATE, RecordFieldType.TIME, RecordFieldType.TIMESTAMP, RecordFieldType.BOOLEAN,
                         RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.FLOAT,
                         RecordFieldType.STRING, RecordFieldType.STRING), recordSchema.getDataTypes().stream()
@@ -133,17 +145,10 @@ public class TestExcelReader {
                         .collect(Collectors.toList()));
     }
 
-    private void assertRecordFieldNamesAndTypes(Record record) {
+    private void assertRecordFieldNamesAndClassTypes(Record record) {
         assertNotNull(record);
-        assertInstanceOf(Date.class, record.getValue("Date_Custom"));
-        assertInstanceOf(Time.class, record.getValue("Time_Custom"));
-        assertInstanceOf(Timestamp.class, record.getValue("Timestamp"));
-        assertInstanceOf(Boolean.class, record.getValue("Boolean_Function"));
-        assertInstanceOf(Integer.class, record.getValue("Number_Function"));
-        assertInstanceOf(String.class, record.getValue("Blank_Cell"));
-        assertInstanceOf(String.class, record.getValue("String"));
-        assertInstanceOf(Float.class, record.getValue("Numeric"));
-        assertInstanceOf(String.class, record.getValue("Variable_Missing"));
-        assertInstanceOf(String.class, record.getValue("Syntax_Error"));
+        for(Map.Entry<String, Class<?>> entry : FIELDS_AND_CLASS_TYPES.entrySet()) {
+            assertInstanceOf(entry.getValue(), record.getValue(entry.getKey()));
+        }
     }
 }
