@@ -53,5 +53,11 @@
                 background-color: $selected-item-color !important;
             }
         }
+
+        .mat-expansion-panel-header-title,
+        .mat-expansion-panel-header-description {
+            @apply truncate;
+            display: block !important;
+        }
     }
 }
