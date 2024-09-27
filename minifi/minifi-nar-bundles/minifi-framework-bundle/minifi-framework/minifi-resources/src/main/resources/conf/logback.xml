@@ -78,6 +78,7 @@
     <logger name="org.apache.nifi.processors" level="WARN"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
+    <logger name="org.apache.nifi.manifest.StandardRuntimeManifestService" level="ERROR" />
 
     <!-- Logger for managing logging statements for jetty -->
     <logger name="org.eclipse.jetty" level="INFO"/>
