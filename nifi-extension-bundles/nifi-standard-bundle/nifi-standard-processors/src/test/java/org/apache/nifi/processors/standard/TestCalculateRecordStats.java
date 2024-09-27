@@ -19,9 +19,10 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
-
+import org.apache.nifi.serialization.record.ArrayListRecordReader;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -42,9 +43,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestCalculateRecordStats {
-    TestRunner runner;
-    MockRecordParser recordParser;
-    RecordSchema personSchema;
+    private TestRunner runner;
+    private MockRecordParser recordParser;
+    private RecordSchema personSchema;
 
     @BeforeEach
     void setup() throws InitializationException {
@@ -55,7 +56,6 @@ public class TestCalculateRecordStats {
         runner.enableControllerService(recordParser);
         runner.assertValid();
 
-        recordParser.addSchemaField("id", RecordFieldType.INT);
         List<RecordField> personFields = new ArrayList<>();
         RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());
         RecordField ageField = new RecordField("age", RecordFieldType.INT.getDataType());
@@ -64,7 +64,70 @@ public class TestCalculateRecordStats {
         personFields.add(ageField);
         personFields.add(sportField);
         personSchema = new SimpleRecordSchema(personFields);
+
+        recordParser.addSchemaField("id", RecordFieldType.INT);
         recordParser.addSchemaField("person", RecordFieldType.RECORD);
+    }
+
+    @Test
+    public void testWithArray() throws InitializationException {
+        // Create a Record that has an array of records
+        final List<RecordField> issueFields = new ArrayList<>();
+        issueFields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
+        issueFields.add(new RecordField("severity", RecordFieldType.STRING.getDataType()));
+        issueFields.add(new RecordField("description", RecordFieldType.STRING.getDataType()));
+        final RecordSchema issueSchema = new SimpleRecordSchema(issueFields);
+
+        final List<RecordField> issuesFields = new ArrayList<>();
+        issuesFields.add(new RecordField("issues", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(issueSchema))));
+        final RecordSchema issuesSchema = new SimpleRecordSchema(issuesFields);
+
+        final List<Record> issueList = new ArrayList<>();
+        issueList.add(new MapRecord(issueSchema, Map.of(
+            "id", "1",
+            "severity", "High",
+            "description", "This is a high severity issue"
+        )));
+        issueList.add(new MapRecord(issueSchema, Map.of(
+            "id", "2",
+            "severity", "Medium",
+            "description", "This is a medium severity issue"
+        )));
+        issueList.add(new MapRecord(issueSchema, Map.of(
+            "id", "3",
+            "severity", "Low",
+            "description", "This is a low severity issue"
+        )));
+        issueList.add(new MapRecord(issueSchema, Map.of(
+            "id", "",
+            "severity", "High",
+            "description", "This is another high severity issue"
+        )));
+
+        final Record[] issues = issueList.toArray(new Record[0]);
+        final Record issuesRecord = new MapRecord(issuesSchema, Map.of(
+            "issues", issues
+        ));
+
+        // Set RecordReader to one that can properly handle nested records / arrays.
+        final ArrayListRecordReader readerFactory = new ArrayListRecordReader(issuesSchema);
+        runner.addControllerService("readerFactory", readerFactory);
+        runner.enableControllerService(readerFactory);
+        runner.setProperty(CalculateRecordStats.RECORD_READER, "readerFactory");
+        readerFactory.addRecord(issuesRecord);
+
+        // Set the RecordPath to point to the 'severity' field of the record within the array.
+        runner.setProperty("severity", "/issues[*]/severity");
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(CalculateRecordStats.REL_SUCCESS, 1);
+        final MockFlowFile output = runner.getFlowFilesForRelationship(CalculateRecordStats.REL_SUCCESS).getFirst();
+        output.assertAttributeEquals("recordStats.severity.High", "2");
+        output.assertAttributeEquals("recordStats.severity.Medium", "1");
+        output.assertAttributeEquals("recordStats.severity.Low", "1");
+        output.assertAttributeEquals("recordStats.severity", "4");
+        output.assertAttributeEquals("record.count", "1");
     }
 
     @Test
@@ -120,9 +183,9 @@ public class TestCalculateRecordStats {
         expectedAttributes.put("recordStats.sport", String.valueOf(sports.size()));
         expectedAttributes.put("record.count", String.valueOf(sports.size()));
 
-        final Map<String, String> propz = Collections.singletonMap("sport", "/person/sport");
+        final Map<String, String> counts = Collections.singletonMap("sport", "/person/sport");
 
-        commonTest(propz, sports, expectedAttributes);
+        commonTest(counts, sports, expectedAttributes);
     }
 
     private void commonTest(Map<String, String> procProperties, List<String> sports, Map<String, String> expectedAttributes) {
@@ -145,12 +208,12 @@ public class TestCalculateRecordStats {
         runner.assertTransferCount(CalculateRecordStats.REL_SUCCESS, 1);
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(CalculateRecordStats.REL_SUCCESS);
-        final MockFlowFile ff = flowFiles.get(0);
+        final MockFlowFile ff = flowFiles.getFirst();
         for (final Map.Entry<String, String> expectedAttribute : expectedAttributes.entrySet()) {
             final String key = expectedAttribute.getKey();
             final String value = expectedAttribute.getValue();
             assertNotNull(ff.getAttribute(key), String.format("Missing %s", key));
-            assertEquals(value, ff.getAttribute(key));
+            assertEquals(value, ff.getAttribute(key), "Expected " + value + " for " + key);
         }
     }
 }
