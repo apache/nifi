@@ -40,6 +40,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
 import java.util.ArrayList;
@@ -84,11 +85,21 @@ public class CopyS3Object extends AbstractS3Processor {
             .defaultValue("${filename}-1")
             .build();
 
+    static final PropertyDescriptor MULTIPART_RETRIES = new PropertyDescriptor.Builder()
+            .name("Retry Attempt Limit")
+            .description("This configures the number of retries that will be attempted when a part upload request " +
+                    "on files larger than 5GB encounter a 503/Slow Down error.")
+            .defaultValue("3")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .required(true)
+            .build();
+
     static final List<PropertyDescriptor> properties = Arrays.asList(
             SOURCE_BUCKET,
             SOURCE_KEY,
             DESTINATION_BUCKET,
             DESTINATION_KEY,
+            MULTIPART_RETRIES,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             S3_REGION,
             TIMEOUT,
@@ -134,93 +145,38 @@ public class CopyS3Object extends AbstractS3Processor {
         final String destinationBucket = context.getProperty(DESTINATION_BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String destinationKey = context.getProperty(DESTINATION_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
-        GetObjectMetadataRequest sourceMetadataRequest = new GetObjectMetadataRequest(sourceBucket, sourceKey);
-        ObjectMetadata metadataResult = s3.getObjectMetadata(sourceMetadataRequest);
+        final GetObjectMetadataRequest sourceMetadataRequest = new GetObjectMetadataRequest(sourceBucket, sourceKey);
+        final ObjectMetadata metadataResult = s3.getObjectMetadata(sourceMetadataRequest);
 
         if (metadataResult == null) {
             session.transfer(flowFile, REL_FAILURE);
         }
 
         final AtomicReference<String> multipartIdRef = new AtomicReference<>();
+        final long contentLength = metadataResult.getContentLength();
         final boolean isMultiPart = metadataResult.getContentLength() > MULTIPART_THRESHOLD;
 
         try {
+            final AccessControlList acl = createACL(context, flowFile);
+            final CannedAccessControlList cannedAccessControlList = createCannedACL(context, flowFile);
+
             if (!isMultiPart) {
-                final CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceKey, destinationBucket, destinationKey);
-                final AccessControlList acl = createACL(context, flowFile);
-                if (acl != null) {
-                    request.setAccessControlList(acl);
-                }
-
-                final CannedAccessControlList cannedAccessControlList = createCannedACL(context, flowFile);
-                if (cannedAccessControlList != null) {
-                    request.setCannedAccessControlList(cannedAccessControlList);
-                }
-
-                s3.copyObject(request);
+                smallFileCopy(s3, acl, cannedAccessControlList, sourceBucket, sourceKey, destinationBucket, destinationKey);
             } else {
-                InitiateMultipartUploadRequest initRequest = new InitiateMultipartUploadRequest(destinationBucket,
-                        destinationKey);
-                InitiateMultipartUploadResult initResult = s3.initiateMultipartUpload(initRequest);
-
-                multipartIdRef.set(initResult.getUploadId());
-
-                long objectSize = metadataResult.getContentLength();
-
-                long bytePosition = 0;
-                int partNumber = 1;
-                List<CopyPartResult> responses = new ArrayList<>();
-                while (bytePosition < objectSize) {
-                    long lastByte = Math.min(bytePosition + MULTIPART_THRESHOLD - 1, objectSize - 1);
-
-                    CopyPartRequest copyRequest = new CopyPartRequest()
-                            .withSourceBucketName(sourceBucket)
-                            .withSourceKey(sourceKey)
-                            .withDestinationBucketName(destinationBucket)
-                            .withDestinationKey(destinationKey)
-                            .withUploadId(initResult.getUploadId())
-                            .withFirstByte(bytePosition)
-                            .withLastByte(lastByte)
-                            .withPartNumber(partNumber++);
-                    boolean partIsDone = false;
-                    int retryIndex = 0;
-
-                    while (!partIsDone && retryIndex < 3) {
-                        try {
-                            responses.add(s3.copyPart(copyRequest));
-                            partIsDone = true;
-                        } catch (AmazonS3Exception e) {
-                            if (e.getStatusCode() == 503) {
-                                retryIndex++;
-                            } else {
-                                throw e;
-                            }
-                        }
-                    }
-                    bytePosition += MULTIPART_THRESHOLD;
-                }
-
-                CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest(
-                        destinationBucket,
-                        destinationKey,
-                        initResult.getUploadId(),
-                        responses.stream().map(response -> new PartETag(response.getPartNumber(), response.getETag()))
-                                .collect(Collectors.toList()));
-                s3.completeMultipartUpload(completeRequest);
+                final int retryLimit = context.getProperty(MULTIPART_RETRIES).asInteger();
+                largeFileCopy(s3, acl, cannedAccessControlList, sourceBucket, sourceKey, destinationBucket,
+                        destinationKey, multipartIdRef, contentLength, retryLimit);
             }
             session.getProvenanceReporter().send(flowFile, getTransitUrl(destinationBucket, destinationKey));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException | IllegalArgumentException | AmazonClientException e) {
-            if (isMultiPart) {
-                String requestId = multipartIdRef.get();
-                if (StringUtils.isNotBlank(requestId)) {
-                    try {
-                        AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(destinationBucket, destinationKey, requestId);
-                        s3.abortMultipartUpload(abortRequest);
-                    } catch (AmazonS3Exception ignored) {
-                        getLogger().error("Failed to cleanup the partial upload to bucket {} and key {}", destinationBucket, destinationKey);
-                        getLogger().error("Abort exception", ignored);
-                    }
+            if (isMultiPart && !StringUtils.isEmpty(multipartIdRef.get())) {
+                try {
+                    AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(destinationBucket, destinationKey, multipartIdRef.get());
+                    s3.abortMultipartUpload(abortRequest);
+                } catch (AmazonS3Exception ignored) {
+                    getLogger().error("Failed to cleanup the partial upload to bucket {} and key {}", destinationBucket, destinationKey);
+                    getLogger().error("Abort exception", ignored);
                 }
             }
 
@@ -228,6 +184,86 @@ public class CopyS3Object extends AbstractS3Processor {
             getLogger().error("Failed to copy S3 object from Bucket [{}] Key [{}]", sourceBucket, sourceKey, e);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    /*
+     * Sections of this code were derived from example code from the official AWS S3 documentation. Specifically this example:
+     * https://github.com/awsdocs/aws-doc-sdk-examples/blob/df606a664bf2f7cfe3abc76c187e024451d0279c/java/example_code/s3/src/main/java/aws/example/s3/LowLevelMultipartCopy.java
+     */
+    private void largeFileCopy(final AmazonS3Client s3, final AccessControlList acl, final CannedAccessControlList cannedAccessControlList,
+                               final String sourceBucket, final String sourceKey,
+                               final String destinationBucket, final String destinationKey, final AtomicReference<String> multipartIdRef,
+                               final long contentLength, final int retryLimit) {
+        InitiateMultipartUploadRequest initRequest = new InitiateMultipartUploadRequest(destinationBucket,
+                destinationKey);
+        if (acl != null) {
+            initRequest.setAccessControlList(acl);
+        }
+        if (cannedAccessControlList != null) {
+            initRequest.setCannedACL(cannedAccessControlList);
+        }
+
+        InitiateMultipartUploadResult initResult = s3.initiateMultipartUpload(initRequest);
+
+        multipartIdRef.set(initResult.getUploadId());
+
+        long bytePosition = 0;
+        int partNumber = 1;
+        List<CopyPartResult> responses = new ArrayList<>();
+        while (bytePosition < contentLength) {
+            long lastByte = Math.min(bytePosition + MULTIPART_THRESHOLD - 1, contentLength - 1);
+
+            CopyPartRequest copyRequest = new CopyPartRequest()
+                    .withSourceBucketName(sourceBucket)
+                    .withSourceKey(sourceKey)
+                    .withDestinationBucketName(destinationBucket)
+                    .withDestinationKey(destinationKey)
+                    .withUploadId(initResult.getUploadId())
+                    .withFirstByte(bytePosition)
+                    .withLastByte(lastByte)
+                    .withPartNumber(partNumber++);
+            boolean partIsDone = false;
+            int retryIndex = 0;
+
+            while (!partIsDone) {
+                try {
+                    responses.add(s3.copyPart(copyRequest));
+                    partIsDone = true;
+                } catch (AmazonS3Exception e) {
+                    if (e.getStatusCode() == 503 && retryLimit > 0 && retryIndex < retryLimit) {
+                        retryIndex++;
+                    } else {
+                        throw e;
+                    }
+                }
+            }
+            bytePosition += MULTIPART_THRESHOLD;
+        }
+
+        CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest(
+                destinationBucket,
+                destinationKey,
+                initResult.getUploadId(),
+                responses.stream().map(response -> new PartETag(response.getPartNumber(), response.getETag()))
+                        .collect(Collectors.toList()));
+        s3.completeMultipartUpload(completeRequest);
+    }
+
+    private void smallFileCopy(final AmazonS3Client s3, final AccessControlList acl,
+                               final CannedAccessControlList cannedAcl,
+                               final String sourceBucket, final String sourceKey,
+                               final String destinationBucket, final String destinationKey) {
+        final CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceKey, destinationBucket, destinationKey);
+
+        if (acl != null) {
+            request.setAccessControlList(acl);
+        }
+
+        if (cannedAcl != null) {
+            request.setCannedAccessControlList(cannedAcl);
+        }
+
+        s3.copyObject(request);
     }
 
     private String getTransitUrl(final String destinationBucket, final String destinationKey) {
