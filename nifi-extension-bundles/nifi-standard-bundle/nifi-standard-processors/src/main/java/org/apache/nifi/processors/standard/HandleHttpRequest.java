@@ -265,6 +265,13 @@ public class HandleHttpRequest extends AbstractProcessor {
             .defaultValue("200")
             .addValidator(StandardValidators.createLongValidator(8, 1000, true))
             .build();
+    public static final PropertyDescriptor REQUEST_HEADER_MAX_SIZE = new PropertyDescriptor.Builder()
+            .name("Request Header Maximum Size")
+            .description("The maximum supported size of HTTP headers in requests sent to this processor")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("8 KB")
+            .build();
     public static final PropertyDescriptor ADDITIONAL_METHODS = new PropertyDescriptor.Builder()
             .name("Additional HTTP Methods")
             .description("A comma-separated list of non-standard HTTP Methods that should be allowed")
@@ -279,13 +286,6 @@ public class HandleHttpRequest extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
-    public static final PropertyDescriptor REQUEST_HEADER_MAX_SIZE = new PropertyDescriptor.Builder()
-            .name("Request Header Maximum Size")
-            .description("The maximum supported size of HTTP headers in requests sent to this processor")
-            .required(true)
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .defaultValue("8 KB")
             .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Authentication")
@@ -334,13 +334,13 @@ public class HandleHttpRequest extends AbstractProcessor {
             ALLOW_HEAD,
             ALLOW_OPTIONS,
             MAXIMUM_THREADS,
+            REQUEST_HEADER_MAX_SIZE,
             ADDITIONAL_METHODS,
             CLIENT_AUTH,
             CONTAINER_QUEUE_SIZE,
             MULTIPART_REQUEST_MAX_SIZE,
             MULTIPART_READ_BUFFER_SIZE,
-            PARAMETERS_TO_ATTRIBUTES,
-            REQUEST_HEADER_MAX_SIZE
+            PARAMETERS_TO_ATTRIBUTES
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
