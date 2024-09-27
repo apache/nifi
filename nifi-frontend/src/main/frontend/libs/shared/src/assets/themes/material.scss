@@ -22,61 +22,86 @@
 @use '@fontsource/roboto/latin-300-italic.css' as roboto-light-italic;
 @use '@fontsource/roboto/latin-400-italic.css' as roboto-normal-italic;
 
+$primary: (
+    0: #000000,
+    10: #002020,
+    20: #003738,
+    25: #004344,
+    30: #004849,
+    35: #004849,
+    40: #004849,
+    50: #478081,
+    60: #629a9b,
+    70: #7cb5b6,
+    80: #97d1d1,
+    90: #b3eded,
+    95: #c1fbfc,
+    98: #e2ffff,
+    99: #f1fffe,
+    100: #ffffff
+);
+
+$secondary: (
+    0: #000000,
+    10: #314149,
+    20: #3f5863,
+    25: #4e6c79,
+    30: #597b8a,
+    35: #728e9b,
+    40: #8aa2ad,
+    50: #abbdc5,
+    60: #abbdc5,
+    70: #abbdc5,
+    80: #cbd8dd,
+    90: #cbd8dd,
+    95: #cbd8dd,
+    98: #cbd8dd,
+    99: #cbd8dd,
+    100: #ffffff
+);
+
+$tertiary: (
+    0: #000000,
+    10: #3e2723,
+    20: #4e342e,
+    25: #4e342e,
+    30: #5d4037,
+    35: #6d4c41,
+    40: #795548,
+    50: #8d6e63,
+    60: #a1887f,
+    70: #bcaaa4,
+    80: #d7ccc8,
+    90: #d7ccc8,
+    95: #efebe9,
+    98: #efebe9,
+    99: #efebe9,
+    100: #ffffff
+);
+
+$error: (
+    0: #000000,
+    10: #ba554a,
+    20: #ff0000,
+    25: #ff0000,
+    30: #ff1507,
+    35: #ec3030,
+    40: #f64e4c,
+    50: #f64e4c,
+    60: #f64e4c,
+    70: #eb7071,
+    80: #f49999,
+    90: #ffccd2,
+    95: #ffccd2,
+    98: #ffccd2,
+    99: #ffccd2,
+    100: #ffffff
+);
+
 $m3-material-primary-light-palette: (
-    primary: (
-        0: #000000,
-        10: #002020,
-        20: #003738,
-        25: #004344,
-        30: #004849,
-        35: #004849,
-        40: #004849,
-        50: #478081,
-        60: #629a9b,
-        70: #7cb5b6,
-        80: #97d1d1,
-        90: #b3eded,
-        95: #c1fbfc,
-        98: #e2ffff,
-        99: #f1fffe,
-        100: #ffffff
-    ),
-    secondary: (
-        0: #000000,
-        10: #004849,
-        20: #3f5863,
-        25: #4e6c79,
-        30: #597b8a,
-        35: #728e9b,
-        40: #8aa2ad,
-        50: #abbdc5,
-        60: #abbdc5,
-        70: #abbdc5,
-        80: #cbd8dd,
-        90: #cbd8dd,
-        95: #cbd8dd,
-        98: #cbd8dd,
-        99: #cbd8dd,
-        100: #ffffff
-    ),
-    tertiary: (
-        0: #000000,
-        10: #3e2723,
-        20: #4e342e,
-        25: #4e342e,
-        30: #5d4037,
-        35: #6d4c41,
-        40: #795548,
-        50: #8d6e63,
-        60: #a1887f,
-        70: #bcaaa4,
-        80: #d7ccc8,
-        90: #d7ccc8,
-        95: #efebe9,
-        98: #efebe9,
-        99: #efebe9,
-        100: #ffffff
-    ),
+    primary: $primary,
+    secondary: $secondary,
+    tertiary: $tertiary,
     neutral: (
         0: #000000,
         4: #121212,
@@ -123,81 +148,13 @@ $m3-material-primary-light-palette: (
         99: #fafafa,
         100: #ffffff
     ),
-    error: (
-        0: #000000,
-        10: #ba554a,
-        20: #ff0000,
-        25: #ff0000,
-        30: #ff1507,
-        35: #ec3030,
-        40: #f64e4c,
-        50: #f64e4c,
-        60: #f64e4c,
-        70: #eb7071,
-        80: #f49999,
-        90: #ffccd2,
-        95: #ffccd2,
-        98: #ffccd2,
-        99: #ffccd2,
-        100: #ffffff
-    )
+    error: $error
 );
 
 $m3-material-primary-dark-palette: (
-    primary: (
-        0: #000000,
-        10: #004849,
-        20: #3f5863,
-        25: #4e6c79,
-        30: #597b8a,
-        35: #728e9b,
-        40: #8aa2ad,
-        50: #8aa2ad,
-        60: #8aa2ad,
-        70: #8aa2ad,
-        80: #8aa2ad,
-        90: #cbd8dd,
-        95: #cbd8dd,
-        98: #cbd8dd,
-        99: #cbd8dd,
-        100: #ffffff
-    ),
-    secondary: (
-        0: #000000,
-        10: #004849,
-        20: #3f5863,
-        25: #4e6c79,
-        30: #597b8a,
-        35: #728e9b,
-        40: #8aa2ad,
-        50: #abbdc5,
-        60: #abbdc5,
-        70: #abbdc5,
-        80: #cbd8dd,
-        90: #cbd8dd,
-        95: #cbd8dd,
-        98: #cbd8dd,
-        99: #cbd8dd,
-        100: #ffffff
-    ),
-    tertiary: (
-        0: #000000,
-        10: #3e2723,
-        20: #4e342e,
-        25: #4e342e,
-        30: #5d4037,
-        35: #6d4c41,
-        40: #795548,
-        50: #8d6e63,
-        60: #a1887f,
-        70: #bcaaa4,
-        80: #d7ccc8,
-        90: #d7ccc8,
-        95: #efebe9,
-        98: #efebe9,
-        99: #efebe9,
-        100: #ffffff
-    ),
+    primary: $secondary,
+    secondary: $secondary,
+    tertiary: $tertiary,
     neutral: (
         0: #000000,
         4: #303030,
@@ -244,24 +201,7 @@ $m3-material-primary-dark-palette: (
         99: #fafafa,
         100: #ffffff
     ),
-    error: (
-        0: #000000,
-        10: #ba554a,
-        20: #ff0000,
-        25: #ff0000,
-        30: #ff1507,
-        35: #ec3030,
-        40: #f64e4c,
-        50: #f64e4c,
-        60: #f64e4c,
-        70: #eb7071,
-        80: #f49999,
-        90: #ffccd2,
-        95: #ffccd2,
-        98: #ffccd2,
-        99: #ffccd2,
-        100: #ffffff
-    )
+    error: $error
 );
 
 // Define a dark theme
