@@ -1,0 +1,47 @@
+{
+  "type": "record",
+  "name": "nifiRecord",
+  "namespace": "org.apache.nifi",
+  "fields": [
+    {
+      "name": "Date_Custom",
+      "type": [ "null", { "type": "int", "logicalType": "date" } ]
+    },
+    {
+      "name": "Time_Custom",
+      "type": [ "null", { "type": "long", "logicalType": "time-micros" } ]
+    },
+    {
+      "name": "Timestamp",
+      "type": [ "null", { "type": "long", "logicalType": "timestamp-millis" } ]
+    },
+    {
+        "name" : "Boolean_Function",
+        "type": [ "null", "boolean"]
+    },
+    {
+        "name" : "Number_Function",
+        "type": [ "null", "int"]
+    },
+    {
+        "name" : "Blank_Cell",
+        "type": [ "null", "string"]
+    },
+    {
+         "name" : "String",
+         "type": [ "null", "string"]
+    },
+    {
+        "name" : "Numeric",
+        "type": [ "null", "float"]
+    },
+    {
+        "name" : "Variable_Missing",
+        "type": [ "null", "string"]
+    },
+    {
+        "name" : "Syntax_Error",
+        "type": [ "null", "string"]
+    }
+  ]
+} 

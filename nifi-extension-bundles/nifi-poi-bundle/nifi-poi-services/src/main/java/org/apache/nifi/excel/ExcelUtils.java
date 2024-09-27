@@ -16,15 +16,37 @@
  */
 package org.apache.nifi.excel;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
+
+import java.util.Locale;
 
 public class ExcelUtils {
     static final String FIELD_NAME_PREFIX = "column_";
+    private static final DataFormatter DATA_FORMATTER = new DataFormatter(Locale.getDefault());
+
+    static {
+        DATA_FORMATTER.setUseCachedValuesForFormulaCells(true);
+    }
 
     private ExcelUtils() {
     }
 
     public static boolean hasCells(final Row row) {
         return row != null && row.getFirstCellNum() != -1;
+    }
+
+    public static String getFormattedCellValue(Cell cell) {
+        if (cell != null) {
+            //NOTE This conditional is to avoid the following:
+            //java.lang.IllegalStateException: Cannot get a error value from a formula cell
+            if (cell.getCellType().equals(CellType.FORMULA) && cell.getCachedFormulaResultType().equals(CellType.ERROR)) {
+                return cell.getStringCellValue();
+            }
+            return DATA_FORMATTER.formatCellValue(cell);
+        }
+        return "";
     }
 }

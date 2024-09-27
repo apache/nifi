@@ -37,8 +37,8 @@
                         <exclude>src/test/resources/excel/sheetsWithEmptySheet.xlsx</exclude>
                         <exclude>src/test/resources/excel/simpleDataFormatting.xlsx</exclude>
                         <exclude>src/test/resources/excel/twoSheets.xlsx</exclude>
-                        <exclude>src/test/resources/excel/dateTimeTimestamp.xlsx</exclude>
-                        <exclude>src/test/resources/dateTimeTimestampSchema.avsc</exclude>
+                        <exclude>src/test/resources/excel/all_types.xlsx</exclude>
+                        <exclude>src/test/resources/allTypesSchema.avsc</exclude>
                     </excludes>
                 </configuration>
             </plugin>

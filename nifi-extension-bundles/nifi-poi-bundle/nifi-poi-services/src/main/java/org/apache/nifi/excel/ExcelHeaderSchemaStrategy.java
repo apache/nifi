@@ -31,7 +31,6 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.SchemaInferenceUtil;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 
 import java.io.IOException;
@@ -40,7 +39,6 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -56,13 +54,11 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
     private final PropertyContext context;
     private final ComponentLog logger;
     private final TimeValueInference timeValueInference;
-    private final DataFormatter dataFormatter;
 
-    public ExcelHeaderSchemaStrategy(PropertyContext context, ComponentLog logger, TimeValueInference timeValueInference, Locale locale) {
+    public ExcelHeaderSchemaStrategy(PropertyContext context, ComponentLog logger, TimeValueInference timeValueInference) {
         this.context = context;
         this.logger = logger;
         this.timeValueInference = timeValueInference;
-        this.dataFormatter = locale == null ? new DataFormatter() : new DataFormatter(locale);
     }
 
     @Override
@@ -116,7 +112,7 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
         final List<String> fieldNames = new ArrayList<>();
         for (int index = 0; index < row.getLastCellNum(); index++) {
             final Cell cell = row.getCell(index);
-            final String fieldName = dataFormatter.formatCellValue(cell);
+            final String fieldName = ExcelUtils.getFormattedCellValue(cell);
 
             // NOTE: This accounts for column(s) which may be empty in the configured starting row.
             if (fieldName == null || fieldName.isEmpty()) {
@@ -141,7 +137,7 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
                         final Cell cell = row.getCell(index);
                         final String fieldName = fieldNames.get(index);
                         final FieldTypeInference typeInference = typeMap.computeIfAbsent(fieldName, key -> new FieldTypeInference());
-                        final String formattedCellValue = dataFormatter.formatCellValue(cell);
+                        final String formattedCellValue = ExcelUtils.getFormattedCellValue(cell);
                         final DataType dataType = SchemaInferenceUtil.getDataType(formattedCellValue, timeValueInference);
                         typeInference.addPossibleDataType(dataType);
                     });

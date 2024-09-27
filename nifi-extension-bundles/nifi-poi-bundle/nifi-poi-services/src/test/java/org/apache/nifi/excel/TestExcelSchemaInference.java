@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.excel;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Stream;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -35,12 +26,18 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -55,9 +52,8 @@ public class TestExcelSchemaInference {
     @Mock
     ComponentLog logger;
 
-    @ParameterizedTest
-    @MethodSource("getLocales")
-    public void testInferenceAgainstDifferentLocales(Locale locale) throws IOException {
+    @Test
+    public void testInferenceAgainstDifferentLocales() throws IOException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         final PropertyContext context = new MockConfigurationContext(properties, null, null);
@@ -65,28 +61,18 @@ public class TestExcelSchemaInference {
         try (final InputStream inputStream = getResourceStream("/excel/numbers.xlsx")) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
                     (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
-                    new ExcelSchemaInference(timestampInference, locale), logger);
+                    new ExcelSchemaInference(timestampInference), logger);
             final RecordSchema schema = accessStrategy.getSchema(null, inputStream, null);
             final List<String> fieldNames = schema.getFieldNames();
             assertEquals(Collections.singletonList(EXPECTED_FIRST_FIELD_NAME), fieldNames);
 
-            if (Locale.FRENCH.equals(locale)) {
+            if (Locale.FRENCH.equals(Locale.getDefault())) {
                 assertEquals(RecordFieldType.STRING, schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get().getFieldType());
             } else {
                 assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.FLOAT.getDataType(), RecordFieldType.STRING.getDataType()),
                         schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get());
             }
         }
-    }
-
-    private static Stream<Arguments> getLocales() {
-        Locale hindi = Locale.of("hin");
-        return Stream.of(
-                Arguments.of(Locale.ENGLISH),
-                Arguments.of(hindi),
-                Arguments.of(Locale.JAPANESE),
-                Arguments.of(Locale.FRENCH)
-        );
     }
 
     @Test

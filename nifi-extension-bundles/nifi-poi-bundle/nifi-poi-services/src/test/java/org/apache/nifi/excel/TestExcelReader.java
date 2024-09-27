@@ -56,7 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @ExtendWith(MockitoExtension.class)
 public class TestExcelReader {
 
-    private static final ByteArrayOutputStream DATE_TIME_TIMESTAMP_CONTENTS = new ByteArrayOutputStream();
+    private static final ByteArrayOutputStream ALL_TYPES_CONTENTS = new ByteArrayOutputStream();
 
     @Mock
     private ComponentLog logger;
@@ -66,8 +66,8 @@ public class TestExcelReader {
 
     @BeforeAll
     static void setUpBeforeAll() throws Exception {
-        InputStream inputStream = Files.newInputStream(Paths.get("src/test/resources/excel/dateTimeTimestamp.xlsx"));
-        IOUtils.copyLarge(inputStream, DATE_TIME_TIMESTAMP_CONTENTS);
+        InputStream inputStream = Files.newInputStream(Paths.get("src/test/resources/excel/all_types.xlsx"));
+        IOUtils.copyLarge(inputStream, ALL_TYPES_CONTENTS);
     }
 
     @BeforeEach
@@ -84,8 +84,8 @@ public class TestExcelReader {
         properties.put(DateTimeUtils.TIMESTAMP_FORMAT, "M/dd/yyyy HH:mm:ss");
         properties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, ExcelHeaderSchemaStrategy.USE_STARTING_ROW.getValue());
         initializeExcelReader();
-        InputStream inputStream = new ByteArrayInputStream(DATE_TIME_TIMESTAMP_CONTENTS.toByteArray());
-        final RecordReader recordReader = excelReader.createRecordReader(new HashMap<>(), inputStream, DATE_TIME_TIMESTAMP_CONTENTS.size(), logger);
+        InputStream inputStream = new ByteArrayInputStream(ALL_TYPES_CONTENTS.toByteArray());
+        final RecordReader recordReader = excelReader.createRecordReader(new HashMap<>(), inputStream, ALL_TYPES_CONTENTS.size(), logger);
 
         final RecordSchema recordSchema = recordReader.getSchema();
         assertRecordSchemaFieldNamesAndTypes(recordSchema);
@@ -99,14 +99,14 @@ public class TestExcelReader {
         properties.put(DateTimeUtils.DATE_FORMAT, "M/dd/yy");
         properties.put(DateTimeUtils.TIME_FORMAT, "HH:mm");
         properties.put(DateTimeUtils.TIMESTAMP_FORMAT, "M/dd/yyyy HH:mm:ss");
-        final String avroSchema = Files.readString(Paths.get("src/test/resources/dateTimeTimestampSchema.avsc"));
+        final String avroSchema = Files.readString(Paths.get("src/test/resources/allTypesSchema.avsc"));
         properties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
         properties.put(SchemaAccessUtils.SCHEMA_TEXT, avroSchema);
         properties.put(ExcelReader.STARTING_ROW, "2");
         initializeExcelReader();
 
-        InputStream inputStream = new ByteArrayInputStream(DATE_TIME_TIMESTAMP_CONTENTS.toByteArray());
-        RecordReader recordReader = excelReader.createRecordReader(new HashMap<>(), inputStream, DATE_TIME_TIMESTAMP_CONTENTS.size(), logger);
+        InputStream inputStream = new ByteArrayInputStream(ALL_TYPES_CONTENTS.toByteArray());
+        RecordReader recordReader = excelReader.createRecordReader(new HashMap<>(), inputStream, ALL_TYPES_CONTENTS.size(), logger);
 
         final RecordSchema recordSchema = recordReader.getSchema();
         assertRecordSchemaFieldNamesAndTypes(recordSchema);
@@ -123,10 +123,12 @@ public class TestExcelReader {
     }
 
     private void assertRecordSchemaFieldNamesAndTypes(RecordSchema recordSchema) {
-        assertEquals(3, recordSchema.getFieldCount());
-        assertEquals(Arrays.asList("Date_Custom", "Time_Custom", "Timestamp"), recordSchema.getFieldNames());
-        assertEquals(Arrays.asList(RecordFieldType.DATE, RecordFieldType.TIME, RecordFieldType.TIMESTAMP),
-                recordSchema.getDataTypes().stream()
+        assertEquals(10, recordSchema.getFieldCount());
+        assertEquals(Arrays.asList("Date_Custom", "Time_Custom", "Timestamp", "Boolean_Function", "Number_Function",
+                        "Blank_Cell", "String", "Numeric", "Variable_Missing", "Syntax_Error"), recordSchema.getFieldNames());
+        assertEquals(Arrays.asList(RecordFieldType.DATE, RecordFieldType.TIME, RecordFieldType.TIMESTAMP, RecordFieldType.BOOLEAN,
+                        RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.FLOAT,
+                        RecordFieldType.STRING, RecordFieldType.STRING), recordSchema.getDataTypes().stream()
                         .map(DataType::getFieldType)
                         .collect(Collectors.toList()));
     }
@@ -136,5 +138,12 @@ public class TestExcelReader {
         assertInstanceOf(Date.class, record.getValue("Date_Custom"));
         assertInstanceOf(Time.class, record.getValue("Time_Custom"));
         assertInstanceOf(Timestamp.class, record.getValue("Timestamp"));
+        assertInstanceOf(Boolean.class, record.getValue("Boolean_Function"));
+        assertInstanceOf(Integer.class, record.getValue("Number_Function"));
+        assertInstanceOf(String.class, record.getValue("Blank_Cell"));
+        assertInstanceOf(String.class, record.getValue("String"));
+        assertInstanceOf(Float.class, record.getValue("Numeric"));
+        assertInstanceOf(String.class, record.getValue("Variable_Missing"));
+        assertInstanceOf(String.class, record.getValue("Syntax_Error"));
     }
 }
