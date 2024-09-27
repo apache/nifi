@@ -168,7 +168,7 @@ class TestInferJsonSchemaAccessStrategy {
     }
 
     /**
-     * Test is intended to ensure that all inference rules that are explained in the readers' additionalDetails.html are correct
+     * Test is intended to ensure that all inference rules that are explained in the readers' additionalDetails.md are correct
      */
     @Test
     void testDocsExample() throws IOException {

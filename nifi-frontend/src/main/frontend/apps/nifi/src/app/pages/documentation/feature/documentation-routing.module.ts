@@ -15,14 +15,48 @@
  * limitations under the License.
  */
 
-import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { Documentation } from './documentation.component';
+import { ProcessorDefinition } from '../ui/processor-definition/processor-definition.component';
+import { NgModule } from '@angular/core';
+import { ComponentType } from '@nifi/shared';
+import { ControllerServiceDefinition } from '../ui/controller-service-definition/controller-service-definition.component';
+import { ReportingTaskDefinition } from '../ui/reporting-task-definition/reporting-task-definition.component';
+import { ParameterProviderDefinition } from '../ui/parameter-provider-definition/parameter-provider-definition.component';
+import { FlowAnalysisRuleDefinition } from '../ui/flow-analysis-rule-definition/flow-analysis-rule-definition.component';
+import { Overview } from '../ui/overview/overview.component';
 
 const routes: Routes = [
     {
         path: '',
-        component: Documentation
+        component: Documentation,
+        children: [
+            { path: '', pathMatch: 'full', redirectTo: 'overview' },
+            {
+                path: `${ComponentType.Processor}/:group/:artifact/:version/:type`,
+                component: ProcessorDefinition
+            },
+            {
+                path: `${ComponentType.ControllerService}/:group/:artifact/:version/:type`,
+                component: ControllerServiceDefinition
+            },
+            {
+                path: `${ComponentType.ReportingTask}/:group/:artifact/:version/:type`,
+                component: ReportingTaskDefinition
+            },
+            {
+                path: `${ComponentType.ParameterProvider}/:group/:artifact/:version/:type`,
+                component: ParameterProviderDefinition
+            },
+            {
+                path: `${ComponentType.FlowAnalysisRule}/:group/:artifact/:version/:type`,
+                component: FlowAnalysisRuleDefinition
+            },
+            {
+                path: 'overview',
+                component: Overview
+            }
+        ]
     }
 ];
 

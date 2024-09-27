@@ -50,6 +50,11 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
+import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
+import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
+import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
+import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
@@ -3946,6 +3951,56 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public RuntimeManifest getRuntimeManifest() {
         return controllerFacade.getRuntimeManifest();
+    }
+
+    @Override
+    public ProcessorDefinition getProcessorDefinition(String group, String artifact, String version, String type) {
+        final ProcessorDefinition processorDefinition = controllerFacade.getProcessorDefinition(group, artifact, version, type);
+        if (processorDefinition == null) {
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
+        }
+        return processorDefinition;
+    }
+
+    @Override
+    public ControllerServiceDefinition getControllerServiceDefinition(String group, String artifact, String version, String type) {
+        final ControllerServiceDefinition controllerServiceDefinition = controllerFacade.getControllerServiceDefinition(group, artifact, version, type);
+        if (controllerServiceDefinition == null) {
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
+        }
+        return controllerServiceDefinition;
+    }
+
+    @Override
+    public ReportingTaskDefinition getReportingTaskDefinition(String group, String artifact, String version, String type) {
+        final ReportingTaskDefinition reportingTaskDefinition = controllerFacade.getReportingTaskDefinition(group, artifact, version, type);
+        if (reportingTaskDefinition == null) {
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
+        }
+        return reportingTaskDefinition;
+    }
+
+    @Override
+    public ParameterProviderDefinition getParameterProviderDefinition(String group, String artifact, String version, String type) {
+        final ParameterProviderDefinition parameterProviderDefinition = controllerFacade.getParameterProviderDefinition(group, artifact, version, type);
+        if (parameterProviderDefinition == null) {
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
+        }
+        return parameterProviderDefinition;
+    }
+
+    @Override
+    public FlowAnalysisRuleDefinition getFlowAnalysisRuleDefinition(String group, String artifact, String version, String type) {
+        final FlowAnalysisRuleDefinition flowAnalysisRuleDefinition = controllerFacade.getFlowAnalysisRuleDefinition(group, artifact, version, type);
+        if (flowAnalysisRuleDefinition == null) {
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
+        }
+        return flowAnalysisRuleDefinition;
+    }
+
+    @Override
+    public String getAdditionalDetails(String group, String artifact, String version, String type) {
+        return controllerFacade.getAdditionalDetails(group, artifact, version, type);
     }
 
     @Override

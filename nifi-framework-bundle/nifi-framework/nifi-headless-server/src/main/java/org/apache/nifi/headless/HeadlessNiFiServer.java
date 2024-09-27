@@ -177,7 +177,6 @@ public class HeadlessNiFiServer implements NiFiServer {
             final NarUnpackMode unpackMode = props.isUnpackNarsToUberJar() ? NarUnpackMode.UNPACK_TO_UBER_JAR : NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
             final NarLoader narLoader = new StandardNarLoader(
                     props.getExtensionsWorkingDirectory(),
-                    props.getComponentDocumentationWorkingDirectory(),
                     NarClassLoadersHolder.getInstance(),
                     extensionManager,
                     new ExtensionMapping(), // Mapping is for documentation which is for the UI, not headless

@@ -931,7 +931,7 @@ provides a "Usage" menu item in the context menu. Additionally, the
 UI exposes a "Help" link in the top-right corner, from which the same
 Usage information can be found.
 
-The advanced documentation of a Processor is provided as an HTML file named `additionalDetails.html`.
+The advanced documentation of a Processor is provided as a Markdown file named `additionalDetails.md`.
 This file should exist within a directory whose name is the
 fully-qualified
 name of the Processor, and this directory's parent should be named
