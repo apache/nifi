@@ -23,13 +23,21 @@ import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.nifi.c2.protocol.api.SupportedOperation;
 import org.apache.nifi.c2.protocol.component.api.Bundle;
+import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
+import org.apache.nifi.c2.protocol.component.api.DefinedType;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 public class ManifestHashProvider {
     private String currentBundles = null;
@@ -39,12 +47,13 @@ public class ManifestHashProvider {
 
     public String calculateManifestHash(List<Bundle> loadedBundles, Set<SupportedOperation> supportedOperations) {
         String bundleString = loadedBundles.stream()
-            .map(bundle -> bundle.getGroup() + bundle.getArtifact() + bundle.getVersion())
-            .sorted()
-            .collect(Collectors.joining(","));
+                .map(this::getComponentCoordinates)
+                .flatMap(Collection::stream)
+                .sorted()
+                .collect(Collectors.joining(","));
         int hashCode = Objects.hash(bundleString, supportedOperations);
         if (hashCode != currentHashCode
-            || !(Objects.equals(bundleString, currentBundles) && Objects.equals(supportedOperations, currentSupportedOperations))) {
+                || !(Objects.equals(bundleString, currentBundles) && Objects.equals(supportedOperations, currentSupportedOperations))) {
             byte[] bytes;
             try {
                 bytes = MessageDigest.getInstance("SHA-512").digest(getBytes(supportedOperations, bundleString));
@@ -77,5 +86,24 @@ public class ManifestHashProvider {
             builder.append(String.format("%02x", b));
         }
         return builder.toString();
+    }
+
+    private List<String> getComponentCoordinates(Bundle bundle) {
+        ComponentManifest componentManifest = bundle.getComponentManifest();
+
+        List<String> coordinates = componentManifest == null
+                ? emptyList()
+                : Stream.of(componentManifest.getProcessors(),
+                        componentManifest.getApis(),
+                        componentManifest.getControllerServices(),
+                        componentManifest.getReportingTasks())
+                .filter(Objects::nonNull)
+                .flatMap(List::stream)
+                .map(DefinedType::getType)
+                .map(type -> bundle.getGroup() + bundle.getArtifact() + bundle.getVersion() + type).toList();
+
+        return coordinates.isEmpty()
+                ? singletonList(bundle.getGroup() + bundle.getArtifact() + bundle.getVersion())
+                : coordinates;
     }
 }
