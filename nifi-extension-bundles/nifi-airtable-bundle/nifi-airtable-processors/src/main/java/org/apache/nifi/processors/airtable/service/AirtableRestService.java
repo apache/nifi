@@ -50,7 +50,8 @@ public class AirtableRestService {
             final String baseId,
             final String tableId) {
         this.webClientServiceProvider = webClientServiceProvider;
-        this.apiUrl = apiUrl;
+        // Ensure the apiUrl ends with "/"
+        this.apiUrl = normalizeApiUrl(apiUrl);
         this.pat = pat;
         this.baseId = baseId;
         this.tableId = tableId;
@@ -123,5 +124,12 @@ public class AirtableRestService {
         getRecordsParameters.getPageSize().ifPresent(pageSize -> uriBuilder.addQueryParameter("pageSize", String.valueOf(pageSize)));
 
         return uriBuilder.build();
+    }
+
+    private String normalizeApiUrl(String apiUrl) {
+        if (!apiUrl.endsWith("/")) {
+            return apiUrl + "/";
+        }
+        return apiUrl;
     }
 }

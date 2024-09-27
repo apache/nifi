@@ -54,6 +54,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -110,8 +111,7 @@ public class QueryAirtableTable extends AbstractProcessor {
 
     // API Keys are deprecated, Airtable now provides Personal Access Tokens instead.
     static final PropertyDescriptor PAT = new PropertyDescriptor.Builder()
-            .name("api-key")
-            .displayName("Personal Access Token")
+            .name("pat")
             .description("The Personal Access Token (PAT) to use in queries. Should be generated on Airtable's account page.")
             .required(true)
             .sensitive(true)
@@ -281,6 +281,11 @@ public class QueryAirtableTable extends AbstractProcessor {
             addFragmentAttributesToFlowFiles(session, flowFiles);
         }
         transferFlowFiles(session, flowFiles, retrieveTableResult.getTotalRecordCount());
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("api-key", PAT.getName());
     }
 
     private AirtableGetRecordsParameters buildGetRecordsParameters(final ProcessContext context,
