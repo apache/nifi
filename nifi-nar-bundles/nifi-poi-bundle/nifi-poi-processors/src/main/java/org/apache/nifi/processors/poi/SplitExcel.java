@@ -63,8 +63,10 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORI
 @Tags({"split", "text"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Splits a multi sheet Microsoft Excel spreadsheet into multiple Microsoft Excel spreadsheets where each sheet from the original" +
-        " file is converted to an individual spreadsheet in its own flow file.  This processor is currently only capable of processing .xlsx "
-        + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.")
+        " file is converted to an individual spreadsheet in its own flow file.  This processor is currently only capable of processing .xlsx" +
+        " (XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents." +
+        " NOTE: All original cell styles are dropped when splitting into multiple Microsoft Excel spreadsheets."
+)
 @WritesAttributes({
         @WritesAttribute(attribute = "fragment.identifier", description = "All split Excel FlowFiles produced from the same parent Excel FlowFile will have the same randomly generated UUID added" +
                 " for this attribute"),
@@ -141,7 +143,7 @@ public class SplitExcel extends AbstractProcessor {
     private static final Set<Relationship> RELATIONSHIPS;
     private static final CellCopyPolicy CELL_COPY_POLICY = new CellCopyPolicy.Builder()
             .cellFormula(CellCopyPolicy.DEFAULT_COPY_CELL_FORMULA_POLICY)
-            .cellStyle(CellCopyPolicy.DEFAULT_COPY_CELL_STYLE_POLICY)
+            .cellStyle(false) // NOTE: setting to false avoids exceeding the maximum number of cell styles (64000) in a .xlsx Workbook.
             .cellValue(CellCopyPolicy.DEFAULT_COPY_CELL_VALUE_POLICY)
             .condenseRows(CellCopyPolicy.DEFAULT_CONDENSE_ROWS_POLICY)
             .copyHyperlink(CellCopyPolicy.DEFAULT_COPY_HYPERLINK_POLICY)
