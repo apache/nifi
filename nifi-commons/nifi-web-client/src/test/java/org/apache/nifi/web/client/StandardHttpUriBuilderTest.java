@@ -33,7 +33,13 @@ class StandardHttpUriBuilderTest {
 
     private static final String ENCODED_PATH = "/resources/search";
 
+    private static final String ENCODED_PATH_WITH_TRAILING_SEPARATOR = "/resources/search/";
+
     private static final String PATH_WITH_SPACES_ENCODED = "/resources/%20separated%20search";
+
+    private static final String BUCKETS_PATH_SEGMENT = "buckets";
+
+    private static final String FILES_PATH_SEGMENT = "files";
 
     private static final String RESOURCES_PATH_SEGMENT = "resources";
 
@@ -67,6 +73,14 @@ class StandardHttpUriBuilderTest {
 
     private static final URI HTTP_LOCALHOST_PORT_ENCODED_PATH_WITH_SPACES_URI = URI.create(
             String.format("%s://%s:%d%s", HTTP_SCHEME, LOCALHOST, PORT, PATH_WITH_SPACES_ENCODED)
+    );
+
+    private static final URI HTTP_LOCALHOST_PORT_ENCODED_PATH_WITH_SPACES_AND_SEGMENTS_URI = URI.create(
+            String.format("%s://%s:%d%s/%s/%s", HTTP_SCHEME, LOCALHOST, PORT, PATH_WITH_SPACES_ENCODED, BUCKETS_PATH_SEGMENT, FILES_PATH_SEGMENT)
+    );
+
+    private static final URI HTTP_LOCALHOST_PORT_ENCODED_PATH_WITH_TRAILING_SEPARATOR_AND_SEGMENTS_URI = URI.create(
+            String.format("%s://%s:%d%s%s/%s", HTTP_SCHEME, LOCALHOST, PORT, ENCODED_PATH_WITH_TRAILING_SEPARATOR, BUCKETS_PATH_SEGMENT, FILES_PATH_SEGMENT)
     );
 
     private static final URI HTTP_LOCALHOST_RESOURCES_URI = URI.create(
@@ -166,6 +180,36 @@ class StandardHttpUriBuilderTest {
         final URI uri = builder.build();
 
         assertEquals(HTTP_LOCALHOST_PORT_ENCODED_PATH_WITH_SPACES_URI, uri);
+    }
+
+    @Test
+    void testBuildSchemeHostPortEncodedPathWithSpacesAndPathSegments() {
+        final HttpUriBuilder builder = new StandardHttpUriBuilder()
+                .scheme(HTTP_SCHEME)
+                .host(LOCALHOST)
+                .port(PORT)
+                .encodedPath(PATH_WITH_SPACES_ENCODED)
+                .addPathSegment(BUCKETS_PATH_SEGMENT)
+                .addPathSegment(FILES_PATH_SEGMENT);
+
+        final URI uri = builder.build();
+
+        assertEquals(HTTP_LOCALHOST_PORT_ENCODED_PATH_WITH_SPACES_AND_SEGMENTS_URI, uri);
+    }
+
+    @Test
+    void testBuildSchemeHostPortEncodedPathWithTrailingSeparatorAndPathSegments() {
+        final HttpUriBuilder builder = new StandardHttpUriBuilder()
+                .scheme(HTTP_SCHEME)
+                .host(LOCALHOST)
+                .port(PORT)
+                .encodedPath(ENCODED_PATH_WITH_TRAILING_SEPARATOR)
+                .addPathSegment(BUCKETS_PATH_SEGMENT)
+                .addPathSegment(FILES_PATH_SEGMENT);
+
+        final URI uri = builder.build();
+
+        assertEquals(HTTP_LOCALHOST_PORT_ENCODED_PATH_WITH_TRAILING_SEPARATOR_AND_SEGMENTS_URI, uri);
     }
 
     @Test
