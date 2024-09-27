@@ -1,0 +1,188 @@
+/*!
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+@use 'sass:map';
+@use '@angular/material' as mat;
+
+@mixin generate-prism-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-secondary-palette-default: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), default)
+    );
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), lighter)
+    );
+    $material-theme-neutral-palette-darker: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), darker)
+    );
+    $material-theme-neutral-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), lighter)
+    );
+
+    code[class*='language-'],
+    pre[class*='language-'] {
+        color: if($is-material-dark, #f07178, #ec000c);
+        text-align: left;
+        white-space: pre;
+        word-spacing: normal;
+        word-break: normal;
+        word-wrap: normal;
+        line-height: 1.5;
+
+        -moz-tab-size: 4;
+        -o-tab-size: 4;
+        tab-size: 4;
+
+        -webkit-hyphens: none;
+        -moz-hyphens: none;
+        -ms-hyphens: none;
+        hyphens: none;
+    }
+
+    pre[class*='language-']::-moz-selection,
+    pre[class*='language-'] ::-moz-selection,
+    code[class*='language-']::-moz-selection,
+    code[class*='language-'] ::-moz-selection {
+        text-shadow: none;
+        background: if(
+            $is-material-dark,
+            rgba($material-theme-secondary-palette-default, 0.4),
+            rgba($material-theme-secondary-palette-lighter, 0.4)
+        );
+    }
+
+    pre[class*='language-']::selection,
+    pre[class*='language-'] ::selection,
+    code[class*='language-']::selection,
+    code[class*='language-'] ::selection {
+        text-shadow: none;
+        background: if(
+            $is-material-dark,
+            rgba($material-theme-secondary-palette-default, 0.4),
+            rgba($material-theme-secondary-palette-lighter, 0.4)
+        );
+    }
+
+    @media print {
+        code[class*='language-'],
+        pre[class*='language-'] {
+            text-shadow: none;
+        }
+    }
+
+    /* Code blocks */
+    pre[class*='language-'] {
+        padding: 1em;
+        margin: 0.5em 0;
+        overflow: auto;
+    }
+
+    :not(pre) > code[class*='language-'],
+    pre[class*='language-'] {
+        @extend .neutral-contrast;
+        min-height: 108px;
+        cursor: default;
+        line-height: normal;
+        background-color: if(
+            $is-material-dark,
+            $material-theme-neutral-palette-darker,
+            $material-theme-neutral-palette-lighter
+        );
+        border: 1px solid var(--mdc-outlined-text-field-label-text-color);
+    }
+
+    /* Inline code */
+    :not(pre) > code[class*='language-'] {
+        padding: 0.1em;
+        border-radius: 0.3em;
+        white-space: normal;
+    }
+
+    .token.comment,
+    .token.prolog,
+    .token.doctype,
+    .token.cdata {
+        color: if($is-material-dark, #d7d7d7, #545454);
+    }
+
+    .token.punctuation {
+        color: if($is-material-dark, #c792ea, #6800ab);
+    }
+
+    .token.namespace {
+        opacity: 0.7;
+    }
+
+    .token.property,
+    .token.tag,
+    .token.boolean,
+    .token.number,
+    .token.symbol,
+    .token.deleted {
+        color: if($is-material-dark, #c792ea, #6800ab);
+    }
+
+    .token.constant {
+        color: if($is-material-dark, #f07178, #ec000c);
+    }
+
+    .token.selector,
+    .token.attr-name,
+    .token.string,
+    .token.char,
+    .token.builtin,
+    .token.inserted {
+        color: if($is-material-dark, #c792ea, #6800ab);
+    }
+
+    .token.keyword {
+        color: if($is-material-dark, #c792ea, #6800ab);
+    }
+
+    .token.atrule,
+    .token.attr-value {
+        color: if($is-material-dark, #f07178, #ec000c);
+    }
+
+    .token.function {
+        color: if($is-material-dark, #fff, #000);
+    }
+
+    .token.class-name {
+        color: if($is-material-dark, #f07178, #ec000c);
+    }
+
+    .token.important,
+    .token.bold {
+        font-weight: bold;
+    }
+    .token.italic {
+        font-style: italic;
+    }
+
+    .token.entity {
+        cursor: help;
+    }
+}

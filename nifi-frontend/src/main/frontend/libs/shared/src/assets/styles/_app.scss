@@ -563,6 +563,15 @@
         border-color: $border-color;
     }
 
+    // This will override the above rule in cases where the tailwind style is explicitly set (even on the 'exception' elements)
+    .border-t,
+    .border-b,
+    .border,
+    .border-l,
+    .border-r {
+        border-color: $border-color;
+    }
+
     * {
         // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
         --mat-snack-bar-button-color: if(

@@ -189,7 +189,7 @@
     .cm-s-nifi .cm-punctuation,
     .cm-s-nifi .cm-property,
     .cm-s-nifi .cm-operator {
-        color: if($is-material-dark, #f07178, #ec000c);
+        color: if($is-material-dark, #fff, #000);
     }
 
     .cm-s-nifi .cm-tag {

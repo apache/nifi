@@ -43,6 +43,7 @@
         "marked": "^12.0.2",
         "ngx-markdown": "^18.0.0",
         "ngx-skeleton-loader": "^8.1.0",
+        "prismjs": "^1.29.0",
         "rxjs": "~7.8.1",
         "tslib": "^2.6.2",
         "uuid": "^10.0.0",
@@ -104,6 +105,7 @@
     },
     "resolutions": {
         "vite": "^5.4.6",
-        "underscore": "1.13.6"
+        "underscore": "1.13.6",
+        "rollup": "4.22.4"
     }
 }
