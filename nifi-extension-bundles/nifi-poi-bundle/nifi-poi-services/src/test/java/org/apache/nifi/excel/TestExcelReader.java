@@ -147,7 +147,7 @@ public class TestExcelReader {
 
     private void assertRecordFieldNamesAndClassTypes(Record record) {
         assertNotNull(record);
-        for(Map.Entry<String, Class<?>> entry : FIELDS_AND_CLASS_TYPES.entrySet()) {
+        for (Map.Entry<String, Class<?>> entry : FIELDS_AND_CLASS_TYPES.entrySet()) {
             assertInstanceOf(entry.getValue(), record.getValue(entry.getKey()));
         }
     }
