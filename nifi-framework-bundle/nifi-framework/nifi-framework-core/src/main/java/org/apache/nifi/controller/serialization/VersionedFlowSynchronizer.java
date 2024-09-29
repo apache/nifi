@@ -944,7 +944,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         for (final VersionedParameter parameter : versionedParameterContext.getParameters()) {
             final String parameterName = parameter.getName();
             final String currentValue = currentValues.get(parameterName);
-            final Set<String> currentAssetIds = currentAssetReferences.get(parameterName);
+            final Set<String> currentAssetIds = currentAssetReferences.getOrDefault(parameterName, Collections.emptySet());
 
             final Parameter updatedParameterObject = parameters.get(parameterName);
             final String updatedValue = updatedParameterObject.getValue();
