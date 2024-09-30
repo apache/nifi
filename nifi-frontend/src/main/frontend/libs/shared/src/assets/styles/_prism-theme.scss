@@ -94,6 +94,7 @@
 
     /* Code blocks */
     pre[class*='language-'] {
+        display: flex;
         margin: 0.5em 0;
         overflow: auto;
     }
