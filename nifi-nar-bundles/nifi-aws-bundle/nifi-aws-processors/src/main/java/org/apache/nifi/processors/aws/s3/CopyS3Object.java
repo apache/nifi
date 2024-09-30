@@ -221,7 +221,7 @@ public class CopyS3Object extends AbstractS3Processor {
                     .withFirstByte(bytePosition)
                     .withLastByte(lastByte)
                     .withPartNumber(partNumber++);
-            boolean partIsDone = false;
+            boolean partRequestCompleted = false;
             int retryIndex = 0;
 
             while (!partIsDone) {
