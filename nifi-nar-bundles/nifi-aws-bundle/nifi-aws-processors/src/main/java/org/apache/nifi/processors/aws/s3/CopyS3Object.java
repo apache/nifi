@@ -154,7 +154,7 @@ public class CopyS3Object extends AbstractS3Processor {
 
         final AtomicReference<String> multipartIdRef = new AtomicReference<>();
         final long contentLength = metadataResult.getContentLength();
-        final boolean isMultiPart = metadataResult.getContentLength() > MULTIPART_THRESHOLD;
+        final boolean multipartUploadRequired = metadataResult.getContentLength() > MULTIPART_THRESHOLD;
 
         try {
             final AccessControlList acl = createACL(context, flowFile);
