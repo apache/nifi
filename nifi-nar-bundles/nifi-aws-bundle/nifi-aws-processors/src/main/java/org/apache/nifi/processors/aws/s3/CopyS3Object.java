@@ -202,7 +202,7 @@ public class CopyS3Object extends AbstractS3Processor {
             initRequest.setCannedACL(cannedAccessControlList);
         }
 
-        InitiateMultipartUploadResult initResult = s3.initiateMultipartUpload(initRequest);
+        final InitiateMultipartUploadResult initResult = s3.initiateMultipartUpload(initRequest);
 
         multipartIdRef.set(initResult.getUploadId());
 
