@@ -239,7 +239,7 @@ public class CopyS3Object extends AbstractS3Processor {
             bytePosition += MULTIPART_THRESHOLD;
         }
 
-        CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest(
+        final CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest(
                 destinationBucket,
                 destinationKey,
                 initResult.getUploadId(),
