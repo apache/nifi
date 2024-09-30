@@ -208,7 +208,7 @@ public class CopyS3Object extends AbstractS3Processor {
 
         long bytePosition = 0;
         int partNumber = 1;
-        List<CopyPartResult> responses = new ArrayList<>();
+        final List<CopyPartResult> copyPartResults = new ArrayList<>();
         while (bytePosition < contentLength) {
             long lastByte = Math.min(bytePosition + MULTIPART_THRESHOLD - 1, contentLength - 1);
 
