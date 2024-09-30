@@ -38,8 +38,6 @@
         $material-theme-tertiary-palette-lighter
     );
 
-    $alternate-surface: map.get($config, alternate-surface);
-
     .documentation {
         h2 {
             margin-bottom: 12px !important;
