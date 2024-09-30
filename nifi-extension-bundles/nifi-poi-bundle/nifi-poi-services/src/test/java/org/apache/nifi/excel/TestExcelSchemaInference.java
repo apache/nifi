@@ -36,7 +36,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,7 +52,7 @@ public class TestExcelSchemaInference {
     ComponentLog logger;
 
     @Test
-    public void testInferenceAgainstDifferentLocales() throws IOException {
+    public void testInferenceIrrespectiveOfLocales() throws IOException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         final PropertyContext context = new MockConfigurationContext(properties, null, null);
@@ -65,13 +64,7 @@ public class TestExcelSchemaInference {
             final RecordSchema schema = accessStrategy.getSchema(null, inputStream, null);
             final List<String> fieldNames = schema.getFieldNames();
             assertEquals(Collections.singletonList(EXPECTED_FIRST_FIELD_NAME), fieldNames);
-
-            if (Locale.FRENCH.equals(Locale.getDefault())) {
-                assertEquals(RecordFieldType.STRING, schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get().getFieldType());
-            } else {
-                assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.FLOAT.getDataType(), RecordFieldType.STRING.getDataType()),
-                        schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get());
-            }
+            assertEquals(RecordFieldType.FLOAT, schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get().getFieldType());
         }
     }
 
@@ -96,7 +89,8 @@ public class TestExcelSchemaInference {
                 RecordFieldType.STRING.getDataType()), schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get());
         assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.TIMESTAMP.getDataType("yyyy/MM/dd/ HH:mm"), RecordFieldType.STRING.getDataType()),
                 schema.getDataType(EXPECTED_SECOND_FIELD_NAME).get());
-        assertEquals(RecordFieldType.STRING, schema.getDataType(EXPECTED_THIRD_FIELD_NAME).get().getFieldType());
+        assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.FLOAT.getDataType(),
+                RecordFieldType.STRING.getDataType()), schema.getDataType(EXPECTED_THIRD_FIELD_NAME).get());
         assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.BOOLEAN.getDataType(),
                 RecordFieldType.STRING.getDataType()), schema.getDataType(EXPECTED_FOURTH_FIELD_NAME).get());
     }
@@ -126,7 +120,7 @@ public class TestExcelSchemaInference {
         assertEquals(RecordFieldType.INT.getDataType(), schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get());
         assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.TIMESTAMP.getDataType("yyyy/MM/dd/ HH:mm"), RecordFieldType.STRING.getDataType()),
                 schema.getDataType(EXPECTED_SECOND_FIELD_NAME).get());
-        assertEquals(RecordFieldType.STRING, schema.getDataType(EXPECTED_THIRD_FIELD_NAME).get().getFieldType());
+        assertEquals(RecordFieldType.FLOAT, schema.getDataType(EXPECTED_THIRD_FIELD_NAME).get().getFieldType());
         assertEquals(RecordFieldType.BOOLEAN.getDataType(), schema.getDataType(EXPECTED_FOURTH_FIELD_NAME).get());
     }
 

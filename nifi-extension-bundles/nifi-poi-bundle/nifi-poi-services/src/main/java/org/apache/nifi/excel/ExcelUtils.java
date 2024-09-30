@@ -19,6 +19,7 @@ package org.apache.nifi.excel;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 
 import java.util.Locale;
@@ -40,12 +41,19 @@ public class ExcelUtils {
 
     public static String getFormattedCellValue(Cell cell) {
         if (cell != null) {
-            //NOTE This conditional is to avoid the following:
-            //java.lang.IllegalStateException: Cannot get a error value from a formula cell
+            /* DataFormatter should be used in most cases unless an exception will be thrown or
+              string localization may occur which could result in later exceptions. A cell which has a formula cannot
+              format a cell which has an error value and an exception will be thrown. In addition, a cell whose type
+              is numeric when formatted will take the current locale into consideration which could prevent later parsing
+              as a float/double.*/
             if (cell.getCellType().equals(CellType.FORMULA) && cell.getCachedFormulaResultType().equals(CellType.ERROR)) {
                 return cell.getStringCellValue();
+            } else if (cell.getCellType().equals(CellType.NUMERIC) && !DateUtil.isCellDateFormatted(cell)) {
+                final double numericCellValue = cell.getNumericCellValue();
+                return numericCellValue % 1 == 0 ? Long.toString((long) numericCellValue) : Double.toString(numericCellValue);
+            } else {
+                return DATA_FORMATTER.formatCellValue(cell);
             }
-            return DATA_FORMATTER.formatCellValue(cell);
         }
         return "";
     }
