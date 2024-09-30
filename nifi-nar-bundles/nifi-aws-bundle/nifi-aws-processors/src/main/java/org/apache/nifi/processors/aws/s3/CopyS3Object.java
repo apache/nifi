@@ -172,7 +172,7 @@ public class CopyS3Object extends AbstractS3Processor {
         } catch (final ProcessException | IllegalArgumentException | AmazonClientException e) {
             if (isMultiPart && !StringUtils.isEmpty(multipartIdRef.get())) {
                 try {
-                    AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(destinationBucket, destinationKey, multipartIdRef.get());
+                    final AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(destinationBucket, destinationKey, multipartIdRef.get());
                     s3.abortMultipartUpload(abortRequest);
                 } catch (final AmazonS3Exception s3e) {
                     getLogger().warn("Abort Multipart Upload failed for Bucket [{}] Key [{}]", destinationBucket, destinationKey, s3e);
