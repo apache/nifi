@@ -212,7 +212,7 @@ public class CopyS3Object extends AbstractS3Processor {
         while (bytePosition < contentLength) {
             long lastByte = Math.min(bytePosition + MULTIPART_THRESHOLD - 1, contentLength - 1);
 
-            CopyPartRequest copyRequest = new CopyPartRequest()
+            final CopyPartRequest copyPartRequest = new CopyPartRequest()
                     .withSourceBucketName(sourceBucket)
                     .withSourceKey(sourceKey)
                     .withDestinationBucketName(destinationBucket)
