@@ -248,7 +248,7 @@ public class CopyS3Object extends AbstractS3Processor {
         s3.completeMultipartUpload(completeRequest);
     }
 
-    private void smallFileCopy(final AmazonS3Client s3, final AccessControlList acl,
+    private void copyObject(final AmazonS3Client s3, final AccessControlList acl,
                                final CannedAccessControlList cannedAcl,
                                final String sourceBucket, final String sourceKey,
                                final String destinationBucket, final String destinationKey) {
