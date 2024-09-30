@@ -101,7 +101,6 @@
     :not(pre) > code[class*='language-'],
     pre[class*='language-'] {
         @extend .neutral-contrast;
-        min-height: 108px;
         cursor: default;
         line-height: normal;
         background-color: if(
