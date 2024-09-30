@@ -48,8 +48,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -59,7 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class TestExcelReader {
 
     private static final ByteArrayOutputStream ALL_TYPES_CONTENTS = new ByteArrayOutputStream();
-    private static final Map<String, Class<?>> FIELDS_AND_CLASS_TYPES = new LinkedHashMap<>();
+    private static final Map<String, Class<?>> FIELD_NAMES_AND_CLASS_TYPES = new LinkedHashMap<>();
 
     @Mock
     private ComponentLog logger;
@@ -71,16 +71,16 @@ public class TestExcelReader {
     static void setUpBeforeAll() throws Exception {
         InputStream inputStream = Files.newInputStream(Paths.get("src/test/resources/excel/all_types.xlsx"));
         IOUtils.copyLarge(inputStream, ALL_TYPES_CONTENTS);
-        FIELDS_AND_CLASS_TYPES.put("Date_Custom", Date.class);
-        FIELDS_AND_CLASS_TYPES.put("Time_Custom", Time.class);
-        FIELDS_AND_CLASS_TYPES.put("Timestamp", Timestamp.class);
-        FIELDS_AND_CLASS_TYPES.put("Boolean_Function", Boolean.class);
-        FIELDS_AND_CLASS_TYPES.put("Number_Function", Integer.class);
-        FIELDS_AND_CLASS_TYPES.put("Blank_Cell", String.class);
-        FIELDS_AND_CLASS_TYPES.put("String", String.class);
-        FIELDS_AND_CLASS_TYPES.put("Numeric", Float.class);
-        FIELDS_AND_CLASS_TYPES.put("Variable_Missing", String.class);
-        FIELDS_AND_CLASS_TYPES.put("Syntax_Error", String.class);
+        FIELD_NAMES_AND_CLASS_TYPES.put("Date_Custom", Date.class);
+        FIELD_NAMES_AND_CLASS_TYPES.put("Time_Custom", Time.class);
+        FIELD_NAMES_AND_CLASS_TYPES.put("Timestamp", Timestamp.class);
+        FIELD_NAMES_AND_CLASS_TYPES.put("Boolean_Function", Boolean.class);
+        FIELD_NAMES_AND_CLASS_TYPES.put("Number_Function", Integer.class);
+        FIELD_NAMES_AND_CLASS_TYPES.put("Blank_Cell", String.class);
+        FIELD_NAMES_AND_CLASS_TYPES.put("String", String.class);
+        FIELD_NAMES_AND_CLASS_TYPES.put("Numeric", Float.class);
+        FIELD_NAMES_AND_CLASS_TYPES.put("Variable_Missing", String.class);
+        FIELD_NAMES_AND_CLASS_TYPES.put("Syntax_Error", String.class);
     }
 
     @BeforeEach
@@ -137,18 +137,24 @@ public class TestExcelReader {
 
     private void assertRecordSchemaFieldNamesAndTypes(RecordSchema recordSchema) {
         assertEquals(10, recordSchema.getFieldCount());
-        assertEquals(new ArrayList<>(FIELDS_AND_CLASS_TYPES.keySet()), recordSchema.getFieldNames());
-        assertEquals(Arrays.asList(RecordFieldType.DATE, RecordFieldType.TIME, RecordFieldType.TIMESTAMP, RecordFieldType.BOOLEAN,
-                        RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.FLOAT,
-                        RecordFieldType.STRING, RecordFieldType.STRING), recordSchema.getDataTypes().stream()
-                        .map(DataType::getFieldType)
-                        .collect(Collectors.toList()));
+        final List<String> expectedFieldNames = new ArrayList<>(FIELD_NAMES_AND_CLASS_TYPES.keySet());
+        assertEquals(expectedFieldNames, recordSchema.getFieldNames());
+
+        final List<RecordFieldType> expectedRecordFieldTypes = Arrays.asList(RecordFieldType.DATE, RecordFieldType.TIME, RecordFieldType.TIMESTAMP, RecordFieldType.BOOLEAN,
+                RecordFieldType.INT, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.FLOAT, RecordFieldType.STRING, RecordFieldType.STRING);
+        final List<RecordFieldType> actualRecordFieldTypes = recordSchema.getDataTypes().stream()
+                .map(DataType::getFieldType)
+                .toList();
+        assertEquals(expectedRecordFieldTypes, actualRecordFieldTypes);
     }
 
     private void assertRecordFieldNamesAndClassTypes(Record record) {
         assertNotNull(record);
-        for (Map.Entry<String, Class<?>> entry : FIELDS_AND_CLASS_TYPES.entrySet()) {
-            assertInstanceOf(entry.getValue(), record.getValue(entry.getKey()));
+        for (Map.Entry<String, Class<?>> entry : FIELD_NAMES_AND_CLASS_TYPES.entrySet()) {
+            final String fieldName = entry.getKey();
+            final Class<?> expectedRecordValueClass = entry.getValue();
+            final Object recordValue = record.getValue(fieldName);
+            assertInstanceOf(expectedRecordValueClass, recordValue);
         }
     }
 }
