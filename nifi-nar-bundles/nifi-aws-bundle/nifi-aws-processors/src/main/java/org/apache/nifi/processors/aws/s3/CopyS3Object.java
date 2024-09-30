@@ -189,7 +189,7 @@ public class CopyS3Object extends AbstractS3Processor {
      * Sections of this code were derived from example code from the official AWS S3 documentation. Specifically this example:
      * https://github.com/awsdocs/aws-doc-sdk-examples/blob/df606a664bf2f7cfe3abc76c187e024451d0279c/java/example_code/s3/src/main/java/aws/example/s3/LowLevelMultipartCopy.java
      */
-    private void largeFileCopy(final AmazonS3Client s3, final AccessControlList acl, final CannedAccessControlList cannedAccessControlList,
+    private void copyMultipart(final AmazonS3Client s3, final AccessControlList acl, final CannedAccessControlList cannedAccessControlList,
                                final String sourceBucket, final String sourceKey,
                                final String destinationBucket, final String destinationKey, final AtomicReference<String> multipartIdRef,
                                final long contentLength, final int retryLimit) {
