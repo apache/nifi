@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AccessControlList;
@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Tags({"Amazon", "S3", "AWS", "Archive", "Copy"})
@@ -85,21 +86,11 @@ public class CopyS3Object extends AbstractS3Processor {
             .defaultValue("${filename}-1")
             .build();
 
-    static final PropertyDescriptor MULTIPART_RETRIES = new PropertyDescriptor.Builder()
-            .name("Retry Attempt Limit")
-            .description("This configures the number of retries that will be attempted when a part upload request " +
-                    "on files larger than 5GB encounter a 503/Slow Down error.")
-            .defaultValue("3")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .required(true)
-            .build();
-
     static final List<PropertyDescriptor> properties = Arrays.asList(
             SOURCE_BUCKET,
             SOURCE_KEY,
             DESTINATION_BUCKET,
             DESTINATION_KEY,
-            MULTIPART_RETRIES,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             S3_REGION,
             TIMEOUT,
@@ -148,29 +139,25 @@ public class CopyS3Object extends AbstractS3Processor {
         final GetObjectMetadataRequest sourceMetadataRequest = new GetObjectMetadataRequest(sourceBucket, sourceKey);
         final ObjectMetadata metadataResult = s3.getObjectMetadata(sourceMetadataRequest);
 
-        if (metadataResult == null) {
-            session.transfer(flowFile, REL_FAILURE);
-        }
-
         final AtomicReference<String> multipartIdRef = new AtomicReference<>();
-        final long contentLength = metadataResult.getContentLength();
-        final boolean multipartUploadRequired = metadataResult.getContentLength() > MULTIPART_THRESHOLD;
+        boolean multipartUploadRequired = false;
 
         try {
+            final long contentLength = metadataResult.getContentLength();
+            multipartUploadRequired = metadataResult.getContentLength() > MULTIPART_THRESHOLD;
             final AccessControlList acl = createACL(context, flowFile);
             final CannedAccessControlList cannedAccessControlList = createCannedACL(context, flowFile);
 
-            if (!isMultiPart) {
-                smallFileCopy(s3, acl, cannedAccessControlList, sourceBucket, sourceKey, destinationBucket, destinationKey);
+            if (multipartUploadRequired) {
+                copyMultipart(s3, acl, cannedAccessControlList, sourceBucket, sourceKey, destinationBucket,
+                        destinationKey, multipartIdRef, contentLength);
             } else {
-                final int retryLimit = context.getProperty(MULTIPART_RETRIES).asInteger();
-                largeFileCopy(s3, acl, cannedAccessControlList, sourceBucket, sourceKey, destinationBucket,
-                        destinationKey, multipartIdRef, contentLength, retryLimit);
+                copyObject(s3, acl, cannedAccessControlList, sourceBucket, sourceKey, destinationBucket, destinationKey);
             }
             session.getProvenanceReporter().send(flowFile, getTransitUrl(destinationBucket, destinationKey));
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (final ProcessException | IllegalArgumentException | AmazonClientException e) {
-            if (isMultiPart && !StringUtils.isEmpty(multipartIdRef.get())) {
+        } catch (final Exception e) {
+            if (multipartUploadRequired && !StringUtils.isEmpty(multipartIdRef.get())) {
                 try {
                     final AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(destinationBucket, destinationKey, multipartIdRef.get());
                     s3.abortMultipartUpload(abortRequest);
@@ -192,7 +179,7 @@ public class CopyS3Object extends AbstractS3Processor {
     private void copyMultipart(final AmazonS3Client s3, final AccessControlList acl, final CannedAccessControlList cannedAccessControlList,
                                final String sourceBucket, final String sourceKey,
                                final String destinationBucket, final String destinationKey, final AtomicReference<String> multipartIdRef,
-                               final long contentLength, final int retryLimit) {
+                               final long contentLength) {
         InitiateMultipartUploadRequest initRequest = new InitiateMultipartUploadRequest(destinationBucket,
                 destinationKey);
         if (acl != null) {
@@ -221,21 +208,9 @@ public class CopyS3Object extends AbstractS3Processor {
                     .withFirstByte(bytePosition)
                     .withLastByte(lastByte)
                     .withPartNumber(partNumber++);
-            boolean partRequestCompleted = false;
-            int retryIndex = 0;
 
-            while (!partIsDone) {
-                try {
-                    responses.add(s3.copyPart(copyRequest));
-                    partIsDone = true;
-                } catch (AmazonS3Exception e) {
-                    if (e.getStatusCode() == 503 && retryLimit > 0 && retryIndex < retryLimit) {
-                        retryIndex++;
-                    } else {
-                        throw e;
-                    }
-                }
-            }
+            doRetryLoop(partRequest -> copyPartResults.add(s3.copyPart((CopyPartRequest) partRequest)), copyPartRequest);
+
             bytePosition += MULTIPART_THRESHOLD;
         }
 
@@ -243,9 +218,27 @@ public class CopyS3Object extends AbstractS3Processor {
                 destinationBucket,
                 destinationKey,
                 initResult.getUploadId(),
-                responses.stream().map(response -> new PartETag(response.getPartNumber(), response.getETag()))
+                copyPartResults.stream().map(response -> new PartETag(response.getPartNumber(), response.getETag()))
                         .collect(Collectors.toList()));
-        s3.completeMultipartUpload(completeRequest);
+        doRetryLoop(complete -> s3.completeMultipartUpload(completeRequest), completeRequest);
+    }
+
+    private void doRetryLoop(Consumer<AmazonWebServiceRequest> consumer, AmazonWebServiceRequest request) {
+        boolean requestComplete = false;
+        int retryIndex = 0;
+
+        while (!requestComplete) {
+            try {
+                consumer.accept(request);
+                requestComplete = true;
+            } catch (AmazonS3Exception e) {
+                if (e.getStatusCode() == 503 && retryIndex < 3) {
+                    retryIndex++;
+                } else {
+                    throw e;
+                }
+            }
+        }
     }
 
     private void copyObject(final AmazonS3Client s3, final AccessControlList acl,
