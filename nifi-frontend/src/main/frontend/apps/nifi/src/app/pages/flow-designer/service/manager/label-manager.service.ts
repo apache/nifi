@@ -210,6 +210,7 @@ export class LabelManager implements OnDestroy {
         // label value
         label
             .append('text')
+            .attr('x', 10)
             .attr('xml:space', 'preserve')
             .attr('font-weight', 'bold')
             .attr('fill', 'black')
@@ -278,7 +279,7 @@ export class LabelManager implements OnDestroy {
             const labelText = label.select('text.label-value');
             const labelPoint = label.selectAll('path.labelpoint');
             if (d.permissions.canRead) {
-                // udpate the font size
+                // update the font size
                 labelText.attr('font-size', function () {
                     let fontSize = '12px';
 
@@ -309,19 +310,17 @@ export class LabelManager implements OnDestroy {
                 }
 
                 // add label value
-                lines.forEach((line: string) => {
-                    labelText
-                        .append('tspan')
-                        .attr('x', '0.4em')
-                        .attr('dy', '1.2em')
-                        .text(function () {
-                            return line == '' ? ' ' : line;
-                        })
-                        .style('fill', function () {
-                            return self.canvasUtils.determineContrastColor(
-                                self.nifiCommon.substringAfterLast(color, '#')
-                            );
-                        });
+                const textWidth = d.dimensions.width - 15;
+                const textHeight = d.dimensions.height;
+                self.canvasUtils.boundedMultilineEllipsis(
+                    labelText,
+                    textWidth,
+                    textHeight,
+                    lines,
+                    `label-text.${d.id}.width.${textWidth}`
+                );
+                labelText.selectAll('tspan').style('fill', function () {
+                    return self.canvasUtils.determineContrastColor(self.nifiCommon.substringAfterLast(color, '#'));
                 });
 
                 // -----------
