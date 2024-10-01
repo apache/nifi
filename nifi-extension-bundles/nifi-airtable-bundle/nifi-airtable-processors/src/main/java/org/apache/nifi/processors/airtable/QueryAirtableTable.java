@@ -112,6 +112,7 @@ public class QueryAirtableTable extends AbstractProcessor {
     // API Keys are deprecated, Airtable now provides Personal Access Tokens instead.
     static final PropertyDescriptor PAT = new PropertyDescriptor.Builder()
             .name("pat")
+            .displayName("Personal Access Token")
             .description("The Personal Access Token (PAT) to use in queries. Should be generated on Airtable's account page.")
             .required(true)
             .sensitive(true)

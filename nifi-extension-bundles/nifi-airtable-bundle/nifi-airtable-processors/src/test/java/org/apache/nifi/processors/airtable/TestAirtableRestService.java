@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestAirtableRestService {
+class TestAirtableRestService {
 
     private static final String API_URL_WITHOUT_SLASH = "https://api.airtable.com/v0";
     private static final String API_URL_WITH_SLASH = "https://api.airtable.com/v0/";
@@ -35,14 +35,14 @@ public class TestAirtableRestService {
     private final WebClientServiceProvider webClientServiceProvider = new StandardWebClientServiceProvider();
 
     @Test
-    public void testApiUrlEndsWithoutSlash() {
+    void testApiUrlEndsWithoutSlash() {
         AirtableRestService serviceWithoutSlash = new AirtableRestService(webClientServiceProvider, API_URL_WITHOUT_SLASH, API_KEY, BASE_ID, TABLE_ID);
         String apiUrlWithSlash = serviceWithoutSlash.createUriBuilder().build().toString();
         assertEquals(EXPECTED_URL, apiUrlWithSlash);
     }
 
     @Test
-    public void testApiUrlEndsWithSlash() {
+    void testApiUrlEndsWithSlash() {
         AirtableRestService serviceWithSlash = new AirtableRestService(webClientServiceProvider, API_URL_WITH_SLASH, API_KEY, BASE_ID, TABLE_ID);
         String apiUrlWithSlash = serviceWithSlash.createUriBuilder().build().toString();
         assertEquals(EXPECTED_URL, apiUrlWithSlash);
