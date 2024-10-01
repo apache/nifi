@@ -83,6 +83,30 @@
                                 </mat-select>
                             </mat-form-field>
                         </div>
+                        @if (editProcessGroupForm.get('executionEngine')?.value === 'STATELESS') {
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>Max Concurrent Tasks</mat-label>
+                                    <input
+                                        matInput
+                                        formControlName="maxConcurrentTasks"
+                                        name="maxConcurrentTasks"
+                                        type="number"
+                                        min="1"
+                                        [readonly]="readonly" />
+                                </mat-form-field>
+                            </div>
+                            <div>
+                                <mat-form-field>
+                                    <mat-label>Stateless Flow Timeout</mat-label>
+                                    <input
+                                        matInput
+                                        formControlName="statelessFlowTimeout"
+                                        type="text"
+                                        [readonly]="readonly" />
+                                </mat-form-field>
+                            </div>
+                        }
                         <div>
                             <mat-form-field>
                                 <mat-label>Process Group FlowFile Concurrency</mat-label>

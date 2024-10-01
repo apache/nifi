@@ -186,6 +186,8 @@ export class EditProcessGroup extends TabbedDialog {
                 request.entity.component.defaultBackPressureDataSizeThreshold,
                 Validators.required
             ),
+            maxConcurrentTasks: new FormControl(request.entity.component.maxConcurrentTasks),
+            statelessFlowTimeout: new FormControl(request.entity.component.statelessFlowTimeout),
             logFileSuffix: new FormControl(request.entity.component.logFileSuffix),
             comments: new FormControl(request.entity.component.comments)
         });
@@ -220,6 +222,11 @@ export class EditProcessGroup extends TabbedDialog {
                 comments: this.editProcessGroupForm.get('comments')?.value
             }
         };
+
+        if (this.editProcessGroupForm.get('executionEngine')?.value === 'STATELESS') {
+            payload.component.maxConcurrentTasks = this.editProcessGroupForm.get('maxConcurrentTasks')?.value;
+            payload.component.statelessFlowTimeout = this.editProcessGroupForm.get('statelessFlowTimeout')?.value;
+        }
 
         this.editProcessGroup.next(payload);
     }
