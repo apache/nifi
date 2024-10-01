@@ -32,8 +32,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -86,18 +86,17 @@ public abstract class AbstractTestNarLoader {
         // Create class we are testing
         narLoader = new StandardNarLoader(
                 properties.getExtensionsWorkingDirectory(),
-                properties.getComponentDocumentationWorkingDirectory(),
                 narClassLoaders,
                 extensionManager,
                 extensionMapping,
                 new ExtensionUiLoader() {
                     @Override
-                    public void loadExtensionUis(final Set<Bundle> bundles) {
+                    public void loadExtensionUis(final Collection<Bundle> bundles) {
 
                     }
 
                     @Override
-                    public void unloadExtensionUis(final Set<Bundle> bundles) {
+                    public void unloadExtensionUis(final Collection<Bundle> bundles) {
 
                     }
                 },

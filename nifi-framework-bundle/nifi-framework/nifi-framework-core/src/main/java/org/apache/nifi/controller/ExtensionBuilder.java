@@ -263,7 +263,7 @@ public class ExtensionBuilder {
 
        final String componentType;
        if (PythonBundle.isPythonCoordinate(bundleCoordinate)) {
-           componentType = type.substring("python.".length());
+           componentType = type;
        } else if (creationSuccessful) {
            componentType = loggableComponent.getComponent().getClass().getSimpleName();
        } else {
@@ -440,10 +440,10 @@ public class ExtensionBuilder {
        final StandardLoggingContext loggingContext = new StandardLoggingContext(null);
        try {
            return createControllerServiceNode(loggingContext);
-       } catch (final Exception e) {
-           logger.error("Could not create Controller Service of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage());
+       } catch (final Throwable t) {
+           logger.error("Could not create Controller Service of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, t.getMessage());
            if (logger.isDebugEnabled()) {
-               logger.debug(e.getMessage(), e);
+               logger.debug(t.getMessage(), t);
            }
 
            return createGhostControllerServiceNode();
@@ -790,8 +790,8 @@ public class ExtensionBuilder {
            verifyControllerServiceReferences(processor, bundle.getClassLoader());
 
            return processorComponent;
-       } catch (final Exception e) {
-           throw new ProcessorInstantiationException(type, e);
+       } catch (final Throwable t) {
+           throw new ProcessorInstantiationException(type, t);
        }
    }
 
@@ -810,8 +810,8 @@ public class ExtensionBuilder {
            verifyControllerServiceReferences(taskComponent.getComponent(), bundle.getClassLoader());
 
            return taskComponent;
-       } catch (final Exception e) {
-           throw new ReportingTaskInstantiationException(type, e);
+       } catch (final Throwable t) {
+           throw new ReportingTaskInstantiationException(type, t);
        }
    }
 
@@ -825,8 +825,8 @@ public class ExtensionBuilder {
            loggableComponent.getComponent().initialize(config);
 
            return loggableComponent;
-       } catch (final Exception e) {
-           throw new FlowAnalysisRuleInstantiationException(type, e);
+       } catch (final Throwable t) {
+           throw new FlowAnalysisRuleInstantiationException(type, t);
        }
    }
 
@@ -860,8 +860,8 @@ public class ExtensionBuilder {
            return clientComponent;
 
 
-       } catch (final Exception e) {
-           throw new FlowRepositoryClientInstantiationException(type, e);
+       } catch (final Throwable t) {
+           throw new FlowRepositoryClientInstantiationException(type, t);
        }
    }
 
@@ -879,8 +879,8 @@ public class ExtensionBuilder {
            verifyControllerServiceReferences(providerComponent.getComponent(), bundle.getClassLoader());
 
            return providerComponent;
-       } catch (final Exception e) {
-           throw new ParameterProviderInstantiationException(type, e);
+       } catch (final Throwable t) {
+           throw new ParameterProviderInstantiationException(type, t);
        }
    }
 
@@ -896,9 +896,7 @@ public class ExtensionBuilder {
                classloaderIsolationKey);
            Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
-           // TODO: This is a hack because there's a bug in the UI that causes it to not load extensions that don't have a `.` in the type.
-           final String processorType = type.startsWith("python.") ? type.substring("python.".length()) : type;
-           final Processor processor = pythonBridge.createProcessor(identifier, processorType, bundleCoordinate.getVersion(), true, true);
+           final Processor processor = pythonBridge.createProcessor(identifier, type, bundleCoordinate.getVersion(), true, true);
 
            final ComponentLog componentLog = new SimpleProcessLogger(identifier, processor, new StandardLoggingContext(null));
            final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);

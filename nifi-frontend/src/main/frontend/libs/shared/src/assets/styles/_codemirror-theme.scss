@@ -18,245 +18,237 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-codemirror-theme($material-theme, $supplemental-theme) {
-    // Get the color config from the theme.
-    $material-theme-color-config: mat.m2-get-color-config($material-theme);
-    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
-
-    // Get the color palette from the color-config.
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
-    $material-theme-accent-palette: map.get($material-theme-color-config, 'accent');
-
-    // Get hues from palette
-    $is-dark: map-get($supplemental-theme-color-config, is-dark);
-
-    $material-theme-primary-palette-lighter: mat.m2-get-color-from-palette($material-theme-primary-palette, lighter);
-    $material-theme-primary-palette-darker: mat.m2-get-color-from-palette($material-theme-primary-palette, darker);
-    $material-theme-primary-palette-default: mat.m2-get-color-from-palette($material-theme-primary-palette, default);
-
-    $supplemental-theme-surface-palette-default: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        default
+@mixin generate-codemirror-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-secondary-palette-default: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), default)
     );
-    $supplemental-theme-surface-palette-lighter: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter
+    $material-theme-secondary-palette-darker: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), darker)
     );
-    $supplemental-theme-surface-palette-darker: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), lighter)
     );
-    $supplemental-theme-surface-palette-darker-contrast: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker-contrast
+    $material-theme-neutral-palette-default: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), default)
     );
-    $supplemental-theme-surface-palette-lighter-contrast: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter-contrast
+    $material-theme-neutral-palette-darker: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), darker)
     );
+    $material-theme-neutral-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), lighter)
+    );
+    $neutral-contrast: map.get(map.get($config, neutral), contrast);
+    $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
 
     .ngx-codemirror {
         display: none;
     }
 
     .cm-s-nifi.CodeMirror {
-        @extend .surface-contrast;
-        min-height: 108px;
+        @extend .neutral-contrast;
+        height: 100%;
         cursor: default;
         line-height: normal;
         background-color: if(
-            $is-dark,
-            $supplemental-theme-surface-palette-darker,
-            $supplemental-theme-surface-palette-lighter
+            $is-material-dark,
+            $material-theme-neutral-palette-darker,
+            $material-theme-neutral-palette-lighter
         );
         border: 1px solid var(--mdc-outlined-text-field-label-text-color);
-
-        &.disabled {
-            opacity: 0.4;
-        }
     }
 
     .cm-s-nifi .CodeMirror-gutters {
-        background: if($is-dark, #3b3b3b, #efefef);
+        background: if($is-material-dark, #3b3b3b, #efefef);
     }
 
     .cm-s-nifi .CodeMirror-guttermarker,
     .cm-s-nifi .CodeMirror-guttermarker-subtle,
     .cm-s-nifi .CodeMirror-linenumber {
-        color: if($is-dark, #bbbbbb, #b4b4b4);
+        color: if($is-material-dark, #bbbbbb, #b4b4b4);
     }
 
     .cm-s-nifi .CodeMirror-cursor {
-        border-left: 1px solid
-            if(
-                $is-dark,
-                $supplemental-theme-surface-palette-darker-contrast,
-                $supplemental-theme-surface-palette-lighter-contrast
-            );
+        border-left: 1px solid $neutral-contrast;
     }
 
     .cm-s-nifi div.CodeMirror-selected {
         background: if(
-            $is-dark,
-            rgba($material-theme-primary-palette-default, 0.4),
-            rgba($material-theme-primary-palette-darker, 0.4)
+            $is-material-dark,
+            rgba($material-theme-secondary-palette-default, 0.4),
+            rgba($material-theme-secondary-palette-lighter, 0.4)
         );
     }
 
     .cm-s-nifi.CodeMirror-focused div.CodeMirror-selected {
         background: if(
-            $is-dark,
-            rgba($material-theme-primary-palette-default, 0.4),
-            rgba($material-theme-primary-palette-darker, 0.4)
+            $is-material-dark,
+            rgba($material-theme-secondary-palette-default, 0.4),
+            rgba($material-theme-secondary-palette-lighter, 0.4)
         );
     }
 
     .cm-s-nifi .CodeMirror-line::selection,
     .cm-s-nifi .CodeMirror-line > span::selection,
     .cm-s-nifi .CodeMirror-line > span > span::selection {
-        background: if($is-dark, rgba(128, 203, 196, 0.2), rgba(128, 203, 196, 0.8));
+        background: if($is-material-dark, rgba(128, 203, 196, 0.2), rgba(128, 203, 196, 0.8));
     }
 
     .cm-s-nifi .CodeMirror-line::-moz-selection,
     .cm-s-nifi .CodeMirror-line > span::-moz-selection,
     .cm-s-nifi .CodeMirror-line > span > span::-moz-selection {
-        background: if($is-dark, rgba(128, 203, 196, 0.2), rgba(128, 203, 196, 0.8));
+        background: if($is-material-dark, rgba(128, 203, 196, 0.2), rgba(128, 203, 196, 0.8));
     }
 
     .cm-s-nifi .cm-header {
-        color: if($is-dark, #b8b8ff, #0000ff);
+        color: if($is-material-dark, #b8b8ff, #0000ff);
     }
 
     .cm-s-nifi .cm-quote {
-        color: if($is-dark, #6bfd6b, #009400);
+        color: if($is-material-dark, #6bfd6b, #009400);
     }
 
     .cm-s-nifi .cm-negative {
-        color: if($is-dark, #fc9797, #de3535);
+        color: if($is-material-dark, #fc9797, #de3535);
     }
 
     .cm-s-nifi .cm-positive {
-        color: if($is-dark, #8cfd8c, #219a21);
+        color: if($is-material-dark, #8cfd8c, #219a21);
     }
 
     .cm-s-nifi .cm-bracket {
-        color: if($is-dark, #93937c, #93937c);
+        color: if($is-material-dark, #93937c, #93937c);
     }
 
     .cm-s-nifi .cm-link {
-        color: if($is-dark, #8e8ef6, #0000ce);
+        color: if($is-material-dark, #8e8ef6, #0000ce);
     }
 
     .cm-s-nifi .cm-invalidchar {
-        color: if($is-dark, #ff9c9c, #ff0000);
+        color: if($is-material-dark, #ff9c9c, #ff0000);
     }
 
     .cm-s-nifi .cm-keyword {
-        color: if($is-dark, #c792ea, #6800ab);
+        color: if($is-material-dark, #c792ea, #6800ab);
     }
 
     .cm-s-nifi .cm-operator {
-        color: if($is-dark, #89ddff, #0083b9);
+        color: if($is-material-dark, #89ddff, #0083b9);
     }
 
     .cm-s-nifi .cm-variable-2 {
-        color: if($is-dark, #72b6fc, #0054a6);
+        color: if($is-material-dark, #72b6fc, #0054a6);
     }
 
     .cm-s-nifi .cm-variable-3,
     .cm-s-nifi .cm-type {
-        color: if($is-dark, #f07178, #ad0007);
+        color: if($is-material-dark, #f07178, #ad0007);
     }
 
     .cm-s-nifi .cm-builtin {
-        color: if($is-dark, #a280f3, #3400ad);
+        color: if($is-material-dark, #a280f3, #3400ad);
     }
 
     .cm-s-nifi .cm-atom {
-        color: if($is-dark, #f78c6c, #bd2b00);
+        color: if($is-material-dark, #f78c6c, #bd2b00);
     }
 
     .cm-s-nifi .cm-number {
-        color: if($is-dark, #fd758c, #c20021);
+        color: if($is-material-dark, #fd758c, #c20021);
     }
 
     .cm-s-nifi .cm-def {
-        color: if($is-dark, #82aaff, #0553f8);
+        color: if($is-material-dark, #82aaff, #0553f8);
     }
 
     .cm-s-nifi .cm-string {
-        color: if($is-dark, #f07178, #ec000c);
+        color: if($is-material-dark, #f07178, #ec000c);
     }
 
     .cm-s-nifi .cm-string-2 {
-        color: if($is-dark, #f07178, #ec000c);
+        color: if($is-material-dark, #f07178, #ec000c);
     }
 
     .cm-s-nifi .cm-comment {
-        color: if($is-dark, #d7d7d7, #545454);
+        color: if($is-material-dark, #d7d7d7, #545454);
     }
 
     .cm-s-nifi .cm-variable,
     .cm-s-nifi .cm-punctuation,
     .cm-s-nifi .cm-property,
     .cm-s-nifi .cm-operator {
-        color: if($is-dark, #f07178, #ec000c);
+        color: if($is-material-dark, #f07178, #ec000c);
     }
 
     .cm-s-nifi .cm-tag {
-        color: if($is-dark, #fc768d, #f8052e);
+        color: if($is-material-dark, #fc768d, #f8052e);
     }
 
     .cm-s-nifi .cm-meta {
-        color: rgba($material-theme-primary-palette-default, if($is-dark, 0.87, 0.4));
+        color: rgba(
+            if($is-material-dark, $material-theme-secondary-palette-default, $material-theme-secondary-palette-darker),
+            if($is-material-dark, 0.87, 0.4)
+        );
     }
 
     .cm-s-nifi .cm-attribute {
-        color: if($is-dark, #c792ea, #8e01ea);
+        color: if($is-material-dark, #c792ea, #8e01ea);
     }
 
     .cm-s-nifi .cm-property {
-        color: if($is-dark, #c792ea, #8e01ea);
+        color: if($is-material-dark, #c792ea, #8e01ea);
     }
 
     .cm-s-nifi .cm-qualifier {
-        color: rgba($material-theme-primary-palette-default, if($is-dark, 0.87, 0.4));
+        color: rgba(
+            if($is-material-dark, $material-theme-secondary-palette-default, $material-theme-secondary-palette-darker),
+            if($is-material-dark, 0.87, 0.4)
+        );
     }
 
     .cm-s-nifi .cm-variable-3,
     .cm-s-nifi .cm-s-default,
     .cm-s-nifi .cm-type {
-        color: rgba($material-theme-primary-palette-default, if($is-dark, 0.87, 0.4));
+        color: rgba(
+            if($is-material-dark, $material-theme-secondary-palette-default, $material-theme-secondary-palette-darker),
+            if($is-material-dark, 0.87, 0.4)
+        );
     }
 
     .cm-s-nifi .cm-error {
-        color: if($is-dark, rgba(255, 255, 255, 1), rgba(0, 0, 0, 0));
-        background-color: if($is-dark, #ff002a, #ff8094);
+        color: if($is-material-dark, rgba(255, 255, 255, 1), rgba(0, 0, 0, 0));
+        background-color: if($is-material-dark, #ff002a, #ff8094);
     }
 
     .cm-s-nifi .CodeMirror-matchingbracket {
         text-decoration: underline;
-        color: $supplemental-theme-surface-palette-darker-contrast !important;
-        background-color: $supplemental-theme-surface-palette-default;
+        color: $neutral-contrast !important;
+        background-color: $material-theme-neutral-palette-default;
         opacity: 0.5;
         filter: alpha(opacity=50);
     }
 
     .cm-s-nifi .CodeMirror-nonmatchingbracket {
-        color: if($is-dark, #fc7a7a, #a62020);
+        color: if($is-material-dark, #fc7a7a, #a62020);
     }
 
     .cm-s-nifi .CodeMirror-matchingtag {
-        background: if($is-dark, rgba(255, 150, 0, 0.97), rgba(255, 150, 0, 0.3));
+        background: if($is-material-dark, rgba(255, 150, 0, 0.97), rgba(255, 150, 0, 0.3));
     }
 
     .cm-s-nifi .CodeMirror-activeline-background {
-        background: if($is-dark, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.5));
-    }
-
-    .CodeMirror-hints {
-        z-index: 1000 !important;
-        overflow-y: scroll !important;
+        background: if($is-material-dark, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0.5));
     }
 }

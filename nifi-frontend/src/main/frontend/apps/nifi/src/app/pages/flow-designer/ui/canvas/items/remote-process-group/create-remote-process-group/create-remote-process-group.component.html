@@ -156,9 +156,8 @@
             <button
                 [disabled]="!createRemoteProcessGroupForm.dirty || createRemoteProcessGroupForm.invalid || saving.value"
                 type="button"
-                color="primary"
                 (click)="createRemoteProcessGroup()"
-                mat-button>
+                mat-flat-button>
                 <span *nifiSpinner="saving.value">Add</span>
             </button>
         </mat-dialog-actions>

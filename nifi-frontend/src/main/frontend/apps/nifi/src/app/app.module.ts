@@ -54,6 +54,8 @@ import { PropertyVerificationEffects } from './state/property-verification/prope
 import { loadingInterceptor } from './service/interceptors/loading.interceptor';
 import { LoginConfigurationEffects } from './state/login-configuration/login-configuration.effects';
 import { BannerTextEffects } from './state/banner-text/banner-text.effects';
+import { MAT_TOOLTIP_DEFAULT_OPTIONS, MatTooltipDefaultOptions } from '@angular/material/tooltip';
+import { provideMarkdown } from 'ngx-markdown';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations: string = entry !== null ? JSON.parse(entry).item : '';
@@ -62,6 +64,12 @@ let disableAnimations: string = entry !== null ? JSON.parse(entry).item : '';
 if (disableAnimations !== 'true' && disableAnimations !== 'false') {
     disableAnimations = window.matchMedia('(prefers-reduced-motion: reduce)').matches.toString();
 }
+
+export const customTooltipDefaults: MatTooltipDefaultOptions = {
+    showDelay: 2000,
+    hideDelay: 0,
+    touchendHideDelay: 1000
+};
 
 @NgModule({
     declarations: [AppComponent],
@@ -111,7 +119,9 @@ if (disableAnimations !== 'true' && disableAnimations !== 'false') {
                 cookieName: '__Secure-Request-Token',
                 headerName: 'Request-Token'
             })
-        )
+        ),
+        { provide: MAT_TOOLTIP_DEFAULT_OPTIONS, useValue: customTooltipDefaults },
+        provideMarkdown()
     ]
 })
 export class AppModule {}

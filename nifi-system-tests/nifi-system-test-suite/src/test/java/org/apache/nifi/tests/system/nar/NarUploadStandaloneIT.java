@@ -130,8 +130,9 @@ public class NarUploadStandaloneIT extends NiFiSystemIT {
         assertNotNull(customProcessor.getComponent().getExtensionMissing());
         assertFalse(customProcessor.getComponent().getExtensionMissing());
 
-        // Verify service API NAR can't be replaced while other NARs depend on it
-        assertThrows(NiFiClientException.class, () -> narUploadUtil.uploadNar(narsLocation, CONTROLLER_SERVICE_API_NAR_ID));
+        // Verify service API NAR can be replaced while other NARs depend on it
+        final NarSummaryDTO replacedServiceApiNar = narUploadUtil.uploadNar(narsLocation, CONTROLLER_SERVICE_API_NAR_ID);
+        waitFor(narUploadUtil.getWaitForNarStateSupplier(replacedServiceApiNar.getIdentifier(), NarState.INSTALLED));
 
         // Verify processors NAR can be replaced
         final NarSummaryDTO replacedProcessorsNar = narUploadUtil.uploadNar(narsLocation, PROCESSORS_NAR_ID);

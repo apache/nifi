@@ -42,9 +42,9 @@
     <mat-dialog-actions align="end">
         @if (mode === 'REVERT') {
             <button mat-button mat-dialog-close>Cancel</button>
-            <button type="button" color="primary" (click)="revertChanges()" mat-button>Revert</button>
+            <button type="button" (click)="revertChanges()" mat-flat-button>Revert</button>
         } @else {
-            <button mat-button mat-dialog-close color="primary">Close</button>
+            <button mat-flat-button mat-dialog-close>Close</button>
         }
     </mat-dialog-actions>
 </div>

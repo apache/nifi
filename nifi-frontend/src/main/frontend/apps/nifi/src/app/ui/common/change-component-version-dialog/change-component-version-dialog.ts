@@ -77,7 +77,7 @@ export class ChangeComponentVersionDialog extends CloseOnEscapeDialog {
     }
 
     getName(selected: DocumentedType | null): string {
-        return this.nifiCommon.substringAfterLast(selected?.type || '', '.');
+        return this.nifiCommon.getComponentTypeLabel(selected?.type || '');
     }
 
     protected readonly TextTip = TextTip;

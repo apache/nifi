@@ -31,6 +31,7 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_AGENT_IDENT
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_ASSET_DIRECTORY;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_BOOTSTRAP_ACKNOWLEDGE_TIMEOUT;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_CONFIG_DIRECTORY;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_FLOW_INFO_PROCESSOR_STATUS_ENABLED;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_FULL_HEARTBEAT;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_KEEP_ALIVE_DURATION;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_MAX_IDLE_CONNECTIONS;
@@ -95,6 +96,7 @@ import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.AgentRepositoryStatus;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.protocol.api.ProcessorBulletin;
+import org.apache.nifi.c2.protocol.api.ProcessorStatus;
 import org.apache.nifi.c2.serializer.C2JacksonSerializer;
 import org.apache.nifi.c2.serializer.C2Serializer;
 import org.apache.nifi.controller.FlowController;
@@ -180,7 +182,9 @@ public class C2NifiClientService {
 
         this.c2OperationManager = new C2OperationManager(
             client, c2OperationHandlerProvider, heartbeatLock, operationQueueDAO, c2OperationRestartHandler);
-        Supplier<RuntimeInfoWrapper> runtimeInfoWrapperSupplier = () -> generateRuntimeInfo(clientConfig.getC2FlowInfoProcessorBulletinLimit());
+        Supplier<RuntimeInfoWrapper> runtimeInfoWrapperSupplier = () -> generateRuntimeInfo(
+                clientConfig.getC2FlowInfoProcessorBulletinLimit(),
+                clientConfig.isC2FlowInfoProcessorStatusEnabled());
         this.c2HeartbeatManager = new C2HeartbeatManager(
             client, heartbeatFactory, heartbeatLock, runtimeInfoWrapperSupplier, c2OperationManager);
     }
@@ -216,6 +220,8 @@ public class C2NifiClientService {
             .bootstrapAcknowledgeTimeout(durationPropertyInMilliSecs(properties, C2_BOOTSTRAP_ACKNOWLEDGE_TIMEOUT))
             .c2FlowInfoProcessorBulletinLimit(parseInt(properties
                     .getProperty(C2_FLOW_INFO_PROCESSOR_BULLETIN_LIMIT.getKey(), C2_FLOW_INFO_PROCESSOR_BULLETIN_LIMIT.getDefaultValue())))
+            .c2FlowInfoProcessorStatusEnabled(parseBoolean(properties
+                    .getProperty(C2_FLOW_INFO_PROCESSOR_STATUS_ENABLED.getKey(), C2_FLOW_INFO_PROCESSOR_STATUS_ENABLED.getDefaultValue())))
             .build();
     }
 
@@ -242,7 +248,8 @@ public class C2NifiClientService {
             new StandardFlowEnrichService(niFiProperties), flowPropertyEncryptor,
             StandardFlowSerDeService.defaultInstance(), niFiProperties.getProperty(FLOW_CONFIGURATION_FILE));
         Supplier<RuntimeInfoWrapper> runtimeInfoWrapperSupplier = () -> generateRuntimeInfo(
-                parseInt(niFiProperties.getProperty(C2_FLOW_INFO_PROCESSOR_BULLETIN_LIMIT.getKey(), C2_FLOW_INFO_PROCESSOR_BULLETIN_LIMIT.getDefaultValue())));
+                parseInt(niFiProperties.getProperty(C2_FLOW_INFO_PROCESSOR_BULLETIN_LIMIT.getKey(), C2_FLOW_INFO_PROCESSOR_BULLETIN_LIMIT.getDefaultValue())),
+                parseBoolean(niFiProperties.getProperty(C2_FLOW_INFO_PROCESSOR_STATUS_ENABLED.getKey(), C2_FLOW_INFO_PROCESSOR_STATUS_ENABLED.getDefaultValue())));
 
         return new C2OperationHandlerProvider(List.of(
             new UpdateConfigurationOperationHandler(client, flowIdHolder, updateConfigurationStrategy, emptyOperandPropertiesProvider),
@@ -283,10 +290,15 @@ public class C2NifiClientService {
         }
     }
 
-    private synchronized RuntimeInfoWrapper generateRuntimeInfo(int processorBulletinLimit) {
+    private synchronized RuntimeInfoWrapper generateRuntimeInfo(int processorBulletinLimit, boolean processorStatusEnabled) {
         AgentManifest agentManifest = new AgentManifest(runtimeManifestService.getManifest());
         agentManifest.setSupportedOperations(supportedOperationsProvider.getSupportedOperations());
-        return new RuntimeInfoWrapper(getAgentRepositories(), agentManifest, getQueueStatus(), getBulletins(processorBulletinLimit));
+        return new RuntimeInfoWrapper(
+                getAgentRepositories(),
+                agentManifest,
+                getQueueStatus(),
+                getBulletins(processorBulletinLimit),
+                getProcessorStatus(processorStatusEnabled));
     }
 
     private AgentRepositories getAgentRepositories() {
@@ -366,5 +378,34 @@ public class C2NifiClientService {
                     }).toList();
         }
         return new ArrayList<>();
+    }
+
+    private List<ProcessorStatus> getProcessorStatus(boolean processorStatusEnabled) {
+        if (processorStatusEnabled) {
+            return flowController.getEventAccess()
+                    .getGroupStatus(ROOT_GROUP_ID)
+                    .getProcessorStatus()
+                    .stream()
+                    .map(this::convertProcessorStatus)
+                    .toList();
+        }
+        return null;
+    }
+
+    private ProcessorStatus convertProcessorStatus(org.apache.nifi.controller.status.ProcessorStatus processorStatus) {
+        ProcessorStatus result = new ProcessorStatus();
+        result.setId(processorStatus.getId());
+        result.setGroupId(processorStatus.getGroupId());
+        result.setBytesRead(processorStatus.getBytesRead());
+        result.setBytesWritten(processorStatus.getBytesWritten());
+        result.setFlowFilesIn(processorStatus.getFlowFilesReceived());
+        result.setFlowFilesOut(processorStatus.getFlowFilesSent());
+        result.setBytesIn(processorStatus.getBytesReceived());
+        result.setBytesOut(processorStatus.getBytesSent());
+        result.setInvocations(processorStatus.getInvocations());
+        result.setProcessingNanos(processorStatus.getProcessingNanos());
+        result.setActiveThreadCount(processorStatus.getActiveThreadCount());
+        result.setTerminatedThreadCount(processorStatus.getTerminatedThreadCount());
+        return result;
     }
 }

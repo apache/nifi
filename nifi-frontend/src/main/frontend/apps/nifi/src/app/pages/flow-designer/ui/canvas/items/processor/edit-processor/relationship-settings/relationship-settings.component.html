@@ -30,13 +30,12 @@
                 @for (relationship of relationships; track relationship; let i = $index) {
                     <div class="flex flex-col gap-y-1.5">
                         <div
-                            class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                             [title]="relationship.name">
                             {{ relationship.name }}
                         </div>
                         <div class="flex items-center gap-x-2">
                             <mat-checkbox
-                                color="primary"
                                 [(ngModel)]="relationship.autoTerminate"
                                 name="autoTerminate-{{ i }}"
                                 (change)="handleChanged()"
@@ -44,7 +43,6 @@
                                 >terminate
                             </mat-checkbox>
                             <mat-checkbox
-                                color="primary"
                                 [(ngModel)]="relationship.retry"
                                 name="retry-{{ i }}"
                                 (change)="handleChanged()"
@@ -98,8 +96,8 @@
                         (change)="handleChanged()"
                         [disabled]="isDisabled"
                         class="flex gap-x-2">
-                        <mat-radio-button color="primary" value="PENALIZE_FLOWFILE">Penalize</mat-radio-button>
-                        <mat-radio-button color="primary" value="YIELD_PROCESSOR">Yield</mat-radio-button>
+                        <mat-radio-button value="PENALIZE_FLOWFILE">Penalize</mat-radio-button>
+                        <mat-radio-button value="YIELD_PROCESSOR">Yield</mat-radio-button>
                     </mat-radio-group>
                 </div>
                 <div>

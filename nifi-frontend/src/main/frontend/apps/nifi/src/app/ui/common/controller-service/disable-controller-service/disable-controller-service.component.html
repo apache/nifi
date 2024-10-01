@@ -26,7 +26,7 @@
                             <div class="flex flex-col">
                                 <div>Service</div>
                                 <div
-                                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                                     [title]="controllerService.component.name">
                                     {{ controllerService.component.name }}
                                 </div>
@@ -34,7 +34,7 @@
                             <div class="flex flex-col">
                                 <div>Scope</div>
                                 <div>
-                                    <span class="accent-color font-medium">Service and referencing components</span>
+                                    <span class="tertiary-color font-medium">Service and referencing components</span>
                                     <i
                                         class="fa fa-info-circle ml-1 primary-color"
                                         nifiTooltip
@@ -66,7 +66,7 @@
                 </mat-dialog-content>
                 <mat-dialog-actions align="end">
                     <button mat-button mat-dialog-close>Cancel</button>
-                    <button type="button" color="primary" (click)="submitForm()" mat-button>Disable</button>
+                    <button type="button" (click)="submitForm()" mat-flat-button>Disable</button>
                 </mat-dialog-actions>
             } @else {
                 <mat-dialog-content>
@@ -75,7 +75,7 @@
                             <div class="flex flex-col">
                                 <div>Service</div>
                                 <div
-                                    class="accent-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                    class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                                     [title]="controllerService.component.name">
                                     {{ controllerService.component.name }}
                                 </div>
@@ -88,7 +88,7 @@
                                 </div>
                                 <div class="flex flex-col gap-y-1.5">
                                     <div class="flex justify-between items-center">
-                                        <div class="accent-color font-medium">
+                                        <div class="tertiary-color font-medium">
                                             Stopping referencing processors and reporting tasks
                                         </div>
                                         <ng-container
@@ -108,7 +108,7 @@
                                         </div>
                                     }
                                     <div class="flex justify-between items-center">
-                                        <div class="accent-color font-medium">
+                                        <div class="tertiary-color font-medium">
                                             Disabling referencing controller services
                                         </div>
                                         <ng-container
@@ -128,7 +128,7 @@
                                         </div>
                                     }
                                     <div class="flex justify-between items-center">
-                                        <div class="accent-color font-medium">Disabling this controller service</div>
+                                        <div class="tertiary-color font-medium">Disabling this controller service</div>
                                         <ng-container
                                             *ngTemplateOutlet="
                                                 getTemplateForStep(SetEnableStep.DisableService, disableRequest)
@@ -184,6 +184,6 @@
     <div class="complete fa fa-check success-color"></div>
 </ng-template>
 <ng-template #stepError>
-    <div class="fa fa-times warn-color"></div>
+    <div class="fa fa-times error-color"></div>
 </ng-template>
 <ng-template #stepNotStarted><div class="w-3.5"></div></ng-template>

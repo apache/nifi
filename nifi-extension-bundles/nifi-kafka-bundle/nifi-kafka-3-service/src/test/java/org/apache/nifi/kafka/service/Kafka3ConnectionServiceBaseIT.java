@@ -188,7 +188,6 @@ public class Kafka3ConnectionServiceBaseIT {
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, null, RECORD_VALUE, Collections.emptyList());
         final List<KafkaRecord> kafkaRecords = Collections.singletonList(kafkaRecord);
-        producerService.init();
         producerService.send(kafkaRecords.iterator(), new PublishContext(TOPIC + "-produce", null, null, null));
         final RecordSummary summary = producerService.complete();
         assertNotNull(summary);
@@ -200,46 +199,42 @@ public class Kafka3ConnectionServiceBaseIT {
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, null, RECORD_VALUE, Collections.emptyList());
         final List<KafkaRecord> kafkaRecords = Collections.singletonList(kafkaRecord);
-        producerService.init();
         producerService.send(kafkaRecords.iterator(), new PublishContext(TOPIC + "-produce", null, null, null));
         final RecordSummary summary = producerService.complete();
         assertNotNull(summary);
     }
 
     @Test
-    void testProduceConsumeRecord() throws Exception {
+    void testProduceConsumeRecord() {
         final ProducerConfiguration producerConfiguration = new ProducerConfiguration(false, null, null, null, null);
         final KafkaProducerService producerService = service.getProducerService(producerConfiguration);
 
         final long timestamp = System.currentTimeMillis();
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, timestamp, RECORD_KEY, RECORD_VALUE, Collections.emptyList());
         final List<KafkaRecord> kafkaRecords = Collections.singletonList(kafkaRecord);
-        producerService.init();
         producerService.send(kafkaRecords.iterator(), new PublishContext(TOPIC, null, null, null));
         final RecordSummary summary = producerService.complete();
         assertNotNull(summary);
 
-        try (KafkaConsumerService consumerService = service.getConsumerService(null)) {
-            final PollingContext pollingContext = new PollingContext(
-                    GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
-            final Iterator<ByteRecord> consumerRecords = poll(consumerService, pollingContext);
+        final PollingContext pollingContext = new PollingContext(GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
+        final KafkaConsumerService consumerService = service.getConsumerService(pollingContext);
+        final Iterator<ByteRecord> consumerRecords = poll(consumerService);
 
-            assertTrue(consumerRecords.hasNext(), "Consumer Records not found");
+        assertTrue(consumerRecords.hasNext(), "Consumer Records not found");
 
-            final ByteRecord consumerRecord = consumerRecords.next();
-            assertEquals(TOPIC, consumerRecord.getTopic());
-            assertEquals(0, consumerRecord.getOffset());
-            assertEquals(0, consumerRecord.getPartition());
-            assertEquals(timestamp, consumerRecord.getTimestamp());
+        final ByteRecord consumerRecord = consumerRecords.next();
+        assertEquals(TOPIC, consumerRecord.getTopic());
+        assertEquals(0, consumerRecord.getOffset());
+        assertEquals(0, consumerRecord.getPartition());
+        assertEquals(timestamp, consumerRecord.getTimestamp());
 
-            final Optional<byte[]> keyFound = consumerRecord.getKey();
-            assertTrue(keyFound.isPresent());
+        final Optional<byte[]> keyFound = consumerRecord.getKey();
+        assertTrue(keyFound.isPresent());
 
-            assertArrayEquals(RECORD_KEY, keyFound.get());
-            assertArrayEquals(RECORD_VALUE, consumerRecord.getValue());
+        assertArrayEquals(RECORD_KEY, keyFound.get());
+        assertArrayEquals(RECORD_VALUE, consumerRecord.getValue());
 
-            assertFalse(consumerRecords.hasNext());
-        }
+        assertFalse(consumerRecords.hasNext());
     }
 
     @Test
@@ -286,10 +281,9 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testGetConsumerService() {
-        final KafkaConsumerService consumerService = service.getConsumerService(null);
-        final PollingContext pollingContext = new PollingContext(
-                GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
-        final List<PartitionState> partitionStates = consumerService.getPartitionStates(pollingContext);
+        final PollingContext pollingContext = new PollingContext(GROUP_ID, Collections.singleton(TOPIC), AutoOffsetReset.EARLIEST, Duration.ofSeconds(1));
+        final KafkaConsumerService consumerService = service.getConsumerService(pollingContext);
+        final List<PartitionState> partitionStates = consumerService.getPartitionStates();
         assertPartitionStatesFound(partitionStates);
     }
 
@@ -300,11 +294,11 @@ public class Kafka3ConnectionServiceBaseIT {
         assertEquals(0, partitionState.getPartition());
     }
 
-    private Iterator<ByteRecord> poll(final KafkaConsumerService consumerService, final PollingContext pollingContext) {
+    private Iterator<ByteRecord> poll(final KafkaConsumerService consumerService) {
         Iterator<ByteRecord> consumerRecords = Collections.emptyIterator();
 
         for (int i = 0; i < POLLING_ATTEMPTS; i++) {
-            final Iterable<ByteRecord> records = consumerService.poll(pollingContext);
+            final Iterable<ByteRecord> records = consumerService.poll();
             assertNotNull(records);
             consumerRecords = records.iterator();
             if (consumerRecords.hasNext()) {

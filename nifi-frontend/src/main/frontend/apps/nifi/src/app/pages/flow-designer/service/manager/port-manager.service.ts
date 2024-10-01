@@ -382,7 +382,7 @@ export class PortManager {
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                     clazz = 'running success-color-lighter';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'stopped warn-color-lighter';
+                    clazz = 'stopped error-color-lighter';
                 }
 
                 return `run-status-icon ${clazz}`;
@@ -439,7 +439,7 @@ export class PortManager {
             .classed('transmitting success-color', function (d: any) {
                 return d.status.transmitting === true;
             })
-            .classed('not-transmitting surface-color', function (d: any) {
+            .classed('not-transmitting neutral-color', function (d: any) {
                 return d.status.transmitting !== true;
             });
 

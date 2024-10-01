@@ -22,6 +22,8 @@ import { FlowAnalysisRule, FlowAnalysisRuleViolation } from '../../../../../stat
 import { Store } from '@ngrx/store';
 import { navigateToComponentDocumentation } from 'apps/nifi/src/app/state/documentation/documentation.actions';
 import { selectCurrentProcessGroupId } from '../../../../../state/flow/flow.selectors';
+import { MatButton } from '@angular/material/button';
+import { ComponentType } from '@nifi/shared';
 
 interface Data {
     violation: FlowAnalysisRuleViolation;
@@ -31,7 +33,7 @@ interface Data {
 @Component({
     selector: 'app-violation-details-dialog',
     standalone: true,
-    imports: [CommonModule, MatDialogModule],
+    imports: [CommonModule, MatDialogModule, MatButton],
     templateUrl: './violation-details-dialog.component.html',
     styleUrl: './violation-details-dialog.component.scss'
 })
@@ -62,7 +64,8 @@ export class ViolationDetailsDialogComponent {
                         context: 'Canvas'
                     },
                     parameters: {
-                        select: this.rule.type,
+                        componentType: ComponentType.FlowAnalysisRule,
+                        type: this.rule.type,
                         group: this.rule.bundle.group,
                         artifact: this.rule.bundle.artifact,
                         version: this.rule.bundle.version

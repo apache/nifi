@@ -22,6 +22,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.python.PythonProcessorDetails;
 
 import java.net.URL;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -116,7 +117,7 @@ public interface ExtensionManager {
      * @param bundleCoordinates the coordinates
      * @return the removed bundles, or empty if none exists
      */
-    Set<Bundle> removeBundles(Set<BundleCoordinate> bundleCoordinates);
+    Set<Bundle> removeBundles(Collection<BundleCoordinate> bundleCoordinates);
 
     /**
      * Retrieves the bundles that have a dependency on the bundle with the given coordinate.

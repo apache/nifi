@@ -184,11 +184,11 @@
     </div>
     <div class="flex justify-between align-middle">
         <div class="text-sm flex items-center gap-x-2">
-            <button mat-icon-button color="primary" (click)="refresh.next()">
+            <button mat-icon-button class="primary-icon-button" (click)="refresh.next()">
                 <i class="fa fa-refresh" [class.fa-spin]="summaryListingStatus === 'loading'"></i>
             </button>
             <div>Last updated:</div>
-            <div class="accent-color font-medium">{{ loadedTimestamp }}</div>
+            <div class="tertiary-color font-medium">{{ loadedTimestamp }}</div>
         </div>
         <div>
             <mat-paginator

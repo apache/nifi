@@ -22,13 +22,13 @@
             <div class="flex flex-col gap-y-4 w-full">
                 <div>
                     <div>Name</div>
-                    <div class="accent-color font-medium">
+                    <div class="tertiary-color font-medium">
                         {{ getName(selected) }}
                     </div>
                 </div>
                 <div>
                     <div>Bundle</div>
-                    <div class="accent-color font-medium">
+                    <div class="tertiary-color font-medium">
                         {{ selected?.bundle?.group }} - {{ selected?.bundle?.artifact }}
                     </div>
                 </div>
@@ -45,7 +45,7 @@
                 @if (selected?.controllerServiceApis) {
                     <div>
                         <div>Supports Controller Services</div>
-                        <div class="accent-color font-medium">
+                        <div class="tertiary-color font-medium">
                             <ul>
                                 @for (serviceApi of selected?.controllerServiceApis; track serviceApi) {
                                     <li>
@@ -61,24 +61,22 @@
                 <div>
                     <div>Restriction</div>
                     @if (selected?.usageRestriction) {
-                        <div class="accent-color font-medium">
+                        <div class="tertiary-color font-medium">
                             {{ selected?.usageRestriction }}
                         </div>
                     } @else {
-                        <div class="unset surface-color">Not Restricted</div>
+                        <div class="unset neutral-color">Not Restricted</div>
                     }
                 </div>
                 <div>
                     <div>Description</div>
-                    <div class="accent-color font-medium">{{ selected?.description }}</div>
+                    <div class="tertiary-color font-medium">{{ selected?.description }}</div>
                 </div>
             </div>
         </mat-dialog-content>
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>
-            <button type="button" color="primary" mat-button (click)="apply()" [disabled]="isCurrent(selected)">
-                Apply
-            </button>
+            <button type="button" mat-flat-button (click)="apply()" [disabled]="isCurrent(selected)">Apply</button>
         </mat-dialog-actions>
     </form>
 </div>

@@ -285,6 +285,26 @@ public class TestExcelRecordReader {
     }
 
     @Test
+    void testWhereCellValueDoesNotMatchSchemaType()  {
+        RecordSchema schema = new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
+                new RecordField("second", RecordFieldType.FLOAT.getDataType())));
+        List<String> requiredSheets = Collections.singletonList("TestSheetA");
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
+                .withSchema(schema)
+                .withFirstRow(2)
+                .withRequiredSheets(requiredSheets)
+                .build();
+
+        final MalformedRecordException mre = assertThrows(MalformedRecordException.class, () ->  {
+            ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger);
+            getRecords(recordReader, true, false);
+        });
+
+        assertInstanceOf(NumberFormatException.class, mre.getCause());
+        assertTrue(mre.getMessage().contains("on row") && mre.getMessage().contains("in sheet"));
+    }
+
+    @Test
     void testPasswordProtected() throws Exception {
         RecordSchema schema = getPasswordProtectedSchema();
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()

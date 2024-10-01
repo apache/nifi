@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-// Custom Theming for Angular Material
-// For more information: https://v16.material.angular.io/guide/theming-your-components
 @use '@angular/material' as mat;
 @use 'sass:map';
 @use 'libs/shared/src/assets/styles/app' as app;
@@ -30,8 +28,6 @@
 @use 'codemirror/addon/lint/lint.css';
 
 @import 'font-awesome';
-@import 'libs/shared/src/assets/themes/supplemental';
-// To override the NiFi theme, you need to set the variables $material-theme-light and $material-theme-dark
 @import 'libs/shared/src/assets/themes/material';
 
 // Include the common styles for Angular Material. We include this here so that you only
@@ -47,24 +43,20 @@
 @include app.styles();
 @include listing-table.styles();
 
-// Include the light theme color styles.
-@include mat.all-component-themes($material-theme-light);
+html {
+    @include mat.typography-hierarchy($m3-light-theme);
+    @include mat.all-component-themes($m3-light-theme);
+    @include app.generate-material-theme($m3-light-theme, $m3-light-theme-config);
+    @include codemirror-theme.generate-codemirror-theme($m3-light-theme, $m3-light-theme-config);
+    @include listing-table.generate-theme($m3-light-theme, $m3-light-theme-config);
+    @include jolt-transform-json-ui.generate-theme($m3-light-theme, $m3-light-theme-config);
 
-// generate light mode stylesheets
-@include app.generate-material-theme($material-theme-light);
-@include app.generate-supplemental-theme($supplemental-theme-light);
-@include codemirror-theme.generate-codemirror-theme($material-theme-light, $supplemental-theme-light);
-@include listing-table.generate-theme($material-theme-light, $supplemental-theme-light);
-@include jolt-transform-json-ui.generate-theme($material-theme-light, $supplemental-theme-light);
-
-.dark-theme {
-    // Include the dark theme color styles.
-    @include mat.all-component-colors($material-theme-dark);
-
-    // generate dark mode stylesheets
-    @include app.generate-material-theme($material-theme-dark);
-    @include app.generate-supplemental-theme($supplemental-theme-dark);
-    @include codemirror-theme.generate-codemirror-theme($material-theme-dark, $supplemental-theme-dark);
-    @include listing-table.generate-theme($material-theme-dark, $supplemental-theme-dark);
-    @include jolt-transform-json-ui.generate-theme($material-theme-dark, $supplemental-theme-dark);
+    .dark-theme {
+        //@include mat.typography-hierarchy($m3-dark-theme);
+        @include mat.all-component-colors($m3-dark-theme);
+        @include app.generate-material-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include codemirror-theme.generate-codemirror-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include listing-table.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include jolt-transform-json-ui.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+    }
 }

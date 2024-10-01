@@ -73,7 +73,6 @@ import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.diagnostics.ThreadDumpTask;
-import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.flow.resource.ExternalResourceDescriptor;
 import org.apache.nifi.flow.resource.ExternalResourceProvider;
 import org.apache.nifi.flow.resource.ExternalResourceProviderInitializationContext;
@@ -82,7 +81,6 @@ import org.apache.nifi.flow.resource.ExternalResourceProviderServiceBuilder;
 import org.apache.nifi.flow.resource.PropertyBasedExternalResourceProviderInitializationContext;
 import org.apache.nifi.framework.ssl.FrameworkSslContextProvider;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
-import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
@@ -95,7 +93,6 @@ import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -144,8 +141,6 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import javax.net.ssl.SSLContext;
 
-import static org.apache.nifi.nar.ExtensionDefinition.ExtensionRuntime.PYTHON;
-
 /**
  * Encapsulates the Jetty instance.
  */
@@ -159,11 +154,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String CONTEXT_PATH_ALL = "/*";
     private static final String CONTEXT_PATH_NIFI = "/nifi";
     private static final String CONTEXT_PATH_NIFI_API = "/nifi-api";
-    private static final String CONTEXT_PATH_NIFI_DOCS = "/nifi-docs";
     private static final Set<String> REQUIRED_CONTEXT_PATHS = Set.of(
             CONTEXT_PATH_NIFI,
-            CONTEXT_PATH_NIFI_API,
-            CONTEXT_PATH_NIFI_DOCS
+            CONTEXT_PATH_NIFI_API
     );
 
     private static final RequestFilterProvider REQUEST_FILTER_PROVIDER = new StandardRequestFilterProvider();
@@ -206,7 +199,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private ClusterDetailsFactory clusterDetailsFactory;
 
     private WebAppContext webApiContext;
-    private WebAppContext webDocsContext;
 
     // content viewer and mime type specific extensions
     private Collection<WebAppContext> contentViewerWebContexts;
@@ -272,7 +264,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // locate each war being deployed
         File webUiWar = null;
         File webApiWar = null;
-        File webDocsWar = null;
         Map<File, Bundle> otherWars = new HashMap<>();
         for (Map.Entry<File, Bundle> warBundleEntry : warToBundleLookup.entrySet()) {
             final File war = warBundleEntry.getKey();
@@ -280,8 +271,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             if (war.getName().toLowerCase().startsWith("nifi-web-api")) {
                 webApiWar = war;
-            } else if (war.getName().toLowerCase().startsWith("nifi-web-docs")) {
-                webDocsWar = war;
             } else if (war.getName().toLowerCase().startsWith("nifi-ui")) {
                 webUiWar = war;
             } else {
@@ -294,8 +283,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             throw new RuntimeException("Unable to load nifi-web WAR");
         } else if (webApiWar == null) {
             throw new RuntimeException("Unable to load nifi-web-api WAR");
-        } else if (webDocsWar == null) {
-            throw new RuntimeException("Unable to load nifi-web-docs WAR");
         }
 
         // handlers for each war and init params for the web api
@@ -313,7 +300,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // load the web ui app
         final WebAppContext webUiContext = loadWar(webUiWar, CONTEXT_PATH_NIFI, frameworkClassLoader);
-        webAppContextHandlers.addHandler(webUiContext);
 
         // add a rewrite error handler for the ui to handle 404
         final RewriteHandler uiErrorHandler = new RewriteHandler();
@@ -325,19 +311,16 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webApiContext = loadWar(webApiWar, CONTEXT_PATH_NIFI_API, frameworkClassLoader);
         webAppContextHandlers.addHandler(webApiContext);
 
-        // load the documentation war
-        webDocsContext = loadWar(webDocsWar, CONTEXT_PATH_NIFI_DOCS, frameworkClassLoader);
-
         // add the servlets which serve the HTML documentation within the documentation web app
-        addDocsServlets(webDocsContext);
-        webAppContextHandlers.addHandler(webDocsContext);
+        addDocsServlets(webApiContext);
+        webAppContextHandlers.addHandler(webUiContext);
 
         // deploy the web apps
         return webAppContextHandlers;
     }
 
     @Override
-    public synchronized void loadExtensionUis(final Set<Bundle> bundles) {
+    public synchronized void loadExtensionUis(final Collection<Bundle> bundles) {
         extensionUisToLoad.addAll(bundles);
     }
 
@@ -393,7 +376,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     @Override
-    public synchronized void unloadExtensionUis(final Set<Bundle> bundles) {
+    public synchronized void unloadExtensionUis(final Collection<Bundle> bundles) {
         bundles.forEach(this::unloadExtensionUis);
     }
 
@@ -707,7 +690,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         return tempDirectory;
     }
 
-    private void addDocsServlets(WebAppContext docsContext) {
+    private void addDocsServlets(WebAppContext webAppContext) {
         try {
             final File docsDir = getDocsDir();
 
@@ -715,23 +698,15 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             final Path htmlBaseResource = docsDir.toPath().resolve("html");
             docs.setInitParameter("baseResource", htmlBaseResource.toString());
             docs.setInitParameter("dirAllowed", "false");
-            docsContext.addServlet(docs, "/html/*");
-
-            final ServletHolder components = new ServletHolder("components", DefaultServlet.class);
-            final File componentDocsDirPath = props.getComponentDocumentationWorkingDirectory();
-            final File workingDocsDirectory = getWorkingDocsDirectory(componentDocsDirPath);
-            final Path componentsBaseResource = workingDocsDirectory.toPath().resolve("components");
-            components.setInitParameter("baseResource", componentsBaseResource.toString());
-            components.setInitParameter("dirAllowed", "false");
-            docsContext.addServlet(components, "/components/*");
+            webAppContext.addServlet(docs, "/html/*");
 
             final ServletHolder restApi = new ServletHolder("rest-api", DefaultServlet.class);
             final File webApiDocsDir = getWebApiDocsDir();
             restApi.setInitParameter("baseResource", webApiDocsDir.getPath());
             restApi.setInitParameter("dirAllowed", "false");
-            docsContext.addServlet(restApi, "/rest-api/*");
+            webAppContext.addServlet(restApi, "/rest-api/*");
 
-            logger.info("Loading Docs [{}] Context Path [{}]", docsDir.getAbsolutePath(), docsContext.getContextPath());
+            logger.info("Loading Docs [{}] Context Path [{}]", docsDir.getAbsolutePath(), webAppContext.getContextPath());
         } catch (Exception ex) {
             logger.error("Unhandled Exception in createDocsWebApp", ex);
             startUpFailure(ex);
@@ -767,17 +742,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             }
         }
         return docsDir;
-    }
-
-    private File getWorkingDocsDirectory(final File componentDocsDirPath) {
-        File workingDocsDirectory = null;
-        try {
-            workingDocsDirectory = componentDocsDirPath.toPath().toRealPath().getParent().toFile();
-        } catch (IOException e) {
-            logger.error("Component Documentation Directory resolution failed [{}]", componentDocsDirPath, e);
-            startUpFailure(e);
-        }
-        return workingDocsDirectory;
     }
 
     private File getWebApiDocsDir() {
@@ -881,7 +845,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             final NarUnpackMode unpackMode = props.isUnpackNarsToUberJar() ? NarUnpackMode.UNPACK_TO_UBER_JAR : NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
             final NarLoader narLoader = new StandardNarLoader(
                     props.getExtensionsWorkingDirectory(),
-                    props.getComponentDocumentationWorkingDirectory(),
                     NarClassLoadersHolder.getInstance(),
                     extensionManager,
                     extensionMapping,
@@ -919,28 +882,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 decommissionTask = webApplicationContext.getBean("decommissionTask", DecommissionTask.class);
                 statusHistoryDumpFactory = webApplicationContext.getBean("statusHistoryDumpFactory", StatusHistoryDumpFactory.class);
                 clusterDetailsFactory = webApplicationContext.getBean("clusterDetailsFactory", ClusterDetailsFactory.class);
-            }
-
-            // Generate docs for extensions
-            DocGenerator.generate(props, extensionManager, extensionMapping);
-
-            // ensure the web document war was loaded and provide the extension mapping
-            if (webDocsContext != null) {
-                final Map<String, Set<BundleCoordinate>> pythonExtensionMapping = new HashMap<>();
-
-                final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getExtensions(Processor.class)
-                        .stream()
-                        .filter(extension -> extension.getRuntime().equals(PYTHON))
-                        .collect(Collectors.toSet());
-
-                extensionDefinitions.forEach(
-                        extensionDefinition ->
-                                pythonExtensionMapping.computeIfAbsent(extensionDefinition.getImplementationClassName(),
-                                        name -> new HashSet<>()).add(extensionDefinition.getBundle().getBundleDetails().getCoordinate()));
-
-                final ServletContext webDocsServletContext = webDocsContext.getServletHandler().getServletContext();
-                webDocsServletContext.setAttribute("nifi-extension-mapping", extensionMapping);
-                webDocsServletContext.setAttribute("nifi-python-extension-mapping", pythonExtensionMapping);
             }
 
             // Start background task to process bundles that are submitted for loading extension UIs, this needs to be

@@ -41,6 +41,8 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
 
     private static final int MAXIMUM_PORT = 65535;
 
+    private static final char PATH_SEGMENT_SEPARATOR_CHARACTER = '/';
+
     private static final String PATH_SEGMENT_SEPARATOR = "/";
 
     private static final String QUERY_PARAMETER_SEPARATOR = "&";
@@ -132,6 +134,16 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
         }
 
         if (!pathSegments.isEmpty()) {
+            final int pathBuilderLength = pathBuilder.length();
+            if (pathBuilderLength > 0) {
+                // Append Path Segment Separator after encodedPath and before pathSegments when not found in encodedPath
+                final int lastIndex = pathBuilderLength - 1;
+                final char lastCharacter = pathBuilder.charAt(lastIndex);
+                if (PATH_SEGMENT_SEPARATOR_CHARACTER != lastCharacter) {
+                    pathBuilder.append(PATH_SEGMENT_SEPARATOR_CHARACTER);
+                }
+            }
+
             final String separatedPath = String.join(PATH_SEGMENT_SEPARATOR, pathSegments);
             pathBuilder.append(separatedPath);
         }

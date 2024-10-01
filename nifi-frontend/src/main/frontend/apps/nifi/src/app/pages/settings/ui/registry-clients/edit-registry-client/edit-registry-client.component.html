@@ -31,7 +31,7 @@
                 <div class="dialog-tab-content flex flex-col">
                     <div class="flex flex-col mb-5">
                         <div>Id</div>
-                        <div class="accent-color font-medium">
+                        <div class="tertiary-color font-medium">
                             {{ request.registryClient.id }}
                         </div>
                     </div>
@@ -43,7 +43,7 @@
                     </div>
                     <div class="flex flex-col mb-5">
                         <div>Type</div>
-                        <div class="accent-color font-medium">
+                        <div class="tertiary-color font-medium">
                             {{ formatType(request.registryClient) }}
                         </div>
                     </div>
@@ -78,9 +78,8 @@
             <button
                 [disabled]="!editRegistryClientForm.dirty || editRegistryClientForm.invalid || saving.value"
                 type="button"
-                color="primary"
                 (click)="submitForm()"
-                mat-button>
+                mat-flat-button>
                 <span *nifiSpinner="saving.value">Apply</span>
             </button>
         </mat-dialog-actions>

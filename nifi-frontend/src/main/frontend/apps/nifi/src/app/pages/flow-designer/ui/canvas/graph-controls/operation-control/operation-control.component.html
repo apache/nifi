@@ -41,7 +41,7 @@
                     <div class="flex gap-x-1">
                         <button
                             mat-icon-button
-                            color="primary"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canConfigure(selection)"
                             (click)="configure(selection)">
@@ -50,8 +50,7 @@
                         @if (supportsManagedAuthorizer()) {
                             <button
                                 mat-icon-button
-                                color="primary"
-                                class="mr-2"
+                                class="primary-icon-button mr-2"
                                 type="button"
                                 [disabled]="!canManageAccess(selection)"
                                 (click)="manageAccess(selection)">
@@ -60,7 +59,7 @@
                         }
                         <button
                             mat-icon-button
-                            color="primary"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canEnable(selection)"
                             (click)="enable(selection)">
@@ -68,8 +67,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            color="primary"
-                            class="mr-2"
+                            class="primary-icon-button mr-2"
                             type="button"
                             [disabled]="!canDisable(selection)"
                             (click)="disable(selection)">
@@ -77,7 +75,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            color="primary"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canStart(selection)"
                             (click)="start(selection)">
@@ -85,7 +83,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            color="primary"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canStop(selection)"
                             (click)="stop(selection)">
@@ -95,7 +93,7 @@
                     <div class="flex gap-x-1">
                         <button
                             mat-icon-button
-                            color="primary"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canCopy(selection)"
                             (click)="copy(selection)">
@@ -103,8 +101,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            color="primary"
-                            class="mr-2"
+                            class="primary-icon-button mr-2"
                             type="button"
                             [disabled]="!canPaste()"
                             (click)="paste()">
@@ -112,8 +109,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            color="primary"
-                            class="mr-2"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canGroup(selection)"
                             (click)="group(selection)">
@@ -121,8 +117,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            color="primary"
-                            class="mr-2"
+                            class="primary-icon-button mr-2"
                             type="button"
                             [disabled]="!canColor(selection)"
                             (click)="color(selection)">
@@ -130,7 +125,7 @@
                         </button>
                         <button
                             mat-icon-button
-                            color="primary"
+                            class="primary-icon-button"
                             type="button"
                             [disabled]="!canDelete(selection)"
                             (click)="delete(selection)">

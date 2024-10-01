@@ -72,11 +72,11 @@
     <mat-dialog-actions>
         <div class="flex justify-between align-middle w-full">
             <div class="text-sm flex items-center gap-x-2">
-                <button mat-icon-button color="primary" (click)="refresh()">
+                <button mat-icon-button class="primary-icon-button" (click)="refresh()">
                     <i class="fa fa-refresh" [class.fa-spin]="loading$ | async"></i>
                 </button>
                 <div>Last updated:</div>
-                <div class="accent-color font-medium">{{ loadedTimestamp$ | async }}</div>
+                <div class="tertiary-color font-medium">{{ loadedTimestamp$ | async }}</div>
             </div>
 
             <button mat-button mat-dialog-close>Close</button>

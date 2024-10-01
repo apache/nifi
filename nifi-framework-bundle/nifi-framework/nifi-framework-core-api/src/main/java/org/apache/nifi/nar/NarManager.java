@@ -55,7 +55,7 @@ public interface NarManager {
      * @param coordinate the coordinate of the NAR
      * @param narState the new state
      */
-    void updateState(BundleCoordinate coordinate, NarState narState);
+    void updateState(BundleCoordinate coordinate, NarState narState, String failureMessage);
 
     /**
      * @return all NARs contained in the NAR Manager

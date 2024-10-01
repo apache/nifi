@@ -998,7 +998,7 @@ export class ConnectionManager {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('stopped warn-color-lighter', function () {
+                                .classed('stopped error-color-lighter', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
@@ -1113,7 +1113,7 @@ export class ConnectionManager {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('stopped warn-color-lighter', function () {
+                                .classed('stopped error-color-lighter', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
@@ -1723,7 +1723,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted: number = d.status.aggregateSnapshot.predictions?.predictedPercentBytes ?? -1;
                     if (predicted >= 0) {
-                        return 'unset surface-color';
+                        return 'unset neutral-color';
                     } else {
                         // don't show it if there is not a valid prediction
                         return 'none';
@@ -1791,7 +1791,7 @@ export class ConnectionManager {
                 .attr('display', function (d: any) {
                     const predicted = d.status.aggregateSnapshot.predictions?.predictedPercentCount ?? -1;
                     if (predicted >= 0) {
-                        return 'unset surface-color';
+                        return 'unset neutral-color';
                     } else {
                         // don't show it if there not a valid prediction
                         return 'none';

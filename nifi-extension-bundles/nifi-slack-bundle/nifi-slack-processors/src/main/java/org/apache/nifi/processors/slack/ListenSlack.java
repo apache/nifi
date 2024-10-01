@@ -32,6 +32,8 @@ import com.slack.api.bolt.socket_mode.SocketModeApp;
 import com.slack.api.model.User;
 import com.slack.api.model.event.AppMentionEvent;
 import com.slack.api.model.event.FileSharedEvent;
+import com.slack.api.model.event.MemberJoinedChannelEvent;
+import com.slack.api.model.event.MessageChannelJoinEvent;
 import com.slack.api.model.event.MessageEvent;
 import com.slack.api.model.event.MessageFileShareEvent;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -96,6 +98,8 @@ public class ListenSlack extends AbstractProcessor {
         "The Processor is to receive only slack messages that mention the bot user (App Mention Events)");
     static final AllowableValue RECEIVE_COMMANDS = new AllowableValue("Receive Commands", "Receive Commands",
         "The Processor is to receive Commands from Slack that are specific to your application. The Processor will not receive Message Events.");
+    static final AllowableValue RECEIVE_JOINED_CHANNEL_EVENTS = new AllowableValue("Receive Joined Channel Events", "Receive Joined Channel Events",
+        "The Processor is to receive only events when a member is joining a channel. The Processor will not receive Message Events.");
 
 
     static PropertyDescriptor APP_TOKEN = new PropertyDescriptor.Builder()
@@ -119,7 +123,7 @@ public class ListenSlack extends AbstractProcessor {
         .description("Specifies the type of Event that the Processor should respond to")
         .required(true)
         .defaultValue(RECEIVE_MENTION_EVENTS.getValue())
-        .allowableValues(RECEIVE_MENTION_EVENTS, RECEIVE_MESSAGE_EVENTS, RECEIVE_COMMANDS)
+        .allowableValues(RECEIVE_MENTION_EVENTS, RECEIVE_MESSAGE_EVENTS, RECEIVE_COMMANDS, RECEIVE_JOINED_CHANNEL_EVENTS)
         .build();
 
     final PropertyDescriptor RESOLVE_USER_DETAILS = new PropertyDescriptor.Builder()
@@ -132,7 +136,7 @@ public class ListenSlack extends AbstractProcessor {
         .required(true)
         .defaultValue("false")
         .allowableValues("true", "false")
-        .dependsOn(EVENT_TYPE, RECEIVE_MESSAGE_EVENTS, RECEIVE_MENTION_EVENTS)
+        .dependsOn(EVENT_TYPE, RECEIVE_MESSAGE_EVENTS, RECEIVE_MENTION_EVENTS, RECEIVE_JOINED_CHANNEL_EVENTS)
         .build();
 
     static Relationship REL_SUCCESS = new Relationship.Builder()
@@ -179,6 +183,12 @@ public class ListenSlack extends AbstractProcessor {
         } else if (context.getProperty(EVENT_TYPE).getValue().equals(RECEIVE_MENTION_EVENTS.getValue())) {
             slackApp.event(AppMentionEvent.class, this::handleEvent);
             // When there's an AppMention, we'll also get a MessageEvent. We need to handle this event, or we'll get warnings in the logs
+            // that no Event Handler is registered, and it will respond back to Slack with a 404. To avoid this, we just acknowledge the event.
+            slackApp.event(MessageEvent.class, (payload, ctx) -> ctx.ack());
+        } else if (context.getProperty(EVENT_TYPE).getValue().equals(RECEIVE_JOINED_CHANNEL_EVENTS.getValue())) {
+            slackApp.event(MemberJoinedChannelEvent.class, this::handleEvent);
+            slackApp.event(MessageChannelJoinEvent.class, this::handleEvent);
+            // When there's an MemberJoinedChannel event, we'll also get a MessageEvent. We need to handle this event, or we'll get warnings in the logs
             // that no Event Handler is registered, and it will respond back to Slack with a 404. To avoid this, we just acknowledge the event.
             slackApp.event(MessageEvent.class, (payload, ctx) -> ctx.ack());
         } else {

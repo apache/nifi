@@ -82,7 +82,7 @@ export class ExtensionCreation extends CloseOnEscapeDialog {
 
     formatType(documentedType: DocumentedType): string {
         if (documentedType) {
-            return this.nifiCommon.substringAfterLast(documentedType.type, '.');
+            return this.nifiCommon.getComponentTypeLabel(documentedType.type);
         }
         return '';
     }

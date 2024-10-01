@@ -19,7 +19,6 @@ package org.apache.nifi.nar;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
-import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,6 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.util.stream.Collectors;
 
 /**
  * Loads a set of NARs from the file system into the running application.
@@ -48,7 +46,6 @@ public class StandardNarLoader implements NarLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(StandardNarLoader.class);
 
     private final File extensionsWorkingDir;
-    private final File docsWorkingDir;
     private final NarClassLoaders narClassLoaders;
     private final ExtensionDiscoveringManager extensionManager;
     private final ExtensionMapping extensionMapping;
@@ -58,14 +55,12 @@ public class StandardNarLoader implements NarLoader {
     private Set<BundleDetails> previouslySkippedBundles;
 
     public StandardNarLoader(final File extensionsWorkingDir,
-                             final File docsWorkingDir,
                              final NarClassLoaders narClassLoaders,
                              final ExtensionDiscoveringManager extensionManager,
                              final ExtensionMapping extensionMapping,
                              final ExtensionUiLoader extensionUiLoader,
                              final NarUnpackMode narUnpackMode) {
         this.extensionsWorkingDir = extensionsWorkingDir;
-        this.docsWorkingDir = docsWorkingDir;
         this.narClassLoaders = narClassLoaders;
         this.extensionManager = extensionManager;
         this.extensionMapping = extensionMapping;
@@ -120,18 +115,6 @@ public class StandardNarLoader implements NarLoader {
                 discoverPythonExtensions(loadedBundles);
             }
 
-            // Call the DocGenerator for the classes that were loaded from each Bundle
-            for (final Bundle bundle : loadedBundles) {
-                final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
-                final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getTypes(bundleCoordinate);
-                if (extensionDefinitions.isEmpty()) {
-                    LOGGER.debug("No documentation to generate for {} because no extensions were found", bundleCoordinate);
-                } else {
-                    LOGGER.debug("Generating documentation for {} extensions in {}", extensionDefinitions.size(), bundleCoordinate);
-                    DocGenerator.documentConfigurableComponent(extensionDefinitions, docsWorkingDir, extensionManager);
-                }
-            }
-
             if (extensionUiLoader != null) {
                 LOGGER.debug("Loading custom UI extensions");
                 extensionUiLoader.loadExtensionUis(loadedBundles);
@@ -142,15 +125,15 @@ public class StandardNarLoader implements NarLoader {
     }
 
     @Override
-    public synchronized void unload(final Set<Bundle> bundles) {
+    public synchronized void unload(final Collection<Bundle> bundles) {
         if (extensionUiLoader != null) {
             extensionUiLoader.unloadExtensionUis(bundles);
         }
 
-        final Set<BundleCoordinate> bundleCoordinates = bundles.stream()
+        final List<BundleCoordinate> bundleCoordinates = bundles.stream()
                 .map(Bundle::getBundleDetails)
                 .map(BundleDetails::getCoordinate)
-                .collect(Collectors.toSet());
+                .toList();
 
         for (final BundleCoordinate bundleCoordinate : bundleCoordinates) {
             LOGGER.info("Unloading bundle [{}]", bundleCoordinate);
@@ -161,7 +144,6 @@ public class StandardNarLoader implements NarLoader {
     }
 
     private void removeBundle(final Bundle bundle) {
-        final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
         narClassLoaders.removeBundle(bundle);
 
         final File workingDirectory = bundle.getBundleDetails().getWorkingDirectory();
@@ -175,8 +157,6 @@ public class StandardNarLoader implements NarLoader {
         } else {
             LOGGER.debug("NAR working directory does not exist at [{}]", workingDirectory.getAbsolutePath());
         }
-
-        DocGenerator.removeBundleDocumentation(docsWorkingDir, bundleCoordinate);
     }
 
     private void discoverPythonExtensions(final Set<Bundle> loadedBundles) {
@@ -216,7 +196,7 @@ public class StandardNarLoader implements NarLoader {
             }
 
             final File unpackedExtension = NarUnpacker.unpackNar(narFile, extensionsWorkingDir, true, narUnpackMode);
-            NarUnpacker.mapExtension(unpackedExtension, coordinate, docsWorkingDir, extensionMapping);
+            NarUnpacker.mapExtension(unpackedExtension, coordinate, extensionMapping);
             return unpackedExtension;
 
         } catch (Exception e) {

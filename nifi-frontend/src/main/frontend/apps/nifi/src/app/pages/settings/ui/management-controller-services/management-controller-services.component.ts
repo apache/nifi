@@ -48,6 +48,7 @@ import { selectFlowConfiguration } from '../../../../state/flow-configuration/fl
 import { CurrentUser } from '../../../../state/current-user';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
+import { ComponentType } from '@nifi/shared';
 
 @Component({
     selector: 'management-controller-services',
@@ -122,7 +123,8 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
                         context: 'Controller Service'
                     },
                     parameters: {
-                        select: entity.component.type,
+                        componentType: ComponentType.ControllerService,
+                        type: entity.component.type,
                         group: entity.component.bundle.group,
                         artifact: entity.component.bundle.artifact,
                         version: entity.component.bundle.version

@@ -25,7 +25,7 @@
             <div class="flex flex-col h-full gap-y-2">
                 @if (currentUser.controllerPermissions.canWrite) {
                     <div class="flex justify-end">
-                        <button mat-icon-button color="primary" (click)="openNewRegistryClientDialog()">
+                        <button mat-icon-button class="primary-icon-button" (click)="openNewRegistryClientDialog()">
                             <i class="fa fa-plus"></i>
                         </button>
                     </div>
@@ -40,11 +40,11 @@
                 </div>
                 <div class="flex justify-between">
                     <div class="text-sm flex items-center gap-x-2">
-                        <button mat-icon-button color="primary" (click)="refreshRegistryClientListing()">
+                        <button mat-icon-button class="primary-icon-button" (click)="refreshRegistryClientListing()">
                             <i class="fa fa-refresh" [class.fa-spin]="registryClientState.status === 'loading'"></i>
                         </button>
                         <div>Last updated:</div>
-                        <div class="accent-color font-medium">
+                        <div class="tertiary-color font-medium">
                             {{ registryClientState.loadedTimestamp }}
                         </div>
                     </div>

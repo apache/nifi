@@ -24,13 +24,13 @@
                     <mat-label>{{ searchableField.label }}</mat-label>
                     <input matInput formControlName="value" type="text" />
                 </mat-form-field>
-                <div class="-mt-6 mb-4">
-                    <mat-checkbox color="primary" formControlName="inverse" name="inverse"> Exclude</mat-checkbox>
+                <div class="-mt-4 mb-4">
+                    <mat-checkbox formControlName="inverse" name="inverse"> Exclude</mat-checkbox>
                 </div>
             </div>
         }
         @if (request.options.searchableFields.length === 0) {
-            <div class="unset surface-color mb-5">
+            <div class="unset neutral-color mb-5">
                 No searchable fields are available. Search criteria based on date, time, and file size still available.
             </div>
         }
@@ -115,9 +115,8 @@
         <button
             [disabled]="provenanceOptionsForm.invalid"
             type="button"
-            color="primary"
             (click)="searchClicked()"
-            mat-button
+            mat-flat-button
             mat-dialog-close>
             <span>Search</span>
         </button>

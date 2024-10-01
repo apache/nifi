@@ -24,7 +24,6 @@
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
         <module>nifi-commons</module>
-        <module>nifi-api</module>
         <module>nifi-bom</module>
         <module>nifi-frontend</module>
         <module>nifi-framework-bundle</module>
@@ -104,7 +103,8 @@
         <docker.image.tag>21</docker.image.tag>
         <node.version>v22.1.0</node.version>
         <frontend.mvn.plugin.version>1.15.0</frontend.mvn.plugin.version>
-        <nifi.nar.maven.plugin.version>2.0.0</nifi.nar.maven.plugin.version>
+        <nifi.nar.maven.plugin.version>2.1.0</nifi.nar.maven.plugin.version>
+        <nifi-api.version>2.0.0</nifi-api.version>
         <project.build.outputTimestamp>1706227889</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -166,6 +166,11 @@
     </properties>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-api</artifactId>
+                <version>${nifi-api.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-bom</artifactId>

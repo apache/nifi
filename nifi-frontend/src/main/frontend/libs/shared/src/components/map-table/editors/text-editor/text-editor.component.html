@@ -22,33 +22,27 @@
     resizable
     (resized)="resized($event)">
     <form class="h-full" [formGroup]="textEditorForm" cdkTrapFocus [cdkTrapFocusAutoCapture]="!readonly">
-        <div class="flex flex-col gap-y-3 h-full">
+        <div class="flex flex-col gap-y-3 relative h-full">
             <div class="flex flex-col gap-y-0.5 flex-1">
-                <div class="editor flex-1" [class.blank]="blank">
+                <div class="editor h-full w-full absolute overflow-auto" [class.blank]="blank">
                     <ngx-codemirror
                         formControlName="value"
                         [options]="getOptions()"
                         (mousedown)="preventDrag($event)"
                         (codeMirrorLoaded)="codeMirrorLoaded($event)"></ngx-codemirror>
+                    @if (!readonly) {
+                        <mat-checkbox
+                            formControlName="setEmptyString"
+                            (mousedown)="preventDrag($event)"
+                            (change)="setEmptyStringChanged()"
+                            >Set empty string
+                        </mat-checkbox>
+                    }
                 </div>
-                @if (!readonly) {
-                    <mat-checkbox
-                        color="primary"
-                        formControlName="setEmptyString"
-                        (mousedown)="preventDrag($event)"
-                        (change)="setEmptyStringChanged()"
-                        >Set empty string
-                    </mat-checkbox>
-                }
             </div>
             <div class="flex justify-end items-center gap-x-2">
                 @if (readonly) {
-                    <button
-                        mat-button
-                        type="button"
-                        color="primary"
-                        (mousedown)="preventDrag($event)"
-                        (click)="cancelClicked()">
+                    <button mat-flat-button type="button" (mousedown)="preventDrag($event)" (click)="cancelClicked()">
                         Close
                     </button>
                 } @else {
@@ -59,9 +53,8 @@
                         [disabled]="!textEditorForm.dirty || textEditorForm.invalid"
                         (mousedown)="preventDrag($event)"
                         type="button"
-                        color="primary"
                         (click)="okClicked()"
-                        mat-button>
+                        mat-flat-button>
                         Ok
                     </button>
                 }

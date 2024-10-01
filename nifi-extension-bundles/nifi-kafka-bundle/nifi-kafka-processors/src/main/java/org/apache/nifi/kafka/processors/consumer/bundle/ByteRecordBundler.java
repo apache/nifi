@@ -56,18 +56,17 @@ public class ByteRecordBundler {
         while (consumerRecords.hasNext()) {
             update(bundles, consumerRecords.next());
         }
+
         return bundles.entrySet().stream()
                 .map(e -> toByteRecord(e.getKey(), e.getValue())).iterator();
     }
 
     private ByteRecord toByteRecord(final BundleKey key, final BundleValue value) {
         final TopicPartitionSummary topicPartition = key.getTopicPartition();
-        key.headers.add(new RecordHeader(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET,
-                Long.toString(value.getLastOffset()).getBytes(StandardCharsets.UTF_8)));
-        key.headers.add(new RecordHeader(KafkaFlowFileAttribute.KAFKA_COUNT,
-                Long.toString(value.getCount()).getBytes(StandardCharsets.UTF_8)));
+        key.headers.add(new RecordHeader(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET, Long.toString(value.getLastOffset()).getBytes(StandardCharsets.UTF_8)));
+        key.headers.add(new RecordHeader(KafkaFlowFileAttribute.KAFKA_COUNT, Long.toString(value.getCount()).getBytes(StandardCharsets.UTF_8)));
         return new ByteRecord(topicPartition.getTopic(), topicPartition.getPartition(),
-                value.getFirstOffset(), key.getTimestamp(), key.getHeaders(), key.getMessageKey(), value.getData());
+                value.getFirstOffset(), key.getTimestamp(), key.getHeaders(), key.getMessageKey(), value.getData(), value.getCount());
     }
 
     private void update(final Map<BundleKey, BundleValue> bundles, final ByteRecord byteRecord) {

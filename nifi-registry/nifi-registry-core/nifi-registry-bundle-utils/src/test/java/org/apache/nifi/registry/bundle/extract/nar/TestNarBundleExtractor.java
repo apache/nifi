@@ -148,8 +148,6 @@ public class TestNarBundleExtractor {
 
             final String listHdfsKey = "org.apache.nifi.processors.hadoop.ListHDFS";
             assertTrue(additionalDetails.containsKey(listHdfsKey));
-            assertTrue(additionalDetails.get(listHdfsKey).startsWith("<!DOCTYPE html>"));
-            assertTrue(additionalDetails.get(listHdfsKey).trim().endsWith("</html>"));
         }
     }
 

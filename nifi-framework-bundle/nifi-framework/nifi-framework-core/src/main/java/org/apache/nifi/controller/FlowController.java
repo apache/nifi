@@ -169,6 +169,7 @@ import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.StandardParameterContextManager;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
@@ -542,7 +543,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         processScheduler = new StandardProcessScheduler(timerDrivenEngineRef.get(), this, stateManagerProvider, this.nifiProperties, lifecycleStateManager);
 
         parameterContextManager = new StandardParameterContextManager();
-        repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository, stateManagerProvider);
+        final long maxAppendableBytes = getMaxAppendableBytes();
+        repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository,
+            counterRepositoryRef.get(), provenanceRepository, stateManagerProvider, maxAppendableBytes);
         assetManager = createAssetManager(nifiProperties);
 
         this.flowAnalysisThreadPool = new FlowEngine(1, "Background Flow Analysis", true);
@@ -1044,8 +1047,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             flowFileRepository.updateMaxFlowFileIdentifier(maxIdFromSwapFiles + 1);
 
             // Begin expiring FlowFiles that are old
+            final long maxAppendableClaimBytes = getMaxAppendableBytes();
             final RepositoryContextFactory contextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository,
-                    flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository, stateManagerProvider);
+                    flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository, stateManagerProvider, maxAppendableClaimBytes);
             processScheduler.scheduleFrameworkTask(new ExpireFlowFiles(this, contextFactory), "Expire FlowFiles", 30L, 30L, TimeUnit.SECONDS);
 
             // now that we've loaded the FlowFiles, this has restored our ContentClaims' states, so we can tell the
@@ -1094,6 +1098,12 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         } finally {
             writeLock.unlock("initializeFlow");
         }
+    }
+
+    private long getMaxAppendableBytes() {
+        final String maxAppendableClaimSize = nifiProperties.getMaxAppendableClaimSize();
+        final long maxAppendableClaimBytes = DataUnit.parseDataSize(maxAppendableClaimSize, DataUnit.B).longValue();
+        return maxAppendableClaimBytes;
     }
 
     private void notifyComponentsConfigurationRestored() {
@@ -1220,6 +1230,13 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                     }
 
                     try {
+                        // During flow synchronization, when inheriting a flow from cluster, it's possible that the component was removed.
+                        final Connectable existingConnectable = connectable.getProcessGroup().getConnectable(connectable.getIdentifier());
+                        if (existingConnectable == null) {
+                            LOG.debug("Will not start {} because it no longer exists", connectable);
+                            continue;
+                        }
+
                         if (connectable instanceof ProcessorNode) {
                             connectable.getProcessGroup().startProcessor((ProcessorNode) connectable, true);
                         } else {

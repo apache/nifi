@@ -30,11 +30,7 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button
-            mat-button
-            [disabled]="!newEntryForm.dirty || newEntryForm.invalid"
-            (click)="addClicked()"
-            color="primary">
+        <button mat-flat-button [disabled]="!newEntryForm.dirty || newEntryForm.invalid" (click)="addClicked()">
             Ok
         </button>
     </mat-dialog-actions>

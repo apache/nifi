@@ -112,13 +112,13 @@ export class PortStatusTable extends ComponentStatusTable<PortStatusSnapshotEnti
             case 'running':
                 return 'running fa fa-play success-color-lighter';
             case 'stopped':
-                return 'stopped fa fa-stop warn-color-lighter';
+                return 'stopped fa fa-stop error-color-lighter';
             case 'enabled':
                 return 'enabled fa fa-flash success-color';
             case 'disabled':
-                return 'disabled icon icon-enable-false surface-color';
+                return 'disabled icon icon-enable-false neutral-color';
             case 'validating':
-                return 'validating fa fa-spin fa-circle-notch surface-color';
+                return 'validating fa fa-spin fa-circle-notch neutral-color';
             case 'invalid':
                 return 'invalid fa fa-warning caution-color';
             default:

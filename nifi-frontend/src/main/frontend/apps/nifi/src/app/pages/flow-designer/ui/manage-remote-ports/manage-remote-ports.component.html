@@ -27,7 +27,7 @@
                     <div class="flex flex-col mb-5">
                         <div>Name</div>
                         <div
-                            class="overflow-ellipsis overflow-hidden whitespace-nowrap accent-color font-medium"
+                            class="overflow-ellipsis overflow-hidden whitespace-nowrap tertiary-color font-medium"
                             [title]="portsState.rpg?.id">
                             {{ portsState.rpg?.id }}
                         </div>
@@ -37,7 +37,7 @@
                     <div class="flex flex-col mb-5">
                         <div>Urls</div>
                         <div
-                            class="overflow-ellipsis overflow-hidden whitespace-nowrap accent-color font-medium"
+                            class="overflow-ellipsis overflow-hidden whitespace-nowrap tertiary-color font-medium"
                             [title]="portsState.rpg?.component?.targetUri">
                             {{ portsState.rpg?.component?.targetUri }}
                         </div>
@@ -115,7 +115,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatTasks(item)">
                                             <span
-                                                [class.surface-color]="!item.concurrentlySchedulableTaskCount"
+                                                [class.neutral-color]="!item.concurrentlySchedulableTaskCount"
                                                 [class.blank]="!item.concurrentlySchedulableTaskCount">
                                                 {{ formatTasks(item) }}
                                             </span>
@@ -143,7 +143,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatCount(item)">
                                             <span
-                                                [class.surface-color]="isCountBlank(item)"
+                                                [class.neutral-color]="isCountBlank(item)"
                                                 [class.blank]="isCountBlank(item)">
                                                 {{ formatCount(item) }}
                                             </span>
@@ -159,7 +159,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatSize(item)">
                                             <span
-                                                [class.surface-color]="isSizeBlank(item)"
+                                                [class.neutral-color]="isSizeBlank(item)"
                                                 [class.blank]="isSizeBlank(item)">
                                                 {{ formatSize(item) }}
                                             </span>
@@ -175,7 +175,7 @@
                                         </th>
                                         <td mat-cell *matCellDef="let item" [title]="formatDuration(item)">
                                             <span
-                                                [class.surface-color]="isDurationBlank(item)"
+                                                [class.neutral-color]="isDurationBlank(item)"
                                                 [class.blank]="isDurationBlank(item)">
                                                 {{ formatDuration(item) }}
                                             </span>
@@ -251,11 +251,14 @@
                     </div>
                     <div class="flex justify-between">
                         <div class="text-sm flex items-center gap-x-2">
-                            <button mat-icon-button color="primary" (click)="refreshManageRemotePortsListing()">
+                            <button
+                                mat-icon-button
+                                class="primary-icon-button"
+                                (click)="refreshManageRemotePortsListing()">
                                 <i class="fa fa-refresh" [class.fa-spin]="portsState.status === 'loading'"></i>
                             </button>
                             <div>Last updated:</div>
-                            <div class="accent-color font-medium">
+                            <div class="tertiary-color font-medium">
                                 {{ portsState.loadedTimestamp }}
                             </div>
                         </div>

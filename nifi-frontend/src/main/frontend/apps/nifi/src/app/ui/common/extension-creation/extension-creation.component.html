@@ -51,7 +51,7 @@
                                         <div
                                             class="fa"
                                             [class.fa-shield]="item.restricted"
-                                            [class.warn-color]="item.restricted"
+                                            [class.error-color]="item.restricted"
                                             nifiTooltip
                                             [tooltipComponentType]="RestrictionsTip"
                                             [tooltipInputData]="getRestrictionTipData(item)"></div>
@@ -61,7 +61,7 @@
                                     <div
                                         class="fa"
                                         [class.fa-shield]="item.restricted"
-                                        [class.warn-color]="item.restricted"
+                                        [class.error-color]="item.restricted"
                                         nifiTooltip
                                         [tooltipComponentType]="RestrictionsTip"
                                         [tooltipInputData]="getRestrictionTipData(item)"></div>
@@ -106,12 +106,12 @@
                 @if (selectedType) {
                     <div class="flex items-center mb-1">
                         <div
-                            class="selected-type-name font-medium accent-color overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            class="selected-type-name font-medium tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap"
                             [title]="formatType(selectedType)">
                             {{ formatType(selectedType) }}
                         </div>
                         <div
-                            class="selected-type-bundle surface-color ml-4 tracking-wide overflow-ellipsis overflow-hidden whitespace-nowrap"
+                            class="selected-type-bundle neutral-color ml-4 tracking-wide overflow-ellipsis overflow-hidden whitespace-nowrap"
                             [title]="formatBundle(selectedType)">
                             {{ formatBundle(selectedType) }}
                         </div>
@@ -120,18 +120,14 @@
                         {{ formatDescription(selectedType) }}
                     </div>
                 } @else {
-                    <div class="no-selected-type unset surface-color">No type selected</div>
+                    <div class="no-selected-type unset neutral-color">No type selected</div>
                 }
             </div>
         </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button
-            [disabled]="selectedType == null || saving"
-            color="primary"
-            (click)="createExtension(selectedType)"
-            mat-button>
+        <button [disabled]="selectedType == null || saving" (click)="createExtension(selectedType)" mat-flat-button>
             <span *nifiSpinner="saving">Add</span>
         </button>
     </mat-dialog-actions>

@@ -1472,7 +1472,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         final Processor processor = processorRef.get().getProcessor();
         final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor, new StandardLoggingContext(StandardProcessorNode.this));
-        LOG.info("Starting {}", this);
+        LOG.debug("Starting {}", this);
 
         ScheduledState currentState;
         boolean starting;
@@ -1804,7 +1804,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final SchedulingAgent schedulingAgent, final LifecycleState lifecycleState, final boolean triggerLifecycleMethods) {
 
         final Processor processor = processorRef.get().getProcessor();
-        LOG.info("Stopping processor: {}", this);
+        LOG.debug("Stopping processor: {}", this);
         desiredState = ScheduledState.STOPPED;
 
         final CompletableFuture<Void> future = new CompletableFuture<>();

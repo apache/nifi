@@ -43,7 +43,7 @@ import {
     selectControllerService
 } from '../../state/controller-services/controller-services.actions';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import { ComponentType, isDefinedAndNotNull } from 'libs/shared/src';
 import { ControllerServiceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
@@ -168,7 +168,8 @@ export class ControllerServices implements OnDestroy {
     viewControllerServiceDocumentation(entity: ControllerServiceEntity): void {
         const request: DocumentationRequest = {
             parameters: {
-                select: entity.component.type,
+                componentType: ComponentType.ControllerService,
+                type: entity.component.type,
                 group: entity.component.bundle.group,
                 artifact: entity.component.bundle.artifact,
                 version: entity.component.bundle.version

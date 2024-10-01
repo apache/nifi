@@ -29,7 +29,7 @@
             (overlayOutsideClick)="backdropClicked($event)">
             <div class="search-results mat-elevation-z8 w-96 border p-2 text-base max-h-96 overflow-y-auto">
                 @if (searching) {
-                    <div class="unset surface-color italic">Searching</div>
+                    <div class="unset neutral-color italic">Searching</div>
                 } @else {
                     @if (hasResults()) {
                         <ul>
@@ -171,7 +171,7 @@
                             }
                         </ul>
                     } @else {
-                        <div class="unset surface-color italic">No results matched the search terms</div>
+                        <div class="unset neutral-color italic">No results matched the search terms</div>
                     }
                 }
             </div>
@@ -180,7 +180,7 @@
             type="text"
             matInput
             placeholder="Search"
-            class="search-input surface-contrast"
+            class="search-input neutral-contrast"
             (keydown)="onKeydown($event)"
             [class.open]="searchInputVisible"
             cdkOverlayOrigin
@@ -189,13 +189,13 @@
         <ng-template #renderResults let-results let-header="header" let-icon="icon" let-path="path">
             @if (results.length > 0) {
                 <li class="flex items-center">
-                    <span class="icon mr-1 accent-color" [class]="icon"></span>
+                    <span class="icon mr-1 tertiary-color" [class]="icon"></span>
                     <span class="font-medium">{{ header }}</span>
                 </li>
                 @for (result of results; track result) {
                     <li class="ml-4 py-1 flex gap-x-2 items-center">
                         <i
-                            class="fa fa-info-circle on-surface-medium"
+                            class="fa fa-info-circle"
                             nifiTooltip
                             [tooltipComponentType]="SearchMatchTip"
                             [tooltipInputData]="getSearchMatchTipInput(result)"

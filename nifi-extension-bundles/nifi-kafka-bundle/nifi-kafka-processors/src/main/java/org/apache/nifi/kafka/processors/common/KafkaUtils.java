@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.kafka.processors.common;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
@@ -26,7 +25,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,7 +62,7 @@ public class KafkaUtils {
         if (key == null) {
             keyAttributeValue = null;
         } else if (KeyEncoding.HEX.equals(keyEncoding)) {
-            keyAttributeValue = Hex.encodeHexString(key);
+            keyAttributeValue = HexFormat.of().formatHex(key);
         } else if (KeyEncoding.UTF8.equals(keyEncoding)) {
             keyAttributeValue = new String(key, StandardCharsets.UTF_8);
         } else {
@@ -74,7 +74,7 @@ public class KafkaUtils {
     public static Map<String, String> toAttributes(final ByteRecord consumerRecord, final KeyEncoding keyEncoding,
                                                    final Pattern headerNamePattern, final Charset headerEncoding,
                                                    final boolean commitOffsets) {
-        final Map<String, String> attributes = new LinkedHashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(KafkaFlowFileAttribute.KAFKA_TOPIC, consumerRecord.getTopic());
         attributes.put(KafkaFlowFileAttribute.KAFKA_PARTITION, Long.toString(consumerRecord.getPartition()));
         attributes.put(KafkaFlowFileAttribute.KAFKA_OFFSET, Long.toString(consumerRecord.getOffset()));

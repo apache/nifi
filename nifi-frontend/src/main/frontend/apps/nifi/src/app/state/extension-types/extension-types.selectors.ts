@@ -16,8 +16,8 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { extensionTypesFeatureKey, ExtensionTypesState } from './index';
-import { DocumentedType, RequiredPermission } from '../shared';
+import { extensionTypesFeatureKey, ExtensionTypesState, LoadExtensionTypesForDocumentationResponse } from './index';
+import { Bundle, DocumentedType, RequiredPermission } from '../shared';
 
 export const selectExtensionTypesState = createFeatureSelector<ExtensionTypesState>(extensionTypesFeatureKey);
 
@@ -103,3 +103,33 @@ export const selectRequiredPermissions = createSelector(
         return Array.from(requiredPermissions.values());
     }
 );
+
+export const selectServiceImplementations = (serviceApi: string, serviceApiBundle: Bundle) =>
+    createSelector(selectExtensionTypesState, (state: ExtensionTypesState) =>
+        state.controllerServiceTypes.filter((serviceType: DocumentedType) =>
+            serviceType.controllerServiceApis?.some(
+                (controllerServiceApi) =>
+                    controllerServiceApi.type === serviceApi &&
+                    controllerServiceApi.bundle.group === serviceApiBundle.group &&
+                    controllerServiceApi.bundle.artifact === serviceApiBundle.artifact &&
+                    controllerServiceApi.bundle.version === serviceApiBundle.version
+            )
+        )
+    );
+
+export const selectProcessorFromType = (processorType: string) =>
+    createSelector(selectExtensionTypesState, (state: ExtensionTypesState) =>
+        state.processorTypes.find((candidateType: DocumentedType) => candidateType.type === processorType)
+    );
+
+export const selectExtensionFromTypes = (extensionTypes: string[]) =>
+    createSelector(selectExtensionTypesState, (state: ExtensionTypesState) => {
+        const typeFilter = (candidateType: DocumentedType) => extensionTypes.includes(candidateType.type);
+        return {
+            processorTypes: state.processorTypes.filter(typeFilter),
+            controllerServiceTypes: state.controllerServiceTypes.filter(typeFilter),
+            reportingTaskTypes: state.reportingTaskTypes.filter(typeFilter),
+            parameterProviderTypes: state.parameterProviderTypes.filter(typeFilter),
+            flowAnalysisRuleTypes: state.flowAnalysisRuleTypes.filter(typeFilter)
+        } as LoadExtensionTypesForDocumentationResponse;
+    });

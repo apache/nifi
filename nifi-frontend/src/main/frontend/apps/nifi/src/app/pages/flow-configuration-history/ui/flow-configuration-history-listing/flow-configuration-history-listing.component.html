@@ -93,7 +93,7 @@
                 </div>
                 @if ((currentUser$ | async)?.controllerPermissions?.canWrite) {
                     <div class="mt-4">
-                        <button mat-icon-button color="primary" (click)="purgeHistoryClicked()">
+                        <button mat-icon-button class="primary-icon-button" (click)="purgeHistoryClicked()">
                             <i class="fa fa-eraser"></i>
                         </button>
                     </div>
@@ -111,11 +111,11 @@
 
             <div class="flex justify-between align-middle mt-2">
                 <div class="text-sm flex items-center gap-x-2">
-                    <button mat-icon-button color="primary" (click)="refresh()">
+                    <button mat-icon-button class="primary-icon-button" (click)="refresh()">
                         <i class="fa fa-refresh" [class.fa-spin]="state.status === 'loading'"></i>
                     </button>
                     <div>Last updated:</div>
-                    <div class="accent-color font-medium">{{ state.loadedTimestamp }}</div>
+                    <div class="tertiary-color font-medium">{{ state.loadedTimestamp }}</div>
                 </div>
 
                 <div>

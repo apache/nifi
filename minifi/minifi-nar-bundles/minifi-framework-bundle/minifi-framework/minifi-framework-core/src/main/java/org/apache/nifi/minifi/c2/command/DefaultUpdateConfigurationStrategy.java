@@ -162,11 +162,16 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         LOGGER.info("Stopping flow gracefully");
         Optional<ProcessGroup> drainResult = stopSourceProcessorsAndWaitFlowToDrain(rootGroup);
 
-        rootGroup.stopProcessing();
+        waitForStopOrLogTimeOut(rootGroup.stopProcessing());
+        waitForStopOrLogTimeOut(rootGroup.stopComponents());
+
         rootGroup.getRemoteProcessGroups().stream()
             .map(RemoteProcessGroup::stopTransmitting)
             .forEach(this::waitForStopOrLogTimeOut);
-        drainResult.ifPresentOrElse(emptyQueuesForNonReferencedQueues(proposedConnectionIds), () -> LOGGER.info("Flow has been stopped gracefully"));
+
+        drainResult.ifPresentOrElse(
+            emptyQueuesForNonReferencedQueues(proposedConnectionIds),
+            () -> LOGGER.info("Flow has been stopped gracefully"));
     }
 
     private Consumer<ProcessGroup> emptyQueuesForNonReferencedQueues(Set<String> proposedConnectionIds) {
@@ -198,7 +203,7 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         try {
             future.get(10000, TimeUnit.MICROSECONDS);
         } catch (Exception e) {
-            LOGGER.warn("Unable to stop remote process group within defined interval", e);
+            LOGGER.warn("Unable to stop component within defined interval", e);
         }
     }
 

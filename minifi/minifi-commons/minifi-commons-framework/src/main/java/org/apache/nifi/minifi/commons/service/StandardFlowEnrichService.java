@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
@@ -48,6 +49,7 @@ import org.apache.nifi.flow.ControllerServiceAPI;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
@@ -63,8 +65,8 @@ public class StandardFlowEnrichService implements FlowEnrichService {
 
     static final String DEFAULT_SSL_CONTEXT_SERVICE_NAME = "SSL Context Service";
 
-    static final String COMMON_SSL_CONTEXT_SERVICE_NAME = "SSL-Context-Service";
-    static final String COMMON_SSL_CONTEXT_SERVICE_ID = "generated-common-ssl-context";
+    static final String PARENT_SSL_CONTEXT_SERVICE_NAME = "SSL-Context-Service";
+    static final String PARENT_SSL_CONTEXT_SERVICE_ID = "generated-common-ssl-context";
     static final String SITE_TO_SITE_PROVENANCE_REPORTING_TASK_NAME = "Site-To-Site-Provenance-Reporting";
     static final String SITE_TO_SITE_PROVENANCE_REPORTING_TASK_ID = "generated-s2s-provenance-reporting-task";
 
@@ -119,18 +121,20 @@ public class StandardFlowEnrichService implements FlowEnrichService {
             rootGroup.setPosition(DEFAULT_POSITION);
         }
 
-        rootGroup.getControllerServices().forEach(controllerService -> controllerService.setScheduledState(ENABLED));
+        enableControllerServices(rootGroup);
 
-        Optional<VersionedControllerService> commonSslControllerService = createCommonSslControllerService();
-        commonSslControllerService.ifPresent(versionedDataflow.getControllerServices()::add);
+        Optional<VersionedControllerService> parentSslControllerService = createParentSslControllerService();
+        parentSslControllerService.ifPresent(versionedDataflow.getRootGroup().getControllerServices()::add);
 
-        commonSslControllerService
-            .filter(__ -> parseBoolean(minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_USE_PARENT_SSL.getKey())))
+        parentSslControllerService
+            .filter(__ -> isOverrideSslContextInComponentsSet())
             .map(VersionedComponent::getInstanceIdentifier)
-            .ifPresent(commonSslControllerServiceInstanceId -> overrideProcessorsSslControllerService(rootGroup, commonSslControllerServiceInstanceId));
+            .ifPresent(parentSslControllerServiceInstanceId -> {
+                overrideComponentsSslControllerService(rootGroup, parentSslControllerServiceInstanceId);
+                deleteUnusedSslControllerServices(rootGroup);
+            });
 
-        createProvenanceReportingTask(commonSslControllerService.map(VersionedComponent::getInstanceIdentifier).orElse(EMPTY))
-            .ifPresent(versionedDataflow.getReportingTasks()::add);
+        createProvenanceReportingTask(parentSslControllerService).ifPresent(versionedDataflow.getReportingTasks()::add);
 
         if (IS_LEGACY_COMPONENT.test(rootGroup)) {
             LOG.info("Legacy flow detected. Initializing missing but mandatory properties on components");
@@ -142,17 +146,24 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         return versionedDataflow;
     }
 
-    private Optional<VersionedControllerService> createCommonSslControllerService() {
-        if (!parentSslEnabled()) {
+    private void enableControllerServices(VersionedProcessGroup processGroup) {
+        ofNullable(processGroup.getControllerServices()).orElseGet(Set::of)
+            .forEach(controllerService -> controllerService.setScheduledState(ENABLED));
+        ofNullable(processGroup.getProcessGroups()).orElseGet(Set::of)
+            .forEach(this::enableControllerServices);
+    }
+
+    private Optional<VersionedControllerService> createParentSslControllerService() {
+        if (!parentSslContextIsEnabled()) {
             LOG.debug("Parent SSL is disabled, skip creating parent SSL Controller Service");
             return empty();
         }
 
         LOG.debug("Parent SSL is enabled, creating parent SSL Controller Service");
         VersionedControllerService sslControllerService = new VersionedControllerService();
-        sslControllerService.setIdentifier(randomUUID().toString());
-        sslControllerService.setInstanceIdentifier(COMMON_SSL_CONTEXT_SERVICE_ID);
-        sslControllerService.setName(COMMON_SSL_CONTEXT_SERVICE_NAME);
+        sslControllerService.setIdentifier(PARENT_SSL_CONTEXT_SERVICE_ID);
+        sslControllerService.setInstanceIdentifier(PARENT_SSL_CONTEXT_SERVICE_ID);
+        sslControllerService.setName(PARENT_SSL_CONTEXT_SERVICE_NAME);
         sslControllerService.setComments(EMPTY);
         sslControllerService.setType(STANDARD_RESTRICTED_SSL_CONTEXT_SERVICE);
         sslControllerService.setScheduledState(ENABLED);
@@ -168,10 +179,14 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         return Optional.of(sslControllerService);
     }
 
-    private boolean parentSslEnabled() {
+    private boolean parentSslContextIsEnabled() {
         return MiNiFiProperties.securityPropertyKeys().stream()
             .map(minifiProperties::getProperty)
             .allMatch(StringUtils::isNotBlank);
+    }
+
+    private boolean isOverrideSslContextInComponentsSet() {
+        return parseBoolean(minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_USE_PARENT_SSL.getKey()));
     }
 
     private Map<String, String> sslControllerServiceProperties() {
@@ -194,19 +209,36 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         return controllerServiceAPI;
     }
 
-    private void overrideProcessorsSslControllerService(VersionedProcessGroup processGroup, String commonSslControllerServiceInstanceId) {
-        LOG.debug("Use parent SSL is enabled, overriding processors' SSL Controller service to {}", commonSslControllerServiceInstanceId);
+    private void overrideComponentsSslControllerService(VersionedProcessGroup processGroup, String commonSslControllerServiceInstanceId) {
+        LOG.debug("Use parent SSL is enabled, overriding processors' and controller services' SSL Controller service property to {}", commonSslControllerServiceInstanceId);
+        Consumer<VersionedConfigurableExtension> updateControllerServicesId =
+            extension -> replaceProperty(extension, DEFAULT_SSL_CONTEXT_SERVICE_NAME, commonSslControllerServiceInstanceId);
         processGroup.getProcessors()
-            .forEach(processor -> processor.getProperties()
-                .replace(
-                    DEFAULT_SSL_CONTEXT_SERVICE_NAME,
-                    processor.getProperties().get(DEFAULT_SSL_CONTEXT_SERVICE_NAME),
-                    commonSslControllerServiceInstanceId));
+            .forEach(updateControllerServicesId);
+        processGroup.getControllerServices()
+            .stream()
+            .filter(controllerService -> !controllerService.getInstanceIdentifier().equals(PARENT_SSL_CONTEXT_SERVICE_ID))
+            .forEach(updateControllerServicesId);
         processGroup.getProcessGroups()
-            .forEach(childProcessGroup -> overrideProcessorsSslControllerService(childProcessGroup, commonSslControllerServiceInstanceId));
+            .forEach(childProcessGroup -> overrideComponentsSslControllerService(childProcessGroup, commonSslControllerServiceInstanceId));
     }
 
-    private Optional<VersionedReportingTask> createProvenanceReportingTask(String sslControllerServiceIdentifier) {
+    private void deleteUnusedSslControllerServices(VersionedProcessGroup processGroup) {
+        Set<VersionedControllerService> controllerServicesWithoutUnusedSslContextServices = processGroup.getControllerServices()
+            .stream()
+            .filter(controllerService -> !controllerService.getControllerServiceApis().stream().map(ControllerServiceAPI::getType).anyMatch(SSL_CONTEXT_SERVICE_API::equals)
+                || controllerService.getInstanceIdentifier().equals(PARENT_SSL_CONTEXT_SERVICE_ID))
+            .collect(toSet());
+        processGroup.setControllerServices(controllerServicesWithoutUnusedSslContextServices);
+        processGroup.getProcessGroups().forEach(this::deleteUnusedSslControllerServices);
+    }
+
+    private void replaceProperty(VersionedConfigurableExtension extension, String key, String newValue) {
+        String oldValue = extension.getProperties().get(key);
+        extension.getProperties().replace(key, oldValue, newValue);
+    }
+
+    private Optional<VersionedReportingTask> createProvenanceReportingTask(Optional<VersionedControllerService> commonSslControllerService) {
         if (!provenanceReportingEnabled()) {
             LOG.debug("Provenance reporting task is disabled, skip creating provenance reporting task");
             return empty();
@@ -214,7 +246,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         LOG.debug("Provenance reporting task is enabled, creating provenance reporting task");
 
         VersionedReportingTask reportingTask = new VersionedReportingTask();
-        reportingTask.setIdentifier(randomUUID().toString());
+        reportingTask.setIdentifier(SITE_TO_SITE_PROVENANCE_REPORTING_TASK_ID);
         reportingTask.setInstanceIdentifier(SITE_TO_SITE_PROVENANCE_REPORTING_TASK_ID);
         reportingTask.setName(SITE_TO_SITE_PROVENANCE_REPORTING_TASK_NAME);
         reportingTask.setComments(minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_COMMENT.getKey()));
@@ -224,7 +256,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         reportingTask.setSchedulingStrategy(minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_SCHEDULING_STRATEGY.getKey()));
         reportingTask.setSchedulingPeriod(minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_SCHEDULING_PERIOD.getKey()));
         reportingTask.setComponentType(ComponentType.REPORTING_TASK);
-        reportingTask.setProperties(provenanceReportingTaskProperties(sslControllerServiceIdentifier));
+        reportingTask.setProperties(provenanceReportingTaskProperties(commonSslControllerService.map(VersionedComponent::getInstanceIdentifier).orElse(EMPTY)));
         reportingTask.setPropertyDescriptors(Map.of());
         return Optional.of(reportingTask);
     }

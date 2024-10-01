@@ -30,6 +30,7 @@ import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../../../state';
 import { setFlowAnalysisOpen } from '../../../../state/flow/flow.actions';
+import { CanvasUtils } from '../../../../service/canvas-utils.service';
 
 @Component({
     selector: 'flow-status',
@@ -75,7 +76,8 @@ export class FlowStatus {
 
     constructor(
         private store: Store<NiFiState>,
-        private storage: Storage
+        private storage: Storage,
+        private canvasUtils: CanvasUtils
     ) {
         try {
             const item: { [key: string]: boolean } | null = this.storage.getItem(
@@ -107,10 +109,10 @@ export class FlowStatus {
             this.clusterSummary?.connectedToCluster === false ||
             this.clusterSummary?.connectedNodeCount != this.clusterSummary?.totalNodeCount
         ) {
-            return 'warn-color-darker';
+            return 'error-color-darker';
         }
 
-        return 'primary-color';
+        return 'secondary-color';
     }
 
     formatActiveThreads(): string {
@@ -133,16 +135,16 @@ export class FlowStatus {
         if (this.hasTerminatedThreads()) {
             return 'warning';
         } else if (this.controllerStatus.activeThreadCount === 0) {
-            return 'zero primary-color-lighter';
+            return 'zero secondary-color';
         }
-        return 'primary-color';
+        return 'secondary-color';
     }
 
     getQueuedStyle(): string {
         if (this.controllerStatus.queued.indexOf('0 / 0') == 0) {
-            return 'zero primary-color-lighter';
+            return 'zero secondary-color';
         }
-        return 'primary-color';
+        return 'secondary-color';
     }
 
     formatValue(value: number | undefined) {
@@ -154,7 +156,7 @@ export class FlowStatus {
 
     getActiveStyle(value: number | undefined, activeStyle: string): string {
         if (value === undefined || value <= 0) {
-            return 'zero primary-color-lighter';
+            return 'zero secondary-color';
         }
         return activeStyle;
     }
@@ -167,6 +169,12 @@ export class FlowStatus {
         return {
             bulletins: this.filteredBulletins
         };
+    }
+
+    getMostSevereBulletinLevel(): string | null {
+        // determine the most severe of the bulletins
+        const mostSevere = this.canvasUtils.getMostSevereBulletin(this.filteredBulletins);
+        return mostSevere ? mostSevere.bulletin.level.toLowerCase() : null;
     }
 
     getBulletinTooltipPosition(): ConnectedPosition {

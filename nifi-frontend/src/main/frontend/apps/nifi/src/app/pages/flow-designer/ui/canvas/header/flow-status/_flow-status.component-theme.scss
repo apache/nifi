@@ -18,103 +18,117 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $supplemental-theme) {
-    // Get the color config from the theme.
-    $material-theme-color-config: mat.m2-get-color-config($material-theme);
-    $supplemental-theme-color-config: mat.m2-get-color-config($supplemental-theme);
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-secondary-palette-darker: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), darker)
+    );
+    $material-theme-secondary-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), lighter)
+    );
+    $material-theme-error-palette-default: mat.get-theme-color(
+        $material-theme,
+        error,
+        map.get(map.get($config, error), default)
+    );
+    $material-theme-error-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        error,
+        map.get(map.get($config, error), lighter)
+    );
+    $material-theme-error-palette-darker: mat.get-theme-color(
+        $material-theme,
+        error,
+        map.get(map.get($config, error), darker)
+    );
+    $material-theme-neutral-palette-darker: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), darker)
+    );
+    $material-theme-neutral-palette-lighter: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), lighter)
+    );
+    $material-theme-neutral-palette-default: mat.get-theme-color(
+        $material-theme,
+        neutral,
+        map.get(map.get($config, neutral), default)
+    );
 
-    // Get the color palette from the color-config.
-    $material-theme-primary-palette: map.get($material-theme-color-config, 'primary');
-    $material-theme-warn-palette: map.get($material-theme-color-config, 'warn');
-    $supplemental-theme-surface-palette: map.get($supplemental-theme-color-config, 'primary');
+    $material-theme-secondary-palette-default: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), default)
+    );
 
-    // Get hues from palette
-    $is-dark: map-get($supplemental-theme-color-config, is-dark);
-    $material-theme-primary-palette-default: mat.m2-get-color-from-palette($material-theme-primary-palette);
-    $material-theme-primary-palette-lighter: mat.m2-get-color-from-palette($material-theme-primary-palette, lighter);
-    $material-theme-warn-palette-darker: mat.m2-get-color-from-palette($material-theme-warn-palette, darker);
-    $supplemental-theme-surface-palette-lighter: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter
-    );
-    $supplemental-theme-surface-palette-darker: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker
-    );
-    $supplemental-theme-surface-palette-darker-contrast: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        darker-contrast
-    );
-    $supplemental-theme-surface-palette-lighter-contrast: mat.m2-get-color-from-palette(
-        $supplemental-theme-surface-palette,
-        lighter-contrast
-    );
+    $on-primary: mat.get-theme-color($material-theme, on-primary);
+    $success-default: map.get(map.get($config, success), default);
+    $caution-default: map.get($config, caution);
 
     .flow-status {
-        background: if(
-            $is-dark,
-            $supplemental-theme-surface-palette-darker,
-            $supplemental-theme-surface-palette-lighter
+        background-color: if(
+            $is-material-dark,
+            $material-theme-neutral-palette-darker,
+            $material-theme-neutral-palette-lighter
         );
 
         .controller-bulletins {
-            background-color: if(
-                $is-dark,
-                $material-theme-primary-palette-lighter,
-                $material-theme-primary-palette-default
-            );
+            background-color: unset;
 
             .fa {
-                // invert the contrast colors since the surface is dark in light mode and light in dark mode
-                color: if(
-                    $is-dark,
-                    $supplemental-theme-surface-palette-lighter-contrast,
-                    $supplemental-theme-surface-palette-darker-contrast
-                );
+                color: $material-theme-secondary-palette-default;
             }
         }
 
         .controller-bulletins.has-bulletins {
-            background-color: $material-theme-warn-palette-darker;
+            .fa {
+                color: mat.get-theme-color($material-theme, surface);
+            }
+
+            &.error {
+                background-color: if(
+                    $is-material-dark,
+                    $material-theme-error-palette-default,
+                    $material-theme-error-palette-darker
+                );
+            }
+            &.warning {
+                background-color: $caution-default;
+            }
+            &.info,
+            &.debug,
+            &.trace {
+                background-color: $success-default;
+            }
         }
 
         .flow-analysis-notifications.warn {
             background-color: if(
-                $is-dark,
-                $material-theme-primary-palette-lighter,
-                $material-theme-primary-palette-default
-            );
-            border-right-color: if(
-                $is-dark,
-                $supplemental-theme-surface-palette-lighter-contrast,
-                $supplemental-theme-surface-palette-darker-contrast
+                $is-material-dark,
+                $material-theme-secondary-palette-lighter,
+                $material-theme-secondary-palette-darker
             );
 
             .fa {
-                // invert the contrast colors since the surface is dark in light mode and light in dark mode
-                color: if(
-                    $is-dark,
-                    $supplemental-theme-surface-palette-lighter-contrast,
-                    $supplemental-theme-surface-palette-darker-contrast
-                );
+                color: mat.get-theme-color($material-theme, surface);
             }
         }
 
         .flow-analysis-notifications.enforce {
-            background-color: $material-theme-warn-palette-darker;
-            border-right-color: if(
-                $is-dark,
-                $supplemental-theme-surface-palette-lighter-contrast,
-                $supplemental-theme-surface-palette-darker-contrast
+            background-color: if(
+                $is-material-dark,
+                $material-theme-error-palette-default,
+                $material-theme-error-palette-darker
             );
 
             .fa {
-                // invert the contrast colors since the surface is dark in light mode and light in dark mode
-                color: if(
-                    $is-dark,
-                    $supplemental-theme-surface-palette-lighter-contrast,
-                    $supplemental-theme-surface-palette-darker-contrast
-                );
+                color: mat.get-theme-color($material-theme, surface);
             }
         }
     }

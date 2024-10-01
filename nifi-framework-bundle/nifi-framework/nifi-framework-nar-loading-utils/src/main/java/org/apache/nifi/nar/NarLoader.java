@@ -49,7 +49,7 @@ public interface NarLoader {
      *
      * @param bundles the NARs to unload
      */
-    void unload(Set<Bundle> bundles);
+    void unload(Collection<Bundle> bundles);
 
     /**
      * Unloads the given NAR.

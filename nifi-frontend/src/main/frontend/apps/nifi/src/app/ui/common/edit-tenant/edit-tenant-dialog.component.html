@@ -21,8 +21,8 @@
     <mat-dialog-content>
         <div>
             <mat-radio-group formControlName="tenantType" (change)="tenantTypeChanged()">
-                <mat-radio-button color="primary" [value]="USER">Individual</mat-radio-button>
-                <mat-radio-button color="primary" [value]="USER_GROUP">Group</mat-radio-button>
+                <mat-radio-button [value]="USER">Individual</mat-radio-button>
+                <mat-radio-button [value]="USER_GROUP">Group</mat-radio-button>
             </mat-radio-group>
         </div>
         <div class="mt-6">
@@ -65,11 +65,7 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             <button mat-button mat-dialog-close>Cancel</button>
-            <button
-                mat-button
-                [disabled]="editTenantForm.invalid || saving.value"
-                (click)="okClicked()"
-                color="primary">
+            <button mat-flat-button [disabled]="editTenantForm.invalid || saving.value" (click)="okClicked()">
                 <span *nifiSpinner="saving.value">{{ isNew ? 'Add' : 'Apply' }}</span>
             </button>
         </mat-dialog-actions>

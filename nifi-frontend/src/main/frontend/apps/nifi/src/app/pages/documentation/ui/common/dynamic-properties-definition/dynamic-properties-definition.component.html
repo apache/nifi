@@ -1,0 +1,85 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+@if (dynamicProperties) {
+    <div class="dynamic-properties-definition flex flex-col gap-y-2">
+        <div class="flex justify-between items-center">
+            <div>Dynamic Properties allow the user to specify both the name and value of a property.</div>
+            <div>
+                <button type="button" mat-icon-button class="primary-icon-button" title="Expand All" (click)="expand()">
+                    <i class="fa fa-expand fa-rotate-45"></i>
+                </button>
+                <button
+                    type="button"
+                    mat-icon-button
+                    class="primary-icon-button"
+                    title="Collapse All"
+                    (click)="collapse()">
+                    <i class="fa fa-compress fa-rotate-45"></i>
+                </button>
+            </div>
+        </div>
+        <mat-accordion multi>
+            @for (dynamicProperty of dynamicProperties; track dynamicProperty.name) {
+                <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                        <mat-panel-title [title]="dynamicProperty.name">{{ dynamicProperty.name }}</mat-panel-title>
+                        <mat-panel-description [title]="dynamicProperty.description">{{
+                            dynamicProperty.description
+                        }}</mat-panel-description>
+                    </mat-expansion-panel-header>
+                    <div class="property-definition flex flex-col gap-y-4">
+                        <div>
+                            <div>Name</div>
+                            <div class="tertiary-color font-medium">{{ dynamicProperty.name }}</div>
+                        </div>
+                        <div>
+                            <div>Value</div>
+                            <div class="tertiary-color font-medium">{{ dynamicProperty.value }}</div>
+                        </div>
+                        <div>
+                            <div>Description</div>
+                            <div class="tertiary-color font-medium">{{ dynamicProperty.description }}</div>
+                        </div>
+                        <div>
+                            <div>Expression Language Scope</div>
+                            <div class="tertiary-color font-medium">
+                                @switch (dynamicProperty.expressionLanguageScope) {
+                                    @case (ExpressionLanguageScope.ENVIRONMENT) {
+                                        Environment variables defined at JVM level and system properties
+                                    }
+                                    @case (ExpressionLanguageScope.FLOWFILE_ATTRIBUTES) {
+                                        Environment variables and FlowFile Attributes
+                                    }
+                                    @case (ExpressionLanguageScope.NONE) {
+                                        Not Supported
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </mat-expansion-panel>
+            }
+        </mat-accordion>
+        @if (supportsDynamicSensitiveProperties !== null) {
+            <div>
+                <div>Supports Sensitive Dynamic Properties</div>
+                <div class="tertiary-color font-medium">{{ supportsDynamicSensitiveProperties }}</div>
+            </div>
+        }
+    </div>
+}

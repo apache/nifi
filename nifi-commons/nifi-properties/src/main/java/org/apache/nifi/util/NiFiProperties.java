@@ -71,7 +71,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String NAR_LIBRARY_AUTOLOAD_DIRECTORY = "nifi.nar.library.autoload.directory";
     public static final String NAR_WORKING_DIRECTORY = "nifi.nar.working.directory";
     public static final String UNPACK_NARS_TO_UBER_JAR = "nifi.nar.unpack.uber.jar";
-    public static final String COMPONENT_DOCS_DIRECTORY = "nifi.documentation.working.directory";
     public static final String SENSITIVE_PROPS_KEY = "nifi.sensitive.props.key";
     public static final String SENSITIVE_PROPS_ALGORITHM = "nifi.sensitive.props.algorithm";
     public static final String REMOTE_INPUT_HOST = "nifi.remote.input.host";
@@ -348,11 +347,10 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_WEB_REQUEST_TIMEOUT = "60 secs";
     public static final String DEFAULT_NAR_WORKING_DIR = "./work/nar";
     public static final boolean DEFAULT_UNPACK_NARS_TO_UBER_JAR = false;
-    public static final String DEFAULT_COMPONENT_DOCS_DIRECTORY = "./work/docs/components";
     public static final String DEFAULT_NAR_LIBRARY_DIR = "./lib";
     public static final String DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR = "./extensions";
     public static final String DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL = "20 secs";
-    public static final String DEFAULT_MAX_APPENDABLE_CLAIM_SIZE = "1 MB";
+    public static final String DEFAULT_MAX_APPENDABLE_CLAIM_SIZE = "50 KB";
     public static final int DEFAULT_QUEUE_SWAP_THRESHOLD = 20000;
     public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
     public static final String DEFAULT_BACKPRESSURE_SIZE = "1 GB";
@@ -752,10 +750,6 @@ public class NiFiProperties extends ApplicationProperties {
 
     public File getWebWorkingDirectory() {
         return new File(getProperty(WEB_WORKING_DIR, DEFAULT_WEB_WORKING_DIR));
-    }
-
-    public File getComponentDocumentationWorkingDirectory() {
-        return new File(getProperty(COMPONENT_DOCS_DIRECTORY, DEFAULT_COMPONENT_DOCS_DIRECTORY));
     }
 
     public File getNarWorkingDirectory() {

@@ -24,17 +24,13 @@ import java.util.List;
  */
 public class RecordSummary {
 
-    private final List<FlowFileResult> flowFileResults;
-
-    public RecordSummary() {
-        this.flowFileResults = new ArrayList<>();
-    }
+    private final List<FlowFileResult> flowFileResults = new ArrayList<>();
 
     public List<FlowFileResult> getFlowFileResults() {
         return flowFileResults;
     }
 
     public boolean isFailure() {
-        return flowFileResults.parallelStream().anyMatch(r -> (!r.getExceptions().isEmpty()));
+        return flowFileResults.stream().anyMatch(r -> !r.getExceptions().isEmpty());
     }
 }

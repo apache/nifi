@@ -55,6 +55,8 @@ import {
 import NfRegistryImportVersionedFlow from './components/explorer/grid-list/dialogs/import-versioned-flow/nf-registry-import-versioned-flow';
 import NfRegistryImportNewFlow from './components/explorer/grid-list/dialogs/import-new-flow/nf-registry-import-new-flow';
 import NfRegistryExportVersionedFlow from './components/explorer/grid-list/dialogs/export-versioned-flow/nf-registry-export-versioned-flow';
+import NfRegistryDeleteBundleVersion from './components/explorer/grid-list/dialogs/delete-bundle-version/nf-registry-delete-bundle-version';
+import NfRegistryDownloadBundleVersion from './components/explorer/grid-list/dialogs/download-bundle-version/nf-registry-download-bundle-version';
 import { NfRegistryExplorerAbout } from './components/explorer/dialogs/about/nf-registry-explorer-about';
 
 function NfRegistryModule() {
@@ -97,7 +99,9 @@ NfRegistryModule.annotations = [
             NfUserLoginComponent,
             NfRegistryExportVersionedFlow,
             NfRegistryImportVersionedFlow,
-            NfRegistryImportNewFlow
+            NfRegistryImportNewFlow,
+            NfRegistryDeleteBundleVersion,
+            NfRegistryDownloadBundleVersion
         ],
         entryComponents: [
             NfRegistryAddUser,
@@ -111,6 +115,8 @@ NfRegistryModule.annotations = [
             NfRegistryExportVersionedFlow,
             NfRegistryImportVersionedFlow,
             NfRegistryImportNewFlow,
+            NfRegistryDeleteBundleVersion,
+            NfRegistryDownloadBundleVersion,
             NfRegistryExplorerAbout
         ],
         providers: [

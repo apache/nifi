@@ -19,6 +19,7 @@ import { Injectable } from '@angular/core';
 import { CanvasUtils } from './canvas-utils.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../state';
+import * as FlowActions from '../state/flow/flow.actions';
 import {
     centerSelectedComponents,
     downloadFlow,
@@ -70,7 +71,6 @@ import * as d3 from 'd3';
 import { Client } from '../../../service/client.service';
 import { CanvasView } from './canvas-view.service';
 import { CanvasActionsService } from './canvas-actions.service';
-import * as FlowActions from '../state/flow/flow.actions';
 import { DraggableBehavior } from './behavior/draggable-behavior.service';
 import { BackNavigation } from '../../../state/navigation';
 
@@ -981,7 +981,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                                     context: 'Processor'
                                 } as BackNavigation,
                                 parameters: {
-                                    select: selectionData.component.type,
+                                    componentType: ComponentType.Processor,
+                                    type: selectionData.component.type,
                                     group: selectionData.component.bundle.group,
                                     artifact: selectionData.component.bundle.artifact,
                                     version: selectionData.component.bundle.version

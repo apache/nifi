@@ -24,16 +24,15 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.nifi.kafka.service.api.common.OffsetSummary;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
-import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
-import org.apache.nifi.kafka.service.api.consumer.PollingContext;
 import org.apache.nifi.kafka.service.api.consumer.PollingSummary;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
-import org.apache.nifi.kafka.service.consumer.pool.ConsumerObjectPool;
 import org.apache.nifi.kafka.service.consumer.pool.Subscription;
 import org.apache.nifi.logging.ComponentLog;
 
+import java.io.Closeable;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -41,67 +40,87 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.function.Function;
-import java.util.regex.Pattern;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Kafka 3 Consumer Service implementation with Object Pooling for subscribed Kafka Consumers
  */
-public class Kafka3ConsumerService implements KafkaConsumerService {
+public class Kafka3ConsumerService implements KafkaConsumerService, Closeable {
+
     private final ComponentLog componentLog;
+    private final Consumer<byte[], byte[]> consumer;
+    private final Subscription subscription;
+    private final Duration maxUncommittedTime;
+    private volatile boolean closed = false;
 
-    private final ConsumerObjectPool consumerObjectPool;
+    public Kafka3ConsumerService(final ComponentLog componentLog, final Consumer<byte[], byte[]> consumer, final Subscription subscription,
+            final Duration maxUncommittedTime) {
 
-    public Kafka3ConsumerService(final ComponentLog componentLog, final Properties properties) {
         this.componentLog = Objects.requireNonNull(componentLog, "Component Log required");
-        this.consumerObjectPool = new ConsumerObjectPool(properties);
+        this.consumer = consumer;
+        this.subscription = subscription;
+        this.maxUncommittedTime = maxUncommittedTime;
     }
 
     @Override
     public void commit(final PollingSummary pollingSummary) {
-        Objects.requireNonNull(pollingSummary, "Polling Summary required");
-
-        final Subscription subscription = getSubscription(pollingSummary);
         final Map<TopicPartition, OffsetAndMetadata> offsets = getOffsets(pollingSummary);
 
         final long started = System.currentTimeMillis();
-        final long elapsed = runConsumerFunction(subscription, (consumer) -> {
-            consumer.commitSync(offsets);
-            return started - System.currentTimeMillis();
-        });
+        consumer.commitSync(offsets);
+        final long elapsed = started - System.currentTimeMillis();
 
         componentLog.debug("Committed Records in [{} ms] for {}", elapsed, pollingSummary);
     }
 
     @Override
-    public Iterable<ByteRecord> poll(final PollingContext pollingContext) {
-        Objects.requireNonNull(pollingContext, "Polling Context required");
-        final Subscription subscription = getSubscription(pollingContext);
+    public void rollback() {
+        final Set<TopicPartition> assignment = consumer.assignment();
 
-        return runConsumerFunction(subscription, (consumer) -> {
-            final ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(pollingContext.getMaxUncommittedTime());
-            return new RecordIterable(consumerRecords);
-        });
+        try {
+            final Map<TopicPartition, OffsetAndMetadata> metadataMap = consumer.committed(assignment);
+            for (final Map.Entry<TopicPartition, OffsetAndMetadata> entry : metadataMap.entrySet()) {
+                final TopicPartition topicPartition = entry.getKey();
+                final OffsetAndMetadata offsetAndMetadata = entry.getValue();
+
+                if (offsetAndMetadata == null) {
+                    consumer.seekToBeginning(Collections.singleton(topicPartition));
+                    componentLog.debug("Rolling back offsets so that {}-{} it is at the beginning", topicPartition.topic(), topicPartition.partition());
+                } else {
+                    consumer.seek(topicPartition, offsetAndMetadata.offset());
+                    componentLog.debug("Rolling back offsets so that {}-{} has offset of {}", topicPartition.topic(), topicPartition.partition(), offsetAndMetadata.offset());
+                }
+            }
+        } catch (final Exception rollbackException) {
+            componentLog.warn("Attempted to rollback Kafka message offset but was unable to do so", rollbackException);
+            close();
+        }
     }
 
     @Override
-    public List<PartitionState> getPartitionStates(final PollingContext pollingContext) {
-        final Subscription subscription = getSubscription(pollingContext);
+    public boolean isClosed() {
+        return closed;
+    }
+
+    @Override
+    public Iterable<ByteRecord> poll() {
+        final ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(maxUncommittedTime);
+        return new RecordIterable(consumerRecords);
+    }
+
+    @Override
+    public List<PartitionState> getPartitionStates() {
         final Iterator<String> topics = subscription.getTopics().iterator();
 
         final List<PartitionState> partitionStates;
 
         if (topics.hasNext()) {
             final String topic = topics.next();
-            partitionStates = runConsumerFunction(subscription, (consumer) ->
-                    consumer.partitionsFor(topic)
-                            .stream()
-                            .map(partitionInfo -> new PartitionState(partitionInfo.topic(), partitionInfo.partition()))
-                            .collect(Collectors.toList())
-            );
+            partitionStates = consumer.partitionsFor(topic)
+                .stream()
+                .map(partitionInfo -> new PartitionState(partitionInfo.topic(), partitionInfo.partition()))
+                .collect(Collectors.toList());
         } else {
             partitionStates = Collections.emptyList();
         }
@@ -111,17 +130,8 @@ public class Kafka3ConsumerService implements KafkaConsumerService {
 
     @Override
     public void close() {
-        consumerObjectPool.close();
-    }
-
-    private Subscription getSubscription(final PollingContext pollingContext) {
-        final String groupId = pollingContext.getGroupId();
-        final Optional<Pattern> topicPatternFound = pollingContext.getTopicPattern();
-        final AutoOffsetReset autoOffsetReset = pollingContext.getAutoOffsetReset();
-
-        return topicPatternFound
-                .map(pattern -> new Subscription(groupId, pattern, autoOffsetReset))
-                .orElseGet(() -> new Subscription(groupId, pollingContext.getTopics(), autoOffsetReset));
+        closed = true;
+        consumer.close();
     }
 
     private Map<TopicPartition, OffsetAndMetadata> getOffsets(final PollingSummary pollingSummary) {
@@ -140,23 +150,6 @@ public class Kafka3ConsumerService implements KafkaConsumerService {
         return offsets;
     }
 
-    private <T> T runConsumerFunction(final Subscription subscription, final Function<Consumer<byte[], byte[]>, T> consumerFunction) {
-        Consumer<byte[], byte[]> consumer = null;
-        try {
-            consumer = consumerObjectPool.borrowObject(subscription);
-            return consumerFunction.apply(consumer);
-        } catch (final Exception e) {
-            throw new ConsumerException("Borrow Consumer failed", e);
-        } finally {
-            if (consumer != null) {
-                try {
-                    consumerObjectPool.returnObject(subscription, consumer);
-                } catch (final Exception e) {
-                    componentLog.warn("Return Consumer failed", e);
-                }
-            }
-        }
-    }
 
     private static class RecordIterable implements Iterable<ByteRecord> {
         private final Iterator<ByteRecord> records;
@@ -191,6 +184,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService {
                 final RecordHeader recordHeader = new RecordHeader(header.key(), header.value());
                 recordHeaders.add(recordHeader);
             });
+
             return new ByteRecord(
                     consumerRecord.topic(),
                     consumerRecord.partition(),
@@ -198,7 +192,8 @@ public class Kafka3ConsumerService implements KafkaConsumerService {
                     consumerRecord.timestamp(),
                     recordHeaders,
                     consumerRecord.key(),
-                    consumerRecord.value()
+                    consumerRecord.value(),
+                    1
             );
         }
     }

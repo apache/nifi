@@ -21,6 +21,11 @@ import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
+import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
+import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
+import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
+import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ScheduledState;
@@ -492,6 +497,72 @@ public interface NiFiServiceFacade {
      * @return the runtime manifest
      */
     RuntimeManifest getRuntimeManifest();
+
+    /**
+     * Return the ProcessorDefinition the specified Processor.
+     *
+     * @param group The bundle group
+     * @param artifact The bundle artifact
+     * @param version The bundle version
+     * @param type The Processor type
+     * @return The ProcessorDefinition
+     */
+    ProcessorDefinition getProcessorDefinition(String group, String artifact, String version, String type);
+
+    /**
+     * Return the ControllerServiceDefinition the specified Controller Service.
+     *
+     * @param group The bundle group
+     * @param artifact The bundle artifact
+     * @param version The bundle version
+     * @param type The Controller Service type
+     * @return The ControllerServiceDefinition
+     */
+    ControllerServiceDefinition getControllerServiceDefinition(String group, String artifact, String version, String type);
+
+    /**
+     * Return the ReportingTaskDefinition the specified Reporting Task.
+     *
+     * @param group The bundle group
+     * @param artifact The bundle artifact
+     * @param version The bundle version
+     * @param type The Reporting Task type
+     * @return The ReportingTaskDefinition
+     */
+    ReportingTaskDefinition getReportingTaskDefinition(String group, String artifact, String version, String type);
+
+    /**
+     * Return the ParameterProviderDefinition the specified Parameter Provider.
+     *
+     * @param group The bundle group
+     * @param artifact The bundle artifact
+     * @param version The bundle version
+     * @param type The Parameter Provider type
+     * @return The ParameterProviderDefinition
+     */
+    ParameterProviderDefinition getParameterProviderDefinition(String group, String artifact, String version, String type);
+
+    /**
+     * Return the FlowAnalysisRuleDefinition the specified Flow Analysis Rule.
+     *
+     * @param group The bundle group
+     * @param artifact The bundle artifact
+     * @param version The bundle version
+     * @param type The Flow Analysis Rule type
+     * @return The FlowAnalysisRuleDefinition
+     */
+    FlowAnalysisRuleDefinition getFlowAnalysisRuleDefinition(String group, String artifact, String version, String type);
+
+    /**
+     * Return the additionalDetails for the specified component.
+     *
+     * @param group The bundle group
+     * @param artifact The bundle artifact
+     * @param version The bundle version
+     * @param type The component type
+     * @return The additional details
+     */
+    String getAdditionalDetails(String group, String artifact, String version, String type);
 
     /**
      * Returns the list of parameter provider types.

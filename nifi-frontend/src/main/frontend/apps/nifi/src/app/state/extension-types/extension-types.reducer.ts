@@ -20,6 +20,7 @@ import { ExtensionTypesState } from './index';
 import {
     loadExtensionTypesForCanvas,
     loadExtensionTypesForCanvasSuccess,
+    loadExtensionTypesForDocumentationSuccess,
     loadExtensionTypesForPoliciesSuccess,
     loadExtensionTypesForSettingsSuccess
 } from './extension-types.actions';
@@ -58,6 +59,15 @@ export const extensionTypesReducer = createReducer(
         status: 'success' as const
     })),
     on(loadExtensionTypesForPoliciesSuccess, (state, { response }) => ({
+        ...state,
+        processorTypes: response.processorTypes,
+        controllerServiceTypes: response.controllerServiceTypes,
+        reportingTaskTypes: response.reportingTaskTypes,
+        parameterProviderTypes: response.parameterProviderTypes,
+        flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
+        status: 'success' as const
+    })),
+    on(loadExtensionTypesForDocumentationSuccess, (state, { response }) => ({
         ...state,
         processorTypes: response.processorTypes,
         controllerServiceTypes: response.controllerServiceTypes,

@@ -40,6 +40,11 @@ export class NiFiCommon {
     public static readonly BYTES_IN_GIGABYTE: number = 1073741824;
     public static readonly BYTES_IN_TERABYTE: number = 1099511627776;
 
+    public static readonly PACKAGE_SEPARATOR: string = '.';
+
+    public static readonly TOOLTIP_DELAY_CLOSE_MILLIS: number = 400;
+    public static readonly TOOLTIP_DELAY_OPEN_MILLIS: number = 500;
+
     private policyTypeListing: SelectOption[] = [
         {
             text: 'view the user interface',
@@ -174,6 +179,22 @@ export class NiFiCommon {
     }
 
     /**
+     * Get the label for a Component Type using the simple name from a qualified class
+     *
+     * @argument {string} componentType Qualified class name or simple name
+     */
+    public getComponentTypeLabel(componentType: string): string {
+        let label = componentType;
+
+        const separatorIndex = componentType.indexOf(NiFiCommon.PACKAGE_SEPARATOR);
+        if (separatorIndex >= 0) {
+            label = this.substringAfterLast(componentType, NiFiCommon.PACKAGE_SEPARATOR);
+        }
+
+        return label;
+    }
+
+    /**
      * Determines whether the specified string is blank (or null or undefined).
      *
      * @argument {string} str   The string to test
@@ -268,7 +289,7 @@ export class NiFiCommon {
      * @param dataContext component datum
      */
     public formatClassName(dataContext: any): string {
-        return this.substringAfterLast(dataContext.type, '.');
+        return this.getComponentTypeLabel(dataContext.type);
     }
 
     /**

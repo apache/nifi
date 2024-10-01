@@ -177,7 +177,7 @@ public class NiFiClientUtil {
     }
 
     public ProcessorEntity createPythonProcessor(final String typeName) throws NiFiClientException, IOException {
-        return createProcessor( "python." + typeName, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_PYTHON_EXTENSIONS_ARTIFACT_ID, "0.0.1-SNAPSHOT");
+        return createProcessor(typeName, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_PYTHON_EXTENSIONS_ARTIFACT_ID, "0.0.1-SNAPSHOT");
     }
 
     public ProcessorEntity createProcessor(final String simpleTypeName) throws NiFiClientException, IOException {
@@ -298,11 +298,11 @@ public class NiFiClientUtil {
     }
 
     public ControllerServiceEntity createRootLevelControllerService(final String simpleTypeName) throws NiFiClientException, IOException {
-        return createControllerService(NiFiSystemIT.TEST_CS_PACKAGE + "." + simpleTypeName, null, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+        return createControllerService(NiFiSystemIT.TEST_CS_PACKAGE + "." + simpleTypeName, null, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_SERVICES_ARTIFACT_ID, nifiVersion);
     }
 
     public ControllerServiceEntity createControllerService(final String simpleTypeName, final String groupId) throws NiFiClientException, IOException {
-        return createControllerService(NiFiSystemIT.TEST_CS_PACKAGE + "." + simpleTypeName, groupId, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+        return createControllerService(NiFiSystemIT.TEST_CS_PACKAGE + "." + simpleTypeName, groupId, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_SERVICES_ARTIFACT_ID, nifiVersion);
     }
 
     public ControllerServiceEntity createControllerService(final String type, final String processGroupId, final String bundleGroupId, final String artifactId, final String version)

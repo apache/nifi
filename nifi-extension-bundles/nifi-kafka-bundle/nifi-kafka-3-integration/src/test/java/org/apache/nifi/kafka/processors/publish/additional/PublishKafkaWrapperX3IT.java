@@ -17,7 +17,6 @@
 package org.apache.nifi.kafka.processors.publish.additional;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -38,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -85,7 +85,7 @@ public class PublishKafkaWrapperX3IT extends AbstractPublishKafkaIT {
                 final List<Header> headers = Arrays.asList(record.headers().toArray());
                 assertTrue(headers.isEmpty());
                 // kafka record key
-                assertEquals("411b0a140b39581341", Hex.encodeHexString(record.key().getBytes(StandardCharsets.UTF_8)));
+                assertEquals("411b0a140b39581341", HexFormat.of().formatHex(record.key().getBytes(StandardCharsets.UTF_8)));
                 // kafka record value
                 final ObjectNode kafkaValue = (ObjectNode) objectMapper.readTree(record.value());
                 assertNotNull(kafkaValue);

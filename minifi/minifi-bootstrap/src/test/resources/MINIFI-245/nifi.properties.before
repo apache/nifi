@@ -30,7 +30,6 @@ nifi.login.identity.provider.configuration.file=./conf/login-identity-providers.
 nifi.templates.directory=./conf/templates
 nifi.nar.library.directory=./lib
 nifi.nar.working.directory=./work/nar/
-nifi.documentation.working.directory=./work/docs/components
 
 ####################
 # State Management #

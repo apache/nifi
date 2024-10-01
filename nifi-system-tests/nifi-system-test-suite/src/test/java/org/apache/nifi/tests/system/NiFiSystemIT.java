@@ -83,6 +83,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     public static final int STANDALONE_CLIENT_API_BASE_PORT = 5670;
     public static final String NIFI_GROUP_ID = "org.apache.nifi";
     public static final String TEST_EXTENSIONS_ARTIFACT_ID = "nifi-system-test-extensions-nar";
+    public static final String TEST_EXTENSIONS_SERVICES_ARTIFACT_ID = "nifi-system-test-extensions-services-nar";
     public static final String TEST_PYTHON_EXTENSIONS_ARTIFACT_ID = "python-extensions";
     public static final String TEST_PARAM_PROVIDERS_PACKAGE = "org.apache.nifi.parameter.tests.system";
     public static final String TEST_PROCESSORS_PACKAGE = "org.apache.nifi.processors.tests.system";
@@ -622,7 +623,9 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
         final int expectedPort = getClientApiPort() + nodeIndex - 1;
 
+        final List<Integer> nodePorts = new ArrayList<>();
         for (final NodeDTO nodeDto : clusterEntity.getCluster().getNodes()) {
+            nodePorts.add(nodeDto.getApiPort());
             if (nodeDto.getApiPort() == expectedPort) {
                 final NodeEntity nodeEntity = new NodeEntity();
                 nodeEntity.setNode(nodeDto);
@@ -630,7 +633,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
             }
         }
 
-        throw new IllegalStateException("Could not find node with API Port of " + expectedPort);
+        throw new IllegalStateException("Could not find node with API Port of " + expectedPort + "; found nodes: " + nodePorts);
     }
 
     protected void waitForNodeState(final int nodeIndex, final NodeConnectionState... nodeStates) throws InterruptedException {

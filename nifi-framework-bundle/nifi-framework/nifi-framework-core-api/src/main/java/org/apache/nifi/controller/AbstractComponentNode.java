@@ -784,11 +784,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
         final boolean dynamicallyModifiesClasspath = descriptors.stream()
                 .anyMatch(PropertyDescriptor::isDynamicClasspathModifier);
+        final String isolationKey = determineClasloaderIsolationKey();
 
-        if (dynamicallyModifiesClasspath) {
+        if (dynamicallyModifiesClasspath || isolationKey != null) {
             final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors, this::getEffectivePropertyValueWithDefault);
 
-            final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
+            final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, isolationKey);
             if (!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
                 setAdditionalResourcesFingerprint(newFingerprint);
                 try {
@@ -1386,6 +1387,11 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public void resetValidationState() {
         lock.lock();
         try {
+            if (!isValidationNecessary()) {
+                logger.debug("Triggered to reset validation state of {} but will leave validation state as {} because validation is not necessary in its current state", this, validationState.get());
+                return;
+            }
+
             validationContext = null;
             validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
 

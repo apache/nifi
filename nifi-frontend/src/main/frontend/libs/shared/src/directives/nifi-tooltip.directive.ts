@@ -18,6 +18,7 @@
 import { Directive, ElementRef, HostListener, Input, OnDestroy, Type } from '@angular/core';
 import { ConnectedPosition, Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
+import { NiFiCommon } from '../services';
 
 @Directive({
     selector: '[nifiTooltip]',
@@ -29,10 +30,12 @@ export class NifiTooltipDirective<T> implements OnDestroy {
     @Input() tooltipInputData: any;
     @Input() position: ConnectedPosition | undefined;
     @Input() delayClose = true;
+    @Input() delayOpen = true;
 
     private closeTimer = -1;
     private overlayRef: OverlayRef | null = null;
     private overTip = false;
+    private openTimer = -1;
 
     constructor(
         private element: ElementRef<HTMLElement>,
@@ -41,8 +44,16 @@ export class NifiTooltipDirective<T> implements OnDestroy {
 
     @HostListener('mouseenter')
     mouseEnter() {
-        if (!this.overlayRef?.hasAttached()) {
-            this.attach();
+        if (this.delayOpen) {
+            this.openTimer = window.setTimeout(() => {
+                if (!this.overlayRef?.hasAttached()) {
+                    this.attach();
+                }
+            }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
+        } else {
+            if (!this.overlayRef?.hasAttached()) {
+                this.attach();
+            }
         }
     }
 
@@ -53,10 +64,14 @@ export class NifiTooltipDirective<T> implements OnDestroy {
                 this.closeTimer = window.setTimeout(() => {
                     this.overlayRef?.detach();
                     this.closeTimer = -1;
-                }, 400);
+                }, NiFiCommon.TOOLTIP_DELAY_CLOSE_MILLIS);
             } else {
                 this.overlayRef?.detach();
             }
+        }
+        if (this.openTimer > 0) {
+            window.clearTimeout(this.openTimer);
+            this.openTimer = -1;
         }
     }
 

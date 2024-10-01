@@ -93,7 +93,7 @@
                 <div class="prioritizer-name" [title]="getPrioritizerLabel(item)">{{ getPrioritizerLabel(item) }}</div>
                 @if (hasDescription(item)) {
                     <i
-                        class="pl-1 fa fa-info-circle surface-color"
+                        class="pl-1 fa fa-info-circle neutral-color"
                         nifiTooltip
                         [tooltipComponentType]="TextTip"
                         [tooltipInputData]="item.description"></i>
@@ -101,15 +101,15 @@
             </div>
             @if (canClose) {
                 <button class="pr-1" type="button" (click)="removeSelected(item, i)">
-                    <i class="fa fa-times surface-contrast"></i>
+                    <i class="fa fa-times neutral-contrast"></i>
                 </button>
             }
         } @else {
-            <div class="flex items-center accent-color font-medium">
+            <div class="flex items-center tertiary-color font-medium">
                 <div>{{ getPrioritizerLabel(item) }}</div>
                 @if (hasDescription(item)) {
                     <i
-                        class="pl-1 fa fa-info-circle surface-color"
+                        class="pl-1 fa fa-info-circle neutral-color"
                         nifiTooltip
                         [tooltipComponentType]="TextTip"
                         [tooltipInputData]="item.description"></i>

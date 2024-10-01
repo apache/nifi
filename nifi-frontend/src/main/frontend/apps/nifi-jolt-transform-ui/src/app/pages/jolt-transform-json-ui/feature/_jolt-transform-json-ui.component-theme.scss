@@ -18,7 +18,7 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $supplemental-theme) {
+@mixin generate-theme($material-theme, $config) {
     .jolt-transform-json-ui {
         @include mat.button-density(-1);
 
@@ -26,29 +26,16 @@
             width: 100%;
         }
 
-        .output-editor {
-            .CodeMirror.cm-s-nifi {
-                height: calc(100vh - 180px);
-                min-height: 345px;
-            }
-        }
-
-        .jolt-spec-editor {
-            .CodeMirror.cm-s-nifi {
-                height: calc(100vh - 422px);
-            }
-        }
-
         .input-editor {
             .CodeMirror.cm-s-nifi {
                 height: calc(100vh - 414px);
-                min-height: 116px;
+                min-height: 81px;
             }
         }
 
         .attributes-editor {
             height: calc(100vh - 362px);
-            min-height: 168px;
+            min-height: 126px;
         }
     }
 }

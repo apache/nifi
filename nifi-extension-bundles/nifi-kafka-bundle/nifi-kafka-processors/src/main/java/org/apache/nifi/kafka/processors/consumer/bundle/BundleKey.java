@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.kafka.processors.consumer.bundle;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -69,25 +68,21 @@ public class BundleKey {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         final BundleKey bundleKey = (BundleKey) o;
-
-        return new EqualsBuilder()
-                .append(topicPartition, bundleKey.topicPartition)
-                .append(headersFiltered, bundleKey.headersFiltered)
-                .append(messageKey, bundleKey.messageKey)
-                .isEquals();
+        return Objects.equals(topicPartition, bundleKey.topicPartition)
+                && Objects.equals(headersFiltered, bundleKey.headersFiltered)
+                && Arrays.equals(messageKey, bundleKey.messageKey);
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-                .append(topicPartition)
-                .append(headersFiltered)
-                .append(messageKey)
-                .toHashCode();
+        return Objects.hash(topicPartition, headersFiltered, Arrays.hashCode(messageKey));
     }
 }

@@ -48,7 +48,7 @@
                                     <div class="flex align-middle">
                                         @if (item.processorStatusSnapshot.executionNode === 'PRIMARY') {
                                             <div
-                                                class="primary-node-only border surface-contrast mr-1 text-xs font-bold"
+                                                class="primary-node-only border neutral-contrast mr-1 text-xs font-bold"
                                                 title="This component is only scheduled to execute on the Primary Node">
                                                 P
                                             </div>
@@ -277,11 +277,11 @@
     </div>
     <div class="flex justify-between align-middle">
         <div class="text-sm flex items-center gap-x-2">
-            <button mat-icon-button color="primary" (click)="refresh.next()">
+            <button mat-icon-button class="primary-icon-button" (click)="refresh.next()">
                 <i class="fa fa-refresh" [class.fa-spin]="summaryListingStatus === 'loading'"></i>
             </button>
             <div>Last updated:</div>
-            <div class="accent-color font-medium">{{ loadedTimestamp }}</div>
+            <div class="tertiary-color font-medium">{{ loadedTimestamp }}</div>
         </div>
         <div>
             <mat-paginator

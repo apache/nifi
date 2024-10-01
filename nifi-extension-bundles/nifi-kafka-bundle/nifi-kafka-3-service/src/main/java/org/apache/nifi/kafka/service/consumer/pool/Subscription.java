@@ -28,12 +28,10 @@ import java.util.regex.Pattern;
  * Subscription for pooled Kafka Consumers
  */
 public class Subscription {
+
     private final String groupId;
-
     private final Collection<String> topics;
-
     private final Pattern topicPattern;
-
     private final AutoOffsetReset autoOffsetReset;
 
     public Subscription(final String groupId, final Collection<String> topics, final AutoOffsetReset autoOffsetReset) {
@@ -68,26 +66,21 @@ public class Subscription {
 
     @Override
     public boolean equals(final Object object) {
-        final boolean equals;
-
         if (object == null) {
-            equals = false;
-        } else if (object instanceof Subscription) {
-            final Subscription subscription = (Subscription) object;
-            if (groupId.equals(subscription.groupId)) {
-                if (isTopicSubscriptionMatched(subscription)) {
-                    equals = autoOffsetReset == subscription.autoOffsetReset;
-                } else {
-                    equals = false;
-                }
-            } else {
-                equals = false;
-            }
-        } else {
-            equals = false;
+            return false;
         }
 
-        return equals;
+        if (object == this) {
+            return true;
+        }
+
+        if (object instanceof final Subscription subscription) {
+            return groupId.equals(subscription.groupId)
+                   && isTopicSubscriptionMatched(subscription)
+                   && autoOffsetReset == subscription.autoOffsetReset;
+        }
+
+        return false;
     }
 
     @Override
@@ -101,20 +94,12 @@ public class Subscription {
     }
 
     private boolean isTopicSubscriptionMatched(final Subscription subscription) {
-        final boolean matched;
-
-        if (topics.size() == subscription.topics.size()) {
-            if (topics.containsAll(subscription.topics)) {
-                final String regexLeft = (topicPattern == null ? null : topicPattern.pattern());
-                final String regexRight = (subscription.topicPattern == null ? null : subscription.topicPattern.pattern());
-                matched = Objects.equals(regexLeft, regexRight);
-            } else {
-                matched = false;
-            }
-        } else {
-            matched = false;
+        if (topics.size() == subscription.topics.size() && topics.containsAll(subscription.topics)) {
+            final String regexLeft = (topicPattern == null ? null : topicPattern.pattern());
+            final String regexRight = (subscription.topicPattern == null ? null : subscription.topicPattern.pattern());
+            return Objects.equals(regexLeft, regexRight);
         }
 
-        return matched;
+        return false;
     }
 }

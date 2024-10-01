@@ -45,8 +45,7 @@ public class PublishKafkaFailureStrategyIT extends AbstractPublishKafkaIT {
         // attempt to send a non-json FlowFile to Kafka using record strategy;
         // this will fail on the record parsing step prior to send; triggering the failure strategy logic
         final Map<String, String> attributes = new HashMap<>();
-        final byte[] bytesFlowFile = IOUtils.toByteArray(Objects.requireNonNull(
-                getClass().getClassLoader().getResource(TEST_RESOURCE)));
+        final byte[] bytesFlowFile = IOUtils.toByteArray(Objects.requireNonNull(getClass().getClassLoader().getResource(TEST_RESOURCE)));
         runner.enqueue(bytesFlowFile, attributes);
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PublishKafka.REL_FAILURE, 1);
@@ -65,10 +64,10 @@ public class PublishKafkaFailureStrategyIT extends AbstractPublishKafkaIT {
         // attempt to send a non-json FlowFile to Kafka using record strategy;
         // this will fail on the record parsing step prior to send; triggering the failure strategy logic
         final Map<String, String> attributes = new HashMap<>();
-        final byte[] bytesFlowFile = IOUtils.toByteArray(Objects.requireNonNull(
-                getClass().getClassLoader().getResource(TEST_RESOURCE)));
+        final byte[] bytesFlowFile = IOUtils.toByteArray(Objects.requireNonNull(getClass().getClassLoader().getResource(TEST_RESOURCE)));
         runner.enqueue(bytesFlowFile, attributes);
         runner.run(1);
+
         // on rollback, FlowFile is returned to source queue
         runner.assertTransferCount(PublishKafka.REL_SUCCESS, 0);
         runner.assertTransferCount(PublishKafka.REL_FAILURE, 0);

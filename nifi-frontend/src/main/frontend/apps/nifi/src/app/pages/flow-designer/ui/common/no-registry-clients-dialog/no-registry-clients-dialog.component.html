@@ -28,10 +28,8 @@
 <mat-dialog-actions align="end">
     @if (request.controllerPermissions.canRead) {
         <button mat-button mat-dialog-close>Cancel</button>
-        <button mat-button mat-dialog-close color="primary" [routerLink]="['/settings', 'registry-clients']">
-            Configure
-        </button>
+        <button mat-flat-button mat-dialog-close [routerLink]="['/settings', 'registry-clients']">Configure</button>
     } @else {
-        <button mat-button mat-dialog-close color="primary">Ok</button>
+        <button mat-flat-button mat-dialog-close>Ok</button>
     }
 </mat-dialog-actions>

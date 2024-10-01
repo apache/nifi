@@ -31,8 +31,8 @@
                     </div>
                     <button
                         mat-icon-button
+                        class="primary-icon-button"
                         [disabled]="isEmpty()"
-                        color="primary"
                         type="button"
                         (click)="clearAttributesClicked()">
                         <i class="fa fa-eraser"></i>
@@ -43,6 +43,6 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button mat-button mat-dialog-close cdkFocusInitial (click)="verifyClicked()" color="primary">Verify</button>
+        <button mat-flat-button mat-dialog-close cdkFocusInitial (click)="verifyClicked()">Verify</button>
     </mat-dialog-actions>
 </form>

@@ -21,6 +21,7 @@ import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.Relationship;
@@ -513,14 +514,18 @@ public class PythonControllerInteractionIT {
         assertTrue(relationships.stream().anyMatch(rel -> rel.getName().equals("original")));
         assertTrue(relationships.stream().anyMatch(rel -> rel.getName().equals("failure")));
 
-        runner.enqueue(new byte[25]);
-        runner.enqueue(new byte[75 * 1024]);
+        final MockFlowFile smallInputFlowFile = runner.enqueue(new byte[25]);
+        final MockFlowFile largeInputFlowFile = runner.enqueue(new byte[75 * 1024]);
         runner.run(2);
 
         runner.assertTransferCount("original", 2);
         runner.assertTransferCount("small", 1);
         runner.assertTransferCount("large", 1);
         runner.assertTransferCount("failure", 0);
+        final FlowFile largeOutputFlowFile = runner.getFlowFilesForRelationship("large").getFirst();
+        assertEquals(largeInputFlowFile.getId(), largeOutputFlowFile.getId(), "Large Transformed Flow File should be the same as inbound");
+        final FlowFile smallOutputFlowFile = runner.getFlowFilesForRelationship("small").getFirst();
+        assertEquals(smallInputFlowFile.getId(), smallOutputFlowFile.getId(), "Small Transformed Flow File should be the same as inbound");
     }
 
     @Test

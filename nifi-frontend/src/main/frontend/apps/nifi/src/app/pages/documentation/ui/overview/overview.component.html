@@ -1,0 +1,68 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="p-4">
+    <h3 class="primary-color">Overview</h3>
+    <div class="flex flex-col gap-y-4">
+        <div>
+            Apache NiFi is a dataflow system based on the concepts of flow-based programming. It supports powerful and
+            scalable directed graphs of data routing, transformation, and system mediation logic. NiFi has a web-based
+            user interface for design, control, feedback, and monitoring of dataflows. It is highly configurable along
+            several dimensions of quality of service, such as loss-tolerant versus guaranteed delivery, low latency
+            versus high throughput, and priority-based queuing. NiFi provides fine-grained data provenance for all data
+            received, forked, joined cloned, modified, sent, and ultimately dropped upon reaching its configured
+            end-state.
+        </div>
+        <div>
+            Please consider the following links for helpful guides to assist with getting started and learning about
+            different aspects of Apache NiFi in more depth. Component specific documentation is also available to help
+            provide details for using the components including supported use cases and related components.
+        </div>
+        <div class="flex items-stretch gap-x-2">
+            <mat-card class="w-1/2" appearance="outlined">
+                <ng-container
+                    *ngTemplateOutlet="
+                        externalDocumentation;
+                        context: {
+                            $implicit: generalDocumentation(),
+                            title: 'General'
+                        }
+                    "></ng-container>
+            </mat-card>
+            <mat-card class="w-1/2" appearance="outlined">
+                <ng-container
+                    *ngTemplateOutlet="
+                        externalDocumentation;
+                        context: {
+                            $implicit: developerDocumentation(),
+                            title: 'Developer'
+                        }
+                    "></ng-container>
+            </mat-card>
+            <ng-template #externalDocumentation let-externalDocumentationItems let-title="title">
+                <div class="p-4 flex flex-col gap-y-1">
+                    <h2>{{ title }}</h2>
+                    @for (externalDocumentation of externalDocumentationItems; track externalDocumentation.name) {
+                        <a class="p-1" target="_blank" [href]="externalDocumentation.url">{{
+                            externalDocumentation.displayName
+                        }}</a>
+                    }
+                </div>
+            </ng-template>
+        </div>
+    </div>
+</div>

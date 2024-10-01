@@ -17,7 +17,7 @@
 
 <div class="parameter-provider-references">
     @if (!parameterProviderReferences || parameterProviderReferences.length === 0) {
-        <div class="accent-color font-medium">No referencing components</div>
+        <div class="tertiary-color font-medium">No referencing components</div>
     } @else {
         <ul>
             <ng-container
@@ -42,7 +42,7 @@
     <ng-template #parameterContexts let-references let-label="label">
         @if (references.length > 0) {
             <li>
-                <h4 class="accent-color">{{ label }} ({{ references.length }})</h4>
+                <h4 class="tertiary-color">{{ label }} ({{ references.length }})</h4>
                 <div class="references">
                     @for (reference of references; track reference) {
                         <div class="flex items-center gap-x-2">
@@ -59,11 +59,11 @@
     <ng-template #unauthorized let-references let-label="label">
         @if (references.length > 0) {
             <li>
-                <h4 class="accent-color">{{ label }} ({{ references.length }})</h4>
+                <h4 class="tertiary-color">{{ label }} ({{ references.length }})</h4>
                 <div class="references">
                     @for (reference of references; track reference) {
                         <div class="flex items-center gap-x-2">
-                            <div class="unset surface-color">{{ reference.id }}</div>
+                            <div class="unset neutral-color">{{ reference.id }}</div>
                         </div>
                     }
                 </div>

@@ -23,12 +23,12 @@
             @if (componentName$ | async; as componentName) {
                 <div class="flex flex-col">
                     <div>Name</div>
-                    <div class="accent-color font-medium">{{ componentName }}</div>
+                    <div class="tertiary-color font-medium">{{ componentName }}</div>
                 </div>
             }
             <div class="flex flex-col">
                 <div>Description</div>
-                <div class="accent-color font-medium">
+                <div class="tertiary-color font-medium">
                     {{ stateDescription }}
                 </div>
             </div>
@@ -49,7 +49,7 @@
                             }
                         </div>
                     </form>
-                    <div class="my-2 accent-color leading-none font-medium">
+                    <div class="my-2 tertiary-color leading-none font-medium">
                         Displaying {{ filteredEntries }} of {{ totalEntries }}
                     </div>
                 </div>

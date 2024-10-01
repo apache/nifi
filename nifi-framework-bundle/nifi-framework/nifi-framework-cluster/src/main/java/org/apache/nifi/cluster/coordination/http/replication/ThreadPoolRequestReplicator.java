@@ -106,7 +106,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
     private final EventReporter eventReporter;
     private final RequestCompletionCallback callback;
     private final ClusterCoordinator clusterCoordinator;
-    private final NiFiProperties nifiProperties;
 
     private final ThreadPoolExecutor executorService;
     private final ScheduledExecutorService maintenanceExecutor;
@@ -145,7 +144,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         this.responseMapper = new StandardHttpResponseMapper(nifiProperties);
         this.eventReporter = eventReporter;
         this.callback = callback;
-        this.nifiProperties = nifiProperties;
         this.httpClient = client;
 
         final AtomicInteger threadId = new AtomicInteger(0);
@@ -468,7 +466,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
                 nodeId -> new NodeHttpRequest(request, nodeId, createURI(uri, nodeId), nodeCompletionCallback, finalResponse);
 
-            submitAsyncRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, updatedHeaders);
+            submitAsyncRequest(nodeIds, requestFactory);
 
             return response;
         } catch (final Throwable t) {
@@ -541,17 +539,14 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                         try {
                             final Map<String, String> cancelLockHeaders = new HashMap<>(headers);
                             cancelLockHeaders.put(RequestReplicationHeader.CANCEL_TRANSACTION.getHeader(), "true");
-                            final Thread cancelLockThread = new Thread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    logger.debug("Found {} dissenting nodes for {} {}; canceling claim request", dissentingCount, method, uri.getPath());
+                            final Thread cancelLockThread = new Thread(() -> {
+                                logger.debug("Found {} dissenting nodes for {} {}; canceling claim request", dissentingCount, method, uri.getPath());
 
-                                    final PreparedRequest request = httpClient.prepareRequest(method, cancelLockHeaders, entity);
-                                    final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
-                                        nodeId -> new NodeHttpRequest(request, nodeId, createURI(uri, nodeId), null, clusterResponse);
+                                final PreparedRequest request = httpClient.prepareRequest(method, cancelLockHeaders, entity);
+                                final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
+                                    nodeId -> new NodeHttpRequest(request, nodeId, createURI(uri, nodeId), null, clusterResponse);
 
-                                    submitAsyncRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, cancelLockHeaders);
-                                }
+                                submitAsyncRequest(nodeIds, requestFactory);
                             });
                             cancelLockThread.setName("Cancel Flow Locks");
                             cancelLockThread.start();
@@ -627,30 +622,23 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             nodeId -> new NodeHttpRequest(request, nodeId, createURI(uri, nodeId), completionCallback, clusterResponse);
 
         // replicate the 'verification request' to all nodes
-        submitAsyncRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, validationHeaders);
+        submitAsyncRequest(nodeIds, requestFactory);
     }
 
 
     @Override
     public AsyncClusterResponse getClusterResponse(final String identifier) {
-        final AsyncClusterResponse response = responseMap.get(identifier);
-        if (response == null) {
-            return null;
-        }
-
-        return response;
+        return responseMap.get(identifier);
     }
 
     // Visible for testing - overriding this method makes it easy to verify behavior without actually making any web requests
     protected NodeResponse replicateRequest(final PreparedRequest request, final NodeIdentifier nodeId, final URI uri, final String requestId,
             final StandardAsyncClusterResponse clusterResponse) throws IOException {
 
-        final Response response;
         final long startNanos = System.nanoTime();
         logger.debug("Replicating request to {} {}, request ID = {}, headers = {}", request.getMethod(), uri, requestId, request.getHeaders());
 
-        // invoke the request
-        response = httpClient.replicate(request, uri);
+        final Response response = httpClient.replicate(request, uri);
 
         final long nanos = System.nanoTime() - startNanos;
         clusterResponse.addTiming("Perform HTTP Request", nodeId.toString(), nanos);
@@ -669,14 +657,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
     }
 
     private boolean isMutableRequest(final String method) {
-        switch (method.toUpperCase()) {
-            case HttpMethod.GET:
-            case HttpMethod.HEAD:
-            case HttpMethod.OPTIONS:
-                return false;
-            default:
-                return true;
-        }
+        return switch (method.toUpperCase()) {
+            case HttpMethod.GET, HttpMethod.HEAD, HttpMethod.OPTIONS -> false;
+            default -> true;
+        };
     }
 
     private boolean isDeleteComponent(final String method, final String uriPath) {
@@ -689,7 +673,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         // This is because we do need to allow deletion of asynchronous requests, such as updating parameters, querying provenance, etc.
         // which create a request, poll until the request completes, and then deletes it. Additionally, we want to allow terminating
         // Processors, which is done by issuing a request to DELETE /processors/<id>/threads
-        final boolean componentUri = ConnectionEndpointMerger.CONNECTION_URI_PATTERN.matcher(uriPath).matches()
+        return ConnectionEndpointMerger.CONNECTION_URI_PATTERN.matcher(uriPath).matches()
             || ProcessorEndpointMerger.PROCESSOR_URI_PATTERN.matcher(uriPath).matches()
             || FunnelEndpointMerger.FUNNEL_URI_PATTERN.matcher(uriPath).matches()
             || PortEndpointMerger.INPUT_PORT_URI_PATTERN.matcher(uriPath).matches()
@@ -704,8 +688,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             || ParameterProviderEndpointMerger.PARAMETER_PROVIDER_URI_PATTERN.matcher(uriPath).matches()
             || FlowRegistryClientEndpointMerger.CONTROLLER_REGISTRY_URI_PATTERN.matcher(uriPath).matches()
             || SNIPPET_URI_PATTERN.matcher(uriPath).matches();
-
-        return componentUri;
     }
 
     /**
@@ -754,18 +736,20 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
      */
     private void onCompletedResponse(final String requestId) {
         final AsyncClusterResponse response = responseMap.get(requestId);
+        if (response == null) {
+            logger.info("Replicated Request [{}] not found", requestId);
+            return;
+        }
 
-        if (response != null && callback != null) {
+        if (callback != null) {
             try {
                 callback.afterRequest(response.getURIPath(), response.getMethod(), response.getCompletedNodeResponses());
             } catch (final Exception e) {
-                logger.warn("Completed request {} {} but failed to properly handle the Request Completion Callback due to {}",
-                        response.getMethod(), response.getURIPath(), e.toString());
-                logger.warn("", e);
+                logger.warn("Completed request {} {} but failed to properly handle the Request Completion Callback", response.getMethod(), response.getURIPath(), e);
             }
         }
 
-        if (response != null && logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled()) {
             logTimingInfo(response);
         }
 
@@ -811,8 +795,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
     }
 
 
-    private void submitAsyncRequest(final Set<NodeIdentifier> nodeIds, final String scheme, final String path,
-                                  final Function<NodeIdentifier, NodeHttpRequest> callableFactory, final Map<String, String> headers) {
+    private void submitAsyncRequest(final Set<NodeIdentifier> nodeIds, final Function<NodeIdentifier, NodeHttpRequest> callableFactory) {
 
         if (nodeIds.isEmpty()) {
             return; // return quickly for trivial case
@@ -887,7 +870,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         }
     }
 
-    private static interface NodeRequestCompletionCallback {
+    private interface NodeRequestCompletionCallback {
         void onCompletion(NodeResponse nodeResponse);
     }
 
@@ -895,10 +878,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         final Set<String> expiredRequestIds = ThreadPoolRequestReplicator.this.responseMap.entrySet().stream()
                 .filter(entry -> entry.getValue().isOlderThan(30, TimeUnit.SECONDS)) // older than 30 seconds
                 .filter(entry -> entry.getValue().isComplete()) // is complete
-                .map(entry -> entry.getKey()) // get the request id
+                .map(Map.Entry::getKey) // get the request id
                 .collect(Collectors.toSet());
 
-        expiredRequestIds.forEach(id -> onResponseConsumed(id));
+        expiredRequestIds.forEach(this::onResponseConsumed);
         return responseMap.size();
     }
 
