@@ -31,10 +31,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -53,6 +59,16 @@ class SecurityApplicationPropertyHandlerTest {
 
     private static final String TRUSTSTORE_FILE = "truststore.p12";
 
+    private static final int DNS_NAME_TYPE = 2;
+
+    private static final String FIRST_PROXY_HOST = "nifi.apache.org";
+
+    private static final int FIRST_PROXY_HOST_PORT = 443;
+
+    private static final String SECOND_PROXY_HOST = "nifi.local";
+
+    private static final String WEB_PROXY_HOST_PROPERTY = "%s:%d,%s".formatted(FIRST_PROXY_HOST, FIRST_PROXY_HOST_PORT, SECOND_PROXY_HOST);
+
     private static final Logger logger = LoggerFactory.getLogger(SecurityApplicationPropertyHandlerTest.class);
 
     @TempDir
@@ -68,6 +84,7 @@ class SecurityApplicationPropertyHandlerTest {
     @Test
     void testHandlePropertiesSuccess() throws IOException, GeneralSecurityException {
         final Properties sourceProperties = getSourceProperties();
+        sourceProperties.setProperty(SecurityProperty.WEB_PROXY_HOST.getName(), WEB_PROXY_HOST_PROPERTY);
 
         final Path propertiesPath = writeProperties(sourceProperties);
 
@@ -155,6 +172,31 @@ class SecurityApplicationPropertyHandlerTest {
         assertNotNull(certificate);
         assertEquals(SecurityApplicationPropertyHandler.CERTIFICATE_ISSUER, certificate.getIssuerX500Principal());
         assertEquals(SecurityApplicationPropertyHandler.CERTIFICATE_ISSUER, certificate.getSubjectX500Principal());
+
+        assertSubjectAlternativeNamesFound(certificate);
+    }
+
+    private void assertSubjectAlternativeNamesFound(final X509Certificate certificate) throws CertificateParsingException {
+        final Collection<List<?>> subjectAlternativeNames = certificate.getSubjectAlternativeNames();
+
+        assertFalse(subjectAlternativeNames.isEmpty());
+
+        final List<String> alternativeNames = new ArrayList<>();
+
+        for (final List<?> subjectAlternativeName : subjectAlternativeNames) {
+            final Iterator<?> generalNameValue = subjectAlternativeName.iterator();
+            assertTrue(generalNameValue.hasNext());
+
+            final Object generalName = generalNameValue.next();
+            assertEquals(DNS_NAME_TYPE, generalName);
+
+            assertTrue(generalNameValue.hasNext());
+            final Object alternativeName = generalNameValue.next();
+            alternativeNames.add(alternativeName.toString());
+        }
+
+        assertTrue(alternativeNames.contains(FIRST_PROXY_HOST), "Web Proxy Host [%s] not found".formatted(FIRST_PROXY_HOST));
+        assertTrue(alternativeNames.contains(SECOND_PROXY_HOST), "Web Proxy Host [%s] not found".formatted(SECOND_PROXY_HOST));
     }
 
     private void assertStoreCreated(final Properties properties, final SecurityProperty securityProperty) {
