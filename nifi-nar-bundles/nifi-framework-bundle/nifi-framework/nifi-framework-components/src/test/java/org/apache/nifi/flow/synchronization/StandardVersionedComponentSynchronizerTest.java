@@ -1061,30 +1061,30 @@ public class StandardVersionedComponentSynchronizerTest {
 
         // Test no changes
         Map<String, String> parameterMap = new HashMap<>(originalParams);
-        VersionedParameterContext proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.singleton("secret"));
+        VersionedParameterContext proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
         assertEquals(Collections.emptySet(), synchronizer.getUpdatedParameterNames(existing, proposed));
 
         // Test non-sensitive param change
         parameterMap = new HashMap<>(originalParams);
         parameterMap.put("abc", "hello");
-        proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.singleton("secret"));
+        proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
         assertEquals(Collections.singleton("abc"), synchronizer.getUpdatedParameterNames(existing, proposed));
 
         // Test sensitive param change
         parameterMap = new HashMap<>(originalParams);
         parameterMap.put("secret", "secret");
-        proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.singleton("secret"));
+        proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
         assertEquals(Collections.singleton("secret"), synchronizer.getUpdatedParameterNames(existing, proposed));
 
         // Test removed parameters
         parameterMap.clear();
-        proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.singleton("secret"));
+        proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
         assertEquals(new HashSet<>(Arrays.asList("abc", "secret")), synchronizer.getUpdatedParameterNames(existing, proposed));
 
         // Test added parameter
         parameterMap = new HashMap<>(originalParams);
         parameterMap.put("Added", "Added");
-        proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.singleton("secret"));
+        proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
         assertEquals(Collections.singleton("Added"), synchronizer.getUpdatedParameterNames(existing, proposed));
 
         // Test added, removed, and updated parameters
@@ -1093,8 +1093,30 @@ public class StandardVersionedComponentSynchronizerTest {
         parameterMap.put("Added 2", "Added");
         parameterMap.remove("secret");
         parameterMap.put("abc", "hello");
-        proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.singleton("secret"));
+        proposed = createVersionedParameterContext("Context 1", parameterMap, Collections.singleton("secret"));
         assertEquals(new HashSet<>(Arrays.asList("abc", "secret", "Added", "Added 2")), synchronizer.getUpdatedParameterNames(existing, proposed));
+
+        // Test change value due to inherited parameter context reordering
+        final Map<String, String> inheritedParameters = new HashMap<>();
+        // Context 1: abc = xyz
+        // Context 3: abc = def
+        inheritedParameters.put("abc", "def");
+        final VersionedParameterContext context3 = createVersionedParameterContext("Context 3", inheritedParameters, Collections.emptySet());
+
+        synchronizer.synchronize(null, context3, synchronizationOptions);
+
+        parameterMap = new HashMap<>();
+        proposed = createVersionedParameterContext("Context 2", parameterMap, Collections.emptySet());
+        synchronizer.synchronize(null, proposed, synchronizationOptions);
+
+        ParameterContext context2 = parameterContextManager.getParameterContextNameMapping().get("Context 2");
+        proposed.setInheritedParameterContexts(Arrays.asList("Context 1", "Context 3"));
+        synchronizer.synchronize(context2, proposed, synchronizationOptions);
+
+        proposed.setInheritedParameterContexts(Arrays.asList("Context 3", "Context 1"));
+        context2 = parameterContextManager.getParameterContextNameMapping().get("Context 2");
+        // The effective value of abc should change here due to the reordering
+        assertEquals(Collections.singleton("abc"), synchronizer.getUpdatedParameterNames(context2, proposed));
     }
 
     @Test
