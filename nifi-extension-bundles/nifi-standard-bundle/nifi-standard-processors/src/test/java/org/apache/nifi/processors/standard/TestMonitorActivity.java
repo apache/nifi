@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -1374,5 +1375,42 @@ public class TestMonitorActivity {
         // We expect only the FF as output
         runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 3);
         runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
+    }
+
+    @Test
+    public void testInfrequentFlowFilesTriggerImmediateSynchronization() throws IOException, InterruptedException {
+        final long threshold_seconds = 30;
+        final long startup_time_seconds = 1;
+        final AtomicLong nowProvider = new AtomicLong(TimeUnit.SECONDS.toMillis(startup_time_seconds));
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity() {
+            @Override
+            protected long nowMillis() {
+                return nowProvider.get();
+            }
+        });
+        runner.setIsConfiguredForClustering(true);
+        runner.setConnected(true);
+        runner.setPrimaryNode(false);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.THRESHOLD, threshold_seconds + " seconds");
+
+        // Initialize
+        runner.run(1, false);
+        final String state_0 = runner.getStateManager().getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO);
+        assertNull(state_0);
+
+        // First ever FlowFile triggers sync
+        runner.enqueue("Incoming data 1");
+        runNext(runner);
+        final String state_1 = runner.getStateManager().getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO);
+        assertNotNull(state_1);
+
+        // Wait > (2/3 * T)
+        nowProvider.set(TimeUnit.SECONDS.toMillis(startup_time_seconds + ((2 * threshold_seconds) / 3) + 1));
+        runNext(runner);
+        runner.enqueue("Incoming data 2");
+        runNext(runner);
+        final String state_2 = runner.getStateManager().getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO);
+        assertNotEquals(state_1, state_2);
     }
 }
