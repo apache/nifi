@@ -135,15 +135,16 @@ public class CopyS3Object extends AbstractS3Processor {
         final String destinationBucket = context.getProperty(DESTINATION_BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String destinationKey = context.getProperty(DESTINATION_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
-        final GetObjectMetadataRequest sourceMetadataRequest = new GetObjectMetadataRequest(sourceBucket, sourceKey);
-        final ObjectMetadata metadataResult = s3.getObjectMetadata(sourceMetadataRequest);
+
 
         final AtomicReference<String> multipartIdRef = new AtomicReference<>();
         boolean multipartUploadRequired = false;
 
         try {
+            final GetObjectMetadataRequest sourceMetadataRequest = new GetObjectMetadataRequest(sourceBucket, sourceKey);
+            final ObjectMetadata metadataResult = s3.getObjectMetadata(sourceMetadataRequest);
             final long contentLength = metadataResult.getContentLength();
-            multipartUploadRequired = metadataResult.getContentLength() > MULTIPART_THRESHOLD;
+            multipartUploadRequired = contentLength > MULTIPART_THRESHOLD;
             final AccessControlList acl = createACL(context, flowFile);
             final CannedAccessControlList cannedAccessControlList = createCannedACL(context, flowFile);
 
