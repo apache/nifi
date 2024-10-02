@@ -185,7 +185,7 @@ public class MonitorActivity extends AbstractProcessor {
 
     private final AtomicBoolean connectedWhenLastTriggered = new AtomicBoolean(false);
     private final AtomicLong lastInactiveMessage = new AtomicLong();
-    private final AtomicLong inactivityStartMillis = new AtomicLong(System.currentTimeMillis());
+    private final AtomicLong inactivityStartMillis = new AtomicLong(nowMillis());
     private final AtomicBoolean wasActive = new AtomicBoolean(true);
 
     private volatile LocalFlowActivityInfo localFlowActivityInfo;
@@ -303,7 +303,7 @@ public class MonitorActivity extends AbstractProcessor {
         final boolean isActive = localFlowActivityInfo.isActive() || !flowFiles.isEmpty();
         final long lastActivity = localFlowActivityInfo.getLastActivity();
         final long inactivityStartMillis = this.inactivityStartMillis.get();
-        final boolean timeToRepeatInactiveMessage = (lastInactiveMessage.get() + thresholdMillis) <= System.currentTimeMillis();
+        final boolean timeToRepeatInactiveMessage = (lastInactiveMessage.get() + thresholdMillis) <= nowMillis();
 
         final boolean canReport = !isClusterScope || isConnectedToCluster || !flowFiles.isEmpty();
         final boolean canChangeState = !waitForActivity || localFlowActivityInfo.hasSuccessfulTransfer();
@@ -323,8 +323,12 @@ public class MonitorActivity extends AbstractProcessor {
         }
     }
 
-    protected long getStartupTime() {
+    protected long nowMillis() {
         return System.currentTimeMillis();
+    }
+
+    protected long getStartupTime() {
+        return nowMillis();
     }
 
     protected final long getLastSuccessfulTransfer() {
@@ -371,7 +375,7 @@ public class MonitorActivity extends AbstractProcessor {
         if (shouldThisNodeReport) {
             sendInactivityMarker(context, session, lastActivity, logger);
         }
-        lastInactiveMessage.set(System.currentTimeMillis());
+        lastInactiveMessage.set(nowMillis());
         setInactivityFlag(context.getStateManager());
     }
 
@@ -460,7 +464,7 @@ public class MonitorActivity extends AbstractProcessor {
         inactiveFlowFile = session.putAttribute(
                 inactiveFlowFile,
                 "inactivityDurationMillis",
-                String.valueOf(System.currentTimeMillis() - inactivityStartMillis)
+                String.valueOf(nowMillis() - inactivityStartMillis)
         );
 
         final byte[] outBytes = context.getProperty(INACTIVITY_MESSAGE).evaluateAttributeExpressions(inactiveFlowFile).getValue().getBytes(
@@ -481,7 +485,8 @@ public class MonitorActivity extends AbstractProcessor {
 
         activityRestoredFlowFile = session.putAttribute(activityRestoredFlowFile, "inactivityStartMillis", String.valueOf(
                 inactivityStartMillis));
-        activityRestoredFlowFile = session.putAttribute(activityRestoredFlowFile, "inactivityDurationMillis", String.valueOf(System.currentTimeMillis() - inactivityStartMillis));
+        activityRestoredFlowFile = session.putAttribute(activityRestoredFlowFile, "inactivityDurationMillis", String.valueOf(
+                nowMillis() - inactivityStartMillis));
 
         final byte[] outBytes = context.getProperty(ACTIVITY_RESTORED_MESSAGE).evaluateAttributeExpressions(activityRestoredFlowFile).getValue().getBytes(
                 StandardCharsets.UTF_8);
@@ -492,12 +497,14 @@ public class MonitorActivity extends AbstractProcessor {
         logger.info("Transferred {} to 'activity.restored'", activityRestoredFlowFile);
     }
 
-    private static class LocalFlowActivityInfo {
+    private class LocalFlowActivityInfo {
         private static final long NO_VALUE = 0;
+        private static final int TIMES_SYNC_WITHIN_THRESHOLD = 3;
 
         private final long startupTimeMillis;
         private final long thresholdMillis;
         private final boolean saveAttributes;
+        private final long syncPeriodMillis;
 
         private long nextSyncMillis = NO_VALUE;
         private long lastSuccessfulTransfer = NO_VALUE;
@@ -507,6 +514,7 @@ public class MonitorActivity extends AbstractProcessor {
             this.startupTimeMillis = startupTimeMillis;
             this.thresholdMillis = thresholdMillis;
             this.saveAttributes = saveAttributes;
+            this.syncPeriodMillis = thresholdMillis / TIMES_SYNC_WITHIN_THRESHOLD;
         }
 
         public LocalFlowActivityInfo(long startupTimeMillis, long thresholdMillis, boolean saveAttributes, long initialLastSuccessfulTransfer) {
@@ -515,22 +523,22 @@ public class MonitorActivity extends AbstractProcessor {
         }
 
         public boolean syncNeeded() {
-            return nextSyncMillis <= System.currentTimeMillis();
+            return nextSyncMillis <= nowMillis();
         }
 
         public void setNextSyncMillis() {
-            nextSyncMillis = System.currentTimeMillis() + (thresholdMillis / 3);
+            nextSyncMillis = nowMillis() + syncPeriodMillis;
         }
 
         public void forceSync() {
-            nextSyncMillis = System.currentTimeMillis();
+            nextSyncMillis = nowMillis();
         }
 
         public boolean isActive() {
             if (hasSuccessfulTransfer()) {
-                return System.currentTimeMillis() < (lastSuccessfulTransfer + thresholdMillis);
+                return nowMillis() < (lastSuccessfulTransfer + thresholdMillis);
             } else {
-                return System.currentTimeMillis() < (startupTimeMillis + thresholdMillis);
+                return nowMillis() < (startupTimeMillis + thresholdMillis);
             }
         }
 
@@ -555,7 +563,11 @@ public class MonitorActivity extends AbstractProcessor {
         }
 
         public void update(FlowFile flowFile) {
-            this.lastSuccessfulTransfer = System.currentTimeMillis();
+            final long now = nowMillis();
+            if ((now - this.getLastActivity()) > syncPeriodMillis) {
+                this.forceSync(); // Immediate synchronization if Flow Files are infrequent, to mitigate false reports
+            }
+            this.lastSuccessfulTransfer = now;
             if (saveAttributes) {
                 lastSuccessfulTransferAttributes = new HashMap<>(flowFile.getAttributes());
                 lastSuccessfulTransferAttributes.remove(CoreAttributes.UUID.key());
