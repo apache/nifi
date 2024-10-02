@@ -47,10 +47,14 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Standard implementation for application security generates Key Pair and Certificate when not configured
@@ -73,6 +77,12 @@ public class SecurityApplicationPropertyHandler implements ApplicationPropertyHa
     private static final int RANDOM_BYTE_LENGTH = 16;
 
     private static final String PROPERTY_SEPARATOR = "=";
+
+    private static final Pattern HOST_PORT_PATTERN = Pattern.compile("^([\\w-.]{1,63}):?\\d{0,5}$");
+
+    private static final int HOST_GROUP = 1;
+
+    private static final Pattern HOST_PORT_GROUP_SEPARATOR = Pattern.compile("\\s*,\\s*");
 
     private final Logger logger;
 
@@ -236,9 +246,8 @@ public class SecurityApplicationPropertyHandler implements ApplicationPropertyHa
             subjectAlternativeNames.add(localHostName);
 
             final String proxyHost = applicationProperties.getProperty(SecurityProperty.WEB_PROXY_HOST.getName());
-            if (!isBlank(proxyHost)) {
-                subjectAlternativeNames.add(proxyHost);
-            }
+            final Set<String> proxyHostNames = getHosts(proxyHost);
+            subjectAlternativeNames.addAll(proxyHostNames);
 
             return subjectAlternativeNames;
         } catch (final UnknownHostException e) {
@@ -286,6 +295,23 @@ public class SecurityApplicationPropertyHandler implements ApplicationPropertyHa
         } catch (final IOException e) {
             throw new IllegalStateException("Reading Application Properties failed [%s]".formatted(applicationPropertiesLocation), e);
         }
+    }
+
+    private Set<String> getHosts(final String property) {
+        final Set<String> hosts = new HashSet<>();
+
+        if (property != null) {
+            final String[] hostPortGroups = HOST_PORT_GROUP_SEPARATOR.split(property);
+            for (final String hostPortGroup : hostPortGroups) {
+                final Matcher hostPortMatcher = HOST_PORT_PATTERN.matcher(hostPortGroup);
+                if (hostPortMatcher.matches()) {
+                    final String host = hostPortMatcher.group(HOST_GROUP);
+                    hosts.add(host);
+                }
+            }
+        }
+
+        return hosts;
     }
 
     private boolean isBlank(final String propertyValue) {
