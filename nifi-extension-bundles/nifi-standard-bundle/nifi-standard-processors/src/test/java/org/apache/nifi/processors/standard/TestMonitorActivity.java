@@ -1375,4 +1375,34 @@ public class TestMonitorActivity {
         runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 3);
         runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
     }
+
+    @Test
+    public void testInfrequentFlowFilesTriggerImmediateSynchronization() throws IOException, InterruptedException {
+        final long threshold_seconds = 18;
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
+        runner.setIsConfiguredForClustering(true);
+        runner.setConnected(true);
+        runner.setPrimaryNode(false);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.THRESHOLD, threshold_seconds + " seconds");
+
+        // Initialize
+        runner.run(1, false);
+        final String state_0 = runner.getStateManager().getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO);
+        assertNull(state_0);
+
+        // First ever FlowFile triggers sync
+        runner.enqueue("Incoming data 1");
+        runNext(runner);
+        final String state_1 = runner.getStateManager().getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO);
+        assertNotNull(state_1);
+
+        // Wait > (2/3 * T)
+        TimeUnit.SECONDS.sleep(((2 * threshold_seconds) / 3) + 1);
+        runNext(runner);
+        runner.enqueue("Incoming data 2");
+        runNext(runner);
+        final String state_2 = runner.getStateManager().getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO);
+        assertNotEquals(state_1, state_2);
+    }
 }

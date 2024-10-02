@@ -484,10 +484,12 @@ public class MonitorActivity extends AbstractProcessor {
 
     private static class LocalFlowActivityInfo {
         private static final long NO_VALUE = 0;
+        private static final int TIMES_SYNC_WITHIN_THRESHOLD = 3;
 
         private final long startupTimeMillis;
         private final long thresholdMillis;
         private final boolean saveAttributes;
+        private final long syncPeriodMillis;
 
         private long nextSyncMillis = NO_VALUE;
         private long lastSuccessfulTransfer = NO_VALUE;
@@ -497,6 +499,7 @@ public class MonitorActivity extends AbstractProcessor {
             this.startupTimeMillis = startupTimeMillis;
             this.thresholdMillis = thresholdMillis;
             this.saveAttributes = saveAttributes;
+            this.syncPeriodMillis = thresholdMillis / TIMES_SYNC_WITHIN_THRESHOLD;
         }
 
         public LocalFlowActivityInfo(long startupTimeMillis, long thresholdMillis, boolean saveAttributes, long initialLastSuccessfulTransfer) {
@@ -509,7 +512,7 @@ public class MonitorActivity extends AbstractProcessor {
         }
 
         public void setNextSyncMillis() {
-            nextSyncMillis = System.currentTimeMillis() + (thresholdMillis / 3);
+            nextSyncMillis = System.currentTimeMillis() + syncPeriodMillis;
         }
 
         public void forceSync() {
@@ -545,7 +548,11 @@ public class MonitorActivity extends AbstractProcessor {
         }
 
         public void update(FlowFile flowFile) {
-            this.lastSuccessfulTransfer = System.currentTimeMillis();
+            final long now = System.currentTimeMillis();
+            if ((now - this.getLastActivity()) > syncPeriodMillis) {
+                this.forceSync(); // Immediate synchronization if Flow Files are infrequent, to mitigate false reports
+            }
+            this.lastSuccessfulTransfer = now;
             if (saveAttributes) {
                 lastSuccessfulTransferAttributes = new HashMap<>(flowFile.getAttributes());
                 lastSuccessfulTransferAttributes.remove(CoreAttributes.UUID.key());
