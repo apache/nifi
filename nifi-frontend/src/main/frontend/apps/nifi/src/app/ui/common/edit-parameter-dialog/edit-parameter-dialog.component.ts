@@ -209,7 +209,7 @@ export class EditParameterDialog extends CloseOnEscapeDialog {
 
         // update the parameter value
         let valueChanged = this.valueChanged(value);
-        if (valueChanged) {
+        if (valueChanged || this.isNew) {
             parameter.value = value;
         }
 
