@@ -27,7 +27,7 @@ class TestAirtableRestService {
 
     private static final String API_URL_WITHOUT_SLASH = "https://api.airtable.com/v0";
     private static final String API_URL_WITH_SLASH = "https://api.airtable.com/v0/";
-    private static final String API_KEY = "api-key";
+    private static final String PAT = "pat";
     private static final String BASE_ID = "base-id";
     private static final String TABLE_ID = "table-id";
     private static final String EXPECTED_URL = String.format("%s/%s/%s", API_URL_WITHOUT_SLASH, BASE_ID, TABLE_ID);
@@ -36,14 +36,14 @@ class TestAirtableRestService {
 
     @Test
     void testApiUrlEndsWithoutSlash() {
-        AirtableRestService serviceWithoutSlash = new AirtableRestService(webClientServiceProvider, API_URL_WITHOUT_SLASH, API_KEY, BASE_ID, TABLE_ID);
+        AirtableRestService serviceWithoutSlash = new AirtableRestService(webClientServiceProvider, API_URL_WITHOUT_SLASH, PAT, BASE_ID, TABLE_ID);
         String apiUrlWithSlash = serviceWithoutSlash.createUriBuilder().build().toString();
         assertEquals(EXPECTED_URL, apiUrlWithSlash);
     }
 
     @Test
     void testApiUrlEndsWithSlash() {
-        AirtableRestService serviceWithSlash = new AirtableRestService(webClientServiceProvider, API_URL_WITH_SLASH, API_KEY, BASE_ID, TABLE_ID);
+        AirtableRestService serviceWithSlash = new AirtableRestService(webClientServiceProvider, API_URL_WITH_SLASH, PAT, BASE_ID, TABLE_ID);
         String apiUrlWithSlash = serviceWithSlash.createUriBuilder().build().toString();
         assertEquals(EXPECTED_URL, apiUrlWithSlash);
     }
