@@ -472,7 +472,7 @@ public class PutEmail extends AbstractProcessor {
                     try {
                         final String mimeTypeAttribute = flowFile.getAttribute("mime.type");
                         String mimeType = "application/octet-stream";
-                        if(mimeTypeAttribute != null && !mimeTypeAttribute.isEmpty()) {
+                        if (mimeTypeAttribute != null && !mimeTypeAttribute.isEmpty()) {
                             mimeType = mimeTypeAttribute;
                         }
                         mimeFile.setDataHandler(new DataHandler(new ByteArrayDataSource(stream, mimeType)));
