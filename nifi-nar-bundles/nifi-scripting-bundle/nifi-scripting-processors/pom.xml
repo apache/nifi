@@ -96,7 +96,7 @@
         <dependency>
             <groupId>org.jruby</groupId>
             <artifactId>jruby-complete</artifactId>
-            <version>9.4.2.0</version>
+            <version>9.4.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.clojure</groupId>

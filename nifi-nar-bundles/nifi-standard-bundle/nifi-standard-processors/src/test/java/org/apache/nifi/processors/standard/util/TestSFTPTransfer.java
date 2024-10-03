@@ -260,7 +260,7 @@ public class TestSFTPTransfer {
         when(processContext.getProperty(eq(FileTransfer.REMOTE_PATH))).thenReturn(new MockPropertyValue("."));
 
         try (SFTPClient sftpClient = mock(SFTPClient.class)) {
-            when(sftpClient.ls(any(), any())).then(invocation -> {
+            when(sftpClient.ls(any(), any(RemoteResourceFilter.class))).then(invocation -> {
                 final Map<String, String> extended = new LinkedHashMap<>();
                 final List<RemoteResourceInfo> list = new ArrayList<>();
                 list.add(new RemoteResourceInfo(

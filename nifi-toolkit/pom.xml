@@ -36,7 +36,7 @@
         <module>nifi-toolkit-kafka-migrator</module>
     </modules>
     <properties>
-        <toolkit.groovy.version>3.0.21</toolkit.groovy.version>
+        <toolkit.groovy.version>3.0.22</toolkit.groovy.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -77,7 +77,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.37.3</version>
+                <version>9.41.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

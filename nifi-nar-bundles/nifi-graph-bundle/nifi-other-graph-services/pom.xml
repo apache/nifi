@@ -19,7 +19,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <gremlin.version>3.7.1</gremlin.version>
+        <gremlin.version>3.7.2</gremlin.version>
     </properties>
     <dependencies>
         <dependency>
