@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import { FlowService } from '../../service/flow.service';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
@@ -154,9 +154,15 @@ import { VerifyPropertiesRequestContext } from '../../../../state/property-verif
 import { BackNavigation } from '../../../../state/navigation';
 import { Storage, NiFiCommon } from '@nifi/shared';
 import { resetPollingFlowAnalysis } from '../flow-analysis/flow-analysis.actions';
+import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DocumentVisibility } from '../../../../state/document-visibility';
 
 @Injectable()
 export class FlowEffects {
+    private destroyRef = inject(DestroyRef);
+    private lastReload: number = 0;
+
     constructor(
         private actions$: Actions,
         private store: Store<NiFiState>,
@@ -177,7 +183,21 @@ export class FlowEffects {
         private parameterHelperService: ParameterHelperService,
         private extensionTypesService: ExtensionTypesService,
         private errorHelper: ErrorHelper
-    ) {}
+    ) {
+        this.store
+            .select(selectDocumentVisibilityState)
+            .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                filter((documentVisibility) => documentVisibility.documentVisibility === DocumentVisibility.Visible),
+                filter(
+                    (documentVisibility) =>
+                        documentVisibility.changedTimestamp - this.lastReload > 30 * NiFiCommon.MILLIS_PER_SECOND
+                )
+            )
+            .subscribe(() => {
+                this.store.dispatch(FlowActions.reloadFlow());
+            });
+    }
 
     reloadFlow$ = createEffect(() =>
         this.actions$.pipe(
@@ -185,6 +205,8 @@ export class FlowEffects {
             throttleTime(1000),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([, processGroupId]) => {
+                this.lastReload = Date.now();
+
                 return of(
                     FlowActions.loadProcessGroup({
                         request: {
@@ -266,6 +288,8 @@ export class FlowEffects {
                     takeUntil(this.actions$.pipe(ofType(FlowActions.stopProcessGroupPolling)))
                 )
             ),
+            concatLatestFrom(() => this.store.select(selectDocumentVisibilityState)),
+            filter(([, documentVisibility]) => documentVisibility.documentVisibility === DocumentVisibility.Visible),
             switchMap(() => of(FlowActions.reloadFlow()))
         )
     );
