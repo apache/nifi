@@ -40,11 +40,6 @@
         error,
         map.get(map.get($config, error), default)
     );
-    $material-theme-error-palette-darker: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), darker)
-    );
 
     #lineage {
         canvas,
@@ -60,19 +55,11 @@
             }
 
             path.link.selected {
-                stroke: if(
-                    $is-material-dark,
-                    $material-theme-error-palette-default,
-                    $material-theme-error-palette-darker
-                );
+                stroke: $material-theme-error-palette-default;
             }
 
             g.event circle.selected {
-                fill: if(
-                    $is-material-dark,
-                    $material-theme-error-palette-default,
-                    $material-theme-error-palette-darker
-                );
+                fill: $material-theme-error-palette-default;
             }
 
             g.event circle.context {

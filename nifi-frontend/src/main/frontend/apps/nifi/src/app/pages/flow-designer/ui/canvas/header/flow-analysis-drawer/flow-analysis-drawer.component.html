@@ -71,7 +71,7 @@
                                 </mat-menu>
                             </div>
                             @if (violationsMap.size > 0 && violationsMap.get(rule.id)) {
-                                <div class="error-color-darker text-sm">
+                                <div class="error-color text-sm">
                                     <ng-container [ngPlural]="violationsMap.get(rule.id).length">
                                         <ng-template ngPluralCase="=1"
                                             >{{ violationsMap.get(rule.id).length }} violation</ng-template
@@ -183,7 +183,7 @@
         <ul>
             @for (violation of enforcedViolations; track violation.scope) {
                 <li class="mt-2 pb-2 border-b last-of-type:border-0">
-                    <div class="error-color-darker">{{ getRuleName(violation.ruleId) }}</div>
+                    <div class="error-color">{{ getRuleName(violation.ruleId) }}</div>
                     <div class="flex align-center justify-between ml-2">
                         <div class="flex flex-col items-start">
                             <div *ngIf="violation?.subjectPermissionDto?.canRead; else unauthorized">
@@ -212,7 +212,7 @@
         <ul>
             @for (violation of warningViolations; track violation.scope) {
                 <li class="mt-2 pb-2 border-b last-of-type:border-0">
-                    <div class="error-color-darker">{{ getRuleName(violation.ruleId) }}</div>
+                    <div class="error-color">{{ getRuleName(violation.ruleId) }}</div>
                     <div class="flex align-center justify-between ml-2">
                         <div class="flex flex-col items-start">
                             <div *ngIf="violation?.subjectPermissionDto?.canRead; else unauthorized">

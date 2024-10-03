@@ -448,15 +448,10 @@
         error,
         map.get(map.get($config, error), default)
     );
-    $material-theme-error-palette-darker: mat.get-theme-color(
+    $material-theme-error-palette-variant: mat.get-theme-color(
         $material-theme,
         error,
-        map.get(map.get($config, error), darker)
-    );
-    $material-theme-error-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), lighter)
+        map.get(map.get($config, error), variant)
     );
     $material-theme-neutral-palette-default: mat.get-theme-color(
         $material-theme,
@@ -479,9 +474,8 @@
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
     $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     $success-default: map.get(map.get($config, success), default);
-    $success-darker: map.get(map.get($config, success), darker);
-    $success-lighter: map.get(map.get($config, success), lighter);
-    $caution: map.get($config, caution);
+    $success-variant: map.get(map.get($config, success), variant);
+    $caution: map.get(map.get($config, caution), default);
     $selected-row-color: if(
         $is-material-dark,
         $material-theme-tertiary-palette-darker,
@@ -530,14 +524,9 @@
         fill: $material-theme-error-palette-default;
     }
 
-    .error-color-lighter {
-        color: $material-theme-error-palette-lighter;
-        fill: $material-theme-error-palette-lighter;
-    }
-
-    .error-color-darker {
-        color: $material-theme-error-palette-darker;
-        fill: $material-theme-error-palette-darker;
+    .error-color-variant {
+        color: $material-theme-error-palette-variant;
+        fill: $material-theme-error-palette-variant;
     }
 
     .neutral-contrast {
@@ -550,19 +539,14 @@
         fill: $material-theme-neutral-palette-default;
     }
 
-    .success-color {
+    .success-color-variant {
+        color: $success-variant;
+        fill: $success-variant;
+    }
+
+    .success-color-default {
         color: $success-default;
         fill: $success-default;
-    }
-
-    .success-color-lighter {
-        color: $success-lighter;
-        fill: $success-lighter;
-    }
-
-    .success-color-darker {
-        color: $success-darker;
-        fill: $success-darker;
     }
 
     .caution-color {

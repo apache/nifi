@@ -325,7 +325,7 @@ export class LineageComponent implements OnInit {
             .attr('orient', 'auto')
             .attr('class', function (d) {
                 if (d.indexOf('SELECTED') >= 0) {
-                    return 'error-color-darker';
+                    return 'error-color';
                 } else {
                     return 'neutral-contrast';
                 }

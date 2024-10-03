@@ -609,7 +609,7 @@ export class RemoteProcessGroupManager {
             .classed('invalid caution-color', function (d: any) {
                 return self.hasIssues(d);
             })
-            .classed('transmitting success-color', function (d: any) {
+            .classed('transmitting success-color-variant', function (d: any) {
                 return !self.hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
             .classed('not-transmitting neutral-color', function (d: any) {

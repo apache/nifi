@@ -991,14 +991,14 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running success-color-lighter', function () {
+                                .classed('running success-color-default', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.source.running;
                                     }
                                 })
-                                .classed('stopped error-color-lighter', function () {
+                                .classed('stopped error-color-variant', function () {
                                     if (d.component.source.exists === false) {
                                         return false;
                                     } else {
@@ -1106,14 +1106,14 @@ export class ConnectionManager {
                                         return '\uf04d';
                                     }
                                 })
-                                .classed('running success-color-lighter', function () {
+                                .classed('running success-color-default', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
                                         return d.component.destination.running;
                                     }
                                 })
-                                .classed('stopped error-color-lighter', function () {
+                                .classed('stopped error-color-variant', function () {
                                     if (d.component.destination.exists === false) {
                                         return false;
                                     } else {
@@ -1455,7 +1455,7 @@ export class ConnectionManager {
                                 return true;
                             }
                         })
-                        .classed('load-balance-icon-active fa-rotate-90 success-color', function (d: any) {
+                        .classed('load-balance-icon-active fa-rotate-90 success-color-variant', function (d: any) {
                             return d.permissions.canRead && d.component.loadBalanceStatus === 'LOAD_BALANCE_ACTIVE';
                         })
                         .classed('primary-color', function (d: any) {

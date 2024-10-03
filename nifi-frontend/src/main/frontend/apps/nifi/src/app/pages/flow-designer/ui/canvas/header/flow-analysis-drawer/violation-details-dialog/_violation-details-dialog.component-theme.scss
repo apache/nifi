@@ -40,20 +40,11 @@
         error,
         map.get(map.get($config, error), default)
     );
-    $material-theme-error-palette-darker: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), darker)
-    );
 
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
 
     .pill.enforce {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-error-palette-default,
-            $material-theme-error-palette-darker
-        );
+        background-color: $material-theme-error-palette-default;
         color: $neutral-contrast;
     }
 

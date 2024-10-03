@@ -109,7 +109,7 @@ export class FlowStatus {
             this.clusterSummary?.connectedToCluster === false ||
             this.clusterSummary?.connectedNodeCount != this.clusterSummary?.totalNodeCount
         ) {
-            return 'error-color-darker';
+            return 'error-color';
         }
 
         return 'secondary-color';

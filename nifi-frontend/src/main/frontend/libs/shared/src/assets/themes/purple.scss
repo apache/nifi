@@ -25,246 +25,146 @@
     }
 }
 
+$primary: (
+    0: #000000,
+    10: #311b92,
+    20: #4527a0,
+    25: #512da8,
+    30: #5e35b1,
+    35: #673ab7,
+    40: #7e57c2,
+    50: #9575cd,
+    60: #b39ddb,
+    70: #d1c4e9,
+    80: #ede7f6,
+    90: #ede7f6,
+    95: #ede7f6,
+    98: #ede7f6,
+    99: #ede7f6,
+    100: #ffffff
+);
+
+$secondary: (
+    0: #000000,
+    10: #311b92,
+    20: #4527a0,
+    25: #512da8,
+    30: #5e35b1,
+    35: #673ab7,
+    40: #7e57c2,
+    50: #9575cd,
+    60: #b39ddb,
+    70: #d1c4e9,
+    80: #ede7f6,
+    90: #ede7f6,
+    95: #ede7f6,
+    98: #ede7f6,
+    99: #ede7f6,
+    100: #ffffff
+);
+
+$tertiary: (
+    0: #000000,
+    10: #004d40,
+    20: #00695c,
+    25: #00796b,
+    30: #00897b,
+    35: #009688,
+    40: #26a69a,
+    50: #4db6ac,
+    60: #80cbc4,
+    70: #b2dfdb,
+    80: #e0f2f1,
+    90: #e0f2f1,
+    95: #e0f2f1,
+    98: #e0f2f1,
+    99: #e0f2f1,
+    100: #ffffff
+);
+
+$error: (
+    0: #000000,
+    10: #000000,
+    20: #000000,
+    25: #a8372a,
+    30: #ba554a,
+    35: #ba554a,
+    40: #ba554a,
+    50: #eb7071,
+    60: #eb7071,
+    70: #eb7071,
+    80: #eb7071,
+    90: #f49999,
+    95: #f49999,
+    98: #ffccd2,
+    99: #ffccd2,
+    100: #ffffff
+);
+
+$neutral: (
+    0: #000000,
+    4: #121212,
+    6: #303030,
+    10: #303030,
+    12: #303030,
+    17: #303030,
+    20: #444444,
+    22: #444444,
+    24: #444444,
+    25: #666666,
+    30: #666666,
+    35: #666666,
+    40: #82878d,
+    50: #82878d,
+    60: #82878d,
+    70: #d8d8d8,
+    80: #d8d8d8,
+    87: #d8d8d8,
+    90: #e3e3e3,
+    92: #e3e3e3,
+    94: #f4f4f4,
+    95: #f4f4f4,
+    96: #f4f4f4,
+    98: #fafafa,
+    99: #fafafa,
+    100: #ffffff
+);
+
+$neutral-variant: (
+    0: #000000,
+    10: #666666,
+    20: #666666,
+    25: #666666,
+    30: #666666,
+    35: #666666,
+    40: #acacac,
+    50: #d8d8d8,
+    60: #d8d8d8,
+    70: #d8d8d8,
+    80: #d8d8d8,
+    90: #e3e3e3,
+    95: #f4f4f4,
+    98: #fafafa,
+    99: #fafafa,
+    100: #ffffff
+);
+
 $m3-material-primary-light-palette: (
-    primary: (
-        0: #000000,
-        10: #311b92,
-        20: #4527a0,
-        25: #512da8,
-        30: #5e35b1,
-        35: #673ab7,
-        40: #7e57c2,
-        50: #9575cd,
-        60: #b39ddb,
-        70: #d1c4e9,
-        80: #ede7f6,
-        90: #ede7f6,
-        95: #ede7f6,
-        98: #ede7f6,
-        99: #ede7f6,
-        100: #ffffff
-    ),
-    secondary: (
-        0: #000000,
-        10: #311b92,
-        20: #4527a0,
-        25: #512da8,
-        30: #5e35b1,
-        35: #673ab7,
-        40: #7e57c2,
-        50: #9575cd,
-        60: #b39ddb,
-        70: #d1c4e9,
-        80: #ede7f6,
-        90: #ede7f6,
-        95: #ede7f6,
-        98: #ede7f6,
-        99: #ede7f6,
-        100: #ffffff
-    ),
-    tertiary: (
-        0: #000000,
-        10: #004d40,
-        20: #00695c,
-        25: #00796b,
-        30: #00897b,
-        35: #009688,
-        40: #26a69a,
-        50: #4db6ac,
-        60: #80cbc4,
-        70: #b2dfdb,
-        80: #e0f2f1,
-        90: #e0f2f1,
-        95: #e0f2f1,
-        98: #e0f2f1,
-        99: #e0f2f1,
-        100: #ffffff
-    ),
-    neutral: (
-        0: #000000,
-        4: #121212,
-        6: #121212,
-        10: #303030,
-        12: #303030,
-        17: #303030,
-        20: #444444,
-        22: #444444,
-        24: #444444,
-        25: #666666,
-        30: #666666,
-        35: #666666,
-        40: #acacac,
-        50: #acacac,
-        60: #acacac,
-        70: #d8d8d8,
-        80: #d8d8d8,
-        87: #d8d8d8,
-        90: #e3e3e3,
-        92: #f4f4f4,
-        94: #f4f4f4,
-        95: #fafafa,
-        96: #fafafa,
-        98: #fafafa,
-        99: #fafafa,
-        100: #ffffff
-    ),
-    neutral-variant: (
-        0: #000000,
-        10: #303030,
-        20: #444444,
-        25: #666666,
-        30: #666666,
-        35: #666666,
-        40: #acacac,
-        50: #d8d8d8,
-        60: #d8d8d8,
-        70: #d8d8d8,
-        80: #d8d8d8,
-        90: #e3e3e3,
-        95: #f4f4f4,
-        98: #fafafa,
-        99: #fafafa,
-        100: #ffffff
-    ),
-    error: (
-        0: #000000,
-        10: #b71c1c,
-        20: #c62828,
-        25: #d32f2f,
-        30: #e53935,
-        35: #f44336,
-        40: #ef5350,
-        50: #e57373,
-        60: #ef9a9a,
-        70: #ffcdd2,
-        80: #ffebee,
-        90: #ffebee,
-        95: #ffebee,
-        98: #ffebee,
-        99: #ffebee,
-        100: #ffffff
-    )
+    primary: $primary,
+    secondary: $secondary,
+    tertiary: $tertiary,
+    neutral: $neutral,
+    neutral-variant: $neutral-variant,
+    error: $error
 );
 
 $m3-material-primary-dark-palette: (
-    primary: (
-        0: #000000,
-        10: #311b92,
-        20: #4527a0,
-        25: #512da8,
-        30: #5e35b1,
-        35: #673ab7,
-        40: #7e57c2,
-        50: #9575cd,
-        60: #b39ddb,
-        70: #d1c4e9,
-        80: #ede7f6,
-        90: #ede7f6,
-        95: #ede7f6,
-        98: #ede7f6,
-        99: #ede7f6,
-        100: #ffffff
-    ),
-    secondary: (
-        0: #000000,
-        10: #311b92,
-        20: #4527a0,
-        25: #512da8,
-        30: #5e35b1,
-        35: #673ab7,
-        40: #7e57c2,
-        50: #9575cd,
-        60: #b39ddb,
-        70: #d1c4e9,
-        80: #ede7f6,
-        90: #ede7f6,
-        95: #ede7f6,
-        98: #ede7f6,
-        99: #ede7f6,
-        100: #ffffff
-    ),
-    tertiary: (
-        0: #000000,
-        10: #004d40,
-        20: #00695c,
-        25: #00796b,
-        30: #00897b,
-        35: #009688,
-        40: #26a69a,
-        50: #4db6ac,
-        60: #80cbc4,
-        70: #b2dfdb,
-        80: #e0f2f1,
-        90: #e0f2f1,
-        95: #e0f2f1,
-        98: #e0f2f1,
-        99: #e0f2f1,
-        100: #ffffff
-    ),
-    neutral: (
-        0: #000000,
-        4: #303030,
-        6: #303030,
-        10: #303030,
-        12: #444444,
-        17: #444444,
-        20: #444444,
-        22: #444444,
-        24: #444444,
-        25: #666666,
-        30: #666666,
-        35: #666666,
-        40: #acacac,
-        50: #acacac,
-        60: #acacac,
-        70: #d8d8d8,
-        80: #d8d8d8,
-        87: #d8d8d8,
-        90: #e3e3e3,
-        92: #e3e3e3,
-        94: #e3e3e3,
-        95: #f4f4f4,
-        96: #f4f4f4,
-        98: #fafafa,
-        99: #fafafa,
-        100: #ffffff
-    ),
-    neutral-variant: (
-        0: #000000,
-        10: #303030,
-        20: #444444,
-        25: #666666,
-        30: #666666,
-        35: #666666,
-        40: #666666,
-        50: #666666,
-        60: #666666,
-        70: #acacac,
-        80: #d8d8d8,
-        90: #e3e3e3,
-        95: #f4f4f4,
-        98: #fafafa,
-        99: #fafafa,
-        100: #ffffff
-    ),
-    error: (
-        0: #000000,
-        10: #ba554a,
-        20: #ff0000,
-        25: #ff0000,
-        30: #ff1507,
-        35: #ec3030,
-        40: #f64e4c,
-        50: #f64e4c,
-        60: #f64e4c,
-        70: #eb7071,
-        80: #f49999,
-        90: #ffccd2,
-        95: #ffccd2,
-        98: #ffccd2,
-        99: #ffccd2,
-        100: #ffffff
-    )
+    primary: $primary,
+    secondary: $secondary,
+    tertiary: $tertiary,
+    neutral: $neutral,
+    neutral-variant: $neutral-variant,
+    error: $error
 );
 
 // Define a dark theme
@@ -344,16 +244,18 @@ $m3-light-theme-config: (
     ),
     tertiary: (
         darker: 30,
-        default: 40,
+        default: 30,
         lighter: 90
     ),
     success: (
-        darker: #016131,
-        default: #52bf7e,
-        lighter: #9dd9b2
+        default: #31975b,
+        variant: #1390ca
     ),
     alternate-surface: #ffffff,
-    caution: #cf9f5d,
+    caution: (
+        default: #cf9338,
+        contrast: #ffffff
+    ),
     neutral: (
         darker: 4,
         default: 35,
@@ -362,9 +264,9 @@ $m3-light-theme-config: (
     ),
     neutral-variant: 50,
     error: (
-        darker: 10,
-        default: 50,
-        lighter: 60
+        variant: 50,
+        default: 40,
+        contrast: #ffffff
     )
 );
 
@@ -387,26 +289,28 @@ $m3-dark-theme-config: (
     ),
     tertiary: (
         darker: 10,
-        default: 70,
+        default: 60,
         lighter: 80
     ),
     success: (
-        darker: #016131,
-        default: #52bf7e,
-        lighter: #9dd9b2
+        default: #31975b,
+        variant: #1390ca
     ),
     alternate-surface: #444444,
-    caution: #cf9f5d,
+    caution: (
+        default: #cf9f5d,
+        contrast: #ffffff
+    ),
     neutral: (
         darker: 10,
         default: 40,
-        lighter: 94,
+        lighter: 96,
         contrast: #ffffff
     ),
     neutral-variant: 35,
     error: (
-        darker: 35,
-        default: 70,
-        lighter: 80
+        variant: 90,
+        default: 50,
+        contrast: #ffffff
     )
 );

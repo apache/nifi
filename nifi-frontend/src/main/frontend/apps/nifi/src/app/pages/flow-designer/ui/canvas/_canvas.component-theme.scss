@@ -45,15 +45,10 @@
         error,
         map.get(map.get($config, error), default)
     );
-    $material-theme-error-palette-darker: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), darker)
-    );
     $material-theme-neutral-palette-default: mat.get-theme-color(
         $material-theme,
         neutral,
-        if($is-material-dark, 40, 35)
+        map.get(map.get($config, neutral), default)
     );
     $material-theme-neutral-palette-darker: mat.get-theme-color(
         $material-theme,
@@ -65,12 +60,15 @@
         neutral,
         map.get(map.get($config, neutral), lighter)
     );
+
+    $primary-contrast: map.get(map.get($config, primary), contrast);
+    $caution-contrast: map.get(map.get($config, caution), contrast);
+    $error-contrast: map.get(map.get($config, error), contrast);
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
     $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     $success-lighter: map.get($config, success-lighter);
     $success-default: map.get(map.get($config, success), default);
-    $caution-default: map.get($config, caution);
-    $on-primary: mat.get-theme-color($material-theme, on-primary);
+    $caution: map.get(map.get($config, caution), default);
 
     // Shadows should always be darker. We explicitly set this so the SVG shadows are correct in both modes.
     $drop-shadow-color: black;
@@ -154,11 +152,7 @@
         }
 
         g.component rect.border.unauthorized {
-            stroke: if(
-                $is-material-dark,
-                $material-theme-error-palette-default,
-                $material-theme-error-palette-darker
-            ) !important;
+            stroke: $material-theme-error-palette-default !important;
         }
 
         g.component rect.border.ghost {
@@ -199,25 +193,31 @@
         }
 
         text.bulletin-icon {
-            &.error,
-            &.warning,
             &.info,
             &.debug,
             &.trace {
-                fill: mat.get-theme-color($material-theme, surface);
+                fill: $primary-contrast;
+            }
+        }
+
+        text.bulletin-icon {
+            &.error {
+                fill: $error-contrast;
+            }
+        }
+
+        text.bulletin-icon {
+            &.warning {
+                fill: $caution-contrast;
             }
         }
 
         rect.bulletin-background {
             &.error {
-                fill: if(
-                    $is-material-dark,
-                    $material-theme-error-palette-default,
-                    $material-theme-error-palette-darker
-                );
+                fill: $material-theme-error-palette-default;
             }
             &.warning {
-                fill: $caution-default;
+                fill: $caution;
             }
             &.info,
             &.debug,
@@ -335,18 +335,14 @@
         }
 
         text.restricted {
-            fill: if($is-material-dark, $material-theme-error-palette-default, $material-theme-error-palette-darker);
+            fill: $material-theme-error-palette-default;
         }
 
         /*
           Connection
       */
         #connection-full-drop-shadow feFlood {
-            flood-color: if(
-                $is-material-dark,
-                $material-theme-error-palette-default,
-                $material-theme-error-palette-darker
-            );
+            flood-color: $material-theme-error-palette-default;
         }
 
         g.connection {
@@ -370,7 +366,7 @@
         }
 
         g.connection rect.border.unauthorized {
-            stroke: if($is-material-dark, $material-theme-error-palette-default, $material-theme-error-palette-darker);
+            stroke: $material-theme-error-palette-default;
         }
 
         g.connection rect.border.full {
@@ -403,11 +399,11 @@
         }
 
         g.connection path.connection-path.full {
-            stroke: if($is-material-dark, $material-theme-error-palette-default, $material-theme-error-palette-darker);
+            stroke: $material-theme-error-palette-default;
         }
 
         g.connection path.connection-path.unauthorized {
-            stroke: if($is-material-dark, $material-theme-error-palette-default, $material-theme-error-palette-darker);
+            stroke: $material-theme-error-palette-default;
         }
 
         g.connection rect.backpressure-tick {
@@ -458,7 +454,7 @@
         }
 
         g.connection rect.backpressure-percent.error {
-            fill: if($is-material-dark, $material-theme-error-palette-default, $material-theme-error-palette-darker);
+            fill: $material-theme-error-palette-default;
         }
 
         /* ghost connection */
@@ -526,11 +522,7 @@
         }
 
         rect.process-group-stats-border {
-            fill: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-default,
-                $material-theme-secondary-palette-lighter
-            );
+            fill: $border-color;
         }
 
         rect.process-group-banner,

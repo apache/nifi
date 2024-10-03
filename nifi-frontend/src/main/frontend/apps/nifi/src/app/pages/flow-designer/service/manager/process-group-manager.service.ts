@@ -735,7 +735,7 @@ export class ProcessGroupManager {
                 // update transmitting
                 const transmitting = details
                     .select('text.process-group-transmitting')
-                    .classed('success-color', function (d: any) {
+                    .classed('success-color-variant', function (d: any) {
                         return d.permissions.canRead && d.activeRemotePortCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -791,7 +791,7 @@ export class ProcessGroupManager {
                 // update running
                 const running = details
                     .select('text.process-group-running')
-                    .classed('success-color-lighter', function (d: any) {
+                    .classed('success-color-default', function (d: any) {
                         return d.permissions.canRead && d.component.runningCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -823,7 +823,7 @@ export class ProcessGroupManager {
                 // update stopped
                 const stopped = details
                     .select('text.process-group-stopped')
-                    .classed('error-color-lighter', function (d: any) {
+                    .classed('error-color-variant', function (d: any) {
                         return d.permissions.canRead && d.component.stoppedCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -919,7 +919,7 @@ export class ProcessGroupManager {
                 // up to date current
                 const upToDate = details
                     .select('text.process-group-up-to-date')
-                    .classed('success-color', function (d: any) {
+                    .classed('success-color-variant', function (d: any) {
                         return d.permissions.canRead && d.component.upToDateCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -975,7 +975,7 @@ export class ProcessGroupManager {
                 // update stale
                 const stale = details
                     .select('text.process-group-stale')
-                    .classed('error-color-lighter', function (d: any) {
+                    .classed('error-color-variant', function (d: any) {
                         return d.permissions.canRead && d.component.staleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1007,7 +1007,7 @@ export class ProcessGroupManager {
                 // update locally modified and stale
                 const locallyModifiedAndStale = details
                     .select('text.process-group-locally-modified-and-stale')
-                    .classed('error-color-lighter', function (d: any) {
+                    .classed('error-color-variant', function (d: any) {
                         return d.permissions.canRead && d.component.locallyModifiedAndStaleCount > 0;
                     })
                     .classed('zero', function (d: any) {
@@ -1081,14 +1081,14 @@ export class ProcessGroupManager {
                             if (vciState === 'SYNC_FAILURE') {
                                 return `version-control neutral-color`;
                             } else if (vciState === 'LOCALLY_MODIFIED_AND_STALE') {
-                                return `version-control error-color-lighter`;
+                                return `version-control error-color-variant`;
                             } else if (vciState === 'STALE') {
-                                return `version-control error-color-lighter`;
+                                return `version-control error-color-variant`;
                             } else if (vciState === 'LOCALLY_MODIFIED') {
                                 return `version-control neutral-color`;
                             } else {
                                 // up to date
-                                return `version-control success-color`;
+                                return `version-control success-color-default`;
                             }
                         } else {
                             return 'version-control neutral-contrast';
