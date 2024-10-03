@@ -23,8 +23,8 @@
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
-        <curator.version>5.6.0</curator.version>
-        <guava.version>32.1.2-jre</guava.version>
+        <curator.version>5.7.0</curator.version>
+        <guava.version>33.3.1-jre</guava.version>
         <tika.version>2.9.2</tika.version>
         <org.opensaml.version>4.3.0</org.opensaml.version>
     </properties>
@@ -236,7 +236,7 @@
             <dependency>
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
-                <version>74.2</version>
+                <version>75.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tika</groupId>
@@ -272,7 +272,7 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.37.3</version>
+                <version>9.41.2</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.jettison</groupId>
@@ -459,7 +459,7 @@
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
-                <version>4.2.25</version>
+                <version>4.2.27</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>

@@ -106,7 +106,7 @@
             <dependency>
                 <groupId>com.hierynomus</groupId>
                 <artifactId>sshj</artifactId>
-                <version>0.38.0</version>
+                <version>0.39.0</version>
             </dependency>
             <dependency>
                 <groupId>jakarta.activation</groupId>
@@ -136,7 +136,7 @@
             <dependency>
                 <groupId>com.aayushatharva.brotli4j</groupId>
                 <artifactId>brotli4j</artifactId>
-                <version>1.16.0</version>
+                <version>1.17.0</version>
             </dependency>
             <dependency>
                 <groupId>org.tukaani</groupId>
@@ -277,12 +277,12 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>32.1.2-jre</version>
+                <version>33.3.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-                <version>1.5.1</version>
+                <version>1.5.2</version>
             </dependency>
             <!-- Override Commons Compiler 3.1.9 from calcite-core -->
             <dependency>
