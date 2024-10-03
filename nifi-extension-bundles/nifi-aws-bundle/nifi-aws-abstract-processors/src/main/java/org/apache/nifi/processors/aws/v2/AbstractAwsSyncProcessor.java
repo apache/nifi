@@ -91,7 +91,7 @@ public abstract class AbstractAwsSyncProcessor<
             @Override
             public void configureProxy(final ProxyConfiguration proxyConfiguration) {
                 final software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyConfigBuilder = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
-                        .endpoint(URI.create(String.format("%s:%s", proxyConfiguration.getProxyServerHost(), proxyConfiguration.getProxyServerPort())));
+                        .endpoint(URI.create(String.format("http://%s:%s", proxyConfiguration.getProxyServerHost(), proxyConfiguration.getProxyServerPort())));
 
                 if (proxyConfiguration.hasCredential()) {
                     proxyConfigBuilder.username(proxyConfiguration.getProxyUserName());
