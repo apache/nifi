@@ -228,7 +228,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
             final String assumeRoleProxyHost = propertyContext.getProperty(ASSUME_ROLE_PROXY_HOST).getValue();
             final int assumeRoleProxyPort = propertyContext.getProperty(ASSUME_ROLE_PROXY_PORT).asInteger();
             final software.amazon.awssdk.http.apache.ProxyConfiguration proxyConfig = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
-                    .endpoint(URI.create(String.format("%s:%s", assumeRoleProxyHost, assumeRoleProxyPort)))
+                    .endpoint(URI.create(String.format("http://%s:%s", assumeRoleProxyHost, assumeRoleProxyPort)))
                     .build();
             httpClientBuilder.proxyConfiguration(proxyConfig);
         }
