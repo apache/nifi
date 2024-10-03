@@ -470,8 +470,12 @@ public class PutEmail extends AbstractProcessor {
                 final MimeBodyPart mimeFile = new MimeBodyPart();
                 session.read(flowFile, stream -> {
                     try {
-                        final String mimeType = flowFile.getAttribute("mime.type");
-                        mimeFile.setDataHandler(new DataHandler(new ByteArrayDataSource(stream, (mimeType == null || mimeType.isEmpty()) ? "application/octet-stream" : mimeType)));
+                        final String mimeTypeAttribute = flowFile.getAttribute("mime.type");
+                        String mimeType = "application/octet-stream";
+                        if(mimeTypeAttribute != null && !mimeTypeAttribute.isEmpty()) {
+                            mimeType = mimeTypeAttribute;
+                        }
+                        mimeFile.setDataHandler(new DataHandler(new ByteArrayDataSource(stream, mimeType)));
                     } catch (final Exception e) {
                         throw new IOException(e);
                     }
