@@ -53,6 +53,8 @@ public class TestEventService {
     @Test
     public void testPublishConsume() throws InterruptedException {
         final Bucket bucket = new Bucket();
+        bucket.setName("bucket1");
+        bucket.setDescription("bucketDescription");
         bucket.setIdentifier(UUID.randomUUID().toString());
 
         final Event bucketCreatedEvent = EventFactory.bucketCreated(bucket);
