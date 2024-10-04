@@ -825,4 +825,15 @@
     ngx-skeleton-loader .skeleton-loader {
         background: $border-color;
     }
+
+    .markdown-clipboard-toolbar {
+        top: 16px;
+        right: 16px;
+        opacity: 0;
+        transition: opacity 250ms ease-out;
+    }
+
+    .markdown-clipboard-toolbar.hover {
+        opacity: 1;
+    }
 }
