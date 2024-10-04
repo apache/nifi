@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -1378,8 +1379,15 @@ public class TestMonitorActivity {
 
     @Test
     public void testInfrequentFlowFilesTriggerImmediateSynchronization() throws IOException, InterruptedException {
-        final long threshold_seconds = 18;
-        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
+        final long threshold_seconds = 30;
+        final long startup_time_seconds = 1;
+        final AtomicLong nowProvider = new AtomicLong(TimeUnit.SECONDS.toMillis(startup_time_seconds));
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity() {
+            @Override
+            protected long nowMillis() {
+                return nowProvider.get();
+            }
+        });
         runner.setIsConfiguredForClustering(true);
         runner.setConnected(true);
         runner.setPrimaryNode(false);
@@ -1398,7 +1406,7 @@ public class TestMonitorActivity {
         assertNotNull(state_1);
 
         // Wait > (2/3 * T)
-        TimeUnit.SECONDS.sleep(((2 * threshold_seconds) / 3) + 1);
+        nowProvider.set(TimeUnit.SECONDS.toMillis(startup_time_seconds + ((2 * threshold_seconds) / 3) + 1));
         runNext(runner);
         runner.enqueue("Incoming data 2");
         runNext(runner);
