@@ -20,6 +20,7 @@
 
 @use 'libs/shared/src/assets/styles/app' as app;
 @use 'libs/shared/src/assets/styles/codemirror-theme' as codemirror-theme;
+@use 'libs/shared/src/assets/styles/prism-theme' as prism-theme;
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
 @use 'libs/shared/src/components/resizable/resizeable-theme' as resizable;
 @use 'app/app.component-theme' as app-component;
@@ -82,6 +83,7 @@ html {
     @include mat.all-component-themes($m3-light-theme);
     @include app.generate-material-theme($m3-light-theme, $m3-light-theme-config);
     @include codemirror-theme.generate-codemirror-theme($m3-light-theme, $m3-light-theme-config);
+    @include prism-theme.generate-prism-theme($m3-light-theme, $m3-light-theme-config);
     @include app-component.generate-theme($m3-light-theme, $m3-light-theme-config);
     @include listing-table.generate-theme($m3-light-theme, $m3-light-theme-config);
     @include documentation.generate-theme($m3-light-theme, $m3-light-theme-config);
@@ -114,6 +116,7 @@ html {
         @include mat.all-component-colors($m3-dark-theme);
         @include app.generate-material-theme($m3-dark-theme, $m3-dark-theme-config);
         @include codemirror-theme.generate-codemirror-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include prism-theme.generate-prism-theme($m3-dark-theme, $m3-dark-theme-config);
         @include app-component.generate-theme($m3-dark-theme, $m3-dark-theme-config);
         @include listing-table.generate-theme($m3-dark-theme, $m3-dark-theme-config);
         @include documentation.generate-theme($m3-dark-theme, $m3-dark-theme-config);

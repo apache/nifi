@@ -253,7 +253,11 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                 if (Number.isInteger(supportedMimeTypeId)) {
                     const supportedContentViewer = this.supportedContentViewerLookup.get(supportedMimeTypeId);
                     if (supportedContentViewer) {
-                        if (supportedContentViewer.supportedMimeTypes.mimeTypes.includes(mimeType)) {
+                        const supportsMimeType = supportedContentViewer.supportedMimeTypes.mimeTypes.some(
+                            (supportedMimeType) => mimeType.startsWith(supportedMimeType)
+                        );
+
+                        if (supportsMimeType) {
                             return supportedMimeTypeId;
                         }
                     }

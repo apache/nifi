@@ -84,6 +84,9 @@ export class EditProcessGroup extends TabbedDialog {
     @Output() editProcessGroup: EventEmitter<any> = new EventEmitter<any>();
 
     protected readonly TextTip = TextTip;
+    protected readonly STATELESS: string = 'STATELESS';
+    private initialMaxConcurrentTasks: number;
+    private initialStatelessFlowTimeout: string;
 
     editProcessGroupForm: FormGroup;
     readonly: boolean;
@@ -102,7 +105,7 @@ export class EditProcessGroup extends TabbedDialog {
         },
         {
             text: 'Stateless',
-            value: 'STATELESS',
+            value: this.STATELESS,
             description:
                 'Run the dataflow using the Stateless Execution Engine. See the User Guide for additional details.'
         }
@@ -189,6 +192,27 @@ export class EditProcessGroup extends TabbedDialog {
             logFileSuffix: new FormControl(request.entity.component.logFileSuffix),
             comments: new FormControl(request.entity.component.comments)
         });
+
+        this.initialMaxConcurrentTasks = request.entity.component.maxConcurrentTasks;
+        this.initialStatelessFlowTimeout = request.entity.component.statelessFlowTimeout;
+
+        this.executionEngineChanged(request.entity.component.executionEngine);
+    }
+
+    executionEngineChanged(value: string): void {
+        if (value == this.STATELESS) {
+            this.editProcessGroupForm.addControl(
+                'maxConcurrentTasks',
+                new FormControl(this.initialMaxConcurrentTasks, Validators.required)
+            );
+            this.editProcessGroupForm.addControl(
+                'statelessFlowTimeout',
+                new FormControl(this.initialStatelessFlowTimeout, Validators.required)
+            );
+        } else {
+            this.editProcessGroupForm.removeControl('maxConcurrentTasks');
+            this.editProcessGroupForm.removeControl('statelessFlowTimeout');
+        }
     }
 
     submitForm() {
@@ -220,6 +244,11 @@ export class EditProcessGroup extends TabbedDialog {
                 comments: this.editProcessGroupForm.get('comments')?.value
             }
         };
+
+        if (this.editProcessGroupForm.get('executionEngine')?.value === this.STATELESS) {
+            payload.component.maxConcurrentTasks = this.editProcessGroupForm.get('maxConcurrentTasks')?.value;
+            payload.component.statelessFlowTimeout = this.editProcessGroupForm.get('statelessFlowTimeout')?.value;
+        }
 
         this.editProcessGroup.next(payload);
     }

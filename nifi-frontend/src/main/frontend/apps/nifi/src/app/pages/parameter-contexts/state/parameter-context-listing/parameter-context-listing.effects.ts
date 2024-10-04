@@ -170,6 +170,10 @@ export class ParameterContextListingEffects {
                                 })
                             );
                         });
+
+                    dialogReference.afterClosed().subscribe(() => {
+                        this.store.dispatch(ErrorActions.clearBannerErrors());
+                    });
                 })
             ),
         { dispatch: false }

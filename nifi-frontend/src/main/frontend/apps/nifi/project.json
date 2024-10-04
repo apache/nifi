@@ -27,11 +27,24 @@
                         "output": "./assets"
                     }
                 ],
-                "styles": ["apps/nifi/src/styles.scss"],
+                "styles": [
+                    "apps/nifi/src/styles.scss",
+                    "node_modules/prismjs/plugins/line-numbers/prism-line-numbers.css"
+                ],
                 "stylePreprocessorOptions": {
                     "includePaths": [""]
                 },
-                "scripts": [],
+                "scripts": [
+                    "node_modules/prismjs/prism.js",
+                    "node_modules/prismjs/components/prism-bash.min.js",
+                    "node_modules/prismjs/components/prism-json.min.js",
+                    "node_modules/prismjs/components/prism-java.min.js",
+                    "node_modules/prismjs/components/prism-groovy.min.js",
+                    "node_modules/prismjs/components/prism-xml-doc.min.js",
+                    "node_modules/prismjs/components/prism-yaml.min.js",
+                    "node_modules/prismjs/components/prism-sql.min.js",
+                    "node_modules/prismjs/plugins/line-numbers/prism-line-numbers.js"
+                ],
                 "allowedCommonJsDependencies": ["codemirror"],
                 "preserveSymlinks": true
             },

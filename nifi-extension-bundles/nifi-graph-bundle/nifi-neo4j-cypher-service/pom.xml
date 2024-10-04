@@ -19,7 +19,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <neo4j.driver.version>5.24.0</neo4j.driver.version>
+        <neo4j.driver.version>5.25.0</neo4j.driver.version>
         <neo4j.docker.version>5.19</neo4j.docker.version>
     </properties>
 
