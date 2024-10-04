@@ -485,6 +485,9 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
             final Relationship relationship = flowFileResult.getExceptions().isEmpty() ? REL_SUCCESS : REL_FAILURE;
             session.transfer(flowFile, relationship);
+            final int numTopics = flowFileResult.getSentPerTopic().keySet().size();
+            final String topicList = String.join(",", flowFileResult.getSentPerTopic().keySet().toArray(new String[numTopics]));
+            session.getProvenanceReporter().send(flowFile, "kafka://" + topicList);
         }
     }
 
