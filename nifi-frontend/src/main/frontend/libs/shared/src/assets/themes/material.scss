@@ -338,15 +338,11 @@ $m3-light-theme: mat.define-theme(
 
 $m3-light-theme-config: (
     primary: (
-        darker: 10,
         default: 40,
-        lighter: 80,
         contrast: #ffffff
     ),
     secondary: (
-        darker: 10,
-        default: 30,
-        lighter: 70,
+        default: 50,
         contrast: #000000,
         new-canvas-item: (
             grip: #ffffff,
@@ -354,9 +350,8 @@ $m3-light-theme-config: (
         )
     ),
     tertiary: (
-        darker: 30,
         default: 40,
-        lighter: 90
+        variant: 90
     ),
     success: (
         default: #31975b,
@@ -383,25 +378,20 @@ $m3-light-theme-config: (
 
 $m3-dark-theme-config: (
     primary: (
-        darker: 0,
         default: 40,
-        lighter: 99,
         contrast: #000000
     ),
     secondary: (
-        darker: 0,
         default: 40,
-        lighter: 99,
         contrast: #000000,
         new-canvas-item: (
-            grip: #000000,
-            hover: #ffffff
+            grip: #ffffff,
+            hover: #000000
         )
     ),
     tertiary: (
-        darker: 10,
-        default: 70,
-        lighter: 80
+        variant: 10,
+        default: 70
     ),
     success: (
         default: #31975b,

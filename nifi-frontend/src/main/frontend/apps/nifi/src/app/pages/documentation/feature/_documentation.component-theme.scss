@@ -21,22 +21,13 @@
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
 
-    $material-theme-tertiary-palette-darker: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), darker)
-    );
-    $material-theme-tertiary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), lighter)
+    $material-theme-tertiary-palette-variant: mat.get-theme-color(
+            $material-theme,
+            tertiary,
+            map.get(map.get($config, tertiary), variant)
     );
 
-    $selected-item-color: if(
-        $is-material-dark,
-        $material-theme-tertiary-palette-darker,
-        $material-theme-tertiary-palette-lighter
-    );
+    $selected-item-color: $material-theme-tertiary-palette-variant;
 
     .documentation {
         h2 {

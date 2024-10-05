@@ -25,16 +25,6 @@
         secondary,
         map.get(map.get($config, secondary), default)
     );
-    $material-theme-secondary-palette-darker: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), darker)
-    );
-    $material-theme-secondary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), lighter)
-    );
     $material-theme-tertiary-palette-default: mat.get-theme-color(
         $material-theme,
         tertiary,
@@ -168,11 +158,7 @@
         }
 
         g.component.selected rect.border {
-            stroke: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-default,
-                $material-theme-secondary-palette-darker
-            ) !important;
+            stroke: $material-theme-secondary-palette-default !important;
         }
 
         text.stats-label {
@@ -185,11 +171,7 @@
         }
 
         text.stats-info {
-            fill: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-default,
-                $material-theme-secondary-palette-darker
-            );
+            fill: $material-theme-secondary-palette-default;
         }
 
         text.bulletin-icon {
@@ -227,11 +209,7 @@
         }
 
         text.component-comments {
-            fill: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-default,
-                $material-theme-secondary-palette-darker
-            );
+            fill: $material-theme-secondary-palette-default;
             stroke: $border-color;
         }
 
@@ -246,20 +224,12 @@
         rect.component-selection,
         rect.drag-selection,
         rect.label-drag {
-            stroke: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-lighter,
-                $material-theme-secondary-palette-darker
-            );
+            stroke: $material-theme-secondary-palette-default;
             fill: transparent;
         }
 
         text.add-connect {
-            fill: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-default,
-                $material-theme-secondary-palette-darker
-            );
+            fill: $material-theme-secondary-palette-default;
         }
 
         /*
@@ -286,11 +256,7 @@
         }
 
         text.processor-type {
-            fill: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-default,
-                $material-theme-secondary-palette-darker
-            );
+            fill: $material-theme-secondary-palette-default;
         }
 
         circle.is-primary-background {
@@ -527,11 +493,7 @@
 
         rect.process-group-banner,
         rect.remote-process-group-banner {
-            fill: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-default,
-                $material-theme-secondary-palette-lighter
-            );
+            fill: $material-theme-secondary-palette-default;
         }
 
         text.version-control,
@@ -570,27 +532,15 @@
         }
 
         text.remote-process-group-uri {
-            fill: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-lighter,
-                $material-theme-secondary-palette-darker
-            );
+            fill: $material-theme-secondary-palette-default;
         }
 
         text.remote-process-group-transmission-secure {
-            fill: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-lighter,
-                $material-theme-secondary-palette-darker
-            );
+            fill: $material-theme-secondary-palette-default;
         }
 
         text.remote-process-group-last-refresh {
-            fill: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-lighter,
-                $material-theme-secondary-palette-darker
-            );
+            fill: $material-theme-secondary-palette-default;
         }
     }
 }

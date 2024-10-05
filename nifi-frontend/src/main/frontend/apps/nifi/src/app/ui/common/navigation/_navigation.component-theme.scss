@@ -25,27 +25,13 @@
         secondary,
         map.get(map.get($config, secondary), default)
     );
-    $material-theme-secondary-palette-darker: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), darker)
-    );
-    $material-theme-secondary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), lighter)
-    );
-    $secondary-contrast: map.get(map.get($config, secondary), contrast);
+    $neutral-contrast: map.get(map.get($config, neutral), contrast);
 
     .nifi-navigation {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-secondary-palette-default,
-            $material-theme-secondary-palette-lighter
-        );
+        background-color: $material-theme-secondary-palette-default;
 
         .global-menu-icon.global-menu {
-            @extend .secondary-contrast;
+            @extend .neutral-contrast;
         }
 
         .global-menu-icon.global-menu:disabled {
@@ -53,13 +39,13 @@
         }
 
         .current-user {
-            @extend .secondary-contrast;
+            @extend .neutral-contrast;
             font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
         }
 
         a {
-            @extend .secondary-contrast;
-            text-decoration-color: $secondary-contrast;
+            @extend .neutral-contrast;
+            text-decoration-color: $neutral-contrast;
         }
 
         a:hover {

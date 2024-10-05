@@ -403,45 +403,20 @@
         primary,
         map.get(map.get($config, primary), default)
     );
-    $material-theme-primary-palette-darker: mat.get-theme-color(
-        $material-theme,
-        primary,
-        map.get(map.get($config, primary), darker)
-    );
-    $material-theme-primary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        primary,
-        map.get(map.get($config, primary), lighter)
-    );
     $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
         secondary,
         map.get(map.get($config, secondary), default)
     );
-    $material-theme-secondary-palette-darker: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), darker)
-    );
-    $material-theme-secondary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), lighter)
-    );
     $material-theme-tertiary-palette-default: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), default)
+            $material-theme,
+            tertiary,
+            map.get(map.get($config, tertiary), default)
     );
-    $material-theme-tertiary-palette-darker: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), darker)
-    );
-    $material-theme-tertiary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        tertiary,
-        map.get(map.get($config, tertiary), lighter)
+    $material-theme-tertiary-palette-variant: mat.get-theme-color(
+            $material-theme,
+            tertiary,
+            map.get(map.get($config, tertiary), variant)
     );
     $material-theme-error-palette-default: mat.get-theme-color(
         $material-theme,
@@ -476,11 +451,7 @@
     $success-default: map.get(map.get($config, success), default);
     $success-variant: map.get(map.get($config, success), variant);
     $caution: map.get(map.get($config, caution), default);
-    $selected-row-color: if(
-        $is-material-dark,
-        $material-theme-tertiary-palette-darker,
-        $material-theme-tertiary-palette-lighter
-    );
+    $selected-row-color: $material-theme-tertiary-palette-variant;
 
     // support dark-mode browser default inputs (time, color, ...)
     input {
@@ -507,11 +478,6 @@
     .secondary-color {
         color: $material-theme-secondary-palette-default;
         fill: $material-theme-secondary-palette-default;
-    }
-
-    .secondary-color-lighter {
-        color: $material-theme-secondary-palette-lighter;
-        fill: $material-theme-secondary-palette-lighter;
     }
 
     .tertiary-color {
@@ -558,15 +524,6 @@
         background-color: $caution;
     }
 
-    // semantic classes for contrast colors determined based on the light/dark mode of the theme.
-
-    // will be black for light mode and white for dark mode
-    .neutral-contrast {
-        color: $neutral-contrast;
-        fill: $neutral-contrast;
-    }
-
-    // will be a darker light grey for light mode and a brighter light grey for dark mode
     .border-color {
         color: $border-color;
         fill: $border-color;
@@ -607,16 +564,8 @@
     }
 
     a {
-        color: if(
-            $is-material-dark,
-            $material-theme-secondary-palette-default,
-            $material-theme-secondary-palette-darker
-        );
-        text-decoration-color: if(
-            $is-material-dark,
-            $material-theme-secondary-palette-lighter,
-            $material-theme-secondary-palette-default
-        );
+        color: $material-theme-secondary-palette-default;
+        text-decoration-color: $material-theme-secondary-palette-default;
     }
 
     a:hover {
@@ -818,28 +767,16 @@
     }
 
     .cdk-drop-list {
-        color: if(
-            $is-material-dark,
-            $material-theme-secondary-palette-default,
-            $material-theme-secondary-palette-darker
-        );
+        color: $material-theme-secondary-palette-default;
     }
 
     .cdk-drop-list-dragging {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-secondary-palette-darker,
-            $material-theme-secondary-palette-default
-        ) !important;
+        background-color: $material-theme-secondary-palette-default !important;
     }
 
     .cdk-drag-selected {
         .cdk-drag {
-            background-color: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-default,
-                $material-theme-secondary-palette-darker
-            );
+            background-color: $material-theme-secondary-palette-default;
         }
     }
 

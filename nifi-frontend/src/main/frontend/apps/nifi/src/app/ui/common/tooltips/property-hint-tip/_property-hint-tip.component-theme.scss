@@ -25,11 +25,6 @@
         secondary,
         map.get(map.get($config, secondary), default)
     );
-    $material-theme-secondary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), lighter)
-    );
     $material-theme-neutral-palette-darker: mat.get-theme-color(
         $material-theme,
         neutral,
@@ -43,10 +38,6 @@
 
     .hint-pattern {
         color: if($is-material-dark, $material-theme-neutral-palette-darker, $material-theme-neutral-palette-lighter);
-        background-color: if(
-            $is-material-dark,
-            $material-theme-secondary-palette-lighter,
-            $material-theme-secondary-palette-default
-        );
+        background-color: $material-theme-secondary-palette-default;
     }
 }
