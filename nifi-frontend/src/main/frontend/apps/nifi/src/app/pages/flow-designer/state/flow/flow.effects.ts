@@ -189,6 +189,7 @@ export class FlowEffects {
             .pipe(
                 takeUntilDestroyed(this.destroyRef),
                 filter((documentVisibility) => documentVisibility.documentVisibility === DocumentVisibility.Visible),
+                filter(() => this.canvasView.isCanvasInitialized()),
                 filter(
                     (documentVisibility) =>
                         documentVisibility.changedTimestamp - this.lastReload > 30 * NiFiCommon.MILLIS_PER_SECOND

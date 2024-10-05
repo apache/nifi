@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -29,19 +29,18 @@ import {
     selectAnySelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { Dimension } from '../../state/shared';
 import { ComponentType } from 'libs/shared/src';
-import { filter, switchMap } from 'rxjs';
+import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { NiFiCommon, TextTip } from '@nifi/shared';
 
 @Injectable({
     providedIn: 'root'
 })
-export class RemoteProcessGroupManager {
-    private destroyRef = inject(DestroyRef);
+export class RemoteProcessGroupManager implements OnDestroy {
+    private destroyed$: Subject<boolean> = new Subject();
 
     private dimensions: Dimension = {
         width: 384,
@@ -51,7 +50,7 @@ export class RemoteProcessGroupManager {
     private static readonly PREVIEW_NAME_LENGTH: number = 30;
 
     private remoteProcessGroups: [] = [];
-    private remoteProcessGroupContainer: any;
+    private remoteProcessGroupContainer: any = null;
     private transitionRequired = false;
 
     constructor(
@@ -673,7 +672,10 @@ export class RemoteProcessGroupManager {
 
         this.store
             .select(selectRemoteProcessGroups)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(
+                filter(() => this.remoteProcessGroupContainer !== null),
+                takeUntil(this.destroyed$)
+            )
             .subscribe((remoteProcessGroups) => {
                 this.set(remoteProcessGroups);
             });
@@ -682,8 +684,9 @@ export class RemoteProcessGroupManager {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'success'),
+                filter(() => this.remoteProcessGroupContainer !== null),
                 switchMap(() => this.store.select(selectAnySelectedComponentIds)),
-                takeUntilDestroyed(this.destroyRef)
+                takeUntil(this.destroyed$)
             )
             .subscribe((selected) => {
                 this.remoteProcessGroupContainer
@@ -695,10 +698,19 @@ export class RemoteProcessGroupManager {
 
         this.store
             .select(selectTransitionRequired)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.destroyed$))
             .subscribe((transitionRequired) => {
                 this.transitionRequired = transitionRequired;
             });
+    }
+
+    public destroy(): void {
+        this.remoteProcessGroupContainer = null;
+        this.destroyed$.next(true);
+    }
+
+    ngOnDestroy(): void {
+        this.destroyed$.complete();
     }
 
     private set(remoteProcessGroups: any): void {

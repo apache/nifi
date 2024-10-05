@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -29,19 +29,18 @@ import {
     selectAnySelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { TextTip, NiFiCommon } from '@nifi/shared';
 import { Dimension } from '../../state/shared';
 import { ComponentType } from 'libs/shared/src';
-import { filter, switchMap } from 'rxjs';
+import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 
 @Injectable({
     providedIn: 'root'
 })
-export class ProcessorManager {
-    private destroyRef = inject(DestroyRef);
+export class ProcessorManager implements OnDestroy {
+    private destroyed$: Subject<boolean> = new Subject();
 
     private dimensions: Dimension = {
         width: 352,
@@ -51,7 +50,7 @@ export class ProcessorManager {
     private static readonly PREVIEW_NAME_LENGTH: number = 25;
 
     private processors: [] = [];
-    private processorContainer: any;
+    private processorContainer: any = null;
     private transitionRequired = false;
 
     constructor(
@@ -831,7 +830,10 @@ export class ProcessorManager {
 
         this.store
             .select(selectProcessors)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(
+                filter(() => this.processorContainer !== null),
+                takeUntil(this.destroyed$)
+            )
             .subscribe((processors) => {
                 this.set(processors);
             });
@@ -840,8 +842,9 @@ export class ProcessorManager {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'success'),
+                filter(() => this.processorContainer !== null),
                 switchMap(() => this.store.select(selectAnySelectedComponentIds)),
-                takeUntilDestroyed(this.destroyRef)
+                takeUntil(this.destroyed$)
             )
             .subscribe((selected) => {
                 this.processorContainer.selectAll('g.processor').classed('selected', function (d: any) {
@@ -851,10 +854,19 @@ export class ProcessorManager {
 
         this.store
             .select(selectTransitionRequired)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.destroyed$))
             .subscribe((transitionRequired) => {
                 this.transitionRequired = transitionRequired;
             });
+    }
+
+    public destroy(): void {
+        this.processorContainer = null;
+        this.destroyed$.next(true);
+    }
+
+    ngOnDestroy(): void {
+        this.destroyed$.complete();
     }
 
     private set(processors: any): void {

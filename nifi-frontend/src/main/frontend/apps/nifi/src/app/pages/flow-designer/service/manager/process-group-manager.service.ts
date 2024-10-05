@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Store } from '@ngrx/store';
 import { PositionBehavior } from '../behavior/position-behavior.service';
@@ -30,18 +30,17 @@ import {
 } from '../../state/flow/flow.selectors';
 import { CanvasUtils } from '../canvas-utils.service';
 import { enterProcessGroup } from '../../state/flow/flow.actions';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { VersionControlTip } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import { Dimension } from '../../state/shared';
 import { ComponentType } from 'libs/shared/src';
-import { filter, switchMap } from 'rxjs';
+import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { NiFiCommon, TextTip } from '@nifi/shared';
 
 @Injectable({
     providedIn: 'root'
 })
-export class ProcessGroupManager {
-    private destroyRef = inject(DestroyRef);
+export class ProcessGroupManager implements OnDestroy {
+    private destroyed$: Subject<boolean> = new Subject();
 
     private dimensions: Dimension = {
         width: 384,
@@ -54,7 +53,7 @@ export class ProcessGroupManager {
     private static readonly PREVIEW_NAME_LENGTH: number = 30;
 
     private processGroups: [] = [];
-    private processGroupContainer: any;
+    private processGroupContainer: any = null;
     private transitionRequired = false;
 
     constructor(
@@ -1321,7 +1320,10 @@ export class ProcessGroupManager {
 
         this.store
             .select(selectProcessGroups)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(
+                filter(() => this.processGroupContainer !== null),
+                takeUntil(this.destroyed$)
+            )
             .subscribe((processGroups) => {
                 this.set(processGroups);
             });
@@ -1330,8 +1332,9 @@ export class ProcessGroupManager {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'success'),
+                filter(() => this.processGroupContainer !== null),
                 switchMap(() => this.store.select(selectAnySelectedComponentIds)),
-                takeUntilDestroyed(this.destroyRef)
+                takeUntil(this.destroyed$)
             )
             .subscribe((selected) => {
                 this.processGroupContainer.selectAll('g.process-group').classed('selected', function (d: any) {
@@ -1341,10 +1344,19 @@ export class ProcessGroupManager {
 
         this.store
             .select(selectTransitionRequired)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.destroyed$))
             .subscribe((transitionRequired) => {
                 this.transitionRequired = transitionRequired;
             });
+    }
+
+    public destroy(): void {
+        this.processGroupContainer = null;
+        this.destroyed$.next(true);
+    }
+
+    ngOnDestroy(): void {
+        this.destroyed$.complete();
     }
 
     private set(processGroups: any): void {
