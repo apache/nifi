@@ -426,7 +426,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
 
         if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
             final software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyConfigBuilder = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
-                    .endpoint(URI.create(String.format("%s:%s", proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort())));
+                    .endpoint(URI.create(String.format("http://%s:%s", proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort())));
 
             if (proxyConfig.hasCredential()) {
                 proxyConfigBuilder.username(proxyConfig.getProxyUserName());
