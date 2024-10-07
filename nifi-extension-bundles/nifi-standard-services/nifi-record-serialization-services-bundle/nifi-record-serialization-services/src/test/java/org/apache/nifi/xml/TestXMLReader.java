@@ -46,11 +46,18 @@ public class TestXMLReader {
     private final String EVALUATE_IS_ARRAY = "xml.stream.is.array";
 
     private TestRunner setup(Map<PropertyDescriptor, String> xmlReaderProperties) throws InitializationException {
+        return setup(xmlReaderProperties, null);
+    }
+
+    private TestRunner setup(Map<PropertyDescriptor, String> xmlReaderProperties, String recordFieldNameToGetAsString) throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(TestXMLReaderProcessor.class);
         XMLReader reader = new XMLReader();
 
         runner.addControllerService("xml_reader", reader);
         runner.setProperty(TestXMLReaderProcessor.XML_READER, "xml_reader");
+        if (recordFieldNameToGetAsString != null) {
+            runner.setProperty(TestXMLReaderProcessor.RECORD_FIELD_TO_GET_AS_STRING, recordFieldNameToGetAsString);
+        }
 
         for (Map.Entry<PropertyDescriptor, String> entry : xmlReaderProperties.entrySet()) {
             runner.setProperty(reader, entry.getKey(), entry.getValue());
@@ -296,6 +303,25 @@ public class TestXMLReader {
 
         MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
         String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
+    }
+
+    @Test
+    void testInferSchemaWhereNameValuesHasMixedTypes() throws Exception {
+        final Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        xmlReaderProperties.put(XMLReader.PARSE_XML_ATTRIBUTES, "true");
+        xmlReaderProperties.put(XMLReader.CONTENT_FIELD_NAME, "Value");
+        TestRunner runner = setup(xmlReaderProperties, "Data");
+
+        final InputStream is = new FileInputStream("src/test/resources/xml/dataWithArrayOfDifferentTypes.xml");
+        runner.enqueue(is);
+        runner.run();
+
+        final MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).getFirst();
+        final String expectedContent = "[MapRecord[{Name=Param1, Value=String1}], MapRecord[{Name=Param2, Value=2}], MapRecord[{Name=Param3, Value=String3}]]";
+        final String actualContent = out.getContent();
         assertEquals(expectedContent, actualContent);
     }
 }
