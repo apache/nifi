@@ -70,17 +70,15 @@
 }
 
 @mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-
     $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
         secondary,
         map.get(map.get($config, secondary), default)
     );
     $material-theme-tertiary-palette-variant: mat.get-theme-color(
-            $material-theme,
-            tertiary,
-            map.get(map.get($config, tertiary), variant)
+        $material-theme,
+        tertiary,
+        map.get(map.get($config, tertiary), variant)
     );
 
     // Get hues from palette

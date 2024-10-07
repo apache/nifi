@@ -19,12 +19,10 @@
 @use '@angular/material' as mat;
 
 @mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-
     $material-theme-tertiary-palette-variant: mat.get-theme-color(
-            $material-theme,
-            tertiary,
-            map.get(map.get($config, tertiary), variant)
+        $material-theme,
+        tertiary,
+        map.get(map.get($config, tertiary), variant)
     );
 
     $selected-item-color: $material-theme-tertiary-palette-variant;

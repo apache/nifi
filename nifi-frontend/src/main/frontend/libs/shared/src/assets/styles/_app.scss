@@ -38,6 +38,7 @@
     }
 
     .tooltip {
+        max-height: 70vh;
         max-width: 500px;
         padding: 10px;
         border-radius: 2px;
@@ -409,14 +410,14 @@
         map.get(map.get($config, secondary), default)
     );
     $material-theme-tertiary-palette-default: mat.get-theme-color(
-            $material-theme,
-            tertiary,
-            map.get(map.get($config, tertiary), default)
+        $material-theme,
+        tertiary,
+        map.get(map.get($config, tertiary), default)
     );
     $material-theme-tertiary-palette-variant: mat.get-theme-color(
-            $material-theme,
-            tertiary,
-            map.get(map.get($config, tertiary), variant)
+        $material-theme,
+        tertiary,
+        map.get(map.get($config, tertiary), variant)
     );
     $material-theme-error-palette-default: mat.get-theme-color(
         $material-theme,
@@ -446,6 +447,7 @@
     $alternate-surface: map.get($config, alternate-surface);
     $primary-contrast: map.get(map.get($config, primary), contrast);
     $secondary-contrast: map.get(map.get($config, secondary), contrast);
+    $secondary-opacity: map.get(map.get($config, secondary), opacity);
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
     $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     $success-default: map.get(map.get($config, success), default);
@@ -458,7 +460,7 @@
         color-scheme: if($is-material-dark, dark, light);
     }
 
-    // semantic classes for the material theme
+    /* semantic color classes */
 
     .primary-contrast {
         color: $primary-contrast;
@@ -495,11 +497,6 @@
         fill: $material-theme-error-palette-variant;
     }
 
-    .neutral-contrast {
-        color: $neutral-contrast;
-        fill: $neutral-contrast;
-    }
-
     .neutral-color {
         color: $material-theme-neutral-palette-default;
         fill: $material-theme-neutral-palette-default;
@@ -524,12 +521,18 @@
         background-color: $caution;
     }
 
+    .neutral-contrast {
+        color: $neutral-contrast;
+        fill: $neutral-contrast;
+    }
+
     .border-color {
         color: $border-color;
         fill: $border-color;
     }
 
-    // color variants for theming angular material widgets
+    /* color variants for theming angular material widgets */
+
     .tertiary-checkbox {
         @include mat.checkbox-color($material-theme, $color-variant: tertiary);
     }
@@ -564,12 +567,8 @@
     }
 
     a {
-        color: $material-theme-secondary-palette-default;
-        text-decoration-color: $material-theme-secondary-palette-default;
-    }
-
-    a:hover {
-        text-decoration-color: $material-theme-secondary-palette-default;
+        color: $material-theme-primary-palette-default;
+        text-decoration-color: $material-theme-primary-palette-default;
     }
 
     .has-errors,
@@ -582,7 +581,7 @@
     }
 
     .zero {
-        opacity: if($is-material-dark, 0.6, 0.4) !important;
+        opacity: $secondary-opacity !important;
     }
 
     /* overriding 3rd party styles */
@@ -603,11 +602,7 @@
 
     * {
         // Because snackbars have different surface colors, we need to make sure the action color has enough contrast.
-        --mat-snack-bar-button-color: if(
-            $is-material-dark,
-            $material-theme-tertiary-palette-darker,
-            $material-theme-tertiary-palette-lighter
-        );
+        --mat-snack-bar-button-color: $material-theme-tertiary-palette-variant;
 
         // markdown styles
 

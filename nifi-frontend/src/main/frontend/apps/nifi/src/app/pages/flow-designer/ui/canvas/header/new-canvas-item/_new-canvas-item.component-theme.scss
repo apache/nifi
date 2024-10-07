@@ -19,7 +19,6 @@
 @use '@angular/material' as mat;
 
 @mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
     $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
         secondary,
@@ -40,7 +39,7 @@
 
     .new-canvas-item {
         .icon {
-            @extend .neutral-contrast;
+            @extend .secondary-contrast;
 
             &.hovering {
                 @extend .mat-elevation-z2;

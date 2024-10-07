@@ -19,33 +19,32 @@
 @use '@angular/material' as mat;
 
 @mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
     $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
         secondary,
         map.get(map.get($config, secondary), default)
     );
-    $neutral-contrast: map.get(map.get($config, neutral), contrast);
+    $secondary-contrast: map.get(map.get($config, secondary), contrast);
 
     .nifi-navigation {
         background-color: $material-theme-secondary-palette-default;
 
         .global-menu-icon.global-menu {
-            @extend .neutral-contrast;
+            @extend .secondary-contrast;
         }
 
         .global-menu-icon.global-menu:disabled {
-            @extend .neutral-color;
+            @extend .secondary-contrast;
         }
 
         .current-user {
-            @extend .neutral-contrast;
+            @extend .secondary-contrast;
             font-family: mat.get-theme-typography($material-theme, body-medium, font-family);
         }
 
         a {
-            @extend .neutral-contrast;
-            text-decoration-color: $neutral-contrast;
+            @extend .secondary-contrast;
+            text-decoration-color: $secondary-contrast;
         }
 
         a:hover {

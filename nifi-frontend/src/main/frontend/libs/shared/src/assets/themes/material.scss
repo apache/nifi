@@ -344,6 +344,7 @@ $m3-light-theme-config: (
     secondary: (
         default: 50,
         contrast: #000000,
+        opacity: 0.6,
         new-canvas-item: (
             grip: #ffffff,
             hover: #ffffff
@@ -384,9 +385,10 @@ $m3-dark-theme-config: (
     secondary: (
         default: 40,
         contrast: #000000,
+        opacity: 0.5,
         new-canvas-item: (
-            grip: #ffffff,
-            hover: #000000
+            grip: #000000,
+            hover: #ffffff
         )
     ),
     tertiary: (

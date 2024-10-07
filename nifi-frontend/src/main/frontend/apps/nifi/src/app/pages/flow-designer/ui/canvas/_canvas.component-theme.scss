@@ -20,6 +20,11 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-primary-palette-default: mat.get-theme-color(
+        $material-theme,
+        primary,
+        map.get(map.get($config, primary), default)
+    );
     $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
         secondary,
@@ -50,13 +55,12 @@
         neutral,
         map.get(map.get($config, neutral), lighter)
     );
-
     $primary-contrast: map.get(map.get($config, primary), contrast);
     $caution-contrast: map.get(map.get($config, caution), contrast);
     $error-contrast: map.get(map.get($config, error), contrast);
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
     $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
-    $success-lighter: map.get($config, success-lighter);
+    $success-lighter: map.get(map.get($config, success), lighter);
     $success-default: map.get(map.get($config, success), default);
     $caution: map.get(map.get($config, caution), default);
 
@@ -158,7 +162,7 @@
         }
 
         g.component.selected rect.border {
-            stroke: $material-theme-secondary-palette-default !important;
+            stroke: $material-theme-primary-palette-default !important;
         }
 
         text.stats-label {
@@ -171,7 +175,7 @@
         }
 
         text.stats-info {
-            fill: $material-theme-secondary-palette-default;
+            fill: $material-theme-primary-palette-default;
         }
 
         text.bulletin-icon {
@@ -209,7 +213,7 @@
         }
 
         text.component-comments {
-            fill: $material-theme-secondary-palette-default;
+            fill: $material-theme-primary-palette-default;
             stroke: $border-color;
         }
 
@@ -224,12 +228,12 @@
         rect.component-selection,
         rect.drag-selection,
         rect.label-drag {
-            stroke: $material-theme-secondary-palette-default;
+            stroke: $material-theme-primary-palette-default;
             fill: transparent;
         }
 
         text.add-connect {
-            fill: $material-theme-secondary-palette-default;
+            fill: $material-theme-primary-palette-default;
         }
 
         /*
@@ -256,7 +260,7 @@
         }
 
         text.processor-type {
-            fill: $material-theme-secondary-palette-default;
+            fill: $material-theme-primary-palette-default;
         }
 
         circle.is-primary-background {
@@ -532,15 +536,15 @@
         }
 
         text.remote-process-group-uri {
-            fill: $material-theme-secondary-palette-default;
+            fill: $material-theme-primary-palette-default;
         }
 
         text.remote-process-group-transmission-secure {
-            fill: $material-theme-secondary-palette-default;
+            fill: $material-theme-primary-palette-default;
         }
 
         text.remote-process-group-last-refresh {
-            fill: $material-theme-secondary-palette-default;
+            fill: $material-theme-primary-palette-default;
         }
     }
 }
