@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-import { Component, Input, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, DestroyRef, inject, Input, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { AsyncPipe } from '@angular/common';
 import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface ContextMenuDefinitionProvider {
     getMenu(menuId: string): ContextMenuDefinition | undefined;
@@ -57,13 +58,15 @@ export interface ContextMenuDefinition {
     imports: [AsyncPipe, CdkMenu, CdkMenuItem, CdkMenuTrigger],
     styleUrls: ['./context-menu.component.scss']
 })
-export class ContextMenu implements OnInit {
+export class ContextMenu implements OnInit, OnDestroy {
+    private destroyRef = inject(DestroyRef);
+
     @Input() menuProvider!: ContextMenuDefinitionProvider;
     @Input() menuId: string | undefined;
     @ViewChild('menu', { static: true }) menu!: TemplateRef<any>;
 
     private showFocused: Subject<boolean> = new Subject();
-    showFocused$: Observable<boolean> = this.showFocused.asObservable();
+    showFocused$: Observable<boolean> = this.showFocused.asObservable().pipe(takeUntilDestroyed(this.destroyRef));
     isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
     getMenuItems(menuId: string | undefined): ContextMenuItemDefinition[] {
@@ -141,5 +144,9 @@ export class ContextMenu implements OnInit {
 
     menuItemClicked(menuItem: ContextMenuItemDefinition, event: MouseEvent) {
         this.menuProvider.menuItemClicked(menuItem, event);
+    }
+
+    ngOnDestroy(): void {
+        this.showFocused.complete();
     }
 }

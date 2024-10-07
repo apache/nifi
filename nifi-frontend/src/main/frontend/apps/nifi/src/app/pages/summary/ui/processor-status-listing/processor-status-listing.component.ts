@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, OnDestroy, ViewChild } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
     selectProcessorIdFromRoute,
@@ -50,7 +50,9 @@ import { NodeSearchResult } from '../../../../state/cluster-summary';
     templateUrl: './processor-status-listing.component.html',
     styleUrls: ['./processor-status-listing.component.scss']
 })
-export class ProcessorStatusListing implements AfterViewInit {
+export class ProcessorStatusListing implements AfterViewInit, OnDestroy {
+    private destroyRef = inject(DestroyRef);
+
     processorStatusSnapshots$ = this.store.select(selectProcessorStatusSnapshots);
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
@@ -103,17 +105,22 @@ export class ProcessorStatusListing implements AfterViewInit {
         combineLatest([this.processorStatusSnapshots$, this.loadedTimestamp$])
             .pipe(
                 filter(([processors, ts]) => !!processors && !this.isInitialLoading(ts)),
-                delay(0)
+                delay(0),
+                takeUntilDestroyed(this.destroyRef)
             )
             .subscribe(() => {
                 this.subject.next();
             });
 
-        this.subject.subscribe(() => {
+        this.subject.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             if (this.table) {
                 this.table.paginator = this.paginator;
             }
         });
+    }
+
+    ngOnDestroy(): void {
+        this.subject.complete();
     }
 
     isInitialLoading(loadedTimestamp: string): boolean {
