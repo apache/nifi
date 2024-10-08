@@ -152,9 +152,9 @@ export class ControllerServiceTable {
             } else if (entity.status.runStatus === 'DISABLING') {
                 return 'disabled icon icon-enable-false neutral-color';
             } else if (entity.status.runStatus === 'ENABLED') {
-                return 'enabled fa fa-flash success-color';
+                return 'enabled fa fa-flash success-color-variant';
             } else if (entity.status.runStatus === 'ENABLING') {
-                return 'enabled fa fa-flash success-color';
+                return 'enabled fa fa-flash success-color-variant';
             }
         }
         return '';

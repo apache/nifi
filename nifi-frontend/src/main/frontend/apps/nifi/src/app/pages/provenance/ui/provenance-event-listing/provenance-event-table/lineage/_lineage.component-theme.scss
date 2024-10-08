@@ -20,15 +20,10 @@
 
 @mixin generate-theme($material-theme, $config) {
     $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
-    $material-theme-secondary-palette-darker: mat.get-theme-color(
+    $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
         secondary,
-        map.get(map.get($config, secondary), darker)
-    );
-    $material-theme-secondary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), lighter)
+        map.get(map.get($config, secondary), default)
     );
     $material-theme-tertiary-palette-default: mat.get-theme-color(
         $material-theme,
@@ -39,11 +34,6 @@
         $material-theme,
         error,
         map.get(map.get($config, error), default)
-    );
-    $material-theme-error-palette-darker: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), darker)
     );
 
     #lineage {
@@ -60,27 +50,15 @@
             }
 
             path.link.selected {
-                stroke: if(
-                    $is-material-dark,
-                    $material-theme-error-palette-default,
-                    $material-theme-error-palette-darker
-                );
+                stroke: $material-theme-error-palette-default;
             }
 
             g.event circle.selected {
-                fill: if(
-                    $is-material-dark,
-                    $material-theme-error-palette-default,
-                    $material-theme-error-palette-darker
-                );
+                fill: $material-theme-error-palette-default;
             }
 
             g.event circle.context {
-                stroke: if(
-                    $is-material-dark,
-                    $material-theme-secondary-palette-darker,
-                    $material-theme-secondary-palette-lighter
-                );
+                stroke: $material-theme-secondary-palette-default;
             }
 
             g.flowfile circle.context,

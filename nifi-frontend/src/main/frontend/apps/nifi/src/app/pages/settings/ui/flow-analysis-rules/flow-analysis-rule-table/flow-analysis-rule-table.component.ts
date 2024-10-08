@@ -168,7 +168,7 @@ export class FlowAnalysisRuleTable {
             if (entity.status.runStatus === 'DISABLED') {
                 return 'disabled neutral-color icon icon-enable-false';
             } else if (entity.status.runStatus === 'ENABLED') {
-                return 'enabled success-color fa fa-flash';
+                return 'enabled success-color-variant fa fa-flash';
             }
         }
         return '';

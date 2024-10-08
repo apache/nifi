@@ -380,9 +380,9 @@ export class PortManager {
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'invalid caution-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'running success-color-lighter';
+                    clazz = 'running success-color-default';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'stopped error-color-lighter';
+                    clazz = 'stopped error-color-variant';
                 }
 
                 return `run-status-icon ${clazz}`;
@@ -436,7 +436,7 @@ export class PortManager {
                     return '\ue80a';
                 }
             })
-            .classed('transmitting success-color', function (d: any) {
+            .classed('transmitting success-color-variant', function (d: any) {
                 return d.status.transmitting === true;
             })
             .classed('not-transmitting neutral-color', function (d: any) {

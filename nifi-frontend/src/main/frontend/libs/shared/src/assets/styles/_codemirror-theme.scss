@@ -25,15 +25,10 @@
         secondary,
         map.get(map.get($config, secondary), default)
     );
-    $material-theme-secondary-palette-darker: mat.get-theme-color(
+    $material-theme-tertiary-palette-variant: mat.get-theme-color(
         $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), darker)
-    );
-    $material-theme-secondary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), lighter)
+        tertiary,
+        map.get(map.get($config, tertiary), variant)
     );
     $material-theme-neutral-palette-default: mat.get-theme-color(
         $material-theme,
@@ -52,6 +47,7 @@
     );
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
     $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
+    $selected-color: $material-theme-tertiary-palette-variant;
 
     .ngx-codemirror {
         display: none;
@@ -85,19 +81,11 @@
     }
 
     .cm-s-nifi div.CodeMirror-selected {
-        background: if(
-            $is-material-dark,
-            rgba($material-theme-secondary-palette-default, 0.4),
-            rgba($material-theme-secondary-palette-lighter, 0.4)
-        );
+        background: $selected-color;
     }
 
     .cm-s-nifi.CodeMirror-focused div.CodeMirror-selected {
-        background: if(
-            $is-material-dark,
-            rgba($material-theme-secondary-palette-default, 0.4),
-            rgba($material-theme-secondary-palette-lighter, 0.4)
-        );
+        background: $selected-color;
     }
 
     .cm-s-nifi .CodeMirror-line::selection,
@@ -197,10 +185,7 @@
     }
 
     .cm-s-nifi .cm-meta {
-        color: rgba(
-            if($is-material-dark, $material-theme-secondary-palette-default, $material-theme-secondary-palette-darker),
-            if($is-material-dark, 0.87, 0.4)
-        );
+        color: rgba($material-theme-secondary-palette-default, 0.87);
     }
 
     .cm-s-nifi .cm-attribute {
@@ -212,19 +197,13 @@
     }
 
     .cm-s-nifi .cm-qualifier {
-        color: rgba(
-            if($is-material-dark, $material-theme-secondary-palette-default, $material-theme-secondary-palette-darker),
-            if($is-material-dark, 0.87, 0.4)
-        );
+        color: rgba($material-theme-secondary-palette-default, 0.87);
     }
 
     .cm-s-nifi .cm-variable-3,
     .cm-s-nifi .cm-s-default,
     .cm-s-nifi .cm-type {
-        color: rgba(
-            if($is-material-dark, $material-theme-secondary-palette-default, $material-theme-secondary-palette-darker),
-            if($is-material-dark, 0.87, 0.4)
-        );
+        color: rgba($material-theme-secondary-palette-default, 0.87);
     }
 
     .cm-s-nifi .cm-error {

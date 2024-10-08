@@ -19,21 +19,10 @@
 @use '@angular/material' as mat;
 
 @mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
     $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
         secondary,
         map.get(map.get($config, secondary), default)
-    );
-    $material-theme-secondary-palette-darker: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), darker)
-    );
-    $material-theme-secondary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), lighter)
     );
     $material-theme-neutral-palette-darker: mat.get-theme-color(
         $material-theme,
@@ -50,11 +39,7 @@
 
     .new-canvas-item {
         .icon {
-            color: if(
-                $is-material-dark,
-                $material-theme-secondary-palette-darker,
-                $material-theme-secondary-palette-darker
-            );
+            @extend .secondary-contrast;
 
             &.hovering {
                 @extend .mat-elevation-z2;
@@ -65,12 +50,7 @@
                     background: repeating-linear-gradient(
                         90deg,
                         $grip,
-                        if(
-                                $is-material-dark,
-                                $material-theme-secondary-palette-default,
-                                $material-theme-secondary-palette-darker
-                            )
-                            4px,
+                        $material-theme-secondary-palette-default 4px,
                         transparent 4px,
                         transparent 6px
                     );
@@ -78,8 +58,8 @@
             }
 
             &.cdk-drag-dragging {
-                color: $material-theme-secondary-palette-lighter;
-                mix-blend-mode: difference; // Make sure the dragged icon is always visible
+                color: $material-theme-secondary-palette-default;
+                mix-blend-mode: hard-light; // Make sure the dragged icon is always visible
             }
         }
 

@@ -357,9 +357,9 @@ export class Canvas implements OnInit, OnDestroy {
                 if (d === 'ghost') {
                     return 'ghost neutral-color';
                 } else if (d === 'unauthorized') {
-                    return 'unauthorized error-color-darker';
+                    return 'unauthorized error-color';
                 } else if (d === 'full') {
-                    return 'full error-color-darker';
+                    return 'full error-color';
                 } else {
                     return 'neutral-contrast';
                 }
