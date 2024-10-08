@@ -40,18 +40,18 @@ public class AirtableRestService {
 
     private final WebClientServiceProvider webClientServiceProvider;
     private final String apiUrl;
-    private final String apiKey;
+    private final String pat;
     private final String baseId;
     private final String tableId;
 
     public AirtableRestService(final WebClientServiceProvider webClientServiceProvider,
             final String apiUrl,
-            final String apiKey,
+            final String pat,
             final String baseId,
             final String tableId) {
         this.webClientServiceProvider = webClientServiceProvider;
         this.apiUrl = apiUrl;
-        this.apiKey = apiKey;
+        this.pat = pat;
         this.baseId = baseId;
         this.tableId = tableId;
     }
@@ -61,7 +61,7 @@ public class AirtableRestService {
         try (final HttpResponseEntity response = webClientServiceProvider.getWebClientService()
                 .get()
                 .uri(uri)
-                .header("Authorization", "Bearer " + apiKey)
+                .header("Authorization", "Bearer " + pat)
                 .retrieve()) {
 
             final InputStream bodyInputStream = response.body();
