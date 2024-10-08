@@ -237,6 +237,15 @@ public class PutEmail extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+    public static final PropertyDescriptor REPLY_TO = new PropertyDescriptor.Builder()
+        .name("Reply-To")
+        .description("The recipients that will receive the reply instead of the from (see RFC2822 §3.6.2)."
+            + "This feature is useful, for example, when the email is sent by a no-reply account. This field is optional."
+            + "Comma separated sequence of addresses following RFC822 syntax.")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
     public static final PropertyDescriptor SUBJECT = new PropertyDescriptor.Builder()
             .name("Subject")
             .description("The email subject")
@@ -304,6 +313,7 @@ public class PutEmail extends AbstractProcessor {
             TO,
             CC,
             BCC,
+            REPLY_TO,
             SUBJECT,
             MESSAGE,
             CONTENT_AS_MESSAGE,
@@ -422,6 +432,7 @@ public class PutEmail extends AbstractProcessor {
             message.setRecipients(RecipientType.TO, toInetAddresses(context, flowFile, TO));
             message.setRecipients(RecipientType.CC, toInetAddresses(context, flowFile, CC));
             message.setRecipients(RecipientType.BCC, toInetAddresses(context, flowFile, BCC));
+            message.setReplyTo(toInetAddresses(context, flowFile, REPLY_TO));
 
             if (attributeNamePattern != null) {
                 for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
@@ -459,7 +470,12 @@ public class PutEmail extends AbstractProcessor {
                 final MimeBodyPart mimeFile = new MimeBodyPart();
                 session.read(flowFile, stream -> {
                     try {
-                        mimeFile.setDataHandler(new DataHandler(new ByteArrayDataSource(stream, "application/octet-stream")));
+                        final String mimeTypeAttribute = flowFile.getAttribute("mime.type");
+                        String mimeType = "application/octet-stream";
+                        if (mimeTypeAttribute != null && !mimeTypeAttribute.isEmpty()) {
+                            mimeType = mimeTypeAttribute;
+                        }
+                        mimeFile.setDataHandler(new DataHandler(new ByteArrayDataSource(stream, mimeType)));
                     } catch (final Exception e) {
                         throw new IOException(e);
                     }
