@@ -86,14 +86,20 @@ public class ExcelRecordReader implements RecordReader {
 
     @Override
     public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws MalformedRecordException {
+        Row currentRow = null;
         try {
             if (rowIterator.hasNext()) {
-                Row currentRow = rowIterator.next();
+                currentRow = rowIterator.next();
                 Map<String, Object> currentRowValues = getCurrentRowValues(currentRow, coerceTypes, dropUnknownFields);
                 return new MapRecord(schema, currentRowValues);
             }
         } catch (Exception e) {
-            throw new MalformedRecordException("Read next Record from Excel XLSX failed", e);
+            String exceptionMessage = "Read next Record from Excel XLSX failed";
+            if (currentRow != null) {
+                exceptionMessage = String.format("%s on row %s in sheet %s",
+                        exceptionMessage, currentRow.getRowNum(), currentRow.getSheet().getSheetName());
+            }
+            throw new MalformedRecordException(exceptionMessage, e);
         }
         return null;
     }

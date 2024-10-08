@@ -118,7 +118,7 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testNonExcelFile() {
+    void testNonExcelFile() {
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .build();
 
@@ -128,14 +128,14 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testOlderExcelFormatFile() {
+   void testOlderExcelFormatFile() {
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder().build();
         MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> new ExcelRecordReader(configuration, getInputStream("olderFormat.xls"), logger));
         assertTrue(ExceptionUtils.getStackTrace(mre).contains("data appears to be in the OLE2 Format"));
     }
 
     @Test
-    public void testMultipleRecordsSingleSheet() throws MalformedRecordException {
+    void testMultipleRecordsSingleSheet() throws MalformedRecordException {
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(getDataFormattingSchema())
                 .build();
@@ -177,7 +177,7 @@ public class TestExcelRecordReader {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void testDropUnknownFields(boolean dropUnknownFields) throws MalformedRecordException {
+    void testDropUnknownFields(boolean dropUnknownFields) throws MalformedRecordException {
         final List<RecordField> fields = Arrays.asList(
                 new RecordField("Numbers", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("Timestamps", RecordFieldType.DATE.getDataType()));
@@ -201,7 +201,7 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testSkipLines() throws MalformedRecordException {
+    void testSkipLines() throws MalformedRecordException {
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withFirstRow(5)
                 .withSchema(getDataFormattingSchema())
@@ -215,7 +215,7 @@ public class TestExcelRecordReader {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void tesCoerceTypes(boolean coerceTypes) throws MalformedRecordException {
+    void tesCoerceTypes(boolean coerceTypes) throws MalformedRecordException {
         String fieldName = "dates";
         RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(new RecordField(fieldName, RecordFieldType.TIMESTAMP.getDataType())));
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
@@ -233,7 +233,7 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testSelectSpecificSheet() throws MalformedRecordException {
+    void testSelectSpecificSheet() throws MalformedRecordException {
         RecordSchema schema = getSpecificSheetSchema();
         List<String> requiredSheets = Collections.singletonList("TestSheetA");
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
@@ -255,7 +255,7 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testSelectSpecificSheetNotFound() {
+    void testSelectSpecificSheetNotFound() {
         RecordSchema schema = getSpecificSheetSchema();
         List<String> requiredSheets = Collections.singletonList("notExistingSheet");
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
@@ -271,7 +271,7 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testSelectAllSheets() throws MalformedRecordException {
+    void testSelectAllSheets() throws MalformedRecordException {
         RecordSchema schema = new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
                 new RecordField("second", RecordFieldType.STRING.getDataType())));
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
@@ -282,6 +282,26 @@ public class TestExcelRecordReader {
         List<Record> records = getRecords(recordReader, false, false);
 
         assertEquals(7, records.size());
+    }
+
+    @Test
+    void testWhereCellValueDoesNotMatchSchemaType()  {
+        RecordSchema schema = new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
+                new RecordField("second", RecordFieldType.FLOAT.getDataType())));
+        List<String> requiredSheets = Collections.singletonList("TestSheetA");
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
+                .withSchema(schema)
+                .withFirstRow(2)
+                .withRequiredSheets(requiredSheets)
+                .build();
+
+        final MalformedRecordException mre = assertThrows(MalformedRecordException.class, () ->  {
+            ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger);
+            getRecords(recordReader, true, false);
+        });
+
+        assertInstanceOf(NumberFormatException.class, mre.getCause());
+        assertTrue(mre.getMessage().contains("on row") && mre.getMessage().contains("in sheet"));
     }
 
     @Test
