@@ -18,9 +18,16 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@use '@fontsource/roboto/latin.css' as roboto-normal;
-@use '@fontsource/roboto/latin-300-italic.css' as roboto-light-italic;
-@use '@fontsource/roboto/latin-400-italic.css' as roboto-normal-italic;
+@use '@fontsource/inter' as inter-normal;
+@use '@fontsource/inter/400.css' as inter-400;
+@use '@fontsource/inter/400-italic.css' as inter-italic;
+
+@layer base {
+    //fonts are loaded by the browser
+    @font-face {
+        font-family: 'Inter';
+    }
+}
 
 $primary: (
     0: #000000,
@@ -222,8 +229,8 @@ $m3-dark-theme: mat.define-theme(
             tertiary: $_dark-theme-tertiary
         ),
         typography: (
-            plain-family: Roboto,
-            brand-family: Roboto,
+            plain-family: Inter,
+            brand-family: Inter,
             bold-weight: 700,
             regular-weight: 400
         ),
@@ -251,8 +258,8 @@ $m3-light-theme: mat.define-theme(
             tertiary: $_light-theme-tertiary
         ),
         typography: (
-            plain-family: Roboto,
-            brand-family: Roboto,
+            plain-family: Inter,
+            brand-family: Inter,
             bold-weight: 700,
             regular-weight: 400
         ),
