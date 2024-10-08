@@ -22,6 +22,8 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.util.TestRunner;
@@ -53,6 +55,12 @@ public class TestCopyS3Object {
         final CopyS3Object mockCopyS3Object = new CopyS3Object() {
             @Override
             protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
+                ObjectMetadata metadata = mock(ObjectMetadata.class);
+
+                when(metadata.getContentLength()).thenReturn(1000L);
+                when(mockS3Client.getObjectMetadata(any(GetObjectMetadataRequest.class)))
+                        .thenReturn(metadata);
+
                 return mockS3Client;
             }
         };
