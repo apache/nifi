@@ -245,6 +245,7 @@
 
                         <exclude>src/test/resources/text/testschema</exclude>
 
+                        <exclude>src/test/resources/xml/dataWithArrayOfDifferentTypes.xml</exclude>
                         <exclude>src/test/resources/xml/field_with_sub-element.xml</exclude>
                         <exclude>src/test/resources/xml/people.xml</exclude>
                         <exclude>src/test/resources/xml/people2.xml</exclude>
