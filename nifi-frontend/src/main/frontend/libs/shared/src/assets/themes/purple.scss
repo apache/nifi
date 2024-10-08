@@ -18,6 +18,13 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
+@layer base {
+    //fonts are loaded by the browser
+    @font-face {
+        font-family: Comic Sans MS;
+    }
+}
+
 $m3-material-primary-light-palette: (
     primary: (
         0: #000000,

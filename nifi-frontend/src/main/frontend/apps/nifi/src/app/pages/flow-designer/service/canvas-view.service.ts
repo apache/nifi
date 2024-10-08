@@ -69,7 +69,7 @@ export class CanvasView {
     public init(svg: any, canvas: any): void {
         WebFont.load({
             custom: {
-                families: ['Roboto', 'flowfont', 'FontAwesome']
+                families: ['Inter', 'flowfont', 'FontAwesome']
             },
             active: function () {
                 // re-render once the fonts have loaded, without the fonts
