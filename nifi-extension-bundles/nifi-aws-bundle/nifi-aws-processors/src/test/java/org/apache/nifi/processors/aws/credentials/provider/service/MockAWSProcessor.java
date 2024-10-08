@@ -32,8 +32,7 @@ import java.util.List;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_EXTERNAL_ID;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME;
-import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_PROXY_HOST;
-import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_PROXY_PORT;
+import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_ENDPOINT;
@@ -58,8 +57,7 @@ public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<Am
             ASSUME_ROLE_NAME,
             MAX_SESSION_TIME,
             ASSUME_ROLE_EXTERNAL_ID,
-            ASSUME_ROLE_PROXY_HOST,
-            ASSUME_ROLE_PROXY_PORT,
+            ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE,
             ASSUME_ROLE_STS_REGION,
             ASSUME_ROLE_STS_ENDPOINT,
             ASSUME_ROLE_STS_SIGNER_OVERRIDE,
