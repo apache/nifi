@@ -25,9 +25,10 @@ on:
 
 env:
   DEFAULT_MAVEN_OPTS: >-
-    -Xms6g
-    -Xmx6g
+    -Xms7g
+    -Xmx7g
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
 
 permissions:
   contents: read
