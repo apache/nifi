@@ -398,6 +398,7 @@ public class RecordBin {
             attributes.put(CoreAttributes.MIME_TYPE.key(), recordWriter.getMimeType());
             attributes.put(MergeRecord.MERGE_COUNT_ATTRIBUTE, Integer.toString(flowFiles.size()));
             attributes.put(MergeRecord.MERGE_BIN_AGE_ATTRIBUTE, Long.toString(getBinAge()));
+            attributes.put(MergeRecord.REASON_FOR_MERGING, completionReason);
 
             merged = session.putAllAttributes(merged, attributes);
             flowFiles.forEach(ff -> session.putAttribute(ff, MergeRecord.MERGE_UUID_ATTRIBUTE, merged.getAttribute(CoreAttributes.UUID.key())));
