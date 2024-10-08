@@ -34,6 +34,8 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
@@ -44,6 +46,7 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.Ex
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.FileCredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.ImplicitDefaultCredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.NamedProfileCredentialsStrategy;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.ssl.SSLContextService;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -76,6 +79,10 @@ import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER
     }
 )
 public class AWSCredentialsProviderControllerService extends AbstractControllerService implements AWSCredentialsProviderService {
+
+    // Obsolete property names
+    private static final String OBSOLETE_PROXY_HOST = "assume-role-proxy-host";
+    private static final String OBSOLETE_PROXY_PORT = "assume-role-proxy-port";
 
     public static final PropertyDescriptor USE_DEFAULT_CREDENTIALS = new PropertyDescriptor.Builder()
         .name("default-credentials")
@@ -189,28 +196,12 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .dependsOn(ASSUME_ROLE_ARN)
         .build();
 
-    /**
-     * Assume Role Proxy variables for configuring proxy to retrieve keys
-     */
-    public static final PropertyDescriptor ASSUME_ROLE_PROXY_HOST = new PropertyDescriptor.Builder()
-        .name("assume-role-proxy-host")
-        .displayName("Assume Role Proxy Host")
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+    public static final PropertyDescriptor ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
+        .name("assume-role-proxy-configuration-service")
+        .displayName("Assume Role Proxy Configuration Service")
+        .identifiesControllerService(ProxyConfigurationService.class)
         .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .sensitive(false)
-        .description("Proxy host for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account.")
-        .dependsOn(ASSUME_ROLE_ARN)
-        .build();
-
-    public static final PropertyDescriptor ASSUME_ROLE_PROXY_PORT = new PropertyDescriptor.Builder()
-        .name("assume-role-proxy-port")
-        .displayName("Assume Role Proxy Port")
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .required(false)
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .sensitive(false)
-        .description("Proxy port for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account.")
+        .description("Proxy configuration for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account.")
         .dependsOn(ASSUME_ROLE_ARN)
         .build();
 
@@ -285,8 +276,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         MAX_SESSION_TIME,
         ASSUME_ROLE_EXTERNAL_ID,
         ASSUME_ROLE_SSL_CONTEXT_SERVICE,
-        ASSUME_ROLE_PROXY_HOST,
-        ASSUME_ROLE_PROXY_PORT,
+        ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE,
         ASSUME_ROLE_STS_REGION,
         ASSUME_ROLE_STS_ENDPOINT,
         ASSUME_ROLE_STS_SIGNER_OVERRIDE,
@@ -315,6 +305,11 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        ProxyServiceMigration.migrateProxyProperties(config, ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, null, null);
     }
 
     @Override
