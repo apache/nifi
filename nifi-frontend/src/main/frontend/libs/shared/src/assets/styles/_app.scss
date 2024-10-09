@@ -549,8 +549,8 @@
         @include mat.button-color($material-theme, $color-variant: error);
     }
 
-    .error-spinner {
-        @include mat.progress-spinner-color($material-theme, $color-variant: error);
+    .tertiary-spinner {
+        @include mat.progress-spinner-color($material-theme, $color-variant: tertiary);
     }
 
     /* other classes and styles */
