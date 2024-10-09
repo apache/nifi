@@ -296,6 +296,10 @@
         font-size: 14px !important;
     }
 
+    .mat-mdc-menu-content {
+        height: 100%;
+    }
+
     .mat-mdc-menu-content .mat-mdc-menu-item {
         min-height: 2.25rem;
     }
