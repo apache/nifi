@@ -21,7 +21,7 @@ import { HttpClient } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class ElService {
-    private static readonly DOCS: string = '../nifi-docs';
+    private static readonly DOCS: string = '../nifi-api';
 
     constructor(private httpClient: HttpClient) {}
 
