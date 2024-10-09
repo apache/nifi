@@ -30,15 +30,27 @@ public enum EventType {
 
     CREATE_BUCKET(
             EventFieldName.BUCKET_ID,
+            EventFieldName.BUCKET_NAME,
+            EventFieldName.BUCKET_DESCRIPTION,
+            EventFieldName.CREATED_TIMESTAMP,
+            EventFieldName.ALLOW_PUBLIC_READ,
             EventFieldName.USER),
     CREATE_FLOW(
             EventFieldName.BUCKET_ID,
+            EventFieldName.BUCKET_NAME,
             EventFieldName.FLOW_ID,
+            EventFieldName.FLOW_NAME,
+            EventFieldName.FLOW_DESCRIPTION,
+            EventFieldName.CREATED_TIMESTAMP,
+            EventFieldName.MODIFIED_TIMESTAMP,
             EventFieldName.USER),
     CREATE_FLOW_VERSION(
             EventFieldName.BUCKET_ID,
+            EventFieldName.BUCKET_NAME,
             EventFieldName.FLOW_ID,
+            EventFieldName.FLOW_NAME,
             EventFieldName.VERSION,
+            EventFieldName.MODIFIED_TIMESTAMP,
             EventFieldName.USER,
             EventFieldName.COMMENT),
     CREATE_EXTENSION_BUNDLE(
@@ -55,17 +67,35 @@ public enum EventType {
     REGISTRY_START(),
     UPDATE_BUCKET(
             EventFieldName.BUCKET_ID,
+            EventFieldName.BUCKET_NAME,
+            EventFieldName.BUCKET_DESCRIPTION,
+            EventFieldName.CREATED_TIMESTAMP,
+            EventFieldName.ALLOW_PUBLIC_READ,
             EventFieldName.USER),
     UPDATE_FLOW(
             EventFieldName.BUCKET_ID,
+            EventFieldName.BUCKET_NAME,
             EventFieldName.FLOW_ID,
+            EventFieldName.FLOW_NAME,
+            EventFieldName.FLOW_DESCRIPTION,
+            EventFieldName.CREATED_TIMESTAMP,
+            EventFieldName.MODIFIED_TIMESTAMP,
             EventFieldName.USER),
     DELETE_BUCKET(
             EventFieldName.BUCKET_ID,
+            EventFieldName.BUCKET_NAME,
+            EventFieldName.BUCKET_DESCRIPTION,
+            EventFieldName.CREATED_TIMESTAMP,
+            EventFieldName.ALLOW_PUBLIC_READ,
             EventFieldName.USER),
     DELETE_FLOW(
             EventFieldName.BUCKET_ID,
+            EventFieldName.BUCKET_NAME,
             EventFieldName.FLOW_ID,
+            EventFieldName.FLOW_NAME,
+            EventFieldName.FLOW_DESCRIPTION,
+            EventFieldName.CREATED_TIMESTAMP,
+            EventFieldName.MODIFIED_TIMESTAMP,
             EventFieldName.USER),
     DELETE_EXTENSION_BUNDLE(
             EventFieldName.BUCKET_ID,
