@@ -21,8 +21,10 @@ import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
 import java.util.Date;
 import java.util.Optional;
 
@@ -70,7 +72,7 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
             if (pattern.isPresent()) {
                 final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
                 try {
-                    return LocalDateTime.parse(string, formatter);
+                    return parseLocalDateTime(field, name, string, formatter);
                 } catch (final DateTimeParseException e) {
                     return tryParseAsNumber(string, name);
                 }
@@ -80,6 +82,24 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
         }
 
         throw new FieldConversionException(LocalDateTime.class, field, name);
+    }
+
+    private LocalDateTime parseLocalDateTime(final Object field, final String name, final String string, final DateTimeFormatter formatter) {
+        final LocalDateTime parsed;
+
+        // Attempt ZonedDateTime parsing before LocalDateTime to handle zone offsets
+        final TemporalAccessor resolved = formatter.parseBest(string, ZonedDateTime::from, LocalDateTime::from);
+        if (resolved instanceof ZonedDateTime zonedDateTime) {
+            // Convert Instant to LocalDateTime using system default zone offset to incorporate adjusted hours and minutes
+            final Instant instant = zonedDateTime.toInstant();
+            parsed = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+        } else if (resolved instanceof LocalDateTime localDateTime) {
+            parsed = localDateTime;
+        } else {
+            throw new FieldConversionException(LocalDateTime.class, field, name);
+        }
+
+        return parsed;
     }
 
     private LocalDateTime tryParseAsNumber(final String value, final String fieldName) {

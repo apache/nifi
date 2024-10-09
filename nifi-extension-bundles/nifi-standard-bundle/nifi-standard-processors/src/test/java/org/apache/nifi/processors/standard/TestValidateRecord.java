@@ -53,6 +53,11 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.zone.ZoneRules;
 import java.util.Map;
 import java.util.Optional;
 
@@ -578,6 +583,64 @@ public class TestValidateRecord {
     }
 
     @Test
+    public void testValidateCsvTimestampZoneOffset() throws InitializationException {
+        final String recordSchema = """
+                {
+                  "name": "ts",
+                  "namespace": "nifi",
+                  "type": "record",
+                  "fields": [{
+                      "name": "created",
+                      "type": {
+                          "type": "long", "logicalType": "timestamp-millis"
+                       }
+                   }]
+                }
+                """;
+
+        final String inputDateTime = "2020-01-01 12:00:00";
+        final Timestamp inputTimestamp = Timestamp.valueOf(inputDateTime);
+        final LocalDateTime inputLocalDateTime = inputTimestamp.toLocalDateTime();
+        final String systemZoneOffsetId = getSystemZoneOffsetId(inputLocalDateTime);
+
+        final String serializedRecord = inputDateTime + systemZoneOffsetId;
+        final String timestampFormat = "yyyy-MM-dd HH:mm:ssZZZZZ";
+
+        final String readerServiceId = "reader";
+        final String writerServiceId = "writer";
+
+        final CSVReader recordReader = new CSVReader();
+        runner.addControllerService(readerServiceId, recordReader);
+        runner.setProperty(recordReader, ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(recordReader, SCHEMA_TEXT, recordSchema);
+        runner.setProperty(recordReader, DateTimeUtils.TIMESTAMP_FORMAT, timestampFormat);
+        runner.enableControllerService(recordReader);
+
+        final CSVRecordSetWriter recordSetWriter = new CSVRecordSetWriter();
+        runner.addControllerService(writerServiceId, recordSetWriter);
+        runner.setProperty(recordSetWriter, "Schema Write Strategy", JsonRecordSetWriter.AVRO_SCHEMA_ATTRIBUTE.getValue());
+        runner.setProperty(recordSetWriter, DateTimeUtils.TIMESTAMP_FORMAT, timestampFormat);
+        runner.setProperty(recordSetWriter, CSVUtils.INCLUDE_HEADER_LINE, Boolean.FALSE.toString());
+        runner.enableControllerService(recordSetWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, readerServiceId);
+        runner.setProperty(ValidateRecord.RECORD_WRITER, writerServiceId);
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(SCHEMA_TEXT, recordSchema);
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, writerServiceId);
+        runner.setProperty(ValidateRecord.STRICT_TYPE_CHECKING, Boolean.TRUE.toString());
+
+        runner.enqueue(serializedRecord);
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
+        final String flowFileContent = validFlowFile.getContent().trim();
+
+        assertEquals(serializedRecord, flowFileContent);
+    }
+
+    @Test
     public void testValidateMaps() throws IOException, InitializationException, MalformedRecordException {
         final String validateSchema = Files.readString(Paths.get("src/test/resources/TestValidateRecord/int-maps-schema.avsc"));
 
@@ -917,5 +980,13 @@ public class TestValidateRecord {
         invalidFlowFile.assertAttributeExists("valDetails");
         invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
                 + "The following 1 fields had values whose type did not match the schema: [/id]");
+    }
+
+    private String getSystemZoneOffsetId(final LocalDateTime inputLocalDateTime) {
+        final ZoneId systemDefaultZoneId = ZoneOffset.systemDefault();
+        final ZoneRules zoneRules = systemDefaultZoneId.getRules();
+
+        final ZoneOffset systemZoneOffset = zoneRules.getOffset(inputLocalDateTime);
+        return systemZoneOffset.getId();
     }
 }

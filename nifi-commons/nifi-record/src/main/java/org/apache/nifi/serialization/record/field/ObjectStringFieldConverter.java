@@ -26,16 +26,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Convert Object to String using instanceof evaluation and optional format pattern for DateTimeFormatter
  */
 class ObjectStringFieldConverter implements FieldConverter<Object, String> {
-    private static final Map<String, DateTimeFormatter> FORMATTERS = new ConcurrentHashMap<>();
-
     /**
      * Convert Object field to String using optional format supported in DateTimeFormatter
      *
@@ -59,7 +55,10 @@ class ObjectStringFieldConverter implements FieldConverter<Object, String> {
             }
             final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
             final LocalDateTime localDateTime = timestamp.toLocalDateTime();
-            return formatter.format(localDateTime);
+
+            // Convert LocalDateTime to ZonedDateTime using system default zone to support offsets in Date Time Formatter
+            final ZonedDateTime dateTime = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
+            return formatter.format(dateTime);
         }
         if (field instanceof java.util.Date date) {
             if (pattern.isEmpty()) {
