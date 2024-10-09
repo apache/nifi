@@ -22,7 +22,7 @@ import org.apache.nifi.NiFiServer;
 import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.cluster.ConnectionState;
 import org.apache.nifi.controller.DecommissionTask;
-import org.apache.nifi.util.HttpExchangeUtils;
+import org.apache.nifi.runtime.util.HttpExchangeUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;

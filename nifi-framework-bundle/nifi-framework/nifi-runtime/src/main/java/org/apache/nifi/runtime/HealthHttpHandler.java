@@ -18,7 +18,7 @@ package org.apache.nifi.runtime;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import org.apache.nifi.util.HttpExchangeUtils;
+import org.apache.nifi.runtime.util.HttpExchangeUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;

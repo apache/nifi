@@ -642,7 +642,7 @@ export interface FlowState {
     versionSaving: boolean;
     changeVersionRequest: FlowUpdateRequestEntity | null;
     copiedSnippet: CopiedSnippet | null;
-    status: 'pending' | 'loading' | 'success';
+    status: 'pending' | 'loading' | 'success' | 'complete';
 }
 
 export interface RunOnceRequest {

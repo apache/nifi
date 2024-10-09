@@ -43,6 +43,7 @@ import {
     loadConnectionSuccess,
     loadInputPortSuccess,
     loadProcessGroup,
+    loadProcessGroupComplete,
     loadProcessGroupSuccess,
     loadProcessorSuccess,
     loadRemoteProcessGroupSuccess,
@@ -273,6 +274,10 @@ export const flowReducer = createReducer(
             draftState.status = 'success' as const;
         });
     }),
+    on(loadProcessGroupComplete, (state) => ({
+        ...state,
+        status: 'complete' as const
+    })),
     on(loadConnectionSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const proposedConnection = response.connection;

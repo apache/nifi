@@ -98,6 +98,7 @@ import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.ui.extension.contentviewer.ContentViewer;
 import org.apache.nifi.ui.extension.contentviewer.SupportedMimeTypes;
+import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
@@ -220,6 +221,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     public void init() {
+        clearWorkingDirectory();
         final QueuedThreadPool threadPool = new QueuedThreadPool(props.getWebThreads());
         threadPool.setName("NiFi Web Server");
         this.server = new Server(threadPool);
@@ -256,6 +258,17 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final Handler warHandlers = loadInitialWars(bundles);
         handlerCollection.addHandler(warHandlers);
         return handlerCollection;
+    }
+
+    private void clearWorkingDirectory() {
+        // Clear the working directory to ensure that Jetty loads the latest WAR application files
+        final File webWorkingDir = props.getWebWorkingDirectory();
+        try {
+            FileUtils.deleteFilesInDirectory(webWorkingDir, null, logger, true, true);
+        } catch (final IOException e) {
+            logger.warn("Clear Working Directory failed [{}]", webWorkingDir, e);
+        }
+        FileUtils.deleteFile(webWorkingDir, logger, 3);
     }
 
     private Handler loadInitialWars(final Set<Bundle> bundles) {

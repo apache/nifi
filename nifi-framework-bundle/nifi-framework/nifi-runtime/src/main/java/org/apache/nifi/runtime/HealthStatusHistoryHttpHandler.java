@@ -21,7 +21,7 @@ import com.sun.net.httpserver.HttpHandler;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.controller.status.history.StatusHistoryDump;
 import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
-import org.apache.nifi.util.HttpExchangeUtils;
+import org.apache.nifi.runtime.util.HttpExchangeUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
