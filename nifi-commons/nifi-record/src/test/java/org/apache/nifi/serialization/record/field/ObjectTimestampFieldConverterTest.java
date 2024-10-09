@@ -20,6 +20,12 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.zone.ZoneRules;
 import java.util.Date;
 import java.util.Optional;
 
@@ -38,6 +44,10 @@ public class ObjectTimestampFieldConverterTest {
     private static final String EMPTY = "";
 
     private static final String DATE_TIME_DEFAULT = "2000-01-01 12:00:00";
+
+    private static final String DATE_TIME_ZONE_OFFSET_PATTERN = "yyyy-MM-dd HH:mm:ssZZZZZ";
+
+    private static final String DATE_TIME_UTC_OFFSET = "2000-01-01 12:00:00+00:00";
 
     private static final Optional<String> DATE_TIME_NANOSECONDS_PATTERN = Optional.of("yyyy-MM-dd HH:mm:ss.SSSSSSSSS");
 
@@ -109,5 +119,43 @@ public class ObjectTimestampFieldConverterTest {
     public void testConvertFieldStringFormatCustomFormatterException() {
         final FieldConversionException exception = assertThrows(FieldConversionException.class, () -> CONVERTER.convertField(DATE_TIME_DEFAULT, DATE_TIME_NANOSECONDS_PATTERN, FIELD_NAME));
         assertTrue(exception.getMessage().contains(DATE_TIME_DEFAULT));
+    }
+
+    @Test
+    public void testConvertFieldStringFormatCustomZoneOffsetSystemDefault() {
+        final String dateTimeZoneOffset = getDateTimeZoneOffset();
+        final Timestamp timestamp = CONVERTER.convertField(dateTimeZoneOffset, Optional.of(DATE_TIME_ZONE_OFFSET_PATTERN), FIELD_NAME);
+        final Timestamp expected = Timestamp.valueOf(DATE_TIME_DEFAULT);
+        assertEquals(expected, timestamp);
+    }
+
+    @Test
+    public void testConvertFieldStringFormatCustomZoneOffsetCoordinatedUniversalTime() {
+        final Timestamp timestamp = CONVERTER.convertField(DATE_TIME_UTC_OFFSET, Optional.of(DATE_TIME_ZONE_OFFSET_PATTERN), FIELD_NAME);
+        final Timestamp expected = getDateTimeCoordinatedUniversalTime();
+        assertEquals(expected, timestamp);
+    }
+
+    private Timestamp getDateTimeCoordinatedUniversalTime() {
+        final Timestamp dateTime = Timestamp.valueOf(DATE_TIME_DEFAULT);
+        final LocalDateTime localDateTime = dateTime.toLocalDateTime();
+
+        final ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneOffset.UTC);
+        final Instant instant = zonedDateTime.toInstant();
+        final LocalDateTime localDateTimeAdjusted = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+        return Timestamp.valueOf(localDateTimeAdjusted);
+    }
+
+    private String getDateTimeZoneOffset() {
+        final Timestamp inputTimestamp = Timestamp.valueOf(DATE_TIME_DEFAULT);
+        final LocalDateTime inputLocalDateTime = inputTimestamp.toLocalDateTime();
+
+        final ZoneId systemDefaultZoneId = ZoneOffset.systemDefault();
+        final ZoneRules zoneRules = systemDefaultZoneId.getRules();
+        final ZoneOffset inputZoneOffset = zoneRules.getOffset(inputLocalDateTime);
+        final String inputZoneOffsetId = inputZoneOffset.getId();
+
+        // Get Date Time with Zone Offset from current system configuration
+        return DATE_TIME_DEFAULT + inputZoneOffsetId;
     }
 }
