@@ -60,7 +60,7 @@ import {
     selectViewStatusHistoryComponent,
     selectViewStatusHistoryCurrentProcessGroup
 } from '../../state/flow/flow.selectors';
-import { filter, map, NEVER, switchMap, take } from 'rxjs';
+import { distinctUntilChanged, filter, map, NEVER, switchMap, take } from 'rxjs';
 import { restoreViewport } from '../../state/transform/transform.actions';
 import { initialState } from '../../state/flow/flow.reducer';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
@@ -133,6 +133,8 @@ export class Canvas implements OnInit, OnDestroy {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'complete'),
+                switchMap(() => this.store.select(selectCurrentProcessGroupId)),
+                distinctUntilChanged(),
                 switchMap(() => this.store.select(selectProcessGroupRoute)),
                 filter((processGroupRoute) => processGroupRoute != null),
                 concatLatestFrom(() => this.store.select(selectSkipTransform)),
@@ -151,6 +153,8 @@ export class Canvas implements OnInit, OnDestroy {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'complete'),
+                switchMap(() => this.store.select(selectCurrentProcessGroupId)),
+                distinctUntilChanged(),
                 switchMap(() => this.store.select(selectSingleSelectedComponent)),
                 filter((selectedComponent) => selectedComponent != null),
                 concatLatestFrom(() => [
@@ -172,6 +176,8 @@ export class Canvas implements OnInit, OnDestroy {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'complete'),
+                switchMap(() => this.store.select(selectCurrentProcessGroupId)),
+                distinctUntilChanged(),
                 switchMap(() => this.store.select(selectBulkSelectedComponentIds)),
                 filter((ids) => ids.length > 0),
                 concatLatestFrom(() => [
