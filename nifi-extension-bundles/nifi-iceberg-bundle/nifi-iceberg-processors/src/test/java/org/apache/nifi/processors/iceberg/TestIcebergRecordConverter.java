@@ -69,7 +69,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -512,8 +514,8 @@ public class TestIcebergRecordConverter {
         values.put("binary", "hello".getBytes());
         values.put("date", "2017-04-04");
         values.put("time", "14:20:33.000");
-        values.put("timestamp", "2017-04-04 14:20:33.789-0500");
-        values.put("timestampTz", "2017-04-04 14:20:33.789-0500");
+        values.put("timestamp", Timestamp.valueOf(LOCAL_DATE_TIME));
+        values.put("timestampTz", Timestamp.valueOf(LOCAL_DATE_TIME));
         values.put("uuid", "0000-00-00-00-000000");
         values.put("choice", "10");
 
@@ -764,7 +766,8 @@ public class TestIcebergRecordConverter {
         assertEquals(results.size(), 1);
         GenericRecord resultRecord = results.getFirst();
 
-        OffsetDateTime offsetDateTime = OffsetDateTime.of(LOCAL_DATE_TIME, ZoneOffset.ofHours(-5));
+        final ZonedDateTime zonedDateTime = ZonedDateTime.of(LOCAL_DATE_TIME, ZoneId.systemDefault());
+        OffsetDateTime offsetDateTime = zonedDateTime.toOffsetDateTime();
 
         assertEquals("123", resultRecord.get(0, String.class));
         assertEquals(Integer.valueOf(8), resultRecord.get(1, Integer.class));
