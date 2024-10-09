@@ -44,6 +44,7 @@ import {
     selectCurrentProcessGroupId,
     selectEditedCurrentProcessGroup,
     selectFlowAnalysisOpen,
+    selectFlowLoadingStatus,
     selectFunnel,
     selectInputPort,
     selectLabel,
@@ -59,7 +60,7 @@ import {
     selectViewStatusHistoryComponent,
     selectViewStatusHistoryCurrentProcessGroup
 } from '../../state/flow/flow.selectors';
-import { filter, map, NEVER, switchMap, take } from 'rxjs';
+import { distinctUntilChanged, filter, map, NEVER, switchMap, take } from 'rxjs';
 import { restoreViewport } from '../../state/transform/transform.actions';
 import { initialState } from '../../state/flow/flow.reducer';
 import { CanvasContextMenu } from '../../service/canvas-context-menu.service';
@@ -129,9 +130,11 @@ export class Canvas implements OnInit, OnDestroy {
 
         // handle process group loading and viewport restoration
         this.store
-            .select(selectCurrentProcessGroupId)
+            .select(selectFlowLoadingStatus)
             .pipe(
-                filter((processGroupId) => processGroupId != initialState.id),
+                filter((status) => status === 'complete'),
+                switchMap(() => this.store.select(selectCurrentProcessGroupId)),
+                distinctUntilChanged(),
                 switchMap(() => this.store.select(selectProcessGroupRoute)),
                 filter((processGroupRoute) => processGroupRoute != null),
                 concatLatestFrom(() => this.store.select(selectSkipTransform)),
@@ -147,9 +150,11 @@ export class Canvas implements OnInit, OnDestroy {
 
         // handle single component selection
         this.store
-            .select(selectCurrentProcessGroupId)
+            .select(selectFlowLoadingStatus)
             .pipe(
-                filter((processGroupId) => processGroupId != initialState.id),
+                filter((status) => status === 'complete'),
+                switchMap(() => this.store.select(selectCurrentProcessGroupId)),
+                distinctUntilChanged(),
                 switchMap(() => this.store.select(selectSingleSelectedComponent)),
                 filter((selectedComponent) => selectedComponent != null),
                 concatLatestFrom(() => [
@@ -168,9 +173,11 @@ export class Canvas implements OnInit, OnDestroy {
 
         // handle bulk component selection
         this.store
-            .select(selectCurrentProcessGroupId)
+            .select(selectFlowLoadingStatus)
             .pipe(
-                filter((processGroupId) => processGroupId != initialState.id),
+                filter((status) => status === 'complete'),
+                switchMap(() => this.store.select(selectCurrentProcessGroupId)),
+                distinctUntilChanged(),
                 switchMap(() => this.store.select(selectBulkSelectedComponentIds)),
                 filter((ids) => ids.length > 0),
                 concatLatestFrom(() => [
