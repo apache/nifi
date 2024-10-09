@@ -252,39 +252,49 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodes) {
-        boolean shouldStart = true;
+    public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodesIn) {
+        Collection<ControllerServiceNode> serviceNodes = new HashSet<>(serviceNodesIn);
+        for (ControllerServiceNode controllerServiceNode : removeControllerServicesWithUnavailableRequirements(serviceNodes)) {
+            try {
+                final Future<Void> future = enableControllerServiceAndDependencies(controllerServiceNode);
 
-        Iterator<ControllerServiceNode> serviceIter = serviceNodes.iterator();
-        while (serviceIter.hasNext() && shouldStart) {
-            ControllerServiceNode controllerServiceNode = serviceIter.next();
-            List<ControllerServiceNode> requiredServices = controllerServiceNode.getRequiredControllerServices();
-            for (ControllerServiceNode requiredService : requiredServices) {
-                if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
-                    shouldStart = false;
-                    logger.debug("Will not start {} because required service {} is not active and is not part of the collection of things to start", serviceNodes, requiredService);
+                future.get(30, TimeUnit.SECONDS);
+                logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
+            } catch (final ControllerServiceNotValidException csnve) {
+                logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
+            } catch (Exception e) {
+                logger.error("Failed to enable {}", controllerServiceNode, e);
+                if (this.bulletinRepo != null) {
+                    this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
+                            Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
                 }
             }
         }
+    }
 
-        if (shouldStart) {
-            for (ControllerServiceNode controllerServiceNode : serviceNodes) {
-                try {
-                    final Future<Void> future = enableControllerServiceAndDependencies(controllerServiceNode);
-
-                    future.get(30, TimeUnit.SECONDS);
-                    logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
-                } catch (final ControllerServiceNotValidException csnve) {
-                    logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
-                } catch (Exception e) {
-                    logger.error("Failed to enable {}", controllerServiceNode, e);
-                    if (this.bulletinRepo != null) {
-                        this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
-                                Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
+    private Collection<ControllerServiceNode> removeControllerServicesWithUnavailableRequirements(final Collection<ControllerServiceNode> serviceNodes) {
+        boolean recheckNeeded;
+        do {
+            recheckNeeded = false;
+            for (Iterator<ControllerServiceNode> iter = serviceNodes.iterator(); iter.hasNext();) {
+                boolean skipStarting = false;
+                final ControllerServiceNode serviceNode = iter.next();
+                final List<ControllerServiceNode> requiredServices = serviceNode.getRequiredControllerServices();
+                for (ControllerServiceNode requiredService : requiredServices) {
+                    if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
+                        skipStarting = true;
+                        logger.error("Will not start {} because its required service {} is not active and is not part of the collection of things to start", serviceNode, requiredService);
                     }
                 }
+                if (skipStarting) {
+                    // If any service was removed, then recheck all remaining services because the removed one might be required by another service in the list.
+                    recheckNeeded = true;
+                    iter.remove();
+                }
             }
-        }
+        } while (recheckNeeded);
+
+        return serviceNodes;
     }
 
     @Override

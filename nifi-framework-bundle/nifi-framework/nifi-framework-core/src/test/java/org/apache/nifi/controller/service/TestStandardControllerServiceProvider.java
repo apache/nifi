@@ -576,10 +576,10 @@ public class TestStandardControllerServiceProvider {
         allBut6.stream().forEach(ControllerServiceNode::performValidation);
 
         provider.enableControllerServices(allBut6);
-        assertFalse(serviceNode1.isActive());
-        assertFalse(serviceNode2.isActive());
-        assertFalse(serviceNode3.isActive());
-        assertFalse(serviceNode4.isActive());
+        assertTrue(serviceNode1.isActive());
+        assertTrue(serviceNode2.isActive());
+        assertTrue(serviceNode3.isActive());
+        assertTrue(serviceNode4.isActive());
         assertFalse(serviceNode5.isActive());
         assertFalse(serviceNode6.isActive());
 
