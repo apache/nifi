@@ -32,6 +32,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.nifi.flow.ScheduledState.ENABLED;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -51,6 +52,7 @@ import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
@@ -72,6 +74,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardFlowEnrichService.class);
 
+    private static final String DEFAULT_PARAMETER_CONTEXT = "default-parameter-context";
     private static final String NIFI_BUNDLE_GROUP = "org.apache.nifi";
     private static final String STANDARD_RESTRICTED_SSL_CONTEXT_SERVICE = "org.apache.nifi.ssl.StandardRestrictedSSLContextService";
     private static final String RESTRICTED_SSL_CONTEXT_SERVICE_API = "org.apache.nifi.ssl.RestrictedSSLContextService";
@@ -136,6 +139,8 @@ public class StandardFlowEnrichService implements FlowEnrichService {
 
         createProvenanceReportingTask(parentSslControllerService).ifPresent(versionedDataflow.getReportingTasks()::add);
 
+        createDefaultParameterContext(versionedDataflow);
+
         if (IS_LEGACY_COMPONENT.test(rootGroup)) {
             LOG.info("Legacy flow detected. Initializing missing but mandatory properties on components");
             initializeComponentsMissingProperties(rootGroup);
@@ -144,6 +149,25 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         }
 
         return versionedDataflow;
+    }
+
+    private void createDefaultParameterContext(VersionedDataflow versionedDataflow) {
+        VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
+        versionedParameterContext.setIdentifier(DEFAULT_PARAMETER_CONTEXT);
+        versionedParameterContext.setInstanceIdentifier(DEFAULT_PARAMETER_CONTEXT);
+        versionedParameterContext.setName(DEFAULT_PARAMETER_CONTEXT);
+        versionedParameterContext.setDescription(DEFAULT_PARAMETER_CONTEXT);
+        versionedParameterContext.setParameters(new HashSet<>());
+
+        ofNullable(versionedDataflow.getParameterContexts())
+            .ifPresentOrElse(
+                versionedParameterContexts -> versionedParameterContexts.add(versionedParameterContext),
+                () -> {
+                    List<VersionedParameterContext> parameterContexts = new ArrayList<>();
+                    parameterContexts.add(versionedParameterContext);
+                    versionedDataflow.setParameterContexts(parameterContexts);
+                }
+            );
     }
 
     private void enableControllerServices(VersionedProcessGroup processGroup) {
