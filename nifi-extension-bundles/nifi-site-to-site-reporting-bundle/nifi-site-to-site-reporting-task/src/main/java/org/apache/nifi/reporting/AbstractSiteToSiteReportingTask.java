@@ -31,6 +31,8 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
@@ -115,13 +117,16 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         properties.add(SiteToSiteUtils.TIMEOUT);
         properties.add(SiteToSiteUtils.BATCH_SIZE);
         properties.add(SiteToSiteUtils.TRANSPORT_PROTOCOL);
-        properties.add(SiteToSiteUtils.HTTP_PROXY_HOSTNAME);
-        properties.add(SiteToSiteUtils.HTTP_PROXY_PORT);
-        properties.add(SiteToSiteUtils.HTTP_PROXY_USERNAME);
-        properties.add(SiteToSiteUtils.HTTP_PROXY_PASSWORD);
+        properties.add(SiteToSiteUtils.PROXY_CONFIGURATION_SERVICE);
         properties.add(RECORD_WRITER);
         properties.add(ALLOW_NULL_VALUES);
         return properties;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        ProxyServiceMigration.migrateProxyProperties(config, SiteToSiteUtils.PROXY_CONFIGURATION_SERVICE,
+                SiteToSiteUtils.OBSOLETE_PROXY_HOST, SiteToSiteUtils.OBSOLETE_PROXY_PORT, SiteToSiteUtils.OBSOLETE_PROXY_USERNAME, SiteToSiteUtils.OBSOLETE_PROXY_PASSWORD);
     }
 
     public void setup(final PropertyContext reportContext) {

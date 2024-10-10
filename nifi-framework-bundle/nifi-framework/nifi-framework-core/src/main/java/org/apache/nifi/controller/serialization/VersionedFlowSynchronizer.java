@@ -608,7 +608,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
             controller.getControllerServiceProvider(), taskNode);
-        taskNode.migrateConfiguration(reportingTask.getProperties(), serviceFactory);
+        Map<String, String> rawPropertyValues = taskNode.getRawPropertyValues().entrySet().stream()
+                .collect(HashMap::new,
+                        (m, e) -> m.put(e.getKey().getName(), e.getValue()),
+                        HashMap::putAll);
+        taskNode.migrateConfiguration(rawPropertyValues, serviceFactory);
     }
 
     private void updateReportingTask(final ReportingTaskNode taskNode, final VersionedReportingTask reportingTask, final FlowController controller) {

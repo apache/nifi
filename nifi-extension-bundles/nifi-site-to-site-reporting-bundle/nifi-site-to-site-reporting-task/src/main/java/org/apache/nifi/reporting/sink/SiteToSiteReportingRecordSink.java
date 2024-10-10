@@ -33,6 +33,8 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
@@ -67,10 +69,7 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
         properties.add(SiteToSiteUtils.TIMEOUT);
         properties.add(SiteToSiteUtils.BATCH_SIZE);
         properties.add(SiteToSiteUtils.TRANSPORT_PROTOCOL);
-        properties.add(SiteToSiteUtils.HTTP_PROXY_HOSTNAME);
-        properties.add(SiteToSiteUtils.HTTP_PROXY_PORT);
-        properties.add(SiteToSiteUtils.HTTP_PROXY_USERNAME);
-        properties.add(SiteToSiteUtils.HTTP_PROXY_PASSWORD);
+        properties.add(SiteToSiteUtils.PROXY_CONFIGURATION_SERVICE);
         this.properties = Collections.unmodifiableList(properties);
         this.stateManager = context.getStateManager();
     }
@@ -78,6 +77,12 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        ProxyServiceMigration.migrateProxyProperties(config, SiteToSiteUtils.PROXY_CONFIGURATION_SERVICE,
+                SiteToSiteUtils.OBSOLETE_PROXY_HOST, SiteToSiteUtils.OBSOLETE_PROXY_PORT, SiteToSiteUtils.OBSOLETE_PROXY_USERNAME, SiteToSiteUtils.OBSOLETE_PROXY_PASSWORD);
     }
 
     @OnEnabled
