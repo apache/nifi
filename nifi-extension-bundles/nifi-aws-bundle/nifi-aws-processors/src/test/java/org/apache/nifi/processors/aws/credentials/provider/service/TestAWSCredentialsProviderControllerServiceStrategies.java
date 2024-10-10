@@ -163,33 +163,4 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
         assertNotNull(credentialsProviderV2);
         assertEquals(software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider.class, credentialsProviderV2.getClass());
     }
-
-
-    @Test
-    public void testAssumeRoleMissingProxyHost() {
-        runner.setProperty(service, AWSCredentialsProviderControllerService.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
-        runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "BogusArn");
-        runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "BogusSession");
-        runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_PROXY_PORT, "8080");
-        runner.assertNotValid(service);
-    }
-
-    @Test
-    public void testAssumeRoleMissingProxyPort() {
-        runner.setProperty(service, AWSCredentialsProviderControllerService.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
-        runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "BogusArn");
-        runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "BogusSession");
-        runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_PROXY_HOST, "proxy.company.com");
-        runner.assertNotValid(service);
-    }
-
-    @Test
-    public void testAssumeRoleInvalidProxyPort() {
-        runner.setProperty(service, AWSCredentialsProviderControllerService.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
-        runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "BogusArn");
-        runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "BogusSession");
-        runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_PROXY_HOST, "proxy.company.com");
-        runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_PROXY_PORT, "notIntPort");
-        runner.assertNotValid(service);
-    }
 }

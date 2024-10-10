@@ -56,7 +56,20 @@ class StandardServerConnectorFactoryTest {
 
         final ServerConnector serverConnector = factory.getServerConnector();
 
-        assertHttpConnectionFactoryFound(serverConnector);
+        final HttpConnectionFactory httpConnectionFactory = assertHttpConnectionFactoryFound(serverConnector);
+        assertEquals(8192, httpConnectionFactory.getHttpConfiguration().getRequestHeaderSize());
+    }
+
+    @Test
+    void testGetServerConnectorWithRequestHeaderSize() {
+        final Server server = new Server();
+        final StandardServerConnectorFactory factory = new StandardServerConnectorFactory(server, HTTP_PORT);
+        factory.setRequestHeaderSize(16000);
+
+        final ServerConnector serverConnector = factory.getServerConnector();
+
+        final HttpConnectionFactory httpConnectionFactory = assertHttpConnectionFactoryFound(serverConnector);
+        assertEquals(16000, httpConnectionFactory.getHttpConfiguration().getRequestHeaderSize());
     }
 
     @Test

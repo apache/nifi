@@ -41,13 +41,15 @@ import { ComponentEntityWithDimensions } from '../state/flow';
 export class BirdseyeView {
     private destroyRef = inject(DestroyRef);
 
-    private birdseyeGroup: any;
-    private componentGroup: any;
+    private birdseyeGroup: any = null;
+    private componentGroup: any = null;
     private navigationCollapsed: boolean = initialState.navigationCollapsed;
 
     private k: number = INITIAL_SCALE;
     private x: number = INITIAL_TRANSLATE.x;
     private y: number = INITIAL_TRANSLATE.y;
+
+    private initialized = false;
 
     constructor(
         private store: Store<CanvasState>,
@@ -146,11 +148,13 @@ export class BirdseyeView {
                 y: 0
             })
             .call(brush);
+
+        this.initialized = true;
     }
 
     public refresh(): void {
-        // if navigation is collapsed there is no need to perform the calculations below
-        if (this.navigationCollapsed) {
+        // do not refresh if the component is not initialized or navigation is collapsed
+        if (!this.initialized || this.navigationCollapsed) {
             return;
         }
 
@@ -346,5 +350,18 @@ export class BirdseyeView {
         });
 
         context.restore();
+    }
+
+    public destroy(): void {
+        this.initialized = false;
+
+        this.navigationCollapsed = initialState.navigationCollapsed;
+
+        this.k = INITIAL_SCALE;
+        this.x = INITIAL_TRANSLATE.x;
+        this.y = INITIAL_TRANSLATE.y;
+
+        this.birdseyeGroup = null;
+        this.componentGroup = null;
     }
 }

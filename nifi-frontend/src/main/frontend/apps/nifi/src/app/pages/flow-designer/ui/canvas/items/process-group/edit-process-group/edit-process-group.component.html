@@ -68,8 +68,9 @@
                         <div>
                             <mat-form-field>
                                 <mat-label>Execution Engine</mat-label>
-                                <mat-select formControlName="executionEngine"
-                                            (selectionChange)="executionEngineChanged($event.value)">
+                                <mat-select
+                                    formControlName="executionEngine"
+                                    (selectionChange)="executionEngineChanged($event.value)">
                                     @for (option of executionEngineOptions; track option) {
                                         <mat-option
                                             [value]="option.value"

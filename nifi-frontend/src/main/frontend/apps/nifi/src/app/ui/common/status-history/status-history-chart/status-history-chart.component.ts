@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core';
 
 import { FieldDescriptor } from '../../../../state/status-history';
 import * as d3 from 'd3';
@@ -31,7 +31,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     templateUrl: './status-history-chart.component.html',
     styleUrls: ['./status-history-chart.component.scss']
 })
-export class StatusHistoryChart {
+export class StatusHistoryChart implements OnDestroy {
     private _instances!: Instance[];
     private _selectedDescriptor: FieldDescriptor | null = null;
     private _visibleInstances: VisibleInstances = {};
@@ -685,5 +685,10 @@ export class StatusHistoryChart {
             });
         });
         return totalValue / snapshotCount;
+    }
+
+    ngOnDestroy(): void {
+        this.nodeStats$.complete();
+        this.clusterStats$.complete();
     }
 }

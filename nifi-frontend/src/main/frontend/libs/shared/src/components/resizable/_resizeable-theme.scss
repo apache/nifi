@@ -19,7 +19,6 @@
 @use '@angular/material' as mat;
 
 @mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
     $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     .resizable-triangle {
         border-right-color: $border-color;

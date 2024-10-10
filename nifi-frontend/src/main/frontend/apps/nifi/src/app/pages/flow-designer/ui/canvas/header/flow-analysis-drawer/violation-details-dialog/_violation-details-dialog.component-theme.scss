@@ -19,50 +19,26 @@
 @use '@angular/material' as mat;
 
 @mixin generate-theme($material-theme, $config) {
-    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
     $material-theme-secondary-palette-default: mat.get-theme-color(
         $material-theme,
         secondary,
         map.get(map.get($config, secondary), default)
-    );
-    $material-theme-secondary-palette-darker: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), darker)
-    );
-    $material-theme-secondary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), lighter)
     );
     $material-theme-error-palette-default: mat.get-theme-color(
         $material-theme,
         error,
         map.get(map.get($config, error), default)
     );
-    $material-theme-error-palette-darker: mat.get-theme-color(
-        $material-theme,
-        error,
-        map.get(map.get($config, error), darker)
-    );
 
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
 
     .pill.enforce {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-error-palette-default,
-            $material-theme-error-palette-darker
-        );
+        background-color: $material-theme-error-palette-default;
         color: $neutral-contrast;
     }
 
     .pill.warn {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-secondary-palette-lighter,
-            $material-theme-secondary-palette-darker
-        );
+        background-color: $material-theme-secondary-palette-default;
         color: $neutral-contrast;
     }
 }

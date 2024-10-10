@@ -22,11 +22,11 @@ import software.amazon.awssdk.awscore.client.builder.AwsAsyncClientBuilder;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
+import software.amazon.awssdk.http.TlsTrustManagersProvider;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 
-import javax.net.ssl.TrustManager;
 import java.time.Duration;
 
 /**
@@ -78,8 +78,8 @@ public abstract class AbstractAwsAsyncProcessor<
             }
 
             @Override
-            public void configureTls(final TrustManager[] trustManagers, final TlsKeyManagersProvider keyManagersProvider) {
-                builder.tlsTrustManagersProvider(() -> trustManagers);
+            public void configureTls(final TlsTrustManagersProvider trustManagersProvider, final TlsKeyManagersProvider keyManagersProvider) {
+                builder.tlsTrustManagersProvider(trustManagersProvider);
                 builder.tlsKeyManagersProvider(keyManagersProvider);
             }
 

@@ -185,6 +185,7 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.TO, "${to}");
         runner.setProperty(PutEmail.BCC, "${bcc}");
         runner.setProperty(PutEmail.CC, "${cc}");
+        runner.setProperty(PutEmail.REPLY_TO, "${reply-to}");
         runner.setProperty(PutEmail.ATTRIBUTE_NAME_REGEX, "Precedence.*");
         runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.UTF_8.name());
 
@@ -194,6 +195,7 @@ public class TestPutEmail {
         attributes.put("to", "to@apache.org");
         attributes.put("bcc", "bcc@apache.org");
         attributes.put("cc", "cc@apache.org");
+        attributes.put("reply-to", "replytome@apache.org");
         attributes.put("Precedence", "bulk");
         attributes.put("PrecedenceEncodeDecodeTest", "búlk");
         runner.enqueue("Some Text".getBytes(), attributes);
@@ -215,6 +217,8 @@ public class TestPutEmail {
         assertEquals("bcc@apache.org", message.getRecipients(RecipientType.BCC)[0].toString());
         assertEquals(1, message.getRecipients(RecipientType.CC).length);
         assertEquals("cc@apache.org", message.getRecipients(RecipientType.CC)[0].toString());
+        assertEquals(1, message.getReplyTo().length);
+        assertEquals("replytome@apache.org", message.getReplyTo()[0].toString());
         assertEquals("bulk", MimeUtility.decodeText(message.getHeader("Precedence")[0]));
         assertEquals("búlk", MimeUtility.decodeText(message.getHeader("PrecedenceEncodeDecodeTest")[0]));
     }
@@ -267,6 +271,7 @@ public class TestPutEmail {
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), "test한的ほу́.pdf");
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/pdf");
         runner.enqueue("Some text".getBytes(), attributes);
 
         runner.run();
@@ -290,7 +295,9 @@ public class TestPutEmail {
         final BodyPart attachPart = multipart.getBodyPart(1);
         final InputStream attachIs = attachPart.getDataHandler().getInputStream();
         final String text = IOUtils.toString(attachIs, StandardCharsets.UTF_8);
+        final String mimeType = attachPart.getDataHandler().getContentType();
         assertEquals("test한的ほу́.pdf", MimeUtility.decodeText(attachPart.getFileName()));
+        assertEquals("application/pdf", mimeType);
         assertEquals("Some text", text);
 
         assertNull(message.getRecipients(RecipientType.BCC));

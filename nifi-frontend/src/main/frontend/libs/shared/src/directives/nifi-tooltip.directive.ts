@@ -34,6 +34,7 @@ export class NifiTooltipDirective<T> implements OnDestroy {
 
     private closeTimer = -1;
     private overlayRef: OverlayRef | null = null;
+    private positionStrategy: PositionStrategy | null = null;
     private overTip = false;
     private openTimer = -1;
 
@@ -49,6 +50,7 @@ export class NifiTooltipDirective<T> implements OnDestroy {
                 if (!this.overlayRef?.hasAttached()) {
                     this.attach();
                 }
+                this.openTimer = -1;
             }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
         } else {
             if (!this.overlayRef?.hasAttached()) {
@@ -63,12 +65,22 @@ export class NifiTooltipDirective<T> implements OnDestroy {
             if (this.delayClose) {
                 this.closeTimer = window.setTimeout(() => {
                     this.overlayRef?.detach();
+
+                    if (this.positionStrategy?.detach) {
+                        this.positionStrategy.detach();
+                    }
+
                     this.closeTimer = -1;
                 }, NiFiCommon.TOOLTIP_DELAY_CLOSE_MILLIS);
             } else {
                 this.overlayRef?.detach();
+
+                if (this.positionStrategy?.detach) {
+                    this.positionStrategy.detach();
+                }
             }
         }
+
         if (this.openTimer > 0) {
             window.clearTimeout(this.openTimer);
             this.openTimer = -1;
@@ -79,6 +91,10 @@ export class NifiTooltipDirective<T> implements OnDestroy {
     mouseMove() {
         if (this.overlayRef?.hasAttached() && this.tooltipDisabled) {
             this.overlayRef?.detach();
+
+            if (this.positionStrategy?.detach) {
+                this.positionStrategy.detach();
+            }
         }
     }
 
@@ -91,6 +107,7 @@ export class NifiTooltipDirective<T> implements OnDestroy {
 
     ngOnDestroy(): void {
         this.overlayRef?.dispose();
+        this.positionStrategy?.dispose();
     }
 
     private attach(): void {
@@ -99,8 +116,8 @@ export class NifiTooltipDirective<T> implements OnDestroy {
         }
 
         if (!this.overlayRef) {
-            const positionStrategy = this.getPositionStrategy();
-            this.overlayRef = this.overlay.create({ positionStrategy });
+            this.positionStrategy = this.getPositionStrategy();
+            this.overlayRef = this.overlay.create({ positionStrategy: this.positionStrategy });
         }
 
         const tooltipReference = this.overlayRef.attach(new ComponentPortal(this.tooltipComponentType));
@@ -117,6 +134,11 @@ export class NifiTooltipDirective<T> implements OnDestroy {
         });
         tooltipReference.location.nativeElement.addEventListener('mouseleave', () => {
             this.overlayRef?.detach();
+
+            if (this.positionStrategy?.detach) {
+                this.positionStrategy.detach();
+            }
+
             this.closeTimer = -1;
             this.overTip = false;
         });

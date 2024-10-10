@@ -14,29 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.runtime;
 
-package org.apache.nifi.util;
-
-import com.sun.net.httpserver.HttpExchange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
+/**
+ * Standard implementation of Uncaught Exception Handler with logging
+ */
+public class StandardUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
+    private static final Logger logger = LoggerFactory.getLogger(StandardUncaughtExceptionHandler.class);
 
-public class HttpExchangeUtils {
-    private static final Logger logger = LoggerFactory.getLogger(HttpExchangeUtils.class);
-
-    public static void drainRequestBody(final HttpExchange exchange) {
-        final byte[] buffer = new byte[4096];
-        try (final InputStream in = exchange.getRequestBody()) {
-            while ((in.read(buffer)) != -1) {
-                // Ignore the data read, just drain the input stream
-            }
-        } catch (final IOException ioe) {
-            // Since we don't actually care about the contents of the input, we will ignore any Exceptions when reading from it.
-            logger.debug("Failed to fully drain HttpExchange InputStream from {}", exchange.getRequestURI(), ioe);
-        }
+    @Override
+    public void uncaughtException(final Thread thread, final Throwable e) {
+        logger.error("Uncaught Exception in Thread [{}] ID [{}]", thread.getName(), thread.threadId(), e);
     }
-
 }

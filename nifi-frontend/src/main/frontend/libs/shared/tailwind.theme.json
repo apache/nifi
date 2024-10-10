@@ -1,8 +1,5 @@
 {
     "extend": {
-        "fontFamily": {
-            "roboto": ["Roboto"]
-        },
         "fontSize": {
             "xs": [
                 "10px",

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { BirdseyeView } from '../../../../../service/birdseye-view.service';
 
 @Component({
@@ -24,12 +24,16 @@ import { BirdseyeView } from '../../../../../service/birdseye-view.service';
     templateUrl: './birdseye.component.html',
     styleUrls: ['./birdseye.component.scss']
 })
-export class Birdseye implements OnInit {
+export class Birdseye implements OnInit, OnDestroy {
     constructor(private birdseyeView: BirdseyeView) {}
 
     ngOnInit(): void {
         const birdseye: any = document.getElementById('birdseye');
         this.birdseyeView.init(birdseye);
         this.birdseyeView.refresh();
+    }
+
+    ngOnDestroy(): void {
+        this.birdseyeView.destroy();
     }
 }

@@ -221,11 +221,15 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
         if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
             if (sslContextService != null) {
-                final TrustManager[] trustManagers = new TrustManager[]{sslContextService.createTrustManager()};
-                final TlsKeyManagersProvider keyManagersProvider = FileStoreTlsKeyManagersProvider
-                        .create(Paths.get(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
-                builder.tlsTrustManagersProvider(() -> trustManagers);
-                builder.tlsKeyManagersProvider(keyManagersProvider);
+                if (sslContextService.isTrustStoreConfigured()) {
+                    final TrustManager[] trustManagers = new TrustManager[]{sslContextService.createTrustManager()};
+                    builder.tlsTrustManagersProvider(() -> trustManagers);
+                }
+                if (sslContextService.isKeyStoreConfigured()) {
+                    final TlsKeyManagersProvider keyManagersProvider = FileStoreTlsKeyManagersProvider
+                            .create(Paths.get(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
+                    builder.tlsKeyManagersProvider(keyManagersProvider);
+                }
             }
         }
         final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
@@ -238,7 +242,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
 
         if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
             final software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyConfigBuilder = software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
-                    .endpoint(URI.create(String.format("%s:%s", proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort())));
+                    .endpoint(URI.create(String.format("http://%s:%s", proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort())));
 
             if (proxyConfig.hasCredential()) {
                 proxyConfigBuilder.username(proxyConfig.getProxyUserName());

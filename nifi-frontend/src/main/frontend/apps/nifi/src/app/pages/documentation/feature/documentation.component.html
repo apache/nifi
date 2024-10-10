@@ -55,7 +55,7 @@
                                 *ngTemplateOutlet="
                                     extensionLinks;
                                     context: {
-                                        $implicit: filterExtensions(processorTypes()),
+                                        $implicit: filterExtensions((processorTypes$ | async)!),
                                         componentType: ComponentType.Processor
                                     }
                                 "></ng-container>
@@ -68,7 +68,7 @@
                                 *ngTemplateOutlet="
                                     extensionLinks;
                                     context: {
-                                        $implicit: filterExtensions(controllerServiceTypes()),
+                                        $implicit: filterExtensions((controllerServiceTypes$ | async)!),
                                         componentType: ComponentType.ControllerService
                                     }
                                 "></ng-container>
@@ -81,7 +81,7 @@
                                 *ngTemplateOutlet="
                                     extensionLinks;
                                     context: {
-                                        $implicit: filterExtensions(reportingTaskTypes()),
+                                        $implicit: filterExtensions((reportingTaskTypes$ | async)!),
                                         componentType: ComponentType.ReportingTask
                                     }
                                 "></ng-container>
@@ -94,7 +94,7 @@
                                 *ngTemplateOutlet="
                                     extensionLinks;
                                     context: {
-                                        $implicit: filterExtensions(parameterProviderTypes()),
+                                        $implicit: filterExtensions((parameterProviderTypes$ | async)!),
                                         componentType: ComponentType.ParameterProvider
                                     }
                                 "></ng-container>
@@ -107,7 +107,7 @@
                                 *ngTemplateOutlet="
                                     extensionLinks;
                                     context: {
-                                        $implicit: filterExtensions(flowAnalysisRuleTypes()),
+                                        $implicit: filterExtensions((flowAnalysisRuleTypes$ | async)!),
                                         componentType: ComponentType.FlowAnalysisRule
                                     }
                                 "></ng-container>

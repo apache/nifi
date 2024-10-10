@@ -23,6 +23,7 @@ import {
     EventEmitter,
     inject,
     Input,
+    OnDestroy,
     Output,
     ViewChild
 } from '@angular/core';
@@ -47,7 +48,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     templateUrl: './bulletin-board-list.component.html',
     styleUrls: ['./bulletin-board-list.component.scss']
 })
-export class BulletinBoardList implements AfterViewInit {
+export class BulletinBoardList implements AfterViewInit, OnDestroy {
     filterTerm = '';
     filterColumn: 'message' | 'name' | 'id' | 'groupId' = 'message';
     filterForm: FormGroup;
@@ -105,6 +106,10 @@ export class BulletinBoardList implements AfterViewInit {
             });
     }
 
+    ngOnDestroy(): void {
+        this.bulletinsChanged$.complete();
+    }
+
     private scrollToBottom() {
         if (this.scroll) {
             this.scroll.nativeElement.scroll({
@@ -144,12 +149,12 @@ export class BulletinBoardList implements AfterViewInit {
     getSeverity(severity: string) {
         switch (severity.toLowerCase()) {
             case 'error':
-                return 'bulletin-error error-color-darker';
+                return 'bulletin-error error-color';
             case 'warn':
             case 'warning':
                 return 'bulletin-warn caution-color';
             default:
-                return 'bulletin-normal success-color-darker';
+                return 'bulletin-normal success-color-default';
         }
     }
 

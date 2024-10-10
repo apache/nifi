@@ -41,13 +41,13 @@
                         <div class="flex gap-x-1">
                             @switch (result.outcome) {
                                 @case (Outcome.SUCCESSFUL) {
-                                    <div class="fa fa-check success-color text-xl"></div>
+                                    <div class="fa fa-check success-color-default text-xl"></div>
                                 }
                                 @case (Outcome.FAILED) {
                                     <div class="fa fa-times error-color text-xl"></div>
                                 }
                                 @case (Outcome.SKIPPED) {
-                                    <div class="fa fa-exclamation error-color-lighter text-xl"></div>
+                                    <div class="fa fa-exclamation error-color text-xl"></div>
                                 }
                             }
                             <div class="flex flex-col">

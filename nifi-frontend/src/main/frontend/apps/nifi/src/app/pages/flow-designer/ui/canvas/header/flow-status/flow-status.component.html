@@ -35,7 +35,7 @@
             <div class="flex items-center gap-x-2" title="Transmitting Remote Process Groups">
                 <div
                     class="fa fa-bullseye"
-                    [class]="getActiveStyle(controllerStatus.activeRemotePortCount, 'success-color')"></div>
+                    [class]="getActiveStyle(controllerStatus.activeRemotePortCount, 'success-color-variant')"></div>
                 <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.activeRemotePortCount) }}
                 </div>
@@ -51,7 +51,7 @@
             <div class="flex items-center gap-x-2" title="Running Components">
                 <div
                     class="fa fa-play"
-                    [class]="getActiveStyle(controllerStatus.runningCount, 'success-color-lighter')"></div>
+                    [class]="getActiveStyle(controllerStatus.runningCount, 'success-color-default')"></div>
                 <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.runningCount) }}
                 </div>
@@ -59,7 +59,7 @@
             <div class="flex items-center gap-x-2" title="Stopped Components">
                 <div
                     class="fa fa-stop"
-                    [class]="getActiveStyle(controllerStatus.stoppedCount, 'error-color-lighter')"></div>
+                    [class]="getActiveStyle(controllerStatus.stoppedCount, 'error-color-variant')"></div>
                 <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.stoppedCount) }}
                 </div>
@@ -83,7 +83,7 @@
             <div class="flex items-center gap-x-2" title="Up to date Versioned Process Groups">
                 <div
                     class="fa fa-check"
-                    [class]="getActiveStyle(controllerStatus.upToDateCount, 'success-color')"></div>
+                    [class]="getActiveStyle(controllerStatus.upToDateCount, 'success-color-default')"></div>
                 <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.upToDateCount) }}
                 </div>
@@ -99,7 +99,7 @@
             <div class="flex items-center gap-x-2" title="Stale Versioned Process Groups">
                 <div
                     class="fa fa-arrow-circle-up"
-                    [class]="getActiveStyle(controllerStatus.staleCount, 'error-color-lighter')"></div>
+                    [class]="getActiveStyle(controllerStatus.staleCount, 'error-color-variant')"></div>
                 <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.staleCount) }}
                 </div>
@@ -108,7 +108,7 @@
                 <div
                     class="fa fa-exclamation-circle"
                     [class]="
-                        getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'error-color-lighter')
+                        getActiveStyle(controllerStatus.locallyModifiedAndStaleCount, 'error-color-variant')
                     "></div>
                 <div class="tertiary-color font-medium">
                     {{ formatValue(controllerStatus.locallyModifiedAndStaleCount) }}

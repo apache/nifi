@@ -48,6 +48,7 @@ import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
 import software.amazon.awssdk.core.retry.RetryPolicy;
 import software.amazon.awssdk.http.FileStoreTlsKeyManagersProvider;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
+import software.amazon.awssdk.http.TlsTrustManagersProvider;
 import software.amazon.awssdk.regions.Region;
 
 import javax.net.ssl.TrustManager;
@@ -290,10 +291,16 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
         if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
             if (sslContextService != null) {
-                final TrustManager[] trustManagers = new TrustManager[] {sslContextService.createTrustManager()};
-                final TlsKeyManagersProvider keyManagersProvider = FileStoreTlsKeyManagersProvider
-                        .create(Path.of(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
-                httpClientConfigurer.configureTls(trustManagers, keyManagersProvider);
+                TlsTrustManagersProvider trustManagersProvider = null;
+                TlsKeyManagersProvider keyManagersProvider = null;
+                if (sslContextService.isTrustStoreConfigured()) {
+                    trustManagersProvider = () -> new TrustManager[]{sslContextService.createTrustManager()};
+                }
+                if (sslContextService.isKeyStoreConfigured()) {
+                    keyManagersProvider = FileStoreTlsKeyManagersProvider
+                            .create(Path.of(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
+                }
+                httpClientConfigurer.configureTls(trustManagersProvider, keyManagersProvider);
             }
         }
 

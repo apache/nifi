@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import * as d3 from 'd3';
 import { PositionBehavior } from '../behavior/position-behavior.service';
 import { CanvasState } from '../../state';
@@ -28,14 +28,13 @@ import {
     selectAnySelectedComponentIds,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Dimension } from '../../state/shared';
 import { ComponentType } from 'libs/shared/src';
-import { filter, switchMap } from 'rxjs';
+import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
-export class FunnelManager {
-    private destroyRef = inject(DestroyRef);
+export class FunnelManager implements OnDestroy {
+    private destroyed$: Subject<boolean> = new Subject();
 
     private dimensions: Dimension = {
         width: 48,
@@ -43,7 +42,7 @@ export class FunnelManager {
     };
 
     private funnels: [] = [];
-    private funnelContainer: any;
+    private funnelContainer: any = null;
     private transitionRequired = false;
 
     constructor(
@@ -138,7 +137,10 @@ export class FunnelManager {
 
         this.store
             .select(selectFunnels)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(
+                filter(() => this.funnelContainer !== null),
+                takeUntil(this.destroyed$)
+            )
             .subscribe((funnels) => {
                 this.set(funnels);
             });
@@ -147,8 +149,9 @@ export class FunnelManager {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'success'),
+                filter(() => this.funnelContainer !== null),
                 switchMap(() => this.store.select(selectAnySelectedComponentIds)),
-                takeUntilDestroyed(this.destroyRef)
+                takeUntil(this.destroyed$)
             )
             .subscribe((selected) => {
                 this.funnelContainer.selectAll('g.funnel').classed('selected', function (d: any) {
@@ -158,10 +161,19 @@ export class FunnelManager {
 
         this.store
             .select(selectTransitionRequired)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.destroyed$))
             .subscribe((transitionRequired) => {
                 this.transitionRequired = transitionRequired;
             });
+    }
+
+    public destroy(): void {
+        this.funnelContainer = null;
+        this.destroyed$.next(true);
+    }
+
+    ngOnDestroy(): void {
+        this.destroyed$.complete();
     }
 
     private set(funnels: any): void {

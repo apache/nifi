@@ -110,7 +110,7 @@
                                     } @else {
                                         @if (joltState.validate().validationResponse?.valid) {
                                             <i
-                                                class="fa fa-check success-color mr-2"
+                                                class="fa fa-check success-color-default mr-2"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 tooltipInputData="The specification is valid."></i
@@ -150,7 +150,7 @@
                                     } @else {
                                         @if (joltState.properties().savePropertiesResponse) {
                                             <i
-                                                class="fa fa-check success-color text-shadow mr-2"
+                                                class="fa fa-check success-color-default text-shadow mr-2"
                                                 nifiTooltip
                                                 [tooltipComponentType]="TextTip"
                                                 tooltipInputData="Properties successfully saved!"></i
@@ -307,7 +307,7 @@
                                         } @else {
                                             @if (joltState.transform().transformationResponse) {
                                                 <i
-                                                    class="fa fa-check success-color mr-2"
+                                                    class="fa fa-check success-color-default mr-2"
                                                     nifiTooltip
                                                     [tooltipComponentType]="TextTip"
                                                     tooltipInputData="The transform was successful."></i

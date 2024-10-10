@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { CanvasState } from '../../state';
 import { Store } from '@ngrx/store';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -29,20 +29,19 @@ import {
     selectPorts,
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { TextTip, NiFiCommon } from '@nifi/shared';
 import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { Dimension } from '../../state/shared';
 import { ComponentType } from 'libs/shared/src';
-import { filter, switchMap } from 'rxjs';
+import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { renderConnectionsForComponent } from '../../state/flow/flow.actions';
 
 @Injectable({
     providedIn: 'root'
 })
-export class PortManager {
-    private destroyRef = inject(DestroyRef);
+export class PortManager implements OnDestroy {
+    private destroyed$: Subject<boolean> = new Subject();
 
     private portDimensions: Dimension = {
         width: 240,
@@ -57,7 +56,7 @@ export class PortManager {
     private static readonly OFFSET_VALUE: number = 25;
 
     private ports: [] = [];
-    private portContainer: any;
+    private portContainer: any = null;
     private transitionRequired = false;
 
     constructor(
@@ -380,9 +379,9 @@ export class PortManager {
                 if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                     clazz = 'invalid caution-color';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                    clazz = 'running success-color-lighter';
+                    clazz = 'running success-color-default';
                 } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                    clazz = 'stopped error-color-lighter';
+                    clazz = 'stopped error-color-variant';
                 }
 
                 return `run-status-icon ${clazz}`;
@@ -436,7 +435,7 @@ export class PortManager {
                     return '\ue80a';
                 }
             })
-            .classed('transmitting success-color', function (d: any) {
+            .classed('transmitting success-color-variant', function (d: any) {
                 return d.status.transmitting === true;
             })
             .classed('not-transmitting neutral-color', function (d: any) {
@@ -472,7 +471,10 @@ export class PortManager {
 
         this.store
             .select(selectPorts)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(
+                filter(() => this.portContainer !== null),
+                takeUntil(this.destroyed$)
+            )
             .subscribe((ports) => {
                 this.set(ports);
             });
@@ -481,8 +483,9 @@ export class PortManager {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'success'),
+                filter(() => this.portContainer !== null),
                 switchMap(() => this.store.select(selectAnySelectedComponentIds)),
-                takeUntilDestroyed(this.destroyRef)
+                takeUntil(this.destroyed$)
             )
             .subscribe((selected) => {
                 this.portContainer.selectAll('g.input-port, g.output-port').classed('selected', function (d: any) {
@@ -492,10 +495,19 @@ export class PortManager {
 
         this.store
             .select(selectTransitionRequired)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.destroyed$))
             .subscribe((transitionRequired) => {
                 this.transitionRequired = transitionRequired;
             });
+    }
+
+    public destroy(): void {
+        this.portContainer = null;
+        this.destroyed$.next(true);
+    }
+
+    ngOnDestroy(): void {
+        this.destroyed$.complete();
     }
 
     private set(ports: any): void {

@@ -18,15 +18,15 @@ package org.apache.nifi.processors.aws.v2;
 
 import org.apache.nifi.proxy.ProxyConfiguration;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
+import software.amazon.awssdk.http.TlsTrustManagersProvider;
 
-import javax.net.ssl.TrustManager;
 import java.time.Duration;
 
 public interface AwsHttpClientConfigurer {
 
     void configureBasicSettings(Duration communicationsTimeout, int maxConcurrentTasks);
 
-    void configureTls(TrustManager[] trustManagers, TlsKeyManagersProvider keyManagersProvider);
+    void configureTls(TlsTrustManagersProvider trustManagersProvider, TlsKeyManagersProvider keyManagersProvider);
 
     void configureProxy(ProxyConfiguration proxyConfiguration);
 }

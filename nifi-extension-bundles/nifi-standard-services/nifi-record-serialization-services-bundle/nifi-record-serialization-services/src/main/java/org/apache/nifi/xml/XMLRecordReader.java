@@ -539,24 +539,11 @@ public class XMLRecordReader implements RecordReader {
     }
 
     private Object parseStringForType(String data, String fieldName, DataType dataType) {
-        switch (dataType.getFieldType()) {
-            case BOOLEAN:
-            case BYTE:
-            case CHAR:
-            case DECIMAL:
-            case DOUBLE:
-            case FLOAT:
-            case INT:
-            case LONG:
-            case SHORT:
-            case STRING:
-            case DATE:
-            case TIME:
-            case TIMESTAMP: {
-                return DataTypeUtils.convertType(data, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
-            }
-        }
-        return null;
+        return switch (dataType.getFieldType()) {
+            case BOOLEAN, BYTE, CHAR, CHOICE, DECIMAL, DOUBLE, FLOAT, INT, LONG, SHORT, STRING, DATE, TIME, TIMESTAMP ->
+                    DataTypeUtils.convertType(data, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
+            default -> null;
+        };
     }
 
     private void skipElement() throws XMLStreamException {

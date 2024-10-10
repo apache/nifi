@@ -45,7 +45,7 @@ import {
 } from '../../../state/flow-configuration/flow-configuration.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import { CopiedSnippet, VersionControlInformation } from '../state/flow';
-import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 
 @Injectable({
@@ -1192,6 +1192,7 @@ export class CanvasUtils {
         let openTimer = -1;
         const overlay = this.overlay;
         let overlayRef: OverlayRef | null = null;
+        let positionStrategy: PositionStrategy | null = null;
 
         selection
             .on('mouseenter', function(this: any) {
@@ -1200,24 +1201,23 @@ export class CanvasUtils {
                 }
 
                 if (!overlayRef) {
-                    const positionStrategy = overlay
-                        .position()
-                        .flexibleConnectedTo(d3.select(this).node())
-                        .withPositions([
-                            {
-                                originX: 'end',
-                                originY: 'bottom',
-                                overlayX: 'start',
-                                overlayY: 'top',
-                                offsetX: 8,
-                                offsetY: 8
-                            }
-                        ])
-                        .withPush(true);
-
                     openTimer = window.setTimeout(() => {
-                        overlayRef = overlay.create({ positionStrategy });
+                        positionStrategy = overlay
+                            .position()
+                            .flexibleConnectedTo(d3.select(this).node())
+                            .withPositions([
+                                {
+                                    originX: 'end',
+                                    originY: 'bottom',
+                                    overlayX: 'start',
+                                    overlayY: 'top',
+                                    offsetX: 8,
+                                    offsetY: 8
+                                }
+                            ])
+                            .withPush(true);
 
+                        overlayRef = overlay.create({ positionStrategy });
                         const tooltipReference = overlayRef.attach(new ComponentPortal(type));
                         tooltipReference.setInput('data', tooltipData);
 
@@ -1232,6 +1232,12 @@ export class CanvasUtils {
                             overlayRef?.detach();
                             overlayRef?.dispose();
                             overlayRef = null;
+
+                            if (positionStrategy?.detach) {
+                                positionStrategy.detach();
+                            }
+                            positionStrategy?.dispose();
+                            positionStrategy = null;
                         });
                     }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
                 }
@@ -1245,6 +1251,12 @@ export class CanvasUtils {
                     overlayRef?.detach();
                     overlayRef?.dispose();
                     overlayRef = null;
+
+                    if (positionStrategy?.detach) {
+                        positionStrategy.detach();
+                    }
+                    positionStrategy?.dispose();
+                    positionStrategy = null;
                 }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
             });
     }
@@ -1533,7 +1545,7 @@ export class CanvasUtils {
                         case ComponentType.OutputPort:
                             return `active-thread-count tertiary-color`;
                         default:
-                            return `active-thread-count neutral-contrast`;
+                            return `active-thread-count secondary-contrast`;
                     }
                 })
                 .style('display', 'block')
@@ -1565,12 +1577,12 @@ export class CanvasUtils {
                         case ComponentType.InputPort:
                         case ComponentType.OutputPort:
                             if (terminatedThreads > 0) {
-                                return `active-thread-count-icon error-color-darker`;
+                                return `active-thread-count-icon error-color`;
                             } else {
                                 return `active-thread-count-icon primary-color`;
                             }
                         default:
-                            return `active-thread-count-icon neutral-contrast`;
+                            return `active-thread-count-icon secondary-contrast`;
                     }
                 })
                 .style('display', 'block')

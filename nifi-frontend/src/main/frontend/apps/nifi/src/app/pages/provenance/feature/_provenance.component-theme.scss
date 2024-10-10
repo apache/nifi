@@ -25,11 +25,6 @@
         secondary,
         map.get(map.get($config, secondary), default)
     );
-    $material-theme-secondary-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), lighter)
-    );
     $material-theme-tertiary-palette-default: mat.get-theme-color(
         $material-theme,
         tertiary,
@@ -56,11 +51,7 @@
     }
 
     circle.event-circle {
-        fill: if(
-            $is-material-dark,
-            $material-theme-secondary-palette-default,
-            $material-theme-secondary-palette-lighter
-        );
+        fill: $material-theme-secondary-palette-default;
         stroke: $neutral-contrast;
     }
 

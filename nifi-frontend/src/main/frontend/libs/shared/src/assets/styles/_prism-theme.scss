@@ -25,10 +25,10 @@
         secondary,
         map.get(map.get($config, secondary), default)
     );
-    $material-theme-secondary-palette-lighter: mat.get-theme-color(
+    $material-theme-tertiary-palette-variant: mat.get-theme-color(
         $material-theme,
-        secondary,
-        map.get(map.get($config, secondary), lighter)
+        tertiary,
+        map.get(map.get($config, tertiary), variant)
     );
     $material-theme-neutral-palette-darker: mat.get-theme-color(
         $material-theme,
@@ -40,6 +40,7 @@
         neutral,
         map.get(map.get($config, neutral), lighter)
     );
+    $selected-color: $material-theme-tertiary-palette-variant;
 
     code[class*='language-'],
     pre[class*='language-'] {
@@ -66,11 +67,7 @@
     code[class*='language-']::-moz-selection,
     code[class*='language-'] ::-moz-selection {
         text-shadow: none;
-        background: if(
-            $is-material-dark,
-            rgba($material-theme-secondary-palette-default, 0.4),
-            rgba($material-theme-secondary-palette-lighter, 0.4)
-        );
+        background: if($is-material-dark, rgba($selected-color, 0.4), rgba($selected-color, 0.4));
     }
 
     pre[class*='language-']::selection,
@@ -78,11 +75,7 @@
     code[class*='language-']::selection,
     code[class*='language-'] ::selection {
         text-shadow: none;
-        background: if(
-            $is-material-dark,
-            rgba($material-theme-secondary-palette-default, 0.4),
-            rgba($material-theme-secondary-palette-lighter, 0.4)
-        );
+        background: if($is-material-dark, rgba($selected-color, 0.4), rgba($selected-color, 0.4));
     }
 
     @media print {

@@ -68,6 +68,8 @@ public class StandardServerConnectorFactory implements ServerConnectorFactory {
 
     private String[] includeSecurityProtocols = INCLUDE_ALL_SECURITY_PROTOCOLS;
 
+    private int requestHeaderSize = 8192;
+
     /**
      * Standard Server Connector Factory Constructor with required properties
      *
@@ -170,12 +172,22 @@ public class StandardServerConnectorFactory implements ServerConnectorFactory {
         this.applicationLayerProtocols = applicationLayerProtocols;
     }
 
+    /**
+     * Set the maximum HTTP request header size. The default is 8 KB.
+     *
+     * @param requestHeaderSize maximum HTTP request header size
+     */
+    public void setRequestHeaderSize(int requestHeaderSize) {
+        this.requestHeaderSize = requestHeaderSize;
+    }
+
     protected Server getServer() {
         return server;
     }
 
     protected HttpConfiguration getHttpConfiguration() {
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
+        httpConfiguration.setRequestHeaderSize(requestHeaderSize);
 
         if (sslContext != null) {
             httpConfiguration.setSecurePort(port);

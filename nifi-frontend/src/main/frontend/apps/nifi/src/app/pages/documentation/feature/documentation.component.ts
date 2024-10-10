@@ -38,7 +38,7 @@ import {
 import { ComponentType, isDefinedAndNotNull, NiFiCommon, selectCurrentRoute } from '@nifi/shared';
 import { MatAccordion } from '@angular/material/expansion';
 import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DocumentedType } from '../../../state/shared';
 import {
@@ -56,11 +56,21 @@ import { navigateToOverview } from '../state/documentation/documentation.actions
 export class Documentation implements OnInit, AfterViewInit {
     private destroyRef: DestroyRef = inject(DestroyRef);
 
-    processorTypes = this.store.selectSignal(selectProcessorTypes);
-    controllerServiceTypes = this.store.selectSignal(selectControllerServiceTypes);
-    reportingTaskTypes = this.store.selectSignal(selectReportingTaskTypes);
-    parameterProviderTypes = this.store.selectSignal(selectParameterProviderTypes);
-    flowAnalysisRuleTypes = this.store.selectSignal(selectFlowAnalysisRuleTypes);
+    processorTypes$ = this.store
+        .select(selectProcessorTypes)
+        .pipe(map((extensionTypes) => this.sortExtensions(extensionTypes)));
+    controllerServiceTypes$ = this.store
+        .select(selectControllerServiceTypes)
+        .pipe(map((extensionTypes) => this.sortExtensions(extensionTypes)));
+    reportingTaskTypes$ = this.store
+        .select(selectReportingTaskTypes)
+        .pipe(map((extensionTypes) => this.sortExtensions(extensionTypes)));
+    parameterProviderTypes$ = this.store
+        .select(selectParameterProviderTypes)
+        .pipe(map((extensionTypes) => this.sortExtensions(extensionTypes)));
+    flowAnalysisRuleTypes$ = this.store
+        .select(selectFlowAnalysisRuleTypes)
+        .pipe(map((extensionTypes) => this.sortExtensions(extensionTypes)));
 
     accordion = viewChild.required(MatAccordion);
 
@@ -170,6 +180,12 @@ export class Documentation implements OnInit, AfterViewInit {
             return this.nifiCommon.stringContains(name, this.filter, true);
         }
         return true;
+    }
+
+    private sortExtensions(extensionTypes: DocumentedType[]): DocumentedType[] {
+        return extensionTypes.slice().sort((a, b) => {
+            return this.nifiCommon.compareString(this.getExtensionName(a.type), this.getExtensionName(b.type));
+        });
     }
 
     filterExtensions(extensionTypes: DocumentedType[]): DocumentedType[] {
