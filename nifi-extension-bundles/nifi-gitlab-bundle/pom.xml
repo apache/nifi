@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -16,36 +16,21 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
+        <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-extension-bundles</artifactId>
         <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
+
+    <artifactId>nifi-gitlab-bundle</artifactId>
     <packaging>pom</packaging>
-    <artifactId>nifi-extension-utils</artifactId>
-    <description>
-        This module contains reusable utilities related to extensions that can be shared across NARs.
-    </description>
+
+    <properties>
+        <gitlab4j-api.version>6.0.0-rc.5</gitlab4j-api.version>
+    </properties>
 
     <modules>
-        <module>nifi-bin-manager</module>
-        <module>nifi-conflict-resolution</module>
-        <module>nifi-database-utils</module>
-        <module>nifi-database-test-utils</module>
-        <module>nifi-dbcp-base</module>
-        <module>nifi-event-listen</module>
-        <module>nifi-event-put</module>
-        <module>nifi-event-transport</module>
-        <module>nifi-file-transfer</module>
-        <module>nifi-hadoop-utils</module>
-        <module>nifi-listed-entity</module>
-        <module>nifi-migration-utils</module>
-        <module>nifi-put-pattern</module>
-        <module>nifi-record-path-property</module>
-        <module>nifi-record-utils</module>
-        <module>nifi-reporting-utils</module>
-        <module>nifi-resource-transfer</module>
-        <module>nifi-service-utils</module>
-        <module>nifi-syslog-utils</module>
-        <module>nifi-git-flow-registry</module>
+        <module>nifi-gitlab-extensions</module>
+        <module>nifi-gitlab-nar</module>
     </modules>
 </project>

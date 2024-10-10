@@ -1,5 +1,4 @@
 /*
- *
  *  Licensed to the Apache Software Foundation (ASF) under one or more
  *  contributor license agreements.  See the NOTICE file distributed with
  *  this work for additional information regarding copyright ownership.
@@ -14,14 +13,13 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
  */
 
-package org.apache.nifi.github;
+package org.apache.nifi.registry.flow.git.client;
 
 import java.util.Objects;
 
-public class GitHubCreateContentRequest {
+public class GitCreateContentRequest {
 
     private final String branch;
     private final String path;
@@ -29,7 +27,7 @@ public class GitHubCreateContentRequest {
     private final String message;
     private final String existingContentSha;
 
-    private GitHubCreateContentRequest(final Builder builder) {
+    private GitCreateContentRequest(final Builder builder) {
         this.branch = Objects.requireNonNull(builder.branch);
         this.path = Objects.requireNonNull(builder.path);
         this.content = Objects.requireNonNull(builder.content);
@@ -94,8 +92,8 @@ public class GitHubCreateContentRequest {
             return this;
         }
 
-        public GitHubCreateContentRequest build() {
-            return new GitHubCreateContentRequest(this);
+        public GitCreateContentRequest build() {
+            return new GitCreateContentRequest(this);
         }
     }
 }
