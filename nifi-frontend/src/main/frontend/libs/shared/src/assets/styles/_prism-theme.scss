@@ -42,6 +42,11 @@
     );
     $selected-color: $material-theme-tertiary-palette-variant;
 
+    pre[class*='language-'] {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
     code[class*='language-'],
     pre[class*='language-'] {
         color: if($is-material-dark, #f07178, #ec000c);
