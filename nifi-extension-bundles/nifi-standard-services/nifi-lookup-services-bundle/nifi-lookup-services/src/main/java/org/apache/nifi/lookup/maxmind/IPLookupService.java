@@ -44,6 +44,7 @@ import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.StopWatch;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -72,7 +73,7 @@ import java.util.stream.Stream;
 public class IPLookupService extends AbstractControllerService implements RecordLookupService {
 
     private volatile String databaseFile = null;
-    private static final String IP_KEY = "ip";
+    static final String IP_KEY = "ip";
     private static final Set<String> REQUIRED_KEYS = Stream.of(IP_KEY).collect(Collectors.toSet());
 
     private volatile DatabaseReader databaseReader = null;
@@ -260,7 +261,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         if (getProperty(LOOKUP_CITY).asBoolean()) {
             final CityResponse cityResponse;
             try {
-                cityResponse = databaseReader.city(inetAddress);
+                cityResponse = databaseReader.tryCity(inetAddress).orElse(null);
             } catch (final InvalidDatabaseException idbe) {
                 throw idbe;
             } catch (final Exception e) {
@@ -276,7 +277,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         if (getProperty(LOOKUP_ISP).asBoolean()) {
             final IspResponse ispResponse;
             try {
-                ispResponse = databaseReader.isp(inetAddress);
+                ispResponse = databaseReader.tryIsp(inetAddress).orElse(null);
             } catch (final InvalidDatabaseException idbe) {
                 throw idbe;
             } catch (final Exception e) {
@@ -292,7 +293,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         if (getProperty(LOOKUP_DOMAIN).asBoolean()) {
             final DomainResponse domainResponse;
             try {
-                domainResponse = databaseReader.domain(inetAddress);
+                domainResponse = databaseReader.tryDomain(inetAddress).orElse(null);
             } catch (final InvalidDatabaseException idbe) {
                 throw idbe;
             } catch (final Exception e) {
@@ -308,7 +309,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         if (getProperty(LOOKUP_CONNECTION_TYPE).asBoolean()) {
             final ConnectionTypeResponse connectionTypeResponse;
             try {
-                connectionTypeResponse = databaseReader.connectionType(inetAddress);
+                connectionTypeResponse = databaseReader.tryConnectionType(inetAddress).orElse(null);
             } catch (final InvalidDatabaseException idbe) {
                 throw idbe;
             } catch (final Exception e) {
@@ -329,7 +330,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         if (getProperty(LOOKUP_ANONYMOUS_IP_INFO).asBoolean()) {
             final AnonymousIpResponse anonymousIpResponse;
             try {
-                anonymousIpResponse = databaseReader.anonymousIp(inetAddress);
+                anonymousIpResponse = databaseReader.tryAnonymousIp(inetAddress).orElse(null);
             } catch (final InvalidDatabaseException idbe) {
                 throw idbe;
             } catch (final Exception e) {
@@ -383,7 +384,7 @@ public class IPLookupService extends AbstractControllerService implements Record
 
     private void loadDatabase(final File dbFile, final String dbFileChecksum) throws IOException {
         final StopWatch stopWatch = new StopWatch(true);
-        final DatabaseReader reader = new DatabaseReader.Builder(dbFile).build();
+        final DatabaseReader reader = createDatabaseReader(dbFile);
         stopWatch.stop();
         getLogger().info("Completed loading of Maxmind Database.  Elapsed time was {} milliseconds.", stopWatch.getDuration(TimeUnit.MILLISECONDS));
         databaseReader = reader;
@@ -479,5 +480,10 @@ public class IPLookupService extends AbstractControllerService implements Record
 
         final Record containerRecord = new MapRecord(ContainerSchema.CONTAINER_SCHEMA, values);
         return containerRecord;
+    }
+
+    @NotNull
+    DatabaseReader createDatabaseReader(File dbFile) throws IOException {
+        return new DatabaseReader.Builder(dbFile).build();
     }
 }

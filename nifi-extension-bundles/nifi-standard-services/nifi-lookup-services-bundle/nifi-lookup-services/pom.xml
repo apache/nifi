@@ -155,6 +155,7 @@
                       <exclude>src/test/resources/test_Windows-31J.csv</exclude>
                       <exclude>src/test/resources/test.properties</exclude>
                       <exclude>src/test/resources/test.xml</exclude>
+                      <exclude>src/test/resources/dummy.mmdb</exclude>
                   </excludes>
               </configuration>
             </plugin>
