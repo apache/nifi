@@ -15,25 +15,8 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { BirdseyeView } from '../../../../../service/birdseye-view.service';
+import { createFeatureSelector } from '@ngrx/store';
+import { documentVisibilityFeatureKey, DocumentVisibilityState } from './index';
 
-@Component({
-    selector: 'birdseye',
-    standalone: true,
-    templateUrl: './birdseye.component.html',
-    styleUrls: ['./birdseye.component.scss']
-})
-export class Birdseye implements OnInit, OnDestroy {
-    constructor(private birdseyeView: BirdseyeView) {}
-
-    ngOnInit(): void {
-        const birdseye: any = document.getElementById('birdseye');
-        this.birdseyeView.init(birdseye);
-        this.birdseyeView.refresh();
-    }
-
-    ngOnDestroy(): void {
-        this.birdseyeView.destroy();
-    }
-}
+export const selectDocumentVisibilityState =
+    createFeatureSelector<DocumentVisibilityState>(documentVisibilityFeatureKey);

@@ -625,6 +625,8 @@ export class Canvas implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.store.dispatch(resetFlowState());
         this.store.dispatch(stopProcessGroupPolling());
+
+        this.canvasView.destroy();
     }
 
     private processKeyboardEvents(event: KeyboardEvent): boolean {

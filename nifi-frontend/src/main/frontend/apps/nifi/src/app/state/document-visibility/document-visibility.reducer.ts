@@ -15,25 +15,20 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { BirdseyeView } from '../../../../../service/birdseye-view.service';
+import { createReducer, on } from '@ngrx/store';
+import { DocumentVisibility, DocumentVisibilityState } from './index';
+import { documentVisibilityChanged } from './document-visibility.actions';
 
-@Component({
-    selector: 'birdseye',
-    standalone: true,
-    templateUrl: './birdseye.component.html',
-    styleUrls: ['./birdseye.component.scss']
-})
-export class Birdseye implements OnInit, OnDestroy {
-    constructor(private birdseyeView: BirdseyeView) {}
+export const initialState: DocumentVisibilityState = {
+    documentVisibility: DocumentVisibility.Visible,
+    changedTimestamp: Date.now()
+};
 
-    ngOnInit(): void {
-        const birdseye: any = document.getElementById('birdseye');
-        this.birdseyeView.init(birdseye);
-        this.birdseyeView.refresh();
-    }
-
-    ngOnDestroy(): void {
-        this.birdseyeView.destroy();
-    }
-}
+export const documentVisibilityReducer = createReducer(
+    initialState,
+    on(documentVisibilityChanged, (state, { change }) => ({
+        ...state,
+        documentVisibility: change.documentVisibility,
+        changedTimestamp: change.changedTimestamp
+    }))
+);

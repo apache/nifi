@@ -23,6 +23,7 @@ import {
     EventEmitter,
     inject,
     Input,
+    OnDestroy,
     Output,
     ViewChild
 } from '@angular/core';
@@ -47,7 +48,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     templateUrl: './bulletin-board-list.component.html',
     styleUrls: ['./bulletin-board-list.component.scss']
 })
-export class BulletinBoardList implements AfterViewInit {
+export class BulletinBoardList implements AfterViewInit, OnDestroy {
     filterTerm = '';
     filterColumn: 'message' | 'name' | 'id' | 'groupId' = 'message';
     filterForm: FormGroup;
@@ -103,6 +104,10 @@ export class BulletinBoardList implements AfterViewInit {
                 // auto-scroll
                 this.scrollToBottom();
             });
+    }
+
+    ngOnDestroy(): void {
+        this.bulletinsChanged$.complete();
     }
 
     private scrollToBottom() {

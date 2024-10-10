@@ -54,6 +54,8 @@ export class CanvasView {
     private birdseyeTranslateInProgress = false;
     private allowTransition = false;
 
+    private canvasInitialized: boolean = false;
+
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
@@ -64,41 +66,7 @@ export class CanvasView {
         private funnelManager: FunnelManager,
         private labelManager: LabelManager,
         private connectionManager: ConnectionManager
-    ) {}
-
-    public init(svg: any, canvas: any): void {
-        WebFont.load({
-            custom: {
-                families: ['Inter', 'flowfont', 'FontAwesome']
-            },
-            active: function () {
-                // re-render once the fonts have loaded, without the fonts
-                // positions of elements on the canvas may be incorrect
-                self.processorManager.render();
-                self.processGroupManager.render();
-                self.remoteProcessGroupManager.render();
-                self.portManager.render();
-                self.labelManager.render();
-                self.funnelManager.render();
-                self.connectionManager.render();
-            }
-        });
-
-        this.svg = svg;
-        this.canvas = canvas;
-
-        this.k = INITIAL_SCALE;
-        this.x = INITIAL_TRANSLATE.x;
-        this.y = INITIAL_TRANSLATE.y;
-
-        this.labelManager.init();
-        this.funnelManager.init();
-        this.portManager.init();
-        this.remoteProcessGroupManager.init();
-        this.processGroupManager.init();
-        this.processorManager.init();
-        this.connectionManager.init();
-
+    ) {
         const self: CanvasView = this;
         let refreshed: Promise<void> | null;
         let panning = false;
@@ -166,9 +134,47 @@ export class CanvasView {
                 // reset the panning flag
                 panning = false;
             });
+    }
+
+    public init(svg: any, canvas: any): void {
+        const self: CanvasView = this;
+
+        WebFont.load({
+            custom: {
+                families: ['Inter', 'flowfont', 'FontAwesome']
+            },
+            active: function () {
+                // re-render once the fonts have loaded, without the fonts
+                // positions of elements on the canvas may be incorrect
+                self.processorManager.render();
+                self.processGroupManager.render();
+                self.remoteProcessGroupManager.render();
+                self.portManager.render();
+                self.labelManager.render();
+                self.funnelManager.render();
+                self.connectionManager.render();
+            }
+        });
+
+        this.svg = svg;
+        this.canvas = canvas;
+
+        this.k = INITIAL_SCALE;
+        this.x = INITIAL_TRANSLATE.x;
+        this.y = INITIAL_TRANSLATE.y;
+
+        this.labelManager.init();
+        this.funnelManager.init();
+        this.portManager.init();
+        this.remoteProcessGroupManager.init();
+        this.processGroupManager.init();
+        this.processorManager.init();
+        this.connectionManager.init();
 
         // add the behavior to the canvas and disable dbl click zoom
         this.svg.call(this.behavior).on('dblclick.zoom', null);
+
+        this.canvasInitialized = true;
     }
 
     // filters zoom events as programmatically modifying the translate or scale now triggers the handlers
@@ -775,5 +781,28 @@ export class CanvasView {
                 resolve();
             }
         });
+    }
+
+    public isCanvasInitialized(): boolean {
+        return this.canvasInitialized;
+    }
+
+    public destroy(): void {
+        this.canvasInitialized = false;
+
+        this.labelManager.destroy();
+        this.funnelManager.destroy();
+        this.portManager.destroy();
+        this.remoteProcessGroupManager.destroy();
+        this.processGroupManager.destroy();
+        this.processorManager.destroy();
+        this.connectionManager.destroy();
+
+        this.k = INITIAL_SCALE;
+        this.x = INITIAL_TRANSLATE.x;
+        this.y = INITIAL_TRANSLATE.y;
+
+        this.svg = null;
+        this.canvas = null;
     }
 }

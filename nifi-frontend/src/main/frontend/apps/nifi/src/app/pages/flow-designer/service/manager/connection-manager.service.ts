@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
 import { CanvasUtils } from '../canvas-utils.service';
@@ -39,12 +39,11 @@ import {
     updateComponent,
     updateConnection
 } from '../../state/flow/flow.actions';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UnorderedListTip } from '../../../../ui/common/tooltips/unordered-list-tip/unordered-list-tip.component';
 import { ComponentType, SelectOption } from 'libs/shared/src';
 import { Dimension, Position } from '../../state/shared';
 import { loadBalanceStrategies, UpdateComponentRequest } from '../../state/flow';
-import { filter, switchMap } from 'rxjs';
+import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { NiFiCommon } from '@nifi/shared';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
@@ -57,8 +56,8 @@ export class ConnectionRenderOptions {
 @Injectable({
     providedIn: 'root'
 })
-export class ConnectionManager {
-    private destroyRef = inject(DestroyRef);
+export class ConnectionManager implements OnDestroy {
+    private destroyed$: Subject<boolean> = new Subject();
 
     private static readonly DIMENSIONS: Dimension = {
         width: 224,
@@ -80,7 +79,7 @@ export class ConnectionManager {
     private static readonly SNAP_ALIGNMENT_PIXELS: number = 8;
 
     private connections: [] = [];
-    private connectionContainer: any;
+    private connectionContainer: any = null;
     private transitionRequired = false;
     private currentProcessGroupId: string = initialState.id;
     private scale: number = INITIAL_SCALE;
@@ -102,7 +101,359 @@ export class ConnectionManager {
         private transitionBehavior: TransitionBehavior,
         private quickSelectBehavior: QuickSelectBehavior,
         private clusterConnectionService: ClusterConnectionService
-    ) {}
+    ) {
+        const self: ConnectionManager = this;
+
+        // define the line generator
+        this.lineGenerator = d3
+            .line()
+            .x(function (d: any) {
+                return d.x;
+            })
+            .y(function (d: any) {
+                return d.y;
+            })
+            .curve(d3.curveLinear);
+
+        // handle bend point drag events
+        this.bendPointDrag = d3
+            .drag()
+            .on('start', function (this: any, event) {
+                // stop further propagation
+                event.sourceEvent.stopPropagation();
+
+                // indicate dragging start
+                const connection: any = d3.select(this.parentNode);
+                const connectionData: any = connection.datum();
+                connectionData.dragging = true;
+            })
+            .on('drag', function (this: any, event, d: any) {
+                const connection: any = d3.select(this.parentNode);
+                const connectionData: any = connection.datum();
+
+                if (connectionData.dragging) {
+                    self.snapEnabled = !event.sourceEvent.shiftKey;
+                    d.x = self.snapEnabled
+                        ? Math.round(event.x / ConnectionManager.SNAP_ALIGNMENT_PIXELS) *
+                          ConnectionManager.SNAP_ALIGNMENT_PIXELS
+                        : event.x;
+                    d.y = self.snapEnabled
+                        ? Math.round(event.y / ConnectionManager.SNAP_ALIGNMENT_PIXELS) *
+                          ConnectionManager.SNAP_ALIGNMENT_PIXELS
+                        : event.y;
+
+                    // redraw this connection
+                    self.updateConnections(d3.select(this.parentNode), {
+                        updatePath: true,
+                        updateLabel: false
+                    });
+                }
+            })
+            .on('end', function (this: any, event) {
+                const connection: any = d3.select(this.parentNode);
+                const connectionData: any = connection.datum();
+
+                if (connectionData.dragging) {
+                    const bends: Position[] = connection.selectAll('rect.midpoint').data();
+
+                    // ensure the bend lengths are the same
+                    if (bends.length === connectionData.component.bends.length) {
+                        // determine if the bend points have moved
+                        let different = false;
+                        for (let i = 0; i < bends.length && !different; i++) {
+                            if (
+                                bends[i].x !== connectionData.component.bends[i].x ||
+                                bends[i].y !== connectionData.component.bends[i].y
+                            ) {
+                                different = true;
+                            }
+                        }
+
+                        // only save the updated bends if necessary
+                        if (different) {
+                            self.save(
+                                connectionData,
+                                {
+                                    id: connectionData.id,
+                                    bends: bends
+                                },
+                                {
+                                    bends: [...connectionData.component.bends]
+                                }
+                            );
+                        }
+                    }
+                }
+
+                // stop further propagation
+                event.sourceEvent.stopPropagation();
+
+                // indicate dragging complete
+                connectionData.dragging = false;
+            });
+
+        // handle endpoint drag events
+        this.endpointDrag = d3
+            .drag()
+            .on('start', function (this: any, event, d: any) {
+                // indicate that end point dragging has begun
+                d.endPointDragging = true;
+
+                // stop further propagation
+                event.sourceEvent.stopPropagation();
+
+                // indicate dragging start
+                const connection: any = d3.select(this.parentNode);
+                const connectionData: any = connection.datum();
+                connectionData.dragging = true;
+            })
+            .on('drag', function (this: any, event, d: any) {
+                const connection: any = d3.select(this.parentNode);
+                const connectionData: any = connection.datum();
+
+                if (connectionData.dragging) {
+                    d.x = event.x - 8;
+                    d.y = event.y - 8;
+
+                    // ensure the new destination is valid
+                    d3.select('g.hover').classed('connectable-destination', function () {
+                        return self.canvasUtils.isValidConnectionDestination(d3.select(this));
+                    });
+
+                    // redraw this connection
+                    self.updateConnections(d3.select(this.parentNode), {
+                        updatePath: true,
+                        updateLabel: false
+                    });
+                }
+            })
+            .on('end', function (this: any, event, d: any) {
+                // indicate that end point dragging as stopped
+                d.endPointDragging = false;
+
+                // get the corresponding connection
+                const connection: any = d3.select(this.parentNode);
+                const connectionData: any = connection.datum();
+
+                if (connectionData.dragging) {
+                    // attempt to select a new destination
+                    const destination: any = d3.select('g.connectable-destination');
+
+                    // resets the connection if we're not over a new destination
+                    if (destination.empty()) {
+                        self.updateConnections(connection, {
+                            updatePath: true,
+                            updateLabel: false
+                        });
+                    } else {
+                        const destinationData: any = destination.datum();
+
+                        // prompt for the new port if appropriate
+                        if (
+                            self.canvasUtils.isProcessGroup(destination) ||
+                            self.canvasUtils.isRemoteProcessGroup(destination)
+                        ) {
+                            // when the new destination is a group, show the edit connection dialog
+                            // to allow the user to select the desired port
+                            self.store.dispatch(
+                                openEditConnectionDialog({
+                                    request: {
+                                        type: ComponentType.Connection,
+                                        uri: connectionData.uri,
+                                        entity: { ...connectionData },
+                                        newDestination: {
+                                            type: destinationData.type,
+                                            groupId: destinationData.id,
+                                            name: destinationData.permissions.canRead
+                                                ? destinationData.component.name
+                                                : destinationData.id
+                                        }
+                                    }
+                                })
+                            );
+                        } else {
+                            const destinationType: string = self.canvasUtils.getConnectableTypeForDestination(
+                                destinationData.type
+                            );
+
+                            const payload: any = {
+                                revision: self.client.getRevision(connectionData),
+                                disconnectedNodeAcknowledged:
+                                    self.clusterConnectionService.isDisconnectionAcknowledged(),
+                                component: {
+                                    id: connectionData.id,
+                                    destination: {
+                                        id: destinationData.id,
+                                        groupId: self.currentProcessGroupId,
+                                        type: destinationType
+                                    }
+                                }
+                            };
+
+                            // if this is a self loop and there are less than 2 bends, add them
+                            if (connectionData.bends.length < 2 && connectionData.sourceId === destinationData.id) {
+                                const rightCenter: any = {
+                                    x: destinationData.position.x + destinationData.dimensions.width,
+                                    y: destinationData.position.y + destinationData.dimensions.height / 2
+                                };
+
+                                payload.component.bends = [];
+                                payload.component.bends.push({
+                                    x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
+                                    y: rightCenter.y - ConnectionManager.SELF_LOOP_Y_OFFSET
+                                });
+                                payload.component.bends.push({
+                                    x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
+                                    y: rightCenter.y + ConnectionManager.SELF_LOOP_Y_OFFSET
+                                });
+                            }
+
+                            self.store.dispatch(
+                                updateConnection({
+                                    request: {
+                                        id: connectionData.id,
+                                        type: ComponentType.Connection,
+                                        uri: connectionData.uri,
+                                        previousDestination: connectionData.component.destination,
+                                        payload,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        }
+                    }
+                }
+
+                // stop further propagation
+                event.sourceEvent.stopPropagation();
+
+                // indicate dragging complete
+                connectionData.dragging = false;
+            });
+
+        // label drag behavior
+        this.labelDrag = d3
+            .drag()
+            .on('start', function (event, d: any) {
+                // stop further propagation
+                event.sourceEvent.stopPropagation();
+
+                // indicate dragging start
+                d.dragging = true;
+            })
+            .on('drag', function (this: any, event, d: any) {
+                if (d.dragging && d.bends.length > 1) {
+                    // get the dragged component
+                    let drag: any = d3.select('rect.label-drag');
+
+                    // lazily create the drag selection box
+                    if (drag.empty()) {
+                        const connectionLabel: any = d3.select(this).select('rect.body');
+
+                        const position: Position = self.getLabelPosition(connectionLabel);
+                        const width: number = ConnectionManager.DIMENSIONS.width;
+                        const height: number = connectionLabel.attr('height');
+
+                        // create a selection box for the move
+                        drag = d3
+                            .select('#canvas')
+                            .append('rect')
+                            .attr('x', position.x)
+                            .attr('y', position.y)
+                            .attr('class', 'label-drag')
+                            .attr('width', width)
+                            .attr('height', height)
+                            .attr('stroke-width', function () {
+                                return 1 / self.scale;
+                            })
+                            .attr('stroke-dasharray', function () {
+                                return 4 / self.scale;
+                            })
+                            .datum({
+                                x: position.x,
+                                y: position.y,
+                                width: width,
+                                height: height
+                            });
+                    } else {
+                        // update the position of the drag selection
+                        drag.attr('x', function (d: any) {
+                            d.x += event.dx;
+                            return d.x;
+                        }).attr('y', function (d: any) {
+                            d.y += event.dy;
+                            return d.y;
+                        });
+                    }
+
+                    // calculate the current point
+                    const datum: any = drag.datum();
+                    const currentPoint: Position = {
+                        x: datum.x + datum.width / 2,
+                        y: datum.y + datum.height / 2
+                    };
+
+                    let closestBendIndex = -1;
+                    let minDistance: number;
+                    d.bends.forEach((bend: Position, i: number) => {
+                        const bendPoint: Position = {
+                            x: bend.x,
+                            y: bend.y
+                        };
+
+                        // get the distance
+                        const distance: number = self.distanceBetweenPoints(currentPoint, bendPoint);
+
+                        // see if its the minimum
+                        if (closestBendIndex === -1 || distance < minDistance) {
+                            closestBendIndex = i;
+                            minDistance = distance;
+                        }
+                    });
+
+                    // record the closest bend
+                    d.labelIndex = closestBendIndex;
+
+                    // refresh the connection
+                    self.updateConnections(d3.select(this.parentNode), {
+                        updatePath: true,
+                        updateLabel: false
+                    });
+                }
+            })
+            .on('end', function (this: any, event, d: any) {
+                if (d.dragging && d.bends.length > 1) {
+                    // get the drag selection
+                    const drag: any = d3.select('rect.label-drag');
+
+                    // ensure we found a drag selection
+                    if (!drag.empty()) {
+                        // remove the drag selection
+                        drag.remove();
+                    }
+
+                    // only save if necessary
+                    if (d.labelIndex !== d.component.labelIndex) {
+                        self.save(
+                            d,
+                            {
+                                id: d.id,
+                                labelIndex: d.labelIndex
+                            },
+                            {
+                                labelIndex: d.component.labelIndex
+                            }
+                        );
+                    }
+                }
+
+                // stop further propagation
+                event.sourceEvent.stopPropagation();
+
+                // indicate dragging complete
+                d.dragging = false;
+            });
+    }
 
     /**
      * Gets the position of the label for the specified connection.
@@ -1823,367 +2174,18 @@ export class ConnectionManager {
     }
 
     public init(): void {
-        const self: ConnectionManager = this;
-
         this.connectionContainer = d3
             .select('#canvas')
             .append('g')
             .attr('pointer-events', 'stroke')
             .attr('class', 'connections');
 
-        // define the line generator
-        this.lineGenerator = d3
-            .line()
-            .x(function (d: any) {
-                return d.x;
-            })
-            .y(function (d: any) {
-                return d.y;
-            })
-            .curve(d3.curveLinear);
-
-        // handle bend point drag events
-        this.bendPointDrag = d3
-            .drag()
-            .on('start', function (this: any, event) {
-                // stop further propagation
-                event.sourceEvent.stopPropagation();
-
-                // indicate dragging start
-                const connection: any = d3.select(this.parentNode);
-                const connectionData: any = connection.datum();
-                connectionData.dragging = true;
-            })
-            .on('drag', function (this: any, event, d: any) {
-                const connection: any = d3.select(this.parentNode);
-                const connectionData: any = connection.datum();
-
-                if (connectionData.dragging) {
-                    self.snapEnabled = !event.sourceEvent.shiftKey;
-                    d.x = self.snapEnabled
-                        ? Math.round(event.x / ConnectionManager.SNAP_ALIGNMENT_PIXELS) *
-                          ConnectionManager.SNAP_ALIGNMENT_PIXELS
-                        : event.x;
-                    d.y = self.snapEnabled
-                        ? Math.round(event.y / ConnectionManager.SNAP_ALIGNMENT_PIXELS) *
-                          ConnectionManager.SNAP_ALIGNMENT_PIXELS
-                        : event.y;
-
-                    // redraw this connection
-                    self.updateConnections(d3.select(this.parentNode), {
-                        updatePath: true,
-                        updateLabel: false
-                    });
-                }
-            })
-            .on('end', function (this: any, event) {
-                const connection: any = d3.select(this.parentNode);
-                const connectionData: any = connection.datum();
-
-                if (connectionData.dragging) {
-                    const bends: Position[] = connection.selectAll('rect.midpoint').data();
-
-                    // ensure the bend lengths are the same
-                    if (bends.length === connectionData.component.bends.length) {
-                        // determine if the bend points have moved
-                        let different = false;
-                        for (let i = 0; i < bends.length && !different; i++) {
-                            if (
-                                bends[i].x !== connectionData.component.bends[i].x ||
-                                bends[i].y !== connectionData.component.bends[i].y
-                            ) {
-                                different = true;
-                            }
-                        }
-
-                        // only save the updated bends if necessary
-                        if (different) {
-                            self.save(
-                                connectionData,
-                                {
-                                    id: connectionData.id,
-                                    bends: bends
-                                },
-                                {
-                                    bends: [...connectionData.component.bends]
-                                }
-                            );
-                        }
-                    }
-                }
-
-                // stop further propagation
-                event.sourceEvent.stopPropagation();
-
-                // indicate dragging complete
-                connectionData.dragging = false;
-            });
-
-        // handle endpoint drag events
-        this.endpointDrag = d3
-            .drag()
-            .on('start', function (this: any, event, d: any) {
-                // indicate that end point dragging has begun
-                d.endPointDragging = true;
-
-                // stop further propagation
-                event.sourceEvent.stopPropagation();
-
-                // indicate dragging start
-                const connection: any = d3.select(this.parentNode);
-                const connectionData: any = connection.datum();
-                connectionData.dragging = true;
-            })
-            .on('drag', function (this: any, event, d: any) {
-                const connection: any = d3.select(this.parentNode);
-                const connectionData: any = connection.datum();
-
-                if (connectionData.dragging) {
-                    d.x = event.x - 8;
-                    d.y = event.y - 8;
-
-                    // ensure the new destination is valid
-                    d3.select('g.hover').classed('connectable-destination', function () {
-                        return self.canvasUtils.isValidConnectionDestination(d3.select(this));
-                    });
-
-                    // redraw this connection
-                    self.updateConnections(d3.select(this.parentNode), {
-                        updatePath: true,
-                        updateLabel: false
-                    });
-                }
-            })
-            .on('end', function (this: any, event, d: any) {
-                // indicate that end point dragging as stopped
-                d.endPointDragging = false;
-
-                // get the corresponding connection
-                const connection: any = d3.select(this.parentNode);
-                const connectionData: any = connection.datum();
-
-                if (connectionData.dragging) {
-                    // attempt to select a new destination
-                    const destination: any = d3.select('g.connectable-destination');
-
-                    // resets the connection if we're not over a new destination
-                    if (destination.empty()) {
-                        self.updateConnections(connection, {
-                            updatePath: true,
-                            updateLabel: false
-                        });
-                    } else {
-                        const destinationData: any = destination.datum();
-
-                        // prompt for the new port if appropriate
-                        if (
-                            self.canvasUtils.isProcessGroup(destination) ||
-                            self.canvasUtils.isRemoteProcessGroup(destination)
-                        ) {
-                            // when the new destination is a group, show the edit connection dialog
-                            // to allow the user to select the desired port
-                            self.store.dispatch(
-                                openEditConnectionDialog({
-                                    request: {
-                                        type: ComponentType.Connection,
-                                        uri: connectionData.uri,
-                                        entity: { ...connectionData },
-                                        newDestination: {
-                                            type: destinationData.type,
-                                            groupId: destinationData.id,
-                                            name: destinationData.permissions.canRead
-                                                ? destinationData.component.name
-                                                : destinationData.id
-                                        }
-                                    }
-                                })
-                            );
-                        } else {
-                            const destinationType: string = self.canvasUtils.getConnectableTypeForDestination(
-                                destinationData.type
-                            );
-
-                            const payload: any = {
-                                revision: self.client.getRevision(connectionData),
-                                disconnectedNodeAcknowledged:
-                                    self.clusterConnectionService.isDisconnectionAcknowledged(),
-                                component: {
-                                    id: connectionData.id,
-                                    destination: {
-                                        id: destinationData.id,
-                                        groupId: self.currentProcessGroupId,
-                                        type: destinationType
-                                    }
-                                }
-                            };
-
-                            // if this is a self loop and there are less than 2 bends, add them
-                            if (connectionData.bends.length < 2 && connectionData.sourceId === destinationData.id) {
-                                const rightCenter: any = {
-                                    x: destinationData.position.x + destinationData.dimensions.width,
-                                    y: destinationData.position.y + destinationData.dimensions.height / 2
-                                };
-
-                                payload.component.bends = [];
-                                payload.component.bends.push({
-                                    x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
-                                    y: rightCenter.y - ConnectionManager.SELF_LOOP_Y_OFFSET
-                                });
-                                payload.component.bends.push({
-                                    x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
-                                    y: rightCenter.y + ConnectionManager.SELF_LOOP_Y_OFFSET
-                                });
-                            }
-
-                            self.store.dispatch(
-                                updateConnection({
-                                    request: {
-                                        id: connectionData.id,
-                                        type: ComponentType.Connection,
-                                        uri: connectionData.uri,
-                                        previousDestination: connectionData.component.destination,
-                                        payload,
-                                        errorStrategy: 'snackbar'
-                                    }
-                                })
-                            );
-                        }
-                    }
-                }
-
-                // stop further propagation
-                event.sourceEvent.stopPropagation();
-
-                // indicate dragging complete
-                connectionData.dragging = false;
-            });
-
-        // label drag behavior
-        this.labelDrag = d3
-            .drag()
-            .on('start', function (event, d: any) {
-                // stop further propagation
-                event.sourceEvent.stopPropagation();
-
-                // indicate dragging start
-                d.dragging = true;
-            })
-            .on('drag', function (this: any, event, d: any) {
-                if (d.dragging && d.bends.length > 1) {
-                    // get the dragged component
-                    let drag: any = d3.select('rect.label-drag');
-
-                    // lazily create the drag selection box
-                    if (drag.empty()) {
-                        const connectionLabel: any = d3.select(this).select('rect.body');
-
-                        const position: Position = self.getLabelPosition(connectionLabel);
-                        const width: number = ConnectionManager.DIMENSIONS.width;
-                        const height: number = connectionLabel.attr('height');
-
-                        // create a selection box for the move
-                        drag = d3
-                            .select('#canvas')
-                            .append('rect')
-                            .attr('x', position.x)
-                            .attr('y', position.y)
-                            .attr('class', 'label-drag')
-                            .attr('width', width)
-                            .attr('height', height)
-                            .attr('stroke-width', function () {
-                                return 1 / self.scale;
-                            })
-                            .attr('stroke-dasharray', function () {
-                                return 4 / self.scale;
-                            })
-                            .datum({
-                                x: position.x,
-                                y: position.y,
-                                width: width,
-                                height: height
-                            });
-                    } else {
-                        // update the position of the drag selection
-                        drag.attr('x', function (d: any) {
-                            d.x += event.dx;
-                            return d.x;
-                        }).attr('y', function (d: any) {
-                            d.y += event.dy;
-                            return d.y;
-                        });
-                    }
-
-                    // calculate the current point
-                    const datum: any = drag.datum();
-                    const currentPoint: Position = {
-                        x: datum.x + datum.width / 2,
-                        y: datum.y + datum.height / 2
-                    };
-
-                    let closestBendIndex = -1;
-                    let minDistance: number;
-                    d.bends.forEach((bend: Position, i: number) => {
-                        const bendPoint: Position = {
-                            x: bend.x,
-                            y: bend.y
-                        };
-
-                        // get the distance
-                        const distance: number = self.distanceBetweenPoints(currentPoint, bendPoint);
-
-                        // see if its the minimum
-                        if (closestBendIndex === -1 || distance < minDistance) {
-                            closestBendIndex = i;
-                            minDistance = distance;
-                        }
-                    });
-
-                    // record the closest bend
-                    d.labelIndex = closestBendIndex;
-
-                    // refresh the connection
-                    self.updateConnections(d3.select(this.parentNode), {
-                        updatePath: true,
-                        updateLabel: false
-                    });
-                }
-            })
-            .on('end', function (this: any, event, d: any) {
-                if (d.dragging && d.bends.length > 1) {
-                    // get the drag selection
-                    const drag: any = d3.select('rect.label-drag');
-
-                    // ensure we found a drag selection
-                    if (!drag.empty()) {
-                        // remove the drag selection
-                        drag.remove();
-                    }
-
-                    // only save if necessary
-                    if (d.labelIndex !== d.component.labelIndex) {
-                        self.save(
-                            d,
-                            {
-                                id: d.id,
-                                labelIndex: d.labelIndex
-                            },
-                            {
-                                labelIndex: d.component.labelIndex
-                            }
-                        );
-                    }
-                }
-
-                // stop further propagation
-                event.sourceEvent.stopPropagation();
-
-                // indicate dragging complete
-                d.dragging = false;
-            });
-
         this.store
             .select(selectConnections)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(
+                filter(() => this.connectionContainer !== null),
+                takeUntil(this.destroyed$)
+            )
             .subscribe((connections) => {
                 this.set(connections);
             });
@@ -2192,8 +2194,9 @@ export class ConnectionManager {
             .select(selectFlowLoadingStatus)
             .pipe(
                 filter((status) => status === 'success'),
+                filter(() => this.connectionContainer !== null),
                 switchMap(() => this.store.select(selectAnySelectedComponentIds)),
-                takeUntilDestroyed(this.destroyRef)
+                takeUntil(this.destroyed$)
             )
             .subscribe((selected) => {
                 this.connectionContainer.selectAll('g.connection').classed('selected', function (d: any) {
@@ -2203,24 +2206,33 @@ export class ConnectionManager {
 
         this.store
             .select(selectTransitionRequired)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.destroyed$))
             .subscribe((transitionRequired) => {
                 this.transitionRequired = transitionRequired;
             });
 
         this.store
             .select(selectCurrentProcessGroupId)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.destroyed$))
             .subscribe((currentProcessGroupId) => {
                 this.currentProcessGroupId = currentProcessGroupId;
             });
 
         this.store
             .select(selectTransform)
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(takeUntil(this.destroyed$))
             .subscribe((transform) => {
                 this.scale = transform.scale;
             });
+    }
+
+    public destroy(): void {
+        this.connectionContainer = null;
+        this.destroyed$.next(true);
+    }
+
+    ngOnDestroy(): void {
+        this.destroyed$.complete();
     }
 
     private set(connections: any): void {
