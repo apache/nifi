@@ -39,7 +39,7 @@ on:
 
 env:
   DEFAULT_MAVEN_OPTS: >-
-    -Xmx4g
+    -Xmx5g
     -Duser.language=en
     -Duser.country=GB
     -Duser.timezone=UTC
@@ -63,6 +63,7 @@ env:
     -pl :nifi-python-test-extensions
     -pl nifi-system-tests/nifi-system-test-suite
     -pl nifi-system-tests/nifi-stateless-system-test-suite
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

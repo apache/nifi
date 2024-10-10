@@ -21,7 +21,7 @@ env:
   MAVEN_COMMAND: ./mvnw
   MAVEN_COMMAND_WINDOWS: ./mvnw.cmd
   DEFAULT_MAVEN_OPTS: >-
-    -Xmx4g
+    -Xmx5g
     -XX:ReservedCodeCacheSize=1g
     -XX:+UseG1GC
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
@@ -72,6 +72,7 @@ env:
     -pl -nifi-registry/nifi-registry-toolkit/nifi-registry-toolkit-assembly
     -pl -nifi-stateless/nifi-stateless-assembly
     -pl -nifi-toolkit/nifi-toolkit-assembly
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
