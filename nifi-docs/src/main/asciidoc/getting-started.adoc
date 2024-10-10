@@ -16,7 +16,7 @@
 //
 = Getting Started with Apache NiFi
 Apache NiFi Team <dev@nifi.apache.org>
-:homepage: http://nifi.apache.org
+:homepage: https://nifi.apache.org
 :linkattrs:
 
 
@@ -60,10 +60,8 @@ dataflows.
 
 WARNING: Before proceeding, check the Admin Guide to confirm you have the <<administration-guide.adoc#system_requirements,minimum system requirements>> to install and run NiFi.
 
-NiFi can be downloaded from the link:http://nifi.apache.org/download.html[NiFi Downloads page^]. After downloading the version of NiFi
+NiFi can be downloaded from the link:https://nifi.apache.org/download/[NiFi Downloads page^]. After downloading the version of NiFi
 that you would like to use, simply extract the zip archive to the location that you wish to run the application from.
-
-macOS users may also install via link:https://brew.sh[Homebrew^] by simply running the command `brew install nifi` from the command line terminal.
 
 For information on how to configure the instance of NiFi (for example, to configure security, data storage
 configuration, or the port that NiFi is running on), see the link:administration-guide.html[Admin Guide].
@@ -696,7 +694,7 @@ addition to this Getting Started Guide:
   lengthy discussions of all of the different components that comprise the application. This guide is written with the NiFi Operator as its
 	audience. It provides information on each of the different components available in NiFi and explains how to use the different features
 	provided by the application.
-- link:administration-guide.html[Administration Guide] - A guide for setting up and administering Apache NiFi for production environments.
+- link:administration-guide.html[Administrator's Guide] - A guide for setting up and administering Apache NiFi for production environments.
   This guide provides information about the different system-level settings, such as setting up clusters of NiFi and securing access to the
 	web UI and data.
 - link:expression-language-guide.html[Expression Language Guide] - A far more exhaustive guide for understanding the Expression Language than
@@ -709,9 +707,9 @@ addition to this Getting Started Guide:
   work back to the Apache NiFi community so that others can make use of it.
 
 In addition to the guides provided here, you can browse the different
-link:https://nifi.apache.org/mailing_lists.html[NiFi Mailing Lists^] or send an e-mail to one of the mailing lists at
+link:https://nifi.apache.org/community/contact/[NiFi Mailing Lists^] or send an e-mail to one of the mailing lists at
 link:mailto:users@nifi.apache.org[users@nifi.apache.org] or
 link:mailto:dev@nifi.apache.org[dev@nifi.apache.org].
 
-Many of the members of the NiFi community are available on link:https://apachenifi.slack.com[Apache NiFi on Slack]
+Many of the members of the NiFi community are available on link:https://apachenifi.slack.com[Apache NiFi on Slack^]
 and also actively monitor X/Twitter for posts that mention @apachenifi.
