@@ -23,24 +23,41 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class TestIPLookupService {
+    private static final String SOME_VALID_IP = "0.0.0.0";
+
+    @TempDir
+    static Path tempDir;
+    static Path tempDummyMmdbFile;
+
     private TestRunner runner;
     private IPLookupService testSubject;
 
     private DatabaseReader mockDatabaseReader;
+
+    @BeforeAll
+    public static void init() throws IOException {
+        tempDummyMmdbFile = Files.createFile(tempDir.resolve("dummy.mmdb"));
+    }
 
     @BeforeEach
     public void setUp() {
@@ -53,28 +70,24 @@ public class TestIPLookupService {
             }
         };
 
-        mockDatabaseReader = Mockito.mock(DatabaseReader.class);
+        mockDatabaseReader = mock(DatabaseReader.class);
     }
 
     @Test
     void testLookupDefaultNoResult() throws Exception {
         // GIVEN
         runner.addControllerService("testSubject", testSubject);
-        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, "src/test/resources/dummy.mmdb");
+        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.enableControllerService(testSubject);
         runner.assertValid(testSubject);
 
-        final IPLookupService lookupService = (IPLookupService) runner.getProcessContext()
-                .getControllerServiceLookup()
-                .getControllerService("testSubject");
-
-        Mockito.when(mockDatabaseReader.tryCity(any(InetAddress.class))).thenReturn(Optional.empty());
+        when(mockDatabaseReader.tryCity(any(InetAddress.class))).thenReturn(Optional.empty());
 
         // WHEN
-        final Optional<Record> lookupResult = lookupService.lookup(Collections.singletonMap(IPLookupService.IP_KEY, "0.0.0.0"));
+        final Optional<Record> lookupResult = testSubject.lookup(Collections.singletonMap(IPLookupService.IP_KEY, SOME_VALID_IP));
 
         // THEN
-        Mockito.verify(mockDatabaseReader).tryCity(any(InetAddress.class));
+        verify(mockDatabaseReader).tryCity(any(InetAddress.class));
 
         assertEquals(Optional.empty(), lookupResult);
     }
@@ -83,22 +96,18 @@ public class TestIPLookupService {
     void testLookupCityNoResult() throws Exception {
         // GIVEN
         runner.addControllerService("testSubject", testSubject);
-        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, "src/test/resources/dummy.mmdb");
+        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CITY, "true");
         runner.enableControllerService(testSubject);
         runner.assertValid(testSubject);
 
-        final IPLookupService lookupService = (IPLookupService) runner.getProcessContext()
-                .getControllerServiceLookup()
-                .getControllerService("testSubject");
-
-        Mockito.when(mockDatabaseReader.tryCity(any(InetAddress.class))).thenReturn(Optional.empty());
+        when(mockDatabaseReader.tryCity(any(InetAddress.class))).thenReturn(Optional.empty());
 
         // WHEN
-        final Optional<Record> lookupResult = lookupService.lookup(Collections.singletonMap(IPLookupService.IP_KEY, "0.0.0.0"));
+        final Optional<Record> lookupResult = testSubject.lookup(Collections.singletonMap(IPLookupService.IP_KEY, SOME_VALID_IP));
 
         // THEN
-        Mockito.verify(mockDatabaseReader).tryCity(any(InetAddress.class));
+        verify(mockDatabaseReader).tryCity(any(InetAddress.class));
 
         assertEquals(Optional.empty(), lookupResult);
     }
@@ -107,23 +116,19 @@ public class TestIPLookupService {
     void testLookupISPNoResult() throws Exception {
         // GIVEN
         runner.addControllerService("testSubject", testSubject);
-        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, "src/test/resources/dummy.mmdb");
+        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CITY, "false");
         runner.setProperty(testSubject, IPLookupService.LOOKUP_ISP, "true");
         runner.enableControllerService(testSubject);
         runner.assertValid(testSubject);
 
-        final IPLookupService lookupService = (IPLookupService) runner.getProcessContext()
-                .getControllerServiceLookup()
-                .getControllerService("testSubject");
-
-        Mockito.when(mockDatabaseReader.tryIsp(any(InetAddress.class))).thenReturn(Optional.empty());
+        when(mockDatabaseReader.tryIsp(any(InetAddress.class))).thenReturn(Optional.empty());
 
         // WHEN
-        final Optional<Record> lookupResult = lookupService.lookup(Collections.singletonMap(IPLookupService.IP_KEY, "0.0.0.0"));
+        final Optional<Record> lookupResult = testSubject.lookup(Collections.singletonMap(IPLookupService.IP_KEY, SOME_VALID_IP));
 
         // THEN
-        Mockito.verify(mockDatabaseReader).tryIsp(any(InetAddress.class));
+        verify(mockDatabaseReader).tryIsp(any(InetAddress.class));
 
         assertEquals(Optional.empty(), lookupResult);
     }
@@ -132,23 +137,19 @@ public class TestIPLookupService {
     void testLookupDomainNoResult() throws Exception {
         // GIVEN
         runner.addControllerService("testSubject", testSubject);
-        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, "src/test/resources/dummy.mmdb");
+        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CITY, "false");
         runner.setProperty(testSubject, IPLookupService.LOOKUP_DOMAIN, "true");
         runner.enableControllerService(testSubject);
         runner.assertValid(testSubject);
 
-        final IPLookupService lookupService = (IPLookupService) runner.getProcessContext()
-                .getControllerServiceLookup()
-                .getControllerService("testSubject");
-
-        Mockito.when(mockDatabaseReader.tryDomain(any(InetAddress.class))).thenReturn(Optional.empty());
+        when(mockDatabaseReader.tryDomain(any(InetAddress.class))).thenReturn(Optional.empty());
 
         // WHEN
-        final Optional<Record> lookupResult = lookupService.lookup(Collections.singletonMap(IPLookupService.IP_KEY, "0.0.0.0"));
+        final Optional<Record> lookupResult = testSubject.lookup(Collections.singletonMap(IPLookupService.IP_KEY, SOME_VALID_IP));
 
         // THEN
-        Mockito.verify(mockDatabaseReader).tryDomain(any(InetAddress.class));
+        verify(mockDatabaseReader).tryDomain(any(InetAddress.class));
 
         assertEquals(Optional.empty(), lookupResult);
     }
@@ -157,23 +158,19 @@ public class TestIPLookupService {
     void testLookupConnectionTypeNoResult() throws Exception {
         // GIVEN
         runner.addControllerService("testSubject", testSubject);
-        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, "src/test/resources/dummy.mmdb");
+        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CITY, "false");
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CONNECTION_TYPE, "true");
         runner.enableControllerService(testSubject);
         runner.assertValid(testSubject);
 
-        final IPLookupService lookupService = (IPLookupService) runner.getProcessContext()
-                .getControllerServiceLookup()
-                .getControllerService("testSubject");
-
-        Mockito.when(mockDatabaseReader.tryConnectionType(any(InetAddress.class))).thenReturn(Optional.empty());
+        when(mockDatabaseReader.tryConnectionType(any(InetAddress.class))).thenReturn(Optional.empty());
 
         // WHEN
-        final Optional<Record> lookupResult = lookupService.lookup(Collections.singletonMap(IPLookupService.IP_KEY, "0.0.0.0"));
+        final Optional<Record> lookupResult = testSubject.lookup(Collections.singletonMap(IPLookupService.IP_KEY, SOME_VALID_IP));
 
         // THEN
-        Mockito.verify(mockDatabaseReader).tryConnectionType(any(InetAddress.class));
+        verify(mockDatabaseReader).tryConnectionType(any(InetAddress.class));
 
         assertEquals(Optional.empty(), lookupResult);
     }
@@ -182,23 +179,19 @@ public class TestIPLookupService {
     void testLookupAnonymousIpNoResult() throws Exception {
         // GIVEN
         runner.addControllerService("testSubject", testSubject);
-        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, "src/test/resources/dummy.mmdb");
+        runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CITY, "false");
         runner.setProperty(testSubject, IPLookupService.LOOKUP_ANONYMOUS_IP_INFO, "true");
         runner.enableControllerService(testSubject);
         runner.assertValid(testSubject);
 
-        final IPLookupService lookupService = (IPLookupService) runner.getProcessContext()
-                .getControllerServiceLookup()
-                .getControllerService("testSubject");
-
-        Mockito.when(mockDatabaseReader.tryAnonymousIp(any(InetAddress.class))).thenReturn(Optional.empty());
+        when(mockDatabaseReader.tryAnonymousIp(any(InetAddress.class))).thenReturn(Optional.empty());
 
         // WHEN
-        final Optional<Record> lookupResult = lookupService.lookup(Collections.singletonMap(IPLookupService.IP_KEY, "0.0.0.0"));
+        final Optional<Record> lookupResult = testSubject.lookup(Collections.singletonMap(IPLookupService.IP_KEY, SOME_VALID_IP));
 
         // THEN
-        Mockito.verify(mockDatabaseReader).tryAnonymousIp(any(InetAddress.class));
+        verify(mockDatabaseReader).tryAnonymousIp(any(InetAddress.class));
 
         assertEquals(Optional.empty(), lookupResult);
     }
