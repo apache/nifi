@@ -26,7 +26,9 @@
                     <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
                 } @else {
                     @if (additionalDetailsState.additionalDetails; as additionalDetails) {
-                        <markdown [data]="additionalDetails" ngPreserveWhitespaces lineNumbers> </markdown>
+                        <markdown ngPreserveWhitespaces>
+                            {{ additionalDetails }}
+                        </markdown>
                     } @else if (additionalDetailsState.error) {
                         <div>
                             {{ additionalDetailsState.error }}
