@@ -23,11 +23,10 @@ processor can query records from a single base and table via Airtable's REST API
 able to handle a large number of records. It can also split large record sets to multiple FlowFiles just like a database
 processor.
 
-### Personal Access Token
+### API Key
 
-Please note that API Keys were deprecated, Airtable now provides Personal Access Tokens (PATs) instead.
-Airtable REST API calls requires a PAT (Personal Access Token) that needs to be passed in a request. An Airtable account
-is required to generate the PAT.
+Airtable REST API calls requires an API Key that needs to be passed in a request. An Airtable account is required to
+generate an API Key.
 
 ### API rate limit
 
@@ -38,6 +37,6 @@ is recommended to start off with the default settings and to increase both param
 
 ### Metadata API
 
-Currently, the Metadata API of Airtable is unstable, and we don't provide a way to use it. Until it becomes stable you
+Currently the Metadata API of Airtable is unstable, and we don't provide a way to use it. Until it becomes stable you
 can set up a ConvertRecord or MergeRecord processor with a JsonTreeReader to read the content and convert it into a
 Record with schema.

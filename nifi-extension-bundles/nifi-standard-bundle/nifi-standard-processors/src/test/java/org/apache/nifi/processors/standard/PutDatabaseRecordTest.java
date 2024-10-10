@@ -22,6 +22,7 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
+import org.apache.nifi.processors.standard.db.NameNormalizer;
 import org.apache.nifi.processors.standard.db.TableSchema;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -101,7 +102,7 @@ public class PutDatabaseRecordTest {
         DEFAULT_1000(DISABLED, new TestCase(false, false, 1000)),
 
         ROLLBACK_0(DISABLED, new TestCase(false, true, 0)),
-        ROLLBACK_1(ENABLED, new TestCase(null, true, 1)),
+        ROLLBACK_1(DISABLED, new TestCase(false, true, 1)),
         ROLLBACK_2(DISABLED, new TestCase(false, true, 2)),
         ROLLBACK_1000(ENABLED, new TestCase(false, true, 1000)),
 
@@ -388,7 +389,7 @@ public class PutDatabaseRecordTest {
                         new ColumnDescription("name", 12, true, 255, true),
                         new ColumnDescription("code", 4, true, 10, true)
                 ),
-                false,
+                false, null,
                 new HashSet<>(Arrays.asList("id")),
                 ""
         );
@@ -401,13 +402,14 @@ public class PutDatabaseRecordTest {
         final PutDatabaseRecord.DMLSettings settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext());
 
         assertEquals("INSERT INTO PERSONS (id, name, code) VALUES (?,?,?)",
-                processor.generateInsert(schema, "PERSONS", tableSchema, settings).getSql());
+                processor.generateInsert(schema, "PERSONS", tableSchema, settings, null).getSql());
         assertEquals("UPDATE PERSONS SET name = ?, code = ? WHERE id = ?",
-                processor.generateUpdate(schema, "PERSONS", null, tableSchema, settings).getSql());
+                processor.generateUpdate(schema, "PERSONS", null, tableSchema, settings, null).getSql());
         assertEquals("DELETE FROM PERSONS WHERE (id = ?) AND (name = ? OR (name is null AND ? is null)) AND (code = ? OR (code is null AND ? is null))",
-                processor.generateDelete(schema, "PERSONS", null, tableSchema, settings).getSql());
+                processor.generateDelete(schema, "PERSONS", null, tableSchema, settings, null).getSql());
         assertEquals("DELETE FROM PERSONS WHERE (id = ?) AND (code = ? OR (code is null AND ? is null))",
-                processor.generateDelete(schema, "PERSONS", "id, code", tableSchema, settings).getSql());
+                processor.generateDelete(schema, "PERSONS", "id, code", tableSchema, settings, null).getSql());
+
     }
 
     @Test
@@ -429,7 +431,7 @@ public class PutDatabaseRecordTest {
                         new ColumnDescription("name", 12, true, 255, true),
                         new ColumnDescription("code", 4, true, 10, true)
                 ),
-                false,
+                false, null,
                 new HashSet<>(Arrays.asList("id")),
                 ""
         );
@@ -442,17 +444,17 @@ public class PutDatabaseRecordTest {
         final PutDatabaseRecord.DMLSettings settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext());
 
         SQLDataException e = assertThrows(SQLDataException.class,
-                () -> processor.generateInsert(schema, "PERSONS", tableSchema, settings),
+                () -> processor.generateInsert(schema, "PERSONS", tableSchema, settings, null),
                 "generateInsert should fail with unmatched fields");
         assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage());
 
         e = assertThrows(SQLDataException.class,
-                () -> processor.generateUpdate(schema, "PERSONS", null, tableSchema, settings),
+                () -> processor.generateUpdate(schema, "PERSONS", null, tableSchema, settings, null),
                 "generateUpdate should fail with unmatched fields");
         assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage());
 
         e = assertThrows(SQLDataException.class,
-                () -> processor.generateDelete(schema, "PERSONS", null, tableSchema, settings),
+                () -> processor.generateDelete(schema, "PERSONS", null, tableSchema, settings, null),
                 "generateDelete should fail with unmatched fields");
         assertEquals("Cannot map field 'non_existing' to any column in the database\nColumns: id,name,code", e.getMessage());
     }
@@ -725,7 +727,7 @@ public class PutDatabaseRecordTest {
     public void testInsertViaSqlTypeOneStatement(TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
-        String[] sqlStatements = new String[] {
+        String[] sqlStatements = new String[]{
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)"
         };
         testInsertViaSqlTypeStatements(sqlStatements, false);
@@ -736,7 +738,7 @@ public class PutDatabaseRecordTest {
     public void testInsertViaSqlTypeTwoStatementsSemicolon(TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
-        String[] sqlStatements = new String[] {
+        String[] sqlStatements = new String[]{
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
                 "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);"
         };
@@ -748,7 +750,7 @@ public class PutDatabaseRecordTest {
     public void testInsertViaSqlTypeThreeStatements(TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
-        String[] sqlStatements = new String[] {
+        String[] sqlStatements = new String[]{
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
                 "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102)",
                 "UPDATE PERSONS SET code = 101 WHERE id = 1"
@@ -824,7 +826,7 @@ public class PutDatabaseRecordTest {
     public void testMultipleInsertsForOneStatementViaSqlStatementType(TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
-        String[] sqlStatements = new String[] {
+        String[] sqlStatements = new String[]{
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)"
         };
         testMultipleStatementsViaSqlStatementType(sqlStatements);
@@ -835,7 +837,7 @@ public class PutDatabaseRecordTest {
     public void testMultipleInsertsForTwoStatementsViaSqlStatementType(TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
-        String[] sqlStatements = new String[] {
+        String[] sqlStatements = new String[]{
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
                 "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);"
         };
@@ -1732,6 +1734,7 @@ public class PutDatabaseRecordTest {
                         new ColumnDescription("code", 4, true, 10, true)
                 ),
                 false,
+                null,
                 new HashSet<>(Arrays.asList("id")),
                 ""
         );
@@ -2035,7 +2038,7 @@ public class PutDatabaseRecordTest {
         assertEquals(1, resultSet.getInt(1));
 
         Blob blob = resultSet.getBlob(2);
-        assertArrayEquals(new byte[] {(byte) 171, (byte) 205, (byte) 239}, blob.getBytes(1, (int) blob.length()));
+        assertArrayEquals(new byte[]{(byte) 171, (byte) 205, (byte) 239}, blob.getBytes(1, (int) blob.length()));
 
         stmt.close();
         conn.close();
@@ -2201,7 +2204,7 @@ public class PutDatabaseRecordTest {
         parser.addSchemaField("code", RecordFieldType.INT);
         parser.addSchemaField("content", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType()).getFieldType());
 
-        parser.addRecord(1, "rec1", 101, new Integer[] {1, 2, 3});
+        parser.addRecord(1, "rec1", 101, new Integer[]{1, 2, 3});
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
@@ -2320,8 +2323,8 @@ public class PutDatabaseRecordTest {
         parser.addSchemaField("id", RecordFieldType.INT);
         parser.addSchemaField("name", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
 
-        byte[] longVarBinaryValue1 = new byte[] {97, 98, 99};
-        byte[] longVarBinaryValue2 = new byte[] {100, 101, 102};
+        byte[] longVarBinaryValue1 = new byte[]{97, 98, 99};
+        byte[] longVarBinaryValue2 = new byte[]{100, 101, 102};
         parser.addRecord(1, longVarBinaryValue1);
         parser.addRecord(2, longVarBinaryValue2);
 
@@ -2421,7 +2424,8 @@ public class PutDatabaseRecordTest {
 
     static class PutDatabaseRecordUnmatchedField extends PutDatabaseRecord {
         @Override
-        SqlAndIncludedColumns generateInsert(RecordSchema recordSchema, String tableName, TableSchema tableSchema, DMLSettings settings) throws IllegalArgumentException {
+        SqlAndIncludedColumns generateInsert(RecordSchema recordSchema, String tableName, TableSchema tableSchema,
+                                             DMLSettings settings, NameNormalizer normalizer) throws IllegalArgumentException {
             return new SqlAndIncludedColumns("INSERT INTO PERSONS VALUES (?,?,?,?)", Arrays.asList(0, 1, 2, 3));
         }
     }
@@ -2459,7 +2463,7 @@ public class PutDatabaseRecordTest {
         @Override
         public Connection getConnection() throws ProcessException {
             try {
-                Connection spyConnection =  spy(DriverManager.getConnection("jdbc:derby:" + databaseLocation + ";create=true"));
+                Connection spyConnection = spy(DriverManager.getConnection("jdbc:derby:" + databaseLocation + ";create=true"));
                 doThrow(SQLFeatureNotSupportedException.class).when(spyConnection).setAutoCommit(false);
                 return spyConnection;
             } catch (final Exception e) {
@@ -2474,6 +2478,7 @@ public class PutDatabaseRecordTest {
             this.rollbackOnFailure = rollbackOnFailure;
             this.batchSize = batchSize;
         }
+
         private Boolean autoCommit = null;
         private Boolean rollbackOnFailure = null;
         private Integer batchSize = null;

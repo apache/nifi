@@ -40,7 +40,9 @@ import { CurrentUser } from '../../../state/current-user';
 import { initialState as initialUserState } from '../../../state/current-user/current-user.reducer';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
 import { FlowConfiguration } from '../../../state/flow-configuration';
-import { initialState as initialFlowConfigurationState } from '../../../state/flow-configuration/flow-configuration.reducer';
+import {
+    initialState as initialFlowConfigurationState
+} from '../../../state/flow-configuration/flow-configuration.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
 import { CopiedSnippet, VersionControlInformation } from '../state/flow';
 import { Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
@@ -268,7 +270,7 @@ export class CanvasUtils {
     public canModify(selection: any): boolean {
         const selectionSize = selection.size();
         const writableSize = selection
-            .filter(function (d: any) {
+            .filter(function(d: any) {
                 return d.permissions.canWrite;
             })
             .size();
@@ -285,7 +287,7 @@ export class CanvasUtils {
     public canRead(selection: any): boolean {
         const selectionSize = selection.size();
         const readableSize = selection
-            .filter(function (d: any) {
+            .filter(function(d: any) {
                 return d.permissions.canRead;
             })
             .size();
@@ -1193,7 +1195,7 @@ export class CanvasUtils {
         let positionStrategy: PositionStrategy | null = null;
 
         selection
-            .on('mouseenter', function (this: any) {
+            .on('mouseenter', function(this: any) {
                 if (overlayRef?.hasAttached()) {
                     return;
                 }
@@ -1240,7 +1242,7 @@ export class CanvasUtils {
                     }, NiFiCommon.TOOLTIP_DELAY_OPEN_MILLIS);
                 }
             })
-            .on('mouseleave', function () {
+            .on('mouseleave', function() {
                 if (openTimer > 0) {
                     window.clearTimeout(openTimer);
                     openTimer = -1;
@@ -1406,7 +1408,7 @@ export class CanvasUtils {
                 width -= 5;
 
                 // determine the appropriate index
-                trimLength = this.binarySearch(text.length, function (x: number) {
+                trimLength = this.binarySearch(text.length, function(x: number) {
                     const length = node.getSubStringLength(0, x);
                     if (length > width) {
                         // length is too long, try the lower half
@@ -1517,7 +1519,7 @@ export class CanvasUtils {
 
         // if there is active threads show the count, otherwise hide
         if (activeThreads > 0 || terminatedThreads > 0) {
-            const generateThreadsTip = function () {
+            const generateThreadsTip = function() {
                 let tip = activeThreads + ' active threads';
                 if (terminatedThreads > 0) {
                     tip += ' (' + terminatedThreads + ' terminated)';
@@ -1529,14 +1531,14 @@ export class CanvasUtils {
             // update the active thread count
             const activeThreadCount = selection
                 .select('text.active-thread-count')
-                .text(function () {
+                .text(function() {
                     if (terminatedThreads > 0) {
                         return activeThreads + ' (' + terminatedThreads + ')';
                     } else {
                         return activeThreads;
                     }
                 })
-                .attr('class', function () {
+                .attr('class', function() {
                     switch (d.type) {
                         case ComponentType.Processor:
                         case ComponentType.InputPort:
@@ -1547,11 +1549,11 @@ export class CanvasUtils {
                     }
                 })
                 .style('display', 'block')
-                .each(function (this: any) {
+                .each(function(this: any) {
                     const activeThreadCountText = d3.select(this);
 
                     const bBox = this.getBBox();
-                    activeThreadCountText.attr('x', function () {
+                    activeThreadCountText.attr('x', function() {
                         return d.dimensions.width - bBox.width - 15;
                     });
 
@@ -1565,11 +1567,11 @@ export class CanvasUtils {
             // update the background width
             selection
                 .select('text.active-thread-count-icon')
-                .attr('x', function () {
+                .attr('x', function() {
                     const bBox = activeThreadCount.node().getBBox();
                     return d.dimensions.width - bBox.width - 20;
                 })
-                .attr('class', function () {
+                .attr('class', function() {
                     switch (d.type) {
                         case ComponentType.Processor:
                         case ComponentType.InputPort:
@@ -1584,7 +1586,7 @@ export class CanvasUtils {
                     }
                 })
                 .style('display', 'block')
-                .each(function (this: any) {
+                .each(function(this: any) {
                     const activeThreadCountIcon = d3.select(this);
 
                     // reset the active thread count tooltip
@@ -1596,7 +1598,7 @@ export class CanvasUtils {
             selection
                 .selectAll('text.active-thread-count, text.active-thread-count-icon')
                 .style('display', 'none')
-                .each(function (this: any) {
+                .each(function(this: any) {
                     d3.select(this).selectAll('title').remove();
                 });
         }
