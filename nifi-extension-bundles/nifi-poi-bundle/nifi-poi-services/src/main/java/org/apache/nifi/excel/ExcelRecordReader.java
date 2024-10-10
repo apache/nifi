@@ -26,7 +26,6 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 
 import java.io.IOException;
@@ -46,7 +45,7 @@ public class ExcelRecordReader implements RecordReader {
     private final String timeFormat;
     private final String timestampFormat;
 
-    public ExcelRecordReader(ExcelRecordReaderConfiguration configuration, InputStream inputStream, ComponentLog logger) throws MalformedRecordException {
+      public ExcelRecordReader(ExcelRecordReaderConfiguration configuration, InputStream inputStream, ComponentLog logger) throws MalformedRecordException {
         this.schema = configuration.getSchema();
 
         if (isEmpty(configuration.getDateFormat())) {
@@ -112,17 +111,17 @@ public class ExcelRecordReader implements RecordReader {
             IntStream.range(0, currentRow.getLastCellNum())
                     .forEach(index -> {
                         Cell cell = currentRow.getCell(index);
-                        Object cellValue;
+                        String cellValue;
                         if (index >= recordFields.size()) {
                             if (!dropUnknownFields) {
-                                cellValue = getCellValue(cell);
+                                cellValue = ExcelUtils.getFormattedCellValue(cell);
                                 currentRowValues.put("unknown_field_index_" + index, cellValue);
                             }
                         } else {
                             final RecordField recordField = recordFields.get(index);
                             String fieldName = recordField.getFieldName();
                             DataType dataType = recordField.getDataType();
-                            cellValue = getCellValue(cell);
+                            cellValue = ExcelUtils.getFormattedCellValue(cell);
                             final Object value = coerceTypes ? convert(cellValue, dataType, fieldName)
                                     : convertSimpleIfPossible(cellValue, dataType, fieldName);
                             currentRowValues.put(fieldName, value);
@@ -131,17 +130,6 @@ public class ExcelRecordReader implements RecordReader {
         }
 
         return currentRowValues;
-    }
-
-    private static Object getCellValue(Cell cell) {
-        if (cell != null) {
-            return switch (cell.getCellType()) {
-                case _NONE, BLANK, ERROR, FORMULA, STRING -> cell.getStringCellValue();
-                case NUMERIC -> DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue() : cell.getNumericCellValue();
-                case BOOLEAN -> cell.getBooleanCellValue();
-            };
-        }
-        return null;
     }
 
     private Object convert(final Object value, final DataType dataType, final String fieldName) {
