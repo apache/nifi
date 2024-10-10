@@ -396,11 +396,15 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
         if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
             if (sslContextService != null) {
-                final TrustManager[] trustManagers = new TrustManager[] { sslContextService.createTrustManager() };
-                final TlsKeyManagersProvider keyManagersProvider = FileStoreTlsKeyManagersProvider
-                        .create(Paths.get(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
-                builder.tlsTrustManagersProvider(() -> trustManagers);
-                builder.tlsKeyManagersProvider(keyManagersProvider);
+                if (sslContextService.isTrustStoreConfigured()) {
+                    final TrustManager[] trustManagers = new TrustManager[]{sslContextService.createTrustManager()};
+                    builder.tlsTrustManagersProvider(() -> trustManagers);
+                }
+                if (sslContextService.isKeyStoreConfigured()) {
+                    final TlsKeyManagersProvider keyManagersProvider = FileStoreTlsKeyManagersProvider
+                            .create(Paths.get(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
+                    builder.tlsKeyManagersProvider(keyManagersProvider);
+                }
             }
         }
 
