@@ -33,6 +33,7 @@
         "@ngrx/store": "18.0.2",
         "@ngrx/store-devtools": "18.0.2",
         "@types/js-beautify": "^1.14.3",
+        "clipboard": "^2.0.11",
         "codemirror": "^5.65.16",
         "d3": "^7.8.5",
         "font-awesome": "4.7.0",
