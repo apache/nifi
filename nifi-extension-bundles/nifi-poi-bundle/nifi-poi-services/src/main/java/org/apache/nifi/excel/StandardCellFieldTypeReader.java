@@ -88,7 +88,7 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
         } else if (CellType.BOOLEAN == cellType) {
             dataType = RecordFieldType.BOOLEAN.getDataType();
         } else if (CellType.STRING == cellType) {
-            final String cellValue = cell.getRichStringCellValue().getString();
+            final String cellValue = cell.getStringCellValue();
             // Attempt Time Value inference for STRING cell values
             final Optional<DataType> timeDataType = timeValueInference.getDataType(cellValue);
             dataType = timeDataType.orElse(RecordFieldType.STRING.getDataType());

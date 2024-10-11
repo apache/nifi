@@ -23,7 +23,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.RichTextString;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,9 +59,6 @@ class TestStandardCellFieldTypeReader {
 
     @Mock
     private CellStyle cellStyle;
-
-    @Mock
-    private RichTextString richTextString;
 
     @Mock
     private TimeValueInference timeValueInference;
@@ -113,7 +109,6 @@ class TestStandardCellFieldTypeReader {
     @Test
     void testGetCellDataTypeString() {
         when(cell.getCellType()).thenReturn(CellType.STRING);
-        when(cell.getRichStringCellValue()).thenReturn(richTextString);
 
         final DataType dataType = reader.getCellDataType(cell);
 
@@ -125,8 +120,7 @@ class TestStandardCellFieldTypeReader {
         final DataType timestampDataType = RecordFieldType.TIMESTAMP.getDataType();
 
         when(cell.getCellType()).thenReturn(CellType.STRING);
-        when(cell.getRichStringCellValue()).thenReturn(richTextString);
-        when(richTextString.getString()).thenReturn(TIMESTAMP_FORMATTED);
+        when(cell.getStringCellValue()).thenReturn(TIMESTAMP_FORMATTED);
         when(timeValueInference.getDataType(eq(TIMESTAMP_FORMATTED))).thenReturn(Optional.of(timestampDataType));
 
         final DataType dataType = reader.getCellDataType(cell);
