@@ -59,8 +59,35 @@ export class NifiTooltipDirective<T> implements OnDestroy {
         }
     }
 
+    @HostListener('mousemove')
+    mouseMove() {
+        if (this.overlayRef?.hasAttached() && this.tooltipDisabled) {
+            this.overlayRef?.detach();
+
+            if (this.positionStrategy?.detach) {
+                this.positionStrategy.detach();
+            }
+        }
+    }
+
+    @HostListener('mouseup')
+    mouseup() {
+        if (!this.overlayRef?.hasAttached()) {
+            this.attach();
+        }
+    }
+
     @HostListener('mouseleave')
     mouseLeave() {
+        this.closeTip();
+    }
+
+    @HostListener('click')
+    click() {
+        this.closeTip();
+    }
+
+    private closeTip(): void {
         if (this.overlayRef?.hasAttached() && !this.overTip) {
             if (this.delayClose) {
                 this.closeTimer = window.setTimeout(() => {
@@ -84,24 +111,6 @@ export class NifiTooltipDirective<T> implements OnDestroy {
         if (this.openTimer > 0) {
             window.clearTimeout(this.openTimer);
             this.openTimer = -1;
-        }
-    }
-
-    @HostListener('mousemove')
-    mouseMove() {
-        if (this.overlayRef?.hasAttached() && this.tooltipDisabled) {
-            this.overlayRef?.detach();
-
-            if (this.positionStrategy?.detach) {
-                this.positionStrategy.detach();
-            }
-        }
-    }
-
-    @HostListener('mouseup')
-    mouseup() {
-        if (!this.overlayRef?.hasAttached()) {
-            this.attach();
         }
     }
 
