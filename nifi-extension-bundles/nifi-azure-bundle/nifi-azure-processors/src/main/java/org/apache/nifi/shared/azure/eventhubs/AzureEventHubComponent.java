@@ -38,7 +38,7 @@ public interface AzureEventHubComponent {
             .build();
     ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS))
+            .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS))
             .dependsOn(TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS)
             .build();
 }

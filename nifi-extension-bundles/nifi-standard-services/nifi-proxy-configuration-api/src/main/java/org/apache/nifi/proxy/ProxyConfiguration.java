@@ -26,7 +26,6 @@ import java.net.Proxy;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
@@ -39,14 +38,11 @@ public class ProxyConfiguration {
 
     public static final ProxyConfiguration DIRECT_CONFIGURATION = new ProxyConfiguration();
 
-    public static PropertyDescriptor createProxyConfigPropertyDescriptor(final boolean hasComponentProxyConfigs, final ProxySpec... _specs) {
+    public static PropertyDescriptor createProxyConfigPropertyDescriptor(final ProxySpec... _specs) {
 
         final Set<ProxySpec> specs = getUniqueProxySpecs(_specs);
 
         final StringBuilder description = new StringBuilder("Specifies the Proxy Configuration Controller Service to proxy network requests.");
-        if (hasComponentProxyConfigs) {
-            description.append(" If set, it supersedes proxy settings configured per component.");
-        }
         description.append(" Supported proxies: ");
         description.append(specs.stream().map(ProxySpec::getDisplayName).collect(Collectors.joining(", ")));
 
@@ -126,28 +122,17 @@ public class ProxyConfiguration {
     }
 
     /**
-     * A convenient method to get ProxyConfiguration instance from a PropertyContext.
-     * @param context the process context
-     * @return The proxy configurations at Controller Service if set, or DIRECT_CONFIGURATION
+     * Gets ProxyConfiguration instance from a PropertyContext looking for {@link ProxyConfigurationService#PROXY_CONFIGURATION_SERVICE} property.
+     *
+     * @param context the property context
+     * @return The proxy configurations at Controller Service if set, or configuration for direct proxy (no proxy).
      */
     public static ProxyConfiguration getConfiguration(PropertyContext context) {
-        return getConfiguration(context, () -> DIRECT_CONFIGURATION);
-    }
-
-    /**
-     * This method can be used by Components those originally have per component proxy configurations
-     * to implement ProxyConfiguration Controller Service with backward compatibility.
-     * @param context the process context
-     * @param perComponentSetting the function to supply ProxyConfiguration based on per component settings,
-     *                            only called when Proxy Configuration Service is not set
-     * @return The proxy configurations at Controller Service if set, or per component settings otherwise
-     */
-    public static ProxyConfiguration getConfiguration(PropertyContext context, Supplier<ProxyConfiguration> perComponentSetting) {
         if (context.getProperty(PROXY_CONFIGURATION_SERVICE).isSet()) {
             final ProxyConfigurationService proxyService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
             return proxyService.getConfiguration();
         } else {
-            return perComponentSetting.get();
+            return DIRECT_CONFIGURATION;
         }
     }
 

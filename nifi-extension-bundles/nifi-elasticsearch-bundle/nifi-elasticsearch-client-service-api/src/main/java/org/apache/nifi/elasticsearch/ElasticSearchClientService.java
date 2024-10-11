@@ -50,7 +50,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .identifiesControllerService(SSLContextService.class)
             .addValidator(Validator.VALID)
             .build();
-    PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP);
+    PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP);
 
     PropertyDescriptor AUTHORIZATION_SCHEME = new PropertyDescriptor.Builder()
             .name("authorization-scheme")

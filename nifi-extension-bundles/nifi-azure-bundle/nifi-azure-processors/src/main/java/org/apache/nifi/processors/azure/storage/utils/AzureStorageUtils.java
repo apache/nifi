@@ -260,7 +260,7 @@ public final class AzureStorageUtils {
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS))
+            .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS))
             .build();
 
     public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {

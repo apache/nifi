@@ -116,8 +116,7 @@ public class FTPTransfer implements FileTransfer {
     private static final FTPClientProvider FTP_CLIENT_PROVIDER = new StandardFTPClientProvider();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS_AUTH};
-    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
-            = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS);
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS);
 
     private final ComponentLog logger;
 

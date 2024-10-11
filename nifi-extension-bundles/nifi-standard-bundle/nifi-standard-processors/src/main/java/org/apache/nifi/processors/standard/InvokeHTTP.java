@@ -475,7 +475,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
 
-    private static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+    private static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS);
 
     public static final List<PropertyDescriptor> PROPERTIES = List.of(
             HTTP_METHOD,

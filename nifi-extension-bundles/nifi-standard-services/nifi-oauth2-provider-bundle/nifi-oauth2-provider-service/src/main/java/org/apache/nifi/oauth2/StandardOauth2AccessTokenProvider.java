@@ -225,7 +225,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         REFRESH_WINDOW,
         SSL_CONTEXT,
         HTTP_PROTOCOL_STRATEGY,
-        ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
+        ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS)
     ));
 
     private static final String AUTHORIZATION_HEADER = "Authorization";

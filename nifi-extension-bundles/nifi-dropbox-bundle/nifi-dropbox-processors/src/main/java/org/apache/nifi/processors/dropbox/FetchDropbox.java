@@ -111,7 +111,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             CREDENTIAL_SERVICE,
             FILE,
-            ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP_AUTH)
     ));
 
     private volatile DbxClientV2 dropboxApiClient;

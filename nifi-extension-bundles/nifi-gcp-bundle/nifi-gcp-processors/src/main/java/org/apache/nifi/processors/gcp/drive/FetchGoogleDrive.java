@@ -233,7 +233,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
         GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
         FILE_ID,
-        ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS),
+        ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS),
         GOOGLE_DOC_EXPORT_TYPE,
         GOOGLE_SPREADSHEET_EXPORT_TYPE,
         GOOGLE_PRESENTATION_EXPORT_TYPE,

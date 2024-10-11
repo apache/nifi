@@ -84,7 +84,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         ACCOUNT_ID,
         APP_CONFIG_FILE,
         APP_CONFIG_JSON,
-        ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
+        ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS)
     ));
 
     private volatile BoxAPIConnection boxAPIConnection;

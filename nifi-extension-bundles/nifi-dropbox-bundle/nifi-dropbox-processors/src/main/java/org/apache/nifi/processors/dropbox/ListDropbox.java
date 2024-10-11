@@ -155,7 +155,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
             TRACKING_TIME_WINDOW,
             INITIAL_LISTING_TARGET,
             RECORD_WRITER,
-            ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP_AUTH)
     ));
 
     private volatile DbxClientV2 dropboxApiClient;

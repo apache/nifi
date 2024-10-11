@@ -104,7 +104,7 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             MESSAGE_BATCH_SIZE,
             VISIBILITY_TIMEOUT,
             REQUEST_TIMEOUT,
-            ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS)
     );
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 

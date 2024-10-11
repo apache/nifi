@@ -206,7 +206,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
-            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+            = ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS);
 
     static final String MIME_TYPE_KEY = "mime.type";
     static final String BODY_KEY = "request.body";
