@@ -109,7 +109,9 @@ export class ParameterHelperService {
                                                 this.clusterConnectionService.isDisconnectionAcknowledged(),
                                             component: {
                                                 id: parameterContextEntity.id,
-                                                parameters: [{ parameter: dialogResponse.parameter }]
+                                                parameters: [{ parameter: dialogResponse.parameter }],
+                                                inheritedParameterContexts:
+                                                    parameterContextEntity.component.inheritedParameterContexts
                                             }
                                         }
                                     }
