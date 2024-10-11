@@ -26,21 +26,17 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.FieldTypeInference;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.util.SchemaInferenceUtil;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -55,18 +51,18 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
 
     private final PropertyContext context;
     private final ComponentLog logger;
-    private final TimeValueInference timeValueInference;
+    private final CellFieldTypeReader cellFieldTypeReader;
     private final DataFormatter dataFormatter;
 
-    public ExcelHeaderSchemaStrategy(PropertyContext context, ComponentLog logger, TimeValueInference timeValueInference, Locale locale) {
+    public ExcelHeaderSchemaStrategy(PropertyContext context, ComponentLog logger, TimeValueInference timeValueInference) {
         this.context = context;
         this.logger = logger;
-        this.timeValueInference = timeValueInference;
-        this.dataFormatter = locale == null ? new DataFormatter() : new DataFormatter(locale);
+        this.cellFieldTypeReader = new StandardCellFieldTypeReader(timeValueInference);
+        this.dataFormatter = new DataFormatter();
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException {
         if (this.context == null) {
             throw new SchemaNotFoundException("Schema Access Strategy intended only for validation purposes and cannot obtain schema");
         }
@@ -140,10 +136,7 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
                     .forEach(index -> {
                         final Cell cell = row.getCell(index);
                         final String fieldName = fieldNames.get(index);
-                        final FieldTypeInference typeInference = typeMap.computeIfAbsent(fieldName, key -> new FieldTypeInference());
-                        final String formattedCellValue = dataFormatter.formatCellValue(cell);
-                        final DataType dataType = SchemaInferenceUtil.getDataType(formattedCellValue, timeValueInference);
-                        typeInference.addPossibleDataType(dataType);
+                        cellFieldTypeReader.inferCellFieldType(cell, fieldName, typeMap);
                     });
         }
     }

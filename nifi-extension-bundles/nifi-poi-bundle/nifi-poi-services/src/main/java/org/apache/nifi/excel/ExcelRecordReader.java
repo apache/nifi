@@ -26,6 +26,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 
@@ -133,15 +134,32 @@ public class ExcelRecordReader implements RecordReader {
         return currentRowValues;
     }
 
-    private static Object getCellValue(Cell cell) {
-        if (cell != null) {
-            return switch (cell.getCellType()) {
-                case _NONE, BLANK, ERROR, FORMULA, STRING -> cell.getStringCellValue();
+    private static Object getCellValue(final Cell cell) {
+        final Object cellValue;
+
+        if (cell == null) {
+            cellValue = null;
+        } else {
+            final CellType cellType = cell.getCellType();
+            cellValue = switch (cellType) {
+                case _NONE, BLANK, ERROR, STRING -> cell.getStringCellValue();
                 case NUMERIC -> DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue() : cell.getNumericCellValue();
                 case BOOLEAN -> cell.getBooleanCellValue();
+                case FORMULA -> getFormulaCellValue(cell);
             };
         }
-        return null;
+
+        return cellValue;
+    }
+
+    private static Object getFormulaCellValue(final Cell cell) {
+        final CellType formulaResultType = cell.getCachedFormulaResultType();
+        return switch (formulaResultType) {
+            case BOOLEAN -> cell.getBooleanCellValue();
+            case STRING, ERROR -> cell.getStringCellValue();
+            case NUMERIC -> DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue() : cell.getNumericCellValue();
+            default -> null;
+        };
     }
 
     private Object convert(final Object value, final DataType dataType, final String fieldName) {
