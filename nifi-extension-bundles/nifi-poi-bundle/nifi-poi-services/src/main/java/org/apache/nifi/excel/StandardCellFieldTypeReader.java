@@ -93,9 +93,34 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
             final Optional<DataType> timeDataType = timeValueInference.getDataType(cellValue);
             dataType = timeDataType.orElse(RecordFieldType.STRING.getDataType());
         } else if (CellType.FORMULA == cellType) {
-            dataType = RecordFieldType.STRING.getDataType();
+            dataType = getFormulaResultDataType(cell);
         } else {
             // Default to null for known and unknown Cell Types: BLANK, ERROR
+            dataType = null;
+        }
+
+        return dataType;
+    }
+
+    private DataType getFormulaResultDataType(final Cell cell) {
+        final DataType dataType;
+
+        final CellType formulaResultType = cell.getCachedFormulaResultType();
+        if (CellType.BOOLEAN == formulaResultType) {
+            dataType = RecordFieldType.BOOLEAN.getDataType();
+        } else if (CellType.STRING == formulaResultType) {
+            dataType = RecordFieldType.STRING.getDataType();
+        } else if (CellType.NUMERIC == formulaResultType) {
+            // Date Formatting check limited to NUMERIC Cell Types without Conditional Formatting Evaluator
+            if (DateUtil.isCellDateFormatted(cell)) {
+                // Default to TIMESTAMP for date formatted values using standard Date Time Pattern
+                dataType = RecordFieldType.TIMESTAMP.getDataType();
+            } else {
+                // Default to DOUBLE for NUMERIC values following cell.getNumericCellValue()
+                dataType = RecordFieldType.DOUBLE.getDataType();
+            }
+        } else {
+            // Default to null for known and unknown Formula Result Cell Types: BLANK, ERROR
             dataType = null;
         }
 

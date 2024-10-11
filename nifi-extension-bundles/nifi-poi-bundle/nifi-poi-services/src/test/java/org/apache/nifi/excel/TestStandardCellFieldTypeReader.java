@@ -89,12 +89,56 @@ class TestStandardCellFieldTypeReader {
     }
 
     @Test
-    void testGetCellDataTypeFormula() {
+    void testGetCellDataTypeFormulaBoolean() {
         when(cell.getCellType()).thenReturn(CellType.FORMULA);
+        when(cell.getCachedFormulaResultType()).thenReturn(CellType.BOOLEAN);
+
+        final DataType dataType = reader.getCellDataType(cell);
+
+        assertEquals(RecordFieldType.BOOLEAN.getDataType(), dataType);
+    }
+
+    @Test
+    void testGetCellDataTypeFormulaString() {
+        when(cell.getCellType()).thenReturn(CellType.FORMULA);
+        when(cell.getCachedFormulaResultType()).thenReturn(CellType.STRING);
 
         final DataType dataType = reader.getCellDataType(cell);
 
         assertEquals(RecordFieldType.STRING.getDataType(), dataType);
+    }
+
+    @Test
+    void testGetCellDataTypeFormulaNumericDouble() {
+        when(cell.getCellType()).thenReturn(CellType.FORMULA);
+        when(cell.getCachedFormulaResultType()).thenReturn(CellType.NUMERIC);
+
+        final DataType dataType = reader.getCellDataType(cell);
+
+        assertEquals(RecordFieldType.DOUBLE.getDataType(), dataType);
+    }
+
+    @Test
+    void testGetCellDataTypeFormulaNumericTimestamp() {
+        when(cell.getCellType()).thenReturn(CellType.FORMULA);
+        when(cell.getCachedFormulaResultType()).thenReturn(CellType.NUMERIC);
+        when(cell.getCellStyle()).thenReturn(cellStyle);
+        // Set Data Format to internal Date Format for Data Type detection in DateUtil.isCellDateFormatted
+        when(cellStyle.getDataFormat()).thenReturn(EXCEL_INTERNAL_DATE_FORMAT);
+
+        final DataType dataType = reader.getCellDataType(cell);
+
+        assertEquals(RecordFieldType.TIMESTAMP.getDataType(), dataType);
+    }
+
+    @Test
+    void testGetCellDataTypeFormulaError() {
+        when(cell.getCellType()).thenReturn(CellType.FORMULA);
+        when(cell.getCachedFormulaResultType()).thenReturn(CellType.ERROR);
+
+        final DataType dataType = reader.getCellDataType(cell);
+
+        assertNull(dataType);
     }
 
     @Test
