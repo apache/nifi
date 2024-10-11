@@ -79,6 +79,7 @@ public class TestMergeRecord {
 
         runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).forEach(
             ff -> assertEquals(mff.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeRecord.MERGE_UUID_ATTRIBUTE)));
+        mff.assertAttributeEquals(MergeRecord.MERGE_COMPLETION_REASON, "Bin is full");
     }
 
     @Test
@@ -96,6 +97,7 @@ public class TestMergeRecord {
 
         runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).forEach(
                 ff -> assertEquals(mff.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeRecord.MERGE_UUID_ATTRIBUTE)));
+        mff.assertAttributeEquals(MergeRecord.MERGE_COMPLETION_REASON, "Bin is full enough");
     }
 
     @Test

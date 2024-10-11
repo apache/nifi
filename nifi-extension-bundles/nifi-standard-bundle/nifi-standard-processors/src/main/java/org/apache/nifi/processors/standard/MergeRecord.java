@@ -96,6 +96,9 @@ import java.util.stream.Collectors;
     @WritesAttribute(attribute = "merge.bin.age", description = "The age of the bin, in milliseconds, when it was merged and output. Effectively "
         + "this is the greatest amount of time that any FlowFile in this bundle remained waiting in this processor before it was output"),
     @WritesAttribute(attribute = "merge.uuid", description = "UUID of the merged FlowFile that will be added to the original FlowFiles attributes"),
+    @WritesAttribute(attribute = MergeRecord.MERGE_COMPLETION_REASON, description = "This processor allows for several thresholds to be configured for merging FlowFiles. "
+        + " This attribute indicates which of the Thresholds resulted in the FlowFiles being merged. For an explanation of each of the possible values "
+        + " and their meanings, see the Processor's Usage / documentation and see the 'Additional Details' page."),
     @WritesAttribute(attribute = "<Attributes from Record Writer>", description = "Any Attribute that the configured Record Writer returns will be added to the FlowFile.")
 })
 @SeeAlso({MergeContent.class, SplitRecord.class, PartitionRecord.class})
@@ -171,6 +174,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     public static final String MERGE_COUNT_ATTRIBUTE = "merge.count";
     public static final String MERGE_BIN_AGE_ATTRIBUTE = "merge.bin.age";
     public static final String MERGE_UUID_ATTRIBUTE = "merge.uuid";
+    public static final String MERGE_COMPLETION_REASON = "merge.completion.reason";
 
     public static final AllowableValue MERGE_STRATEGY_BIN_PACK = new AllowableValue(
         "Bin-Packing Algorithm",
