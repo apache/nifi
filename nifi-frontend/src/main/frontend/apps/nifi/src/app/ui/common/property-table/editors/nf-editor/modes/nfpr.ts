@@ -99,7 +99,11 @@ export class NfPr {
                     }
 
                     // within a parameter reference
-                    if (state.context === NfPr.PARAMETER) {
+                    if (
+                        state.context === NfPr.PARAMETER ||
+                        state.context === NfPr.SINGLE_QUOTE_PARAMETER ||
+                        state.context === NfPr.DOUBLE_QUOTE_PARAMETER
+                    ) {
                         // attempt to extract a parameter name
                         const parameterName: string[] = stream.match(self.parameterKeyRegex, false);
 
@@ -128,7 +132,17 @@ export class NfPr {
                                 // style for function
                                 return 'string';
                             }
-                        } else if (current === '}') {
+                        }
+
+                        if (state.context === NfPr.SINGLE_QUOTE_PARAMETER) {
+                            return self.handleParameterEnd(stream, state, states, () => current === "'");
+                        }
+
+                        if (state.context === NfPr.DOUBLE_QUOTE_PARAMETER) {
+                            return self.handleParameterEnd(stream, state, states, () => current === '"');
+                        }
+
+                        if (current === '}') {
                             // -----------------
                             // end of expression
                             // -----------------
@@ -194,6 +208,8 @@ export class NfPr {
 
     // valid context states
     private static readonly PARAMETER: string = 'parameter';
+    private static readonly SINGLE_QUOTE_PARAMETER: string = 'single-quote-parameter';
+    private static readonly DOUBLE_QUOTE_PARAMETER: string = 'double-quote-parameter';
     private static readonly INVALID: string = 'invalid';
 
     /**
@@ -233,10 +249,29 @@ export class NfPr {
             // consume the open curly
             stream.next();
 
-            // new expression start
-            states.push({
-                context: NfPr.PARAMETER
-            });
+            // there may be an optional single/double quote
+            if (stream.peek() === "'") {
+                // consume the single quote
+                stream.next();
+
+                // new expression start
+                states.push({
+                    context: NfPr.SINGLE_QUOTE_PARAMETER
+                });
+            } else if (stream.peek() === '"') {
+                // consume the double quote
+                stream.next();
+
+                // new expression start
+                states.push({
+                    context: NfPr.DOUBLE_QUOTE_PARAMETER
+                });
+            } else {
+                // new expression start
+                states.push({
+                    context: NfPr.PARAMETER
+                });
+            }
 
             // consume any addition whitespace
             stream.eatSpace();
@@ -244,6 +279,58 @@ export class NfPr {
             return 'bracket';
         } else {
             // not a valid start sequence
+            return null;
+        }
+    }
+
+    private handleParameterEnd(
+        stream: StringStream,
+        state: any,
+        states: any,
+        parameterPredicate: () => boolean
+    ): string | null {
+        if (parameterPredicate()) {
+            // consume the single/double quote
+            stream.next();
+
+            // verify the next character closes the parameter reference
+            if (stream.peek() === '}') {
+                // -----------------
+                // end of expression
+                // -----------------
+
+                // consume the close
+                stream.next();
+
+                // signifies the end of a parameter reference
+                if (typeof states.pop() === 'undefined') {
+                    return null;
+                } else {
+                    // style as expression
+                    return 'bracket';
+                }
+            } else {
+                // ----------
+                // unexpected
+                // ----------
+
+                // consume and move along
+                stream.skipToEnd();
+                state.context = NfPr.INVALID;
+
+                // unexpected...
+                return null;
+            }
+        } else {
+            // ----------
+            // unexpected
+            // ----------
+
+            // consume and move along
+            stream.skipToEnd();
+            state.context = NfPr.INVALID;
+
+            // unexpected...
             return null;
         }
     }
@@ -267,7 +354,11 @@ export class NfPr {
                 // whether the current context is within a function
                 const isParameterContext = function (context: string) {
                     // attempting to match a function name or already successfully matched a function name
-                    return context === NfPr.PARAMETER;
+                    return (
+                        context === NfPr.PARAMETER ||
+                        context === NfPr.SINGLE_QUOTE_PARAMETER ||
+                        context === NfPr.DOUBLE_QUOTE_PARAMETER
+                    );
                 };
 
                 // only support suggestion in certain cases
@@ -283,7 +374,7 @@ export class NfPr {
                 const trimmed: string = value.trim();
 
                 // identify potential patterns and increment the start location appropriately
-                if (trimmed === '#{') {
+                if (trimmed === '#{' || trimmed === "#{'" || trimmed === '#{"') {
                     includeAll = true;
                     token.start += value.length;
                 }

@@ -115,7 +115,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
     @Input() propertyHistory: ComponentHistory | undefined;
     @Input() supportsParameters: boolean = true;
 
-    private static readonly PARAM_REF_REGEX: RegExp = /#{[a-zA-Z0-9-_. ]+}/;
+    private static readonly PARAM_REF_REGEX: RegExp = /#{(['"]?)[a-zA-Z0-9-_. ]+\1}/;
 
     private destroyRef = inject(DestroyRef);
 

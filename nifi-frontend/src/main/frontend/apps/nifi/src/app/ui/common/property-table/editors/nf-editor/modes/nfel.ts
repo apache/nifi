@@ -579,7 +579,11 @@ export class NfEl {
                     }
 
                     // within a parameter reference
-                    if (state.context === NfEl.PARAMETER) {
+                    if (
+                        state.context === NfEl.PARAMETER ||
+                        state.context === NfEl.SINGLE_QUOTE_PARAMETER ||
+                        state.context === NfEl.DOUBLE_QUOTE_PARAMETER
+                    ) {
                         // attempt to extract a parameter name
                         const parameterName: string[] = stream.match(self.parameterKeyRegex, false);
 
@@ -608,6 +612,14 @@ export class NfEl {
                                 // style for function
                                 return 'string';
                             }
+                        }
+
+                        if (state.context === NfEl.SINGLE_QUOTE_PARAMETER) {
+                            return self.handleParameterEnd(stream, state, states, () => current === "'");
+                        }
+
+                        if (state.context === NfEl.DOUBLE_QUOTE_PARAMETER) {
+                            return self.handleParameterEnd(stream, state, states, () => current === '"');
                         }
 
                         if (current === '}') {
@@ -695,6 +707,8 @@ export class NfEl {
     private static readonly ARGUMENTS: string = 'arguments';
     private static readonly ARGUMENT: string = 'argument';
     private static readonly PARAMETER: string = 'parameter';
+    private static readonly SINGLE_QUOTE_PARAMETER: string = 'single-quote-parameter';
+    private static readonly DOUBLE_QUOTE_PARAMETER: string = 'double-quote-parameter';
     private static readonly INVALID: string = 'invalid';
 
     /**
@@ -736,10 +750,36 @@ export class NfEl {
             // consume the open curly
             stream.next();
 
-            // new expression start
-            states.push({
-                context: context
-            });
+            if (NfEl.PARAMETER === context) {
+                // there may be an optional single/double quote
+                if (stream.peek() === "'") {
+                    // consume the single quote
+                    stream.next();
+
+                    // new expression start
+                    states.push({
+                        context: NfEl.SINGLE_QUOTE_PARAMETER
+                    });
+                } else if (stream.peek() === '"') {
+                    // consume the double quote
+                    stream.next();
+
+                    // new expression start
+                    states.push({
+                        context: NfEl.DOUBLE_QUOTE_PARAMETER
+                    });
+                } else {
+                    // new expression start
+                    states.push({
+                        context: NfEl.PARAMETER
+                    });
+                }
+            } else {
+                // new expression start
+                states.push({
+                    context: context
+                });
+            }
 
             // consume any addition whitespace
             stream.eatSpace();
@@ -798,6 +838,58 @@ export class NfEl {
         return null;
     }
 
+    private handleParameterEnd(
+        stream: StringStream,
+        state: any,
+        states: any,
+        parameterPredicate: () => boolean
+    ): string | null {
+        if (parameterPredicate()) {
+            // consume the single/double quote
+            stream.next();
+
+            // verify the next character closes the parameter reference
+            if (stream.peek() === '}') {
+                // -----------------
+                // end of expression
+                // -----------------
+
+                // consume the close
+                stream.next();
+
+                // signifies the end of a parameter reference
+                if (typeof states.pop() === 'undefined') {
+                    return null;
+                } else {
+                    // style as expression
+                    return 'bracket';
+                }
+            } else {
+                // ----------
+                // unexpected
+                // ----------
+
+                // consume and move along
+                stream.skipToEnd();
+                state.context = NfEl.INVALID;
+
+                // unexpected...
+                return null;
+            }
+        } else {
+            // ----------
+            // unexpected
+            // ----------
+
+            // consume and move along
+            stream.skipToEnd();
+            state.context = NfEl.INVALID;
+
+            // unexpected...
+            return null;
+        }
+    }
+
     public setViewContainerRef(viewContainerRef: ViewContainerRef, renderer: Renderer2): void {
         this.viewContainerRef = viewContainerRef;
         this.renderer = renderer;
@@ -829,7 +921,11 @@ export class NfEl {
                 // whether the current context is within a parameter reference
                 const isParameterReference = function (context: string): boolean {
                     // attempting to match a function name or already successfully matched a function name
-                    return context === NfEl.PARAMETER;
+                    return (
+                        context === NfEl.PARAMETER ||
+                        context === NfEl.SINGLE_QUOTE_PARAMETER ||
+                        context === NfEl.DOUBLE_QUOTE_PARAMETER
+                    );
                 };
 
                 // only support suggestion in certain cases
@@ -845,7 +941,7 @@ export class NfEl {
                 const trimmed: string = value.trim();
 
                 // identify potential patterns and increment the start location appropriately
-                if (trimmed === '${' || trimmed === ':' || trimmed === '#{') {
+                if (trimmed === '${' || trimmed === ':' || trimmed === '#{' || trimmed === "#{'" || trimmed === '#{"') {
                     includeAll = true;
                     token.start += value.length;
                 }
