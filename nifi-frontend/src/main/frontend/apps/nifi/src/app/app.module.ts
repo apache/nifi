@@ -47,7 +47,7 @@ import { FlowConfigurationEffects } from './state/flow-configuration/flow-config
 import { ComponentStateEffects } from './state/component-state/component-state.effects';
 import { ErrorEffects } from './state/error/error.effects';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { PipesModule } from '@nifi/shared';
+import { CopyButtonComponent, PipesModule } from '@nifi/shared';
 import { DocumentationEffects } from './state/documentation/documentation.effects';
 import { ClusterSummaryEffects } from './state/cluster-summary/cluster-summary.effects';
 import { PropertyVerificationEffects } from './state/property-verification/property-verification.effects';
@@ -55,7 +55,7 @@ import { loadingInterceptor } from './service/interceptors/loading.interceptor';
 import { LoginConfigurationEffects } from './state/login-configuration/login-configuration.effects';
 import { BannerTextEffects } from './state/banner-text/banner-text.effects';
 import { MAT_TOOLTIP_DEFAULT_OPTIONS, MatTooltipDefaultOptions } from '@angular/material/tooltip';
-import { provideMarkdown } from 'ngx-markdown';
+import { CLIPBOARD_OPTIONS, provideMarkdown } from 'ngx-markdown';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations: string = entry !== null ? JSON.parse(entry).item : '';
@@ -121,7 +121,14 @@ export const customTooltipDefaults: MatTooltipDefaultOptions = {
             })
         ),
         { provide: MAT_TOOLTIP_DEFAULT_OPTIONS, useValue: customTooltipDefaults },
-        provideMarkdown()
+        provideMarkdown({
+            clipboardOptions: {
+                provide: CLIPBOARD_OPTIONS,
+                useValue: {
+                    buttonComponent: CopyButtonComponent
+                }
+            }
+        })
     ]
 })
 export class AppModule {}

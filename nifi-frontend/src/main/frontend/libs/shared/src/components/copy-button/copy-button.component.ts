@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,11 +15,13 @@
  * limitations under the License.
  */
 
-export * from './close-on-escape-dialog/close-on-escape-dialog.component';
-export * from './component-context/component-context.component';
-export * from './map-table/editors/text-editor/text-editor.component';
-export * from './map-table/map-table.component';
-export * from './copy-button/copy-button.component';
-export * from './new-map-table-entry-dialog/new-map-table-entry-dialog.component';
-export * from './resizable/resizable.component';
-export * from './tooltips/text-tip/text-tip.component';
+import { Component } from '@angular/core';
+import { MatIconButton } from '@angular/material/button';
+
+@Component({
+    selector: 'copy-button',
+    template: ` <button mat-icon-button class="primary-icon-button"><i class="fa fa-copy"></i></button>`,
+    imports: [MatIconButton],
+    standalone: true
+})
+export class CopyButtonComponent {}
