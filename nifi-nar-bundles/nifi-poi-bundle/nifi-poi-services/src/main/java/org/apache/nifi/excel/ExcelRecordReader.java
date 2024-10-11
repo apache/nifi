@@ -26,6 +26,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 
@@ -143,22 +144,50 @@ public class ExcelRecordReader implements RecordReader {
         return currentRowValues;
     }
 
-    private static Object getCellValue(Cell cell) {
-        if (cell != null) {
-            switch (cell.getCellType()) {
+    private static Object getCellValue(final Cell cell) {
+        final Object cellValue;
+
+        if (cell == null) {
+            cellValue = null;
+        } else {
+            final CellType cellType = cell.getCellType();
+            switch (cellType) {
                 case _NONE:
                 case BLANK:
                 case ERROR:
-                case FORMULA:
                 case STRING:
-                    return cell.getStringCellValue();
+                    cellValue = cell.getStringCellValue();
+                    break;
                 case NUMERIC:
-                    return DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue() : cell.getNumericCellValue();
+                    cellValue = DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue() : cell.getNumericCellValue();
+                    break;
                 case BOOLEAN:
-                    return cell.getBooleanCellValue();
+                    cellValue = cell.getBooleanCellValue();
+                    break;
+                case FORMULA:
+                    cellValue = getFormulaCellValue(cell);
+                    break;
+                default:
+                    return null;
             }
         }
-        return null;
+
+        return cellValue;
+    }
+
+    private static Object getFormulaCellValue(final Cell cell) {
+        final CellType formulaResultType = cell.getCachedFormulaResultType();
+        switch (formulaResultType) {
+            case BOOLEAN:
+                return cell.getBooleanCellValue();
+            case STRING:
+            case ERROR:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                return DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue() : cell.getNumericCellValue();
+            default:
+                return null;
+        }
     }
 
     private Object convert(final Object value, final DataType dataType, final String fieldName) {

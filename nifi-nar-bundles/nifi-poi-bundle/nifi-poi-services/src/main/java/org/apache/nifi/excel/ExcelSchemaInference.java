@@ -21,33 +21,23 @@ import org.apache.nifi.schema.inference.RecordSource;
 import org.apache.nifi.schema.inference.SchemaInferenceEngine;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.util.SchemaInferenceUtil;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ExcelSchemaInference implements SchemaInferenceEngine<Row> {
-    private final TimeValueInference timeValueInference;
-    private final DataFormatter dataFormatter;
+    private final CellFieldTypeReader cellFieldTypeReader;
 
     public ExcelSchemaInference(TimeValueInference timeValueInference) {
-        this(timeValueInference, null);
-    }
-
-    public ExcelSchemaInference(TimeValueInference timeValueInference, Locale locale) {
-        this.timeValueInference = timeValueInference;
-        this.dataFormatter = locale == null ? new DataFormatter() : new DataFormatter(locale);
+        this.cellFieldTypeReader = new StandardCellFieldTypeReader(timeValueInference);
     }
 
     @Override
@@ -66,10 +56,7 @@ public class ExcelSchemaInference implements SchemaInferenceEngine<Row> {
                     .forEach(index -> {
                         final Cell cell = row.getCell(index);
                         final String fieldName = ExcelUtils.FIELD_NAME_PREFIX + index;
-                        final FieldTypeInference typeInference = typeMap.computeIfAbsent(fieldName, key -> new FieldTypeInference());
-                        final String formattedCellValue = dataFormatter.formatCellValue(cell);
-                        final DataType dataType = SchemaInferenceUtil.getDataType(formattedCellValue, timeValueInference);
-                        typeInference.addPossibleDataType(dataType);
+                        cellFieldTypeReader.inferCellFieldType(cell, fieldName, typeMap);
                     });
         }
     }
