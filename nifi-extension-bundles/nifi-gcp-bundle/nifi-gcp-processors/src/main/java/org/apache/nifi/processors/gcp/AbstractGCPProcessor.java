@@ -77,7 +77,7 @@ public abstract class AbstractGCPProcessor<
         .identifiesControllerService(GCPCredentialsService.class)
         .build();
 
-    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS);
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS);
 
     protected volatile CloudService cloudService;
 

@@ -45,7 +45,7 @@ import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
@@ -119,13 +119,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         .identifiesControllerService(AWSCredentialsProviderService.class)
         .build();
 
-    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
-        .name("proxy-configuration-service")
-        .displayName("Proxy Configuration Service")
-        .description("Specifies the Proxy Configuration Controller Service to proxy network requests.")
-        .identifiesControllerService(ProxyConfigurationService.class)
-        .required(false)
-        .build();
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP, ProxySpec.HTTP_AUTH);
 
 
     // Relationships
@@ -219,14 +213,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
             }
         }
 
-        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
-            if (context.getProperty(PROXY_CONFIGURATION_SERVICE).isSet()) {
-                final ProxyConfigurationService configurationService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
-                return configurationService.getConfiguration();
-            }
-
-            return ProxyConfiguration.DIRECT_CONFIGURATION;
-        });
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context);
 
         if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
             config.setProxyHost(proxyConfig.getProxyServerHost());

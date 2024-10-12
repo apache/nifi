@@ -27,8 +27,7 @@ public interface ProxyConfigurationService extends ControllerService {
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
             .name("proxy-configuration-service")
             .displayName("Proxy Configuration Service")
-            .description("Specifies the Proxy Configuration Controller Service to proxy network requests." +
-                    " If set, it supersedes proxy settings configured per component.")
+            .description("Specifies the Proxy Configuration Controller Service to proxy network requests.")
             .identifiesControllerService(ProxyConfigurationService.class)
             .required(false)
             .build();

@@ -172,7 +172,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             CONFLICT_RESOLUTION,
             CHUNKED_UPLOAD_THRESHOLD,
             CHUNKED_UPLOAD_SIZE,
-            ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP_AUTH)
     ));
 
     private static final Set<Relationship> RELATIONSHIPS;

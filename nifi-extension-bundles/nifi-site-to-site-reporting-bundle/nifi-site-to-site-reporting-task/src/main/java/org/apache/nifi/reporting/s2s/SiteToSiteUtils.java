@@ -115,7 +115,7 @@ public class SiteToSiteUtils {
             .defaultValue(SiteToSiteTransportProtocol.RAW.name())
             .build();
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP, ProxySpec.HTTP_AUTH))
+            .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP, ProxySpec.HTTP_AUTH))
             .dependsOn(TRANSPORT_PROTOCOL, SiteToSiteTransportProtocol.HTTP.name())
             .build();
     public static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()

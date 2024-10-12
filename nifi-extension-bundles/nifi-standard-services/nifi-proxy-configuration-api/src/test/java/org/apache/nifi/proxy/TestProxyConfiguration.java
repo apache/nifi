@@ -56,7 +56,7 @@ public class TestProxyConfiguration {
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            return Collections.singletonList(createProxyConfigPropertyDescriptor(true, proxySpecs));
+            return Collections.singletonList(createProxyConfigPropertyDescriptor(proxySpecs));
         }
 
         @Override

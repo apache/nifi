@@ -81,7 +81,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         props.add(USE_COMPUTE_ENGINE_CREDENTIALS);
         props.add(SERVICE_ACCOUNT_JSON_FILE);
         props.add(SERVICE_ACCOUNT_JSON);
-        props.add(ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS));
+        props.add(ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS));
         properties = Collections.unmodifiableList(props);
     }
 
