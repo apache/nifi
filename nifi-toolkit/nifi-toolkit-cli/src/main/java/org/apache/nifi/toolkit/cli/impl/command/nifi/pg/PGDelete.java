@@ -57,7 +57,7 @@ public class PGDelete extends AbstractNiFiCommand<VoidResult> {
 
             final ProcessGroupClient pgClient = client.getProcessGroupClient();
             final ProcessGroupEntity pgEntity = pgClient.getProcessGroup(pgId);
-            if(pgEntity == null) {
+            if (pgEntity == null) {
                 throw new NiFiClientException("Process group with id " + pgId + " not found.");
             }
             pgClient.deleteProcessGroup(pgEntity);
