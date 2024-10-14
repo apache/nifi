@@ -23,7 +23,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 
@@ -33,10 +33,10 @@ import java.util.Properties;
 /**
  * Command to delete a process group.
  */
-public class PGDelete extends AbstractNiFiCommand<VoidResult> {
+public class PGDelete extends AbstractNiFiCommand<StringResult> {
 
         public PGDelete() {
-            super("pg-delete", VoidResult.class);
+            super("pg-delete", StringResult.class);
         }
 
         @Override
@@ -50,7 +50,7 @@ public class PGDelete extends AbstractNiFiCommand<VoidResult> {
         }
 
         @Override
-        public VoidResult doExecute(final NiFiClient client, final Properties properties)
+        public StringResult doExecute(final NiFiClient client, final Properties properties)
                 throws NiFiClientException, IOException, MissingOptionException {
 
             final String pgId = getRequiredArg(properties, CommandOption.PG_ID);
@@ -61,7 +61,6 @@ public class PGDelete extends AbstractNiFiCommand<VoidResult> {
                 throw new NiFiClientException("Process group with id " + pgId + " not found.");
             }
             pgClient.deleteProcessGroup(pgEntity);
-
-            return new VoidResult();
+            return new StringResult(pgId, isInteractive());
         }
 }
