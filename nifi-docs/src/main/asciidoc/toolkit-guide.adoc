@@ -91,6 +91,7 @@ The following are available commands:
  nifi pg-set-param-context
  nifi pg-replace
  nifi pg-export
+ nifi pg-delete
  nifi get-services
  nifi get-service
  nifi create-service
@@ -312,18 +313,19 @@ For example, typing tab at an empty prompt should display possible commands for 
 Typing "nifi " and then a tab will show the sub-commands for NiFi:
 
  #> nifi
- change-version-processor          delete-flow-analysis-rule         export-reporting-task             get-policy                        list-user-groups                  pg-export                         pg-stop-version-control
- cluster-summary                   delete-node                       export-reporting-tasks            get-reg-client-id                 list-users                        pg-get-all-versions               remove-inherited-param-contexts
+ change-version-processor          delete-flow-analysis-rule         export-reporting-task             get-policy                        list-user-groups                  pg-export                         pg-delete
+ cluster-summary                   delete-node                       export-reporting-tasks            get-reg-client-id                 list-users                        pg-get-all-versions               pg-stop-version-control
  connect-node                      delete-param                      fetch-params                      get-reporting-task                logout-access-token               pg-get-param-context              set-inherited-param-contexts
- create-flow-analysis-rule         delete-param-context              get-access-token                  get-reporting-tasks               merge-param-context               pg-get-services                   set-param
- create-param-context              delete-param-provider             get-access-token-spnego           get-root-id                       offload-node                      pg-get-version                    set-param-provider-property
- create-param-provider             delete-reporting-task             get-controller-configuration      get-service                       pg-change-all-versions            pg-import                         start-reporting-tasks
- create-reg-client                 disable-flow-analysis-rules       get-flow-analysis-rule            get-services                      pg-change-version                 pg-list                           stop-reporting-tasks
- create-reporting-task             disable-services                  get-flow-analysis-rules           import-param-context              pg-connect                        pg-replace                        update-controller-configuration
- create-service                    disconnect-node                   get-node                          import-reporting-tasks            pg-create                         pg-set-param-context              update-policy
- create-user                       enable-flow-analysis-rules        get-nodes                         list-param-contexts               pg-create-service                 pg-start                          update-reg-client
- create-user-group                 enable-services                   get-param-context                 list-param-providers              pg-disable-services               pg-status                         update-user-group
- current-user                      export-param-context              get-param-provider                list-reg-clients                  pg-enable-services                pg-stop
+ create-flow-analysis-rule         delete-param-context              get-access-token                  get-reporting-tasks               merge-param-context               pg-get-services                   remove-inherited-param-contexts
+ create-param-context              delete-param-provider             get-access-token-spnego           get-root-id                       offload-node                      pg-get-version                    set-param
+ create-param-provider             delete-reporting-task             get-controller-configuration      get-service                       pg-change-all-versions            pg-import                         set-param-provider-property
+ create-reg-client                 disable-flow-analysis-rules       get-flow-analysis-rule            get-services                      pg-change-version                 pg-list                           start-reporting-tasks
+ create-reporting-task             disable-services                  get-flow-analysis-rules           import-param-context              pg-connect                        pg-replace                        stop-reporting-tasks
+ create-service                    disconnect-node                   get-node                          import-reporting-tasks            pg-create                         pg-set-param-context              update-controller-configuration
+ create-user                       enable-flow-analysis-rules        get-nodes                         list-param-contexts               pg-create-service                 pg-start                          update-policy
+ create-user-group                 enable-services                   get-param-context                 list-param-providers              pg-disable-services               pg-status                         update-reg-client
+ current-user                      export-param-context              get-param-provider                list-reg-clients                  pg-enable-services                pg-stop                           update-user-group
+
 
 Arguments that represent a path to a file, such as `-p` or when setting a properties file in the session, will auto-complete the path being typed:
 
