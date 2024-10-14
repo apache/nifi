@@ -44,7 +44,6 @@ import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.StopWatch;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -482,7 +481,6 @@ public class IPLookupService extends AbstractControllerService implements Record
         return containerRecord;
     }
 
-    @NotNull
     DatabaseReader createDatabaseReader(File dbFile) throws IOException {
         return new DatabaseReader.Builder(dbFile).build();
     }

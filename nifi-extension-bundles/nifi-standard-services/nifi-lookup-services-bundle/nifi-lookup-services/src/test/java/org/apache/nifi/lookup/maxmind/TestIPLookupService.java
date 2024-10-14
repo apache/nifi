@@ -43,6 +43,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestIPLookupService {
+    private static final String TEST_SUBJECT_ID = "testSubject";
+
     private static final String SOME_VALID_IP = "0.0.0.0";
 
     @TempDir
@@ -76,7 +78,7 @@ public class TestIPLookupService {
     @Test
     void testLookupDefaultNoResult() throws Exception {
         // GIVEN
-        runner.addControllerService("testSubject", testSubject);
+        runner.addControllerService(TEST_SUBJECT_ID, testSubject);
         runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.enableControllerService(testSubject);
         runner.assertValid(testSubject);
@@ -95,7 +97,7 @@ public class TestIPLookupService {
     @Test
     void testLookupCityNoResult() throws Exception {
         // GIVEN
-        runner.addControllerService("testSubject", testSubject);
+        runner.addControllerService(TEST_SUBJECT_ID, testSubject);
         runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CITY, "true");
         runner.enableControllerService(testSubject);
@@ -115,7 +117,7 @@ public class TestIPLookupService {
     @Test
     void testLookupISPNoResult() throws Exception {
         // GIVEN
-        runner.addControllerService("testSubject", testSubject);
+        runner.addControllerService(TEST_SUBJECT_ID, testSubject);
         runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CITY, "false");
         runner.setProperty(testSubject, IPLookupService.LOOKUP_ISP, "true");
@@ -136,7 +138,7 @@ public class TestIPLookupService {
     @Test
     void testLookupDomainNoResult() throws Exception {
         // GIVEN
-        runner.addControllerService("testSubject", testSubject);
+        runner.addControllerService(TEST_SUBJECT_ID, testSubject);
         runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CITY, "false");
         runner.setProperty(testSubject, IPLookupService.LOOKUP_DOMAIN, "true");
@@ -157,7 +159,7 @@ public class TestIPLookupService {
     @Test
     void testLookupConnectionTypeNoResult() throws Exception {
         // GIVEN
-        runner.addControllerService("testSubject", testSubject);
+        runner.addControllerService(TEST_SUBJECT_ID, testSubject);
         runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CITY, "false");
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CONNECTION_TYPE, "true");
@@ -178,7 +180,7 @@ public class TestIPLookupService {
     @Test
     void testLookupAnonymousIpNoResult() throws Exception {
         // GIVEN
-        runner.addControllerService("testSubject", testSubject);
+        runner.addControllerService(TEST_SUBJECT_ID, testSubject);
         runner.setProperty(testSubject, IPLookupService.GEO_DATABASE_FILE, tempDummyMmdbFile.toString());
         runner.setProperty(testSubject, IPLookupService.LOOKUP_CITY, "false");
         runner.setProperty(testSubject, IPLookupService.LOOKUP_ANONYMOUS_IP_INFO, "true");
