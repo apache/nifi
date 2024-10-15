@@ -71,15 +71,20 @@ import java.util.regex.Pattern;
 @CapabilityDescription("Fetches parameters from AWS SecretsManager.  Each secret becomes a Parameter group, which can map to a Parameter Context, with " +
         "key/value pairs in the secret mapping to Parameters in the group.")
 public class AwsSecretsManagerParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
-
-    public static final PropertyDescriptor SECRET_NAME = new PropertyDescriptor.Builder()
-            .name("secret-name")
-            .displayName("Secret Name")
-            .description("The name of the secret to fetch parameters from. Will be used instead of the Secret Name Pattern property if set." +
-                    "Use this parameter instead of Secret Name Pattern if your AWS Account does not have permission to list secrets.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
+    public static final String ENUMERATED_STRATEGY = "Enumerated";
+    public static final String PATTERN_STRATEGY = "Pattern";
+    public static final PropertyDescriptor SECRET_LISTING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("secret-listing-strategy")
+            .displayName("Secret Listing Strategy")
+            .description("Strategy to use when listing secrets. 'Pattern' strategy treats Secret Name Pattern as a regular expression and fetches  " +
+                    "all secrets whose names match the pattern. 'Pattern' strategy requires ListSecrets and GetSecretValue permissions. "+
+                    "'Enumerated' strategy treats Secret Name Pattern as a coma-separated list and fetches all secrets whose names are in the list. " +
+                    "'Enumerated' strategy requires only GetSecretValue permission.")
+            .required(true)
+            .allowableValues(PATTERN_STRATEGY, ENUMERATED_STRATEGY)
+            .defaultValue(PATTERN_STRATEGY)
             .build();
+
     public static final PropertyDescriptor SECRET_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("secret-name-pattern")
             .displayName("Secret Name Pattern")
@@ -130,7 +135,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     private static final String DEFAULT_USER_AGENT = "NiFi";
     private static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            SECRET_NAME,
+            SECRET_LISTING_STRATEGY,
             SECRET_NAME_PATTERN,
             REGION,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -151,12 +156,15 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
         final List<ParameterGroup> groups = new ArrayList<>();
 
-        // Check if secret-name is set and return the single secret if it is
-        final PropertyValue secretNameProp = context.getProperty(SECRET_NAME);
-        if (secretNameProp.isSet()) {
-            groups.addAll(fetchSecret(secretsManager, secretNameProp.getValue()));
+        // Fetch either by pattern or by enumerated list. See description of SECRET_LISTING_STRATEGY for more details.
+        String listingStrategy = context.getProperty(SECRET_LISTING_STRATEGY).getValue();
+        if (ENUMERATED_STRATEGY.equals(listingStrategy)) {
+            // if secret-name is set, fetch the secrets
+            String secretNames = context.getProperty(SECRET_NAME_PATTERN).getValue();
+            for (String secretName : secretNames.split(",")) {
+                groups.addAll(fetchSecret(secretsManager, secretName));
+            }
         } else {
-            // if secret-name is not set, list all secrets and fetch the ones that match the pattern
             final Pattern secretNamePattern = Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue());
             ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
             ListSecretsResult listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
@@ -173,7 +181,6 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
                 if (nextToken == null) {
                     break;
                 }
-
                 listSecretsRequest.setNextToken(nextToken);
                 listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
             }
