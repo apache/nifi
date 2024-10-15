@@ -39,6 +39,7 @@ import {
     flowSnackbarError,
     groupComponents,
     groupComponentsSuccess,
+    importFromRegistry,
     loadChildProcessGroupSuccess,
     loadConnectionSuccess,
     loadInputPortSuccess,
@@ -380,6 +381,7 @@ export const flowReducer = createReducer(
         createPort,
         createFunnel,
         createLabel,
+        importFromRegistry,
         (state) => ({
             ...state,
             saving: true
