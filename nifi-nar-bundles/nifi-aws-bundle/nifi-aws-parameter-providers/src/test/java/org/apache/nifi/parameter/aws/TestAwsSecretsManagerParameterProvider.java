@@ -205,7 +205,7 @@ public class TestAwsSecretsManagerParameterProvider {
                                                  final int expectedCount,
                                                  final ConfigVerificationResult.Outcome expectedOutcome,
                                                  final String listingStrategy,
-                                                 final String namePattern) throws InitializationException {
+                                                 final String secretNames) throws InitializationException {
 
         final AwsSecretsManagerParameterProvider parameterProvider = getParameterProvider();
         doReturn(secretsManager).when(parameterProvider).configureClient(any());
@@ -216,8 +216,8 @@ public class TestAwsSecretsManagerParameterProvider {
         if(listingStrategy != null) {
             properties.put(AwsSecretsManagerParameterProvider.SECRET_LISTING_STRATEGY, listingStrategy);
         }
-        if(namePattern != null) {
-            properties.put(AwsSecretsManagerParameterProvider.SECRET_NAME_PATTERN, namePattern);
+        if(secretNames != null) {
+            properties.put(AwsSecretsManagerParameterProvider.SECRET_NAMES, secretNames);
         }
         final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
 

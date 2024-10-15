@@ -76,9 +76,9 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     public static final PropertyDescriptor SECRET_LISTING_STRATEGY = new PropertyDescriptor.Builder()
             .name("secret-listing-strategy")
             .displayName("Secret Listing Strategy")
-            .description("Strategy to use when listing secrets. 'Pattern' strategy treats Secret Name Pattern as a regular expression and fetches  " +
+            .description("Strategy to use when listing secrets. 'Pattern' strategy uses Secret Name Pattern property and fetches  " +
                     "all secrets whose names match the pattern. 'Pattern' strategy requires ListSecrets and GetSecretValue permissions. "+
-                    "'Enumerated' strategy treats Secret Name Pattern as a coma-separated list and fetches all secrets whose names are in the list. " +
+                    "'Enumerated' strategy uses 'Secret Names' property and fetches all secrets in the list. " +
                     "'Enumerated' strategy requires only GetSecretValue permission.")
             .required(true)
             .allowableValues(PATTERN_STRATEGY, ENUMERATED_STRATEGY)
@@ -89,11 +89,19 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .name("secret-name-pattern")
             .displayName("Secret Name Pattern")
             .description("A Regular Expression matching on Secret Name that identifies Secrets whose parameters should be fetched. " +
-                    "Any secrets whose names do not match this pattern will not be fetched. Using this parameter requires the ListSecrets permission." +
-                    "This parameter is ignored if the Secret Name parameter is set.")
+                    "Any secrets whose names do not match this pattern will not be fetched. " +
+                    "This parameter is ignored if Secret Listing Strategy parameter is set to 'Enumerated'.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .required(true)
+            .dependsOn(SECRET_LISTING_STRATEGY, PATTERN_STRATEGY)
             .defaultValue(".*")
+            .build();
+
+    public static final PropertyDescriptor SECRET_NAMES = new PropertyDescriptor.Builder()
+            .name("secret-names")
+            .displayName("Secret Names")
+            .description("Comma-separated list of secret names to fetch. This parameter is ignored if the Secret Listing Strategy parameter is set to 'Pattern'.")
+            .dependsOn(SECRET_LISTING_STRATEGY, ENUMERATED_STRATEGY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     /**
      * AWS credentials provider service
@@ -137,6 +145,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             SECRET_LISTING_STRATEGY,
             SECRET_NAME_PATTERN,
+            SECRET_NAMES,
             REGION,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             TIMEOUT,
@@ -160,7 +169,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         String listingStrategy = context.getProperty(SECRET_LISTING_STRATEGY).getValue();
         if (ENUMERATED_STRATEGY.equals(listingStrategy)) {
             // if secret-name is set, fetch the secrets
-            String secretNames = context.getProperty(SECRET_NAME_PATTERN).getValue();
+            String secretNames = context.getProperty(SECRET_NAMES).getValue();
             for (String secretName : secretNames.split(",")) {
                 groups.addAll(fetchSecret(secretsManager, secretName));
             }
