@@ -79,8 +79,7 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
         if (CellType.NUMERIC == cellType) {
             // Date Formatting check limited to NUMERIC Cell Types
             if (DateUtil.isCellDateFormatted(cell)) {
-                // Default to TIMESTAMP for date formatted values using standard Date Time Pattern
-                dataType = RecordFieldType.TIMESTAMP.getDataType();
+                dataType = getDateTimeDataType(cell);
             } else {
                 final double numericCellValue = cell.getNumericCellValue();
                 final long roundedCellValue = (long) numericCellValue;
@@ -103,6 +102,24 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
         } else {
             // Default to null for known and unknown Cell Types
             dataType = null;
+        }
+
+        return dataType;
+    }
+
+    private DataType getDateTimeDataType(final Cell cell) {
+        final DataType dataType;
+
+        final double numericCellValue = cell.getNumericCellValue();
+        final long roundedCellValue = (long) numericCellValue;
+        if (roundedCellValue == numericCellValue) {
+            // Numbers without decimal fractions indicate Dates without Times
+            dataType = RecordFieldType.DATE.getDataType();
+        } else if (numericCellValue < 1) {
+            // Decimal fractions indicate Times without Dates
+            dataType = RecordFieldType.TIME.getDataType();
+        } else {
+            dataType = RecordFieldType.TIMESTAMP.getDataType();
         }
 
         return dataType;

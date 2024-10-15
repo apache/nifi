@@ -48,7 +48,11 @@ class TestStandardCellFieldTypeReader {
 
     private static final Long NUMERIC_LONG = Long.MAX_VALUE;
 
-    private static final Long NUMERIC_TIMESTAMP = 45678L;
+    private static final double NUMERIC_TIMESTAMP = 40909.417;
+
+    private static final double NUMERIC_DATE = 40909;
+
+    private static final double NUMERIC_TIME = 0.417;
 
     private static final short EXCEL_INTERNAL_DATE_FORMAT = 14;
 
@@ -200,16 +204,18 @@ class TestStandardCellFieldTypeReader {
     }
 
     @Test
+    void testGetCellDataTypeNumericDate() {
+        assertNumericDateTimeDataTypeFound(NUMERIC_DATE, RecordFieldType.DATE.getDataType());
+    }
+
+    @Test
+    void testGetCellDataTypeNumericTime() {
+        assertNumericDateTimeDataTypeFound(NUMERIC_TIME, RecordFieldType.TIME.getDataType());
+    }
+
+    @Test
     void testGetCellDataTypeNumericTimestamp() {
-        when(cell.getCellType()).thenReturn(CellType.NUMERIC);
-        when(cell.getNumericCellValue()).thenReturn(NUMERIC_TIMESTAMP.doubleValue());
-        when(cell.getCellStyle()).thenReturn(cellStyle);
-        // Set Data Format to internal Date Format for Data Type detection in DateUtil.isCellDateFormatted
-        when(cellStyle.getDataFormat()).thenReturn(EXCEL_INTERNAL_DATE_FORMAT);
-
-        final DataType dataType = reader.getCellDataType(cell);
-
-        assertEquals(RecordFieldType.TIMESTAMP.getDataType(), dataType);
+        assertNumericDateTimeDataTypeFound(NUMERIC_TIMESTAMP, RecordFieldType.TIMESTAMP.getDataType());
     }
 
     @Test
@@ -220,5 +226,17 @@ class TestStandardCellFieldTypeReader {
 
         final FieldTypeInference fieldTypeInference = fieldTypes.get(FIELD_NAME);
         assertNotNull(fieldTypeInference);
+    }
+
+    private void assertNumericDateTimeDataTypeFound(final double numericCellValue, final DataType expectedDataType) {
+        when(cell.getCellType()).thenReturn(CellType.NUMERIC);
+        when(cell.getNumericCellValue()).thenReturn(numericCellValue);
+        when(cell.getCellStyle()).thenReturn(cellStyle);
+        // Set Data Format to internal Date Format for Data Type detection in DateUtil.isCellDateFormatted
+        when(cellStyle.getDataFormat()).thenReturn(EXCEL_INTERNAL_DATE_FORMAT);
+
+        final DataType dataType = reader.getCellDataType(cell);
+
+        assertEquals(expectedDataType, dataType);
     }
 }
