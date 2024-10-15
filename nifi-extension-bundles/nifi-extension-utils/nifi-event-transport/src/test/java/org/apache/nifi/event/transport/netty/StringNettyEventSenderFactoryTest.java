@@ -26,10 +26,10 @@ import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
+import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -38,12 +38,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
+import javax.security.auth.x500.X500Principal;
 import java.net.InetAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -199,7 +205,15 @@ public class StringNettyEventSenderFactoryTest {
     }
 
     private SSLContext getSslContext() throws GeneralSecurityException {
-        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
-        return SslContextFactory.createSslContext(tlsConfiguration);
+        final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        final X509Certificate certificate = new StandardCertificateBuilder(keyPair, new X500Principal("CN=localhost"), Duration.ofHours(1)).build();
+        final KeyStore keyStore = new EphemeralKeyStoreBuilder()
+                .addPrivateKeyEntry(new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new Certificate[]{certificate}))
+                .build();
+        return new StandardSslContextBuilder()
+                .trustStore(keyStore)
+                .keyStore(keyStore)
+                .keyPassword(new char[]{})
+                .build();
     }
 }

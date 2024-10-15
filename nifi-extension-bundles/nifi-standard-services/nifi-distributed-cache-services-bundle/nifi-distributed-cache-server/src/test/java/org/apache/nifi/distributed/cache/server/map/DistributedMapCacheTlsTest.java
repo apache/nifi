@@ -22,9 +22,9 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
+import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -34,14 +34,22 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
+import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 public class DistributedMapCacheTlsTest {
 
@@ -98,19 +106,21 @@ public class DistributedMapCacheTlsTest {
         assertFalse(client.containsKey(key, serializer));
     }
 
-    /**
-     * Create a fresh {@link SSLContext} in order to test mutual TLS authentication aspect of the
-     * distributed cache protocol.
-     *
-     * @return a NiFi {@link SSLContextService}, to be used to secure the distributed cache comms
-     * @throws GeneralSecurityException on SSLContext generation failure
-     */
-    private static SSLContextService createSslContextService() throws GeneralSecurityException {
-        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
-        final SSLContext sslContext =  SslContextFactory.createSslContext(tlsConfiguration);
+    private static SSLContextService createSslContextService() throws NoSuchAlgorithmException {
+        final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        final X509Certificate certificate = new StandardCertificateBuilder(keyPair, new X500Principal("CN=localhost"), Duration.ofHours(1)).build();
+        final KeyStore keyStore = new EphemeralKeyStoreBuilder()
+                .addPrivateKeyEntry(new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new Certificate[]{certificate}))
+                .build();
+        final SSLContext sslContext = new StandardSslContextBuilder()
+                .trustStore(keyStore)
+                .keyStore(keyStore)
+                .keyPassword(new char[]{})
+                .build();
+
         final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
-        Mockito.when(sslContextService.getIdentifier()).thenReturn(sslContextService.getClass().getName());
-        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
+        when(sslContextService.getIdentifier()).thenReturn(sslContextService.getClass().getName());
+        when(sslContextService.createContext()).thenReturn(sslContext);
         return sslContextService;
     }
 

@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.ldap;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -32,10 +38,8 @@ import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.authentication.exception.ProviderDestructionException;
 import org.apache.nifi.configuration.NonComponentConfigurationContext;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -244,24 +248,93 @@ public class LdapProvider implements LoginIdentityProvider {
         }
     }
 
-    public static SSLContext getConfiguredSslContext(final NonComponentConfigurationContext configurationContext) {
-        final String rawKeystore = configurationContext.getProperty("TLS - Keystore");
-        final String rawKeystorePassword = configurationContext.getProperty("TLS - Keystore Password");
-        // TODO: Should support different key password
-        final String rawKeystoreType = configurationContext.getProperty("TLS - Keystore Type");
-        final String rawTruststore = configurationContext.getProperty("TLS - Truststore");
-        final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password");
-        final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type");
-        final String rawProtocol = configurationContext.getProperty("TLS - Protocol");
+    private static SSLContext getConfiguredSslContext(final NonComponentConfigurationContext configurationContext) {
+        final String rawProtocol = configurationContext.getProperty(ProviderProperty.TLS_PROTOCOL.getProperty());
 
+        SSLContext sslContext = null;
         try {
-            TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(rawKeystore, rawKeystorePassword, null, rawKeystoreType,
-                    rawTruststore, rawTruststorePassword, rawTruststoreType, rawProtocol);
-            return SslContextFactory.createSslContext(tlsConfiguration);
-        } catch (TlsException e) {
+            final KeyStore trustStore = getTrustStore(configurationContext);
+            if (trustStore == null) {
+                logger.debug("Truststore not configured");
+            } else {
+                final StandardSslContextBuilder sslContextBuilder = new StandardSslContextBuilder();
+                sslContextBuilder.protocol(rawProtocol);
+                sslContextBuilder.trustStore(trustStore);
+
+                final KeyStore keyStore = getKeyStore(configurationContext);
+                if (keyStore == null) {
+                    logger.debug("Keystore not configured");
+                } else {
+                    final String keyStorePassword = configurationContext.getProperty(ProviderProperty.KEYSTORE_PASSWORD.getProperty());
+                    final char[] keyPassword = keyStorePassword.toCharArray();
+
+                    sslContextBuilder.keyStore(keyStore);
+                    sslContextBuilder.keyPassword(keyPassword);
+                    sslContext = sslContextBuilder.build();
+                }
+            }
+        } catch (final Exception e) {
             logger.error("Encountered an error configuring TLS for LDAP identity provider: {}", e.getLocalizedMessage());
             throw new ProviderCreationException("Error configuring TLS for LDAP identity provider", e);
         }
+
+        return sslContext;
+    }
+
+    private static KeyStore getKeyStore(final NonComponentConfigurationContext configurationContext) throws IOException {
+        final String rawKeystore = configurationContext.getProperty(ProviderProperty.KEYSTORE.getProperty());
+        final String rawKeystorePassword = configurationContext.getProperty(ProviderProperty.KEYSTORE_PASSWORD.getProperty());
+        final String rawKeystoreType = configurationContext.getProperty(ProviderProperty.KEYSTORE_TYPE.getProperty());
+
+        final KeyStore keyStore;
+
+        if (rawKeystore == null || rawKeystore.isBlank()) {
+            keyStore = null;
+        } else if (rawKeystorePassword == null) {
+            throw new ProviderCreationException("Keystore Password not configured");
+        } else {
+            final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder();
+            builder.type(rawKeystoreType);
+
+            final char[] keyStorePassword = rawKeystorePassword.toCharArray();
+            builder.password(keyStorePassword);
+
+            final Path trustStorePath = Paths.get(rawKeystore);
+            try (InputStream trustStoreStream = Files.newInputStream(trustStorePath)) {
+                builder.inputStream(trustStoreStream);
+                keyStore = builder.build();
+            }
+        }
+
+        return keyStore;
+    }
+
+    private static KeyStore getTrustStore(final NonComponentConfigurationContext configurationContext) throws IOException  {
+        final String rawTruststore = configurationContext.getProperty(ProviderProperty.TRUSTSTORE.getProperty());
+        final String rawTruststorePassword = configurationContext.getProperty(ProviderProperty.TRUSTSTORE_PASSWORD.getProperty());
+        final String rawTruststoreType = configurationContext.getProperty(ProviderProperty.TRUSTSTORE_TYPE.getProperty());
+
+        final KeyStore trustStore;
+
+        if (rawTruststore == null || rawTruststore.isBlank()) {
+            trustStore = null;
+        } else if (rawTruststorePassword == null) {
+            throw new ProviderCreationException("Truststore Password not configured");
+        } else {
+            final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder();
+            builder.type(rawTruststoreType);
+
+            final char[] trustStorePassword = rawTruststorePassword.toCharArray();
+            builder.password(trustStorePassword);
+
+            final Path trustStorePath = Paths.get(rawTruststore);
+            try (InputStream trustStoreStream = Files.newInputStream(trustStorePath)) {
+                builder.inputStream(trustStoreStream);
+                trustStore = builder.build();
+            }
+        }
+
+        return trustStore;
     }
 
     @Override
@@ -278,8 +351,7 @@ public class LdapProvider implements LoginIdentityProvider {
             // use dn if configured
             if (IdentityStrategy.USE_DN.equals(identityStrategy)) {
                 // attempt to get the ldap user details to get the DN
-                if (authentication.getPrincipal() instanceof LdapUserDetails) {
-                    final LdapUserDetails userDetails = (LdapUserDetails) authentication.getPrincipal();
+                if (authentication.getPrincipal() instanceof LdapUserDetails userDetails) {
                     return new AuthenticationResponse(userDetails.getDn(), credentials.getUsername(), expiration, issuer);
                 } else {
                     logger.warn("Unable to determine user DN for {}, using username.", authentication.getName());

@@ -29,13 +29,13 @@ public class Kafka3ConnectionServiceSSLIT extends Kafka3ConnectionServiceBaseIT 
     protected Map<String, String> getKafkaContainerConfigProperties() {
         final Map<String, String> properties = new LinkedHashMap<>(super.getKafkaContainerConfigProperties());
         properties.put("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "BROKER:SSL,PLAINTEXT:SSL");
-        properties.put("KAFKA_SSL_KEYSTORE_LOCATION", tlsConfiguration.getKeystorePath());
-        properties.put("KAFKA_SSL_KEYSTORE_TYPE", tlsConfiguration.getKeystoreType().getType());
-        properties.put("KAFKA_SSL_KEYSTORE_PASSWORD", tlsConfiguration.getKeystorePassword());
-        properties.put("KAFKA_SSL_KEY_PASSWORD", tlsConfiguration.getKeyPassword());
-        properties.put("KAFKA_SSL_TRUSTSTORE_LOCATION", tlsConfiguration.getTruststorePath());
-        properties.put("KAFKA_SSL_TRUSTSTORE_TYPE", tlsConfiguration.getTruststoreType().getType());
-        properties.put("KAFKA_SSL_TRUSTSTORE_PASSWORD", tlsConfiguration.getTruststorePassword());
+        properties.put("KAFKA_SSL_KEYSTORE_LOCATION", keyStorePath.toString());
+        properties.put("KAFKA_SSL_KEYSTORE_TYPE", keyStoreType);
+        properties.put("KAFKA_SSL_KEYSTORE_PASSWORD", KEY_STORE_PASSWORD);
+        properties.put("KAFKA_SSL_KEY_PASSWORD", KEY_PASSWORD);
+        properties.put("KAFKA_SSL_TRUSTSTORE_LOCATION", trustStorePath.toString());
+        properties.put("KAFKA_SSL_TRUSTSTORE_TYPE", keyStoreType);
+        properties.put("KAFKA_SSL_TRUSTSTORE_PASSWORD", KEY_STORE_PASSWORD);
         properties.put("KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND", "false");
         properties.put("KAFKA_SSL_CLIENT_AUTH", "required");
         properties.put("KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM", " ");
@@ -54,13 +54,13 @@ public class Kafka3ConnectionServiceSSLIT extends Kafka3ConnectionServiceBaseIT 
     protected Map<String, String> getAdminClientConfigProperties() {
         final Map<String, String> properties = new LinkedHashMap<>(super.getAdminClientConfigProperties());
         properties.put(AdminClientConfig.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name());
-        properties.put(KafkaClientProperty.SSL_KEY_PASSWORD.getProperty(), tlsConfiguration.getKeystorePassword());
-        properties.put(KafkaClientProperty.SSL_KEYSTORE_LOCATION.getProperty(), tlsConfiguration.getKeystorePath());
-        properties.put(KafkaClientProperty.SSL_KEYSTORE_TYPE.getProperty(), tlsConfiguration.getKeystoreType().getType());
-        properties.put(KafkaClientProperty.SSL_KEYSTORE_PASSWORD.getProperty(), tlsConfiguration.getKeystorePassword());
-        properties.put(KafkaClientProperty.SSL_TRUSTSTORE_LOCATION.getProperty(), tlsConfiguration.getTruststorePath());
-        properties.put(KafkaClientProperty.SSL_TRUSTSTORE_TYPE.getProperty(), tlsConfiguration.getTruststoreType().getType());
-        properties.put(KafkaClientProperty.SSL_TRUSTSTORE_PASSWORD.getProperty(), tlsConfiguration.getTruststorePassword());
+        properties.put(KafkaClientProperty.SSL_KEY_PASSWORD.getProperty(), KEY_PASSWORD);
+        properties.put(KafkaClientProperty.SSL_KEYSTORE_LOCATION.getProperty(), keyStorePath.toString());
+        properties.put(KafkaClientProperty.SSL_KEYSTORE_TYPE.getProperty(), keyStoreType);
+        properties.put(KafkaClientProperty.SSL_KEYSTORE_PASSWORD.getProperty(), KEY_STORE_PASSWORD);
+        properties.put(KafkaClientProperty.SSL_TRUSTSTORE_LOCATION.getProperty(), trustStorePath.toString());
+        properties.put(KafkaClientProperty.SSL_TRUSTSTORE_TYPE.getProperty(), keyStoreType);
+        properties.put(KafkaClientProperty.SSL_TRUSTSTORE_PASSWORD.getProperty(), KEY_STORE_PASSWORD);
         return properties;
     }
 }

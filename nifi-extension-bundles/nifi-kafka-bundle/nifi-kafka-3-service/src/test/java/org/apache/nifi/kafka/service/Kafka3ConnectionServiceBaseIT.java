@@ -35,10 +35,9 @@ import org.apache.nifi.kafka.service.api.producer.RecordSummary;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.service.api.record.KafkaRecord;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
+import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -50,11 +49,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.io.TempDir;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
+import javax.security.auth.x500.X500Principal;
+import java.io.File;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
@@ -74,6 +84,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class Kafka3ConnectionServiceBaseIT {
@@ -100,13 +112,25 @@ public class Kafka3ConnectionServiceBaseIT {
 
     private static final int POLLING_ATTEMPTS = 3;
 
-    private static final Set<String> fileLocationNames = Set.of(
-            "KAFKA_SSL_KEYSTORE_LOCATION", "KAFKA_SSL_TRUSTSTORE_LOCATION");
+    private static final Set<String> fileLocationNames = Set.of("KAFKA_SSL_KEYSTORE_LOCATION", "KAFKA_SSL_TRUSTSTORE_LOCATION");
 
     protected static final String TEST_USERNAME = "nifi";
     protected static final String TEST_PASSWORD = UUID.randomUUID().toString();
 
-    protected TlsConfiguration tlsConfiguration;
+    private static final String KEY_STORE_EXTENSION = ".p12";
+
+    protected static final String KEY_PASSWORD = Kafka3ConnectionServiceBaseIT.class.getSimpleName();
+
+    protected static final String KEY_STORE_PASSWORD = KEY_PASSWORD;
+
+    @TempDir
+    private static Path keyStoreDirectory;
+
+    protected static Path keyStorePath;
+
+    protected static String keyStoreType;
+
+    protected static Path trustStorePath;
 
     protected TestRunner runner;
 
@@ -115,8 +139,28 @@ public class Kafka3ConnectionServiceBaseIT {
     private Kafka3ConnectionService service;
 
     @BeforeAll
-    void startContainer() {
-        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+    void startContainer() throws Exception {
+        final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        final X509Certificate certificate = new StandardCertificateBuilder(keyPair, new X500Principal("CN=localhost"), Duration.ofHours(1)).build();
+        final KeyStore keyStore = new EphemeralKeyStoreBuilder()
+                .addPrivateKeyEntry(new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new Certificate[]{certificate}))
+                .keyPassword(KEY_PASSWORD.toCharArray())
+                .build();
+
+        keyStorePath = File.createTempFile("keyStore", KEY_STORE_EXTENSION, keyStoreDirectory.toFile()).toPath();
+        try (OutputStream outputStream = Files.newOutputStream(keyStorePath)) {
+            keyStore.store(outputStream, KEY_STORE_PASSWORD.toCharArray());
+        }
+        keyStoreType = keyStore.getType().toUpperCase();
+
+        final KeyStore trustStore = new EphemeralKeyStoreBuilder()
+                .addCertificate(certificate)
+                .build();
+        trustStorePath = File.createTempFile("trustStore", KEY_STORE_EXTENSION, keyStoreDirectory.toFile()).toPath();
+        try (OutputStream outputStream = Files.newOutputStream(trustStorePath)) {
+            trustStore.store(outputStream, KEY_STORE_PASSWORD.toCharArray());
+        }
+
         kafkaContainer = new KafkaContainer(DockerImageName.parse(IMAGE_NAME));
         initializeContainer();
         kafkaContainer.start();
@@ -238,7 +282,7 @@ public class Kafka3ConnectionServiceBaseIT {
     }
 
     @Test
-    void testVerifySuccessful() throws InitializationException {
+    void testVerifySuccessful() {
         final Map<PropertyDescriptor, String> properties = new LinkedHashMap<>();
         properties.put(Kafka3ConnectionService.BOOTSTRAP_SERVERS, kafkaContainer.getBootstrapServers());
         final MockConfigurationContext configurationContext = new MockConfigurationContext(properties, null, null);
@@ -311,18 +355,18 @@ public class Kafka3ConnectionServiceBaseIT {
 
     protected String addSSLContextService(final TestRunner runner) throws InitializationException {
         final String identifier = SSLContextService.class.getSimpleName();
-        final SSLContextService service = new StandardRestrictedSSLContextService();
+        final SSLContextService service = mock(SSLContextService.class);
+        when(service.getIdentifier()).thenReturn(identifier);
         runner.addControllerService(identifier, service);
 
-        // TemporaryKeyStoreBuilder sets keystorePassword and keyPassword to the same value.
-        // The SSL Context Service uses specified Keystore Password as the Key Password.
-        //runner.setProperty(service, StandardRestrictedSSLContextService.KEY_PASSWORD, tlsConfiguration.getKeyPassword());
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE, tlsConfiguration.getKeystorePath());
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_PASSWORD, tlsConfiguration.getKeystorePassword());
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE, tlsConfiguration.getTruststorePath());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_PASSWORD, tlsConfiguration.getTruststorePassword());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        when(service.isKeyStoreConfigured()).thenReturn(true);
+        when(service.getKeyStoreFile()).thenReturn(keyStorePath.toString());
+        when(service.getKeyStoreType()).thenReturn(keyStoreType);
+        when(service.getKeyStorePassword()).thenReturn(KEY_STORE_PASSWORD);
+        when(service.isTrustStoreConfigured()).thenReturn(true);
+        when(service.getTrustStoreFile()).thenReturn(trustStorePath.toString());
+        when(service.getTrustStoreType()).thenReturn(keyStoreType);
+        when(service.getTrustStorePassword()).thenReturn(KEY_STORE_PASSWORD);
 
         runner.enableControllerService(service);
         return identifier;

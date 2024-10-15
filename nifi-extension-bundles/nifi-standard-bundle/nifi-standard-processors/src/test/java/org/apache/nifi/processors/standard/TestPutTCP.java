@@ -27,8 +27,9 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processors.standard.property.TransmissionStrategy;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
+import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -40,7 +41,6 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,11 +52,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
 import javax.net.ssl.SSLContext;
+import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -138,10 +145,7 @@ public class TestPutTCP {
 
     @Test
     public void testRunSuccessSslContextService() throws Exception {
-        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
-
-        final SSLContext sslContext = SslContextUtils.createSslContext(tlsConfiguration);
-        assertNotNull(sslContext, "SSLContext not found");
+        final SSLContext sslContext = getSslContext();
         final String identifier = SSLContextService.class.getName();
         final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
         Mockito.when(sslContextService.getIdentifier()).thenReturn(identifier);
@@ -365,6 +369,19 @@ public class TestPutTCP {
         final char[] content = new char[size];
         Arrays.fill(content, CONTENT_CHAR);
         return new String[] {new String(content)};
+    }
+
+    private SSLContext getSslContext() throws GeneralSecurityException {
+        final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        final X509Certificate certificate = new StandardCertificateBuilder(keyPair, new X500Principal("CN=localhost"), Duration.ofHours(1)).build();
+        final KeyStore keyStore = new EphemeralKeyStoreBuilder()
+                .addPrivateKeyEntry(new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new Certificate[]{certificate}))
+                .build();
+        return new StandardSslContextBuilder()
+                .trustStore(keyStore)
+                .keyStore(keyStore)
+                .keyPassword(new char[]{})
+                .build();
     }
 
     private static class MockRecordSetWriter implements RecordSetWriter {

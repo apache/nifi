@@ -17,15 +17,26 @@
 package org.apache.nifi.registry.jetty.connector;
 
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
+import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.util.StringUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import javax.security.auth.x500.X500Principal;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 
@@ -46,15 +57,34 @@ class ApplicationServerConnectorFactoryTest {
 
     private static final String LOCALHOST = "127.0.0.1";
 
-    private static final String PROPRIETARY_TRUST_STORE_TYPE = "JKS";
+    private static final String ALIAS = "entry-0";
 
-    static TlsConfiguration tlsConfiguration;
+    private static final String KEY_STORE_EXTENSION = ".p12";
+
+    private static final String KEY_STORE_PASS = ApplicationServerConnectorFactoryTest.class.getName();
+
+    @TempDir
+    private static Path keyStoreDirectory;
+
+    private static String keyStoreType;
+
+    private static Path keyStorePath;
 
     Server server;
 
     @BeforeAll
-    static void setTlsConfiguration() {
-        tlsConfiguration = new TemporaryKeyStoreBuilder().trustStoreType(PROPRIETARY_TRUST_STORE_TYPE).build();
+    static void setConfiguration() throws Exception {
+        final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        final X509Certificate certificate = new StandardCertificateBuilder(keyPair, new X500Principal("CN=localhost"), Duration.ofHours(1)).build();
+        final KeyStore keyStore = new EphemeralKeyStoreBuilder().build();
+        keyStore.setKeyEntry(ALIAS, keyPair.getPrivate(), KEY_STORE_PASS.toCharArray(), new Certificate[]{certificate});
+
+        keyStorePath = Files.createTempFile(keyStoreDirectory, ApplicationServerConnectorFactoryTest.class.getSimpleName(), KEY_STORE_EXTENSION);
+        try (OutputStream outputStream = Files.newOutputStream(keyStorePath)) {
+            keyStore.store(outputStream, KEY_STORE_PASS.toCharArray());
+        }
+
+        keyStoreType = keyStore.getType().toUpperCase();
     }
 
     @BeforeEach
@@ -144,12 +174,12 @@ class ApplicationServerConnectorFactoryTest {
 
     private Properties getSecurityProperties() {
         final Properties securityProperties = new Properties();
-        securityProperties.put(NiFiRegistryProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
-        securityProperties.put(NiFiRegistryProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-        securityProperties.put(NiFiRegistryProperties.SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
-        securityProperties.put(NiFiRegistryProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
-        securityProperties.put(NiFiRegistryProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
-        securityProperties.put(NiFiRegistryProperties.SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
+        securityProperties.put(NiFiRegistryProperties.SECURITY_KEYSTORE, keyStorePath.toString());
+        securityProperties.put(NiFiRegistryProperties.SECURITY_KEYSTORE_TYPE, keyStoreType);
+        securityProperties.put(NiFiRegistryProperties.SECURITY_KEYSTORE_PASSWD, KEY_STORE_PASS);
+        securityProperties.put(NiFiRegistryProperties.SECURITY_TRUSTSTORE, keyStorePath.toString());
+        securityProperties.put(NiFiRegistryProperties.SECURITY_TRUSTSTORE_TYPE, keyStoreType);
+        securityProperties.put(NiFiRegistryProperties.SECURITY_TRUSTSTORE_PASSWD, KEY_STORE_PASS);
         return securityProperties;
     }
 
