@@ -36,16 +36,15 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
+import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
+import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,11 +56,18 @@ import org.mockito.Answers;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509ExtendedTrustManager;
+import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -137,25 +143,36 @@ public class InvokeHTTPTest {
 
     private static final String TLS_CONNECTION_TIMEOUT = "60 s";
 
-    private static TlsConfiguration generatedTlsConfiguration;
+    private static SSLContext sslContext;
 
-    private static TlsConfiguration truststoreTlsConfiguration;
+    private static SSLContext trustStoreSslContext;
+
+    private static X509ExtendedTrustManager trustManager;
 
     private MockWebServer mockWebServer;
 
     private TestRunner runner;
 
     @BeforeAll
-    public static void setStores() {
-        generatedTlsConfiguration = new TemporaryKeyStoreBuilder().build();
-        truststoreTlsConfiguration = new StandardTlsConfiguration(
-                null,
-                null,
-                null,
-                generatedTlsConfiguration.getTruststorePath(),
-                generatedTlsConfiguration.getTruststorePassword(),
-                generatedTlsConfiguration.getTruststoreType()
-        );
+    public static void setStores() throws Exception {
+        final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        final X509Certificate certificate = new StandardCertificateBuilder(keyPair, new X500Principal("CN=localhost"), Duration.ofHours(1)).build();
+        final KeyStore keyStore = new EphemeralKeyStoreBuilder()
+                .addPrivateKeyEntry(new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new Certificate[]{certificate}))
+                .build();
+        final char[] protectionParameter = new char[]{};
+
+        sslContext = new StandardSslContextBuilder()
+                .trustStore(keyStore)
+                .keyStore(keyStore)
+                .keyPassword(protectionParameter)
+                .build();
+
+        trustStoreSslContext = new StandardSslContextBuilder()
+                .trustStore(keyStore)
+                .build();
+
+        trustManager = new StandardTrustManagerBuilder().trustStore(keyStore).build();
     }
 
     @BeforeEach
@@ -511,19 +528,19 @@ public class InvokeHTTPTest {
     }
 
     @Test
-    public void testRunGetHttp200SuccessSslContextServiceServerTrusted() throws InitializationException, GeneralSecurityException {
-        assertResponseSuccessSslContextConfigured(generatedTlsConfiguration, truststoreTlsConfiguration);
+    public void testRunGetHttp200SuccessSslContextServiceServerTrusted() throws InitializationException {
+        assertResponseSuccessSslContextConfigured(trustStoreSslContext);
     }
 
     @Test
-    public void testRunGetHttp200SuccessSslContextServiceMutualTrusted() throws InitializationException, GeneralSecurityException {
-        assertResponseSuccessSslContextConfigured(generatedTlsConfiguration, generatedTlsConfiguration);
+    public void testRunGetHttp200SuccessSslContextServiceMutualTrusted() throws InitializationException {
+        assertResponseSuccessSslContextConfigured(sslContext);
     }
 
     @Test
-    public void testRunGetSslContextServiceMutualTrustedClientCertificateMissing() throws InitializationException, GeneralSecurityException {
+    public void testRunGetSslContextServiceMutualTrustedClientCertificateMissing() throws InitializationException {
         runner.setProperty(InvokeHTTP.HTTP2_DISABLED, StringUtils.capitalize(Boolean.TRUE.toString()));
-        setSslContextConfiguration(generatedTlsConfiguration, truststoreTlsConfiguration);
+        setSslContextConfiguration(trustStoreSslContext);
         mockWebServer.requireClientAuth();
 
         setUrlProperty();
@@ -992,8 +1009,8 @@ public class InvokeHTTPTest {
         runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
     }
 
-    private void assertResponseSuccessSslContextConfigured(final TlsConfiguration serverTlsConfiguration, final TlsConfiguration clientTlsConfiguration) throws InitializationException, TlsException {
-        setSslContextConfiguration(serverTlsConfiguration, clientTlsConfiguration);
+    private void assertResponseSuccessSslContextConfigured(final SSLContext clientSslContext) throws InitializationException {
+        setSslContextConfiguration(clientSslContext);
         enqueueResponseCodeAndRun(HTTP_OK);
 
         assertResponseSuccessRelationships();
@@ -1003,14 +1020,12 @@ public class InvokeHTTPTest {
         flowFile.assertAttributeExists(InvokeHTTP.REMOTE_DN);
     }
 
-    private void setSslContextConfiguration(final TlsConfiguration serverTlsConfiguration, final TlsConfiguration clientTlsConfiguration) throws InitializationException, TlsException {
-        final SSLContextService sslContextService = setSslContextService();
-        final SSLContext serverSslContext = SslContextUtils.createSslContext(serverTlsConfiguration);
-        setMockWebServerSslSocketFactory(serverSslContext);
+    private void setSslContextConfiguration(final SSLContext clientSslContext) throws InitializationException {
+        setMockWebServerSslSocketFactory();
 
-        final SSLContext clientSslContext = SslContextUtils.createSslContext(clientTlsConfiguration);
+        final SSLContextService sslContextService = setSslContextService();
         when(sslContextService.createContext()).thenReturn(clientSslContext);
-        when(sslContextService.createTlsConfiguration()).thenReturn(clientTlsConfiguration);
+        when(sslContextService.createTrustManager()).thenReturn(trustManager);
     }
 
     private SSLContextService setSslContextService() throws InitializationException {
@@ -1026,7 +1041,7 @@ public class InvokeHTTPTest {
         return sslContextService;
     }
 
-    private void setMockWebServerSslSocketFactory(final SSLContext sslContext) {
+    private void setMockWebServerSslSocketFactory() {
         final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
         if (sslSocketFactory == null) {
             throw new IllegalArgumentException("Socket Factory not found");

@@ -18,8 +18,8 @@ package org.apache.nifi.ssl;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
+import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -27,19 +27,42 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
+import javax.security.auth.x500.X500Principal;
+
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(MockitoExtension.class)
 public class StandardRestrictedSSLContextServiceTest {
 
+    private static final String ALIAS = "entry-0";
+
     private static final String SERVICE_ID = StandardRestrictedSSLContextService.class.getSimpleName();
 
-    private static TlsConfiguration tlsConfiguration;
+    private static final String KEY_STORE_EXTENSION = ".p12";
+
+    private static final String KEY_STORE_PASS = StandardRestrictedSSLContextServiceTest.class.getName();
+
+    @TempDir
+    private static Path keyStoreDirectory;
+
+    private static Path keyStorePath;
+
+    private static String keyStoreType;
 
     @Mock
     private Processor processor;
@@ -49,8 +72,18 @@ public class StandardRestrictedSSLContextServiceTest {
     private TestRunner runner;
 
     @BeforeAll
-    public static void setConfiguration() {
-        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+    public static void setConfiguration() throws Exception {
+        final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        final X509Certificate certificate = new StandardCertificateBuilder(keyPair, new X500Principal("CN=localhost"), Duration.ofHours(1)).build();
+        final KeyStore keyStore = new EphemeralKeyStoreBuilder().build();
+        keyStore.setKeyEntry(ALIAS, keyPair.getPrivate(), KEY_STORE_PASS.toCharArray(), new Certificate[]{certificate});
+
+        keyStorePath = Files.createTempFile(keyStoreDirectory, StandardRestrictedSSLContextServiceTest.class.getSimpleName(), KEY_STORE_EXTENSION);
+        try (OutputStream outputStream = Files.newOutputStream(keyStorePath)) {
+            keyStore.store(outputStream, KEY_STORE_PASS.toCharArray());
+        }
+
+        keyStoreType = keyStore.getType().toUpperCase();
     }
 
     @BeforeEach
@@ -95,11 +128,11 @@ public class StandardRestrictedSSLContextServiceTest {
     }
 
     private void setMinimumProperties() {
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE, tlsConfiguration.getKeystorePath());
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_PASSWORD, tlsConfiguration.getKeystorePassword());
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE, tlsConfiguration.getTruststorePath());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_PASSWORD, tlsConfiguration.getTruststorePassword());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE, keyStorePath.toString());
+        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_PASSWORD, KEY_STORE_PASS);
+        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_TYPE, keyStoreType);
+        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE, keyStorePath.toString());
+        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_PASSWORD, KEY_STORE_PASS);
+        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_TYPE, keyStoreType);
     }
 }

@@ -14,9 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.security.util;
+package org.apache.nifi.ssl;
 
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsPlatform;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -25,15 +28,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * This class serves as a concrete immutable domain object (acting as an internal DTO)
- * for the various keystore and truststore configuration settings necessary for
- * building {@link javax.net.ssl.SSLContext}s.
+ * Standard implementation of TLS Configuration for SSL Context Services
  */
-public class StandardTlsConfiguration implements TlsConfiguration {
+class StandardTlsConfiguration implements TlsConfiguration {
     protected static final String SSL_PROTOCOL = "SSL";
     protected static final String TLS_PROTOCOL = "TLS";
 
-    private static final String TLS_PROTOCOL_VERSION = TlsPlatform.getLatestProtocol();
     private static final String MASKED_PASSWORD_LOG = "********";
     private static final String NULL_LOG = "null";
 
@@ -47,63 +47,6 @@ public class StandardTlsConfiguration implements TlsConfiguration {
     private final KeystoreType truststoreType;
 
     private final String protocol;
-
-    /**
-     * Default constructor present for testing and completeness.
-     */
-    public StandardTlsConfiguration() {
-        this(null, null, null, "", null, null, "", null);
-    }
-
-    /**
-     * Instantiates a container object with the given configuration values.
-     *
-     * @param keystorePath       the keystore path
-     * @param keystorePassword   the keystore password
-     * @param keystoreType       the keystore type
-     * @param truststorePath     the truststore path
-     * @param truststorePassword the truststore password
-     * @param truststoreType     the truststore type
-     */
-    public StandardTlsConfiguration(String keystorePath, String keystorePassword, KeystoreType keystoreType, String truststorePath, String truststorePassword, KeystoreType truststoreType) {
-        this(keystorePath, keystorePassword, keystorePassword, keystoreType, truststorePath, truststorePassword, truststoreType, TLS_PROTOCOL_VERSION);
-    }
-
-    /**
-     * Instantiates a container object with the given configuration values.
-     *
-     * @param keystorePath       the keystore path
-     * @param keystorePassword   the keystore password
-     * @param keyPassword        the key password
-     * @param keystoreType       the keystore type
-     * @param truststorePath     the truststore path
-     * @param truststorePassword the truststore password
-     * @param truststoreType     the truststore type
-     */
-    public StandardTlsConfiguration(String keystorePath, String keystorePassword, String keyPassword,
-                            KeystoreType keystoreType, String truststorePath, String truststorePassword, KeystoreType truststoreType) {
-        this(keystorePath, keystorePassword, keyPassword, keystoreType, truststorePath, truststorePassword, truststoreType, TLS_PROTOCOL_VERSION);
-    }
-
-    /**
-     * Instantiates a container object with the given configuration values.
-     *
-     * @param keystorePath       the keystore path
-     * @param keystorePassword   the keystore password
-     * @param keyPassword        the key password
-     * @param keystoreType       the keystore type as a String
-     * @param truststorePath     the truststore path
-     * @param truststorePassword the truststore password
-     * @param truststoreType     the truststore type as a String
-     */
-    public StandardTlsConfiguration(String keystorePath, String keystorePassword, String keyPassword,
-                            String keystoreType, String truststorePath, String truststorePassword, String truststoreType) {
-        this(keystorePath, keystorePassword, keyPassword,
-                (KeystoreType.isValidKeystoreType(keystoreType) ? KeystoreType.valueOf(keystoreType.toUpperCase()) : null),
-                truststorePath, truststorePassword,
-                (KeystoreType.isValidKeystoreType(truststoreType) ? KeystoreType.valueOf(truststoreType.toUpperCase()) : null),
-                TLS_PROTOCOL_VERSION);
-    }
 
     /**
      * Instantiates a container object with the given configuration values.
@@ -148,22 +91,6 @@ public class StandardTlsConfiguration implements TlsConfiguration {
         this.truststorePassword = truststorePassword;
         this.truststoreType = truststoreType;
         this.protocol = protocol;
-    }
-
-    /**
-     * Instantiates a container object with a deep copy of the given configuration values.
-     *
-     * @param other the configuration to copy
-     */
-    public StandardTlsConfiguration(TlsConfiguration other) {
-        this.keystorePath = other.getKeystorePath();
-        this.keystorePassword = other.getKeystorePassword();
-        this.keyPassword = other.getKeyPassword();
-        this.keystoreType = other.getKeystoreType();
-        this.truststorePath = other.getTruststorePath();
-        this.truststorePassword = other.getTruststorePassword();
-        this.truststoreType = other.getTruststoreType();
-        this.protocol = other.getProtocol();
     }
 
     @Override

@@ -34,11 +34,10 @@ import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.ldap.LdapAuthenticationStrategy;
 import org.apache.nifi.ldap.LdapsSocketFactory;
+import org.apache.nifi.ldap.ProviderProperty;
 import org.apache.nifi.ldap.ReferralStrategy;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -66,6 +65,12 @@ import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.SearchControls;
 import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -494,7 +499,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 }
 
                 do {
-                    userList.addAll(ldapTemplate.search(userSearchBase, userFilter.encode(), userControls, new AbstractContextMapper<User>() {
+                    userList.addAll(ldapTemplate.search(userSearchBase, userFilter.encode(), userControls, new AbstractContextMapper<>() {
                         @Override
                         protected User doMapFromContext(DirContextOperations ctx) {
                             // get the user
@@ -567,7 +572,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 }
 
                 do {
-                    groupList.addAll(ldapTemplate.search(groupSearchBase, groupFilter.encode(), groupControls, new AbstractContextMapper<Group>() {
+                    groupList.addAll(ldapTemplate.search(groupSearchBase, groupFilter.encode(), groupControls, new AbstractContextMapper<>() {
                         @Override
                         protected Group doMapFromContext(DirContextOperations ctx) {
                             // get the group identity
@@ -830,22 +835,91 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     }
 
     private SSLContext getConfiguredSslContext(final AuthorizerConfigurationContext configurationContext) {
-        final String rawKeystore = configurationContext.getProperty("TLS - Keystore").getValue();
-        final String rawKeystorePassword = configurationContext.getProperty("TLS - Keystore Password").getValue();
-        final String rawKeystoreType = configurationContext.getProperty("TLS - Keystore Type").getValue();
-        final String rawTruststore = configurationContext.getProperty("TLS - Truststore").getValue();
-        final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password").getValue();
-        final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type").getValue();
-        final String rawProtocol = configurationContext.getProperty("TLS - Protocol").getValue();
+        final String rawProtocol = configurationContext.getProperty(ProviderProperty.TLS_PROTOCOL.getProperty()).getValue();
 
+        SSLContext sslContext = null;
         try {
-            TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(rawKeystore, rawKeystorePassword, null, rawKeystoreType,
-                    rawTruststore, rawTruststorePassword, rawTruststoreType, rawProtocol);
-            return SslContextFactory.createSslContext(tlsConfiguration);
-        } catch (TlsException e) {
+            final KeyStore trustStore = getTrustStore(configurationContext);
+            if (trustStore == null) {
+                logger.debug("Truststore not configured");
+            } else {
+                final StandardSslContextBuilder sslContextBuilder = new StandardSslContextBuilder();
+                sslContextBuilder.protocol(rawProtocol);
+                sslContextBuilder.trustStore(trustStore);
+
+                final KeyStore keyStore = getKeyStore(configurationContext);
+                if (keyStore == null) {
+                    logger.debug("Keystore not configured");
+                } else {
+                    final String keyStorePassword = configurationContext.getProperty(ProviderProperty.KEYSTORE_PASSWORD.getProperty()).getValue();
+                    final char[] keyPassword = keyStorePassword.toCharArray();
+
+                    sslContextBuilder.keyStore(keyStore);
+                    sslContextBuilder.keyPassword(keyPassword);
+                    sslContext = sslContextBuilder.build();
+                }
+            }
+        } catch (final Exception e) {
             logger.error("Encountered an error configuring TLS for LDAP user group provider: {}", e.getLocalizedMessage());
             throw new ProviderCreationException("Error configuring TLS for LDAP user group provider", e);
         }
+
+        return sslContext;
     }
 
+    private static KeyStore getKeyStore(final AuthorizerConfigurationContext configurationContext) throws IOException {
+        final String rawKeystore = configurationContext.getProperty(ProviderProperty.KEYSTORE.getProperty()).getValue();
+        final String rawKeystorePassword = configurationContext.getProperty(ProviderProperty.KEYSTORE_PASSWORD.getProperty()).getValue();
+        final String rawKeystoreType = configurationContext.getProperty(ProviderProperty.KEYSTORE_TYPE.getProperty()).getValue();
+
+        final KeyStore keyStore;
+
+        if (rawKeystore == null || rawKeystore.isBlank()) {
+            keyStore = null;
+        } else if (rawKeystorePassword == null) {
+            throw new ProviderCreationException("Keystore Password not configured");
+        } else {
+            final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder();
+            builder.type(rawKeystoreType);
+
+            final char[] keyStorePassword = rawKeystorePassword.toCharArray();
+            builder.password(keyStorePassword);
+
+            final Path trustStorePath = Paths.get(rawKeystore);
+            try (InputStream trustStoreStream = Files.newInputStream(trustStorePath)) {
+                builder.inputStream(trustStoreStream);
+                keyStore = builder.build();
+            }
+        }
+
+        return keyStore;
+    }
+
+    private static KeyStore getTrustStore(final AuthorizerConfigurationContext configurationContext) throws IOException  {
+        final String rawTruststore = configurationContext.getProperty(ProviderProperty.TRUSTSTORE.getProperty()).getValue();
+        final String rawTruststorePassword = configurationContext.getProperty(ProviderProperty.TRUSTSTORE_PASSWORD.getProperty()).getValue();
+        final String rawTruststoreType = configurationContext.getProperty(ProviderProperty.TRUSTSTORE_TYPE.getProperty()).getValue();
+
+        final KeyStore trustStore;
+
+        if (rawTruststore == null || rawTruststore.isBlank()) {
+            trustStore = null;
+        } else if (rawTruststorePassword == null) {
+            throw new ProviderCreationException("Truststore Password not configured");
+        } else {
+            final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder();
+            builder.type(rawTruststoreType);
+
+            final char[] trustStorePassword = rawTruststorePassword.toCharArray();
+            builder.password(trustStorePassword);
+
+            final Path trustStorePath = Paths.get(rawTruststore);
+            try (InputStream trustStoreStream = Files.newInputStream(trustStorePath)) {
+                builder.inputStream(trustStoreStream);
+                trustStore = builder.build();
+            }
+        }
+
+        return trustStore;
+    }
 }

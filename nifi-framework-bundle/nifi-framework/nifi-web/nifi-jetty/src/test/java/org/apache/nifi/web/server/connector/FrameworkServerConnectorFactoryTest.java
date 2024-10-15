@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.server.connector;
 
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
+import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.util.NiFiProperties;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
@@ -29,8 +29,19 @@ import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import javax.net.ssl.SSLContext;
+import javax.security.auth.x500.X500Principal;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,12 +63,40 @@ class FrameworkServerConnectorFactoryTest {
 
     private static final String INCLUDED_CIPHER_SUITE_PATTERN = ".*AES_256_GCM.*";
 
-    private static TlsConfiguration tlsConfiguration;
+    private static final String ALIAS = "entry-0";
+
+    private static final String KEY_STORE_EXTENSION = ".p12";
+
+    private static final String KEY_STORE_PASS = FrameworkServerConnectorFactoryTest.class.getName();
+
+    @TempDir
+    private static Path keyStoreDirectory;
+
+    private static String keyStoreType;
+
+    private static Path keyStorePath;
+
+    private static SSLContext sslContext;
 
     @BeforeAll
-    static void setTlsConfiguration() {
-        final TemporaryKeyStoreBuilder builder = new TemporaryKeyStoreBuilder();
-        tlsConfiguration = builder.build();
+    static void setConfiguration() throws Exception {
+        final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        final X509Certificate certificate = new StandardCertificateBuilder(keyPair, new X500Principal("CN=localhost"), Duration.ofHours(1)).build();
+        final KeyStore keyStore = new EphemeralKeyStoreBuilder().build();
+        keyStore.setKeyEntry(ALIAS, keyPair.getPrivate(), KEY_STORE_PASS.toCharArray(), new Certificate[]{certificate});
+
+        keyStorePath = Files.createTempFile(keyStoreDirectory, FrameworkServerConnectorFactoryTest.class.getSimpleName(), KEY_STORE_EXTENSION);
+        try (OutputStream outputStream = Files.newOutputStream(keyStorePath)) {
+            keyStore.store(outputStream, KEY_STORE_PASS.toCharArray());
+        }
+
+        keyStoreType = keyStore.getType().toUpperCase();
+
+        sslContext = new StandardSslContextBuilder()
+                .keyStore(keyStore)
+                .trustStore(keyStore)
+                .keyPassword(KEY_STORE_PASS.toCharArray())
+                .build();
     }
 
     @Test
@@ -140,13 +179,13 @@ class FrameworkServerConnectorFactoryTest {
     private Properties getHttpsProperties() {
         final Properties serverProperties = new Properties();
         serverProperties.setProperty(NiFiProperties.WEB_HTTPS_PORT, Integer.toString(HTTPS_PORT));
-        serverProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
-        serverProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-        serverProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
-        serverProperties.setProperty(NiFiProperties.SECURITY_KEY_PASSWD, tlsConfiguration.getKeyPassword());
-        serverProperties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
-        serverProperties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
-        serverProperties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
+        serverProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE, keyStorePath.toString());
+        serverProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE, keyStoreType);
+        serverProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD, KEY_STORE_PASS);
+        serverProperties.setProperty(NiFiProperties.SECURITY_KEY_PASSWD, KEY_STORE_PASS);
+        serverProperties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE, keyStorePath.toString());
+        serverProperties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, keyStoreType);
+        serverProperties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, KEY_STORE_PASS);
         return serverProperties;
     }
 
@@ -154,12 +193,7 @@ class FrameworkServerConnectorFactoryTest {
         final NiFiProperties properties = getProperties(serverProperties);
         final Server server = new Server();
         final FrameworkServerConnectorFactory factory = new FrameworkServerConnectorFactory(server, properties);
-        try {
-            final SSLContext sslContext = org.apache.nifi.security.util.SslContextFactory.createSslContext(tlsConfiguration);
-            factory.setSslContext(sslContext);
-        } catch (final TlsException e) {
-            throw new IllegalStateException("Failed to create SSL Context", e);
-        }
+        factory.setSslContext(sslContext);
         return factory;
     }
 

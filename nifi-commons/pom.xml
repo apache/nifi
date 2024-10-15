@@ -53,7 +53,6 @@
         <module>nifi-security-kerberos</module>
         <module>nifi-security-ssl</module>
         <module>nifi-security-utils-api</module>
-        <module>nifi-security-utils</module>
         <module>nifi-single-user-utils</module>
         <module>nifi-site-to-site-client</module>
         <module>nifi-swagger-integration</module>

@@ -81,8 +81,6 @@ import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -114,7 +112,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -770,8 +767,7 @@ public class InvokeHTTP extends AbstractProcessor {
         if (sslService != null) {
             final SSLContext sslContext = sslService.createContext();
             final SSLSocketFactory socketFactory = sslContext.getSocketFactory();
-            final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
-            final X509TrustManager trustManager = Objects.requireNonNull(SslContextFactory.getX509TrustManager(tlsConfiguration), "Trust Manager not found");
+            final X509TrustManager trustManager = sslService.createTrustManager();;
             okHttpClientBuilder.sslSocketFactory(socketFactory, trustManager);
         }
 
