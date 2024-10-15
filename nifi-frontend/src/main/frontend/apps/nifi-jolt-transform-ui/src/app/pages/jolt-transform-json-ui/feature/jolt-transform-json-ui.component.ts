@@ -74,6 +74,18 @@ export class JoltTransformJsonUi implements OnDestroy {
     private revision$ = this.store.selectSignal(selectRevisionFromRoute);
     private clientId$ = this.store.selectSignal(selectClientIdFromRoute);
     private disconnectedNodeAcknowledged$ = this.store.selectSignal(selectDisconnectedNodeAcknowledgedFromRoute);
+    private exampleDataOptions = {
+        theme: 'nifi',
+        lineNumbers: true,
+        gutters: ['CodeMirror-lint-markers'],
+        mode: 'application/json',
+        lint: false,
+        extraKeys: {
+            'Shift-Ctrl-F': () => {
+                this.formatInput();
+            }
+        }
+    };
 
     protected readonly TextTip = TextTip;
 
@@ -180,18 +192,7 @@ export class JoltTransformJsonUi implements OnDestroy {
     }
 
     getExampleDataOptions(): any {
-        return {
-            theme: 'nifi',
-            lineNumbers: true,
-            gutters: ['CodeMirror-lint-markers'],
-            mode: 'application/json',
-            lint: false,
-            extraKeys: {
-                'Shift-Ctrl-F': () => {
-                    this.formatInput();
-                }
-            }
-        };
+        return this.exampleDataOptions;
     }
 
     getOutputOptions(): any {
@@ -372,7 +373,7 @@ export class JoltTransformJsonUi implements OnDestroy {
         });
 
         this.editJoltTransformJSONProcessorForm.controls['input'].valueChanges.subscribe(() => {
-            codeEditor.codeMirror.setOption('lint', true);
+            this.exampleDataOptions.lint = true;
         });
     }
 
