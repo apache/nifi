@@ -101,7 +101,7 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
         } else if (CellType.FORMULA == cellType) {
             dataType = getFormulaResultDataType(cell);
         } else {
-            // Default to null for known and unknown Cell Types such as ERROR
+            // Default to null for known and unknown Cell Types
             dataType = null;
         }
 
@@ -126,7 +126,7 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
                 dataType = RecordFieldType.DOUBLE.getDataType();
             }
         } else {
-            // Default to null for known and unknown Formula Result Cell Types: BLANK, ERROR
+            // Default to null for known and unknown Formula Result Cell Types
             dataType = null;
         }
 
