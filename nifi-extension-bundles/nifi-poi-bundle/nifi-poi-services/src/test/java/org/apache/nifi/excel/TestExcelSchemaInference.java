@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.excel;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -28,13 +30,18 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,10 +55,11 @@ public class TestExcelSchemaInference {
 
     private static final String SIMPLE_FORMATTING_PATH = "/excel/simpleDataFormatting.xlsx";
 
-    private final TimeValueInference timestampInference = new TimeValueInference("MM/dd/yyyy", "HH:mm:ss.SSS", "yyyy/MM/dd/ HH:mm");
+    @Mock
+    private ComponentLog logger;
 
     @Mock
-    ComponentLog logger;
+    private TimeValueInference timeValueInference;
 
     @Test
     public void testInferenceIncludesAllRecords() throws IOException {
@@ -63,7 +71,7 @@ public class TestExcelSchemaInference {
         try (final InputStream inputStream = getResourceStream()) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
                     (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
-                    new ExcelSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
+                    new ExcelSchemaInference(timeValueInference), logger);
             schema = accessStrategy.getSchema(null, inputStream, null);
         }
 
@@ -110,7 +118,7 @@ public class TestExcelSchemaInference {
         try (final InputStream inputStream = getResourceStream()) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
                     (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
-                    new ExcelSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
+                    new ExcelSchemaInference(timeValueInference), logger);
             schema = accessStrategy.getSchema(attributes, inputStream, null);
         }
 
@@ -120,6 +128,43 @@ public class TestExcelSchemaInference {
         assertFieldDataTypeEquals(schema, EXPECTED_SECOND_FIELD_NAME, RecordFieldType.TIMESTAMP.getDataType());
         assertFieldDataTypeEquals(schema, EXPECTED_THIRD_FIELD_NAME, RecordFieldType.DOUBLE.getDataType());
         assertFieldDataTypeEquals(schema, EXPECTED_FOURTH_FIELD_NAME, RecordFieldType.BOOLEAN.getDataType());
+    }
+
+    @Test
+    public void testSchemaInferenceTimestampString() throws IOException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
+        final PropertyContext context = new MockConfigurationContext(properties, null, null);
+
+        final String timestampCellValue = "2020-01-01 12:30:45";
+
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            final XSSFSheet sheet = workbook.createSheet(TestExcelSchemaInference.class.getSimpleName());
+
+            final XSSFRow row = sheet.createRow(1);
+            final XSSFCell cell = row.createCell(0, CellType.STRING);
+            cell.setCellValue(timestampCellValue);
+
+            workbook.write(outputStream);
+        }
+
+        final DataType timestampDataType = RecordFieldType.TIMESTAMP.getDataType();
+        final String timestampFormat = timestampDataType.getFormat();
+        final TimeValueInference timestampValueInference = new TimeValueInference(RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), timestampFormat);
+
+        final RecordSchema schema;
+        try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
+            final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
+                    (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
+                    new ExcelSchemaInference(timestampValueInference), logger);
+            schema = accessStrategy.getSchema(null, inputStream, null);
+        }
+
+        assertEquals(1, schema.getFieldCount());
+
+        final RecordField firstField = schema.getField(0);
+        assertEquals(RecordFieldType.TIMESTAMP.getDataType(), firstField.getDataType());
     }
 
     private InputStream getResourceStream() {

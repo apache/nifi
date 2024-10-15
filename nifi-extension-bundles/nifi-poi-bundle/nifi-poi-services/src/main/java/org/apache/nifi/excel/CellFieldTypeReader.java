@@ -29,17 +29,17 @@ interface CellFieldTypeReader {
     /**
      * Infer Cell Field Type and update Map of Field Type information
      *
-     * @param cell Spreadsheet Cell required
-     * @param fieldName Cell field name for tracking in Field Types
-     * @param fieldTypes Map of Field Name to Field Type Inference information
+     * @param cell Spreadsheet Cell can be null
+     * @param fieldName Cell field name for tracking in Field Types required
+     * @param fieldTypes Map of Field Name to Field Type Inference information required
      */
     void inferCellFieldType(Cell cell, String fieldName, Map<String, FieldTypeInference> fieldTypes);
 
     /**
      * Get Record Data Type from Spreadsheet Cell
      *
-     * @param cell Spreadsheet Cell
-     * @return Record Data Type
+     * @param cell Spreadsheet Cell can be null
+     * @return Record Data Type or null
      */
     DataType getCellDataType(Cell cell);
 }

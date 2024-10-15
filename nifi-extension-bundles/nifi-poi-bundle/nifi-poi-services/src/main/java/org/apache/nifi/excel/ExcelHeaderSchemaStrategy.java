@@ -55,11 +55,11 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
     private final CellFieldTypeReader cellFieldTypeReader;
     private final DataFormatter dataFormatter;
 
-    public ExcelHeaderSchemaStrategy(PropertyContext context, ComponentLog logger, TimeValueInference timeValueInference, Locale locale) {
+    public ExcelHeaderSchemaStrategy(PropertyContext context, ComponentLog logger, TimeValueInference timeValueInference) {
         this.context = context;
         this.logger = logger;
         this.cellFieldTypeReader = new StandardCellFieldTypeReader(timeValueInference);
-        this.dataFormatter = locale == null ? new DataFormatter() : new DataFormatter(locale);
+        this.dataFormatter = new DataFormatter();
     }
 
     @Override

@@ -48,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(MockitoExtension.class)
 public class TestExcelHeaderSchemaStrategy {
     private static final TimeValueInference TIME_VALUE_INFERENCE = new TimeValueInference("MM/dd/yyyy", "HH:mm:ss.SSS", "yyyy/MM/dd/ HH:mm");
+
     @Mock
     ComponentLog logger;
 
@@ -57,7 +58,7 @@ public class TestExcelHeaderSchemaStrategy {
         final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             SchemaNotFoundException schemaNotFoundException = assertThrows(SchemaNotFoundException.class, () -> schemaStrategy.getSchema(null, inputStream, null));
@@ -71,7 +72,7 @@ public class TestExcelHeaderSchemaStrategy {
         final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             RecordSchema schema = schemaStrategy.getSchema(null, inputStream, null);
@@ -86,7 +87,7 @@ public class TestExcelHeaderSchemaStrategy {
         final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             SchemaNotFoundException schemaNotFoundException = assertThrows(SchemaNotFoundException.class, () -> schemaStrategy.getSchema(null, inputStream, null));
@@ -100,7 +101,7 @@ public class TestExcelHeaderSchemaStrategy {
         final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             assertDoesNotThrow(() -> schemaStrategy.getSchema(null, inputStream, null));
@@ -116,7 +117,7 @@ public class TestExcelHeaderSchemaStrategy {
         final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             assertDoesNotThrow(() -> schemaStrategy.getSchema(null, inputStream, null));
@@ -132,7 +133,7 @@ public class TestExcelHeaderSchemaStrategy {
         final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             assertDoesNotThrow(() -> schemaStrategy.getSchema(null, inputStream, null));
@@ -145,7 +146,7 @@ public class TestExcelHeaderSchemaStrategy {
         final ByteArrayOutputStream outputStream = getSingleSheetWorkbook(data);
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         final ConfigurationContext context = new MockConfigurationContext(properties, null, null);
-        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE, null);
+        final ExcelHeaderSchemaStrategy schemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, TIME_VALUE_INFERENCE);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             SchemaNotFoundException schemaNotFoundException = assertThrows(SchemaNotFoundException.class, () -> schemaStrategy.getSchema(null, inputStream, null));

@@ -34,6 +34,11 @@ import java.util.Optional;
 class StandardCellFieldTypeReader implements CellFieldTypeReader {
     private final TimeValueInference timeValueInference;
 
+    /**
+     * Standard Cell Field Type Reader constructor with Time Value Inference for handling STRING Cell Types that may contain values with Timestamps
+     *
+     * @param timeValueInference Time Value Inference required for STRING Cell Type evaluation
+     */
     StandardCellFieldTypeReader(final TimeValueInference timeValueInference) {
         this.timeValueInference = Objects.requireNonNull(timeValueInference, "Time Value Inference required");
     }
@@ -41,13 +46,12 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
     /**
      * Infer Cell Field Type and append possible Data Types to mapped Field Type Inference information
      *
-     * @param cell Spreadsheet Cell required
-     * @param fieldName Cell field name for tracking in Field Types
-     * @param fieldTypes Map of Field Name to Field Type Inference information
+     * @param cell Spreadsheet Cell can be null
+     * @param fieldName Cell field name for tracking in Field Types required
+     * @param fieldTypes Map of Field Name to Field Type Inference information required
      */
     @Override
     public void inferCellFieldType(final Cell cell, final String fieldName, final Map<String, FieldTypeInference> fieldTypes) {
-        Objects.requireNonNull(cell, "Cell required");
         Objects.requireNonNull(fieldName, "Field Name required");
         Objects.requireNonNull(fieldTypes, "Field Types required");
 
@@ -59,12 +63,14 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
     /**
      * Get Record Data Type from Spreadsheet Cell Type and additional resolution of NUMERIC and STRING types
      *
-     * @param cell Spreadsheet Cell required
-     * @return Record Data Type
+     * @param cell Spreadsheet Cell can be null
+     * @return Record Data Type or null
      */
     @Override
     public DataType getCellDataType(final Cell cell) {
-        Objects.requireNonNull(cell, "Cell required");
+        if (cell == null) {
+            return null;
+        }
 
         final CellType cellType = cell.getCellType();
 
@@ -95,7 +101,7 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
         } else if (CellType.FORMULA == cellType) {
             dataType = getFormulaResultDataType(cell);
         } else {
-            // Default to null for known and unknown Cell Types: BLANK, ERROR
+            // Default to null for known and unknown Cell Types such as ERROR
             dataType = null;
         }
 

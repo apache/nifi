@@ -156,7 +156,7 @@ public class ExcelRecordReader implements RecordReader {
         final CellType formulaResultType = cell.getCachedFormulaResultType();
         return switch (formulaResultType) {
             case BOOLEAN -> cell.getBooleanCellValue();
-            case STRING -> cell.getStringCellValue();
+            case STRING, ERROR -> cell.getStringCellValue();
             case NUMERIC -> DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue() : cell.getNumericCellValue();
             default -> null;
         };

@@ -71,6 +71,13 @@ class TestStandardCellFieldTypeReader {
     }
 
     @Test
+    void testGetCellDataTypeNullCell() {
+        final DataType dataType = reader.getCellDataType(null);
+
+        assertNull(dataType);
+    }
+
+    @Test
     void testGetCellDataTypeBlank() {
         when(cell.getCellType()).thenReturn(CellType.BLANK);
 
