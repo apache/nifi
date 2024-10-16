@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.iceberg;
 
 import org.apache.iceberg.AppendFiles;
+import org.apache.iceberg.BaseMetastoreCatalog;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PendingUpdate;
@@ -269,22 +270,14 @@ public class PutIceberg extends AbstractIcebergProcessor {
         final String fileFormat = context.getProperty(FILE_FORMAT).getValue();
         final String maximumFileSize = context.getProperty(MAXIMUM_FILE_SIZE).evaluateAttributeExpressions(flowFile).getValue();
 
-        Table table;
-
-        try {
-            table = loadTable(context, flowFile);
-        } catch (Exception e) {
-            if (!handleAuthErrors(e, session, context)) {
-                getLogger().error("Failed to load table from catalog", e);
-                session.transfer(session.penalize(flowFile), REL_FAILURE);
-            }
-            return;
-        }
-
+        Table table = null;
         TaskWriter<org.apache.iceberg.data.Record> taskWriter = null;
         int recordCount = 0;
 
-        try (final InputStream in = session.read(flowFile); final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
+        try (final InputStream in = session.read(flowFile);
+             final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
+             final BaseMetastoreCatalog catalog = loadCatalog(context)) {
+            table = loadTable(context, flowFile, catalog);
             final FileFormat format = getFileFormat(table.properties(), fileFormat);
             final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, maximumFileSize);
             taskWriter = taskWriterFactory.create();
@@ -328,18 +321,21 @@ public class PutIceberg extends AbstractIcebergProcessor {
      * @param context holds the user provided information for the {@link Catalog} and the {@link Table}
      * @return loaded table
      */
-    private Table loadTable(final PropertyContext context, final FlowFile flowFile) {
-        final IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
+    private Table loadTable(final PropertyContext context, final FlowFile flowFile, final Catalog catalog) {
         final String catalogNamespace = context.getProperty(CATALOG_NAMESPACE).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-
-        final IcebergCatalogFactory catalogFactory = new IcebergCatalogFactory(catalogService);
-        final Catalog catalog = catalogFactory.create();
 
         final Namespace namespace = Namespace.of(catalogNamespace);
         final TableIdentifier tableIdentifier = TableIdentifier.of(namespace, tableName);
 
         return catalog.loadTable(tableIdentifier);
+    }
+
+    private BaseMetastoreCatalog loadCatalog(final PropertyContext context) {
+        final IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
+        final IcebergCatalogFactory catalogFactory = new IcebergCatalogFactory(catalogService);
+
+        return catalogFactory.create();
     }
 
     /**
