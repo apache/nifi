@@ -45,39 +45,43 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
      */
     @Override
     public LocalDateTime convertField(final Object field, final Optional<String> pattern, final String name) {
-        if (field == null) {
-            return null;
-        }
-        if (field instanceof LocalDateTime) {
-            return (LocalDateTime) field;
-        }
-        if (field instanceof Date date) {
-            final Instant instant = Instant.ofEpochMilli(date.getTime());
-            return ofInstant(instant);
-        }
-        if (field instanceof final Number number) {
-            // If value is a floating point number, we consider it as seconds since epoch plus a decimal part for fractions of a second.
-            if (field instanceof Double || field instanceof Float) {
-                return toLocalDateTime(number.doubleValue());
-            }
-
-            return toLocalDateTime(number.longValue());
-        }
-        if (field instanceof String) {
-            final String string = field.toString().trim();
-            if (string.isEmpty()) {
+        switch (field) {
+            case null -> {
                 return null;
             }
+            case LocalDateTime localDateTime -> {
+                return localDateTime;
+            }
+            case Date date -> {
+                final Instant instant = Instant.ofEpochMilli(date.getTime());
+                return ofInstant(instant);
+            }
+            case final Number number -> {
+                // If value is a floating point number, we consider it as seconds since epoch plus a decimal part for fractions of a second.
+                if (field instanceof Double || field instanceof Float) {
+                    return toLocalDateTime(number.doubleValue());
+                }
 
-            if (pattern.isPresent()) {
-                final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
-                try {
-                    return parseLocalDateTime(field, name, string, formatter);
-                } catch (final DateTimeParseException e) {
+                return toLocalDateTime(number.longValue());
+            }
+            case String ignored -> {
+                final String string = field.toString().trim();
+                if (string.isEmpty()) {
+                    return null;
+                }
+
+                if (pattern.isPresent()) {
+                    final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
+                    try {
+                        return parseLocalDateTime(field, name, string, formatter);
+                    } catch (final DateTimeParseException e) {
+                        return tryParseAsNumber(string, name);
+                    }
+                } else {
                     return tryParseAsNumber(string, name);
                 }
-            } else {
-                return tryParseAsNumber(string, name);
+            }
+            default -> {
             }
         }
 
@@ -141,9 +145,8 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
         }
 
         final Instant instant = Instant.ofEpochMilli(value);
-        final LocalDateTime localDateTime = ofInstant(instant);
 
-        return localDateTime;
+        return ofInstant(instant);
     }
 
     private LocalDateTime ofInstant(final Instant instant) {

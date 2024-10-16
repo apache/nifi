@@ -18,6 +18,7 @@ package org.apache.nifi.serialization.record.field;
 
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
+import java.sql.Date;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -40,45 +41,48 @@ class ObjectLocalDateFieldConverter implements FieldConverter<Object, LocalDate>
      */
     @Override
     public LocalDate convertField(final Object field, final Optional<String> pattern, final String name) {
-        if (field == null) {
-            return null;
-        }
-        if (field instanceof LocalDate) {
-            return (LocalDate) field;
-        }
-        if (field instanceof java.sql.Date date) {
-            return date.toLocalDate();
-        }
-        if (field instanceof java.util.Date date) {
-            final Instant instant = date.toInstant();
-            return ofInstant(instant);
-        }
-        if (field instanceof Number) {
-            final Number number = (Number) field;
-            final Instant instant = Instant.ofEpochMilli(number.longValue());
-            return ofInstant(instant);
-        }
-        if (field instanceof String) {
-            final String string = field.toString().trim();
-            if (string.isEmpty()) {
+        switch (field) {
+            case null -> {
                 return null;
             }
+            case LocalDate localDate -> {
+                return localDate;
+            }
+            case Date date -> {
+                return date.toLocalDate();
+            }
+            case java.util.Date date -> {
+                final Instant instant = date.toInstant();
+                return ofInstant(instant);
+            }
+            case Number number -> {
+                final Instant instant = Instant.ofEpochMilli(number.longValue());
+                return ofInstant(instant);
+            }
+            case String ignored -> {
+                final String string = field.toString().trim();
+                if (string.isEmpty()) {
+                    return null;
+                }
 
-            if (pattern.isPresent()) {
-                final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
-                try {
-                    return LocalDate.parse(string, formatter);
-                } catch (final DateTimeParseException e) {
-                    throw new FieldConversionException(LocalDate.class, field, name, e);
+                if (pattern.isPresent()) {
+                    final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
+                    try {
+                        return LocalDate.parse(string, formatter);
+                    } catch (final DateTimeParseException e) {
+                        throw new FieldConversionException(LocalDate.class, field, name, e);
+                    }
+                } else {
+                    try {
+                        final long number = Long.parseLong(string);
+                        final Instant instant = Instant.ofEpochMilli(number);
+                        return ofInstant(instant);
+                    } catch (final NumberFormatException e) {
+                        throw new FieldConversionException(LocalDate.class, field, name, e);
+                    }
                 }
-            } else {
-                try {
-                    final long number = Long.parseLong(string);
-                    final Instant instant = Instant.ofEpochMilli(number);
-                    return ofInstant(instant);
-                } catch (final NumberFormatException e) {
-                    throw new FieldConversionException(LocalDate.class, field, name, e);
-                }
+            }
+            default -> {
             }
         }
 
