@@ -26,10 +26,10 @@ import org.apache.nifi.ssl.SSLContextService;
 import java.io.IOException;
 
 /**
- * The implementation of the {@link DistributedCacheClient} using the netty library to provide the remote
+ * The implementation of the {@link CacheClient} using the netty library to provide the remote
  * communication services.
  */
-public class NettyDistributedSetCacheClient extends DistributedCacheClient {
+public class NettySetCacheClient extends CacheClient {
 
     /**
      * Constructor.
@@ -42,7 +42,7 @@ public class NettyDistributedSetCacheClient extends DistributedCacheClient {
      * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
      * @param identifier        uniquely identifies this client
      */
-    public NettyDistributedSetCacheClient(
+    public NettySetCacheClient(
             final String hostname,
             final int port,
             final int timeoutMillis,

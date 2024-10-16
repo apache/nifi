@@ -12,5 +12,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.apache.nifi.distributed.cache.client.DistributedSetCacheClientService
-org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService
+org.apache.nifi.distributed.cache.client.SetCacheClientService
+org.apache.nifi.distributed.cache.client.MapCacheClientService

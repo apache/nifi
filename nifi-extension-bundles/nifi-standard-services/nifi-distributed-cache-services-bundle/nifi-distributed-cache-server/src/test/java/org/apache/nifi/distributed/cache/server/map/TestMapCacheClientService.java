@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.distributed.cache.server.map;
 
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
+import org.apache.nifi.distributed.cache.client.MapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.operations.MapOperation;
 import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
@@ -48,7 +48,7 @@ import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class TestDistributedMapCacheClientService {
+public class TestMapCacheClientService {
     private static final String LOCALHOST = "127.0.0.1";
 
     private static final int MAX_REQUEST_LENGTH = 64;
@@ -91,13 +91,13 @@ public class TestDistributedMapCacheClientService {
      */
     @Test
     public void testClientTimeoutOnServerNetworkFailure() throws InitializationException {
-        final String clientId = DistributedMapCacheClientService.class.getSimpleName();
-        final DistributedMapCacheClientService clientService = new DistributedMapCacheClientService();
+        final String clientId = MapCacheClientService.class.getSimpleName();
+        final MapCacheClientService clientService = new MapCacheClientService();
 
         runner.addControllerService(clientId, clientService);
-        runner.setProperty(clientService, DistributedMapCacheClientService.HOSTNAME, LOCALHOST);
-        runner.setProperty(clientService, DistributedMapCacheClientService.PORT, String.valueOf(port));
-        runner.setProperty(clientService, DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "500 ms");
+        runner.setProperty(clientService, MapCacheClientService.HOSTNAME, LOCALHOST);
+        runner.setProperty(clientService, MapCacheClientService.PORT, String.valueOf(port));
+        runner.setProperty(clientService, MapCacheClientService.COMMUNICATIONS_TIMEOUT, "500 ms");
         runner.enableControllerService(clientService);
         runner.assertValid();
 

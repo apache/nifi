@@ -17,9 +17,9 @@
 package org.apache.nifi.distributed.cache.server.set;
 
 import org.apache.commons.lang3.SerializationException;
-import org.apache.nifi.distributed.cache.client.DistributedSetCacheClientService;
+import org.apache.nifi.distributed.cache.client.SetCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.distributed.cache.server.DistributedSetCacheServer;
+import org.apache.nifi.distributed.cache.server.SetCacheServer;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -35,27 +35,27 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class DistributedSetCacheTest {
+public class SetCacheServiceTest {
 
     private static TestRunner runner = null;
-    private static DistributedSetCacheServer server = null;
-    private static DistributedSetCacheClientService client = null;
+    private static SetCacheServer server = null;
+    private static SetCacheClientService client = null;
     private static final Serializer<String> serializer = new StringSerializer();
 
     @BeforeAll
     public static void setRunner() throws Exception {
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
 
-        server = new DistributedSetCacheServer();
+        server = new SetCacheServer();
         runner.addControllerService(server.getClass().getName(), server);
-        runner.setProperty(server, DistributedSetCacheServer.PORT, "0");
+        runner.setProperty(server, SetCacheServer.PORT, "0");
         runner.enableControllerService(server);
         final int port = server.getPort();
 
-        client = new DistributedSetCacheClientService();
+        client = new SetCacheClientService();
         runner.addControllerService(client.getClass().getName(), client);
-        runner.setProperty(client, DistributedSetCacheClientService.HOSTNAME, "localhost");
-        runner.setProperty(client, DistributedSetCacheClientService.PORT, String.valueOf(port));
+        runner.setProperty(client, SetCacheClientService.HOSTNAME, "localhost");
+        runner.setProperty(client, SetCacheClientService.PORT, String.valueOf(port));
         runner.enableControllerService(client);
     }
 

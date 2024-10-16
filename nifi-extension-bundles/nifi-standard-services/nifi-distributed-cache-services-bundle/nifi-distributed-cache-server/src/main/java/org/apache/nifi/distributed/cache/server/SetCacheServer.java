@@ -28,7 +28,7 @@ import org.apache.nifi.ssl.SSLContextService;
 @Tags({"distributed", "set", "distinct", "cache", "server"})
 @CapabilityDescription("Provides a set (collection of unique values) cache that can be accessed over a socket. "
         + "Interaction with this service is typically accomplished via a DistributedSetCacheClient service.")
-public class DistributedSetCacheServer extends DistributedCacheServer {
+public class SetCacheServer extends AbstractCacheServer {
 
     @Override
     protected CacheServer createCacheServer(final ConfigurationContext context) {

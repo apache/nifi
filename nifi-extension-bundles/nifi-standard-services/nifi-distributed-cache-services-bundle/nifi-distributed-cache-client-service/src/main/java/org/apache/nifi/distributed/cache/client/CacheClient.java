@@ -29,10 +29,9 @@ import org.apache.nifi.ssl.SSLContextService;
 import java.io.IOException;
 
 /**
- * Encapsulate operations which may be performed using a {@link DistributedSetCacheClientService} or a
- * {@link DistributedMapCacheClientService}.
+ * Encapsulate operations which may be performed using a Cache Client Service
  */
-public class DistributedCacheClient {
+public class CacheClient {
 
     private static final boolean DAEMON_THREAD_ENABLED = true;
 
@@ -54,12 +53,12 @@ public class DistributedCacheClient {
      * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
      * @param identifier        uniquely identifies this client
      */
-    protected DistributedCacheClient(final String hostname,
-                                     final int port,
-                                     final int timeoutMillis,
-                                     final SSLContextService sslContextService,
-                                     final VersionNegotiatorFactory factory,
-                                     final String identifier) {
+    protected CacheClient(final String hostname,
+                          final int port,
+                          final int timeoutMillis,
+                          final SSLContextService sslContextService,
+                          final VersionNegotiatorFactory factory,
+                          final String identifier) {
         final String poolName = String.format("%s[%s]", getClass().getSimpleName(), identifier);
         this.eventLoopGroup = new NioEventLoopGroup(new DefaultThreadFactory(poolName, DAEMON_THREAD_ENABLED));
         this.channelPool = new CacheClientChannelPoolFactory().createChannelPool(

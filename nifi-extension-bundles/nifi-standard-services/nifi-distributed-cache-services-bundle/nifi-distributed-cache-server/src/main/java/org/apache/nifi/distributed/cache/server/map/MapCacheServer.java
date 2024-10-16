@@ -24,16 +24,16 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.server.CacheServer;
-import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
+import org.apache.nifi.distributed.cache.server.AbstractCacheServer;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.ssl.SSLContextService;
 
 @Tags({"distributed", "cluster", "map", "cache", "server", "key/value"})
 @CapabilityDescription("Provides a map (key/value) cache that can be accessed over a socket. Interaction with this service"
-        + " is typically accomplished via a DistributedMapCacheClient service.")
-@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.ssl.StandardSSLContextService"})
-public class DistributedMapCacheServer extends DistributedCacheServer {
+        + " is typically accomplished via a Map Cache Client Service.")
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.MapCacheClientService"})
+public class MapCacheServer extends AbstractCacheServer {
 
     @Override
     protected CacheServer createCacheServer(final ConfigurationContext context) {

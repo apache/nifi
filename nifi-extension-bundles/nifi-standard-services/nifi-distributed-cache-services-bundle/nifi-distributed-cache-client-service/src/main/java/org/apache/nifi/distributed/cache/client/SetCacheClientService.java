@@ -37,10 +37,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"distributed", "cache", "state", "set", "cluster"})
-@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.DistributedSetCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
-@CapabilityDescription("Provides the ability to communicate with a DistributedSetCacheServer. This can be used in order to share a Set "
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.SetCacheServer"})
+@CapabilityDescription("Provides the ability to communicate with a SetCacheServer. This can be used in order to share a Set "
         + "between nodes in a NiFi cluster")
-public class DistributedSetCacheClientService extends AbstractControllerService implements DistributedSetCacheClient {
+public class SetCacheClientService extends AbstractControllerService implements DistributedSetCacheClient {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Server Hostname")
@@ -71,10 +71,7 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
             .defaultValue("30 secs")
             .build();
 
-    /**
-     * The implementation of the business logic for {@link DistributedSetCacheClientService}.
-     */
-    private volatile NettyDistributedSetCacheClient cacheClient = null;
+    private volatile NettySetCacheClient cacheClient = null;
 
     /**
      * Creator of object used to broker the version of the distributed cache protocol with the service.
@@ -95,7 +92,7 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
     public void onEnabled(final ConfigurationContext context) {
         getLogger().debug("Enabling Set Cache Client Service [{}]", context.getName());
         this.versionNegotiatorFactory = new StandardVersionNegotiatorFactory(ProtocolVersion.V1.value());
-        this.cacheClient = new NettyDistributedSetCacheClient(
+        this.cacheClient = new NettySetCacheClient(
                 context.getProperty(HOSTNAME).getValue(),
                 context.getProperty(PORT).asInteger(),
                 context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(),
