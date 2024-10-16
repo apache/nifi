@@ -506,7 +506,12 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
     private List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode, final boolean applyFilters)
             throws IOException {
-        final Path basePath = new File(getPath(context)).toPath();
+        final String evaluatedPath = getPath(context);
+        if (evaluatedPath == null || evaluatedPath.isBlank()) {
+            throw new IOException("Blank Directory is not valid: review configured expression for Directory property");
+        }
+
+        final Path basePath = new File(evaluatedPath).toPath();
         final Boolean recurse = context.getProperty(RECURSE).asBoolean();
         final Map<Path, BasicFileAttributes> lastModifiedMap = new HashMap<>();
 

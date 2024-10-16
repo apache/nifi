@@ -27,6 +27,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListProcessorTestWatcher;
 import org.apache.nifi.processor.util.file.transfer.FileInfo;
+import org.apache.nifi.util.LogMessage;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -159,6 +161,20 @@ public class TestListFile {
         assertEquals("/dir/test1", processor.getPath(context));
         runner.setProperty(ListFile.DIRECTORY, "${literal(\"/DIR/TEST2\"):toLower()}");
         assertEquals("/dir/test2", processor.getPath(context));
+    }
+
+    @Test
+    public void testPerformListingBlankDirectoryFailed() throws Exception {
+        runner.setProperty(ListFile.DIRECTORY, "${literal('')}");
+        runNext();
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+
+        final MockComponentLog logger = runner.getLogger();
+        final List<LogMessage> errorMessages = logger.getErrorMessages();
+        assertFalse(errorMessages.isEmpty());
+
+        final LogMessage firstLogMessage = errorMessages.getFirst();
+        assertTrue(firstLogMessage.getMsg().contains("Blank"));
     }
 
     @Test
