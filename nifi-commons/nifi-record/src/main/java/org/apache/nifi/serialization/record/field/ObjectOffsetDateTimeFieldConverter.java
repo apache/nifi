@@ -41,42 +41,45 @@ class ObjectOffsetDateTimeFieldConverter implements FieldConverter<Object, Offse
      */
     @Override
     public OffsetDateTime convertField(final Object field, final Optional<String> pattern, final String name) {
-        if (field == null) {
-            return null;
-        }
-        if (field instanceof OffsetDateTime) {
-            return (OffsetDateTime) field;
-        }
-        if (field instanceof Date date) {
-            final Instant instant = date.toInstant();
-            return ofInstant(instant);
-        }
-        if (field instanceof Number) {
-            final Number number = (Number) field;
-            final Instant instant = Instant.ofEpochMilli(number.longValue());
-            return ofInstant(instant);
-        }
-        if (field instanceof String) {
-            final String string = field.toString().trim();
-            if (string.isEmpty()) {
+        switch (field) {
+            case null -> {
                 return null;
             }
+            case OffsetDateTime offsetDateTime -> {
+                return offsetDateTime;
+            }
+            case Date date -> {
+                final Instant instant = date.toInstant();
+                return ofInstant(instant);
+            }
+            case Number number -> {
+                final Instant instant = Instant.ofEpochMilli(number.longValue());
+                return ofInstant(instant);
+            }
+            case String ignored -> {
+                final String string = field.toString().trim();
+                if (string.isEmpty()) {
+                    return null;
+                }
 
-            if (pattern.isPresent()) {
-                final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
-                try {
-                    return OffsetDateTime.parse(string, formatter);
-                } catch (final DateTimeParseException e) {
-                    throw new FieldConversionException(OffsetDateTime.class, field, name, e);
+                if (pattern.isPresent()) {
+                    final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
+                    try {
+                        return OffsetDateTime.parse(string, formatter);
+                    } catch (final DateTimeParseException e) {
+                        throw new FieldConversionException(OffsetDateTime.class, field, name, e);
+                    }
+                } else {
+                    try {
+                        final long number = Long.parseLong(string);
+                        final Instant instant = Instant.ofEpochMilli(number);
+                        return ofInstant(instant);
+                    } catch (final NumberFormatException e) {
+                        throw new FieldConversionException(OffsetDateTime.class, field, name, e);
+                    }
                 }
-            } else {
-                try {
-                    final long number = Long.parseLong(string);
-                    final Instant instant = Instant.ofEpochMilli(number);
-                    return ofInstant(instant);
-                } catch (final NumberFormatException e) {
-                    throw new FieldConversionException(OffsetDateTime.class, field, name, e);
-                }
+            }
+            default -> {
             }
         }
 

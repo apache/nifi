@@ -43,47 +43,50 @@ class ObjectLocalTimeFieldConverter implements FieldConverter<Object, LocalTime>
      */
     @Override
     public LocalTime convertField(final Object field, final Optional<String> pattern, final String name) {
-        if (field == null) {
-            return null;
-        }
-        if (field instanceof LocalTime) {
-            return (LocalTime) field;
-        }
-        if (field instanceof Time time) {
-            // Convert to Instant preserving millisecond precision
-            final long epochMilli = time.getTime();
-            final Instant instant = Instant.ofEpochMilli(epochMilli);
-            return LocalTime.ofInstant(instant, ZoneId.systemDefault());
-        }
-        if (field instanceof Date date) {
-            return ofInstant(Instant.ofEpochMilli(date.getTime()));
-        }
-        if (field instanceof Number) {
-            final Number number = (Number) field;
-            final Instant instant = Instant.ofEpochMilli(number.longValue());
-            return ofInstant(instant);
-        }
-        if (field instanceof String) {
-            final String string = field.toString().trim();
-            if (string.isEmpty()) {
+        switch (field) {
+            case null -> {
                 return null;
             }
+            case LocalTime localTime -> {
+                return localTime;
+            }
+            case Time time -> {
+                // Convert to an Instant preserving millisecond precision
+                final long epochMilli = time.getTime();
+                final Instant instant = Instant.ofEpochMilli(epochMilli);
+                return LocalTime.ofInstant(instant, ZoneId.systemDefault());
+            }
+            case Date date -> {
+                return ofInstant(Instant.ofEpochMilli(date.getTime()));
+            }
+            case Number number -> {
+                final Instant instant = Instant.ofEpochMilli(number.longValue());
+                return ofInstant(instant);
+            }
+            case String ignored -> {
+                final String string = field.toString().trim();
+                if (string.isEmpty()) {
+                    return null;
+                }
 
-            if (pattern.isPresent()) {
-                final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
-                try {
-                    return LocalTime.parse(string, formatter);
-                } catch (final DateTimeParseException e) {
-                    throw new FieldConversionException(LocalTime.class, field, name, e);
+                if (pattern.isPresent()) {
+                    final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
+                    try {
+                        return LocalTime.parse(string, formatter);
+                    } catch (final DateTimeParseException e) {
+                        throw new FieldConversionException(LocalTime.class, field, name, e);
+                    }
+                } else {
+                    try {
+                        final long number = Long.parseLong(string);
+                        final Instant instant = Instant.ofEpochMilli(number);
+                        return ofInstant(instant);
+                    } catch (final NumberFormatException e) {
+                        throw new FieldConversionException(LocalTime.class, field, name, e);
+                    }
                 }
-            } else {
-                try {
-                    final long number = Long.parseLong(string);
-                    final Instant instant = Instant.ofEpochMilli(number);
-                    return ofInstant(instant);
-                } catch (final NumberFormatException e) {
-                    throw new FieldConversionException(LocalTime.class, field, name, e);
-                }
+            }
+            default -> {
             }
         }
 
