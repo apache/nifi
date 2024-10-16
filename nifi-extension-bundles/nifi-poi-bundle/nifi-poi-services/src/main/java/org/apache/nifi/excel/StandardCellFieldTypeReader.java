@@ -78,13 +78,11 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
 
         if (CellType.NUMERIC == cellType) {
             // Date Formatting check limited to NUMERIC Cell Types
+            final double numericCellValue = cell.getNumericCellValue();
             if (DateUtil.isCellDateFormatted(cell)) {
-                final double numericCellValue = cell.getNumericCellValue();
                 dataType = getDateTimeDataType(numericCellValue);
             } else {
-                final double numericCellValue = cell.getNumericCellValue();
-                final long roundedCellValue = (long) numericCellValue;
-                if (roundedCellValue == numericCellValue) {
+                if (isWholeNumber(numericCellValue)) {
                     dataType = RecordFieldType.LONG.getDataType();
                 } else {
                     // Default to DOUBLE for NUMERIC values following cell.getNumericCellValue()
@@ -111,8 +109,7 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
     private DataType getDateTimeDataType(final double numericCellValue) {
         final DataType dataType;
 
-        final long roundedCellValue = (long) numericCellValue;
-        if (roundedCellValue == numericCellValue) {
+        if (isWholeNumber(numericCellValue)) {
             // Numbers without decimal fractions indicate Dates without Times
             dataType = RecordFieldType.DATE.getDataType();
         } else if (numericCellValue < 1) {
@@ -148,5 +145,10 @@ class StandardCellFieldTypeReader implements CellFieldTypeReader {
         }
 
         return dataType;
+    }
+
+    private boolean isWholeNumber(final double numericCellValue) {
+        final long roundedCellValue = (long) numericCellValue;
+        return roundedCellValue == numericCellValue;
     }
 }
