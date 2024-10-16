@@ -92,7 +92,7 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
         if (resolved instanceof ZonedDateTime zonedDateTime) {
             // Convert Instant to LocalDateTime using system default zone offset to incorporate adjusted hours and minutes
             final Instant instant = zonedDateTime.toInstant();
-            parsed = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+            parsed = ofInstant(instant);
         } else if (resolved instanceof LocalDateTime localDateTime) {
             parsed = localDateTime;
         } else {
