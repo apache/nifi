@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-package org.apache.nifi.github;
+package org.apache.nifi.registry.flow.git.serialize;
 
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 
