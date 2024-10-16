@@ -18,7 +18,7 @@
 <h2 mat-dialog-title>Create Connection</h2>
 @if (breadcrumbs$ | async; as breadcrumbs) {
     <form class="create-connection-form" [formGroup]="createConnectionForm">
-        <error-banner></error-banner>
+        <context-error-banner [context]="ErrorContextKey.CONNECTION"></context-error-banner>
         <mat-tab-group>
             <mat-tab label="Details">
                 <mat-dialog-content>

@@ -21,7 +21,7 @@ import { ProvenanceEventTable } from './provenance-event-table.component';
 import { MatTableModule } from '@angular/material/table';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MockComponent } from 'ng-mocks';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 describe('ProvenanceEventTable', () => {
     let component: ProvenanceEventTable;
@@ -29,7 +29,7 @@ describe('ProvenanceEventTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ProvenanceEventTable, MockComponent(ErrorBanner), MatTableModule, NoopAnimationsModule]
+            imports: [ProvenanceEventTable, MockComponent(ContextErrorBanner), MatTableModule, NoopAnimationsModule]
         });
         fixture = TestBed.createComponent(ProvenanceEventTable);
         component = fixture.componentInstance;

@@ -15,9 +15,16 @@
   ~ limitations under the License.
   -->
 
-@if ((messages$ | async)!; as messages) {
-    <div class="mb-4">
-        <div class="banner-container border-t border-b px-6 py-3 flex justify-between items-center">
+@if (messages && messages.length > 0) {
+    <div
+        class="banner-container px-4 py-3 mb-5 flex flex-col justify-between text-sm"
+        [ngClass]="{ 'border-t': showBorder, 'border-b': showBorder }">
+        <div
+            class="flex gap-4"
+            [ngClass]="{ 'items-start': messages.length > 1, 'items-center': messages.length === 1 }">
+            @if (showErrorIcon) {
+                <i class="fa fa-exclamation-triangle error-color fa-2x"></i>
+            }
             @if (messages.length === 1) {
                 <div>{{ messages[0] }}</div>
             } @else {
@@ -27,9 +34,9 @@
                     }
                 </ul>
             }
-            <div class="flex flex-col mt-auto">
-                <button mat-stroked-button (click)="dismiss()">Dismiss</button>
-            </div>
+        </div>
+        <div class="flex flex-1 mt-auto justify-end w-full">
+            <button mat-flat-button class="error-button" (click)="dismissClicked()">Dismiss</button>
         </div>
     </div>
 }

@@ -35,6 +35,8 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 import { NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { CloseOnEscapeDialog } from '@nifi/shared';
 import { CanvasState } from '../../../state';
+import { ErrorContextKey } from '../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     standalone: true,
@@ -48,7 +50,8 @@ import { CanvasState } from '../../../state';
         MatButtonModule,
         AsyncPipe,
         NifiSpinnerDirective,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ContextErrorBanner
     ],
     styleUrls: ['./edit-remote-port.component.scss']
 })
@@ -117,4 +120,6 @@ export class EditRemotePortComponent extends CloseOnEscapeDialog {
     override isDirty(): boolean {
         return this.editPortForm.dirty;
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

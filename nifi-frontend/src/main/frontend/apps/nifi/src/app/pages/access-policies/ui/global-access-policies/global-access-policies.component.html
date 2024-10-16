@@ -23,7 +23,7 @@
     } @else {
         @if (flowConfiguration$ | async; as flowConfiguration) {
             <div class="global-access-policies flex flex-col h-full">
-                <error-banner></error-banner>
+                <context-error-banner [context]="ErrorContextKey.ACCESS_POLICIES"></context-error-banner>
                 <div class="flex justify-between items-center">
                     <div>
                         <form [formGroup]="policyForm" class="my-2">

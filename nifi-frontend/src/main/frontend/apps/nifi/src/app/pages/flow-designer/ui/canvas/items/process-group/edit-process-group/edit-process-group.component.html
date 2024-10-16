@@ -17,7 +17,7 @@
 
 <h2 mat-dialog-title>{{ readonly ? 'Process Group Details' : 'Edit Process Group' }}</h2>
 <form class="process-group-edit-form" [formGroup]="editProcessGroupForm">
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.PROCESS_GROUP"></context-error-banner>
     <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
         <mat-tab label="Settings">
             <mat-dialog-content>

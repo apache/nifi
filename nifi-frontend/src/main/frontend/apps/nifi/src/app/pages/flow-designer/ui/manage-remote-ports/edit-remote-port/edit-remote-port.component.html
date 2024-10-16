@@ -17,7 +17,7 @@
 
 <h2 mat-dialog-title>Edit Remote {{ portTypeLabel }}</h2>
 <form class="edit-remote-port-form" [formGroup]="editPortForm">
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.MANAGE_REMOTE_PORTS"></context-error-banner>
     <mat-dialog-content>
         <div>
             <div class="flex flex-col mb-5">

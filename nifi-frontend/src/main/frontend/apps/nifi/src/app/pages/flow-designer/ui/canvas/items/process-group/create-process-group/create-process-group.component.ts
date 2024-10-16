@@ -35,6 +35,8 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { MatIconModule } from '@angular/material/icon';
 import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
 import { CloseOnEscapeDialog } from '@nifi/shared';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'create-process-group',
@@ -51,7 +53,8 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
         MatOptionModule,
         MatSelectModule,
         NifiTooltipDirective,
-        MatIconModule
+        MatIconModule,
+        ContextErrorBanner
     ],
     templateUrl: './create-process-group.component.html',
     styleUrls: ['./create-process-group.component.scss']
@@ -142,4 +145,6 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
             );
         }
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

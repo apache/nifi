@@ -152,11 +152,12 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
-import { Storage, NiFiCommon } from '@nifi/shared';
+import { NiFiCommon, Storage } from '@nifi/shared';
 import { resetPollingFlowAnalysis } from '../flow-analysis/flow-analysis.actions';
 import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DocumentVisibility } from '../../../../state/document-visibility';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class FlowEffects {
@@ -410,7 +411,6 @@ export class FlowEffects {
                         })
                         .afterClosed()
                         .subscribe(() => {
-                            this.store.dispatch(ErrorActions.clearBannerErrors());
                             this.store.dispatch(FlowActions.setDragging({ dragging: false }));
                         });
                 })
@@ -433,7 +433,9 @@ export class FlowEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => of(this.bannerOrFullScreenError(errorResponse)))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.bannerOrFullScreenError(errorResponse, ErrorContextKey.REMOTE_PROCESS_GROUP))
+                    )
                 )
             )
         )
@@ -537,7 +539,6 @@ export class FlowEffects {
                         })
                         .afterClosed()
                         .subscribe(() => {
-                            this.store.dispatch(ErrorActions.clearBannerErrors());
                             this.store.dispatch(FlowActions.setDragging({ dragging: false }));
                         });
                 })
@@ -560,7 +561,9 @@ export class FlowEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => of(this.bannerOrFullScreenError(errorResponse)))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.bannerOrFullScreenError(errorResponse, ErrorContextKey.PROCESS_GROUP))
+                    )
                 )
             )
         )
@@ -581,7 +584,9 @@ export class FlowEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => of(this.bannerOrFullScreenError(errorResponse)))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.bannerOrFullScreenError(errorResponse, ErrorContextKey.PROCESS_GROUP))
+                    )
                 )
             )
         )
@@ -651,7 +656,9 @@ export class FlowEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => of(this.bannerOrFullScreenError(errorResponse)))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.bannerOrFullScreenError(errorResponse, ErrorContextKey.PROCESS_GROUP))
+                    )
                 )
             )
         )
@@ -727,7 +734,6 @@ export class FlowEffects {
 
                     dialogReference.afterClosed().subscribe(() => {
                         this.canvasUtils.removeTempEdge();
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
                     });
                 })
             ),
@@ -749,7 +755,9 @@ export class FlowEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => of(this.bannerOrFullScreenError(errorResponse)))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.bannerOrFullScreenError(errorResponse, ErrorContextKey.CONNECTION))
+                    )
                 )
             )
         )
@@ -769,7 +777,6 @@ export class FlowEffects {
                         .afterClosed()
                         .subscribe(() => {
                             this.store.dispatch(FlowActions.setDragging({ dragging: false }));
-                            this.store.dispatch(ErrorActions.clearBannerErrors());
                         });
                 })
             ),
@@ -791,7 +798,9 @@ export class FlowEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => of(this.bannerOrFullScreenError(errorResponse)))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.bannerOrFullScreenError(errorResponse, ErrorContextKey.PORT))
+                    )
                 )
             )
         )
@@ -866,7 +875,10 @@ export class FlowEffects {
                                     error: (errorResponse: HttpErrorResponse) => {
                                         this.store.dispatch(
                                             FlowActions.flowBannerError({
-                                                error: this.errorHelper.getErrorString(errorResponse)
+                                                errorContext: {
+                                                    context: ErrorContextKey.REGISTRY_IMPORT,
+                                                    errors: [this.errorHelper.getErrorString(errorResponse)]
+                                                }
                                             })
                                         );
                                     }
@@ -885,7 +897,10 @@ export class FlowEffects {
                                     error: (errorResponse: HttpErrorResponse) => {
                                         this.store.dispatch(
                                             FlowActions.flowBannerError({
-                                                error: this.errorHelper.getErrorString(errorResponse)
+                                                errorContext: {
+                                                    context: ErrorContextKey.REGISTRY_IMPORT,
+                                                    errors: [this.errorHelper.getErrorString(errorResponse)]
+                                                }
                                             })
                                         );
                                     }
@@ -905,7 +920,10 @@ export class FlowEffects {
                                     error: (errorResponse: HttpErrorResponse) => {
                                         this.store.dispatch(
                                             FlowActions.flowBannerError({
-                                                error: this.errorHelper.getErrorString(errorResponse)
+                                                errorContext: {
+                                                    context: ErrorContextKey.REGISTRY_IMPORT,
+                                                    errors: [this.errorHelper.getErrorString(errorResponse)]
+                                                }
                                             })
                                         );
                                     }
@@ -926,7 +944,10 @@ export class FlowEffects {
                                     error: (errorResponse: HttpErrorResponse) => {
                                         this.store.dispatch(
                                             FlowActions.flowBannerError({
-                                                error: this.errorHelper.getErrorString(errorResponse)
+                                                errorContext: {
+                                                    context: ErrorContextKey.REGISTRY_IMPORT,
+                                                    errors: [this.errorHelper.getErrorString(errorResponse)]
+                                                }
                                             })
                                         );
                                     }
@@ -936,7 +957,6 @@ export class FlowEffects {
 
                         dialogReference.afterClosed().subscribe(() => {
                             this.store.dispatch(FlowActions.setDragging({ dragging: false }));
-                            this.store.dispatch(ErrorActions.clearBannerErrors());
                         });
                     } else {
                         this.dialog
@@ -971,7 +991,9 @@ export class FlowEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) => of(this.bannerOrFullScreenError(errorResponse)))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.bannerOrFullScreenError(errorResponse, ErrorContextKey.REGISTRY_IMPORT))
+                    )
                 )
             )
         )
@@ -1281,7 +1303,6 @@ export class FlowEffects {
                         })
                         .afterClosed()
                         .subscribe(() => {
-                            this.store.dispatch(ErrorActions.clearBannerErrors());
                             this.store.dispatch(
                                 FlowActions.selectComponents({
                                     request: {
@@ -1313,7 +1334,6 @@ export class FlowEffects {
                         })
                         .afterClosed()
                         .subscribe(() => {
-                            this.store.dispatch(ErrorActions.clearBannerErrors());
                             this.store.dispatch(
                                 FlowActions.selectComponents({
                                     request: {
@@ -1531,7 +1551,6 @@ export class FlowEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
                         this.store.dispatch(resetPropertyVerificationState());
                         if (response != 'ROUTED') {
                             this.store.dispatch(
@@ -1603,7 +1622,6 @@ export class FlowEffects {
                             });
                         }
 
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
                         this.store.dispatch(
                             FlowActions.selectComponents({
                                 request: {
@@ -1660,7 +1678,6 @@ export class FlowEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe(() => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
                         if (request.entity.id === currentProcessGroupId) {
                             this.store.dispatch(
                                 FlowActions.loadProcessGroup({
@@ -1732,8 +1749,6 @@ export class FlowEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
-
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 FlowActions.selectComponents({
@@ -1802,13 +1817,42 @@ export class FlowEffects {
             map((action) => action.response),
             switchMap((response) => {
                 if (response.errorStrategy === 'banner') {
-                    return of(this.bannerOrFullScreenError(response.errorResponse));
+                    return of(
+                        this.bannerOrFullScreenError(
+                            response.errorResponse,
+                            this.componentTypeToErrorContext(response.type)
+                        )
+                    );
                 } else {
                     return of(this.snackBarOrFullScreenError(response.errorResponse));
                 }
             })
         )
     );
+
+    private componentTypeToErrorContext(type: ComponentType): ErrorContextKey {
+        switch (type) {
+            case ComponentType.Connection:
+                return ErrorContextKey.CONNECTION;
+            case ComponentType.Label:
+                return ErrorContextKey.LABEL;
+            case ComponentType.InputPort:
+            case ComponentType.OutputPort:
+                return ErrorContextKey.PORT;
+            case ComponentType.Processor:
+                return ErrorContextKey.PROCESSOR;
+            case ComponentType.ProcessGroup:
+                return ErrorContextKey.PROCESS_GROUP;
+            case ComponentType.RemoteProcessGroup:
+                return ErrorContextKey.REMOTE_PROCESS_GROUP;
+            case ComponentType.Funnel:
+                return ErrorContextKey.FUNNEL;
+            case ComponentType.ControllerService:
+                return ErrorContextKey.CONTROLLER_SERVICES;
+            default:
+                return ErrorContextKey.FLOW;
+        }
+    }
 
     updateProcessor$ = createEffect(() =>
         this.actions$.pipe(
@@ -2775,7 +2819,12 @@ export class FlowEffects {
                                 }),
                                 catchError((errorResponse: HttpErrorResponse) => {
                                     if (request.errorStrategy === 'banner') {
-                                        return of(this.bannerOrFullScreenError(errorResponse));
+                                        return of(
+                                            this.bannerOrFullScreenError(
+                                                errorResponse,
+                                                this.componentTypeToErrorContext(request.type)
+                                            )
+                                        );
                                     } else {
                                         return of(this.snackBarOrFullScreenError(errorResponse));
                                     }
@@ -2799,7 +2848,12 @@ export class FlowEffects {
                             }),
                             catchError((errorResponse: HttpErrorResponse) => {
                                 if (request.errorStrategy === 'banner') {
-                                    return of(this.bannerOrFullScreenError(errorResponse));
+                                    return of(
+                                        this.bannerOrFullScreenError(
+                                            errorResponse,
+                                            this.componentTypeToErrorContext(request.type)
+                                        )
+                                    );
                                 } else {
                                     return of(this.snackBarOrFullScreenError(errorResponse));
                                 }
@@ -2901,7 +2955,12 @@ export class FlowEffects {
                                 }),
                                 catchError((errorResponse: HttpErrorResponse) => {
                                     if (request.errorStrategy === 'banner') {
-                                        return of(this.bannerOrFullScreenError(errorResponse));
+                                        return of(
+                                            this.bannerOrFullScreenError(
+                                                errorResponse,
+                                                this.componentTypeToErrorContext(request.type)
+                                            )
+                                        );
                                     } else {
                                         return of(this.snackBarOrFullScreenError(errorResponse));
                                     }
@@ -2925,7 +2984,12 @@ export class FlowEffects {
                             }),
                             catchError((errorResponse: HttpErrorResponse) => {
                                 if (request.errorStrategy === 'banner') {
-                                    return of(this.bannerOrFullScreenError(errorResponse));
+                                    return of(
+                                        this.bannerOrFullScreenError(
+                                            errorResponse,
+                                            this.componentTypeToErrorContext(request.type)
+                                        )
+                                    );
                                 } else {
                                     return of(this.snackBarOrFullScreenError(errorResponse));
                                 }
@@ -3028,7 +3092,12 @@ export class FlowEffects {
                                 }),
                                 catchError((errorResponse: HttpErrorResponse) => {
                                     if (request.errorStrategy === 'banner') {
-                                        return of(this.bannerOrFullScreenError(errorResponse));
+                                        return of(
+                                            this.bannerOrFullScreenError(
+                                                errorResponse,
+                                                this.componentTypeToErrorContext(request.type)
+                                            )
+                                        );
                                     } else {
                                         return of(this.snackBarOrFullScreenError(errorResponse));
                                     }
@@ -3055,7 +3124,12 @@ export class FlowEffects {
                             }),
                             catchError((errorResponse: HttpErrorResponse) => {
                                 if (request.errorStrategy === 'banner') {
-                                    return of(this.bannerOrFullScreenError(errorResponse));
+                                    return of(
+                                        this.bannerOrFullScreenError(
+                                            errorResponse,
+                                            this.componentTypeToErrorContext(request.type)
+                                        )
+                                    );
                                 } else {
                                     return of(this.snackBarOrFullScreenError(errorResponse));
                                 }
@@ -3218,7 +3292,12 @@ export class FlowEffects {
                                 }),
                                 catchError((errorResponse: HttpErrorResponse) => {
                                     if (request.errorStrategy === 'banner') {
-                                        return of(this.bannerOrFullScreenError(errorResponse));
+                                        return of(
+                                            this.bannerOrFullScreenError(
+                                                errorResponse,
+                                                this.componentTypeToErrorContext(request.type)
+                                            )
+                                        );
                                     } else {
                                         return of(this.snackBarOrFullScreenError(errorResponse));
                                     }
@@ -3245,7 +3324,12 @@ export class FlowEffects {
                             }),
                             catchError((errorResponse: HttpErrorResponse) => {
                                 if (request.errorStrategy === 'banner') {
-                                    return of(this.bannerOrFullScreenError(errorResponse));
+                                    return of(
+                                        this.bannerOrFullScreenError(
+                                            errorResponse,
+                                            this.componentTypeToErrorContext(request.type)
+                                        )
+                                    );
                                 } else {
                                     return of(this.snackBarOrFullScreenError(errorResponse));
                                 }
@@ -3403,7 +3487,10 @@ export class FlowEffects {
                                 error: (errorResponse: HttpErrorResponse) => {
                                     this.store.dispatch(
                                         FlowActions.flowBannerError({
-                                            error: this.errorHelper.getErrorString(errorResponse)
+                                            errorContext: {
+                                                context: ErrorContextKey.FLOW_VERSION,
+                                                errors: [this.errorHelper.getErrorString(errorResponse)]
+                                            }
                                         })
                                     );
                                 }
@@ -3422,7 +3509,10 @@ export class FlowEffects {
                                 error: (errorResponse: HttpErrorResponse) => {
                                     this.store.dispatch(
                                         FlowActions.flowBannerError({
-                                            error: this.errorHelper.getErrorString(errorResponse)
+                                            errorContext: {
+                                                context: ErrorContextKey.FLOW_VERSION,
+                                                errors: [this.errorHelper.getErrorString(errorResponse)]
+                                            }
                                         })
                                     );
                                 }
@@ -3472,10 +3562,6 @@ export class FlowEffects {
                                 );
                             }
                         });
-
-                    dialogReference.afterClosed().subscribe(() => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
-                    });
                 })
             ),
         { dispatch: false }
@@ -3490,7 +3576,9 @@ export class FlowEffects {
                     map((response) => {
                         return FlowActions.saveToFlowRegistrySuccess({ response });
                     }),
-                    catchError((errorResponse: HttpErrorResponse) => of(this.bannerOrFullScreenError(errorResponse)))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(this.bannerOrFullScreenError(errorResponse, ErrorContextKey.FLOW_VERSION))
+                    )
                 );
             })
         )
@@ -3509,8 +3597,8 @@ export class FlowEffects {
     flowBannerError$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowActions.flowBannerError),
-            map((action) => action.error),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            map((action) => action.errorContext),
+            switchMap((errorContext) => of(ErrorActions.addBannerError({ errorContext })))
         )
     );
 
@@ -3525,10 +3613,13 @@ export class FlowEffects {
         )
     );
 
-    private bannerOrFullScreenError(errorResponse: HttpErrorResponse) {
+    private bannerOrFullScreenError(errorResponse: HttpErrorResponse, context: ErrorContextKey) {
         if (this.errorHelper.showErrorInContext(errorResponse.status)) {
             return FlowActions.flowBannerError({
-                error: this.errorHelper.getErrorString(errorResponse)
+                errorContext: {
+                    errors: [this.errorHelper.getErrorString(errorResponse)],
+                    context
+                }
             });
         } else {
             return this.errorHelper.fullScreenError(errorResponse);

@@ -41,6 +41,8 @@ import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.
 import { ClusterSummary } from '../../../../../state/cluster-summary';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from '../../../../../state/error';
 
 @Component({
     selector: 'provenance-event-table',
@@ -64,7 +66,8 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
         MatButtonModule,
         MatMenu,
         MatMenuItem,
-        MatMenuTrigger
+        MatMenuTrigger,
+        ContextErrorBanner
     ],
     styleUrls: ['./provenance-event-table.component.scss']
 })
@@ -402,4 +405,6 @@ export class ProvenanceEventTable implements AfterViewInit {
     refreshClicked(): void {
         this.resubmitProvenanceQuery.next();
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

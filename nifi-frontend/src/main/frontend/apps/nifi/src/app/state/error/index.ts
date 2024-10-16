@@ -22,8 +22,48 @@ export interface ErrorDetail {
     message: string;
 }
 
+export enum ErrorContextKey {
+    ACCESS_POLICIES = 'access-policies',
+    QUEUE = 'queue',
+    CLUSTER = 'cluster',
+    PROVENANCE = 'provenance',
+    COMPONENT_STATE = 'component-state',
+    STATUS_HISTORY = 'status-history',
+    SYSTEM_DIAGNOSTICS = 'system-diagnostics',
+    CONTROLLER_SERVICES = 'controller-services',
+    FLOW = 'flow',
+    MANAGE_REMOTE_PORTS = 'manage-remote-ports',
+    PARAMETER_CONTEXTS = 'parameter-contexts',
+    PARAMETER_PROVIDERS = 'parameter-providers',
+    REGISTRY_CLIENTS = 'registry-clients',
+    REPORTING_TASKS = 'report-tasks',
+    USERS = 'users',
+    PROCESS_GROUP = 'process-group',
+    REMOTE_PROCESS_GROUP = 'remote-process-group',
+    PROCESSOR = 'processor',
+    CONNECTION = 'connection',
+    PORT = 'port',
+    REGISTRY_IMPORT = 'registry-import',
+    LABEL = 'label',
+    FLOW_VERSION = 'flow-version',
+    FUNNEL = 'funnel',
+    LOCAL_EXTENSIONS = 'local-extensions',
+    LINEAGE = 'lineage',
+    FLOW_ANALYSIS_RULES = 'flow-analysis-rules'
+}
+
+export interface ErrorContext {
+    context: ErrorContextKey;
+    errors: string[];
+}
+
+export interface BannerErrors {
+    // key should be the ErrorContextKey of the banner error
+    [key: string]: string[];
+}
+
 export interface ErrorState {
-    bannerErrors: string[] | null;
+    bannerErrors: BannerErrors;
     fullScreenError: ErrorDetail | null;
     routedToFullScreenError: boolean;
 }

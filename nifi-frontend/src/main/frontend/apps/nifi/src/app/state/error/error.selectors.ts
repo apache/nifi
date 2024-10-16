@@ -16,13 +16,16 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { errorFeatureKey, ErrorState } from './index';
+import { BannerErrors, errorFeatureKey, ErrorState } from './index';
 
 export const selectErrorState = createFeatureSelector<ErrorState>(errorFeatureKey);
 
 export const selectFullScreenError = createSelector(selectErrorState, (state: ErrorState) => state.fullScreenError);
 
-export const selectBannerErrors = createSelector(selectErrorState, (state: ErrorState) => state.bannerErrors);
+export const selectAllBannerErrors = createSelector(selectErrorState, (state: ErrorState) => state.bannerErrors);
+
+export const selectBannerErrors = (context: string) =>
+    createSelector(selectAllBannerErrors, (bannerErrors: BannerErrors) => bannerErrors[context] || []);
 
 export const selectRoutedToFullScreenError = createSelector(
     selectErrorState,

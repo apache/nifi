@@ -37,6 +37,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class UserListingEffects {
@@ -233,7 +234,9 @@ export class UserListingEffects {
         this.actions$.pipe(
             ofType(UserListingActions.usersApiBannerError),
             map((action) => action.error),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            switchMap((error) =>
+                of(ErrorActions.addBannerError({ errorContext: { errors: [error], context: ErrorContextKey.USERS } }))
+            )
         )
     );
 
@@ -393,8 +396,6 @@ export class UserListingEffects {
                         });
 
                     dialogReference.afterClosed().subscribe(() => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
-
                         this.store.dispatch(
                             selectTenant({
                                 id: request.user.id
@@ -601,8 +602,6 @@ export class UserListingEffects {
                         });
 
                     dialogReference.afterClosed().subscribe(() => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
-
                         this.store.dispatch(
                             selectTenant({
                                 id: request.userGroup.id

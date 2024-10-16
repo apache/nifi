@@ -56,6 +56,7 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
@@ -391,7 +392,6 @@ export class ManagementControllerServicesEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
                         this.store.dispatch(resetPropertyVerificationState());
 
                         if (response != 'ROUTED') {
@@ -445,7 +445,13 @@ export class ManagementControllerServicesEffects {
         this.actions$.pipe(
             ofType(ManagementControllerServicesActions.managementControllerServicesBannerApiError),
             map((action) => action.error),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            switchMap((error) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: { errors: [error], context: ErrorContextKey.CONTROLLER_SERVICES }
+                    })
+                )
+            )
         )
     );
 

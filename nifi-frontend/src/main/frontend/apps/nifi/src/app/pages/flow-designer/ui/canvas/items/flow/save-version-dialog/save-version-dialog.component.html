@@ -17,7 +17,7 @@
 
 <h2 mat-dialog-title>Save Flow Version</h2>
 <form class="save-version-form" [formGroup]="saveVersionForm">
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.FLOW_VERSION"></context-error-banner>
     <mat-dialog-content>
         @if (versionControlInformation) {
             <div class="flex flex-col gap-y-4 mb-6">

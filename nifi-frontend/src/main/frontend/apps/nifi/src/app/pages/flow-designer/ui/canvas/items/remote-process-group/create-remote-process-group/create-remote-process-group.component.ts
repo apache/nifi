@@ -34,6 +34,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { CreateComponentRequest } from '../../../../../state/flow';
 import { NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { CloseOnEscapeDialog } from '@nifi/shared';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     standalone: true,
@@ -49,7 +51,8 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
         MatOptionModule,
         MatSelectModule,
         MatIconModule,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ContextErrorBanner
     ],
     templateUrl: './create-remote-process-group.component.html',
     styleUrls: ['./create-remote-process-group.component.scss']
@@ -98,4 +101,5 @@ export class CreateRemoteProcessGroup extends CloseOnEscapeDialog {
     }
 
     protected readonly TextTip = TextTip;
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

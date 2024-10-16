@@ -34,6 +34,8 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 @Component({
     selector: 'edit-port',
     standalone: true,
@@ -47,7 +49,8 @@ import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared
         MatButtonModule,
         AsyncPipe,
         NifiSpinnerDirective,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ContextErrorBanner
     ],
     styleUrls: ['./edit-port.component.scss']
 })
@@ -127,4 +130,5 @@ export class EditPort extends CloseOnEscapeDialog {
     }
 
     protected readonly TextTip = TextTip;
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

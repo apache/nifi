@@ -41,6 +41,8 @@ import { MatListModule } from '@angular/material/list';
 import { Client } from '../../../service/client.service';
 import { NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
 import { ErrorBanner } from '../error-banner/error-banner.component';
+import { ErrorContextKey } from '../../../state/error';
+import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'edit-tenant-dialog',
@@ -57,7 +59,8 @@ import { ErrorBanner } from '../error-banner/error-banner.component';
         NifiSpinnerDirective,
         AsyncPipe,
         MatListModule,
-        ErrorBanner
+        ErrorBanner,
+        ContextErrorBanner
     ],
     templateUrl: './edit-tenant-dialog.component.html',
     styleUrls: ['./edit-tenant-dialog.component.scss']
@@ -258,4 +261,6 @@ export class EditTenantDialog extends CloseOnEscapeDialog {
     override isDirty(): boolean {
         return this.editTenantForm.dirty;
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

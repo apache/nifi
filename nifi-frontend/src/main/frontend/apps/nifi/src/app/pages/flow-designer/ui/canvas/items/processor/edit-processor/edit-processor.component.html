@@ -26,7 +26,7 @@
     </div>
 </h2>
 <form class="processor-edit-form" [formGroup]="editProcessorForm">
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.PROCESSOR"></context-error-banner>
     <!-- TODO - Stop & Configure -->
     <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
         <mat-tab label="Settings">

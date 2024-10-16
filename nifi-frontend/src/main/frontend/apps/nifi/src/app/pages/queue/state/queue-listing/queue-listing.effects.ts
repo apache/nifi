@@ -36,6 +36,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { stopPollingQueueListingRequest } from './queue-listing.actions';
 import { LARGE_DIALOG } from 'libs/shared/src';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class QueueListingEffects {
@@ -339,7 +340,9 @@ export class QueueListingEffects {
             tap(() => {
                 this.store.dispatch(QueueListingActions.stopPollingQueueListingRequest());
             }),
-            switchMap(({ error }) => of(ErrorActions.addBannerError({ error })))
+            switchMap(({ error }) =>
+                of(ErrorActions.addBannerError({ errorContext: { errors: [error], context: ErrorContextKey.QUEUE } }))
+            )
         )
     );
 }

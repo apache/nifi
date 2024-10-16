@@ -36,6 +36,8 @@ import { SaveVersionDialogRequest, SaveVersionRequest, VersionControlInformation
 import { TextTip, NiFiCommon, NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
 import { NgForOf, NgIf } from '@angular/common';
 import { MatInput } from '@angular/material/input';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'save-version-dialog',
@@ -57,7 +59,8 @@ import { MatInput } from '@angular/material/input';
         MatLabel,
         NgForOf,
         NgIf,
-        MatInput
+        MatInput,
+        ContextErrorBanner
     ],
     templateUrl: './save-version-dialog.component.html',
     styleUrl: './save-version-dialog.component.scss'
@@ -238,4 +241,6 @@ export class SaveVersionDialog extends CloseOnEscapeDialog implements OnInit {
     override isDirty(): boolean {
         return this.saveVersionForm.dirty;
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

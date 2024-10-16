@@ -51,6 +51,7 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ReportingTasksEffects {
@@ -154,7 +155,13 @@ export class ReportingTasksEffects {
         this.actions$.pipe(
             ofType(ReportingTaskActions.reportingTasksBannerApiError),
             map((action) => action.error),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            switchMap((error) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: { errors: [error], context: ErrorContextKey.REPORTING_TASKS }
+                    })
+                )
+            )
         )
     );
 
@@ -402,7 +409,6 @@ export class ReportingTasksEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
                         this.store.dispatch(resetPropertyVerificationState());
 
                         if (response != 'ROUTED') {

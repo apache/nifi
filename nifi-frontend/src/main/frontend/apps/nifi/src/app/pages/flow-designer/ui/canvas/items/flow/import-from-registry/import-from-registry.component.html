@@ -17,7 +17,7 @@
 
 <h2 mat-dialog-title>Import From Registry</h2>
 <form class="import-from-registry-form" [formGroup]="importFromRegistryForm">
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.REGISTRY_IMPORT"></context-error-banner>
     <mat-dialog-content>
         <div class="dialog-content flex flex-col h-full gap-y-2">
             <div>

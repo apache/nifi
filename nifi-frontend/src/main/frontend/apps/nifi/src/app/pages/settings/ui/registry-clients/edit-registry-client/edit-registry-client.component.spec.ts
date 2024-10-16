@@ -25,7 +25,7 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 
 import 'codemirror/addon/hint/show-hint';
 import { MockComponent } from 'ng-mocks';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 describe('EditRegistryClient', () => {
     let component: EditRegistryClient;
@@ -109,7 +109,7 @@ describe('EditRegistryClient', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditRegistryClient, MockComponent(ErrorBanner), NoopAnimationsModule],
+            imports: [EditRegistryClient, MockComponent(ContextErrorBanner), NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 {

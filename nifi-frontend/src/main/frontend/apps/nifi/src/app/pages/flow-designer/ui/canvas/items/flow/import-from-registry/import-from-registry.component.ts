@@ -51,6 +51,8 @@ import { Client } from '../../../../../../../service/client.service';
 import { importFromRegistry } from '../../../../../state/flow/flow.actions';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { isDefinedAndNotNull, SelectOption } from 'libs/shared/src';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'import-from-registry',
@@ -74,7 +76,8 @@ import { isDefinedAndNotNull, SelectOption } from 'libs/shared/src';
         JsonPipe,
         MatCheckboxModule,
         MatSortModule,
-        MatTableModule
+        MatTableModule,
+        ContextErrorBanner
     ],
     templateUrl: './import-from-registry.component.html',
     styleUrls: ['./import-from-registry.component.scss']
@@ -414,4 +417,6 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
     override isDirty(): boolean {
         return this.importFromRegistryForm.dirty;
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

@@ -37,6 +37,7 @@ import { selectTimeOffset } from '../../../../state/flow-configuration/flow-conf
 import { selectAbout } from '../../../../state/about/about.selectors';
 import { MEDIUM_DIALOG } from 'libs/shared/src';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ManageRemotePortsEffects {
@@ -126,7 +127,13 @@ export class ManageRemotePortsEffects {
         this.actions$.pipe(
             ofType(ManageRemotePortsActions.remotePortsBannerApiError),
             map((action) => action.error),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            switchMap((error) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: { errors: [error], context: ErrorContextKey.MANAGE_REMOTE_PORTS }
+                    })
+                )
+            )
         )
     );
 
@@ -220,8 +227,6 @@ export class ManageRemotePortsEffects {
                     });
 
                     editDialogReference.afterClosed().subscribe((response) => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
-
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 ManageRemotePortsActions.selectRemotePort({

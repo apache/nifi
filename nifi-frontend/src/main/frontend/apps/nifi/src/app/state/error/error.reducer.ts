@@ -27,7 +27,7 @@ import {
 import { produce } from 'immer';
 
 export const initialState: ErrorState = {
-    bannerErrors: null,
+    bannerErrors: {},
     fullScreenError: null,
     routedToFullScreenError: false
 };
@@ -38,19 +38,25 @@ export const errorReducer = createReducer(
         ...state,
         fullScreenError: errorDetail
     })),
-    on(addBannerError, (state, { error }) => {
+    on(addBannerError, (state, { errorContext }) => {
         return produce(state, (draftState) => {
             if (draftState.bannerErrors === null) {
-                draftState.bannerErrors = [];
+                draftState.bannerErrors = {};
+            }
+            if (!draftState.bannerErrors[errorContext.context]) {
+                draftState.bannerErrors[errorContext.context] = [];
             }
 
-            draftState.bannerErrors.push(error);
+            draftState.bannerErrors[errorContext.context].push(...errorContext.errors);
         });
     }),
-    on(clearBannerErrors, (state) => ({
-        ...state,
-        bannerErrors: null
-    })),
+    on(clearBannerErrors, (state, { context }) => {
+        return produce(state, (draftState) => {
+            if (draftState.bannerErrors && draftState.bannerErrors[context]) {
+                delete draftState.bannerErrors[context];
+            }
+        });
+    }),
     on(setRoutedToFullScreenError, (state, { routedToFullScreenError }) => ({
         ...state,
         routedToFullScreenError

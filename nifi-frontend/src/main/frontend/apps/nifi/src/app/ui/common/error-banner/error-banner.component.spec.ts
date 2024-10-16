@@ -18,8 +18,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ErrorBanner } from './error-banner.component';
-import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../state/error/error.reducer';
 
 describe('ErrorBanner', () => {
     let component: ErrorBanner;
@@ -27,8 +25,7 @@ describe('ErrorBanner', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [ErrorBanner],
-            providers: [provideMockStore({ initialState })]
+            imports: [ErrorBanner]
         });
         fixture = TestBed.createComponent(ErrorBanner);
         component = fixture.componentInstance;

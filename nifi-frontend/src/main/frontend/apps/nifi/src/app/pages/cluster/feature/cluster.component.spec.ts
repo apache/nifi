@@ -25,10 +25,10 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { selectClusterListing } from '../state/cluster-listing/cluster-listing.selectors';
 import { clusterListingFeatureKey } from '../state/cluster-listing';
 import { ClusterState } from '../state';
-import { ErrorBanner } from '../../../ui/common/error-banner/error-banner.component';
 import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { ContextErrorBanner } from '../../../ui/common/context-error-banner/context-error-banner.component';
 
 describe('Cluster', () => {
     let component: Cluster;
@@ -46,7 +46,7 @@ describe('Cluster', () => {
                 RouterTestingModule,
                 MockComponent(BannerText),
                 MockComponent(Navigation),
-                MockComponent(ErrorBanner)
+                MockComponent(ContextErrorBanner)
             ],
             providers: [
                 provideMockStore({

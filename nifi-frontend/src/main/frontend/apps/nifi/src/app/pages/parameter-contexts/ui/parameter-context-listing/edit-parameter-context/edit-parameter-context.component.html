@@ -19,7 +19,7 @@
     {{ readonly ? 'Parameter Context Details' : isNew ? 'Add Parameter Context' : 'Edit Parameter Context' }}
 </h2>
 <form class="parameter-context-edit-form" [formGroup]="editParameterContextForm">
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.PARAMETER_CONTEXTS"></context-error-banner>
     @if ((updateRequest | async)!; as requestEntity) {
         <mat-dialog-content>
             <div class="dialog-tab-content flex gap-x-8">

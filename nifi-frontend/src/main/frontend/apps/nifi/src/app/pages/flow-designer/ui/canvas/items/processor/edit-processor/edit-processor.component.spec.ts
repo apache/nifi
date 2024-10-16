@@ -26,8 +26,8 @@ import { ClusterConnectionService } from '../../../../../../../service/cluster-c
 
 import 'codemirror/addon/hint/show-hint';
 import { MockComponent } from 'ng-mocks';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 describe('EditProcessor', () => {
     let component: EditProcessor;
@@ -727,7 +727,7 @@ describe('EditProcessor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditProcessor, MockComponent(ErrorBanner), NoopAnimationsModule],
+            imports: [EditProcessor, MockComponent(ContextErrorBanner), NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 {

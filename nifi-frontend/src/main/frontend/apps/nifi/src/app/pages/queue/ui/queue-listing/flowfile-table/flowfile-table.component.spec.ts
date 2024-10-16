@@ -21,7 +21,7 @@ import { FlowFileTable } from './flowfile-table.component';
 import { MatTableModule } from '@angular/material/table';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MockComponent } from 'ng-mocks';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 describe('FlowFileTable', () => {
     let component: FlowFileTable;
@@ -29,7 +29,7 @@ describe('FlowFileTable', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [FlowFileTable, MockComponent(ErrorBanner), MatTableModule, NoopAnimationsModule]
+            imports: [FlowFileTable, MockComponent(ContextErrorBanner), MatTableModule, NoopAnimationsModule]
         });
         fixture = TestBed.createComponent(FlowFileTable);
         component = fixture.componentInstance;

@@ -17,7 +17,7 @@
 
 <div class="component-state-dialog">
     <h2 mat-dialog-title>Component State</h2>
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.COMPONENT_STATE"></context-error-banner>
     <mat-dialog-content>
         <div class="dialog-content flex flex-col justify-between gap-y-5">
             @if (componentName$ | async; as componentName) {

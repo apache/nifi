@@ -16,7 +16,7 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { ErrorDetail } from './index';
+import { ErrorContext, ErrorContextKey, ErrorDetail } from './index';
 
 export const fullScreenError = createAction(
     '[Error] Full Screen Error',
@@ -25,9 +25,9 @@ export const fullScreenError = createAction(
 
 export const snackBarError = createAction('[Error] Snackbar Error', props<{ error: string }>());
 
-export const addBannerError = createAction('[Error] Add Banner Error', props<{ error: string }>());
+export const addBannerError = createAction('[Error] Add Banner Error', props<{ errorContext: ErrorContext }>());
 
-export const clearBannerErrors = createAction('[Error] Clear Banner Errors');
+export const clearBannerErrors = createAction('[Error] Clear Banner Errors', props<{ context: ErrorContextKey }>());
 
 export const resetErrorState = createAction('[Error] Reset Error State');
 

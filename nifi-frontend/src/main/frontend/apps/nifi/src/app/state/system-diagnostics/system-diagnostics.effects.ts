@@ -29,6 +29,7 @@ import { LARGE_DIALOG } from 'libs/shared/src';
 import * as ErrorActions from '../error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../service/error-helper.service';
+import { ErrorContextKey } from '../error';
 
 @Injectable()
 export class SystemDiagnosticsEffects {
@@ -125,7 +126,13 @@ export class SystemDiagnosticsEffects {
         this.actions$.pipe(
             ofType(SystemDiagnosticsActions.systemDiagnosticsBannerError),
             map((action) => action.error),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            switchMap((error) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: { errors: [error], context: ErrorContextKey.SYSTEM_DIAGNOSTICS }
+                    })
+                )
+            )
         )
     );
 

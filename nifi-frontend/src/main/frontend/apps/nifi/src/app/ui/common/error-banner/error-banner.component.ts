@@ -15,27 +15,25 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
-import { Store } from '@ngrx/store';
-import { AsyncPipe } from '@angular/common';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import { NiFiState } from '../../../state';
-import { selectBannerErrors } from '../../../state/error/error.selectors';
-import { clearBannerErrors } from '../../../state/error/error.actions';
 
 @Component({
     selector: 'error-banner',
     standalone: true,
-    imports: [MatButtonModule, AsyncPipe],
+    imports: [MatButtonModule, NgClass],
     templateUrl: './error-banner.component.html',
     styleUrls: ['./error-banner.component.scss']
 })
 export class ErrorBanner {
-    messages$ = this.store.select(selectBannerErrors);
+    @Input() messages: string[] | null = null;
+    @Input() showErrorIcon = true;
+    @Input() showBorder = true;
 
-    constructor(private store: Store<NiFiState>) {}
+    @Output() dismiss: EventEmitter<void> = new EventEmitter<void>();
 
-    dismiss(): void {
-        this.store.dispatch(clearBannerErrors());
+    dismissClicked(): void {
+        this.dismiss.next();
     }
 }

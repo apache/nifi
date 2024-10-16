@@ -57,6 +57,8 @@ import { BreadcrumbEntity } from '../../../../../state/shared';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'create-connection',
@@ -86,7 +88,8 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
         DestinationProcessGroup,
         SourceRemoteProcessGroup,
         DestinationRemoteProcessGroup,
-        ErrorBanner
+        ErrorBanner,
+        ContextErrorBanner
     ],
     templateUrl: './create-connection.component.html',
     styleUrls: ['./create-connection.component.scss']
@@ -311,4 +314,6 @@ export class CreateConnection extends CloseOnEscapeDialog {
     override isDirty(): boolean {
         return this.createConnectionForm.dirty;
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

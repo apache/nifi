@@ -38,6 +38,7 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { BackNavigation } from '../../../../state/navigation';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class RegistryClientsEffects {
@@ -150,7 +151,13 @@ export class RegistryClientsEffects {
         this.actions$.pipe(
             ofType(RegistryClientsActions.registryClientsBannerApiError),
             map((action) => action.error),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            switchMap((error) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: { errors: [error], context: ErrorContextKey.REGISTRY_CLIENTS }
+                    })
+                )
+            )
         )
     );
 
@@ -252,8 +259,6 @@ export class RegistryClientsEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
-
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 RegistryClientsActions.selectClient({
