@@ -130,16 +130,18 @@ class TestStandardCellFieldTypeReader {
     }
 
     @Test
+    void testGetCellDataTypeFormulaNumericDate() {
+        assertFormulaNumericDateTimeDataTypeFound(NUMERIC_DATE, RecordFieldType.DATE.getDataType());
+    }
+
+    @Test
+    void testGetCellDataTypeFormulaNumericTime() {
+        assertFormulaNumericDateTimeDataTypeFound(NUMERIC_TIME, RecordFieldType.TIME.getDataType());
+    }
+
+    @Test
     void testGetCellDataTypeFormulaNumericTimestamp() {
-        when(cell.getCellType()).thenReturn(CellType.FORMULA);
-        when(cell.getCachedFormulaResultType()).thenReturn(CellType.NUMERIC);
-        when(cell.getCellStyle()).thenReturn(cellStyle);
-        // Set Data Format to internal Date Format for Data Type detection in DateUtil.isCellDateFormatted
-        when(cellStyle.getDataFormat()).thenReturn(EXCEL_INTERNAL_DATE_FORMAT);
-
-        final DataType dataType = reader.getCellDataType(cell);
-
-        assertEquals(RecordFieldType.TIMESTAMP.getDataType(), dataType);
+        assertFormulaNumericDateTimeDataTypeFound(NUMERIC_TIMESTAMP, RecordFieldType.TIMESTAMP.getDataType());
     }
 
     @Test
@@ -230,6 +232,19 @@ class TestStandardCellFieldTypeReader {
 
     private void assertNumericDateTimeDataTypeFound(final double numericCellValue, final DataType expectedDataType) {
         when(cell.getCellType()).thenReturn(CellType.NUMERIC);
+        when(cell.getNumericCellValue()).thenReturn(numericCellValue);
+        when(cell.getCellStyle()).thenReturn(cellStyle);
+        // Set Data Format to internal Date Format for Data Type detection in DateUtil.isCellDateFormatted
+        when(cellStyle.getDataFormat()).thenReturn(EXCEL_INTERNAL_DATE_FORMAT);
+
+        final DataType dataType = reader.getCellDataType(cell);
+
+        assertEquals(expectedDataType, dataType);
+    }
+
+    private void assertFormulaNumericDateTimeDataTypeFound(final double numericCellValue, final DataType expectedDataType) {
+        when(cell.getCellType()).thenReturn(CellType.FORMULA);
+        when(cell.getCachedFormulaResultType()).thenReturn(CellType.NUMERIC);
         when(cell.getNumericCellValue()).thenReturn(numericCellValue);
         when(cell.getCellStyle()).thenReturn(cellStyle);
         // Set Data Format to internal Date Format for Data Type detection in DateUtil.isCellDateFormatted
