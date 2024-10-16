@@ -19,7 +19,7 @@ package org.apache.nifi.distributed.cache.server.map;
 import org.apache.commons.lang3.SerializationException;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
+import org.apache.nifi.distributed.cache.client.MapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.processor.Processor;
@@ -45,11 +45,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Timeout(5)
-public class DistributedMapCacheTest {
+public class MapCacheTest {
 
     private static TestRunner runner = null;
-    private static DistributedMapCacheServer server = null;
-    private static DistributedMapCacheClientService client = null;
+    private static MapCacheServer server = null;
+    private static MapCacheClientService client = null;
     private static final Serializer<String> serializer = new StringSerializer();
     private static final Deserializer<String> deserializer = new StringDeserializer();
 
@@ -57,16 +57,16 @@ public class DistributedMapCacheTest {
     public static void startServices() throws Exception {
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
 
-        server = new DistributedMapCacheServer();
+        server = new MapCacheServer();
         runner.addControllerService(server.getClass().getName(), server);
-        runner.setProperty(server, DistributedMapCacheServer.PORT, "0");
+        runner.setProperty(server, MapCacheServer.PORT, "0");
         runner.enableControllerService(server);
         final int port = server.getPort();
 
-        client = new DistributedMapCacheClientService();
+        client = new MapCacheClientService();
         runner.addControllerService(client.getClass().getName(), client);
-        runner.setProperty(client, DistributedMapCacheClientService.HOSTNAME, "localhost");
-        runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(port));
+        runner.setProperty(client, MapCacheClientService.HOSTNAME, "localhost");
+        runner.setProperty(client, MapCacheClientService.PORT, String.valueOf(port));
         runner.enableControllerService(client);
     }
 

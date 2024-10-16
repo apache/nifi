@@ -44,7 +44,7 @@ public class TestDistributedMapCacheLookupService {
     public void testDistributedMapCacheLookupService() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DistributedMapCacheLookupService service = new DistributedMapCacheLookupService();
-        final DistributedMapCacheClient client = new DistributedMapCacheClientImpl();
+        final DistributedMapCacheClient client = new EphemeralMapCacheClientService();
 
         runner.addControllerService("client", client);
         runner.addControllerService("lookup-service", service);
@@ -62,7 +62,7 @@ public class TestDistributedMapCacheLookupService {
         assertEquals(EMPTY_STRING, absent);
     }
 
-    static final class DistributedMapCacheClientImpl extends AbstractControllerService implements DistributedMapCacheClient {
+    static final class EphemeralMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
 
         private Map<String, String> map = new HashMap<String, String>();
 

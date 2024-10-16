@@ -39,7 +39,7 @@ import java.util.Set;
  * The implementation of the {@link DistributedMapCacheClient} using the netty library to provide the remote
  * communication services.
  */
-public class NettyDistributedMapCacheClient extends DistributedCacheClient {
+public class NettyMapCacheClient extends CacheClient {
     private final ComponentLog log;
 
     /**
@@ -54,7 +54,7 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
      * @param identifier        uniquely identifies this client
      * @param log               Component Log from instantiating Services
      */
-    public NettyDistributedMapCacheClient(
+    public NettyMapCacheClient(
             final String hostname,
             final int port,
             final int timeoutMillis,

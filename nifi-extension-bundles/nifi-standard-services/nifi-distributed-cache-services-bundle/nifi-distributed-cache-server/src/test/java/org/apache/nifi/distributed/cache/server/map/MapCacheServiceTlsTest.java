@@ -18,7 +18,7 @@ package org.apache.nifi.distributed.cache.server.map;
 
 import org.apache.commons.lang3.SerializationException;
 import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
+import org.apache.nifi.distributed.cache.client.MapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.processor.Processor;
@@ -51,12 +51,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-public class DistributedMapCacheTlsTest {
+public class MapCacheServiceTlsTest {
 
     private static TestRunner runner = null;
     private static SSLContextService sslContextService = null;
-    private static DistributedMapCacheServer server = null;
-    private static DistributedMapCacheClientService client = null;
+    private static MapCacheServer server = null;
+    private static MapCacheClientService client = null;
     private static final Serializer<String> serializer = new StringSerializer();
     private static final Deserializer<String> deserializer = new StringDeserializer();
 
@@ -67,18 +67,18 @@ public class DistributedMapCacheTlsTest {
         runner.addControllerService(sslContextService.getIdentifier(), sslContextService);
         runner.enableControllerService(sslContextService);
 
-        server = new DistributedMapCacheServer();
+        server = new MapCacheServer();
         runner.addControllerService(server.getClass().getName(), server);
-        runner.setProperty(server, DistributedMapCacheServer.PORT, "0");
-        runner.setProperty(server, DistributedMapCacheServer.SSL_CONTEXT_SERVICE, sslContextService.getIdentifier());
+        runner.setProperty(server, MapCacheServer.PORT, "0");
+        runner.setProperty(server, MapCacheServer.SSL_CONTEXT_SERVICE, sslContextService.getIdentifier());
         runner.enableControllerService(server);
         final int listeningPort = server.getPort();
 
-        client = new DistributedMapCacheClientService();
+        client = new MapCacheClientService();
         runner.addControllerService(client.getClass().getName(), client);
-        runner.setProperty(client, DistributedMapCacheClientService.HOSTNAME, "localhost");
-        runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(listeningPort));
-        runner.setProperty(client, DistributedMapCacheClientService.SSL_CONTEXT_SERVICE, sslContextService.getIdentifier());
+        runner.setProperty(client, MapCacheClientService.HOSTNAME, "localhost");
+        runner.setProperty(client, MapCacheClientService.PORT, String.valueOf(listeningPort));
+        runner.setProperty(client, MapCacheClientService.SSL_CONTEXT_SERVICE, sslContextService.getIdentifier());
         runner.enableControllerService(client);
     }
 

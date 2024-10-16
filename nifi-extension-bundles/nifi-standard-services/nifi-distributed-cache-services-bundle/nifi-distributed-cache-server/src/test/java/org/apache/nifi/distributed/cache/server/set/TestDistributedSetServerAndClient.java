@@ -20,10 +20,10 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SerializationException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.distributed.cache.client.DistributedSetCacheClientService;
+import org.apache.nifi.distributed.cache.client.SetCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
-import org.apache.nifi.distributed.cache.server.DistributedSetCacheServer;
+import org.apache.nifi.distributed.cache.server.AbstractCacheServer;
+import org.apache.nifi.distributed.cache.server.SetCacheServer;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
@@ -55,7 +55,7 @@ public class TestDistributedSetServerAndClient {
 
     private TestRunner runner;
 
-    private DistributedSetCacheServer server;
+    private SetCacheServer server;
 
     @BeforeEach
     public void setRunner() throws InitializationException, IOException {
@@ -65,10 +65,10 @@ public class TestDistributedSetServerAndClient {
 
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
 
-        server = new DistributedSetCacheServer();
+        server = new SetCacheServer();
         runner.addControllerService("server", server);
 
-        runner.setProperty(server, DistributedSetCacheServer.PORT, "0");
+        runner.setProperty(server, SetCacheServer.PORT, "0");
     }
 
     @AfterEach
@@ -80,7 +80,7 @@ public class TestDistributedSetServerAndClient {
     public void testNonPersistentSetServerAndClient() throws InitializationException, IOException {
         runner.enableControllerService(server);
 
-        final DistributedSetCacheClientService client = createClient(server.getPort());
+        final SetCacheClientService client = createClient(server.getPort());
         try {
             final Serializer<String> serializer = new StringSerializer();
             final boolean added = client.addIfAbsent("test", serializer);
@@ -104,10 +104,10 @@ public class TestDistributedSetServerAndClient {
 
     @Test
     public void testPersistentSetServerAndClient() throws InitializationException, IOException {
-        runner.setProperty(server, DistributedSetCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
+        runner.setProperty(server, SetCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
         runner.enableControllerService(server);
 
-        final DistributedSetCacheClientService client = createClient(server.getPort());
+        final SetCacheClientService client = createClient(server.getPort());
         try {
             final Serializer<String> serializer = new StringSerializer();
             final boolean added = client.addIfAbsent("test", serializer);
@@ -135,12 +135,12 @@ public class TestDistributedSetServerAndClient {
 
     @Test
     public void testPersistentSetServerAndClientWithLFUEvictions() throws InitializationException, IOException {
-        runner.setProperty(server, DistributedSetCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
-        runner.setProperty(server, DistributedSetCacheServer.MAX_CACHE_ENTRIES, "3");
-        runner.setProperty(server, DistributedSetCacheServer.EVICTION_POLICY, DistributedSetCacheServer.EVICTION_STRATEGY_LFU);
+        runner.setProperty(server, SetCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
+        runner.setProperty(server, SetCacheServer.MAX_CACHE_ENTRIES, "3");
+        runner.setProperty(server, SetCacheServer.EVICTION_POLICY, SetCacheServer.EVICTION_STRATEGY_LFU);
         runner.enableControllerService(server);
 
-        final DistributedSetCacheClientService client = createClient(server.getPort());
+        final SetCacheClientService client = createClient(server.getPort());
         try {
             final Serializer<String> serializer = new StringSerializer();
             final boolean added = client.addIfAbsent("test", serializer);
@@ -173,12 +173,12 @@ public class TestDistributedSetServerAndClient {
 
     @Test
     public void testPersistentSetServerAndClientWithFIFOEvictions() throws InitializationException, IOException {
-        runner.setProperty(server, DistributedSetCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
-        runner.setProperty(server, DistributedSetCacheServer.MAX_CACHE_ENTRIES, "3");
-        runner.setProperty(server, DistributedSetCacheServer.EVICTION_POLICY, DistributedSetCacheServer.EVICTION_STRATEGY_FIFO);
+        runner.setProperty(server, SetCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
+        runner.setProperty(server, SetCacheServer.MAX_CACHE_ENTRIES, "3");
+        runner.setProperty(server, SetCacheServer.EVICTION_POLICY, SetCacheServer.EVICTION_STRATEGY_FIFO);
         runner.enableControllerService(server);
 
-        final DistributedSetCacheClientService client = createClient(server.getPort());
+        final SetCacheClientService client = createClient(server.getPort());
         try {
             final Serializer<String> serializer = new StringSerializer();
 
@@ -218,12 +218,12 @@ public class TestDistributedSetServerAndClient {
     public void testLimitServiceReadSize() throws InitializationException, IOException {
         runner.enableControllerService(server);
 
-        final DistributedSetCacheClientService client = createClient(server.getPort());
+        final SetCacheClientService client = createClient(server.getPort());
         try {
             final Serializer<String> serializer = new StringSerializer();
 
             final String value = "value";
-            final int maxReadSize = new MockPropertyValue(DistributedCacheServer.MAX_READ_SIZE.getDefaultValue()).asDataSize(DataUnit.B).intValue();
+            final int maxReadSize = new MockPropertyValue(AbstractCacheServer.MAX_READ_SIZE.getDefaultValue()).asDataSize(DataUnit.B).intValue();
             final int belowThreshold = maxReadSize / value.length();
             final int aboveThreshold = belowThreshold + 1;
             final String valueBelowThreshold = StringUtils.repeat(value, belowThreshold);
@@ -243,14 +243,14 @@ public class TestDistributedSetServerAndClient {
         }
     }
 
-    private DistributedSetCacheClientService createClient(final int port) throws InitializationException {
-        final DistributedSetCacheClientService client = new DistributedSetCacheClientService();
+    private SetCacheClientService createClient(final int port) throws InitializationException {
+        final SetCacheClientService client = new SetCacheClientService();
         final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
         client.initialize(clientInitContext);
 
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedSetCacheClientService.HOSTNAME, "localhost");
-        clientProperties.put(DistributedSetCacheClientService.PORT, String.valueOf(port));
+        clientProperties.put(SetCacheClientService.HOSTNAME, "localhost");
+        clientProperties.put(SetCacheClientService.PORT, String.valueOf(port));
         final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup(), null);
         client.onEnabled(clientContext);
 

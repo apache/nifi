@@ -29,7 +29,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 
-public abstract class DistributedCacheServer extends AbstractControllerService {
+public abstract class AbstractCacheServer extends AbstractControllerService {
 
     public static final String EVICTION_STRATEGY_LFU = "Least Frequently Used";
     public static final String EVICTION_STRATEGY_LRU = "Least Recently Used";

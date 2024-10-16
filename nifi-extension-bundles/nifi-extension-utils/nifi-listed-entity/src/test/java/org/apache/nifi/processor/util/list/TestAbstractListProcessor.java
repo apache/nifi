@@ -217,7 +217,7 @@ public class TestAbstractListProcessor {
         // Require a cache service.
         runner.assertNotValid();
 
-        final DistributedCache trackingCache = new DistributedCache();
+        final EphemeralMapCacheClientService trackingCache = new EphemeralMapCacheClientService();
         runner.addControllerService("tracking-cache", trackingCache);
         runner.enableControllerService(trackingCache);
 
@@ -361,7 +361,7 @@ public class TestAbstractListProcessor {
                 String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()));
     }
 
-    static class DistributedCache extends AbstractControllerService implements DistributedMapCacheClient {
+    static class EphemeralMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
         private final Map<Object, Object> stored = new HashMap<>();
         private int fetchCount = 0;
 

@@ -46,10 +46,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Tags({"distributed", "cache", "state", "map", "cluster"})
-@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
-@CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This can be used in order to share a Map "
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.map.MapCacheServer"})
+@CapabilityDescription("Provides the ability to communicate with a MapCacheServer. This can be used in order to share a Map "
     + "between nodes in a NiFi cluster")
-public class DistributedMapCacheClientService extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
+public class MapCacheClientService extends AbstractControllerService implements AtomicDistributedMapCacheClient<Long> {
 
     private static final long DEFAULT_CACHE_REVISION = 0L;
 
@@ -82,10 +82,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         .defaultValue("30 secs")
         .build();
 
-    /**
-     * The implementation of the business logic for {@link DistributedMapCacheClientService}.
-     */
-    private volatile NettyDistributedMapCacheClient cacheClient = null;
+    private volatile NettyMapCacheClient cacheClient = null;
 
     /**
      * Creator of object used to broker the version of the distributed cache protocol with the service.
@@ -107,7 +104,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         getLogger().debug("Enabling Map Cache Client Service [{}]", context.getName());
         this.versionNegotiatorFactory  = new StandardVersionNegotiatorFactory(
                 ProtocolVersion.V3.value(), ProtocolVersion.V2.value(), ProtocolVersion.V1.value());
-        this.cacheClient = new NettyDistributedMapCacheClient(
+        this.cacheClient = new NettyMapCacheClient(
                 context.getProperty(HOSTNAME).getValue(),
                 context.getProperty(PORT).asInteger(),
                 context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(),

@@ -22,12 +22,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
+import org.apache.nifi.distributed.cache.client.MapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.distributed.cache.server.CacheServer;
-import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
+import org.apache.nifi.distributed.cache.server.AbstractCacheServer;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
@@ -76,7 +76,7 @@ public class TestDistributedMapServerAndClient {
 
     private TestRunner runner;
 
-    private DistributedMapCacheServer server;
+    private MapCacheServer server;
 
     @BeforeEach
     public void setRunner() throws InitializationException, IOException {
@@ -86,10 +86,10 @@ public class TestDistributedMapServerAndClient {
 
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
 
-        server = new DistributedMapCacheServer();
+        server = new MapCacheServer();
         runner.addControllerService("server", server);
 
-        runner.setProperty(server, DistributedMapCacheServer.PORT, "0");
+        runner.setProperty(server, MapCacheServer.PORT, "0");
     }
 
     @AfterEach
@@ -101,11 +101,11 @@ public class TestDistributedMapServerAndClient {
     public void testNonPersistentMapServerAndClient() throws InitializationException, IOException {
         runner.enableControllerService(server);
 
-        DistributedMapCacheClientService client = new DistributedMapCacheClientService();
+        MapCacheClientService client = new MapCacheClientService();
         try {
             runner.addControllerService("client", client);
-            runner.setProperty(client, DistributedMapCacheClientService.HOSTNAME, "localhost");
-            runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
+            runner.setProperty(client, MapCacheClientService.HOSTNAME, "localhost");
+            runner.setProperty(client, MapCacheClientService.PORT, String.valueOf(server.getPort()));
             runner.enableControllerService(client);
 
             final Serializer<String> valueSerializer = new StringSerializer();
@@ -150,18 +150,18 @@ public class TestDistributedMapServerAndClient {
     public void testOptimisticLock() throws Exception {
         runner.enableControllerService(server);
 
-        DistributedMapCacheClientService client1 = new DistributedMapCacheClientService();
+        MapCacheClientService client1 = new MapCacheClientService();
         MockControllerServiceInitializationContext clientInitContext1 = new MockControllerServiceInitializationContext(client1, "client1");
         client1.initialize(clientInitContext1);
 
-        DistributedMapCacheClientService client2 = new DistributedMapCacheClientService();
+        MapCacheClientService client2 = new MapCacheClientService();
         MockControllerServiceInitializationContext clientInitContext2 = new MockControllerServiceInitializationContext(client2, "client2");
         client2.initialize(clientInitContext2);
 
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
-        clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
-        clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
+        clientProperties.put(MapCacheClientService.HOSTNAME, "localhost");
+        clientProperties.put(MapCacheClientService.PORT, String.valueOf(server.getPort()));
+        clientProperties.put(MapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
 
         MockConfigurationContext clientContext1 = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup(), null);
         client1.onEnabled(clientContext1);
@@ -221,7 +221,7 @@ public class TestDistributedMapServerAndClient {
     @Test
     public void testBackwardCompatibility() throws Exception {
         // Create a server that only supports protocol version 1.
-        server = new DistributedMapCacheServer() {
+        server = new MapCacheServer() {
             @Override
             protected CacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir, int maxReadSize) throws IOException {
                 return new StandardMapCacheServer(getLogger(), getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize) {
@@ -233,17 +233,17 @@ public class TestDistributedMapServerAndClient {
             }
         };
         runner.addControllerService("server", server);
-        runner.setProperty(server, DistributedMapCacheServer.PORT, "0");
+        runner.setProperty(server, MapCacheServer.PORT, "0");
         runner.enableControllerService(server);
 
-        DistributedMapCacheClientService client = new DistributedMapCacheClientService();
+        MapCacheClientService client = new MapCacheClientService();
         MockControllerServiceInitializationContext clientInitContext1 = new MockControllerServiceInitializationContext(client, "client");
         client.initialize(clientInitContext1);
 
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
-        clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
-        clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
+        clientProperties.put(MapCacheClientService.HOSTNAME, "localhost");
+        clientProperties.put(MapCacheClientService.PORT, String.valueOf(server.getPort()));
+        clientProperties.put(MapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
 
         MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup(), null);
         client.onEnabled(clientContext);
@@ -276,12 +276,12 @@ public class TestDistributedMapServerAndClient {
     public void testLimitServiceReadSize() throws InitializationException, IOException {
         runner.enableControllerService(server);
 
-        final DistributedMapCacheClientService client = createClient(server.getPort());
+        final MapCacheClientService client = createClient(server.getPort());
         try {
             final Serializer<String> serializer = new StringSerializer();
 
             final String value = "value";
-            final int maxReadSize = new MockPropertyValue(DistributedCacheServer.MAX_READ_SIZE.getDefaultValue()).asDataSize(DataUnit.B).intValue();
+            final int maxReadSize = new MockPropertyValue(AbstractCacheServer.MAX_READ_SIZE.getDefaultValue()).asDataSize(DataUnit.B).intValue();
             final int belowThreshold = maxReadSize / value.length();
             final int aboveThreshold = belowThreshold + 1;
             final String valueBelowThreshold = StringUtils.repeat(value, belowThreshold);
@@ -300,12 +300,12 @@ public class TestDistributedMapServerAndClient {
         final NettyEventServerFactory serverFactory = getEventServerFactory(0, messages);
         final EventServer eventServer = serverFactory.getEventServer();
 
-        DistributedMapCacheClientService client = new DistributedMapCacheClientService();
+        MapCacheClientService client = new MapCacheClientService();
 
         runner.addControllerService("client", client);
-        runner.setProperty(client, DistributedMapCacheClientService.HOSTNAME, "localhost");
-        runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(eventServer.getListeningPort()));
-        runner.setProperty(client, DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "250 ms");
+        runner.setProperty(client, MapCacheClientService.HOSTNAME, "localhost");
+        runner.setProperty(client, MapCacheClientService.PORT, String.valueOf(eventServer.getListeningPort()));
+        runner.setProperty(client, MapCacheClientService.COMMUNICATIONS_TIMEOUT, "250 ms");
         runner.enableControllerService(client);
 
         final Serializer<String> valueSerializer = new StringSerializer();
@@ -328,14 +328,14 @@ public class TestDistributedMapServerAndClient {
         return factory;
     }
 
-    private DistributedMapCacheClientService createClient(final int port) throws InitializationException {
-        final DistributedMapCacheClientService client = new DistributedMapCacheClientService();
+    private MapCacheClientService createClient(final int port) throws InitializationException {
+        final MapCacheClientService client = new MapCacheClientService();
         final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
         client.initialize(clientInitContext);
 
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
-        clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(port));
+        clientProperties.put(MapCacheClientService.HOSTNAME, "localhost");
+        clientProperties.put(MapCacheClientService.PORT, String.valueOf(port));
         final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup(), null);
         client.onEnabled(clientContext);
 

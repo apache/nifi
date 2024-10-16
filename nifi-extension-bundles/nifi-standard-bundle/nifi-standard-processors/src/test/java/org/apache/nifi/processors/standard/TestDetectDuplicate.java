@@ -20,7 +20,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
+import org.apache.nifi.distributed.cache.client.MapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
@@ -42,9 +42,9 @@ public class TestDetectDuplicate {
     @Test
     public void testDuplicate() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
-        final DistributedMapCacheClientImpl client = createClient();
+        final EphemeralMapCacheClientService client = createClient();
         final Map<String, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
+        clientProperties.put(MapCacheClientService.HOSTNAME.getName(), "localhost");
         runner.addControllerService("client", client, clientProperties);
         runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
         runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
@@ -68,9 +68,9 @@ public class TestDetectDuplicate {
     public void testDuplicateWithAgeOff() throws InitializationException, InterruptedException {
 
         final TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
-        final DistributedMapCacheClientImpl client = createClient();
+        final EphemeralMapCacheClientService client = createClient();
         final Map<String, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
+        clientProperties.put(MapCacheClientService.HOSTNAME.getName(), "localhost");
         runner.addControllerService("client", client, clientProperties);
         runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
         runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
@@ -92,9 +92,9 @@ public class TestDetectDuplicate {
         runner.assertTransferCount(DetectDuplicate.REL_FAILURE, 0);
     }
 
-    private DistributedMapCacheClientImpl createClient() throws InitializationException {
+    private EphemeralMapCacheClientService createClient() throws InitializationException {
 
-        final DistributedMapCacheClientImpl client = new DistributedMapCacheClientImpl();
+        final EphemeralMapCacheClientService client = new EphemeralMapCacheClientService();
         final ComponentLog logger = new MockComponentLog("client", client);
         final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger, new MockStateManager(client));
         client.initialize(clientInitContext);
@@ -105,9 +105,9 @@ public class TestDetectDuplicate {
     @Test
     public void testDuplicateNoCache() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
-        final DistributedMapCacheClientImpl client = createClient();
+        final EphemeralMapCacheClientService client = createClient();
         final Map<String, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
+        clientProperties.put(MapCacheClientService.HOSTNAME.getName(), "localhost");
         runner.addControllerService("client", client, clientProperties);
         runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
         runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
@@ -141,9 +141,9 @@ public class TestDetectDuplicate {
     public void testDuplicateNoCacheWithAgeOff() throws InitializationException, InterruptedException {
 
         final TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
-        final DistributedMapCacheClientImpl client = createClient();
+        final EphemeralMapCacheClientService client = createClient();
         final Map<String, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
+        clientProperties.put(MapCacheClientService.HOSTNAME.getName(), "localhost");
         runner.addControllerService("client", client, clientProperties);
         runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
         runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
@@ -168,7 +168,7 @@ public class TestDetectDuplicate {
         runner.assertTransferCount(DetectDuplicate.REL_FAILURE, 0);
     }
 
-    static final class DistributedMapCacheClientImpl extends AbstractControllerService implements DistributedMapCacheClient {
+    static final class EphemeralMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
 
         boolean exists = false;
         private Object cacheValue;
@@ -180,10 +180,10 @@ public class TestDetectDuplicate {
         @Override
         protected java.util.List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             final List<PropertyDescriptor> props = new ArrayList<>();
-            props.add(DistributedMapCacheClientService.HOSTNAME);
-            props.add(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT);
-            props.add(DistributedMapCacheClientService.PORT);
-            props.add(DistributedMapCacheClientService.SSL_CONTEXT_SERVICE);
+            props.add(MapCacheClientService.HOSTNAME);
+            props.add(MapCacheClientService.COMMUNICATIONS_TIMEOUT);
+            props.add(MapCacheClientService.PORT);
+            props.add(MapCacheClientService.SSL_CONTEXT_SERVICE);
             return props;
         }
 

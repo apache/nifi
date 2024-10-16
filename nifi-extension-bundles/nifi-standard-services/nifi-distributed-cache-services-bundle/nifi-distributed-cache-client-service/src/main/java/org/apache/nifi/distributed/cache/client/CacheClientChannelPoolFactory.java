@@ -33,9 +33,7 @@ import javax.net.ssl.SSLContext;
 import java.time.Duration;
 
 /**
- * Factory for construction of new {@link ChannelPool}, used by distributed cache clients to invoke service
- * methods.  Cache clients include the NiFi services {@link DistributedSetCacheClientService}
- * and {@link DistributedMapCacheClientService}.
+ * Factory for construction of new {@link ChannelPool}, used by distributed cache clients to invoke service methods.
  */
 class CacheClientChannelPoolFactory {
 
