@@ -307,7 +307,7 @@ public class TestQueryRecord {
         final Record output = written.get(0);
         assertEquals("John Doe", output.getValue("name"));
         assertEquals("Software Engineer", output.getValue("title"));
-        assertEquals(BigDecimal.valueOf(90.5D), output.getValue("height_total"));
+        assertEquals(new BigDecimal("90.500000000"), output.getValue("height_total"));
     }
 
     @Test
