@@ -28,8 +28,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.List;
 
-import static org.apache.nifi.services.iceberg.FileIOImplementation.HADOOP;
-import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.FILE_IO_IMPLEMENTATION;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.CLIENT_POOL_SERVICE;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.WAREHOUSE_LOCATION;
 
@@ -53,17 +51,8 @@ public class JdbcCatalogService extends AbstractCatalogService {
             .required(true)
             .build();
 
-    public static final PropertyDescriptor FILE_IO_IMPL = new PropertyDescriptor.Builder()
-            .name("File IO Implementation")
-            .description("Specifies the implementation of FileIO interface to be used. " +
-                    "The provided implementation have to include the class and full package name.")
-            .required(true)
-            .defaultValue(HADOOP.getValue())
-            .allowableValues(FileIOImplementation.class)
-            .build();
-
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            CATALOG_NAME, CONNECTION_POOL, FILE_IO_IMPL, WAREHOUSE_PATH, HADOOP_CONFIGURATION_RESOURCES);
+            CATALOG_NAME, CONNECTION_POOL, WAREHOUSE_PATH, HADOOP_CONFIGURATION_RESOURCES);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -78,7 +67,6 @@ public class JdbcCatalogService extends AbstractCatalogService {
 
         catalogProperties.put(IcebergCatalogProperty.CATALOG_NAME, context.getProperty(CATALOG_NAME).evaluateAttributeExpressions().getValue());
         catalogProperties.put(CLIENT_POOL_SERVICE, context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class));
-        catalogProperties.put(FILE_IO_IMPLEMENTATION, context.getProperty(FILE_IO_IMPL).evaluateAttributeExpressions().getValue());
         catalogProperties.put(WAREHOUSE_LOCATION, context.getProperty(WAREHOUSE_PATH).evaluateAttributeExpressions().getValue());
     }
 

@@ -36,7 +36,6 @@ import java.util.function.Function;
 
 import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFromFiles;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.CATALOG_NAME;
-import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.FILE_IO_IMPLEMENTATION;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.CLIENT_POOL_SERVICE;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.METASTORE_URI;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.WAREHOUSE_LOCATION;
@@ -101,7 +100,7 @@ public class IcebergCatalogFactory {
         final DBCPService dbcpService = (DBCPService) catalogProperties.get(CLIENT_POOL_SERVICE);
 
         final Function<Map<String, String>, JdbcClientPool> clientPoolBuilder = props -> new IcebergJdbcClientPool(props, dbcpService);
-        final Function<Map<String, String>, FileIO> ioBuilder = props -> CatalogUtil.loadFileIO((String) catalogProperties.get(FILE_IO_IMPLEMENTATION), props, configuration);
+        final Function<Map<String, String>, FileIO> ioBuilder = props -> CatalogUtil.loadFileIO("org.apache.iceberg.hadoop.HadoopFileIO", props, configuration);
 
         JdbcCatalog catalog = new JdbcCatalog(ioBuilder, clientPoolBuilder, false);
         catalog.setConf(configuration);
