@@ -104,7 +104,6 @@ public final class FlowValidator {
         )
         .ifPresent(controllerServices -> {
             LOGGER.error("The following controller services are still in ENABLING state: {}", controllerServices);
-            throw new IllegalStateException("Maximum retry number exceeded while waiting for controller service to be validated");
         });
     }
 
