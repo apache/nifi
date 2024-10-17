@@ -84,7 +84,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String PROCESSOR_SCHEDULING_TIMEOUT = "nifi.processor.scheduling.timeout";
     public static final String BACKPRESSURE_COUNT = "nifi.queue.backpressure.count";
     public static final String BACKPRESSURE_SIZE = "nifi.queue.backpressure.size";
-    public static final String LISTENER_BOOTSTRAP_PORT = "nifi.listener.bootstrap.port";
     public static final String UPLOAD_WORKING_DIRECTORY = "nifi.upload.working.directory";
 
     // content repository properties
@@ -389,7 +388,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_READ_TIMEOUT = "30 secs";
     private static final String DEFAULT_SECURITY_USER_JWS_KEY_ROTATION_PERIOD = "PT1H";
     public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
-    public static final int DEFAULT_LISTENER_BOOTSTRAP_PORT = 0;
     public static final Boolean DEFAULT_FLOW_REGISTRY_CHECK_FOR_RULE_VIOLATIONS_BEFORE_COMMIT = false;
     public static final String DEFAULT_UPLOAD_WORKING_DIR = "./work/uploads";
 
@@ -1651,10 +1649,6 @@ public class NiFiProperties extends ApplicationProperties {
 
     public String getDefaultBackPressureDataSizeThreshold() {
         return getProperty(BACKPRESSURE_SIZE, DEFAULT_BACKPRESSURE_SIZE);
-    }
-
-    public int getDefaultListenerBootstrapPort() {
-        return getIntegerProperty(LISTENER_BOOTSTRAP_PORT, DEFAULT_LISTENER_BOOTSTRAP_PORT);
     }
 
     /**
