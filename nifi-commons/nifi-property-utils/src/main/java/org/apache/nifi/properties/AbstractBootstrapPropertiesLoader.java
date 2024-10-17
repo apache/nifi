@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.properties;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,8 +28,6 @@ import java.util.Properties;
  * An abstract base class for an application-specific BootstrapProperties loader.
  */
 public abstract class AbstractBootstrapPropertiesLoader {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractBootstrapPropertiesLoader.class);
-
     private static final String RELATIVE_APPLICATION_PROPERTIES_PATTERN = "conf/%s";
     private static final String BOOTSTRAP_CONF = "bootstrap.conf";
 
@@ -134,12 +129,9 @@ public abstract class AbstractBootstrapPropertiesLoader {
         String systemPath = System.getProperty(systemPropertyName);
 
         if (systemPath == null || systemPath.trim().isEmpty()) {
-            logger.warn("System Property [{}] not found: Using Relative Path [{}]", systemPropertyName, defaultRelativePath);
-            System.setProperty(systemPropertyName, defaultRelativePath);
             systemPath = defaultRelativePath;
         }
 
-        logger.debug("Default Application Properties Path [{}]", systemPath);
         return systemPath;
     }
 }

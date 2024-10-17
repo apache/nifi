@@ -17,19 +17,14 @@
 package org.apache.nifi.properties;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.Set;
 
 /**
  * Properties representing bootstrap.conf.
  */
 public class BootstrapProperties extends StandardReadableProperties {
-    private static final String PROPERTY_KEY_FORMAT = "%s.%s";
-
     private final String propertyPrefix;
     private final Path configFilePath;
 
@@ -67,14 +62,6 @@ public class BootstrapProperties extends StandardReadableProperties {
     }
 
     /**
-     * Returns the path to the bootstrap config file.
-     * @return The path to the file
-     */
-    public Path getConfigFilePath() {
-        return configFilePath;
-    }
-
-    /**
      * Includes only the properties starting with the propertyPrefix.
      * @param properties Unfiltered properties
      */
@@ -90,39 +77,10 @@ public class BootstrapProperties extends StandardReadableProperties {
         getRawProperties().putAll(filteredProperties);
     }
 
-    private String getPropertyKey(final String subKey) {
-        return String.format(PROPERTY_KEY_FORMAT, propertyPrefix, subKey);
-    }
-
     @Override
     public String toString() {
         return String.format("Bootstrap properties [%s] with prefix [%s]", configFilePath, propertyPrefix);
     }
-
-    /**
-     * An empty instance of BootstrapProperties.
-     */
-    public static final BootstrapProperties EMPTY = new BootstrapProperties("", new Properties(), Paths.get("conf/bootstrap.conf")) {
-        @Override
-        public Set<String> getPropertyKeys() {
-            return Collections.EMPTY_SET;
-        }
-
-        @Override
-        public String getProperty(String key) {
-            return null;
-        }
-
-        @Override
-        public String getProperty(String key, String defaultValue) {
-            return null;
-        }
-
-        @Override
-        public int size() {
-            return 0;
-        }
-    };
 
     private static boolean isBlank(final String string) {
         return (string == null) || string.isEmpty() || string.trim().isEmpty();
