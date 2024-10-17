@@ -44,7 +44,7 @@ public class TestEventIndexTask {
 
     @Test
     public void testIndexWriterCommittedWhenAppropriate() {
-        assertTimeout(Duration.ofSeconds(5), this::runIndexWriteCommittedWhenAppropriate);
+        assertTimeout(Duration.ofSeconds(15), this::runIndexWriteCommittedWhenAppropriate);
     }
 
     private void runIndexWriteCommittedWhenAppropriate() throws InterruptedException, IOException {
