@@ -50,4 +50,7 @@ public class PubSubAttributes {
             + " delivered to subscribers in the order in which they are received by the"
             + " Pub/Sub system. All 'PubsubMessage's published in a given 'PublishRequest'"
             + " must specify the same 'ordering_key' value.";
+
+    public static final String EXECUTOR_THREADS_NUMBER_ATTRIBUTE = "gcp.pubsub.executor.threads";
+    public static final String EXECUTOR_THREADS_NUMBER_DESCRIPTION = "Number of thrads used by the pubsub executor.";
 }
