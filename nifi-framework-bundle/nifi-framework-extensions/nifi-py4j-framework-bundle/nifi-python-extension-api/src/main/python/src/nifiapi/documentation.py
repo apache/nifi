@@ -95,6 +95,27 @@ class MultiProcessorUseCaseDetails:
     def __str__(self):
         return f"MultiProcessorUseCaseDetails[description={self.description}]"
 
+class PropertyDependency:
+    class Java:
+            implements = ['org.apache.nifi.python.processor.documentation.PropertyDependency']
+
+    def __init__(self,
+                      name: str,
+                      display_name: str,
+                      dependent_values: list[str]):
+             self.name = name
+             self.display_name = display_name
+             self.dependent_values = dependent_values
+
+    def getName(self):
+        return self.name
+
+    def getDisplayName(self):
+        return self.display_name
+
+    def getDependentValues(self):
+        return ArrayList(self.dependent_values)
+
 class PropertyDescription:
     class Java:
         implements = ['org.apache.nifi.python.processor.documentation.PropertyDescription']
@@ -108,7 +129,8 @@ class PropertyDescription:
                  default_value: str = None,
                  expression_language_scope: str = None,
                  controller_service_definition: str = None,
-                 allowable_values: list[str] = None):
+                 allowable_values: list[str] = None,
+                 dependencies: list[PropertyDependency] = None):
         self.name = name
         self.description = description
         self.display_name = display_name
@@ -118,6 +140,7 @@ class PropertyDescription:
         self.expression_language_scope = expression_language_scope
         self.controller_service_definition = controller_service_definition
         self.allowable_values = allowable_values if allowable_values is not None else []
+        self.dependencies = dependencies if dependencies is not None else []
 
     def getName(self):
         return self.name
@@ -145,3 +168,6 @@ class PropertyDescription:
 
     def getAllowableValues(self):
         return ArrayList(self.allowable_values)
+
+    def getDependencies(self):
+        return ArrayList(self.dependencies)
