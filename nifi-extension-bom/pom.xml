@@ -189,19 +189,19 @@
             <dependency>
                 <groupId>org.ow2.asm</groupId>
                 <artifactId>asm</artifactId>
-                <version>9.7</version>
+                <version>9.7.1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.ow2.asm</groupId>
                 <artifactId>asm-commons</artifactId>
-                <version>9.7</version>
+                <version>9.7.1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.ow2.asm</groupId>
                 <artifactId>asm-tree</artifactId>
-                <version>9.7</version>
+                <version>9.7.1</version>
                 <scope>provided</scope>
             </dependency>
             <!-- Jetty EE10 Apache JSP and deps -->
@@ -214,13 +214,13 @@
             <dependency>
                 <groupId>org.mortbay.jasper</groupId>
                 <artifactId>apache-jsp</artifactId>
-                <version>10.1.16</version>
+                <version>10.1.31</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.mortbay.jasper</groupId>
                 <artifactId>apache-el</artifactId>
-                <version>10.1.16</version>
+                <version>10.1.31</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>

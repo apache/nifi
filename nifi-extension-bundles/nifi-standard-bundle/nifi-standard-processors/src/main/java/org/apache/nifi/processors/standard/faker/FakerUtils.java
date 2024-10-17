@@ -58,7 +58,7 @@ public class FakerUtils {
     private static final String PACKAGE_PREFIX = "net.datafaker.providers";
 
     public static AllowableValue[] createFakerPropertyList() {
-        final List<EnFile> fakerFiles = EnFile.getFiles();
+        final List<EnFile> fakerFiles = EnFile.getFiles().toList();
         final Map<String, Class<?>> possibleFakerTypeMap = new HashMap<>(fakerFiles.size());
         for (EnFile fakerFile : fakerFiles) {
             String className = normalizeClassName(fakerFile.getFile().substring(0, fakerFile.getFile().indexOf('.')));
@@ -125,13 +125,13 @@ public class FakerUtils {
 
         // Handle DateAndTime methods not discovered by programmatically getting methods from the Faker objects
         if (FT_FUTURE_DATE.getValue().equals(type)) {
-            return faker.date().future(RANDOM_DATE_DAYS, TimeUnit.DAYS);
+            return faker.timeAndDate().future(RANDOM_DATE_DAYS, TimeUnit.DAYS);
         }
         if (FT_PAST_DATE.getValue().equals(type)) {
-            return faker.date().past(RANDOM_DATE_DAYS, TimeUnit.DAYS);
+            return faker.timeAndDate().past(RANDOM_DATE_DAYS, TimeUnit.DAYS);
         }
         if (FT_BIRTHDAY.getValue().equals(type)) {
-            return faker.date().birthday();
+            return faker.timeAndDate().birthday();
         }
 
         // Handle Crypto methods not discovered by programmatically getting methods from the Faker objects

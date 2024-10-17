@@ -25,7 +25,7 @@
     <description>NiFi: Framework Bundle</description>
     <properties>
         <curator.version>5.7.1</curator.version>
-        <guava.version>33.2.1-jre</guava.version>
+        <guava.version>33.3.1-jre</guava.version>
         <tika.version>2.9.2</tika.version>
         <org.opensaml.version>4.3.2</org.opensaml.version>
     </properties>
@@ -317,7 +317,7 @@
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
-                <version>4.2.27</version>
+                <version>4.2.28</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
