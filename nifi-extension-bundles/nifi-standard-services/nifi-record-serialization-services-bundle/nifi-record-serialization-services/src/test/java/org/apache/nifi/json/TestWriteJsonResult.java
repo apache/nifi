@@ -211,7 +211,7 @@ class TestWriteJsonResult {
               "age": 42
             }""";
         final SerializedForm serializedForm1 = SerializedForm.of(serialized1, "application/json");
-        final Record record1 = new MapRecord(schema, values1, serializedForm1);
+        final Record record1 = new MapRecord(schema, values1, serializedForm1, true, true);
 
         final Map<String, Object> values2 = new HashMap<>();
         values2.put("name", "Jane Doe");
@@ -223,7 +223,8 @@ class TestWriteJsonResult {
               "age": 43
             }""";
         final SerializedForm serializedForm2 = SerializedForm.of(serialized2, "application/json");
-        final Record record2 = new MapRecord(schema, values1, serializedForm2);
+        // we voluntarily use values1 here to confirm that the serialized form is used instead of the fields/values
+        final Record record2 = new MapRecord(schema, values1, serializedForm2, true, true);
 
         final RecordSet rs = RecordSet.of(schema, record1, record2);
 
