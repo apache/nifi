@@ -153,7 +153,7 @@ class JMSPublisher extends JMSWorker {
     }
 
     /**
-     * Implementations of this interface use {@link javax.jms.Message} methods to set strongly typed properties.
+     * Implementations of this interface use {@link jakarta.jms.Message} methods to set strongly typed properties.
      */
     public interface JmsPropertySetter {
         void setProperty(final Message message, final String name, final String value) throws JMSException, NumberFormatException;
