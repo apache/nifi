@@ -226,6 +226,7 @@ public class MiNiFi {
             new MiNiFi(properties);
         } catch (final Throwable t) {
             logger.error("Failure to launch MiNiFi", t);
+            System.exit(1);
         }
     }
 
