@@ -52,6 +52,8 @@ import {
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { SelectOption } from 'libs/shared/src';
+import { ErrorContextKey } from '../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'edit-reporting-task',
@@ -72,7 +74,8 @@ import { SelectOption } from 'libs/shared/src';
         NifiSpinnerDirective,
         NifiTooltipDirective,
         ErrorBanner,
-        PropertyVerification
+        PropertyVerification,
+        ContextErrorBanner
     ],
     styleUrls: ['./edit-reporting-task.component.scss']
 })
@@ -246,4 +249,6 @@ export class EditReportingTask extends TabbedDialog {
             properties: this.getModifiedProperties()
         });
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

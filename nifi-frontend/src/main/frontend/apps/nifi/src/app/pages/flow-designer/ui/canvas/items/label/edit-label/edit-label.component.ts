@@ -35,6 +35,8 @@ import { ClusterConnectionService } from '../../../../../../../service/cluster-c
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
 import { NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'edit-label',
@@ -51,7 +53,8 @@ import { NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
         NifiSpinnerDirective,
         MatOption,
         MatSelect,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ContextErrorBanner
     ],
     styleUrls: ['./edit-label.component.scss']
 })
@@ -115,4 +118,6 @@ export class EditLabel extends CloseOnEscapeDialog {
             })
         );
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

@@ -29,6 +29,7 @@ import { PolicyTable } from '../common/policy-table/policy-table.component';
 import { MatButtonModule } from '@angular/material/button';
 import { ErrorBanner } from '../../../../ui/common/error-banner/error-banner.component';
 import { ComponentContext, NifiTooltipDirective } from '@nifi/shared';
+import { ContextErrorBanner } from '../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @NgModule({
     declarations: [ComponentAccessPolicies],
@@ -46,7 +47,8 @@ import { ComponentContext, NifiTooltipDirective } from '@nifi/shared';
         PolicyTable,
         MatButtonModule,
         ErrorBanner,
-        ComponentContext
+        ComponentContext,
+        ContextErrorBanner
     ]
 })
 export class ComponentAccessPoliciesModule {}

@@ -55,6 +55,7 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class FlowAnalysisRulesEffects {
@@ -158,7 +159,13 @@ export class FlowAnalysisRulesEffects {
         this.actions$.pipe(
             ofType(FlowAnalysisRuleActions.flowAnalysisRuleBannerApiError),
             map((action) => action.error),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            switchMap((error) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: { errors: [error], context: ErrorContextKey.FLOW_ANALYSIS_RULES }
+                    })
+                )
+            )
         )
     );
 
@@ -364,7 +371,6 @@ export class FlowAnalysisRulesEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
                         this.store.dispatch(resetPropertyVerificationState());
 
                         if (response != 'ROUTED') {

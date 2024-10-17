@@ -56,6 +56,8 @@ import { DestinationRemoteProcessGroup } from '../destination/destination-remote
 import { BreadcrumbEntity } from '../../../../../state/shared';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'edit-connection',
@@ -85,7 +87,8 @@ import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbe
         DestinationProcessGroup,
         SourceRemoteProcessGroup,
         DestinationRemoteProcessGroup,
-        ErrorBanner
+        ErrorBanner,
+        ContextErrorBanner
     ],
     templateUrl: './edit-connection.component.html',
     styleUrls: ['./edit-connection.component.scss']
@@ -438,4 +441,6 @@ export class EditConnectionComponent extends TabbedDialog {
     override getCancelDialogResult(): any {
         return 'CANCELLED';
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

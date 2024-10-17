@@ -16,7 +16,7 @@
   -->
 
 <div class="provenance-event-table h-full flex flex-col">
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.PROVENANCE"></context-error-banner>
     <div [class.hidden]="showLineage" class="h-full flex flex-col">
         <div class="flex flex-col">
             <div class="flex justify-between mb-1">

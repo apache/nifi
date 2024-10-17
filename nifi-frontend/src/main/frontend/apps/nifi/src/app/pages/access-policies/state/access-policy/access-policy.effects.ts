@@ -29,16 +29,16 @@ import { AccessPolicyService } from '../../service/access-policy.service';
 import { AccessPolicyEntity, ComponentResourceAction, PolicyStatus, ResourceAction } from '../shared';
 import { selectAccessPolicy, selectResourceAction, selectSaving } from './access-policy.selectors';
 import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { TenantEntity } from '../../../../state/shared';
 import { AddTenantToPolicyDialog } from '../../ui/common/add-tenant-to-policy-dialog/add-tenant-to-policy-dialog.component';
 import { AddTenantsToPolicyRequest } from './index';
 import { selectUserGroups, selectUsers } from '../tenants/tenants.selectors';
 import { OverridePolicyDialog } from '../../ui/common/override-policy-dialog/override-policy-dialog.component';
-import { MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { HttpErrorResponse } from '@angular/common/http';
 import { loadCurrentUser } from '../../../../state/current-user/current-user.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class AccessPolicyEffects {
@@ -495,7 +495,16 @@ export class AccessPolicyEffects {
             ofType(AccessPolicyActions.accessPolicyApiBannerError),
             map((action) => action.response),
             tap(() => this.dialog.closeAll()),
-            switchMap((response) => of(ErrorActions.addBannerError({ error: response.error })))
+            switchMap((response) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: {
+                            errors: [response.error],
+                            context: ErrorContextKey.ACCESS_POLICIES
+                        }
+                    })
+                )
+            )
         )
     );
 }

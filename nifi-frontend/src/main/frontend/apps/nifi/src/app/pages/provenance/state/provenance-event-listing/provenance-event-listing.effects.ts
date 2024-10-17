@@ -46,6 +46,7 @@ import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-
 import { ClusterService } from '../../../../service/cluster.service';
 import { LARGE_DIALOG, MEDIUM_DIALOG } from 'libs/shared/src';
 import { Attribute } from '../../../../state/shared';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ProvenanceEventListingEffects {
@@ -147,7 +148,11 @@ export class ProvenanceEventListingEffects {
                 const query: Provenance = response.provenance;
                 if (query.finished || !this.nifiCommon.isEmpty(query.results.errors)) {
                     response.provenance.results.errors?.forEach((error) => {
-                        this.store.dispatch(ErrorActions.addBannerError({ error }));
+                        this.store.dispatch(
+                            ErrorActions.addBannerError({
+                                errorContext: { errors: [error], context: ErrorContextKey.REPORTING_TASKS }
+                            })
+                        );
                     });
 
                     return of(ProvenanceEventListingActions.deleteProvenanceQuery());
@@ -214,7 +219,11 @@ export class ProvenanceEventListingEffects {
             ),
             switchMap((response) => {
                 response.provenance.results.errors?.forEach((error) => {
-                    this.store.dispatch(ErrorActions.addBannerError({ error }));
+                    this.store.dispatch(
+                        ErrorActions.addBannerError({
+                            errorContext: { errors: [error], context: ErrorContextKey.REPORTING_TASKS }
+                        })
+                    );
                 });
 
                 return of(ProvenanceEventListingActions.stopPollingProvenanceQuery());
@@ -462,7 +471,13 @@ export class ProvenanceEventListingEffects {
             tap(() => {
                 this.store.dispatch(ProvenanceEventListingActions.stopPollingProvenanceQuery());
             }),
-            switchMap(({ error }) => of(ErrorActions.addBannerError({ error })))
+            switchMap(({ error }) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: { errors: [error], context: ErrorContextKey.REPORTING_TASKS }
+                    })
+                )
+            )
         )
     );
 

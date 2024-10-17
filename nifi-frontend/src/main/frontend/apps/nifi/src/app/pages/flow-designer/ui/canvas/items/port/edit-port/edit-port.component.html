@@ -17,7 +17,7 @@
 
 <h2 mat-dialog-title>{{ readonly ? portTypeLabel + ' Details' : 'Edit ' + portTypeLabel }}</h2>
 <form class="edit-port-form" [formGroup]="editPortForm">
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.PORT"></context-error-banner>
     <mat-dialog-content>
         <div>
             <mat-form-field>

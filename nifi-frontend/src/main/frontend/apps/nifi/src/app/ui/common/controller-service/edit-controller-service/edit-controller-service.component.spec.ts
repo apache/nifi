@@ -24,8 +24,8 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 import 'codemirror/addon/hint/show-hint';
-import { ErrorBanner } from '../../error-banner/error-banner.component';
 import { MockComponent } from 'ng-mocks';
+import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
 
 describe('EditControllerService', () => {
     let component: EditControllerService;
@@ -548,7 +548,7 @@ describe('EditControllerService', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditControllerService, MockComponent(ErrorBanner), NoopAnimationsModule],
+            imports: [EditControllerService, MockComponent(ContextErrorBanner), NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 {

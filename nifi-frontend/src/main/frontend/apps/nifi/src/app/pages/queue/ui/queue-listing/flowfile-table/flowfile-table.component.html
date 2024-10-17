@@ -17,7 +17,7 @@
 
 <div class="flowfile-table h-full flex flex-col">
     <h3 class="queue-listing-header primary-color">{{ selectedConnection?.label }}</h3>
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.QUEUE"></context-error-banner>
     <div class="flex justify-between mb-2">
         <div class="tertiary-color font-medium">
             Display {{ displayObjectCount }} of {{ formatCount(queueSizeObjectCount) }} ({{

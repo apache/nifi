@@ -46,6 +46,8 @@ import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
+import { ErrorContextKey } from '../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'edit-parameter-context',
@@ -69,7 +71,8 @@ import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
         ParameterReferences,
         RouterLink,
         ErrorBanner,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ContextErrorBanner
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })
@@ -204,4 +207,6 @@ export class EditParameterContext extends TabbedDialog {
     override isDirty(): boolean {
         return this.editParameterContextForm.dirty;
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

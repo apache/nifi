@@ -32,6 +32,8 @@ import { AsyncPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'create-port',
@@ -45,7 +47,8 @@ import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared
         MatButtonModule,
         AsyncPipe,
         NifiSpinnerDirective,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ContextErrorBanner
     ],
     templateUrl: './create-port.component.html',
     styleUrls: ['./create-port.component.scss']
@@ -113,4 +116,5 @@ export class CreatePort extends CloseOnEscapeDialog {
     }
 
     protected readonly ComponentType = ComponentType;
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

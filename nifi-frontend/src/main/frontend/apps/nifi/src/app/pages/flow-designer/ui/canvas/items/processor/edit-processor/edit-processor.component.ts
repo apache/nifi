@@ -63,6 +63,8 @@ import {
 } from '../../../../../../../state/property-verification';
 import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ComponentType, SelectOption } from 'libs/shared/src';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'edit-processor',
@@ -84,7 +86,8 @@ import { ComponentType, SelectOption } from 'libs/shared/src';
         RunDurationSlider,
         RelationshipSettings,
         ErrorBanner,
-        PropertyVerification
+        PropertyVerification,
+        ContextErrorBanner
     ],
     styleUrls: ['./edit-processor.component.scss']
 })
@@ -418,4 +421,6 @@ export class EditProcessor extends TabbedDialog {
             properties: this.getModifiedProperties()
         });
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

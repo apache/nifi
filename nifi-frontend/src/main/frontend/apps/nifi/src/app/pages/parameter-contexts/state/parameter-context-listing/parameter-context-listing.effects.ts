@@ -60,6 +60,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from 'libs/shared/src';
 import { BackNavigation } from '../../../../state/navigation';
 import { NiFiCommon, Storage } from '@nifi/shared';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ParameterContextListingEffects {
@@ -170,10 +171,6 @@ export class ParameterContextListingEffects {
                                 })
                             );
                         });
-
-                    dialogReference.afterClosed().subscribe(() => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
-                    });
                 })
             ),
         { dispatch: false }
@@ -224,7 +221,13 @@ export class ParameterContextListingEffects {
         this.actions$.pipe(
             ofType(ParameterContextListingActions.parameterContextListingBannerApiError),
             map((action) => action.error),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            switchMap((error) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: { errors: [error], context: ErrorContextKey.PARAMETER_CONTEXTS }
+                    })
+                )
+            )
         )
     );
 
@@ -385,8 +388,6 @@ export class ParameterContextListingEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
-
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 ParameterContextListingActions.selectParameterContext({

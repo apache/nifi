@@ -31,6 +31,7 @@ import { isDefinedAndNotNull, LARGE_DIALOG } from 'libs/shared/src';
 import * as ErrorActions from '../error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../service/error-helper.service';
+import { ErrorContextKey } from '../error';
 
 @Injectable()
 export class ComponentStateEffects {
@@ -109,10 +110,15 @@ export class ComponentStateEffects {
                         catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ErrorActions.addBannerError({
-                                    error: this.errorHelper.getErrorString(
-                                        errorResponse,
-                                        'Failed to clear the component state.'
-                                    )
+                                    errorContext: {
+                                        errors: [
+                                            this.errorHelper.getErrorString(
+                                                errorResponse,
+                                                'Failed to clear the component state.'
+                                            )
+                                        ],
+                                        context: ErrorContextKey.COMPONENT_STATE
+                                    }
                                 })
                             )
                         )
@@ -139,10 +145,15 @@ export class ComponentStateEffects {
                         catchError((errorResponse: HttpErrorResponse) =>
                             of(
                                 ErrorActions.addBannerError({
-                                    error: this.errorHelper.getErrorString(
-                                        errorResponse,
-                                        'Failed to reload the component state.'
-                                    )
+                                    errorContext: {
+                                        errors: [
+                                            this.errorHelper.getErrorString(
+                                                errorResponse,
+                                                'Failed to reload the component state.'
+                                            )
+                                        ],
+                                        context: ErrorContextKey.COMPONENT_STATE
+                                    }
                                 })
                             )
                         )

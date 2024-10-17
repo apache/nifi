@@ -30,6 +30,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { isDefinedAndNotNull, NiFiCommon } from 'libs/shared/src';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class LineageEffects {
@@ -81,7 +82,11 @@ export class LineageEffects {
                 const query: Lineage = response.lineage;
                 if (query.finished || !this.nifiCommon.isEmpty(query.results.errors)) {
                     response.lineage.results.errors?.forEach((error) => {
-                        this.store.dispatch(ErrorActions.addBannerError({ error }));
+                        this.store.dispatch(
+                            ErrorActions.addBannerError({
+                                errorContext: { errors: [error], context: ErrorContextKey.LINEAGE }
+                            })
+                        );
                     });
 
                     return of(LineageActions.deleteLineageQuery());
@@ -147,7 +152,14 @@ export class LineageEffects {
             ),
             switchMap((response) => {
                 response.lineage.results.errors?.forEach((error) => {
-                    this.store.dispatch(ErrorActions.addBannerError({ error }));
+                    this.store.dispatch(
+                        ErrorActions.addBannerError({
+                            errorContext: {
+                                errors: [error],
+                                context: ErrorContextKey.LINEAGE
+                            }
+                        })
+                    );
                 });
 
                 return of(LineageActions.stopPollingLineageQuery());
@@ -186,7 +198,16 @@ export class LineageEffects {
             tap(() => {
                 this.store.dispatch(LineageActions.stopPollingLineageQuery());
             }),
-            switchMap(({ error }) => of(ErrorActions.addBannerError({ error })))
+            switchMap(({ error }) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: {
+                            errors: [error],
+                            context: ErrorContextKey.LINEAGE
+                        }
+                    })
+                )
+            )
         )
     );
 }

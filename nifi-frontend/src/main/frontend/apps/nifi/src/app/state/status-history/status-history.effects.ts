@@ -28,6 +28,7 @@ import { StatusHistory } from '../../ui/common/status-history/status-history.com
 import * as ErrorActions from '../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../service/error-helper.service';
+import { ErrorContextKey } from '../error';
 
 @Injectable()
 export class StatusHistoryEffects {
@@ -200,7 +201,13 @@ export class StatusHistoryEffects {
         this.actions$.pipe(
             ofType(StatusHistoryActions.statusHistoryBannerError),
             map((action) => action.error),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            switchMap((error) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: { errors: [error], context: ErrorContextKey.STATUS_HISTORY }
+                    })
+                )
+            )
         )
     );
 

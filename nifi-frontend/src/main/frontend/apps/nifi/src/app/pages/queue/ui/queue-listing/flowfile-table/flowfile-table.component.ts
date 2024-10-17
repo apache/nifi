@@ -28,12 +28,23 @@ import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.
 import { ClusterSummary } from '../../../../../state/cluster-summary';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
+import { ErrorContextKey } from '../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'flowfile-table',
     standalone: true,
     templateUrl: './flowfile-table.component.html',
-    imports: [MatTableModule, RouterLink, ErrorBanner, MatIconButton, MatMenu, MatMenuItem, MatMenuTrigger],
+    imports: [
+        MatTableModule,
+        RouterLink,
+        ErrorBanner,
+        MatIconButton,
+        MatMenu,
+        MatMenuItem,
+        MatMenuTrigger,
+        ContextErrorBanner
+    ],
     styleUrls: ['./flowfile-table.component.scss']
 })
 export class FlowFileTable {
@@ -152,4 +163,6 @@ export class FlowFileTable {
     viewContentClicked(summary: FlowFileSummary): void {
         this.viewContent.next(summary);
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

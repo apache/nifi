@@ -42,7 +42,7 @@
                 }
             }
         </div>
-        <error-banner></error-banner>
+        <context-error-banner [context]="ErrorContextKey.STATUS_HISTORY"></context-error-banner>
         <div class="status-history flex flex-col grow">
             <mat-dialog-content class="grow flex flex-1">
                 <form [formGroup]="statusHistoryForm" class="flex flex-1 h-full">

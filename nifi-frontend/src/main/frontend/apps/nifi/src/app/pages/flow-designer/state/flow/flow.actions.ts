@@ -113,6 +113,7 @@ import {
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
 import { FetchComponentVersionsRequest } from '../../../../state/shared';
+import { ErrorContext } from '../../../../state/error';
 
 const CANVAS_PREFIX = '[Canvas]';
 
@@ -809,7 +810,10 @@ export const stopVersionControlSuccess = createAction(
 
 export const flowSnackbarError = createAction(`${CANVAS_PREFIX} Flow Snackbar Error`, props<{ error: string }>());
 
-export const flowBannerError = createAction(`${CANVAS_PREFIX} Flow Banner Error`, props<{ error: string }>());
+export const flowBannerError = createAction(
+    `${CANVAS_PREFIX} Flow Banner Error`,
+    props<{ errorContext: ErrorContext }>()
+);
 
 export const openShowLocalChangesDialogRequest = createAction(
     `${CANVAS_PREFIX} Open Show Local Changes Dialog Request`,

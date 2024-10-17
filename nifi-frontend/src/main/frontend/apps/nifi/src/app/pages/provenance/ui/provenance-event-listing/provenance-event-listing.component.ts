@@ -26,8 +26,8 @@ import {
     ProvenanceResults
 } from '../../state/provenance-event-listing';
 import {
-    selectLoadedTimestamp,
     selectCompletedProvenance,
+    selectLoadedTimestamp,
     selectProvenanceRequest,
     selectSearchableFieldsFromRoute,
     selectStatus
@@ -50,6 +50,7 @@ import { selectCompletedLineage } from '../../state/lineage/lineage.selectors';
 import { clearBannerErrors } from '../../../../state/error/error.actions';
 import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Component({
     selector: 'provenance-event-listing',
@@ -209,7 +210,7 @@ export class ProvenanceEventListing implements OnInit, OnDestroy {
     }
 
     clearBannerErrors(): void {
-        this.store.dispatch(clearBannerErrors());
+        this.store.dispatch(clearBannerErrors({ context: ErrorContextKey.PROVENANCE }));
     }
 
     resetLineage(): void {
@@ -220,6 +221,5 @@ export class ProvenanceEventListing implements OnInit, OnDestroy {
         this.stateReset = true;
         this.store.dispatch(resetProvenanceState());
         this.store.dispatch(resetLineage());
-        this.store.dispatch(clearBannerErrors());
     }
 }

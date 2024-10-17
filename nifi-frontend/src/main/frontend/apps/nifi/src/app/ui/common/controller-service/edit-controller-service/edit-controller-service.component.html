@@ -26,7 +26,7 @@
     </div>
 </h2>
 <form class="controller-service-edit-form" [formGroup]="editControllerServiceForm">
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.CONTROLLER_SERVICES"></context-error-banner>
     <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
         <mat-tab label="Settings">
             <mat-dialog-content>

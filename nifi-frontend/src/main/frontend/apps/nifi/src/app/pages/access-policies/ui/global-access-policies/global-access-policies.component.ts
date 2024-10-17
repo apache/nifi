@@ -21,8 +21,8 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import {
     createAccessPolicy,
     openAddTenantToPolicyDialog,
-    promptOverrideAccessPolicy,
     promptDeleteAccessPolicy,
+    promptOverrideAccessPolicy,
     promptRemoveTenantFromPolicy,
     reloadAccessPolicy,
     resetAccessPolicyState,
@@ -48,7 +48,7 @@ import { selectFlowConfiguration } from '../../../../state/flow-configuration/fl
 import { AccessPoliciesState } from '../../state';
 import { loadTenants, resetTenantsState } from '../../state/tenants/tenants.actions';
 import { loadCurrentUser } from '../../../../state/current-user/current-user.actions';
-import { clearBannerErrors } from '../../../../state/error/error.actions';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Component({
     selector: 'global-access-policies',
@@ -291,8 +291,9 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
         // reload the current user to ensure the latest global policies
         this.store.dispatch(loadCurrentUser());
 
-        this.store.dispatch(clearBannerErrors());
         this.store.dispatch(resetAccessPolicyState());
         this.store.dispatch(resetTenantsState());
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

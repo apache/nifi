@@ -51,6 +51,8 @@ import {
 } from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { ErrorContextKey } from '../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'edit-parameter-provider',
@@ -69,7 +71,8 @@ import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dial
         ErrorBanner,
         CommonModule,
         NifiTooltipDirective,
-        PropertyVerification
+        PropertyVerification,
+        ContextErrorBanner
     ],
     templateUrl: './edit-parameter-provider.component.html',
     styleUrls: ['./edit-parameter-provider.component.scss']
@@ -183,4 +186,6 @@ export class EditParameterProvider extends TabbedDialog {
             properties: this.getModifiedProperties()
         });
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

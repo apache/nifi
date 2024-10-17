@@ -32,6 +32,8 @@ import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-b
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { CloseOnEscapeDialog } from '@nifi/shared';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     standalone: true,
@@ -48,7 +50,8 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
         NifiSpinnerDirective,
         FormsModule,
         ErrorBanner,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ContextErrorBanner
     ],
     styleUrls: ['./edit-remote-process-group.component.scss']
 })
@@ -108,4 +111,6 @@ export class EditRemoteProcessGroup extends CloseOnEscapeDialog {
     override isDirty(): boolean {
         return this.editRemoteProcessGroupForm.dirty;
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

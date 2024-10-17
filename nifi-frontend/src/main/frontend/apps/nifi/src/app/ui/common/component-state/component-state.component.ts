@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, inject, Input, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, inject, Input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { AsyncPipe } from '@angular/common';
-import { NifiTooltipDirective, NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
+import { CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { ComponentStateState, StateEntry, StateItem, StateMap } from '../../../state/component-state';
 import { Store } from '@ngrx/store';
@@ -39,7 +39,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import { ErrorBanner } from '../error-banner/error-banner.component';
-import { clearBannerErrors } from '../../../state/error/error.actions';
+import { ErrorContextKey } from '../../../state/error';
+import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'component-state',
@@ -56,11 +57,12 @@ import { clearBannerErrors } from '../../../state/error/error.actions';
         ReactiveFormsModule,
         MatFormFieldModule,
         MatInputModule,
-        ErrorBanner
+        ErrorBanner,
+        ContextErrorBanner
     ],
     styleUrls: ['./component-state.component.scss']
 })
-export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterViewInit, OnDestroy {
+export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterViewInit {
     @Input() initialSortColumn: 'key' | 'value' = 'key';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
 
@@ -143,10 +145,6 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
             });
     }
 
-    ngOnDestroy(): void {
-        this.store.dispatch(clearBannerErrors());
-    }
-
     processStateMap(stateMap: StateMap, clusterState: boolean): StateItem[] {
         const stateEntries: StateEntry[] = stateMap.state ? stateMap.state : [];
 
@@ -202,4 +200,6 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
     clearState(): void {
         this.store.dispatch(clearComponentState());
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

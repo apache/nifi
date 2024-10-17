@@ -67,6 +67,7 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
+import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ParameterProvidersEffects {
@@ -442,7 +443,6 @@ export class ParameterProvidersEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
                         this.store.dispatch(resetPropertyVerificationState());
 
                         if (response !== 'ROUTED') {
@@ -613,7 +613,6 @@ export class ParameterProvidersEffects {
 
                     dialogRef.afterClosed().subscribe((response) => {
                         this.store.dispatch(ParameterProviderActions.resetFetchedParameterProvider());
-                        this.store.dispatch(ErrorActions.clearBannerErrors());
 
                         if (response !== 'ROUTED') {
                             this.store.dispatch(
@@ -640,7 +639,13 @@ export class ParameterProvidersEffects {
             tap(() =>
                 this.store.dispatch(ParameterProviderActions.stopPollingParameterProviderParametersUpdateRequest())
             ),
-            switchMap((error) => of(ErrorActions.addBannerError({ error })))
+            switchMap((error) =>
+                of(
+                    ErrorActions.addBannerError({
+                        errorContext: { errors: [error], context: ErrorContextKey.PARAMETER_PROVIDERS }
+                    })
+                )
+            )
         )
     );
 

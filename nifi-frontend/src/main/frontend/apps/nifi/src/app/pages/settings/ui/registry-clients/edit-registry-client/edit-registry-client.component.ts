@@ -39,6 +39,8 @@ import { PropertyTable } from '../../../../../ui/common/property-table/property-
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { ErrorContextKey } from '../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'edit-registry-client',
@@ -56,7 +58,8 @@ import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dial
         NifiTooltipDirective,
         MatTabsModule,
         PropertyTable,
-        ErrorBanner
+        ErrorBanner,
+        ContextErrorBanner
     ],
     styleUrls: ['./edit-registry-client.component.scss']
 })
@@ -138,4 +141,6 @@ export class EditRegistryClient extends TabbedDialog {
     override isDirty(): boolean {
         return this.editRegistryClientForm.dirty;
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

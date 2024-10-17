@@ -18,7 +18,7 @@
 <div>
     <h2 mat-dialog-title>Fetch Parameters</h2>
     <form class="parameter-provider-fetch-form" [formGroup]="fetchParametersForm">
-        <error-banner></error-banner>
+        <context-error-banner [context]="ErrorContextKey.PARAMETER_PROVIDERS"></context-error-banner>
 
         <mat-dialog-content *ngIf="(updateRequest | async)! as requestEntity; else fetchFormContent">
             <div class="dialog-content flex gap-x-4 w-full pt-2">

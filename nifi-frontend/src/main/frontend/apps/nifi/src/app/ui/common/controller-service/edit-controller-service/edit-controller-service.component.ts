@@ -52,6 +52,8 @@ import {
     VerifyPropertiesRequestContext
 } from '../../../../state/property-verification';
 import { TabbedDialog } from '../../tabbed-dialog/tabbed-dialog.component';
+import { ErrorContextKey } from '../../../../state/error';
+import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'edit-controller-service',
@@ -73,7 +75,8 @@ import { TabbedDialog } from '../../tabbed-dialog/tabbed-dialog.component';
         NifiSpinnerDirective,
         ErrorBanner,
         NifiTooltipDirective,
-        PropertyVerification
+        PropertyVerification,
+        ContextErrorBanner
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })
@@ -214,4 +217,6 @@ export class EditControllerService extends TabbedDialog {
             properties: this.getModifiedProperties()
         });
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

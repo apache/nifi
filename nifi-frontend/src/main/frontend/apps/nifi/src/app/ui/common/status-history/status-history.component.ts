@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, HostListener, inject, Inject, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, HostListener, inject, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { StatusHistoryService } from '../../../service/status-history.service';
 import { AsyncPipe, NgStyle } from '@angular/common';
@@ -49,7 +49,8 @@ import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
 import { StatusHistoryChart } from './status-history-chart/status-history-chart.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ErrorBanner } from '../error-banner/error-banner.component';
-import { clearBannerErrors } from '../../../state/error/error.actions';
+import { ErrorContextKey } from '../../../state/error';
+import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'status-history',
@@ -68,11 +69,12 @@ import { clearBannerErrors } from '../../../state/error/error.actions';
         Resizable,
         StatusHistoryChart,
         NgStyle,
-        ErrorBanner
+        ErrorBanner,
+        ContextErrorBanner
     ],
     styleUrls: ['./status-history.component.scss']
 })
-export class StatusHistory extends CloseOnEscapeDialog implements OnInit, OnDestroy, AfterViewInit {
+export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterViewInit {
     request: StatusHistoryRequest;
     statusHistoryState$ = this.store.select(selectStatusHistoryState);
     componentDetails$ = this.store.select(selectStatusHistoryComponentDetails);
@@ -200,10 +202,6 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, OnDest
         });
     }
 
-    ngOnDestroy(): void {
-        this.store.dispatch(clearBannerErrors());
-    }
-
     ngAfterViewInit(): void {
         // when the selected descriptor changes, update the chart
         this.statusHistoryForm
@@ -293,4 +291,5 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, OnDest
     }
 
     protected readonly NIFI_NODE_CONFIG = NIFI_NODE_CONFIG;
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

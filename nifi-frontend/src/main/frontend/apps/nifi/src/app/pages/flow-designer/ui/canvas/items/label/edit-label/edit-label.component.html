@@ -17,7 +17,7 @@
 
 <h2 mat-dialog-title>{{ readonly ? 'Label Details' : 'Edit Label' }}</h2>
 <form class="edit-label-form" [formGroup]="editLabelForm">
-    <error-banner></error-banner>
+    <context-error-banner [context]="ErrorContextKey.LABEL"></context-error-banner>
     <mat-dialog-content>
         <div>
             <mat-form-field>

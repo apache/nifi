@@ -33,7 +33,8 @@ describe('Birdseye', () => {
                     provide: BirdseyeView,
                     useValue: {
                         init: jest.fn(),
-                        refresh: jest.fn()
+                        refresh: jest.fn(),
+                        destroy: jest.fn()
                     }
                 }
             ]

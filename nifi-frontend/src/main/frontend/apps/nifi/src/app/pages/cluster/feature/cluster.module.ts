@@ -28,6 +28,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconButton } from '@angular/material/button';
 import { ErrorBanner } from '../../../ui/common/error-banner/error-banner.component';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { ContextErrorBanner } from '../../../ui/common/context-error-banner/context-error-banner.component';
 
 @NgModule({
     declarations: [Cluster],
@@ -41,7 +42,8 @@ import { BannerText } from '../../../ui/common/banner-text/banner-text.component
         MatTabsModule,
         MatIconButton,
         ErrorBanner,
-        BannerText
+        BannerText,
+        ContextErrorBanner
     ]
 })
 export class ClusterModule {}

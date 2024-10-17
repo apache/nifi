@@ -25,7 +25,7 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 
 import 'codemirror/addon/hint/show-hint';
 import { MockComponent } from 'ng-mocks';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 describe('EditFlowAnalysisRule', () => {
     let component: EditFlowAnalysisRule;
@@ -96,7 +96,7 @@ describe('EditFlowAnalysisRule', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [EditFlowAnalysisRule, MockComponent(ErrorBanner), NoopAnimationsModule],
+            imports: [EditFlowAnalysisRule, MockComponent(ContextErrorBanner), NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
                 {

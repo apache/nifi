@@ -47,6 +47,8 @@ import { Store } from '@ngrx/store';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { CloseOnEscapeDialog } from '@nifi/shared';
+import { ErrorContextKey } from '../../../../../state/error';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
 @Component({
     selector: 'fetch-parameter-provider-parameters',
@@ -65,7 +67,8 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
         MatCheckboxModule,
         MatInputModule,
         ParameterReferences,
-        PipesModule
+        PipesModule,
+        ContextErrorBanner
     ],
     templateUrl: './fetch-parameter-provider-parameters.component.html',
     styleUrls: ['./fetch-parameter-provider-parameters.component.scss']
@@ -615,4 +618,6 @@ export class FetchParameterProviderParameters extends CloseOnEscapeDialog implem
     override isDirty(): boolean {
         return this.fetchParametersForm.dirty;
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }
