@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
+import { SelectOption } from '@nifi/shared';
 import { ControllerServiceEntity, ParameterContextReferenceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../shared';
+import { Revision } from '../../../../state/shared';
 
 export const controllerServicesFeatureKey = 'controllerServiceListing';
 
@@ -30,6 +32,7 @@ export interface LoadControllerServicesResponse {
     controllerServices: ControllerServiceEntity[];
     parameterContext: ParameterContextReferenceEntity | null;
     loadedTimestamp: string;
+    childProcessGroupOptions: SelectOption[];
 }
 
 export interface CreateControllerServiceSuccess {
@@ -51,6 +54,34 @@ export interface ConfigureControllerServiceSuccess {
     postUpdateNavigationBoundary?: string[];
 }
 
+export interface MoveControllerServiceDialogRequest {
+    id: string;
+    controllerService: ControllerServiceEntity;
+}
+
+export interface MoveControllerServiceDialogRequestSuccess {
+    id: string;
+    controllerService: ControllerServiceEntity;
+    childProcessGroupOptions: SelectOption[];
+    processGroupEntity: any;
+    parentControllerServices: ControllerServiceEntity[];
+    breadcrumb: BreadcrumbEntity;
+}
+
+export interface MoveControllerServiceRequest {
+    controllerService: ControllerServiceEntity;
+    data: MoveControllerServiceData;
+}
+
+export interface MoveControllerServiceData {
+    parentGroupId: string;
+    revision: Revision;
+}
+
+export interface MoveControllerServiceSuccess {
+    controllerService: ControllerServiceEntity;
+}
+
 export interface DeleteControllerServiceRequest {
     controllerService: ControllerServiceEntity;
 }
@@ -66,6 +97,7 @@ export interface SelectControllerServiceRequest {
 
 export interface ControllerServicesState {
     processGroupId: string;
+    childProcessGroupOptions: SelectOption[];
     breadcrumb: BreadcrumbEntity;
     controllerServices: ControllerServiceEntity[];
     parameterContext: ParameterContextReferenceEntity | null;
