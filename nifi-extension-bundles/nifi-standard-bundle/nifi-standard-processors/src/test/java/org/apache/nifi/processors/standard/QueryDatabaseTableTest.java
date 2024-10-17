@@ -51,7 +51,6 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.time.LocalDateTime;
@@ -97,10 +96,10 @@ public class QueryDatabaseTableTest {
     }
 
     @AfterAll
-    public static void cleanUpAfterClass() throws Exception {
+    public static void cleanUpAfterClass() {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (SQLNonTransientConnectionException e) {
+        } catch (Exception e) {
             // Do nothing, this is what happens at Derby shutdown
         }
         // remove previous test database, if any
