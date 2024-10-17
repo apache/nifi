@@ -139,19 +139,15 @@ public class MiNiFiPropertiesGenerator {
         Triple.of(NiFiProperties.FLOW_CONFIGURATION_FILE, "./conf/flow.json.gz", EMPTY)
     );
 
-    static final String PROTECTED_POSTFIX = ".protected";
     static final Map<String, String> MINIFI_TO_NIFI_PROPERTY_MAPPING = Map.ofEntries(
         entry(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey(), NiFiProperties.FLOW_CONFIGURATION_FILE),
         entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE.getKey(), NiFiProperties.SECURITY_KEYSTORE),
         entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_TYPE.getKey(), NiFiProperties.SECURITY_KEYSTORE_TYPE),
         entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_PASSWD.getKey(), NiFiProperties.SECURITY_KEYSTORE_PASSWD),
-        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEYSTORE_PASSWD.getKey() + PROTECTED_POSTFIX, NiFiProperties.SECURITY_KEYSTORE_PASSWD + PROTECTED_POSTFIX),
         entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEY_PASSWD.getKey(), NiFiProperties.SECURITY_KEY_PASSWD),
-        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_KEY_PASSWD.getKey() + PROTECTED_POSTFIX, NiFiProperties.SECURITY_KEY_PASSWD + PROTECTED_POSTFIX),
         entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE.getKey(), NiFiProperties.SECURITY_TRUSTSTORE),
         entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE_TYPE.getKey(), NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
-        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE_PASSWD.getKey(), NiFiProperties.SECURITY_TRUSTSTORE_PASSWD),
-        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE_PASSWD.getKey() + PROTECTED_POSTFIX, NiFiProperties.SECURITY_TRUSTSTORE_PASSWD + PROTECTED_POSTFIX)
+        entry(MiNiFiProperties.NIFI_MINIFI_SECURITY_TRUSTSTORE_PASSWD.getKey(), NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)
     );
 
     static final String DEFAULT_SENSITIVE_PROPERTIES_ENCODING_ALGORITHM = "NIFI_PBKDF2_AES_GCM_256";
