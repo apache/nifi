@@ -45,7 +45,19 @@ public abstract class AbstractParameterParser implements ParameterParser {
         final ParameterToken token;
         if (sequentialStartTags % 2 == 1) {
             final String parameterName = input.substring(startCharIndex + sequentialStartTags + 1, endCharIndex);
-            token = new StandardParameterReference(parameterName, startOffset, endCharIndex, referenceText);
+            if (parameterName.contains("'")) {
+                if (parameterName.startsWith("'") && parameterName.endsWith("'")) {
+                    final String parameterNameWithoutQuotes = parameterName.substring(1, parameterName.length() - 1);
+                    if (parameterNameWithoutQuotes.contains("'")) {
+                        return null;
+                    }
+                    token = new StandardParameterReference(parameterNameWithoutQuotes, startOffset, endCharIndex, referenceText);
+                } else {
+                    return null;
+                }
+            } else {
+                token = new StandardParameterReference(parameterName, startOffset, endCharIndex, referenceText);
+            }
         } else {
             token = new EscapedParameterReference(startOffset, endCharIndex, referenceText);
         }
