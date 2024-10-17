@@ -226,6 +226,11 @@
     <!-- Suppress non-error messages from JetBrains Xodus FileDataWriter related to FileChannel -->
     <logger name="jetbrains.exodus.io.FileDataWriter" level="WARN" />
 
+    <!-- Suppress warnings from Lucene Vectorization Provider related to JDK incubator features -->
+    <logger name="org.apache.lucene.internal.vectorization.VectorizationProvider" level="ERROR" />
+    <!-- Suppress information from Lucene Memory Segment Provider related to native access configuration -->
+    <logger name="org.apache.lucene.store.MemorySegmentIndexInputProvider" level="WARN" />
+
     <!-- These log messages would normally go to the USER_FILE log, but they belong in the APP_FILE -->
     <logger name="org.apache.nifi.web.security.requests" level="INFO" additivity="false">
         <appender-ref ref="APP_FILE"/>
