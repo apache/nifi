@@ -42,6 +42,7 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
 
     private static final Logger logger = LoggerFactory.getLogger(StandardMiNiFiServer.class);
     private static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
+    private static final String LISTENER_BOOTSTRAP_PORT = "nifi.listener.bootstrap.port";
 
     private BootstrapListener bootstrapListener;
     private C2NifiClientService c2NifiClientService;
@@ -131,7 +132,11 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
 
                 bootstrapListener = new BootstrapListener(this, port);
                 NiFiProperties niFiProperties = getNiFiProperties();
-                bootstrapListener.start(niFiProperties.getDefaultListenerBootstrapPort());
+
+                // Default to 0 for random ephemeral port number
+                final String listenerBootstrapPortProperty = niFiProperties.getProperty(LISTENER_BOOTSTRAP_PORT, "0");
+                final int listenerBootstrapPort = Integer.parseInt(listenerBootstrapPortProperty);
+                bootstrapListener.start(listenerBootstrapPort);
             } catch (IOException e) {
                 throw new UncheckedIOException("Failed to start MiNiFi because of Bootstrap listener initialization error", e);
             } catch (NumberFormatException e) {
