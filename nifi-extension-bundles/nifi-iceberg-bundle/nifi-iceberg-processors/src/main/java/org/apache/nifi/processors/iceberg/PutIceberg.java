@@ -46,7 +46,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.iceberg.catalog.ClosableCatalog;
 import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
 import org.apache.nifi.processors.iceberg.converter.IcebergRecordConverter;
 import org.apache.nifi.processors.iceberg.writer.IcebergTaskWriterFactory;
@@ -55,6 +54,8 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.services.iceberg.IcebergCatalogService;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -270,13 +271,14 @@ public class PutIceberg extends AbstractIcebergProcessor {
         final String fileFormat = context.getProperty(FILE_FORMAT).getValue();
         final String maximumFileSize = context.getProperty(MAXIMUM_FILE_SIZE).evaluateAttributeExpressions(flowFile).getValue();
 
+        Catalog catalog = null;
         Table table = null;
         TaskWriter<org.apache.iceberg.data.Record> taskWriter = null;
         int recordCount = 0;
 
         try (final InputStream in = session.read(flowFile);
-             final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
-             final ClosableCatalog catalog = loadCatalog(context)) {
+             final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
+            catalog = loadCatalog(context);
             table = loadTable(context, flowFile, catalog);
             final FileFormat format = getFileFormat(table.properties(), fileFormat);
             final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, maximumFileSize);
@@ -307,6 +309,14 @@ public class PutIceberg extends AbstractIcebergProcessor {
                 getLogger().warn("Failed to abort uncommitted data files", ex);
             }
             return;
+        } finally {
+            if (catalog instanceof Closeable) {
+                try {
+                    ((Closeable) catalog).close();
+                } catch (IOException e) {
+                    getLogger().warn("Failed to close catalog", e);
+                }
+            }
         }
 
         flowFile = session.putAttribute(flowFile, ICEBERG_RECORD_COUNT, String.valueOf(recordCount));
@@ -331,7 +341,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
         return catalog.loadTable(tableIdentifier);
     }
 
-    private ClosableCatalog loadCatalog(final PropertyContext context) {
+    private Catalog loadCatalog(final PropertyContext context) {
         final IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
         final IcebergCatalogFactory catalogFactory = new IcebergCatalogFactory(catalogService);
 

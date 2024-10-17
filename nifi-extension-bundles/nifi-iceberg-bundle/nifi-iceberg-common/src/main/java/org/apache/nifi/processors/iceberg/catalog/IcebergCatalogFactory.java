@@ -49,14 +49,12 @@ public class IcebergCatalogFactory {
         this.catalogService = catalogService;
     }
 
-    public ClosableCatalog create() {
-        final Catalog catalog = switch (catalogService.getCatalogType()) {
+    public Catalog create() {
+        return switch (catalogService.getCatalogType()) {
             case HIVE -> initHiveCatalog(catalogService);
             case HADOOP -> initHadoopCatalog(catalogService);
             case JDBC -> initJdbcCatalog(catalogService);
         };
-
-        return new ClosableCatalog(catalog);
     }
 
     private Catalog initHiveCatalog(IcebergCatalogService catalogService) {
