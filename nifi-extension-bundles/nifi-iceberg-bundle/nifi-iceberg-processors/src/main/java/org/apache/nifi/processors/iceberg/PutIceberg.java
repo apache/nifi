@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.iceberg;
 
 import org.apache.iceberg.AppendFiles;
-import org.apache.iceberg.BaseMetastoreCatalog;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PendingUpdate;
@@ -47,6 +46,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.iceberg.catalog.ClosableCatalog;
 import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
 import org.apache.nifi.processors.iceberg.converter.IcebergRecordConverter;
 import org.apache.nifi.processors.iceberg.writer.IcebergTaskWriterFactory;
@@ -276,7 +276,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
 
         try (final InputStream in = session.read(flowFile);
              final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
-             final BaseMetastoreCatalog catalog = loadCatalog(context)) {
+             final ClosableCatalog catalog = loadCatalog(context)) {
             table = loadTable(context, flowFile, catalog);
             final FileFormat format = getFileFormat(table.properties(), fileFormat);
             final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, maximumFileSize);
@@ -331,7 +331,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
         return catalog.loadTable(tableIdentifier);
     }
 
-    private BaseMetastoreCatalog loadCatalog(final PropertyContext context) {
+    private ClosableCatalog loadCatalog(final PropertyContext context) {
         final IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
         final IcebergCatalogFactory catalogFactory = new IcebergCatalogFactory(catalogService);
 

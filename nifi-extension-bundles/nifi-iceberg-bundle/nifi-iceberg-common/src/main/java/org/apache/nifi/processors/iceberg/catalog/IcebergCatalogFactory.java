@@ -18,9 +18,9 @@
 package org.apache.nifi.processors.iceberg.catalog;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.iceberg.BaseMetastoreCatalog;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.CatalogUtil;
+import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.apache.iceberg.hive.HiveCatalog;
 import org.apache.iceberg.io.FileIO;
@@ -49,15 +49,17 @@ public class IcebergCatalogFactory {
         this.catalogService = catalogService;
     }
 
-    public BaseMetastoreCatalog create() {
-        return switch (catalogService.getCatalogType()) {
+    public ClosableCatalog create() {
+        final Catalog catalog = switch (catalogService.getCatalogType()) {
             case HIVE -> initHiveCatalog(catalogService);
             case HADOOP -> initHadoopCatalog(catalogService);
             case JDBC -> initJdbcCatalog(catalogService);
         };
+
+        return new ClosableCatalog(catalog);
     }
 
-    private BaseMetastoreCatalog initHiveCatalog(IcebergCatalogService catalogService) {
+    private Catalog initHiveCatalog(IcebergCatalogService catalogService) {
         HiveCatalog catalog = new HiveCatalog();
 
         if (catalogService.getConfigFilePaths() != null) {
@@ -80,7 +82,7 @@ public class IcebergCatalogFactory {
         return catalog;
     }
 
-    private BaseMetastoreCatalog initHadoopCatalog(IcebergCatalogService catalogService) {
+    private Catalog initHadoopCatalog(IcebergCatalogService catalogService) {
         final Map<IcebergCatalogProperty, Object> catalogProperties = catalogService.getCatalogProperties();
         final String warehousePath = (String) catalogProperties.get(WAREHOUSE_LOCATION);
 
@@ -91,7 +93,7 @@ public class IcebergCatalogFactory {
         }
     }
 
-    private BaseMetastoreCatalog initJdbcCatalog(IcebergCatalogService catalogService) {
+    private Catalog initJdbcCatalog(IcebergCatalogService catalogService) {
         final Map<IcebergCatalogProperty, Object> catalogProperties = catalogService.getCatalogProperties();
         final Map<String, String> properties = new HashMap<>();
         properties.put(CatalogProperties.URI, "");
