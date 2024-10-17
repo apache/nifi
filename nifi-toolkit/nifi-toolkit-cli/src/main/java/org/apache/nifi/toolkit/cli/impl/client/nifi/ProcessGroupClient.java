@@ -75,4 +75,6 @@ public interface ProcessGroupClient {
         throws NiFiClientException, IOException;
 
     FlowComparisonEntity getLocalModifications(String processGroupId) throws NiFiClientException, IOException;
+
+    ProcessGroupEntity deleteProcessGroup(ProcessGroupEntity entity) throws NiFiClientException, IOException;
 }
