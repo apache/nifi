@@ -34,7 +34,7 @@
         <module>nifi-standard-content-viewer-nar</module>
     </modules>
     <properties>
-        <org.apache.sshd.version>2.13.2</org.apache.sshd.version>
+        <org.apache.sshd.version>2.14.0</org.apache.sshd.version>
         <tika.version>2.9.2</tika.version>
     </properties>
     <dependencyManagement>
@@ -169,7 +169,7 @@
             <dependency>
                 <groupId>com.github.wnameless.json</groupId>
                 <artifactId>json-flattener</artifactId>
-                <version>0.16.6</version>
+                <version>0.17.0</version>
             </dependency>
             <dependency>
                 <groupId>io.krakens</groupId>
@@ -221,7 +221,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.2.1-jre</version>
+                <version>33.3.1-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.networknt</groupId>

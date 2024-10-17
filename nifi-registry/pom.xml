@@ -40,7 +40,7 @@
         <flyway.tests.version>10.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <jgit.version>7.0.0.202409031743-r</jgit.version>
-        <org.apache.sshd.version>2.13.2</org.apache.sshd.version>
+        <org.apache.sshd.version>2.14.0</org.apache.sshd.version>
     </properties>
     <dependencyManagement>
         <dependencies>
