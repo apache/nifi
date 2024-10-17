@@ -22,6 +22,7 @@ import com.google.api.core.ApiFutures;
 import com.google.api.gax.batching.BatchingSettings;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.rpc.ApiException;
+import com.google.api.gax.core.FixedExecutorProvider;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.cloud.pubsub.v1.stub.GrpcPublisherStub;
 import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
@@ -82,6 +83,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_DESCRIPTION;
@@ -488,6 +490,10 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                 .setDelayThreshold(Duration.ofMillis(batchDelayThreshold))
                 .setIsEnabled(true)
                 .build());
+
+        // Set fixed thread pool executor to number of concurrent tasks
+        publisherBuilder.setExecutorProvider(FixedExecutorProvider.create(new ScheduledThreadPoolExecutor(context.getMaxConcurrentTasks())));
+
         return publisherBuilder;
     }
 }
