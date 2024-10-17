@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.event;
 
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.authorization.User;
 import org.apache.nifi.registry.authorization.UserGroup;
 import org.apache.nifi.registry.bucket.Bucket;
@@ -26,10 +27,10 @@ import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.hook.Event;
 import org.apache.nifi.registry.hook.EventFieldName;
 import org.apache.nifi.registry.hook.EventType;
+import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -46,6 +47,7 @@ public class TestEventFactory {
     private BundleVersion bundleVersion;
     private User user;
     private UserGroup userGroup;
+    private RevisionInfo revisionInfo;
 
     @BeforeEach
     public void setup() {
@@ -53,12 +55,20 @@ public class TestEventFactory {
         bucket.setName("Bucket1");
         bucket.setIdentifier(UUID.randomUUID().toString());
         bucket.setCreatedTimestamp(System.currentTimeMillis());
+        bucket.setDescription("Bucket 1 Description");
+
+        revisionInfo = new RevisionInfo();
+        revisionInfo.setVersion(1L);
 
         versionedFlow = new VersionedFlow();
         versionedFlow.setIdentifier(UUID.randomUUID().toString());
         versionedFlow.setName("Flow 1");
+        versionedFlow.setDescription("Flow 1 Description");
         versionedFlow.setBucketIdentifier(bucket.getIdentifier());
         versionedFlow.setBucketName(bucket.getName());
+        versionedFlow.setCreatedTimestamp(System.currentTimeMillis());
+        versionedFlow.setModifiedTimestamp(System.currentTimeMillis());
+        versionedFlow.setRevision(revisionInfo);
 
         VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();
         metadata.setAuthor("user1");
@@ -70,6 +80,8 @@ public class TestEventFactory {
         versionedFlowSnapshot = new VersionedFlowSnapshot();
         versionedFlowSnapshot.setSnapshotMetadata(metadata);
         versionedFlowSnapshot.setFlowContents(new VersionedProcessGroup());
+        versionedFlowSnapshot.setFlow(versionedFlow);
+        versionedFlowSnapshot.setBucket(bucket);
 
         bundle = new Bundle();
         bundle.setIdentifier(UUID.randomUUID().toString());
@@ -105,10 +117,65 @@ public class TestEventFactory {
         event.validate();
 
         assertEquals(EventType.CREATE_BUCKET, event.getEventType());
-        assertEquals(2, event.getFields().size());
+        assertEquals(6, event.getFields().size());
 
         assertEquals(bucket.getIdentifier(), event.getField(EventFieldName.BUCKET_ID).getValue());
         assertEquals("unknown", event.getField(EventFieldName.USER).getValue());
+    }
+
+    @Test
+    public void testBucketCreatedEventWithNulls() {
+        Bucket bucket = new Bucket();
+        bucket.setName("test-bucket");
+        bucket.setIdentifier(UUID.randomUUID().toString());
+        final Event event = EventFactory.bucketCreated(bucket);
+
+        assertEquals(EventType.CREATE_BUCKET, event.getEventType());
+        assertEquals(6, event.getFields().size());
+
+        //Assert null values are empty Strings.
+        assertEquals( "", event.getField(EventFieldName.BUCKET_DESCRIPTION).getValue());
+        assertEquals("", event.getField(EventFieldName.ALLOW_PUBLIC_READ).getValue());
+        assertEquals( "0", event.getField(EventFieldName.CREATED_TIMESTAMP).getValue());
+    }
+
+    @Test
+    public void testFlowCreatedEventWithNulls() {
+        VersionedFlow versionedFlow = new VersionedFlow();
+        versionedFlow.setIdentifier(UUID.randomUUID().toString());
+        versionedFlow.setBucketIdentifier(UUID.randomUUID().toString());
+        versionedFlow.setBucketIdentifier(UUID.randomUUID().toString());
+        final Event event = EventFactory.flowCreated(versionedFlow);
+
+        assertEquals(EventType.CREATE_FLOW, event.getEventType());
+        assertEquals(8, event.getFields().size());
+
+        //Assert null values are empty Strings.
+        assertEquals( "", event.getField(EventFieldName.BUCKET_NAME).getValue());
+        assertEquals( "", event.getField(EventFieldName.FLOW_NAME).getValue());
+        assertEquals( "0", event.getField(EventFieldName.CREATED_TIMESTAMP).getValue());
+        assertEquals( "0", event.getField(EventFieldName.MODIFIED_TIMESTAMP).getValue());
+    }
+
+    @Test
+    public void testFlowMetaDataCreatedEventWithNulls() {
+        VersionedFlowSnapshot flowSnapshot = new VersionedFlowSnapshot();
+        VersionedFlowSnapshotMetadata snapshotMetadata = new VersionedFlowSnapshotMetadata();
+        snapshotMetadata.setComments("");
+        snapshotMetadata.setFlowIdentifier(UUID.randomUUID().toString());
+        snapshotMetadata.setVersion(0);
+        snapshotMetadata.setBucketIdentifier(UUID.randomUUID().toString());
+        snapshotMetadata.setAuthor("");
+        flowSnapshot.setSnapshotMetadata(snapshotMetadata);
+        final Event event = EventFactory.flowVersionCreated(flowSnapshot);
+
+        assertEquals(EventType.CREATE_FLOW_VERSION, event.getEventType());
+        assertEquals(8, event.getFields().size());
+
+        //Assert null values are empty Strings.
+        assertEquals( "", event.getField(EventFieldName.BUCKET_NAME).getValue());
+        assertEquals( "", event.getField(EventFieldName.FLOW_NAME).getValue());
+        assertEquals( "0", event.getField(EventFieldName.MODIFIED_TIMESTAMP).getValue());
     }
 
     @Test
@@ -117,7 +184,7 @@ public class TestEventFactory {
         event.validate();
 
         assertEquals(EventType.UPDATE_BUCKET, event.getEventType());
-        assertEquals(2, event.getFields().size());
+        assertEquals(6, event.getFields().size());
 
         assertEquals(bucket.getIdentifier(), event.getField(EventFieldName.BUCKET_ID).getValue());
         assertEquals("unknown", event.getField(EventFieldName.USER).getValue());
@@ -129,7 +196,7 @@ public class TestEventFactory {
         event.validate();
 
         assertEquals(EventType.DELETE_BUCKET, event.getEventType());
-        assertEquals(2, event.getFields().size());
+        assertEquals(6, event.getFields().size());
 
         assertEquals(bucket.getIdentifier(), event.getField(EventFieldName.BUCKET_ID).getValue());
         assertEquals("unknown", event.getField(EventFieldName.USER).getValue());
@@ -141,7 +208,7 @@ public class TestEventFactory {
         event.validate();
 
         assertEquals(EventType.CREATE_FLOW, event.getEventType());
-        assertEquals(3, event.getFields().size());
+        assertEquals(8, event.getFields().size());
 
         assertEquals(bucket.getIdentifier(), event.getField(EventFieldName.BUCKET_ID).getValue());
         assertEquals(versionedFlow.getIdentifier(), event.getField(EventFieldName.FLOW_ID).getValue());
@@ -154,7 +221,7 @@ public class TestEventFactory {
         event.validate();
 
         assertEquals(EventType.UPDATE_FLOW, event.getEventType());
-        assertEquals(3, event.getFields().size());
+        assertEquals(8, event.getFields().size());
 
         assertEquals(bucket.getIdentifier(), event.getField(EventFieldName.BUCKET_ID).getValue());
         assertEquals(versionedFlow.getIdentifier(), event.getField(EventFieldName.FLOW_ID).getValue());
@@ -167,7 +234,7 @@ public class TestEventFactory {
         event.validate();
 
         assertEquals(EventType.DELETE_FLOW, event.getEventType());
-        assertEquals(3, event.getFields().size());
+        assertEquals(8, event.getFields().size());
 
         assertEquals(bucket.getIdentifier(), event.getField(EventFieldName.BUCKET_ID).getValue());
         assertEquals(versionedFlow.getIdentifier(), event.getField(EventFieldName.FLOW_ID).getValue());
@@ -180,7 +247,7 @@ public class TestEventFactory {
         event.validate();
 
         assertEquals(EventType.CREATE_FLOW_VERSION, event.getEventType());
-        assertEquals(5, event.getFields().size());
+        assertEquals(8, event.getFields().size());
 
         assertEquals(bucket.getIdentifier(), event.getField(EventFieldName.BUCKET_ID).getValue());
         assertEquals(versionedFlow.getIdentifier(), event.getField(EventFieldName.FLOW_ID).getValue());

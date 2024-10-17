@@ -21,8 +21,15 @@ package org.apache.nifi.registry.hook;
  */
 public enum EventFieldName {
 
+    ALLOW_PUBLIC_READ,
     BUCKET_ID,
+    BUCKET_NAME,
+    BUCKET_DESCRIPTION,
     FLOW_ID,
+    FLOW_NAME,
+    FLOW_DESCRIPTION,
+    CREATED_TIMESTAMP,
+    MODIFIED_TIMESTAMP,
     EXTENSION_BUNDLE_ID,
     VERSION,
     USER,
