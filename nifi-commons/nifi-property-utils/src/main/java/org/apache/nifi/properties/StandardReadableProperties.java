@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.properties;
 
-import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -49,13 +47,7 @@ public class StandardReadableProperties implements ReadableProperties {
 
     @Override
     public Set<String> getPropertyKeys() {
-        Set<String> propertyNames = new HashSet<>();
-        Enumeration e = rawProperties.propertyNames();
-        for (; e.hasMoreElements(); ) {
-            propertyNames.add((String) e.nextElement());
-        }
-
-        return propertyNames;
+        return rawProperties.stringPropertyNames();
     }
 
     protected Properties getRawProperties() {
