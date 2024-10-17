@@ -453,6 +453,7 @@
     $secondary-contrast: map.get(map.get($config, secondary), contrast);
     $secondary-opacity: map.get(map.get($config, secondary), opacity);
     $neutral-contrast: map.get(map.get($config, neutral), contrast);
+    $disabled: mat.get-theme-color($material-theme, neutral, map.get(map.get($config, neutral), disabled));
     $border-color: mat.get-theme-color($material-theme, neutral-variant, map.get($config, neutral-variant));
     $success-default: map.get(map.get($config, success), default);
     $success-variant: map.get(map.get($config, success), variant);
@@ -528,6 +529,11 @@
     .neutral-contrast {
         color: $neutral-contrast;
         fill: $neutral-contrast;
+    }
+
+    .disabled {
+        color: $disabled;
+        fill: $disabled;
     }
 
     .border-color {

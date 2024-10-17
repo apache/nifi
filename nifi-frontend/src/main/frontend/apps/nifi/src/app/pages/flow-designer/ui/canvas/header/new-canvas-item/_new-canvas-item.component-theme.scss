@@ -64,7 +64,7 @@
         }
 
         .icon:disabled {
-            @extend .neutral-color;
+            @extend .disabled;
             cursor: not-allowed;
         }
     }

@@ -245,7 +245,7 @@ $m3-material-primary-dark-palette: (
         40: #acacac,
         50: #acacac,
         60: #acacac,
-        70: #d8d8d8,
+        70: #cccccc,
         80: #d8d8d8,
         87: #d8d8d8,
         90: #e3e3e3,
@@ -367,6 +367,7 @@ $m3-light-theme-config: (
         darker: 4,
         default: 35,
         lighter: 99,
+        disabled: 80,
         contrast: #000000
     ),
     neutral-variant: 50,
@@ -408,6 +409,7 @@ $m3-dark-theme-config: (
         darker: 10,
         default: 40,
         lighter: 96,
+        disabled: 70,
         contrast: #ffffff
     ),
     neutral-variant: 35,
