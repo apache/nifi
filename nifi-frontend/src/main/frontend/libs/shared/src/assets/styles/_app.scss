@@ -37,6 +37,11 @@
         text-underline-offset: 3px;
     }
 
+    .mat-mdc-form-field-infix {
+        min-width: 180px !important;
+        width: 180px !important;
+    }
+
     .tooltip {
         max-height: 70vh;
         max-width: 500px;
@@ -282,6 +287,10 @@
         &.mat-mdc-button-base.mdc-icon-button {
             padding: 0;
         }
+    }
+
+    mat-datepicker-toggle .mat-mdc-icon-button.mat-mdc-button-base.mdc-icon-button {
+        padding: 11px; //center the mat-icon-button inside the date picker form field
     }
 
     .mat-mdc-paginator {
