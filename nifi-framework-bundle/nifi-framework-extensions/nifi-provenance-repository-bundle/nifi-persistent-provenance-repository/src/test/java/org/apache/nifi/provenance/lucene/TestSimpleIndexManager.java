@@ -97,7 +97,7 @@ public class TestSimpleIndexManager {
 
             final EventIndexSearcher searcher = mgr.borrowIndexSearcher(dir);
             final TopDocs topDocs = searcher.getIndexSearcher().search(new MatchAllDocsQuery(), 2);
-            assertEquals(2, topDocs.totalHits.value);
+            assertEquals(2, topDocs.totalHits.value());
             mgr.returnIndexSearcher(searcher);
         } finally {
             FileUtils.deleteFile(dir, true);
