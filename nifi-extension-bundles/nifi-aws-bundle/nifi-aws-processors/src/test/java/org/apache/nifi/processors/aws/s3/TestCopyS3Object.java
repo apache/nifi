@@ -24,6 +24,8 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -56,6 +58,12 @@ public class TestCopyS3Object {
             @Override
             protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
                                                   final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+                ObjectMetadata metadata = mock(ObjectMetadata.class);
+
+                when(metadata.getContentLength()).thenReturn(1000L);
+                when(mockS3Client.getObjectMetadata(any(GetObjectMetadataRequest.class)))
+                        .thenReturn(metadata);
+
                 return mockS3Client;
             }
         };

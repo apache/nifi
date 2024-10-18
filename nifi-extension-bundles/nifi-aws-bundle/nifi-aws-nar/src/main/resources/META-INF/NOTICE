@@ -174,6 +174,12 @@ The following binary components are provided under the Apache Software License v
       Error Prone Annotations
       Copyright 2015 The Error Prone Authors
 
+The multi-part copy code in CopyS3Object was derived from code found in the Amazon S3 documentation. This is the specific file for reference:
+    https://github.com/awsdocs/aws-doc-sdk-examples/blob/df606a664bf2f7cfe3abc76c187e024451d0279c/java/example_code/s3/src/main/java/aws/example/s3/LowLevelMultipartCopy.java#L18
+
+    This code was provided under the terms of the Apache Software License V2 per this:
+    https://github.com/awsdocs/aws-doc-sdk-examples/blob/df606a664bf2f7cfe3abc76c187e024451d0279c/LICENSE
+
 ************************
 Eclipse Distribution License 1.0
 ************************
