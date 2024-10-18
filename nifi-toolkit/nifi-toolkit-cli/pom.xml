@@ -25,7 +25,7 @@
 
     <properties>
         <guava.version>33.3.1-jre</guava.version>
-        <jline.version>3.27.0</jline.version>
+        <jline.version>3.27.1</jline.version>
     </properties>
 
     <build>
