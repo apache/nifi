@@ -201,6 +201,9 @@ var ua = {
                 }, {
                     text: 'by action',
                     value: 'action'
+                }, {
+                     text: 'by any field',
+                     value: 'any'
                 }],
             select: function (option) {
                 ua.applyRuleFilter();
@@ -1484,14 +1487,31 @@ var ua = {
                 conditions.push(condition.expression);
             });
             return conditions;
-        } else {
+        } else if (filterType.value === 'action') {
             var actions = [];
             $.each(rule.actions, function (_, action) {
                 actions.push(action.attribute);
                 actions.push(action.value);
             });
             return actions;
+        } else if (filterType.value === 'any') {
+            // Return all relevant details for the rule
+            var allDetails = [];
+            allDetails.push('Name: ' + rule.name);
+            allDetails.push('Comments: ' + rule.comments);
+
+            // Add conditions
+            $.each(rule.conditions, function (_, condition) {
+                allDetails.push('Condition: ' + condition.expression);
+            });
+
+            // Add actions
+             $.each(rule.actions, function (_, action) {
+                allDetails.push('Action: ' + action.attribute + ' -> ' + action.value);
+             });
+             return allDetails;
         }
+            return [];
     },
 
     /**
