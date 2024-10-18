@@ -179,7 +179,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         }
 
         final SerializedForm form = serializedForm.get();
-        if (!form.getMimeType().equals(getMimeType()) || !record.getSchema().equals(writeSchema)) {
+        if (!form.getMimeType().equals(getMimeType()) || !record.getSchema().equals(writeSchema) || !record.isDropUnknownFields()) {
             return false;
         }
 

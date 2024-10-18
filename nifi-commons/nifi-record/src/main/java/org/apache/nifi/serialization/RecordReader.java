@@ -38,7 +38,8 @@ import java.io.IOException;
 public interface RecordReader extends Closeable {
 
     /**
-     * Returns the next record in the stream or <code>null</code> if no more records are available. Types will be coerced and any unknown fields will be dropped.
+     * Returns the next record in the stream or <code>null</code> if no more records are available.
+     * Types will be coerced and any unknown fields won't be dropped.
      *
      * @return the next record in the stream or <code>null</code> if no more records are available.
      *
