@@ -115,6 +115,7 @@ import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.AppProvider;
 import org.eclipse.jetty.deploy.DeploymentManager;
 import org.eclipse.jetty.ee10.servlet.FilterMapping;
+import org.eclipse.jetty.ee10.servlet.ResourceServlet;
 import org.eclipse.jetty.ee10.servlet.ServletHandler;
 import org.eclipse.jetty.ee10.webapp.MetaInfConfiguration;
 import org.eclipse.jetty.rewrite.handler.RedirectPatternRule;
@@ -126,7 +127,6 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.ee10.servlet.DefaultServlet;
 import org.eclipse.jetty.ee10.servlet.ErrorPageErrorHandler;
 import org.eclipse.jetty.ee10.servlet.FilterHolder;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
@@ -316,6 +316,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // add a rewrite error handler for the ui to handle 404
         final RewriteHandler uiErrorHandler = new RewriteHandler();
+        uiErrorHandler.setServer(server);
         final RedirectPatternRule redirectToUi = new RedirectPatternRule("/*", "/nifi/#/404");
         uiErrorHandler.addRule(redirectToUi);
         webUiContext.setErrorHandler(uiErrorHandler);
@@ -707,13 +708,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         try {
             final File docsDir = getDocsDir();
 
-            final ServletHolder docs = new ServletHolder("docs", DefaultServlet.class);
+            final ServletHolder docs = new ServletHolder("docs", ResourceServlet.class);
             final Path htmlBaseResource = docsDir.toPath().resolve("html");
             docs.setInitParameter("baseResource", htmlBaseResource.toString());
             docs.setInitParameter("dirAllowed", "false");
             webAppContext.addServlet(docs, "/html/*");
 
-            final ServletHolder restApi = new ServletHolder("rest-api", DefaultServlet.class);
+            final ServletHolder restApi = new ServletHolder("rest-api", ResourceServlet.class);
             final File webApiDocsDir = getWebApiDocsDir();
             restApi.setInitParameter("baseResource", webApiDocsDir.getPath());
             restApi.setInitParameter("dirAllowed", "false");
