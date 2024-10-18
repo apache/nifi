@@ -37,9 +37,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class StandardControllerServiceProviderTest {
 
@@ -69,7 +75,7 @@ public class StandardControllerServiceProviderTest {
     }
 
     private ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final ControllerServiceProvider serviceProvider) {
-        final ControllerServiceNode serviceNode = new ExtensionBuilder()
+        return new ExtensionBuilder()
             .identifier(id)
             .type(type)
             .bundleCoordinate(bundleCoordinate)
@@ -81,8 +87,6 @@ public class StandardControllerServiceProviderTest {
             .stateManagerProvider(Mockito.mock(StateManagerProvider.class))
             .extensionManager(extensionManager)
             .buildControllerService();
-
-        return serviceNode;
     }
 
     @Test
@@ -105,5 +109,62 @@ public class StandardControllerServiceProviderTest {
     @Test
     public void testCallImplementationInitialized() throws InitializationException {
         implementation.initialize(null);
+    }
+
+    private ControllerServiceNode populateControllerService(ControllerServiceNode requiredService) { // Collection<ControllerServiceNode> serviceNodes) {
+        ControllerServiceNode controllerServiceNode = mock(ControllerServiceNode.class);
+        ArrayList<ControllerServiceNode> requiredServices = new ArrayList<>();
+        if (requiredService != null) {
+            requiredServices.add(requiredService);
+        }
+        when(controllerServiceNode.getRequiredControllerServices()).thenReturn(requiredServices);
+        return controllerServiceNode;
+    }
+
+    @Test
+    public void testEnableControllerServicesAllAreEnabled() {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        future.complete(null);
+
+        ProcessScheduler scheduler = Mockito.mock(ProcessScheduler.class);
+        when(scheduler.enableControllerService(any())).thenReturn(future);
+        ControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, Mockito.mock(FlowManager.class), Mockito.mock(ExtensionManager.class));
+
+        final ArrayList<ControllerServiceNode> serviceNodes = new ArrayList<>();
+        serviceNodes.add(populateControllerService(null));
+        serviceNodes.add(populateControllerService(null));
+        provider.enableControllerServices(serviceNodes);
+        verify(scheduler).enableControllerService(serviceNodes.get(0));
+        verify(scheduler).enableControllerService(serviceNodes.get(1));
+    }
+
+    @Test
+    public void testEnableControllerServicesSomeAreEnabled() {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        future.complete(null);
+
+        ProcessScheduler scheduler = Mockito.mock(ProcessScheduler.class);
+        when(scheduler.enableControllerService(any())).thenReturn(future);
+        ControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, Mockito.mock(FlowManager.class), Mockito.mock(ExtensionManager.class));
+
+        final ArrayList<ControllerServiceNode> serviceNodes = new ArrayList<>();
+        ControllerServiceNode disabledController = populateControllerService(null);
+        // Do not start because disabledController is not in the serviceNodes (list of services to start)
+        serviceNodes.add(populateControllerService(disabledController));
+        // Start this service because it has no required services
+        serviceNodes.add(populateControllerService(null));
+        // Do not start because its required service is not started because the required service
+        // depends on disabledController which is not in the serviceNodes (list of services to start)
+        serviceNodes.add(populateControllerService(serviceNodes.get(0)));
+        // Do not start because its required service depends on disabledController through 2 other levels of services
+        serviceNodes.add(populateControllerService(serviceNodes.get(2)));
+        // Start this service because it has a required service which is in the list of services to start
+        serviceNodes.add(populateControllerService(serviceNodes.get(1)));
+        provider.enableControllerServices(serviceNodes);
+        verify(scheduler, Mockito.times(0)).enableControllerService(serviceNodes.get(0));
+        verify(scheduler, Mockito.times(2)).enableControllerService(serviceNodes.get(1));
+        verify(scheduler, Mockito.times(0)).enableControllerService(serviceNodes.get(2));
+        verify(scheduler, Mockito.times(0)).enableControllerService(serviceNodes.get(3));
+        verify(scheduler, Mockito.times(1)).enableControllerService(serviceNodes.get(4));
     }
 }
