@@ -179,7 +179,7 @@ public class QueryTask implements Runnable {
 
     private Tuple<List<ProvenanceEventRecord>, Long> readDocuments(final TopDocs topDocs, final StoredFields storedFields) {
         // If no topDocs is supplied, just provide a Tuple that has no records and a hit count of 0.
-        if (topDocs == null || topDocs.totalHits.value == 0) {
+        if (topDocs == null || topDocs.totalHits.value() == 0) {
             return new Tuple<>(Collections.<ProvenanceEventRecord> emptyList(), 0L);
         }
 
@@ -210,7 +210,7 @@ public class QueryTask implements Runnable {
         final long fetchEventNanos = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - endConvert);
         logger.debug("Fetching {} events from Event Store took {} ms ({} events actually fetched)", eventIds.size(), fetchEventNanos, events.size());
 
-        final long totalHits = topDocs.totalHits.value;
+        final long totalHits = topDocs.totalHits.value();
         return new Tuple<>(events, totalHits);
     }
 
