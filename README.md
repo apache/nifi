@@ -12,7 +12,12 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-[<img src="https://nifi.apache.org/assets/images/apache-nifi-logo.svg" width="300" height="126" alt="Apache NiFi"/>][nifi]
+
+# Apache NiFi
+
+<img src="https://nifi.apache.org/assets/images/apache-nifi-logo.svg" width="300" alt="Apache NiFi"/>
+
+### Status
 
 [![ci-workflow](https://github.com/apache/nifi/workflows/ci-workflow/badge.svg)](https://github.com/apache/nifi/actions/workflows/ci-workflow.yml)
 [![system-tests](https://github.com/apache/nifi/workflows/system-tests/badge.svg)](https://github.com/apache/nifi/actions/workflows/system-tests.yml)
@@ -20,289 +25,179 @@
 [![docker-tests](https://github.com/apache/nifi/actions/workflows/docker-tests.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/docker-tests.yml)
 [![code-coverage](https://github.com/apache/nifi/actions/workflows/code-coverage.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/code-coverage.yml)
 [![codecov](https://codecov.io/gh/apache/nifi/branch/main/graph/badge.svg)](https://codecov.io/gh/apache/nifi)
-[![Docker pulls](https://img.shields.io/docker/pulls/apache/nifi.svg)](https://hub.docker.com/r/apache/nifi/)
-[![Version](https://img.shields.io/maven-central/v/org.apache.nifi/nifi-utils.svg)](https://nifi.apache.org/download.html)
-[![Slack](https://img.shields.io/badge/chat-on%20Slack-brightgreen.svg)](https://s.apache.org/nifi-community-slack)
 
-[Apache NiFi](https://nifi.apache.org/) is an easy to use, powerful, and
-reliable system to process and distribute data.
+### Resources
 
-## Table of Contents
+[![NiFi API](https://img.shields.io/maven-central/v/org.apache.nifi/nifi-api.svg?label=nifi-api&logo=apachenifi&logoColor=ffffff&color=728e9b)](https://central.sonatype.com/artifact/org.apache.nifi/nifi-api)
+[![NiFi Framework](https://img.shields.io/maven-central/v/org.apache.nifi/nifi.svg?label=nifi-framework&logo=apachenifi&logoColor=ffffff&color=728e9b)](https://nifi.apache.org/download/)
+[![NiFI Docker Pulls](https://img.shields.io/docker/pulls/apache/nifi.svg?logo=docker&logoColor=ffffff)](https://hub.docker.com/r/apache/nifi/)
+[![License](https://img.shields.io/github/license/apache/nifi)](https://github.com/apache/nifi/blob/main/LICENSE)
+[![NiFi API Javadoc](https://javadoc.io/badge2/org.apache.nifi/nifi-api/javadoc.svg)](https://javadoc.io/doc/org.apache.nifi/nifi-api)
 
-- [Features](#features)
-- [Requirements](#requirements)
-- [Getting Started](#getting-started)
-- [MiNiFi subproject](#minifi-subproject)
-- [Registry subproject](#registry-subproject)
-- [Getting Help](#getting-help)
-- [Documentation](#documentation)
-- [License](#license)
-- [Export Control](#export-control)
+### Contacts
+
+[![Track Issues](https://img.shields.io/badge/track-Issues-728e9b.svg?logo=jirasoftware)](https://issues.apache.org/jira/browse/NIFI)
+[![Chat on Slack](https://img.shields.io/badge/chat-Slack-728e9b.svg?logo=slack)](https://s.apache.org/nifi-community-slack)
+[![Contact Developers](https://img.shields.io/badge/contact-Developers-728e9b.svg?logo=apache)](https://lists.apache.org/list.html?dev@nifi.apache.org)
+[![Contact Users](https://img.shields.io/badge/contact-Users-728e9b.svg?logo=apache)](https://lists.apache.org/list.html?users@nifi.apache.org)
+
+### Community
+
+[![Join Slack Community](https://img.shields.io/badge/join-Slack-728e9b.svg?logo=slack)](https://join.slack.com/t/apachenifi/shared_invite/zt-11njbtkdx-ZRU8FKYSWoEHRJetidy0zA)
+[![Follow on LinkedIn](https://img.shields.io/badge/follow-Apache%20NiFi-728e9b.svg?logo=linkedin)](https://www.linkedin.com/company/apache-nifi/)
+[![Follow on X](https://img.shields.io/badge/follow-apachenifi-728e9b.svg?logo=x)](https://x.com/apachenifi)
 
 ## Features
 
-Apache NiFi was made for dataflow. It supports highly configurable directed graphs of data routing, transformation, and system mediation logic. Some of its key features include:
+[Apache NiFi](https://nifi.apache.org/) is an easy to use, powerful, and reliable system to process and distribute data.
 
-- Web-based user interface
+NiFi automates cybersecurity, observability, event streams, and generative AI data pipelines and distribution
+for thousands of companies worldwide across every industry.
+
+- Browser User Interface
   - Seamless experience for design, control, and monitoring
-  - Multi-tenant user experience
-- Highly configurable
-  - Loss tolerant vs guaranteed delivery
-  - Low latency vs high throughput
-  - Dynamic prioritization
-  - Flows can be modified at runtime
-  - Back pressure
-  - Scales up to leverage full machine capability
-  - Scales out with zero-leader clustering model
-- Data Provenance
-  - Track dataflow from beginning to end
-- Designed for extension
-  - Build your own processors and more
-  - Enables rapid development and effective testing
-- Secure
-  - SSL, SSH, HTTPS, encrypted content, etc...
-  - Pluggable fine-grained role-based authentication/authorization
-  - Multiple teams can manage and share specific portions of the flow
+  - Runtime management and versioned pipelines
+  - Secure by default with HTTPS
+- Scalable Processing
+  - Configurable prioritization for throughput and latency
+  - Guaranteed delivery with retry and backoff strategies
+  - Horizontal scaling with clustering
+- Provenance Tracking 
+  - Searchable history with configurable attributes
+  - Graph data lineage from source to destination
+  - Metadata and content for each processing decision
+- Extensible Design
+  - Plugin interface for Processors and Controller Services
+  - Support for Processors in native Python
+  - REST API for orchestration and monitoring
+- Secure Configuration
+  - Single sign-on with OpenID Connect or SAML 2
+  - Flexible authorization policies for role-based access
+  - Encrypted communication with TLS and SFTP
 
-## Minimum Requirements
-* JDK 21
-* Apache Maven 3.9.6
+## Requirements
+
+NiFi supports modern operating systems and requires recent language versions for developing and running the application.
+
+### Platform Requirements
+
+- Java 21
+
+### Optional Dependencies
+
+- Python 3.10 or higher
+
+## Projects
+
+The source repository includes several component projects.
+
+Please review individual project documentation for additional details.
+
+- [Apache NiFi](https://nifi.apache.org/documentation/)
+- [Apache NiFi Registry](https://github.com/apache/nifi/blob/main/nifi-registry/nifi-registry-assembly/README.md)
+- [Apache NiFi MiNiFi](https://github.com/apache/nifi/blob/main/minifi/minifi-assembly/README.md)
 
 ## Getting Started
 
-Read through the [quickstart guide for development](https://nifi.apache.org/quickstart.html).
-It will include information on getting a local copy of the source, give pointers on issue
-tracking, and provide some warnings about common problems with development environments.
+Project guides provide extensive documentation for installing and extending the application.
 
-For a more comprehensive guide to development and information about contributing to the project
-read through the [NiFi Developer's Guide](https://nifi.apache.org/developer-guide.html).
+- [Getting Started](https://nifi.apache.org/documentation/nifi-2.0.0-M4/html/getting-started.html)
+- [User Guide](https://nifi.apache.org/documentation/nifi-2.0.0-M4/html/user-guide.html)
+- [Administrator Guide](https://nifi.apache.org/documentation/nifi-2.0.0-M4/html/administration-guide.html)
+- [Developer Guide](https://nifi.apache.org/documentation/nifi-2.0.0-M4/html/developer-guide.html)
+
+## Developing
+
+NiFi uses the [Maven Wrapper](https://maven.apache.org/wrapper/) for project development. The Maven Wrapper provides
+shell scripts that download and cache a selected version of [Apache Maven](https://maven.apache.org/) for running build
+commands.
+
+Developing on Microsoft Windows requires using `mvnw.cmd` instead of `mvnw` to run Maven commands.
 
 ### Building
 
-Run the following Maven command to build standard project modules using parallel execution:
+Run the following command to build project modules using parallel execution:
 
-    ./mvnw clean install -T2C
+```shell
+./mvnw install -T1C
+```
 
-Run the following Maven command to build project modules with static analysis to confirm compliance with code and licensing requirements:
+Run the following command to build project modules using parallel execution with static analysis to confirm compliance
+with code and licensing requirements:
 
-    ./mvnw clean install -T2C -P contrib-check
+```shell
+./mvnw install -T1C -P contrib-check
+```
 
-Building on Microsoft Windows requires using `mvnw.cmd` instead of `mwnw` to run the Maven Wrapper.
+Run the following command to build the application binaries without building other optional modules:
 
-### Deploying
+```shell
+./mvnw install -T1C -am -pl :nifi-assembly
+```
 
-Change directories to `nifi-assembly`. The `target` directory contains binary archives.
+### Binaries
 
-    laptop:nifi myuser$ cd nifi-assembly
-    laptop:nifi-assembly myuser$ ls -lhd target/nifi*
-    drwxr-xr-x  3 myuser  mygroup   102B Apr 30 00:29 target/nifi-1.0.0-SNAPSHOT-bin
-    -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.tar.gz
-    -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.zip
+The `nifi-assembly` module contains the binary distribution.
 
-Copy the `nifi-VERSION-bin.tar.gz` or `nifi-VERSION-bin.zip` to a separate deployment directory.
-Extracting the distribution will create a new directory named for the version.
+```shell
+ls nifi-assembly/target/nifi-*-bin.zip
+```
 
-    laptop:nifi-assembly myuser$ mkdir ~/example-nifi-deploy
-    laptop:nifi-assembly myuser$ tar xzf target/nifi-*-bin.tar.gz -C ~/example-nifi-deploy
-    laptop:nifi-assembly myuser$ ls -lh ~/example-nifi-deploy/
-    total 0
-    drwxr-xr-x  10 myuser  mygroup   340B Apr 30 01:06 nifi-1.0.0-SNAPSHOT
+The `nifi-assembly` module includes the binary distribution in a directory for local development and testing.
+
+```shell
+cd nifi-assembly/target/nifi-*-bin/nifi-*/
+```
+
+## Running
+
+NiFi provides shell scripts for starting and stopping the system.
+
+Running on Microsoft Windows requires using `nifi.cmd` instead of `nifi.sh` for system commands.
 
 ### Starting
 
-Change directories to the deployment location and run the following command to start NiFi.
+Run the following command to start NiFi from the distribution directory:
 
-    laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
-    laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start
-  
-Running `bin/nifi.sh start` starts NiFi in the background and exits. Use `--wait-for-init` with an optional timeout in
-seconds to wait for a complete startup before exiting.
+```shell
+./bin/nifi.sh start
+```
 
-    laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start --wait-for-init 120
-  
-### Authenticating
+### Accessing
 
 The default configuration generates a random username and password on startup. NiFi writes the generated credentials
 to the application log located in `logs/nifi-app.log` under the NiFi installation directory.
 
 The following command can be used to find the generated credentials on operating systems with `grep` installed:
 
-    laptop:nifi-1.0.0-SNAPSHOT myuser$ grep Generated logs/nifi-app*log
+```shell
+grep Generated logs/nifi-app*log
+```
 
 NiFi logs the generated credentials as follows:
 
-    Generated Username [USERNAME]
-    Generated Password [PASSWORD]
-
-The `USERNAME` will be a random UUID composed of 36 characters. The `PASSWORD` will be a random string composed of
-32 characters. The generated credentials will be stored in `conf/login-identity-providers.xml` with the password stored
-using bcrypt hashing. Record these credentials in a secure location for access to NiFi.
-
-The random username and password can be replaced with custom credentials using the following command:
-
-    ./bin/nifi.sh set-single-user-credentials <username> <password>
-  
-### Running
-
-Open the following link in a web browser to access NiFi: https://localhost:8443/nifi
-
-The web browser will display a warning message indicating a potential security risk due to the self-signed
-certificate NiFi generated during initialization. Accepting the potential security risk and continuing to load
-the interface is an option for initial development installations. Production deployments should provision a certificate
-from a trusted certificate authority and update the NiFi keystore and truststore configuration.
-
-Accessing NiFi after accepting the self-signed certificate will display the login screen.
-![NiFi Login Screen](nifi-docs/src/main/asciidoc/images/nifi-login.png?raw=true)
-
-Using the generated credentials, enter the generated username in the `User` field
-and the generated password in the `Password` field, then select `LOG IN` to access the system.
-![NiFi Flow Authenticated Screen](nifi-docs/src/main/asciidoc/images/nifi-flow-authenticated.png?raw=true)
-
-### Configuring
-
-The [NiFi User Guide](https://nifi.apache.org/docs/nifi-docs/html/user-guide.html) describes how to build a data flow.
-
-### Stopping
-
-Run the following command to stop NiFi:
-
-    laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
-    laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh stop
-
-## MiNiFi subproject
-
-MiNiFi is a child project effort of Apache NiFi. It is a complementary data collection approach that supplements the core tenets of [NiFi](https://nifi.apache.org/) in dataflow management, focusing on the collection of data at the source of its creation.
-
-Specific goals for MiNiFi are comprised of:
-- small and lightweight footprint
-- central management of agents
-- generation of data provenance
-- integration with NiFi for follow-on dataflow management and full chain of custody of information
-
-Perspectives of the role of MiNiFi should be from the perspective of the agent acting immediately at, or directly adjacent to, source sensors, systems, or servers.
-
-To run:
-- Change directory to 'minifi-assembly'. In the target directory, there should be a build of minifi.
-
-        $ cd minifi-assembly
-        $ ls -lhd target/minifi*
-        drwxr-xr-x  3 user  staff   102B Jul  6 13:07 minifi-1.14.0-SNAPSHOT-bin
-        -rw-r--r--  1 user  staff    39M Jul  6 13:07 minifi-1.14.0-SNAPSHOT-bin.tar.gz
-        -rw-r--r--  1 user  staff    39M Jul  6 13:07 minifi-1.14.0-SNAPSHOT-bin.zip
-
-- For testing ongoing development you could use the already unpacked build present in the directory
-  named "minifi-*version*-bin", where *version* is the current project version. To deploy in another
-  location make use of either the tarball or zipfile and unpack them wherever you like. The
-  distribution will be within a common parent directory named for the version.
-
-        $ mkdir ~/example-minifi-deploy
-        $ tar xzf target/minifi-*-bin.tar.gz -C ~/example-minifi-deploy
-        $ ls -lh ~/example-minifi-deploy/
-        total 0
-        drwxr-xr-x  10 user  staff   340B Jul 6 01:06 minifi-1.14.0-SNAPSHOT
-
-To run MiNiFi:
-- Change directory to the location where you installed MiNiFi and run it.
-
-        $ cd ~/example-minifi-deploy/minifi-*
-        $ ./bin/minifi.sh start
-
-- View the logs located in the logs folder
-  $ tail -F ~/example-minifi-deploy/logs/minifi-app.log
-
-- For help building your first data flow and sending data to a NiFi instance see the System Admin Guide located in the docs folder or making use of the minifi-toolkit.
-
-- If you are testing ongoing development, you will likely want to stop your instance.
-
-        $ cd ~/example-minifi-deploy/minifi-*
-        $ ./bin/minifi.sh stop
-
-### Docker Build
-
-To build:
-- Run a full NiFi build (see above for instructions). Then from the minifi/ subdirectory, execute `mvn -P docker clean install`.  This will run the full build, create a docker image based on it, and run docker-compose integration tests.  After it completes successfully, you should have an apacheminifi:${minifi.version} image that can be started with the following command (replacing ${minifi.version} with the current maven version of your branch):
-```
-docker run -d -v YOUR_CONFIG.YML:/opt/minifi/minifi-${minifi.version}/conf/config.yml apacheminifi:${minifi.version}
+```shell
+Generated Username [USERNAME]
+Generated Password [PASSWORD]
 ```
 
-## Registry subproject
+The `USERNAME` will be a random UUID composed of 36 characters. The `PASSWORD` will be a random string.
 
-Registry—a subproject of Apache NiFi—is a complementary application that provides a central location for storage and management of shared resources across one or more instances of NiFi and/or MiNiFi.
+The username and password can be replaced with custom credentials using the following command:
 
-### Getting Registry Started
+```shell
+./bin/nifi.sh set-single-user-credentials <username> <password>
+```
 
-1) Build NiFi (see [Getting Started for NiFi](#getting-started) )
-    
-or
-    
-Build only the Registry subproject:
+NiFi defaults to running on the `localhost` address with HTTPS on port `8443` at the following URL:
 
-    cd nifi/nifi-registry
-    mvn clean install
+```
+https://localhost:8443/nifi
+```
 
-    
-If you wish to enable style and license checks, specify the contrib-check profile:
-
-    mvn clean install -Pcontrib-check
-
-
-2) Start Registry
-
-    cd nifi-registry/nifi-registry-assembly/target/nifi-registry-<VERSION>-bin/nifi-registry-<VERSION>/
-    ./bin/nifi-registry.sh start
-
-Note that the application web server can take a while to load before it is accessible.   
-
-3) Accessing the application web UI
- 
-With the default settings, the application UI will be available at [http://localhost:18080/nifi-registry](http://localhost:18080/nifi-registry) 
-   
-4) Accessing the application REST API
-
-If you wish to test against the application REST API, you can access the REST API directly. With the default settings, the base URL of the REST API will be at `http://localhost:18080/nifi-registry-api`. A UI for testing the REST API will be available at [http://localhost:18080/nifi-registry-api/swagger/ui.html](http://localhost:18080/nifi-registry-api/swagger/ui.html) 
-
-5) Accessing the application logs
-
-Logs will be available in `logs/nifi-registry-app.log`
-
-### Database Testing
-
-In order to ensure that NiFi Registry works correctly against different relational databases, 
-the existing integration tests can be run against different databases by leveraging the [Testcontainers framework](https://www.testcontainers.org/).
-
-Spring profiles are used to control the DataSource factory that will be made available to the Spring application context. 
-DataSource factories are provided that use the Testcontainers framework to start a Docker container for a given database and create a corresponding DataSource. 
-If no profile is specified then an H2 DataSource will be used by default and no Docker containers are required.
-
-Assuming Docker is running on the system where the build is running, then the following commands can be run:
-
-| Target Database | Build Command                                                      | 
-|-----------------|--------------------------------------------------------------------|
-| All supported   | `mvn verify -Ptest-all-dbs`                                        |
-| H2 (default)    | `mvn verify`                                                       |
-| MariaDB 10.3    | `mvn verify -Pcontrib-check -Dspring.profiles.active=mariadb-10-3` |
-| MySQL 8         | `mvn verify -Pcontrib-check -Dspring.profiles.active=mysql-8`      |
-| PostgreSQL 10   | `mvn verify -Dspring.profiles.active=postgres-10`                  |
-
-For a full list of the available DataSource factories, consult the `nifi-registry-test` module.
-
-## Getting Help
-If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
-([archive](https://lists.apache.org/list.html?dev@nifi.apache.org)). For more interactive discussions, community members can often be found in the following locations:
-
-- Apache NiFi Slack Workspace: https://apachenifi.slack.com/
-
-  New users can join the workspace using the following [invite link](https://join.slack.com/t/apachenifi/shared_invite/zt-11njbtkdx-ZRU8FKYSWoEHRJetidy0zA).
-  
-To submit a feature request or bug report, please file a Jira at [https://issues.apache.org/jira/projects/NIFI/issues](https://issues.apache.org/jira/projects/NIFI/issues). If this is a **security vulnerability report**, please email [security@nifi.apache.org](mailto:security@nifi.apache.org) directly and review the [Apache NiFi Security Vulnerability Disclosure](https://nifi.apache.org/security.html) and [Apache Software Foundation Security](https://www.apache.org/security/committers.html) processes first. 
-
-## Documentation
-
-See https://nifi.apache.org/ for the latest NiFi documentation.
-
-See https://nifi.apache.org/minifi and https://cwiki.apache.org/confluence/display/MINIFI for the latest MiNiFi-specific documentation.
-
-See https://nifi.apache.org/registry for the latest Registry-specific documentation.
+Browsers will display a warning message indicating a potential security risk due to the self-signed certificate
+generated during initialization. Production deployments should provision a certificate from a trusted certificate
+authority and update the NiFi keystore and truststore configuration.
 
 ## License
 
@@ -328,7 +223,7 @@ currently reside may have restrictions on the import, possession, use, and/or
 re-export to another country, of encryption software. BEFORE using any
 encryption software, please check your country's laws, regulations and
 policies concerning the import, possession, or use, and re-export of encryption
-software, to see if this is permitted. See <https://www.wassenaar.org/> for more
+software, to see if this is permitted. See https://www.wassenaar.org for more
 information.
 
 The U.S. Government Department of Commerce, Bureau of Industry and Security
@@ -342,15 +237,11 @@ source code.
 
 The following provides more details on the included cryptographic software:
 
-Apache NiFi uses BouncyCastle, JCraft Inc., and the built-in
-Java cryptography libraries for SSL, SSH, and the protection
-of sensitive configuration parameters. See
+Apache NiFi uses the following libraries and frameworks for encrypted
+communication and storage of sensitive information:
 
-- https://bouncycastle.org/about.html
-- http://www.jcraft.com/c-info.html
-- https://www.oracle.com/corporate/security-practices/corporate/governance/global-trade-compliance.html
-
-for more details on each of these libraries cryptography features.
-
-[nifi]: https://nifi.apache.org/
-[logo]: https://nifi.apache.org/assets/images/apache-nifi-logo.svg
+- [Apache MINA SSHD](https://mina.apache.org/sshd-project/)
+- [Bouncy Castle](https://www.bouncycastle.org)
+- [Jagged](https://github.com/exceptionfactory/jagged)
+- [Java Cryptography Architecture](https://docs.oracle.com/en/java/javase/21/security/java-cryptography-architecture-jca-reference-guide.html)
+- [SSHJ](https://github.com/hierynomus/sshj)
