@@ -1511,9 +1511,9 @@ var ua = {
                 allDetails.push(action.value);
              });
              return allDetails;
-        }
-            return [];
-    },
+             }
+              return [];
+              },
 
     /**
      * Apply the rule filter.
