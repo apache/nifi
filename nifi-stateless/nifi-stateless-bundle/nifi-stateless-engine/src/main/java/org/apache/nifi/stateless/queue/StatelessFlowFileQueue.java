@@ -18,7 +18,6 @@
 package org.apache.nifi.stateless.queue;
 
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
-import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -27,6 +26,8 @@ import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
+import org.apache.nifi.controller.status.FlowFileAvailability;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.util.FormatUtils;
@@ -34,8 +35,10 @@ import org.apache.nifi.util.FormatUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -165,8 +168,15 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
 
     @Override
     public void putAll(final Collection<FlowFileRecord> flowFiles) {
-        this.flowFiles.addAll(flowFiles);
-        flowFiles.forEach(ff -> totalBytes.addAndGet(ff.getSize()));
+        // Order the FlowFiles in the same order they were transferred by the Processor. This ensures that we keep the ordering provided by the Processor.
+        // This is not important for the Standard NiFi engine because it uses the StandardFlowFileQueue, which maintains the order of FlowFiles as configured.
+        // However, in stateless, we want to keep the order that the upstream processor processes the data.
+        final List<FlowFileRecord> orderedFlowFiles = new ArrayList<>(flowFiles);
+        orderedFlowFiles.sort(Comparator.comparingLong((FlowFileRecord flowFile) -> Optional.ofNullable(flowFile.getLastQueueDate()).orElse(0L))
+            .thenComparingLong(FlowFile::getQueueDateIndex));
+
+        this.flowFiles.addAll(orderedFlowFiles);
+        orderedFlowFiles.forEach(ff -> totalBytes.addAndGet(ff.getSize()));
     }
 
     @Override

@@ -35,6 +35,7 @@ org.apache.nifi.processors.tests.system.PartitionText
 org.apache.nifi.processors.tests.system.PassThrough
 org.apache.nifi.processors.tests.system.PassThroughRequiresInstanceClassLoading
 org.apache.nifi.processors.tests.system.CountPrimaryNodeChangeEvents
+org.apache.nifi.processors.tests.system.ReOrderFlowFiles
 org.apache.nifi.processors.tests.system.ReplaceWithFile
 org.apache.nifi.processors.tests.system.ReverseContents
 org.apache.nifi.processors.tests.system.RoundRobinFlowFiles
@@ -50,6 +51,7 @@ org.apache.nifi.processors.tests.system.UpdateContent
 org.apache.nifi.processors.tests.system.UnzipFlowFile
 org.apache.nifi.processors.tests.system.ValidateFileExists
 org.apache.nifi.processors.tests.system.VerifyContents
+org.apache.nifi.processors.tests.system.VerifyEvenThenOdd
 org.apache.nifi.processors.tests.system.WriteFlowFileCountToFile
 org.apache.nifi.processors.tests.system.WriteLifecycleEvents
 org.apache.nifi.processors.tests.system.WriteToFile
