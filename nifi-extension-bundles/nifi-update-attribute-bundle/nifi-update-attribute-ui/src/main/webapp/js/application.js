@@ -1497,17 +1497,18 @@ var ua = {
         } else if (filterType.value === 'any') {
             // Return all relevant details for the rule
             var allDetails = [];
-            allDetails.push('Name: ' + rule.name);
-            allDetails.push('Comments: ' + rule.comments);
+            allDetails.push(rule.name);
+            allDetails.push(rule.comments);
 
             // Add conditions
             $.each(rule.conditions, function (_, condition) {
-                allDetails.push('Condition: ' + condition.expression);
+                allDetails.push(condition.expression);
             });
 
             // Add actions
              $.each(rule.actions, function (_, action) {
-                allDetails.push('Action: ' + action.attribute + ' -> ' + action.value);
+                allDetails.push(action.attribute);
+                allDetails.push(action.value);
              });
              return allDetails;
         }
