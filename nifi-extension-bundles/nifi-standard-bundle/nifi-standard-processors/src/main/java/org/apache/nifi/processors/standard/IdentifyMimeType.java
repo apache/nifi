@@ -185,7 +185,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             if (configStrategy.equals(REPLACE.getValue())) {
                 this.detector = MimeTypesFactory.create(customInputStream);
             } else {
-                try (final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream("org/apache/tika/mime/custom-mimetypes.xml");
+                try (final InputStream nifiInputStream = getClass().getClassLoader().getResourceAsStream("custom-mimetypes.xml");
                      final InputStream tikaInputStream = MimeTypes.class.getClassLoader().getResourceAsStream("org/apache/tika/mime/tika-mimetypes.xml")) {
                     this.detector = MimeTypesFactory.create(customInputStream, nifiInputStream, tikaInputStream);
                 }
