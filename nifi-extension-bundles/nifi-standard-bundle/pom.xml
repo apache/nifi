@@ -35,7 +35,7 @@
     </modules>
     <properties>
         <org.apache.sshd.version>2.14.0</org.apache.sshd.version>
-        <tika.version>2.9.2</tika.version>
+        <tika.version>3.0.0</tika.version>
     </properties>
     <dependencyManagement>
         <dependencies>

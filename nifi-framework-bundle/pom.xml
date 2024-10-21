@@ -26,7 +26,6 @@
     <properties>
         <curator.version>5.7.1</curator.version>
         <guava.version>33.3.1-jre</guava.version>
-        <tika.version>2.9.2</tika.version>
         <org.opensaml.version>4.3.2</org.opensaml.version>
     </properties>
     <modules>
@@ -103,11 +102,6 @@
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
                 <version>75.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.tika</groupId>
-                <artifactId>tika-core</artifactId>
-                <version>${tika.version}</version>
             </dependency>
 
             <!-- open id connect - override transitive dependency version ranges -->
