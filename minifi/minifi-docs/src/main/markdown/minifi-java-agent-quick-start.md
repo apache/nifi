@@ -38,14 +38,14 @@ MiNiFi Java Agent is supported on the following operating systems:
 * Debian 9
 * SUSE Linux Enterprise Server (SLES) 12 SP5 (64-bit)
 
-You can download the MiNiFi Java Agent and the MiNiFi Toolkit from the [MiNiFi download page](https://nifi.apache.org/minifi/download.html).
+You can download the MiNiFi Java Agent and the MiNiFi Toolkit from the [MiNiFi download page](https://nifi.apache.org/download/).
 
 # Installing and Starting MiNiFi
 You have several options for installing and starting MiNiFi.
 
 ## For Linux and Mac OS X Users
 To install MiNiFi:
-1. [Download](https://nifi.apache.org/minifi/download.html) MiNiFi.
+1. [Download](https://nifi.apache.org/download/) MiNiFi.
 2. Extract the file to the location from which you want to the application.
 
 You can also install MiNiFi as a service:
@@ -119,6 +119,7 @@ c2.agent.heartbeat.period=5000
 #(Optional) c2.rest.callTimeout=10 sec
 #(Optional) c2.agent.identifier=123-456-789
 c2.agent.class=agentClassName
+```
 3. Start MiNiFi
 4. When a new flow is available on the C2 server, MiNiFi will download it via C2 and restart itself to pick up the changes
 
@@ -363,7 +364,7 @@ minifi.sh flowStatus processor:TailFile:health,stats,bulletins
 
 **Note:** Any connections, remote process groups or processors names that contain ":", ";" or "," will cause parsing errors when querying.
 
-For details on the `flowStatus` option, see the "FlowStatus Query Option" section of the [Administration Guide](https://nifi.apache.org/minifi/system-admin-guide.html).
+For details on the `flowStatus` option, see the "FlowStatus Query Option" section of the [Administrator's Guide](https://github.com/apache/nifi/blob/main/minifi/minifi-docs/src/main/markdown/System_Admin_Guide.md#flowstatus-query-options).
 
 ## Stopping MiNiFi
 
