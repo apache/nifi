@@ -285,37 +285,31 @@ class ExtensionManager:
             logger.info("All dependencies have already been imported for {0}".format(class_name))
             return True
 
-        python_cmd = os.getenv("PYTHON_CMD")
+        packages_to_install = []
+
         if processor_details.source_location is not None:
             package_dir = os.path.dirname(processor_details.source_location)
             requirements_file = os.path.join(package_dir, 'requirements.txt')
             if os.path.exists(requirements_file):
-                args = [python_cmd, '-m', 'pip', 'install', '--no-cache-dir', '--target', target_dir, '-r', requirements_file]
+                packages_to_install.append('-r')
+                packages_to_install.append(requirements_file)
 
-                logger.info(f"Importing dependencies from requirements file for package {package_dir} to {target_dir} using command {args}")
-                result = subprocess.run(args)
+        inline_dependencies = processor_details.getDependencies()
+        for dependency in inline_dependencies:
+            packages_to_install.append(dependency)
 
-                if result.returncode == 0:
-                    logger.info(f"Successfully imported requirements for package {package_dir} to {target_dir}")
-                else:
-                    raise RuntimeError(f"Failed to import requirements for package {package_dir} from requirements.txt file: process exited with status code {result}")
-
-        dependencies = processor_details.getDependencies()
-        if len(dependencies) > 0:
+        if len(packages_to_install) > 0:
             python_cmd = os.getenv("PYTHON_CMD")
-            args = [python_cmd, '-m', 'pip', 'install', '--no-cache-dir', '--target', target_dir]
-            for dep in dependencies:
-                args.append(dep)
-
-            logger.info(f"Importing dependencies {dependencies} for {class_name} to {target_dir} using command {args}")
+            args = [python_cmd, '-m', 'pip', 'install', '--no-cache-dir', '--target', target_dir] + packages_to_install
+            logger.info(f"Installing dependencies {packages_to_install} for {class_name} to {target_dir} using command {args}")
             result = subprocess.run(args)
 
             if result.returncode == 0:
-                logger.info(f"Successfully imported requirements for {class_name} to {target_dir}")
+                logger.info(f"Successfully installed requirements for {class_name} to {target_dir}")
             else:
-                raise RuntimeError(f"Failed to import requirements for {class_name}: process exited with status code {result}")
+                raise RuntimeError(f"Failed to install requirements for {class_name}: process exited with status code {result}")
         else:
-            logger.info(f"No dependencies to import for {class_name}")
+            logger.info(f"No dependencies to install for {class_name}")
 
         # Write a completion Marker File
         with open(completion_marker_file, "w") as file:
