@@ -1551,6 +1551,33 @@ public class NiFiClientUtil {
         return getConnectionClient().updateConnection(updatedEntity);
     }
 
+    public ConnectionEntity updateConnectionBackpressure(final ConnectionEntity connectionEntity, final long flowFileCount, final long bytes) throws NiFiClientException, IOException {
+        final ConnectionDTO connectionDto = new ConnectionDTO();
+        connectionDto.setBackPressureDataSizeThreshold(bytes + " B");
+        connectionDto.setBackPressureObjectThreshold(flowFileCount);
+        connectionDto.setId(connectionEntity.getId());
+
+        final ConnectionEntity updatedEntity = new ConnectionEntity();
+        updatedEntity.setComponent(connectionDto);
+        updatedEntity.setId(connectionEntity.getId());
+        updatedEntity.setRevision(connectionEntity.getRevision());
+
+        return getConnectionClient().updateConnection(updatedEntity);
+    }
+
+    public ConnectionEntity updateConnectionPrioritizer(final ConnectionEntity connectionEntity, final String prioritizerName) throws NiFiClientException, IOException {
+        final ConnectionDTO connectionDto = new ConnectionDTO();
+        connectionDto.setPrioritizers(List.of("org.apache.nifi.prioritizer." + prioritizerName));
+        connectionDto.setId(connectionEntity.getId());
+
+        final ConnectionEntity updatedEntity = new ConnectionEntity();
+        updatedEntity.setComponent(connectionDto);
+        updatedEntity.setId(connectionEntity.getId());
+        updatedEntity.setRevision(connectionEntity.getRevision());
+
+        return getConnectionClient().updateConnection(updatedEntity);
+    }
+
     public DropRequestEntity emptyQueue(final String connectionId) throws NiFiClientException, IOException {
         final ConnectionClient connectionClient = getConnectionClient();
 
