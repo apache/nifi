@@ -13,20 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ProcessorInspection
 import unittest
+from testutils import get_processor_details
 
-DUMMY_PROCESSOR_FILE = 'src/test/python/framework/DummyProcessor.py'
+DUMMY_PROCESSOR_FILE = 'src/test/resources/python/framework/dummy_processor/DummyProcessor.py'
 
 class DetectProcessorUseCase(unittest.TestCase):
     def test_get_processor_details(self):
-        class_nodes = ProcessorInspection.get_processor_class_nodes(DUMMY_PROCESSOR_FILE)
-        self.assertIsNotNone(class_nodes)
-        self.assertEqual(len(class_nodes), 1)
-        class_node = class_nodes[0]
-        self.assertEqual(class_node.name, 'DummyProcessor')
-
-        details = ProcessorInspection.get_processor_details(class_node, DUMMY_PROCESSOR_FILE, '/extensions/dummy_processor', False)
+        details = get_processor_details(self, 'DummyProcessor', DUMMY_PROCESSOR_FILE, '/extensions/dummy_processor')
         self.assertIsNotNone(details)
         self.assertEqual(details.description, 'Fake Processor')
         self.assertEqual(details.tags, ['tag1', 'tag2'])
