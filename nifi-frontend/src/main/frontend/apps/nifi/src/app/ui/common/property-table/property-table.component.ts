@@ -479,6 +479,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                         this.editorOffsetY
                     )
                 );
+                this.changeDetector.detectChanges();
             }
         }
     }
