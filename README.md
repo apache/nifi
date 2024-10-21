@@ -29,6 +29,7 @@
 ### Resources
 
 [![NiFi API](https://img.shields.io/maven-central/v/org.apache.nifi/nifi-api.svg?label=nifi-api&logo=apachenifi&logoColor=ffffff&color=728e9b)](https://central.sonatype.com/artifact/org.apache.nifi/nifi-api)
+[![NiFi NAR Maven Plugin](https://img.shields.io/maven-central/v/org.apache.nifi/nifi-nar-maven-plugin.svg?label=nifi-nar-maven-plugin&logo=apachenifi&logoColor=ffffff&color=728e9b)](https://central.sonatype.com/artifact/org.apache.nifi/nifi-nar-maven-plugin)
 [![NiFi Framework](https://img.shields.io/maven-central/v/org.apache.nifi/nifi.svg?label=nifi-framework&logo=apachenifi&logoColor=ffffff&color=728e9b)](https://nifi.apache.org/download/)
 [![NiFI Docker Pulls](https://img.shields.io/docker/pulls/apache/nifi.svg?logo=docker&logoColor=ffffff)](https://hub.docker.com/r/apache/nifi/)
 [![License](https://img.shields.io/github/license/apache/nifi)](https://github.com/apache/nifi/blob/main/LICENSE)
