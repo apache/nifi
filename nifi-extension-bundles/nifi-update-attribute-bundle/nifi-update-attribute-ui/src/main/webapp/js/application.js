@@ -1510,10 +1510,10 @@ var ua = {
                 allDetails.push(action.attribute);
                 allDetails.push(action.value);
              });
-             return allDetails;
-             }
-              return [];
-              },
+            return allDetails;
+        }
+        return [];
+    },
 
     /**
      * Apply the rule filter.
