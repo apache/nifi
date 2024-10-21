@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
-import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -36,7 +35,6 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
 import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
@@ -44,7 +42,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,7 +54,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -1293,75 +1289,6 @@ public class TestTailFile {
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("hey3\n")));
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("hey\n")));
         runner.clearTransferState();
-    }
-
-    @DisabledOnOs(OS.WINDOWS)
-    @Test
-    public void testMigrateFrom100To110() throws IOException {
-        runner.setProperty(TailFile.FILENAME, "target/existing-log.txt");
-
-        final MockStateManager stateManager = runner.getStateManager();
-
-        // Before NiFi 1.1.0, TailFile only handles single file
-        // and state key doesn't have index in it.
-        final Map<String, String> state = new HashMap<>();
-        state.put("filename", "target/existing-log.txt");
-        // Simulate that it has been tailed up to the 2nd line.
-        state.put("checksum", "2279929157");
-        state.put("position", "14");
-        state.put("timestamp", "1480639134000");
-        stateManager.setState(state, Scope.LOCAL);
-
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).iterator().next();
-
-        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try (final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(bos))) {
-            writer.write("Line 3");
-            writer.newLine();
-        }
-
-        flowFile.assertContentEquals(bos.toByteArray());
-
-        // The old states should be replaced with new ones.
-        final StateMap updatedState = stateManager.getState(Scope.LOCAL);
-        assertNull(updatedState.get("filename"));
-        assertNull(updatedState.get("checksum"));
-        assertNull(updatedState.get("position"));
-        assertNull(updatedState.get("timestamp"));
-        assertEquals("target/existing-log.txt", updatedState.get("file.0.filename"));
-        assertEquals("3380848603", updatedState.get("file.0.checksum"));
-        assertEquals("21", updatedState.get("file.0.position"));
-        assertNotNull(updatedState.get("file.0.timestamp"));
-
-        // When it runs again, the state is already migrated, so it shouldn't emit any flow files.
-        runner.clearTransferState();
-        runner.run();
-        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
-    }
-
-    @DisabledOnOs(OS.WINDOWS)
-    @Test
-    public void testMigrateFrom100To110FileNotFound() throws IOException {
-        runner.setProperty(TailFile.FILENAME, "target/not-existing-log.txt");
-
-        final MockStateManager stateManager = runner.getStateManager();
-
-        // Before NiFi 1.1.0, TailFile only handles single file
-        // and state key doesn't have index in it.
-        final Map<String, String> state = new HashMap<>();
-        state.put("filename", "target/not-existing-log.txt");
-        // Simulate that it has been tailed up to the 2nd line.
-        state.put("checksum", "2279929157");
-        state.put("position", "14");
-        state.put("timestamp", "1480639134000");
-        stateManager.setState(state, Scope.LOCAL);
-
-        runner.run();
-
-        runner.assertTransferCount(TailFile.REL_SUCCESS, 0);
     }
 
     private void assertNumberOfStateMapEntries(int expectedNumberOfLogFiles) throws IOException {
