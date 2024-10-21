@@ -16,7 +16,7 @@
 import ProcessorInspection
 import unittest
 
-DUMMY_PROCESSOR_FILE = 'src/test/python/framework/DummyProcessor.py'
+DUMMY_PROCESSOR_FILE = 'src/test/resources/python/framework/dummy_processor/DummyProcessor.py'
 
 class DetectProcessorUseCase(unittest.TestCase):
     def test_get_processor_details(self):
