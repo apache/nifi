@@ -81,10 +81,14 @@ class TestDownloadDependencies(unittest.TestCase):
             self.assertEqual(pip_list_result.returncode, 0)
             pip_list_lines = [line.decode() for line in pip_list_result.stdout.splitlines()]
 
-            grpcio_version = get_version(pip_list_lines, 'grpcio')
-            self.assertIsNotNone(grpcio_version)
-            grpcio_status_version = get_version(pip_list_lines, 'grpcio-status')
-            self.assertEqual(grpcio_version, grpcio_status_version)
+            self.assertEqual(get_version(pip_list_lines, 'google-cloud-vision'), '3.7.4')
+            self.assertEqual(get_version(pip_list_lines, 'pymilvus'), '2.4.4')
+            # google-cloud-vision==3.7.4 (which is in the requirements.txt file) depends on grpcio and grpcio-status<2.0,>=1.33.2
+            # pymilvus==2.4.4 (which is in the `dependencies` section of the processor) depends on grpcio<=1.63.0,>=1.49.1
+            # if we install them separately, we'll end up with different, and not interoperable, grpcio and grpcio-status versions
+            # so we need to install them together, in a single `pip install` command; this works, as verified below
+            self.assertEqual(get_version(pip_list_lines, 'grpcio'), '1.63.0')
+            self.assertEqual(get_version(pip_list_lines, 'grpcio-status'), '1.63.0')
 
 if __name__ == '__main__':
     unittest.main()
