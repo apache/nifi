@@ -16,6 +16,7 @@
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -70,12 +71,13 @@ class TestDownloadDependencies(unittest.TestCase):
 
         JvmHolder.jvm = FakeJvm()
         extension_manager = ExtensionManager(None)
+        python_command = sys.executable
+        os.environ["PYTHON_CMD"] = python_command
 
         with tempfile.TemporaryDirectory() as temp_dir:
             packages_dir = os.path.join(temp_dir, 'packages')
             extension_manager.import_external_dependencies(details, packages_dir)
 
-            python_command = os.environ.get("PYTHON_CMD")
             processor_packages_dir = os.path.join(packages_dir, 'extensions', 'ProcessorWithDependencies', '0.0.1')
             pip_list_result = subprocess.run([python_command, '-m', 'pip', 'list', '--path', processor_packages_dir], capture_output=True)
             self.assertEqual(pip_list_result.returncode, 0)

@@ -27,7 +27,6 @@
 #   MVNW_REPOURL - repo url base for downloading maven distribution
 #   MVNW_USERNAME/MVNW_PASSWORD - user and password for downloading maven
 #   MVNW_VERBOSE - true: enable verbose log; debug: trace the mvnw script; others: silence the output
-#   PYTHON_CMD - location of the Python executable
 # ----------------------------------------------------------------------------
 
 set -euf
@@ -105,21 +104,6 @@ trim() {
   #   exotic environments such as mingw bash on Windows.
   printf "%s" "${1}" | tr -d '[:space:]'
 }
-
-# find the Python executable
-if [ -z "${PYTHON_CMD-}" ]; then
-  for PYTHON_PATH in /usr/bin/python3 /usr/local/bin/python3 /usr/bin/python /usr/local/bin/python; do
-    if [ -x "${PYTHON_PATH}" ]; then
-      export PYTHON_CMD="${PYTHON_PATH}"
-      break
-    fi
-  done
-
-  if [ -z "${PYTHON_CMD-}" ]; then
-    echo "Python executable not found; please set PYTHON_CMD" >&2
-    return 1
-  fi
-fi
 
 # parse distributionUrl and optional distributionSha256Sum, requires .mvn/wrapper/maven-wrapper.properties
 while IFS="=" read -r key value; do
