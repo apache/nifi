@@ -22,6 +22,7 @@ import com.google.api.core.ApiFutures;
 import com.google.api.gax.batching.BatchingSettings;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.rpc.ApiException;
+import com.google.api.gax.core.FixedExecutorProvider;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.cloud.pubsub.v1.stub.GrpcPublisherStub;
 import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
@@ -82,6 +83,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.Optional;
 
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_DESCRIPTION;
@@ -89,6 +92,8 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.RECORDS_ATT
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.RECORDS_DESCRIPTION;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_DESCRIPTION;
+import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.EXECUTOR_THREADS_NUMBER_ATTRIBUTE;
+import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.EXECUTOR_THREADS_NUMBER_DESCRIPTION;
 
 @SeeAlso({ConsumeGCPubSub.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -166,6 +171,14 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    public static final PropertyDescriptor EXECUTOR_THREADS_NUMBER = new PropertyDescriptor.Builder()
+            .name("gcp-pubsub-threadcount")
+            .displayName("Thread count")
+            .description("Number of threads to be used by the PubSub driver. Either empty (interpreted as 'auto'), 'auto', or a fixed positive integer value")
+            .required(false)
+            .addValidator(new ThreadCountValidator())
+            .build();
+
     public static final Relationship REL_RETRY = new Relationship.Builder()
             .name("retry")
             .description("FlowFiles are routed to this relationship if the Google Cloud Pub/Sub operation fails but attempting the operation again may succeed.")
@@ -184,7 +197,8 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             BATCH_BYTES_THRESHOLD,
             BATCH_DELAY_THRESHOLD,
             API_ENDPOINT,
-            PROXY_CONFIGURATION_SERVICE
+            PROXY_CONFIGURATION_SERVICE,
+            EXECUTOR_THREADS_NUMBER
     );
 
     public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY);
@@ -476,6 +490,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
         final long batchBytesThreshold = context.getProperty(BATCH_BYTES_THRESHOLD).asDataSize(DataUnit.B).longValue();
         final Long batchDelayThreshold = context.getProperty(BATCH_DELAY_THRESHOLD).asTimePeriod(TimeUnit.MILLISECONDS);
         final String endpoint = context.getProperty(API_ENDPOINT).getValue();
+        final Optional<Integer> threadCount = ThreadCountValidator.parse(context.getProperty(EXECUTOR_THREADS_NUMBER).getValue());
 
         final Publisher.Builder publisherBuilder = Publisher.newBuilder(getTopicName(context))
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
@@ -488,6 +503,11 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                 .setDelayThreshold(Duration.ofMillis(batchDelayThreshold))
                 .setIsEnabled(true)
                 .build());
+        
+        //Set fixed threadpool executor if threadCount is defined
+        if(threadCount.isPresent()){
+            publisherBuilder.setExecutorProvider(FixedExecutorProvider.create(new ScheduledThreadPoolExecutor(threadCount.get())));
+        }
         return publisherBuilder;
     }
 }
