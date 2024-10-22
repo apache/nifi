@@ -22,6 +22,7 @@ import org.apache.nifi.toolkit.cli.impl.result.writer.DynamicTableWriter;
 import org.apache.nifi.toolkit.cli.impl.result.writer.Table;
 import org.apache.nifi.toolkit.cli.impl.result.writer.TableWriter;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
+import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 
@@ -35,10 +36,13 @@ import java.util.List;
 public class ParamProviderResult extends AbstractWritableResult<ParameterProviderEntity> {
 
     private final ParameterProviderEntity parameterProvider;
+    private final ParameterContextsEntity parameterContexts;
 
-    public ParamProviderResult(final ResultType resultType, final ParameterProviderEntity parameterProvider) {
+    public ParamProviderResult(final ResultType resultType, final ParameterProviderEntity parameterProvider,
+            final ParameterContextsEntity paramContextEntity) {
         super(resultType);
         this.parameterProvider = parameterProvider;
+        this.parameterContexts = paramContextEntity;
     }
 
     @Override
@@ -59,6 +63,7 @@ public class ParamProviderResult extends AbstractWritableResult<ParameterProvide
         }
         final Table fetchedParametersTable = new Table.Builder()
                 .column("Parameter Group", 20, 60, false)
+                .column("Parameter Context Id", 36, 36, false)
                 .column("Parameter Context Name", 20, 60, false)
                 .column("Fetched Parameter Name", 20, 60, false)
                 .build();
@@ -67,6 +72,7 @@ public class ParamProviderResult extends AbstractWritableResult<ParameterProvide
                 group.getParameterSensitivities().keySet().stream().sorted()
                         .forEach(param -> fetchedParametersTable.addRow(new String[] {
                                 group.getGroupName(),
+                                getParameterContextId(group.getParameterContextName()),
                                 group.getParameterContextName(),
                                 param
                         }));
@@ -81,6 +87,16 @@ public class ParamProviderResult extends AbstractWritableResult<ParameterProvide
         if (!fetchedParametersTable.getRows().isEmpty()) {
             tableWriter.write(fetchedParametersTable, output);
         }
+    }
+
+    private String getParameterContextId(final String name) {
+        return parameterContexts.getParameterContexts()
+                .stream()
+                .filter(t -> t.getComponent().getName().equals(name))
+                .findFirst()
+                .get()
+                .getComponent()
+                .getId();
     }
 
     @Override

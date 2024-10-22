@@ -21,10 +21,12 @@ import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamProviderClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.ParamProviderResult;
+import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 
 import java.io.IOException;
@@ -51,7 +53,9 @@ public class GetParamProvider extends AbstractNiFiCommand<ParamProviderResult> {
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final String paramProviderId = getRequiredArg(properties, CommandOption.PARAM_PROVIDER_ID);
         final ParamProviderClient paramProviderClient = client.getParamProviderClient();
+        final ParamContextClient paramContextClient = client.getParamContextClient();
+        final ParameterContextsEntity paramContextEntity = paramContextClient.getParamContexts();
         final ParameterProviderEntity parameterProvider = paramProviderClient.getParamProvider(paramProviderId);
-        return new ParamProviderResult(getResultType(properties), parameterProvider);
+        return new ParamProviderResult(getResultType(properties), parameterProvider, paramContextEntity);
     }
 }
