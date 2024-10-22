@@ -28,7 +28,7 @@ import org.apache.nifi.registry.hook.EventFieldName;
 import org.apache.nifi.registry.hook.EventType;
 import org.apache.nifi.registry.security.authorization.user.NiFiUserUtils;
 
-import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Factory to create Events from domain objects.
@@ -52,7 +52,7 @@ public class EventFactory {
                 .eventType(eventType)
                 .addField(EventFieldName.BUCKET_ID, bucket.getIdentifier())
                 .addField(EventFieldName.BUCKET_NAME, bucket.getName())
-                .addField(EventFieldName.BUCKET_DESCRIPTION, Objects.requireNonNullElse(bucket.getDescription(), "")) //Empty string if Null
+                .addField(EventFieldName.BUCKET_DESCRIPTION, Optional.ofNullable(bucket.getDescription()).orElse("")) //Empty string if Null
                 .addField(EventFieldName.CREATED_TIMESTAMP, String.valueOf(bucket.getCreatedTimestamp()))
                 .addField(EventFieldName.ALLOW_PUBLIC_READ, (bucket.isAllowPublicRead() == null) ? "" : String.valueOf(bucket.isAllowPublicRead())) //Empty string if Null
                 .addField(EventFieldName.USER, NiFiUserUtils.getNiFiUserIdentity())
@@ -75,10 +75,10 @@ public class EventFactory {
         return new StandardEvent.Builder()
                 .eventType(eventType)
                 .addField(EventFieldName.BUCKET_ID, versionedFlow.getBucketIdentifier())
-                .addField(EventFieldName.BUCKET_NAME, Objects.requireNonNullElse(versionedFlow.getBucketName(), "")) //Empty string if Null
+                .addField(EventFieldName.BUCKET_NAME, Optional.ofNullable(versionedFlow.getBucketName()).orElse("")) //Empty string if Null
                 .addField(EventFieldName.FLOW_ID, versionedFlow.getIdentifier())
-                .addField(EventFieldName.FLOW_NAME, Objects.requireNonNullElse(versionedFlow.getName(), ""))
-                .addField(EventFieldName.FLOW_DESCRIPTION, Objects.requireNonNullElse(versionedFlow.getDescription(), ""))
+                .addField(EventFieldName.FLOW_NAME, Optional.ofNullable(versionedFlow.getName()).orElse(""))
+                .addField(EventFieldName.FLOW_DESCRIPTION, Optional.ofNullable(versionedFlow.getDescription()).orElse(""))
                 .addField(EventFieldName.CREATED_TIMESTAMP, String.valueOf(versionedFlow.getCreatedTimestamp()))
                 .addField(EventFieldName.MODIFIED_TIMESTAMP, String.valueOf(versionedFlow.getModifiedTimestamp()))
                 .addField(EventFieldName.USER, NiFiUserUtils.getNiFiUserIdentity())
@@ -92,9 +92,9 @@ public class EventFactory {
         return new StandardEvent.Builder()
                 .eventType(EventType.CREATE_FLOW_VERSION)
                 .addField(EventFieldName.BUCKET_ID, versionedFlowSnapshot.getSnapshotMetadata().getBucketIdentifier())
-                .addField(EventFieldName.BUCKET_NAME, (versionedFlowSnapshot.getBucket() == null) ? "" : Objects.requireNonNullElse(versionedFlowSnapshot.getBucket().getName(), ""))
+                .addField(EventFieldName.BUCKET_NAME, (versionedFlowSnapshot.getBucket() == null) ? "" : Optional.ofNullable(versionedFlowSnapshot.getBucket().getName()).orElse(""))
                 .addField(EventFieldName.FLOW_ID, versionedFlowSnapshot.getSnapshotMetadata().getFlowIdentifier())
-                .addField(EventFieldName.FLOW_NAME, (versionedFlowSnapshot.getBucket() == null) ? "" : Objects.requireNonNullElse(versionedFlowSnapshot.getFlow().getName(), ""))
+                .addField(EventFieldName.FLOW_NAME, (versionedFlowSnapshot.getBucket() == null) ? "" : Optional.ofNullable(versionedFlowSnapshot.getFlow().getName()).orElse(""))
                 .addField(EventFieldName.VERSION, String.valueOf(versionedFlowSnapshot.getSnapshotMetadata().getVersion()))
                 .addField(EventFieldName.MODIFIED_TIMESTAMP, String.valueOf(versionedFlowSnapshot.getSnapshotMetadata().getTimestamp()))
                 .addField(EventFieldName.USER, versionedFlowSnapshot.getSnapshotMetadata().getAuthor())
