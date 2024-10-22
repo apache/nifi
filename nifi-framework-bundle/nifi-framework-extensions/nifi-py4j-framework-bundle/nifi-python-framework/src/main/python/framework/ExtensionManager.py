@@ -285,23 +285,23 @@ class ExtensionManager:
             logger.info("All dependencies have already been imported for {0}".format(class_name))
             return True
 
-        packages_to_install = []
+        dependency_references = []
 
         if processor_details.source_location is not None:
             package_dir = os.path.dirname(processor_details.source_location)
             requirements_file = os.path.join(package_dir, 'requirements.txt')
             if os.path.exists(requirements_file):
-                packages_to_install.append('-r')
-                packages_to_install.append(requirements_file)
+                dependency_references.append('-r')
+                dependency_references.append(requirements_file)
 
         inline_dependencies = processor_details.getDependencies()
         for dependency in inline_dependencies:
-            packages_to_install.append(dependency)
+            dependency_references.append(dependency)
 
-        if len(packages_to_install) > 0:
+        if len(dependency_references) > 0:
             python_cmd = os.getenv("PYTHON_CMD")
-            args = [python_cmd, '-m', 'pip', 'install', '--no-cache-dir', '--target', target_dir] + packages_to_install
-            logger.info(f"Installing dependencies {packages_to_install} for {class_name} to {target_dir} using command {args}")
+            args = [python_cmd, '-m', 'pip', 'install', '--no-cache-dir', '--target', target_dir] + dependency_references
+            logger.info(f"Installing dependencies {dependency_references} for {class_name} to {target_dir} using command {args}")
             result = subprocess.run(args)
 
             if result.returncode == 0:
