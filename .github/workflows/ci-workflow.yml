@@ -162,6 +162,10 @@ jobs:
           distribution: 'corretto'
           java-version: '21'
           cache: 'maven'
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Evaluate Changed Paths
         uses: dorny/paths-filter@v3
         id: changes
@@ -227,6 +231,10 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
           cache: 'maven'
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Evaluate Changed Paths
         uses: dorny/paths-filter@v3
         id: changes
