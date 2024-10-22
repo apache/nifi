@@ -18,26 +18,12 @@
 package org.apache.nifi.python.processor.documentation;
 
 import java.util.List;
+
 import org.apache.nifi.python.PythonObjectProxy;
 
-public interface PropertyDescription extends PythonObjectProxy {
+public interface PropertyDependency extends PythonObjectProxy {
     String getName();
 
     String getDisplayName();
-
-    String getDescription();
-
-    String getDefaultValue();
-
-    boolean isSensitive();
-
-    boolean isRequired();
-
-    String getExpressionLanguageScope();
-
-    String getControllerServiceDefinition();
-
-    List<String> getAllowableValues();
-
-    List<PropertyDependency> getDependencies();
+    List<String> getDependentValues();
 }

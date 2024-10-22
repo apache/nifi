@@ -23,6 +23,8 @@ import org.apache.nifi.c2.protocol.component.api.BuildInfo;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.extension.manifest.AllowableValue;
 import org.apache.nifi.extension.manifest.ControllerServiceDefinition;
+import org.apache.nifi.extension.manifest.Dependency;
+import org.apache.nifi.extension.manifest.DependentValues;
 import org.apache.nifi.extension.manifest.ExpressionLanguageScope;
 import org.apache.nifi.extension.manifest.Extension;
 import org.apache.nifi.extension.manifest.ExtensionManifest;
@@ -240,7 +242,26 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         property.setControllerServiceDefinition(getManifestControllerServiceDefinition(propertyDescription.getControllerServiceDefinition()));
         property.setAllowableValues(getAllowableValues(propertyDescription));
 
+        property.setDependencies(getDependencies(propertyDescription));
+
         return property;
+    }
+
+    private static List<Dependency> getDependencies(org.apache.nifi.python.processor.documentation.PropertyDescription propertyDescription) {
+        return Optional.ofNullable(propertyDescription.getDependencies()).orElse(List.of())
+                .stream()
+                .map(value -> {
+                    DependentValues dependentValues = new DependentValues();
+                    dependentValues.setValues(value.getDependentValues());
+
+                    Dependency dependency = new Dependency();
+                    dependency.setPropertyName(value.getName());
+                    dependency.setPropertyDisplayName(value.getDisplayName());
+                    dependency.setDependentValues(dependentValues);
+
+                    return dependency;
+                })
+                .toList();
     }
 
     private static ControllerServiceDefinition getManifestControllerServiceDefinition(final String controllerServiceClassName) {
