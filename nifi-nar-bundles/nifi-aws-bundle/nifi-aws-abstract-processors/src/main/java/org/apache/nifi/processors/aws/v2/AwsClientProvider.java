@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.v2;
 
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import software.amazon.awssdk.core.SdkClient;
 
@@ -25,7 +26,17 @@ public interface AwsClientProvider<T extends SdkClient> {
      * Creates an AWS client using process context and AWS client details.
      *
      * @param context process context
+     * @param flowFile flow file
+     * @return AWS client
+     */
+    T createClient(final ProcessContext context, FlowFile flowFile);
+
+    /**
+     * Creates an AWS client using process context and AWS client details.
+     *
+     * @param context process context
      * @return AWS client
      */
     T createClient(final ProcessContext context);
+
 }

@@ -26,6 +26,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -258,7 +259,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         try {
-            createClient(context);
+            createClient(context, null);
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SUCCESSFUL)
                     .verificationStepName("Create Client")
@@ -279,21 +280,34 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
     /**
      * Creates the AWS SDK client.
      * @param context The process context
+     * @param flowFile the flowfile
+     * @return The created client
+     */
+    @Override
+    public T createClient(final ProcessContext context, final FlowFile flowFile) {
+        final U clientBuilder = createClientBuilder(context);
+        this.configureClientBuilder(clientBuilder, context, flowFile);
+        return clientBuilder.build();
+    }
+
+    /**
+     * Creates the AWS SDK client.
+     * @param context The process context
      * @return The created client
      */
     @Override
     public T createClient(final ProcessContext context) {
         final U clientBuilder = createClientBuilder(context);
-        this.configureClientBuilder(clientBuilder, context);
+        this.configureClientBuilder(clientBuilder, context, null);
         return clientBuilder.build();
     }
 
-    protected void configureClientBuilder(final U clientBuilder, final ProcessContext context) {
+    protected void configureClientBuilder(final U clientBuilder, final ProcessContext context, final FlowFile flowFile) {
         clientBuilder.overrideConfiguration(builder -> builder.putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, DEFAULT_USER_AGENT));
         clientBuilder.overrideConfiguration(builder -> builder.retryPolicy(RetryPolicy.none()));
         clientBuilder.httpClient(createSdkHttpClient(context));
+        final Region region = getRegion(context, flowFile);
 
-        final Region region = getRegion(context);
         if (region != null) {
             clientBuilder.region(region);
         }
@@ -304,18 +318,23 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
     }
 
     /**
-     * Creates an AWS service client from the context or returns an existing client from the cache
-     * @param context The process context
-     * @param  awsClientDetails details of the AWS client
-     * @return The created client
-     */
-    protected T getClient(final ProcessContext context, final AwsClientDetails awsClientDetails) {
-        return this.awsClientCache.getOrCreateClient(context, awsClientDetails, this);
+    * Creates an AWS service client from the context or returns an existing client from the cache
+    * @param context The process context
+    * @param  awsClientDetails details of the AWS client
+    * @param flowFile the flowfile
+    * @return The created client
+    */
+    protected T getClient(final ProcessContext context, final AwsClientDetails awsClientDetails, FlowFile flowFile) {
+         return this.awsClientCache.getOrCreateClient(context, awsClientDetails, this, flowFile);
+    }
+    protected T getClient(final ProcessContext context, FlowFile  flowFile) {
+        final AwsClientDetails awsClientDetails = new AwsClientDetails(getRegion(context, flowFile));
+        return getClient(context, awsClientDetails, flowFile);
     }
 
     protected T getClient(final ProcessContext context) {
-        final AwsClientDetails awsClientDetails = new AwsClientDetails(getRegion(context));
-        return getClient(context, awsClientDetails);
+        final AwsClientDetails awsClientDetails = new AwsClientDetails(getRegion(context, null));
+        return getClient(context, awsClientDetails, null);
     }
 
     /**
@@ -325,11 +344,11 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
      */
     protected abstract U createClientBuilder(final ProcessContext context);
 
-    protected Region getRegion(final ProcessContext context) {
+    protected Region getRegion(final ProcessContext context, final FlowFile flowfile) {
         final Region region;
         // if the processor supports REGION, get the configured region.
         if (getSupportedPropertyDescriptors().contains(REGION)) {
-            final String regionValue = context.getProperty(REGION).getValue();
+            final String regionValue = context.getProperty(REGION).evaluateAttributeExpressions(flowfile).getValue();
             if (regionValue != null) {
                 region = Region.of(regionValue);
             } else {
