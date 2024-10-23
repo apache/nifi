@@ -83,6 +83,7 @@ public class DeleteParam extends AbstractUpdateParamContextCommand<VoidResult> {
         parameterDTO.setValue(null);
         parameterDTO.setDescription(null);
         parameterDTO.setSensitive(null);
+        parameterDTO.setReferencedAssets(null);
 
         final ParameterEntity parameterEntity = new ParameterEntity();
         parameterEntity.setParameter(parameterDTO);
