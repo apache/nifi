@@ -34,7 +34,7 @@ export class RegistryService {
         return this.httpClient.get(`${RegistryService.API}/flow/registries/${registryId}/branches`);
     }
 
-    getBuckets(registryId: string, branch?: string): Observable<any> {
+    getBuckets(registryId: string, branch?: string | null): Observable<any> {
         let params: HttpParams = new HttpParams();
         if (branch) {
             params = params.set('branch', branch);
@@ -42,7 +42,7 @@ export class RegistryService {
         return this.httpClient.get(`${RegistryService.API}/flow/registries/${registryId}/buckets`, { params });
     }
 
-    getFlows(registryId: string, bucketId: string, branch?: string): Observable<any> {
+    getFlows(registryId: string, bucketId: string, branch?: string | null): Observable<any> {
         let params: HttpParams = new HttpParams();
         if (branch) {
             params = params.set('branch', branch);
@@ -52,7 +52,7 @@ export class RegistryService {
         });
     }
 
-    getFlowVersions(registryId: string, bucketId: string, flowId: string, branch?: string): Observable<any> {
+    getFlowVersions(registryId: string, bucketId: string, flowId: string, branch?: string | null): Observable<any> {
         let params: HttpParams = new HttpParams();
         if (branch) {
             params = params.set('branch', branch);
