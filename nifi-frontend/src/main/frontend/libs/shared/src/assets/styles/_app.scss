@@ -605,7 +605,7 @@
 
     /* overriding 3rd party styles */
 
-    *:not([class^='mat-']):not([class^='mdc-']):not([class^='resizable-triangle']) {
+    *:not([class^='mat-']):not([class^='mdc-']):not([class^='resizable-triangle']):not([class^='CodeMirror-cursor']) {
         // Tailwind sets a default that doesn't shift with light and dark themes
         border-color: $border-color;
     }
