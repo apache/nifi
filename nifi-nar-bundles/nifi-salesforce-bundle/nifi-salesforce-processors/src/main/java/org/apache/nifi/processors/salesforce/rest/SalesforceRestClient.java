@@ -57,6 +57,14 @@ public class SalesforceRestClient {
         return executeRequest(request);
     }
 
+    public InputStream queryAll(String query) {
+        HttpUrl httpUrl = HttpUrl.get(getUrl("/queryAll")).newBuilder()
+                .addQueryParameter("q", query)
+                .build();
+        Request request = buildGetRequest(httpUrl.toString());
+        return executeRequest(request);
+    }
+
     public InputStream getNextRecords(String nextRecordsUrl) {
         HttpUrl httpUrl = HttpUrl.get(configuration.getInstanceUrl() + nextRecordsUrl).newBuilder().build();
         Request request = buildGetRequest(httpUrl.toString());
