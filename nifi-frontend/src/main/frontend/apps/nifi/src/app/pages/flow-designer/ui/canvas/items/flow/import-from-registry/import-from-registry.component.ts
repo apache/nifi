@@ -84,13 +84,17 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 })
 export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
     @Input() getBranches: (registryId: string) => Observable<BranchEntity[]> = () => of([]);
-    @Input() getBuckets!: (registryId: string, branch?: string) => Observable<BucketEntity[]>;
-    @Input() getFlows!: (registryId: string, bucketId: string, branch?: string) => Observable<VersionedFlowEntity[]>;
+    @Input() getBuckets!: (registryId: string, branch?: string | null) => Observable<BucketEntity[]>;
+    @Input() getFlows!: (
+        registryId: string,
+        bucketId: string,
+        branch?: string | null
+    ) => Observable<VersionedFlowEntity[]>;
     @Input() getFlowVersions!: (
         registryId: string,
         bucketId: string,
         flowId: string,
-        branch?: string
+        branch?: string | null
     ) => Observable<VersionedFlowSnapshotMetadataEntity[]>;
 
     saving$ = this.store.select(selectSaving);
@@ -151,7 +155,7 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
 
         this.importFromRegistryForm = this.formBuilder.group({
             registry: new FormControl(this.registryClientOptions[0].value, Validators.required),
-            branch: new FormControl('default', Validators.required),
+            branch: new FormControl(null),
             bucket: new FormControl(null, Validators.required),
             flow: new FormControl(null, Validators.required),
             keepParameterContexts: new FormControl(true, Validators.required)
@@ -184,7 +188,7 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
 
     private clearBranches(): void {
         this.branchOptions = [];
-        this.importFromRegistryForm.get('branch')?.setValue('default');
+        this.importFromRegistryForm.get('branch')?.setValue(null);
         this.clearBuckets();
     }
 
@@ -211,6 +215,7 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
         this.importFromRegistryForm.get('flow')?.setValue(null);
         this.flowOptions = [];
         this.dataSource.data = [];
+        this.selectedFlowVersion = null;
     }
 
     flowChanged(flowId: string): void {
@@ -245,7 +250,7 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
         }
     }
 
-    loadBuckets(registryId: string, branch?: string): void {
+    loadBuckets(registryId: string, branch?: string | null): void {
         this.bucketOptions = [];
 
         this.getBuckets(registryId, branch)
@@ -271,7 +276,7 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
             });
     }
 
-    loadFlows(registryId: string, bucketId: string, branch?: string): void {
+    loadFlows(registryId: string, bucketId: string, branch?: string | null): void {
         this.flowOptions = [];
         this.flowLookup.clear();
 
@@ -298,8 +303,9 @@ export class ImportFromRegistry extends CloseOnEscapeDialog implements OnInit {
             });
     }
 
-    loadVersions(registryId: string, bucketId: string, flowId: string, branch?: string): void {
+    loadVersions(registryId: string, bucketId: string, flowId: string, branch?: string | null): void {
         this.dataSource.data = [];
+        this.selectedFlowVersion = null;
         this.selectedFlowDescription = this.flowLookup.get(flowId)?.description;
 
         this.getFlowVersions(registryId, bucketId, flowId, branch)

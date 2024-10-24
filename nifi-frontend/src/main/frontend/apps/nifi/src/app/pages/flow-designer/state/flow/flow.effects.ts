@@ -888,7 +888,7 @@ export class FlowEffects {
 
                         dialogReference.componentInstance.getBuckets = (
                             registryId: string,
-                            branch?: string
+                            branch?: string | null
                         ): Observable<BucketEntity[]> => {
                             return this.registryService.getBuckets(registryId, branch).pipe(
                                 take(1),
@@ -911,7 +911,7 @@ export class FlowEffects {
                         dialogReference.componentInstance.getFlows = (
                             registryId: string,
                             bucketId: string,
-                            branch?: string
+                            branch?: string | null
                         ): Observable<VersionedFlowEntity[]> => {
                             return this.registryService.getFlows(registryId, bucketId, branch).pipe(
                                 take(1),
@@ -935,7 +935,7 @@ export class FlowEffects {
                             registryId: string,
                             bucketId: string,
                             flowId: string,
-                            branch?: string
+                            branch?: string | null
                         ): Observable<VersionedFlowSnapshotMetadataEntity[]> => {
                             return this.registryService.getFlowVersions(registryId, bucketId, flowId, branch).pipe(
                                 take(1),
@@ -3500,7 +3500,7 @@ export class FlowEffects {
 
                     dialogReference.componentInstance.getBuckets = (
                         registryId: string,
-                        branch?: string
+                        branch?: string | null
                     ): Observable<BucketEntity[]> => {
                         return this.registryService.getBuckets(registryId, branch).pipe(
                             take(1),
