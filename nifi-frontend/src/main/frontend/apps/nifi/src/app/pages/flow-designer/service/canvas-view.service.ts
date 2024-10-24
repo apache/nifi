@@ -101,8 +101,6 @@ export class CanvasView {
                 if (!self.isBirdseyeEvent()) {
                     // ensure the canvas was actually refreshed
                     if (refreshed) {
-                        self.updateCanvasVisibility();
-
                         // dispatch the current transform
                         self.store.dispatch(
                             transformComplete({
@@ -115,6 +113,8 @@ export class CanvasView {
                                 }
                             })
                         );
+
+                        self.updateCanvasVisibility();
 
                         // refresh the birdseye
                         refreshed.then(function () {

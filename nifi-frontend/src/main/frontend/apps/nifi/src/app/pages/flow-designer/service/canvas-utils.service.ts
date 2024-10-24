@@ -45,6 +45,8 @@ import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-
 import { CopiedSnippet, VersionControlInformation } from '../state/flow';
 import { Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
+import { initialState as initialTransformState } from '../state/transform/transform.reducer';
+import { selectScale } from '../state/transform/transform.selectors';
 
 @Injectable({
     providedIn: 'root'
@@ -62,6 +64,7 @@ export class CanvasUtils {
     private currentParameterContext: ParameterContextReferenceEntity | null =
         initialFlowState.flow.processGroupFlow.parameterContext;
     private flowConfiguration: FlowConfiguration | null = initialFlowConfigurationState.flowConfiguration;
+    private scale: number = initialTransformState.scale;
     private connections: any[] = [];
     private breadcrumbs: BreadcrumbEntity | null = null;
     private copiedSnippet: CopiedSnippet | null = null;
@@ -137,6 +140,13 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((copiedSnippet) => {
                 this.copiedSnippet = copiedSnippet;
+            });
+
+        this.store
+            .select(selectScale)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((scale) => {
+                this.scale = scale;
             });
     }
 
@@ -1401,9 +1411,18 @@ export class CanvasUtils {
         if (!trimLength) {
             // We haven't cached the length for this text yet. Determine whether we need
             // to trim & add ellipses or not
-            if (node.getSubStringLength(0, text.length - 1) > width) {
+            const textLength = node.getSubStringLength(0, text.length - 1);
+
+            if (textLength > width) {
+                // calculate the ellipsis length since it varies greatly based on the font size
+                selection.text(String.fromCharCode(8230));
+                const ellipsisLength = node.getSubStringLength(0, 1);
+
+                // restore the actual value
+                selection.text(text);
+
                 // make some room for the ellipsis
-                width -= 5;
+                width -= ellipsisLength * 1.5;
 
                 // determine the appropriate index
                 trimLength = this.binarySearch(text.length, function (x: number) {
@@ -1440,7 +1459,104 @@ export class CanvasUtils {
     }
 
     /**
-     * Applies multiline ellipsis to the component in the specified seleciton. Text will
+     * Applies multiline ellipsis to the component in the specified selection. Text will
+     * wrap for the specified number of lines. The last line will be ellipsis if necessary.
+     *
+     * @param {selection} selection
+     * @param {number} width
+     * @param {number} height
+     * @param {string[]} lines
+     * @param {string} cacheName
+     */
+    public boundedMultilineEllipsis(selection: any, width: number, height: number, lines: string[], cacheName: string) {
+        let i = 1;
+
+        // get the appropriate position
+        const x = parseInt(selection.attr('x'), 10);
+
+        let lineCountCalculated = false;
+        let lineCount = 1;
+        let lineHeight = height;
+
+        for (const fullLine of lines) {
+            const words: string[] = fullLine.split(/\s+/).reverse();
+
+            let newLine = true;
+            let line: string[] = [];
+            let tspan = selection.append('tspan').attr('x', x).attr('width', width);
+
+            // go through each word
+            let word = words.pop();
+
+            while (word) {
+                // add the current word
+                line.push(word);
+
+                // update the label text
+                tspan.text(line.join(' '));
+
+                if (!lineCountCalculated) {
+                    const bbox = tspan.node().getBoundingClientRect();
+                    lineHeight = bbox.height / this.scale;
+
+                    lineCount = Math.floor(height / lineHeight);
+                    lineCountCalculated = true;
+                }
+
+                if (newLine) {
+                    // set the label height
+                    tspan.attr('y', lineHeight * i++);
+                    newLine = false;
+                }
+
+                // if this word caused us to go too far
+                if (tspan.node().getComputedTextLength() > width) {
+                    // remove the current word
+                    line.pop();
+
+                    // update the label text
+                    tspan.text(line.join(' '));
+
+                    // create the tspan for the next line
+                    tspan = selection.append('tspan').attr('x', x).attr('dy', '1.2em').attr('width', width);
+
+                    // if we've reached the last line, use single line ellipsis
+                    if (i++ >= lineCount) {
+                        // get the remainder using the current word and
+                        // reversing whats left
+                        const remainder = [word].concat(words.reverse());
+
+                        // apply ellipsis to the last line
+                        this.ellipsis(tspan, remainder.join(' '), cacheName);
+
+                        // we've reached the line count
+                        return;
+                    } else {
+                        tspan.text(word);
+
+                        // prep the line for the next iteration
+                        line = [word];
+                    }
+                }
+
+                // get the next word
+                word = words.pop();
+            }
+
+            if (newLine) {
+                // set the label height
+                tspan.attr('y', lineHeight * i++);
+                newLine = false;
+            }
+
+            if (i >= lineCount) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * Applies multiline ellipsis to the component in the specified selection. Text will
      * wrap for the specified number of lines. The last line will be ellipsis if necessary.
      *
      * @param {selection} selection

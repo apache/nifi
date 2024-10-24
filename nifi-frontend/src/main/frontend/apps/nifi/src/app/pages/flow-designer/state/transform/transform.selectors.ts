@@ -17,6 +17,8 @@
 
 import { createSelector } from '@ngrx/store';
 import { CanvasState, selectCanvasState } from '../index';
-import { transformFeatureKey } from './index';
+import { CanvasTransform, transformFeatureKey } from './index';
 
 export const selectTransform = createSelector(selectCanvasState, (state: CanvasState) => state[transformFeatureKey]);
+
+export const selectScale = createSelector(selectTransform, (state: CanvasTransform) => state.scale);
