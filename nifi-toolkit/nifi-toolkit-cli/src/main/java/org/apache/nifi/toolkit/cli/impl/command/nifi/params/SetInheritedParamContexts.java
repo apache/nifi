@@ -87,6 +87,14 @@ public class SetInheritedParamContexts extends AbstractUpdateParamContextCommand
         parameterContextDTO.setId(existingParameterContextEntity.getId());
         parameterContextDTO.setParameters(existingParameterContextEntity.getComponent().getParameters());
 
+        // we need to explicitly set null for the sensitive parameters as we are getting **** for the values
+        // on the client side. This is the only way for the server side to know that the values are not changed
+        // during the update parameter context request
+        parameterContextDTO.getParameters()
+            .stream()
+            .filter(t -> t.getParameter().getSensitive().booleanValue())
+            .forEach(t -> t.getParameter().setValue(null));
+
         final ParameterContextEntity updatedParameterContextEntity = new ParameterContextEntity();
         updatedParameterContextEntity.setId(paramContextId);
         updatedParameterContextEntity.setComponent(parameterContextDTO);
