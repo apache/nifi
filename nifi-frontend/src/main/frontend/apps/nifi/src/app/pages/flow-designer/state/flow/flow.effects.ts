@@ -1687,6 +1687,9 @@ export class FlowEffects {
                                     }
                                 })
                             );
+
+                            // restore the previous route
+                            this.router.navigate(['/process-groups', currentProcessGroupId]);
                         } else {
                             this.store.dispatch(
                                 FlowActions.selectComponents({
