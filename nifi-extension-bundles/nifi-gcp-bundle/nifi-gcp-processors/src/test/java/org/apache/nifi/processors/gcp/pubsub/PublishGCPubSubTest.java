@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.gcp.pubsub;
 
 import com.google.api.core.ApiFuture;
-import com.google.api.core.ApiFutureCallback;
 import com.google.api.gax.grpc.GrpcStatusCode;
 import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.pubsub.v1.Publisher;
@@ -29,9 +28,10 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
+import org.apache.nifi.processors.gcp.pubsub.publish.FlowFileResult;
 import org.apache.nifi.processors.gcp.pubsub.publish.MessageDerivationStrategy;
-import org.apache.nifi.processors.gcp.pubsub.publish.TrackedApiFutureCallback;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.util.MockFlowFile;
@@ -70,16 +70,31 @@ public class PublishGCPubSubTest {
             }
 
             @Override
-            protected void addCallback(ApiFuture<String> apiFuture, ApiFutureCallback<? super String> callback, Executor executor) {
-                if (callback instanceof TrackedApiFutureCallback) {
-                    final TrackedApiFutureCallback apiFutureCallback = (TrackedApiFutureCallback) callback;
-                    if (throwable == null) {
-                        apiFutureCallback.onSuccess(Long.toString(System.currentTimeMillis()));
-                    } else {
-                        apiFutureCallback.onFailure(throwable);
-                    }
-                }
+            protected void addCallback(ApiFuture<String> apiFuture, Executor executor) {
+                //
             }
+
+            @Override
+            protected Relationship reconcile(FlowFileResult flowFileResult) {
+                if (flowFileResult.getError() != null) {
+                    return PublishGCPubSub.REL_FAILURE;
+                }
+                if (throwable != null) {
+                    if (FlowFileResult.isRetryException(throwable)) {
+                        return PublishGCPubSub.REL_RETRY;
+                    }
+                    return PublishGCPubSub.REL_FAILURE;
+                }
+                if (flowFileResult.getFutures().size() == 1) {
+                    flowFileResult.getAttributes()
+                        .put(PubSubAttributes.MESSAGE_ID_ATTRIBUTE, Long.toString(System.currentTimeMillis()));
+                } else {
+                    flowFileResult.getAttributes()
+                        .put(PubSubAttributes.RECORDS_ATTRIBUTE, Integer.toString(flowFileResult.getFutures().size()));
+                }
+                return PublishGCPubSub.REL_SUCCESS;
+            }
+
         });
     }
 

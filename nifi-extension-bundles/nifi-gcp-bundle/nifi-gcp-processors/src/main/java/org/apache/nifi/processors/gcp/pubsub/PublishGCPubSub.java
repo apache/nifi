@@ -58,7 +58,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.pubsub.publish.FlowFileResult;
 import org.apache.nifi.processors.gcp.pubsub.publish.MessageDerivationStrategy;
-import org.apache.nifi.processors.gcp.pubsub.publish.TrackedApiFutureCallback;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -321,21 +320,17 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
         for (final FlowFile flowFile : flowFileBatch) {
             final List<ApiFuture<String>> futures = new ArrayList<>();
-            final List<String> successes = new ArrayList<>();
-            final List<Throwable> failures = new ArrayList<>();
-
             if (flowFile.getSize() > maxMessageSize) {
                 final String message = String.format("FlowFile size %d exceeds MAX_MESSAGE_SIZE", flowFile.getSize());
-                failures.add(new IllegalArgumentException(message));
-                flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
+                flowFileResults.add(new FlowFileResult(flowFile, futures, new IllegalArgumentException(message)));
             } else {
                 baos.reset();
                 session.exportTo(flowFile, baos);
 
                 final ApiFuture<String> apiFuture = publishOneMessage(context, flowFile, baos.toByteArray());
                 futures.add(apiFuture);
-                addCallback(apiFuture, new TrackedApiFutureCallback(successes, failures), executor);
-                flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
+                addCallback(apiFuture, executor);
+                flowFileResults.add(new FlowFileResult(flowFile, futures, null));
             }
         }
         finishBatch(session, stopWatch, flowFileResults);
@@ -368,9 +363,6 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
         for (final FlowFile flowFile : flowFileBatch) {
             final List<ApiFuture<String>> futures = new ArrayList<>();
-            final List<String> successes = new ArrayList<>();
-            final List<Throwable> failures = new ArrayList<>();
-
             final Map<String, String> attributes = flowFile.getAttributes();
             try (final RecordReader reader = readerFactory.createRecordReader(
                     attributes, session.read(flowFile), flowFile.getSize(), getLogger())) {
@@ -383,9 +375,9 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                 while (pushBackRecordSet.isAnotherRecord()) {
                     final ApiFuture<String> apiFuture = publishOneRecord(context, flowFile, baos, writer, pushBackRecordSet.next());
                     futures.add(apiFuture);
-                    addCallback(apiFuture, new TrackedApiFutureCallback(successes, failures), executor);
+                    addCallback(apiFuture, executor);
                 }
-                flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
+                flowFileResults.add(new FlowFileResult(flowFile, futures, null));
             }
         }
         finishBatch(session, stopWatch, flowFileResults);
@@ -419,7 +411,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                              final List<FlowFileResult> flowFileResults) {
         final String topicName = publisher.getTopicNameString();
         for (final FlowFileResult flowFileResult : flowFileResults) {
-            final Relationship relationship = flowFileResult.reconcile();
+            final Relationship relationship = reconcile(flowFileResult);
             final Map<String, String> attributes = flowFileResult.getAttributes();
             attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
             final FlowFile flowFile = session.putAllAttributes(flowFileResult.getFlowFile(), attributes);
@@ -429,8 +421,17 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
         }
     }
 
-    protected void addCallback(final ApiFuture<String> apiFuture, final ApiFutureCallback<? super String> callback, Executor executor) {
-        ApiFutures.addCallback(apiFuture, callback, executor);
+    /* for testing purposes */
+    protected void addCallback(final ApiFuture<String> apiFuture, Executor executor) {
+        ApiFutures.addCallback(apiFuture, new ApiFutureCallback<String>() {
+            public void onSuccess(String messageId) { /* do nothing */ }
+            public void onFailure(Throwable t) { /* do nothing */ }
+            }, executor);
+    }
+
+    /* for testing purposes */
+    protected Relationship reconcile(final FlowFileResult flowFileResult) {
+        return flowFileResult.reconcile(getLogger());
     }
 
     @OnStopped
