@@ -17,7 +17,10 @@
 
 package org.apache.nifi.stateless.flow;
 
+import org.apache.nifi.provenance.ProvenanceEventRepository;
+
 public interface DataflowTriggerContext {
+
     /**
      * Provides a mechanism by which the triggering class can abort a dataflow
      * @return <code>true</code> if the dataflow should be aborted, <code>false</code> otherwise
@@ -28,13 +31,22 @@ public interface DataflowTriggerContext {
         return null;
     }
 
+    ProvenanceEventRepository getProvenanceEventRepository();
+
     /**
      * The implicit context that will be used if no other context is provided when triggering a dataflow
      */
     DataflowTriggerContext IMPLICIT_CONTEXT = new DataflowTriggerContext() {
+        private final ProvenanceEventRepository eventRepo = new NopProvenanceEventRepository();
+
         @Override
         public boolean isAbort() {
             return false;
+        }
+
+        @Override
+        public ProvenanceEventRepository getProvenanceEventRepository() {
+            return eventRepo;
         }
     };
 }

@@ -31,6 +31,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
@@ -53,6 +54,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
     private final ExecutionProgress executionProgress;
     private final Set<Connectable> rootConnectables;
     private final FlowFileSupplier flowFileSupplier;
+    private final ProvenanceEventRepository provenanceEventRepository;
     private final Collection<Port> inputPorts;
     private final RepositoryContextFactory repositoryContextFactory;
     private final ProcessContextFactory processContextFactory;
@@ -65,6 +67,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
         this.executionProgress = builder.executionProgress;
         this.rootConnectables = builder.rootConnectables;
         this.flowFileSupplier = builder.flowFileSupplier;
+        this.provenanceEventRepository = builder.provenanceEventRepository;
         this.inputPorts = builder.inputPorts;
         this.repositoryContextFactory = builder.repositoryContextFactory;
         this.processContextFactory = builder.processContextFactory;
@@ -193,7 +196,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
         // during this invocation of its onTrigger method.
         tracker.resetProgress();
 
-        final StatelessProcessSessionFactory statelessSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, processContextFactory,
+        final StatelessProcessSessionFactory statelessSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, provenanceEventRepository, processContextFactory,
             executionProgress, false, tracker);
 
         lifecycleState.incrementActiveThreadCount(null);
@@ -211,7 +214,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
     private NextConnectable triggerWhileReady(final Connectable connectable) {
         final LifecycleState lifecycleState = lifecycleStateManager.getOrRegisterLifecycleState(connectable.getIdentifier(), true, false);
 
-        final StatelessProcessSessionFactory statelessSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, processContextFactory,
+        final StatelessProcessSessionFactory statelessSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, provenanceEventRepository, processContextFactory,
             executionProgress, false, tracker);
 
         lifecycleState.incrementActiveThreadCount(null);
@@ -305,6 +308,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
         private Set<Connectable> rootConnectables;
         private Collection<Port> inputPorts;
         private FlowFileSupplier flowFileSupplier = null;
+        private ProvenanceEventRepository provenanceEventRepository;
         private RepositoryContextFactory repositoryContextFactory;
         private ProcessContextFactory processContextFactory;
         private LifecycleStateManager lifecycleStateManager;
@@ -315,6 +319,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
             Objects.requireNonNull(executionProgress, "Execution Progress must be set");
             Objects.requireNonNull(rootConnectables, "Root Conectables must be set");
             Objects.requireNonNull(repositoryContextFactory, "Repository Context Factory must be set");
+            Objects.requireNonNull(provenanceEventRepository, "Provenance Event Repository must be set");
             Objects.requireNonNull(processContextFactory, "Process Context Factory must be set");
 
             return new StandardStatelessFlowCurrent(this);
@@ -347,6 +352,11 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
 
         public Builder flowFileSupplier(final FlowFileSupplier flowFileSupplier) {
             this.flowFileSupplier = flowFileSupplier;
+            return this;
+        }
+
+        public Builder provenanceEventRepository(final ProvenanceEventRepository provenanceEventRepository) {
+            this.provenanceEventRepository = provenanceEventRepository;
             return this;
         }
 

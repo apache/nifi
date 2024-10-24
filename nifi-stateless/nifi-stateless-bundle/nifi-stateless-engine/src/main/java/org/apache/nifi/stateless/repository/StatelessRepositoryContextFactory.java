@@ -39,7 +39,6 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
     private final FlowFileRepository flowFileRepository;
     private final FlowFileEventRepository flowFileEventRepository;
     private final CounterRepository counterRepository;
-    private final ProvenanceEventRepository provenanceEventRepository;
     private final StateManagerProvider stateManagerProvider;
 
     public StatelessRepositoryContextFactory(final ContentRepository contentRepository, final FlowFileRepository flowFileRepository, final FlowFileEventRepository flowFileEventRepository,
@@ -48,12 +47,11 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
         this.flowFileRepository = flowFileRepository;
         this.flowFileEventRepository = flowFileEventRepository;
         this.counterRepository = counterRepository;
-        this.provenanceEventRepository = provenanceRepository;
         this.stateManagerProvider = stateManagerProvider;
     }
 
     @Override
-    public RepositoryContext createRepositoryContext(final Connectable connectable) {
+    public RepositoryContext createRepositoryContext(final Connectable connectable, final ProvenanceEventRepository provenanceEventRepository) {
         final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier());
         return new StatelessRepositoryContext(connectable, new AtomicLong(0L), contentRepository, flowFileRepository,
             flowFileEventRepository, counterRepository, provenanceEventRepository, stateManager);
@@ -74,16 +72,6 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
     }
 
     @Override
-    public ProvenanceEventRepository getProvenanceRepository() {
-        return provenanceEventRepository;
-    }
-
-    @Override
-    public CounterRepository getCounterRepository() {
-        return counterRepository;
-    }
-
-    @Override
     public void shutdown() {
         contentRepository.shutdown();
 
@@ -97,12 +85,6 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
             flowFileEventRepository.close();
         } catch (final IOException e) {
             logger.warn("Failed to properly shutdown FlowFile Event Repository", e);
-        }
-
-        try {
-            provenanceEventRepository.close();
-        } catch (final IOException e) {
-            logger.warn("Failed to properly shutdown Provenance Repository", e);
         }
     }
 }
