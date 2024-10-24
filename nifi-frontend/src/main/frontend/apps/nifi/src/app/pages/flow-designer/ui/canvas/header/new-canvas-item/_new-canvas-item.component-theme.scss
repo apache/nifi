@@ -59,7 +59,7 @@
 
             &.cdk-drag-dragging {
                 color: $material-theme-secondary-palette-default;
-                mix-blend-mode: hard-light; // Make sure the dragged icon is always visible
+                mix-blend-mode: difference; // Make sure the dragged icon is always visible
             }
         }
 
