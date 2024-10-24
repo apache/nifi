@@ -27,6 +27,7 @@ import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.stateless.engine.DataflowAbortedException;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
@@ -48,17 +49,20 @@ public class StatelessProcessSession extends StandardProcessSession {
     private final Connectable connectable;
     private final RepositoryContextFactory repositoryContextFactory;
     private final ProcessContextFactory processContextFactory;
+    private final ProvenanceEventRepository provenanceEventRepository;
     private final ExecutionProgress executionProgress;
     private final AsynchronousCommitTracker tracker;
 
     private boolean requireSynchronousCommits;
 
-    public StatelessProcessSession(final Connectable connectable, final RepositoryContextFactory repositoryContextFactory, final ProcessContextFactory processContextFactory,
+    public StatelessProcessSession(final Connectable connectable, final RepositoryContextFactory repositoryContextFactory,
+                                   final ProvenanceEventRepository provenanceEventRepository, final ProcessContextFactory processContextFactory,
                                    final ExecutionProgress progress, final boolean requireSynchronousCommits, final AsynchronousCommitTracker tracker) {
 
-        super(repositoryContextFactory.createRepositoryContext(connectable), progress::isCanceled, new NopPerformanceTracker());
+        super(repositoryContextFactory.createRepositoryContext(connectable, provenanceEventRepository), progress::isCanceled, new NopPerformanceTracker());
         this.connectable = connectable;
         this.repositoryContextFactory = repositoryContextFactory;
+        this.provenanceEventRepository = provenanceEventRepository;
         this.processContextFactory = processContextFactory;
         this.executionProgress = progress;
         this.requireSynchronousCommits = requireSynchronousCommits;
@@ -245,7 +249,7 @@ public class StatelessProcessSession extends StandardProcessSession {
         assertProgressNotCanceled();
 
         final ProcessContext connectableContext = processContextFactory.createProcessContext(connectable);
-        final ProcessSessionFactory connectableSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory,
+        final ProcessSessionFactory connectableSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, provenanceEventRepository,
             processContextFactory, executionProgress, requireSynchronousCommits, new AsynchronousCommitTracker(tracker.getRootGroup()));
 
         logger.debug("Triggering {}", connectable);

@@ -20,6 +20,7 @@ package org.apache.nifi.stateless.session;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
@@ -27,15 +28,18 @@ import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 public class StatelessProcessSessionFactory implements ProcessSessionFactory {
     private final Connectable connectable;
     private final RepositoryContextFactory contextFactory;
+    private final ProvenanceEventRepository provenanceEventRepository;
     private final ProcessContextFactory processContextFactory;
     private final ExecutionProgress executionProgress;
     private final boolean requireSynchronousCommits;
     private final AsynchronousCommitTracker tracker;
 
-    public StatelessProcessSessionFactory(final Connectable connectable, final RepositoryContextFactory contextFactory, final ProcessContextFactory processContextFactory,
+    public StatelessProcessSessionFactory(final Connectable connectable, final RepositoryContextFactory contextFactory,
+                                          final ProvenanceEventRepository provenanceEventRepository, final ProcessContextFactory processContextFactory,
                                           final ExecutionProgress executionProgress, final boolean requireSynchronousCommits, final AsynchronousCommitTracker tracker) {
         this.connectable = connectable;
         this.contextFactory = contextFactory;
+        this.provenanceEventRepository = provenanceEventRepository;
         this.processContextFactory = processContextFactory;
         this.executionProgress = executionProgress;
         this.requireSynchronousCommits = requireSynchronousCommits;
@@ -44,7 +48,8 @@ public class StatelessProcessSessionFactory implements ProcessSessionFactory {
 
     @Override
     public ProcessSession createSession() {
-        final StatelessProcessSession session = new StatelessProcessSession(connectable, contextFactory, processContextFactory, executionProgress, requireSynchronousCommits, tracker);
+        final StatelessProcessSession session = new StatelessProcessSession(connectable, contextFactory, provenanceEventRepository, processContextFactory, executionProgress,
+            requireSynchronousCommits, tracker);
         executionProgress.registerCreatedSession(session);
         return session;
     }

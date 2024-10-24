@@ -89,6 +89,7 @@ public class TestStatelessFlowTask {
     private List<ProvenanceEventRecord> registeredProvenanceEvents;
     private List<ProvenanceEventRecord> statelessProvenanceEvents;
     private Map<String, StandardFlowFileEvent> flowFileEventsByComponentId;
+    private ProvenanceEventRepository statelessProvRepo;
 
     @BeforeEach
     public void setup() throws IOException {
@@ -110,7 +111,7 @@ public class TestStatelessFlowTask {
         rootGroup.addOutputPort(secondOutputPort);
 
         statelessProvenanceEvents = new ArrayList<>();
-        final ProvenanceEventRepository statelessProvRepo = mock(ProvenanceEventRepository.class);
+        statelessProvRepo = mock(ProvenanceEventRepository.class);
         doAnswer(invocation -> statelessProvenanceEvents.size() - 1).when(statelessProvRepo).getMaxEventId();
         doAnswer(invocation -> {
             final long startEventId = invocation.getArgument(0, Long.class);
@@ -123,7 +124,6 @@ public class TestStatelessFlowTask {
         }).when(statelessProvRepo).getEvents(anyLong(), anyInt());
 
         final StatelessDataflow statelessFlow = mock(StatelessDataflow.class);
-        when(statelessFlow.getProvenanceRepository()).thenReturn(statelessProvRepo);
 
         final StatelessGroupNode statelessGroupNode = mock(StatelessGroupNode.class);
         when(statelessGroupNode.getProcessGroup()).thenReturn(rootGroup);
@@ -423,7 +423,7 @@ public class TestStatelessFlowTask {
             statelessProvenanceEvents.add(event);
         }
 
-        task.updateProvenanceRepository(event -> true);
+        task.updateProvenanceRepository(statelessProvRepo, event -> true);
 
         assertEquals(statelessProvenanceEvents, registeredProvenanceEvents);
         for (final ProvenanceEventRecord eventRecord : registeredProvenanceEvents) {
@@ -446,7 +446,7 @@ public class TestStatelessFlowTask {
             statelessProvenanceEvents.add(event);
         }
 
-        task.updateProvenanceRepository(event -> true);
+        task.updateProvenanceRepository(statelessProvRepo, event -> true);
 
         assertEquals(statelessProvenanceEvents, registeredProvenanceEvents);
         for (final ProvenanceEventRecord eventRecord : registeredProvenanceEvents) {

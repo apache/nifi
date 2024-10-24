@@ -255,9 +255,9 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
             writeLock.lock();
             try {
                 if (desiredState == ScheduledState.RUNNING) {
-                    schedulingAgentCallback.trigger();
                     logger.info("{} has been started", this);
                     currentState = ScheduledState.RUNNING;
+                    schedulingAgentCallback.trigger();
                 } else {
                     logger.info("{} completed setup but is no longer scheduled to run; desired state is now {}; will shutdown", this, desiredState);
                     shutdown = true;

@@ -53,6 +53,7 @@ import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
 import org.apache.nifi.stateless.flow.FlowFileSupplier;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
+import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -83,7 +84,6 @@ public class StatelessFlowTask {
     private final boolean allowBatch;
 
     // State that is updated during invocation - these variables are guarded by synchronized block
-    private Long maxProvenanceEventId;
     private List<FlowFileCloneResult> cloneResults;
     private List<RepositoryRecord> outputRepositoryRecords;
     private List<ProvenanceEventRecord> cloneProvenanceEvents;
@@ -167,8 +167,7 @@ public class StatelessFlowTask {
         final List<Invocation> allInvocations = new ArrayList<>();
         final List<Invocation> successfulInvocations = new ArrayList<>();
 
-        final ProvenanceEventRepository statelessProvRepo = flow.getProvenanceRepository();
-        maxProvenanceEventId = statelessProvRepo.getMaxEventId();
+        final ProvenanceEventRepository statelessProvRepo = new StatelessProvenanceRepository(10_000);
 
         try {
             int invocationCount = 0;
@@ -177,7 +176,7 @@ public class StatelessFlowTask {
 
                 final Invocation invocation = new Invocation();
                 final FlowFileSupplier flowFileSupplier = new BridgingFlowFileSupplier(invocation);
-                final DataflowTriggerContext triggerContext = new StatelessFlowTaskTriggerContext(flowFileSupplier);
+                final DataflowTriggerContext triggerContext = new StatelessFlowTaskTriggerContext(flowFileSupplier, statelessProvRepo);
 
                 final TriggerResult triggerResult = triggerFlow(triggerContext);
                 invocation.setTriggerResult(triggerResult);
@@ -196,7 +195,7 @@ public class StatelessFlowTask {
                     }
                 } else {
                     logger.debug("Failed to trigger", triggerResult.getFailureCause().orElse(null));
-                    fail(invocation);
+                    fail(invocation, statelessProvRepo);
                     break;
                 }
             }
@@ -204,11 +203,11 @@ public class StatelessFlowTask {
             logger.debug("Finished triggering");
         } finally {
             try {
-                completeInvocations(successfulInvocations);
+                completeInvocations(successfulInvocations, statelessProvRepo);
             } catch (final Exception e) {
                 logger.error("Failed to complete Stateless Flow", e);
                 statelessGroupNode.yield();
-                fail(successfulInvocations, e);
+                fail(successfulInvocations, statelessProvRepo, e);
             }
 
             logger.debug("Acknowledging FlowFiles from {} invocations", allInvocations.size());
@@ -221,11 +220,11 @@ public class StatelessFlowTask {
     }
 
 
-    private void fail(final List<Invocation> invocations, final Throwable cause) {
-        invocations.forEach(invocation -> fail(invocation, cause));
+    private void fail(final List<Invocation> invocations, final ProvenanceEventRepository statelessProvRepo, final Throwable cause) {
+        invocations.forEach(invocation -> fail(invocation, statelessProvRepo, cause));
     }
 
-    private void fail(final Invocation invocation) {
+    private void fail(final Invocation invocation, final ProvenanceEventRepository statelessProvRepo) {
         final Throwable cause;
         if (invocation.getTriggerResult().isCanceled()) {
             cause = new TerminatedTaskException();
@@ -233,14 +232,14 @@ public class StatelessFlowTask {
             cause = invocation.getTriggerResult().getFailureCause().orElse(null);
         }
 
-        fail(invocation, cause);
+        fail(invocation, statelessProvRepo, cause);
     }
 
-    private void fail(final Invocation invocation, final Throwable cause) {
+    private void fail(final Invocation invocation, final ProvenanceEventRepository statelessProvRepo, final Throwable cause) {
         final Port destinationPort = getDestinationPort(cause);
 
         try {
-            failInvocation(invocation, destinationPort, cause);
+            failInvocation(invocation, statelessProvRepo, destinationPort, cause);
         } catch (final Exception e) {
             if (cause != null) {
                 cause.addSuppressed(e);
@@ -251,11 +250,10 @@ public class StatelessFlowTask {
     }
 
     private Port getDestinationPort(final Throwable failureCause) {
-        if (!(failureCause instanceof FailurePortEncounteredException)) {
+        if (!(failureCause instanceof final FailurePortEncounteredException fpee)) {
             return null;
         }
 
-        final FailurePortEncounteredException fpee = (FailurePortEncounteredException) failureCause;
         final Port port = this.outputPorts.get(fpee.getPortName());
         if (port == null) {
             logger.error("FlowFile was routed to Failure Port {} but no such port exists in the dataflow", fpee.getPortName());
@@ -283,7 +281,7 @@ public class StatelessFlowTask {
     }
 
 
-    private void completeInvocations(final List<Invocation> invocations) throws IOException {
+    private void completeInvocations(final List<Invocation> invocations, final ProvenanceEventRepository statelessProvRepo) throws IOException {
         logger.debug("Completing transactions from {} invocations", invocations.size());
         if (invocations.isEmpty()) {
             return;
@@ -318,7 +316,7 @@ public class StatelessFlowTask {
             throw new IOException("Failed to update FlowFile Repository after triggering " + this, e);
         }
 
-        updateProvenanceRepository(event -> true);
+        updateProvenanceRepository(statelessProvRepo, event -> true);
 
         // Acknowledge the invocations so that the sessions can be committed
         for (final Invocation invocation : invocations) {
@@ -337,7 +335,7 @@ public class StatelessFlowTask {
         cloneProvenanceEvents = new ArrayList<>();
     }
 
-    private void failInvocation(final Invocation invocation, final Port destinationPort, final Throwable cause) throws IOException {
+    private void failInvocation(final Invocation invocation, final ProvenanceEventRepository statelessProvRepo, final Port destinationPort, final Throwable cause) throws IOException {
         final List<PolledFlowFile> inputFlowFiles = invocation.getPolledFlowFiles();
 
         boolean stopped = false;
@@ -401,7 +399,7 @@ public class StatelessFlowTask {
             throw new IOException("Failed to update FlowFile Repository after triggering " + this, e);
         }
 
-        updateProvenanceRepository(event -> eventTypesToKeepOnFailure.contains(event.getEventType()));
+        updateProvenanceRepository(statelessProvRepo, event -> eventTypesToKeepOnFailure.contains(event.getEventType()));
 
         // Acknowledge the invocations so that the sessions can be committed
         abort(invocation, cause);
@@ -474,9 +472,8 @@ public class StatelessFlowTask {
         }
     }
 
-    void updateProvenanceRepository(final Predicate<ProvenanceEventRecord> eventFilter) {
-        long firstProvEventId = (maxProvenanceEventId == null) ? 0 : (maxProvenanceEventId + 1);
-        final ProvenanceEventRepository statelessProvRepo = flow.getProvenanceRepository();
+    void updateProvenanceRepository(final ProvenanceEventRepository statelessRepo, final Predicate<ProvenanceEventRecord> eventFilter) {
+        long firstProvEventId = 0;
 
         if (!cloneProvenanceEvents.isEmpty()) {
             nifiProvenanceEventRepository.registerEvents(cloneProvenanceEvents);
@@ -484,7 +481,7 @@ public class StatelessFlowTask {
 
         while (true) {
             try {
-                final List<ProvenanceEventRecord> statelessProvEvents = statelessProvRepo.getEvents(firstProvEventId, 1000);
+                final List<ProvenanceEventRecord> statelessProvEvents = statelessRepo.getEvents(firstProvEventId, 1000);
                 if (statelessProvEvents.isEmpty()) {
                     return;
                 }
@@ -494,7 +491,7 @@ public class StatelessFlowTask {
                 // copy the Event ID.
                 final List<ProvenanceEventRecord> provenanceEvents = new ArrayList<>();
                 for (final ProvenanceEventRecord eventRecord : statelessProvEvents) {
-                    if (eventFilter.test(eventRecord) == false) {
+                    if (!eventFilter.test(eventRecord)) {
                         continue;
                     }
 
@@ -731,7 +728,7 @@ public class StatelessFlowTask {
 
         public List<PolledFlowFile> getPolledFlowFiles() {
             if (polledFlowFiles == null) {
-                return Collections.emptyList();
+                return List.of();
             }
 
             return polledFlowFiles;
@@ -880,9 +877,11 @@ public class StatelessFlowTask {
 
     private class StatelessFlowTaskTriggerContext implements DataflowTriggerContext {
         private final FlowFileSupplier flowFileSupplier;
+        private final ProvenanceEventRepository statelessProvRepo;
 
-        public StatelessFlowTaskTriggerContext(final FlowFileSupplier flowFileSupplier) {
+        public StatelessFlowTaskTriggerContext(final FlowFileSupplier flowFileSupplier, final ProvenanceEventRepository statelessProvRepo) {
             this.flowFileSupplier = flowFileSupplier;
+            this.statelessProvRepo = statelessProvRepo;
         }
 
         @Override
@@ -895,5 +894,9 @@ public class StatelessFlowTask {
             return flowFileSupplier;
         }
 
+        @Override
+        public ProvenanceEventRepository getProvenanceEventRepository() {
+            return statelessProvRepo;
+        }
     }
 }
