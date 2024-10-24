@@ -142,7 +142,7 @@
         <json.smart.version>2.5.1</json.smart.version>
         <groovy.version>4.0.23</groovy.version>
         <surefire.version>3.5.1</surefire.version>
-        <hadoop.version>3.4.0</hadoop.version>
+        <hadoop.version>3.4.1</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.22.1</aspectj.version>
@@ -155,7 +155,7 @@
         <netty.4.version>4.1.114.Final</netty.4.version>
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.version>6.1.14</spring.version>
-        <spring.security.version>6.3.3</spring.security.version>
+        <spring.security.version>6.3.4</spring.security.version>
         <swagger.annotations.version>2.2.25</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.2</zookeeper.version>
@@ -163,6 +163,7 @@
         <hapi.version>2.5.1</hapi.version>
         <commons.dbcp2.version>2.12.0</commons.dbcp2.version>
         <prometheus.version>0.16.0</prometheus.version>
+        <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -558,6 +559,12 @@
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper-jute</artifactId>
                 <version>${zookeeper.version}</version>
+            </dependency>
+            <!-- Override velocity-engine-core 2.3 for framework and Hadoop dependencies -->
+            <dependency>
+                <groupId>org.apache.velocity</groupId>
+                <artifactId>velocity-engine-core</artifactId>
+                <version>${velocity-engine-core.version}</version>
             </dependency>
             <!-- Managed JUnit 4 version for transitive dependencies such as OkHttp MockWebServer -->
             <dependency>
