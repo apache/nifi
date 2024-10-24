@@ -746,6 +746,10 @@
             letter-spacing: normal;
             line-height: normal;
         }
+
+        .mat-drawer {
+            color: var(--mat-app-text-color);
+        }
     }
 
     .mat-expansion-panel {
