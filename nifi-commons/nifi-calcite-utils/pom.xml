@@ -65,6 +65,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Override protobuf-java from calcite-core -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.25.5</version>
+        </dependency>
     </dependencies>
 
 </project>

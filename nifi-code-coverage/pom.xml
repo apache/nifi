@@ -113,6 +113,12 @@
                 <artifactId>apache-mime4j-core</artifactId>
                 <version>${mime4j.version}</version>
             </dependency>
+            <!-- Override protobuf-java from amazon-kinesis-client -->
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>3.25.5</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

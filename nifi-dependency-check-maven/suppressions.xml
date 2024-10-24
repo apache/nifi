@@ -20,16 +20,6 @@
         <cpe regex="true">^cpe:.*$</cpe>
     </suppress>
     <suppress>
-        <notes>CVE-2017-10355 does not apply to Xerces 2.12.2</notes>
-        <packageUrl regex="true">^pkg:maven/xerces/xercesImpl@.*$</packageUrl>
-        <cve>CVE-2017-10355</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2007-6465 applies to Ganglia Server not Ganglia client libraries</notes>
-        <packageUrl regex="true">^pkg:maven/com\.yammer\.metrics/metrics\-ganglia@.*$</packageUrl>
-        <cve>CVE-2007-6465</cve>
-    </suppress>
-    <suppress>
         <notes>Elasticsearch Server vulnerabilities do not apply to elasticsearch-rest-client</notes>
         <packageUrl regex="true">^pkg:maven/org\.elasticsearch\.client/elasticsearch\-.*?\-client@.*$</packageUrl>
         <cpe regex="true">^cpe:/a:elastic.*$</cpe>
@@ -43,11 +33,6 @@
         <notes>CVE-2022-30187 applies to Azure Blob not the EventHubs Checkpoint Store Blob library</notes>
         <packageUrl regex="true">^pkg:maven/com\.azure/azure\-messaging\-eventhubs\-checkpointstore\-blob@.*$</packageUrl>
         <cve>CVE-2022-30187</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2010-1151 applies to mod_auth_shadow in Apache HTTP Server not the FTP server library</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.ftpserver/.*$</packageUrl>
-        <cve>CVE-2010-1151</cve>
     </suppress>
     <suppress>
         <notes>CVE-2018-14335 applies to H2 running with a web server console enabled</notes>
@@ -70,16 +55,6 @@
         <cpe>cpe:/a:grpc:grpc</cpe>
     </suppress>
     <suppress>
-        <notes>CVE-2020-9040 applies to Couchbase Server not the client library</notes>
-        <packageUrl regex="true">^pkg:maven/com\.couchbase\.client/core\-io@.*$</packageUrl>
-        <vulnerabilityName>CVE-2020-9040</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes>CVE-2022-41881 applies to HA Proxy components in Netty which are not used in Couchbase or other components</notes>
-        <packageUrl regex="true">^pkg:maven/io\.netty/.*$</packageUrl>
-        <cve>CVE-2022-41881</cve>
-    </suppress>
-    <suppress>
         <notes>CVE-2021-34538 applies to Apache Hive server not the Storage API library</notes>
         <packageUrl regex="true">^pkg:maven/org\.apache\.hive/hive\-storage\-api@.*$</packageUrl>
         <cve>CVE-2021-34538</cve>
@@ -93,16 +68,6 @@
         <notes>The Jackson maintainers dispute the applicability of CVE-2023-35116 based on cyclic nature of reported concern</notes>
         <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
         <vulnerabilityName>CVE-2023-35116</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes>CVE-2023-25194 applies to Kafka Connect workers not client libraries</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.kafka/kafka.*?@.*$</packageUrl>
-        <cve>CVE-2023-25194</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2023-34462 applies to Netty servers using SniHandler not Netty 4.1 shaded for Couchbase and HBase 2</notes>
-        <packageUrl regex="true">^pkg:maven/io\.netty/netty.*$</packageUrl>
-        <cve>CVE-2023-34462</cve>
     </suppress>
     <suppress>
         <notes>The Square Wire framework is not the same as the Wire secure communication application</notes>
@@ -190,11 +155,6 @@
         <cve>CVE-2020-13949</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2023-44487 applies to netty-codec-http2 as a Server</notes>
-        <packageUrl regex="true">^pkg:maven/io\.netty/netty.*$</packageUrl>
-        <cve>CVE-2023-44487</cve>
-    </suppress>
-    <suppress>
         <notes>Parquet MR vulnerabilities do not apply to other Parquet libraries</notes>
         <packageUrl regex="true">^pkg:maven/org\.apache\.parquet/parquet\-(?!mr).*$</packageUrl>
         <cpe>cpe:/a:apache:parquet-mr</cpe>
@@ -235,11 +195,6 @@
         <cve>CVE-2020-7656</cve>
     </suppress>
     <suppress>
-        <notes>jQuery vulnerability warning for historical versions</notes>
-        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
-        <vulnerabilityName>jQuery 1.x and 2.x are End-of-Life and no longer receiving security updates</vulnerabilityName>
-    </suppress>
-    <suppress>
         <notes>CVE-2023-44487 references gRPC for Go</notes>
         <packageUrl regex="true">^pkg:maven/io\.grpc/grpc.*$</packageUrl>
         <cve>CVE-2023-44487</cve>
@@ -255,13 +210,8 @@
         <cve>CVE-2020-8908</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2023-36052 applies to Azure CLI not Azure Java libraries</notes>
-        <packageUrl regex="true">^pkg:maven/com\.azure/.*$</packageUrl>
-        <cve>CVE-2023-36052</cve>
-    </suppress>
-    <suppress>
         <notes>Findings for Apache Hadoop do not apply to the shaded Protobuf library</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.hadoop\.thirdparty/hadoop\-shaded\-protobuf_3_21@.*$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.hadoop\.thirdparty/hadoop\-shaded\-protobuf_3_25@.*$</packageUrl>
         <cpe>cpe:/a:apache:hadoop</cpe>
     </suppress>
     <suppress>
@@ -273,5 +223,31 @@
         <notes>CVE-2024-23082 applies to threetenbp 1.6.8 and earlier not 1.6.9</notes>
         <packageUrl regex="true">^pkg:maven/org\.threeten/threetenbp@.*$</packageUrl>
         <vulnerabilityName>CVE-2024-23082</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-7272 applies to Eclipse Parrson not javax.json</notes>
+        <packageUrl regex="true">^pkg:maven/org\.glassfish/javax\.json@.*$</packageUrl>
+        <vulnerabilityName>CVE-2023-7272</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2024-43591 applies to Azure CLI not azure-core-amqp</notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/.*$</packageUrl>
+        <cpe>cpe:/a:microsoft:azure_cli</cpe>
+        <cve>CVE-2024-43591</cve>
+    </suppress>
+    <suppress>
+        <notes>jquery is not used although bundled in Hadoop avro-ipc libraries</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery@.*$</packageUrl>
+        <vulnerabilityName>jquery issue: 162</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>Google OpenTelemetry shared-resourcemapping versions do not align with base OpenTelemetry versions leading to false positives</notes>
+        <packageUrl regex="true">^pkg:maven/com\.google\.cloud\.opentelemetry/.*$</packageUrl>
+        <cpe>cpe:/a:opentelemetry:opentelemetry</cpe>
+    </suppress>
+    <suppress>
+        <notes>CVE-2024-35255 is resolved in msal4j 1.15.1 and the CPE for other languages does not apply</notes>
+        <cve>CVE-2024-35255</cve>
+        <cpe>cpe:/a:microsoft:authentication_library:*:*:*:*:*:.net:*:*</cpe>
     </suppress>
 </suppressions>
