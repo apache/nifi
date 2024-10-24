@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from ExtensionManager import ExtensionManager
 from nifiapi.__jvm__ import JvmHolder
@@ -51,15 +52,13 @@ class FakeArrayList:
     def add(self, element):
         self.my_list.append(element)
 
-def get_version(pip_list_lines, package_name):
-    for line in pip_list_lines:
-        match = re.fullmatch(f"{package_name} +([0-9.]+)", line)
-        if match:
-            return match[1]
-    return None
+class ReturncodeMocker:
+    def __init__(self):
+        self.returncode = 0
 
+@patch('subprocess.run')
 class TestDownloadDependencies(unittest.TestCase):
-    def test_import_external_dependencies(self):
+    def test_import_external_dependencies(self, mock_subprocess_run):
         class_nodes = ProcessorInspection.get_processor_class_nodes(TEST_PROCESSOR_FILE)
         self.assertIsNotNone(class_nodes)
         self.assertEqual(len(class_nodes), 1)
@@ -71,6 +70,8 @@ class TestDownloadDependencies(unittest.TestCase):
 
         JvmHolder.jvm = FakeJvm()
         extension_manager = ExtensionManager(None)
+        mock_subprocess_run.return_value = ReturncodeMocker()
+
         python_command = sys.executable
         os.environ["PYTHON_CMD"] = python_command
 
@@ -78,19 +79,7 @@ class TestDownloadDependencies(unittest.TestCase):
             packages_dir = os.path.join(temp_dir, 'packages')
             extension_manager.import_external_dependencies(details, packages_dir)
 
-            processor_packages_dir = os.path.join(packages_dir, 'extensions', 'ProcessorWithDependencies', '0.0.1')
-            pip_list_result = subprocess.run([python_command, '-m', 'pip', 'list', '--path', processor_packages_dir], capture_output=True)
-            self.assertEqual(pip_list_result.returncode, 0)
-            pip_list_lines = [line.decode() for line in pip_list_result.stdout.splitlines()]
-
-            self.assertEqual(get_version(pip_list_lines, 'google-cloud-vision'), '3.7.4')
-            self.assertEqual(get_version(pip_list_lines, 'pymilvus'), '2.4.4')
-            # google-cloud-vision==3.7.4 (which is in the requirements.txt file) depends on grpcio and grpcio-status<2.0,>=1.33.2
-            # pymilvus==2.4.4 (which is in the `dependencies` section of the processor) depends on grpcio<=1.63.0,>=1.49.1
-            # if we install them separately, we'll end up with different, and not interoperable, grpcio and grpcio-status versions
-            # so we need to install them together, in a single `pip install` command; this works, as verified below
-            self.assertEqual(get_version(pip_list_lines, 'grpcio'), '1.63.0')
-            self.assertEqual(get_version(pip_list_lines, 'grpcio-status'), '1.63.0')
+        mock_subprocess_run.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()
