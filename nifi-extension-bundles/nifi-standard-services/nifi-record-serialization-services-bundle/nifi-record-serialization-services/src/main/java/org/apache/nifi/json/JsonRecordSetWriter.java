@@ -149,6 +149,8 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
 
     @Override
     public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
+        super.migrateProperties(propertyConfiguration);
+
         // We added the ALLOW_SCIENTIFIC_NOTATION property with a default of 'false'. However, we don't want to change the behavior
         // of existing services. So we migrate existing services to use a value of 'true' to maintain backward compatibility.
         if (!propertyConfiguration.hasProperty(ALLOW_SCIENTIFIC_NOTATION.getName())) {
