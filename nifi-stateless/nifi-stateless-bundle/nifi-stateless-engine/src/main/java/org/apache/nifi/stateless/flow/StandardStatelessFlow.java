@@ -65,6 +65,7 @@ import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.engine.StandardExecutionProgress;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
+import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.Connectables;
@@ -662,7 +663,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
             throw new IllegalArgumentException("No Input Port exists with name <" + portName + ">. Valid Port names are " + getInputPortNames());
         }
 
-        final RepositoryContext repositoryContext = repositoryContextFactory.createRepositoryContext(inputPort, new NopProvenanceEventRepository());
+        final RepositoryContext repositoryContext = repositoryContextFactory.createRepositoryContext(inputPort, new StatelessProvenanceRepository(10));
         final ProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(repositoryContext, () -> false, new NopPerformanceTracker());
         final ProcessSession session = sessionFactory.createSession();
         try {
