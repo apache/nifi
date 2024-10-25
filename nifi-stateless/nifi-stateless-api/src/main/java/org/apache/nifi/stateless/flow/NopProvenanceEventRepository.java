@@ -27,7 +27,7 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import java.util.List;
 import java.util.Map;
 
-public class NopProvenanceEventRepository implements ProvenanceEventRepository {
+class NopProvenanceEventRepository implements ProvenanceEventRepository {
     @Override
     public ProvenanceEventBuilder eventBuilder() {
         return new EventBuilder();
