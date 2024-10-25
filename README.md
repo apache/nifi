@@ -102,10 +102,10 @@ Please review individual project documentation for additional details.
 
 Project guides provide extensive documentation for installing and extending the application.
 
-- [Getting Started](https://nifi.apache.org/documentation/nifi-2.0.0-M4/html/getting-started.html)
-- [User Guide](https://nifi.apache.org/documentation/nifi-2.0.0-M4/html/user-guide.html)
-- [Administrator Guide](https://nifi.apache.org/documentation/nifi-2.0.0-M4/html/administration-guide.html)
-- [Developer Guide](https://nifi.apache.org/documentation/nifi-2.0.0-M4/html/developer-guide.html)
+- [Getting Started](https://nifi.apache.org/documentation/nifi-latest/html/getting-started.html)
+- [User Guide](https://nifi.apache.org/documentation/nifi-latest/html/user-guide.html)
+- [Administrator Guide](https://nifi.apache.org/documentation/nifi-latest/html/administration-guide.html)
+- [Developer Guide](https://nifi.apache.org/documentation/nifi-latest/html/developer-guide.html)
 
 ## Developing
 
