@@ -22,7 +22,6 @@ import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.hadoop.HadoopCatalog;
-import org.apache.iceberg.hive.HiveCatalog;
 import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.jdbc.JdbcCatalog;
 import org.apache.iceberg.jdbc.JdbcClientPool;
@@ -37,7 +36,6 @@ import java.util.function.Function;
 import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFromFiles;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.CATALOG_NAME;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.CLIENT_POOL_SERVICE;
-import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.METASTORE_URI;
 import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.WAREHOUSE_LOCATION;
 
 public class IcebergCatalogFactory {
@@ -50,33 +48,9 @@ public class IcebergCatalogFactory {
 
     public Catalog create() {
         return switch (catalogService.getCatalogType()) {
-            case HIVE -> initHiveCatalog(catalogService);
             case HADOOP -> initHadoopCatalog(catalogService);
             case JDBC -> initJdbcCatalog(catalogService);
         };
-    }
-
-    private Catalog initHiveCatalog(IcebergCatalogService catalogService) {
-        HiveCatalog catalog = new HiveCatalog();
-
-        if (catalogService.getConfigFilePaths() != null) {
-            final Configuration configuration = getConfigurationFromFiles(catalogService.getConfigFilePaths());
-            catalog.setConf(configuration);
-        }
-
-        final Map<IcebergCatalogProperty, Object> catalogProperties = catalogService.getCatalogProperties();
-        final Map<String, String> properties = new HashMap<>();
-
-        if (catalogProperties.containsKey(METASTORE_URI)) {
-            properties.put(CatalogProperties.URI, (String) catalogProperties.get(METASTORE_URI));
-        }
-
-        if (catalogProperties.containsKey(WAREHOUSE_LOCATION)) {
-            properties.put(CatalogProperties.WAREHOUSE_LOCATION, (String) catalogProperties.get(WAREHOUSE_LOCATION));
-        }
-
-        catalog.initialize("hive-catalog", properties);
-        return catalog;
     }
 
     private Catalog initHadoopCatalog(IcebergCatalogService catalogService) {

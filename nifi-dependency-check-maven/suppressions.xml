@@ -80,66 +80,6 @@
         <cpe>cpe:/a:avro_project:avro</cpe>
     </suppress>
     <suppress>
-        <notes>CVE-2016-5397 applies to Apache Thrift Go not Java</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libthrift@.*$</packageUrl>
-        <cve>CVE-2016-5397</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-0210 applies to Apache Thrift Go server not Java</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libthrift@.*$</packageUrl>
-        <cve>CVE-2019-0210</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2018-11798 applies Apache Thrift Node.js not Java</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libthrift@.*$</packageUrl>
-        <cve>CVE-2018-11798</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-11939 applies to Thrift Servers in Go not Java</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
-        <cve>CVE-2019-11939</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-3552 applies to Thrift Servers in CPP not Java</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
-        <cve>CVE-2019-3552</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-3553 applies to Thrift Servers in CPP not Java</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
-        <cve>CVE-2019-3553</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-3558 applies to Thrift Servers in Python not Java</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
-        <cve>CVE-2019-3558</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-3564 applies to Thrift Servers in Go not Java</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
-        <cve>CVE-2019-3564</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-3565 applies to Thrift Servers in CPP not Java</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
-        <cve>CVE-2019-3565</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2021-24028 applies to Facebook Thrift CPP</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
-        <cve>CVE-2021-24028</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-11938 applies to Facebook Thrift Servers</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
-        <cve>CVE-2019-11938</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2019-3559 applies to Facebook Thrift Servers</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.thrift/libfb303@.*$</packageUrl>
-        <cve>CVE-2019-3559</cve>
-    </suppress>
-    <suppress>
         <notes>CVE-2023-37475 applies to Hamba Avro in Go not Apache Avro for Java</notes>
         <packageUrl regex="true">^pkg:maven/org\.apache\.avro/.*$</packageUrl>
         <cve>CVE-2023-37475</cve>
@@ -148,11 +88,6 @@
         <notes>CVE-2023-36415 applies to Azure Identity for Python not Java</notes>
         <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
         <cve>CVE-2023-36415</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2020-13949 applies to Thrift and not to Hive</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.hive.*$</packageUrl>
-        <cve>CVE-2020-13949</cve>
     </suppress>
     <suppress>
         <notes>Parquet MR vulnerabilities do not apply to other Parquet libraries</notes>

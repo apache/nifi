@@ -20,7 +20,6 @@ package org.apache.nifi.services.iceberg;
 public enum IcebergCatalogProperty {
 
     CATALOG_NAME,
-    METASTORE_URI("hive.metastore.uris"),
     WAREHOUSE_LOCATION("hive.metastore.warehouse.dir"),
     CLIENT_POOL_SERVICE;
 

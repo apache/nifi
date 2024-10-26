@@ -13,6 +13,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-org.apache.nifi.services.iceberg.HiveCatalogService
 org.apache.nifi.services.iceberg.HadoopCatalogService
 org.apache.nifi.services.iceberg.JdbcCatalogService

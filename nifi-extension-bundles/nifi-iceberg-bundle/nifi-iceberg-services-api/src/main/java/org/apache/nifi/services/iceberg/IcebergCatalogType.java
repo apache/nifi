@@ -18,7 +18,6 @@
 package org.apache.nifi.services.iceberg;
 
 public enum IcebergCatalogType {
-    HIVE,
     HADOOP,
     JDBC
 }
