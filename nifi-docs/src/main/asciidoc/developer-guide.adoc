@@ -2699,7 +2699,6 @@ deprecationLogger.warn(
 |==================================================================================================================================================
 | Package                | Maven Profile         | Description
 | Apache Hadoop Bundle   | include-hadoop        | Adds support for Apache Hadoop with HDFS and Parquet components
-| Apache HBase Bundle    | include-hbase         | Adds support for Apache HBase
 | Apache IoTDB Bundle    | include-iotdb         | Adds support for Apache IoTDB
 | ASN.1 Support          | include-asn1          | Adds support for ASN.1
 | Contribution Check     | contrib-check         | Runs various quality checks that are required to be accepted before a contribution can be accepted into the core NiFi code base.

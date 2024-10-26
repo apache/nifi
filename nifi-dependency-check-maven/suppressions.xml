@@ -60,11 +60,6 @@
         <cve>CVE-2021-34538</cve>
     </suppress>
     <suppress>
-        <notes>Hadoop vulnerabilities do not apply to HBase Hadoop2 compatibility library</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-hadoop2\-compat@.*$</packageUrl>
-        <cpe>cpe:/a:apache:hadoop</cpe>
-    </suppress>
-    <suppress>
         <notes>The Jackson maintainers dispute the applicability of CVE-2023-35116 based on cyclic nature of reported concern</notes>
         <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
         <vulnerabilityName>CVE-2023-35116</vulnerabilityName>
