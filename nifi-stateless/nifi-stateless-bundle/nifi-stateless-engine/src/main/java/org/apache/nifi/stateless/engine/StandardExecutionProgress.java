@@ -30,8 +30,6 @@ import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.stateless.flow.CanceledTriggerResult;
 import org.apache.nifi.stateless.flow.DataflowTriggerContext;
 import org.apache.nifi.stateless.flow.ExceptionalTriggerResult;
@@ -60,12 +58,10 @@ public class StandardExecutionProgress implements ExecutionProgress {
     private final ProcessGroup rootGroup;
     private final List<FlowFileQueue> internalFlowFileQueues;
     private final ContentRepository contentRepository;
-    private final ProvenanceEventRepository provenanceRepository;
     private final BlockingQueue<TriggerResult> resultQueue;
     private final Set<String> failurePortNames;
     private final AsynchronousCommitTracker commitTracker;
     private final StatelessStateManagerProvider stateManagerProvider;
-    private final Long maxProvenanceEventId;
     private final DataflowTriggerContext triggerContext;
     private final FlowPurgeAction purgeAction;
     private final List<StatelessProcessSession> createdSessions = new ArrayList<>();
@@ -76,17 +72,16 @@ public class StandardExecutionProgress implements ExecutionProgress {
     private volatile CompletionAction completionAction = null;
 
     public StandardExecutionProgress(final ProcessGroup rootGroup, final List<FlowFileQueue> internalFlowFileQueues, final BlockingQueue<TriggerResult> resultQueue,
-                                     final RepositoryContextFactory repositoryContextFactory, final Set<String> failurePortNames, final AsynchronousCommitTracker commitTracker,
-                                     final StatelessStateManagerProvider stateManagerProvider, final DataflowTriggerContext triggerContext, final FlowPurgeAction purgeAction) {
+                                     final RepositoryContextFactory repositoryContextFactory, final Set<String> failurePortNames,
+                                     final AsynchronousCommitTracker commitTracker, final StatelessStateManagerProvider stateManagerProvider, final DataflowTriggerContext triggerContext,
+                                     final FlowPurgeAction purgeAction) {
         this.rootGroup = rootGroup;
         this.internalFlowFileQueues = internalFlowFileQueues;
         this.resultQueue = resultQueue;
         this.contentRepository = repositoryContextFactory.getContentRepository();
-        this.provenanceRepository = repositoryContextFactory.getProvenanceRepository();
         this.failurePortNames = failurePortNames;
         this.commitTracker = commitTracker;
         this.stateManagerProvider = stateManagerProvider;
-        this.maxProvenanceEventId = provenanceRepository.getMaxEventId();
         this.triggerContext = triggerContext;
         this.purgeAction = purgeAction;
 
@@ -305,11 +300,6 @@ public class StandardExecutionProgress implements ExecutionProgress {
                 if (onFailure != null) {
                     onFailure.accept(cause);
                 }
-            }
-
-            @Override
-            public List<ProvenanceEventRecord> getProvenanceEvents() throws IOException {
-                return provenanceRepository.getEvents(maxProvenanceEventId == null ? 0 : maxProvenanceEventId + 1, Integer.MAX_VALUE);
             }
         };
     }

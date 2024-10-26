@@ -87,7 +87,7 @@ public class StatelessBasicsIT extends NiFiSystemIT {
     public void testOrderingIntraSession() throws NiFiClientException, IOException, InterruptedException {
         final int batchSize = 100;
 
-        statelessGroup = getClientUtil().createProcessGroup("Stateless", "root");
+        statelessGroup = getClientUtil().createProcessGroup("testOrderingIntraSession", "root");
         getClientUtil().markStateless(statelessGroup, "1 min");
 
         final ProcessorEntity generate = getClientUtil().createProcessor(GENERATE_FLOWFILE, statelessGroup.getId());
@@ -117,6 +117,7 @@ public class StatelessBasicsIT extends NiFiSystemIT {
 
         getClientUtil().waitForValidProcessor(generate.getId());
         getClientUtil().waitForValidProcessor(router.getId());
+        getClientUtil().waitForValidProcessor(verifyProcessor.getId());
         getClientUtil().startProcessGroupComponents(statelessGroup.getId());
 
         waitForQueueCount(outputToTerminate.getId(), batchSize);

@@ -217,23 +217,15 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     }
 
     protected String getProvenanceComponentDescription() {
-        switch (connectable.getConnectableType()) {
-            case PROCESSOR:
-                final ProcessorNode procNode = (ProcessorNode) connectable;
-                return procNode.getComponentType();
-            case INPUT_PORT:
-                return "Input Port";
-            case OUTPUT_PORT:
-                return "Output Port";
-            case REMOTE_INPUT_PORT:
-                return ProvenanceEventRecord.REMOTE_INPUT_PORT_TYPE;
-            case REMOTE_OUTPUT_PORT:
-                return ProvenanceEventRecord.REMOTE_OUTPUT_PORT_TYPE;
-            case FUNNEL:
-                return "Funnel";
-            default:
-                throw new AssertionError("Connectable type is " + connectable.getConnectableType());
-        }
+        return switch (connectable.getConnectableType()) {
+            case PROCESSOR -> ((ProcessorNode) connectable).getComponentType();
+            case INPUT_PORT -> "Input Port";
+            case OUTPUT_PORT -> "Output Port";
+            case REMOTE_INPUT_PORT -> ProvenanceEventRecord.REMOTE_INPUT_PORT_TYPE;
+            case REMOTE_OUTPUT_PORT -> ProvenanceEventRecord.REMOTE_OUTPUT_PORT_TYPE;
+            case FUNNEL -> "Funnel";
+            default -> throw new AssertionError("Connectable type is " + connectable.getConnectableType());
+        };
     }
 
     @Override

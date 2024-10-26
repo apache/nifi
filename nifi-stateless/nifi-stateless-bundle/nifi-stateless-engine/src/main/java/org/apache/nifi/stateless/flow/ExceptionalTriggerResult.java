@@ -19,7 +19,6 @@ package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -79,10 +78,5 @@ public class ExceptionalTriggerResult implements TriggerResult {
         if (cause != null && failureCause != cause) {
             failureCause.addSuppressed(cause);
         }
-    }
-
-    @Override
-    public List<ProvenanceEventRecord> getProvenanceEvents() throws IOException {
-        return Collections.emptyList();
     }
 }

@@ -19,7 +19,6 @@ package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.queue.QueueSize;
-import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.reporting.BulletinRepository;
 
 import java.io.InputStream;
@@ -102,11 +101,6 @@ public interface StatelessDataflow {
 
     long getSourceYieldExpiration();
 
-    void resetCounters();
-
-    Map<String, Long> getCounters(boolean includeGlobalContext);
-
     BulletinRepository getBulletinRepository();
 
-    ProvenanceEventRepository getProvenanceRepository();
 }
