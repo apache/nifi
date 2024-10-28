@@ -24,6 +24,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.util.FileUtils;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
+import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -283,6 +284,41 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
                     .accept(MediaType.APPLICATION_JSON)
                     .get();
             return FileUtils.getFileContent(response, outputFile);
+        });
+    }
+
+    @Override
+    public DropRequestEntity emptyQueues(String processGroupId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        return executeAction("Error emptying queues in Process Group", () -> {
+            final WebTarget target = processGroupsTarget
+                .path("{id}/empty-all-connections-requests")
+                .resolveTemplate("id", processGroupId);
+
+            return getRequestBuilder(target).post(null, DropRequestEntity.class);
+        });
+    }
+
+    @Override
+    public DropRequestEntity getEmptyQueuesRequest(String processGroupId, String requestId)
+            throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(requestId)) {
+            throw new IllegalArgumentException("Request id cannot be null or blank");
+        }
+
+        return executeAction("Error getting Drop Request status for Process Group", () -> {
+            final WebTarget target = processGroupsTarget
+                .path("{id}/empty-all-connections-requests/{drop-request-id}")
+                .resolveTemplate("id", processGroupId)
+                .resolveTemplate("drop-request-id", requestId);
+
+            return getRequestBuilder(target).get(DropRequestEntity.class);
         });
     }
 
