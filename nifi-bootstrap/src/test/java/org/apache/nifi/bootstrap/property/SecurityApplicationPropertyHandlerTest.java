@@ -61,7 +61,7 @@ class SecurityApplicationPropertyHandlerTest {
 
     private static final int DNS_NAME_TYPE = 2;
 
-    private static final String FIRST_PROXY_HOST = "nifi.apache.org";
+    private static final String FIRST_PROXY_HOST = "maximum.domain.subject.alternative.name.length.greater.than.sixty.four.characters.nifi.apache.org";
 
     private static final int FIRST_PROXY_HOST_PORT = 443;
 
