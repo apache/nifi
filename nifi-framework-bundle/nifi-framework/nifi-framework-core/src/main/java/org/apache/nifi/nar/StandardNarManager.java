@@ -141,13 +141,21 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
     }
 
     @Override
-    public synchronized void updateState(final BundleCoordinate coordinate, final NarState narState, final String failureMessage) {
+    public synchronized void updateState(final BundleCoordinate coordinate, final NarState narState) {
         final NarNode narNode = narNodesById.values().stream()
                 .filter(n -> n.getManifest().getCoordinate().equals(coordinate))
                 .findFirst()
                 .orElseThrow(() -> new NarNotFoundException(coordinate));
         narNode.setState(narState);
-        narNode.setFailureMessage(failureMessage);
+    }
+
+    @Override
+    public void updateFailed(final BundleCoordinate coordinate, final Throwable failure) {
+        final NarNode narNode = narNodesById.values().stream()
+                .filter(n -> n.getManifest().getCoordinate().equals(coordinate))
+                .findFirst()
+                .orElseThrow(() -> new NarNotFoundException(coordinate));
+        narNode.setFailure(failure);
     }
 
     @Override

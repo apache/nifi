@@ -117,19 +117,18 @@ public class NarInstallTask implements Runnable {
                         installed = true;
                     } catch (final Throwable t) {
                         LOGGER.error("Failed to install NAR [{}]", coordinate, t);
-                        narNode.setState(NarState.FAILED);
-                        narNode.setFailureMessage(t.getMessage());
+                        narNode.setFailure(t);
                     }
                 } else {
                     try {
                         verifyExtensionDefinitions(loadedCoordinate);
-                        narManager.updateState(loadedCoordinate, NarState.INSTALLED, null);
+                        narManager.updateState(loadedCoordinate, NarState.INSTALLED);
                         installed = true;
                     } catch (final NarNotFoundException e) {
                         LOGGER.warn("NAR [{}] was loaded, but no longer exists in the NAR Manager", loadedCoordinate);
                     } catch (final Throwable t) {
                         LOGGER.error("Failed to install NAR [{}]", coordinate, t);
-                        narManager.updateState(loadedCoordinate, NarState.FAILED, t.getMessage());
+                        narManager.updateFailed(loadedCoordinate, t);
                     }
                 }
 
@@ -152,7 +151,7 @@ public class NarInstallTask implements Runnable {
                     narNode.setState(NarState.MISSING_DEPENDENCY);
                 } else {
                     try {
-                        narManager.updateState(skippedCoordinate, NarState.MISSING_DEPENDENCY, null);
+                        narManager.updateState(skippedCoordinate, NarState.MISSING_DEPENDENCY);
                     } catch (final NarNotFoundException e) {
                         LOGGER.warn("NAR [{}] was skipped, but no longer exists in the NAR Manager", skippedCoordinate);
                     }
@@ -167,8 +166,7 @@ public class NarInstallTask implements Runnable {
 
         } catch (final Throwable t) {
             LOGGER.error("Failed to install NAR [{}]", coordinate, t);
-            narNode.setState(NarState.FAILED);
-            narNode.setFailureMessage(t.getMessage());
+            narNode.setFailure(t);
         }
     }
 

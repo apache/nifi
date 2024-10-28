@@ -55,7 +55,15 @@ public interface NarManager {
      * @param coordinate the coordinate of the NAR
      * @param narState the new state
      */
-    void updateState(BundleCoordinate coordinate, NarState narState, String failureMessage);
+    void updateState(BundleCoordinate coordinate, NarState narState);
+
+    /**
+     * Updates the state of the NAR with the given coordinate to be in a failed state for the given exception that caused the failure.
+     *
+     * @param coordinate the coordinate of the NAR
+     * @param failure the exception that caused the failure
+     */
+    void updateFailed(BundleCoordinate coordinate, Throwable failure);
 
     /**
      * @return all NARs contained in the NAR Manager
