@@ -85,8 +85,9 @@ public class NarNode {
         return failureMessage;
     }
 
-    public void setFailureMessage(final String failureMessage) {
-        this.failureMessage = failureMessage;
+    public void setFailure(final Throwable failure) {
+        this.state = NarState.FAILED;
+        this.failureMessage = "%s - %s".formatted(failure.getClass().getSimpleName(), failure.getMessage());
     }
 
     @Override
