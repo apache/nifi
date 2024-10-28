@@ -125,10 +125,6 @@
             <artifactId>google-cloud-pubsub</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-pubsublite</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.google.apis</groupId>
             <artifactId>google-api-services-drive</artifactId>
             <version>v3-rev20240914-2.0.0</version>
