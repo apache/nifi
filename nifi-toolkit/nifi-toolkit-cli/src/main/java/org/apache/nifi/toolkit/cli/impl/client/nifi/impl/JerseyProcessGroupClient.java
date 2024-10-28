@@ -356,4 +356,17 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
         });
     }
 
+    @Override
+    public ProcessGroupEntity deleteProcessGroup(ProcessGroupEntity entity) throws NiFiClientException, IOException {
+        if (entity == null) {
+            throw new IllegalArgumentException("Process group entity cannot be null");
+        }
+        return executeAction("Error deleting process group", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{id}")
+                    .queryParam("version", entity.getRevision().getVersion())
+                    .resolveTemplate("id", entity.getId());
+            return getRequestBuilder(target).delete(ProcessGroupEntity.class);
+        });
+    }
 }

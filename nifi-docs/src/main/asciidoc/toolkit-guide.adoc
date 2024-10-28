@@ -100,6 +100,7 @@ The following are available commands:
  nifi pg-get-param-context
  nifi pg-set-param-context
  nifi pg-replace
+ nifi pg-delete
  nifi get-services
  nifi get-service
  nifi create-service
@@ -309,15 +310,15 @@ Typing "nifi " and then a tab will show the sub-commands for NiFi:
  create-reg-client       get-nodes               merge-param-context     pg-start
  create-reporting-task   get-param-context       offload-node            pg-status
  create-service          get-policy              pg-change-version       pg-stop
- create-user             get-reg-client-id       pg-create-service       set-param
- create-user-group       get-reporting-task      pg-disable-services     start-reporting-tasks
- current-user            get-reporting-tasks     pg-enable-services      stop-reporting-tasks
- delete-node             get-root-id             pg-get-all-versions     update-policy
- delete-param            get-service             pg-get-param-context    update-reg-client
- delete-param-context    get-services            pg-get-services         update-user-group
- disable-services        import-param-context    pg-get-vars             upload-template
- disconnect-node         list-param-contexts     pg-get-version          delete-reporting-task
- download-template       list-reg-clients        pg-import
+ create-user             get-reg-client-id       pg-create-service       pg-delete
+ create-user-group       get-reporting-task      pg-disable-services     set-param
+ current-user            get-reporting-tasks     pg-enable-services      start-reporting-tasks
+ delete-node             get-root-id             pg-get-all-versions     stop-reporting-tasks
+ delete-param            get-service             pg-get-param-context    update-policy
+ delete-param-context    get-services            pg-get-services         update-reg-client
+ disable-services        import-param-context    pg-get-vars             update-user-group
+ disconnect-node         list-param-contexts     pg-get-version          upload-template
+ download-template       list-reg-clients        pg-import               delete-reporting-task
 
 Arguments that represent a path to a file, such as `-p` or when setting a properties file in the session, will auto-complete the path being typed:
 
