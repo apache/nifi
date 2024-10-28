@@ -149,7 +149,7 @@ public class TestSplitExcel {
                         .limit(firstSheet.getLastRowNum())
                         .map(firstSheet::getRow)
                         .filter(Objects::nonNull)
-                        .map(row -> row.getCell(7)) // NOTE: The argument is 0 based although the formula columns when viewed in Excel are in the 8th column.
+                        .map(row -> row.getCell(7)) // NOTE: The argument is 0 based although the formula column when viewed in Excel is in the 8th column.
                         .filter(Objects::nonNull)
                         .toList();
 
