@@ -95,7 +95,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .description("Specifies whether or not scientific notation should be used when writing numbers")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
-            .defaultValue("false")
+            .defaultValue("true")
             .required(true)
             .build();
     public static final PropertyDescriptor OUTPUT_GROUPING = new PropertyDescriptor.Builder()
