@@ -20,6 +20,8 @@ package org.apache.nifi.json;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -149,6 +151,14 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         final Map<String, Object> values = new LinkedHashMap<>(schema.getFieldCount() * 2);
 
         if (dropUnknown) {
+            // we delete the unknown fields to make sure they're not in the serialized form
+            final Iterator<String> fieldNames = jsonNode.fieldNames();
+            while (fieldNames.hasNext()) {
+                String fieldName = fieldNames.next();
+                if (!schema.getField(fieldName).isPresent() && jsonNode instanceof ObjectNode) {
+                    ((ObjectNode) jsonNode).remove(fieldName);
+                }
+            }
             for (final RecordField recordField : schema.getFields()) {
                 final JsonNode childNode = getChildNode(jsonNode, recordField);
                 if (childNode == null) {

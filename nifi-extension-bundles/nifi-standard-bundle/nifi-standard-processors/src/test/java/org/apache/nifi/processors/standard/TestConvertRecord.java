@@ -51,6 +51,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Pretty-printing is not portable across operating systems")
@@ -403,5 +404,37 @@ public class TestConvertRecord {
                 System.setProperty("user.timezone", timezone);
             }
         }
+    }
+
+    @Test
+    public void testJSONDroppingUnkownFields() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(ConvertRecord.class);
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+
+        final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestConvertRecord/schema/person.avsc")));
+        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestConvertRecord/schema/person.avsc")));
+
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.enableControllerService(jsonWriter);
+
+        runner.enqueue(Paths.get("src/test/resources/TestConvertRecord/input/person_dropfield.json"));
+
+        runner.setProperty(ConvertRecord.RECORD_READER, "reader");
+        runner.setProperty(ConvertRecord.RECORD_WRITER, "writer");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 1);
+
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).get(0);
+        assertFalse(new String(flowFile.toByteArray()).contains("fieldThatShouldBeRemoved"));
     }
 }

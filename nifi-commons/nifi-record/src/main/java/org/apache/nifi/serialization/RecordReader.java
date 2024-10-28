@@ -47,7 +47,7 @@ public interface RecordReader extends Closeable {
      * @throws SchemaValidationException if a Record contains a field that violates the schema and cannot be coerced into the appropriate field type.
      */
     default Record nextRecord() throws IOException, MalformedRecordException {
-        return nextRecord(true, false);
+        return nextRecord(true, true);
     }
 
     /**
