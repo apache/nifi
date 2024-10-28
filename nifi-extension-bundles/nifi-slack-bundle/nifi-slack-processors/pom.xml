@@ -30,7 +30,7 @@
         <dependency>
             <groupId>com.slack.api</groupId>
             <artifactId>bolt-socket-mode</artifactId>
-            <version>1.44.0</version>
+            <version>1.44.1</version>
         </dependency>
         <!-- Required by bolt-socket-mode but the library itself doesn't have the dependency. -->
         <dependency>
