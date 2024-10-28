@@ -34,32 +34,32 @@ import java.util.Properties;
  */
 public class PGDelete extends AbstractNiFiCommand<StringResult> {
 
-        public PGDelete() {
-            super("pg-delete", StringResult.class);
+    public PGDelete() {
+        super("pg-delete", StringResult.class);
+    }
+
+    @Override
+    public String getDescription() {
+        return "Deletes the given process group. Deleting a process group requires, stopping all Processors, disabling all Controller Services, and emptying all Queues.";
+    }
+
+    @Override
+    protected void doInitialize(final Context context) {
+        addOption(CommandOption.PG_ID.createOption());
+    }
+
+    @Override
+    public StringResult doExecute(final NiFiClient client, final Properties properties)
+            throws NiFiClientException, IOException, MissingOptionException {
+
+        final String pgId = getRequiredArg(properties, CommandOption.PG_ID);
+
+        final ProcessGroupClient pgClient = client.getProcessGroupClient();
+        final ProcessGroupEntity pgEntity = pgClient.getProcessGroup(pgId);
+        if (pgEntity == null) {
+            throw new NiFiClientException("Process group with id " + pgId + " not found.");
         }
-
-        @Override
-        public String getDescription() {
-            return "Deletes the given process group. Deleting a process group requires, stopping all Processors, disabling all Controller Services, and emptying all Queues.";
-        }
-
-        @Override
-        protected void doInitialize(final Context context) {
-            addOption(CommandOption.PG_ID.createOption());
-        }
-
-        @Override
-        public StringResult doExecute(final NiFiClient client, final Properties properties)
-                throws NiFiClientException, IOException, MissingOptionException {
-
-            final String pgId = getRequiredArg(properties, CommandOption.PG_ID);
-
-            final ProcessGroupClient pgClient = client.getProcessGroupClient();
-            final ProcessGroupEntity pgEntity = pgClient.getProcessGroup(pgId);
-            if (pgEntity == null) {
-                throw new NiFiClientException("Process group with id " + pgId + " not found.");
-            }
-            pgClient.deleteProcessGroup(pgEntity);
-            return new StringResult(pgId, isInteractive());
-        }
+        pgClient.deleteProcessGroup(pgEntity);
+        return new StringResult(pgId, isInteractive());
+    }
 }
