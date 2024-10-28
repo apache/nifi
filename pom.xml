@@ -158,7 +158,7 @@
         <spring.security.version>6.3.4</spring.security.version>
         <swagger.annotations.version>2.2.25</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
-        <zookeeper.version>3.9.2</zookeeper.version>
+        <zookeeper.version>3.9.3</zookeeper.version>
         <caffeine.version>3.1.8</caffeine.version>
         <hapi.version>2.5.1</hapi.version>
         <commons.dbcp2.version>2.12.0</commons.dbcp2.version>
@@ -307,7 +307,7 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.11.2</version>
+                <version>5.11.3</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -575,7 +575,7 @@
             <dependency>
                 <groupId>org.junit.platform</groupId>
                 <artifactId>junit-platform-commons</artifactId>
-                <version>1.11.2</version>
+                <version>1.11.3</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
