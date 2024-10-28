@@ -308,6 +308,8 @@ public class SecurityApplicationPropertyHandler implements ApplicationPropertyHa
                 if (hostPortMatcher.matches()) {
                     final String host = hostPortMatcher.group(HOST_GROUP);
                     hosts.add(host);
+                } else {
+                    logger.warn("Invalid host [{}] configured for [{}] in nifi.properties", hostPortGroup, SecurityProperty.WEB_PROXY_HOST.getName());
                 }
             }
         }
