@@ -78,7 +78,8 @@ public class SecurityApplicationPropertyHandler implements ApplicationPropertyHa
 
     private static final String PROPERTY_SEPARATOR = "=";
 
-    private static final Pattern HOST_PORT_PATTERN = Pattern.compile("^([\\w-.]{1,63}):?\\d{0,5}$");
+    // Maximum address length based on RFC 1035 Section 2.3.4
+    private static final Pattern HOST_PORT_PATTERN = Pattern.compile("^([\\w-.]{1,254}):?\\d{0,5}$");
 
     private static final int HOST_GROUP = 1;
 
@@ -307,6 +308,8 @@ public class SecurityApplicationPropertyHandler implements ApplicationPropertyHa
                 if (hostPortMatcher.matches()) {
                     final String host = hostPortMatcher.group(HOST_GROUP);
                     hosts.add(host);
+                } else {
+                    logger.warn("Invalid host [{}] configured for [{}] in nifi.properties", hostPortGroup, SecurityProperty.WEB_PROXY_HOST.getName());
                 }
             }
         }
