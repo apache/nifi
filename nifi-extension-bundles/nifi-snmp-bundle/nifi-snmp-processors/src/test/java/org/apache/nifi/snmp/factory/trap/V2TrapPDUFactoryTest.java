@@ -26,8 +26,8 @@ import org.snmp4j.smi.VariableBinding;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -46,7 +46,7 @@ class V2TrapPDUFactoryTest {
 
         final PDU pdu = v2TrapPduFactory.get(v2TrapConfiguration);
 
-        final Vector<? extends VariableBinding> variableBindings = pdu.getVariableBindings();
+        final List<? extends VariableBinding> variableBindings = pdu.getVariableBindings();
 
         Set<String> expected = new HashSet<>(Arrays.asList(SnmpConstants.snmpTrapOID.toString(), TRAP_OID));
         Set<String> actual = variableBindings.stream()

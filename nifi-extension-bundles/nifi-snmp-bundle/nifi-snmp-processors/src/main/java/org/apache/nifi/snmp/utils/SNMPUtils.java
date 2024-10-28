@@ -52,7 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Vector;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -118,7 +117,7 @@ public final class SNMPUtils {
     }
 
     public static Map<String, String> getPduAttributeMap(final PDU response) {
-        final Vector<? extends VariableBinding> variableBindings = response.getVariableBindings();
+        final List<? extends VariableBinding> variableBindings = response.getVariableBindings();
         final Map<String, String> attributes = variableBindings.stream()
                 .collect(Collectors.toMap(k -> String.format(OID_PROP_PATTERN, k.getOid(), k.getSyntax()),
                         v -> v.getVariable().toString()
