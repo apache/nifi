@@ -318,8 +318,8 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
         for (final FlowFile flowFile : flowFileBatch) {
             final List<ApiFuture<String>> futures = new ArrayList<>();
-            final List<String> successes = new ArrayList<>();
-            final List<Throwable> failures = new ArrayList<>();
+            final List<String> successes = Collections.synchronizedList(new ArrayList<>());
+            final List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
 
             if (flowFile.getSize() > maxMessageSize) {
                 final String message = String.format("FlowFile size %d exceeds MAX_MESSAGE_SIZE", flowFile.getSize());
@@ -365,8 +365,8 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
         for (final FlowFile flowFile : flowFileBatch) {
             final List<ApiFuture<String>> futures = new ArrayList<>();
-            final List<String> successes = new ArrayList<>();
-            final List<Throwable> failures = new ArrayList<>();
+            final List<String> successes = Collections.synchronizedList(new ArrayList<>());
+            final List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
 
             final Map<String, String> attributes = flowFile.getAttributes();
             try (final RecordReader reader = readerFactory.createRecordReader(
