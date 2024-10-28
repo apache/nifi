@@ -56,7 +56,7 @@ public class SNMPTrapReceiverHandler {
     }
 
     public int getListeningPort() {
-        final Collection<TransportMapping> transportMappings = snmpManager.getMessageDispatcher().getTransportMappings();
+        final Collection<TransportMapping<? extends Address>> transportMappings = snmpManager.getMessageDispatcher().getTransportMappings();
         if (transportMappings == null || transportMappings.isEmpty()) {
             return 0;
         }
