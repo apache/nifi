@@ -26,7 +26,6 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
-
 import java.io.IOException;
 import java.util.Properties;
 
@@ -41,7 +40,7 @@ public class PGDelete extends AbstractNiFiCommand<StringResult> {
 
         @Override
         public String getDescription() {
-            return "Deletes the given process group.";
+            return "Deletes the given process group. Deleting a process group requires, stopping all Processors, disabling all Controller Services, and emptying all Queues.";
         }
 
         @Override
