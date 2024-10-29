@@ -20,6 +20,7 @@ package org.apache.nifi.json;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -147,8 +148,22 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                                            final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
 
         final Map<String, Object> values = new LinkedHashMap<>(schema.getFieldCount() * 2);
+        final JsonNode jsonNodeForSerialization;
 
         if (dropUnknown) {
+            jsonNodeForSerialization = jsonNode.deepCopy();
+
+            // Delete unknown fields for updated serialized representation
+            final Iterator<Map.Entry<String, JsonNode>> fields = jsonNodeForSerialization.fields();
+            while (fields.hasNext()) {
+                final Map.Entry<String, JsonNode> field = fields.next();
+                final String fieldName = field.getKey();
+                final Optional<RecordField> recordField = schema.getField(fieldName);
+                if (recordField.isEmpty()) {
+                    fields.remove();
+                }
+            }
+
             for (final RecordField recordField : schema.getFields()) {
                 final JsonNode childNode = getChildNode(jsonNode, recordField);
                 if (childNode == null) {
@@ -169,6 +184,8 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                 values.put(fieldName, value);
             }
         } else {
+            jsonNodeForSerialization = jsonNode;
+
             final Iterator<String> fieldNames = jsonNode.fieldNames();
             while (fieldNames.hasNext()) {
                 final String fieldName = fieldNames.next();
@@ -189,7 +206,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             }
         }
 
-        final Supplier<String> supplier = jsonNode::toString;
+        final Supplier<String> supplier = jsonNodeForSerialization::toString;
         return new MapRecord(schema, values, SerializedForm.of(supplier, "application/json"), false, dropUnknown);
     }
 

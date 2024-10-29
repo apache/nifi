@@ -625,6 +625,7 @@
                         <exclude>src/test/resources/TestConvertRecord/input/person_bad_enum.json</exclude>
                         <exclude>src/test/resources/TestConvertRecord/input/person_long_id.json</exclude>
                         <exclude>src/test/resources/TestConvertRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/input/person_dropfield.json</exclude>
                         <exclude>src/test/resources/TestConvertRecord/schema/person_with_union_enum_string.avsc</exclude>
                         <exclude>src/test/resources/TestConvertRecord/schema/person.avsc</exclude>
                         <exclude>src/test/resources/TestCountText/jabberwocky.txt</exclude>
