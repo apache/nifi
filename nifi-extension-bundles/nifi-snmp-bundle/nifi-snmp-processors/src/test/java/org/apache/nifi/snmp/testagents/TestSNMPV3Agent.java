@@ -21,10 +21,8 @@ import org.snmp4j.agent.mo.snmp.StorageType;
 import org.snmp4j.agent.mo.snmp.VacmMIB;
 import org.snmp4j.agent.security.MutableVACM;
 import org.snmp4j.mp.MPv3;
-import org.snmp4j.security.AuthMD5;
-import org.snmp4j.security.AuthSHA;
+import org.snmp4j.security.AuthHMAC384SHA512;
 import org.snmp4j.security.PrivAES128;
-import org.snmp4j.security.PrivDES;
 import org.snmp4j.security.SecurityLevel;
 import org.snmp4j.security.SecurityModel;
 import org.snmp4j.security.USM;
@@ -44,30 +42,12 @@ public class TestSNMPV3Agent extends TestAgent {
 
     @Override
     protected void addUsmUser(final USM usm) {
-        UsmUser user = new UsmUser(new OctetString("SHA"),
-                AuthSHA.ID,
-                new OctetString("SHAAuthPassword"),
-                null,
-                null);
-        usm.addUser(user.getSecurityName(), usm.getLocalEngineID(), user);
-        user = new UsmUser(new OctetString("SHADES"),
-                AuthSHA.ID,
-                new OctetString("SHADESAuthPassword"),
-                PrivDES.ID,
-                new OctetString("SHADESPrivPassword"));
-        usm.addUser(user.getSecurityName(), usm.getLocalEngineID(), user);
-        user = new UsmUser(new OctetString("MD5DES"),
-                AuthMD5.ID,
-                new OctetString("MD5DESAuthPassword"),
-                PrivDES.ID,
-                new OctetString("MD5DESPrivPassword"));
-        usm.addUser(user.getSecurityName(), usm.getLocalEngineID(), user);
-        user = new UsmUser(new OctetString("SHAAES128"),
-                AuthSHA.ID,
+        UsmUser user = new UsmUser(new OctetString("HMAC384SHA512"),
+                AuthHMAC384SHA512.ID,
                 new OctetString("SHAAES128AuthPassword"),
                 PrivAES128.ID,
                 new OctetString("SHAAES128PrivPassword"));
-        usm.addUser(user.getSecurityName(), usm.getLocalEngineID(), user);
+        usm.addUser(user);
     }
 
     @Override

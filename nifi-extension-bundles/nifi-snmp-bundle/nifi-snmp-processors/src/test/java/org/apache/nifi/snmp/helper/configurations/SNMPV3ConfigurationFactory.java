@@ -24,7 +24,7 @@ public class SNMPV3ConfigurationFactory implements SNMPConfigurationFactory {
     // V3 security (users are set in test agents)
     public static final String SECURITY_LEVEL = "authPriv";
     public static final String SECURITY_NAME = "SHAAES128";
-    public static final String AUTH_PROTOCOL = "SHA";
+    public static final String AUTH_PROTOCOL = "HMAC384SHA512";
     public static final String AUTH_PASSPHRASE = "SHAAES128AuthPassphrase";
     public static final String PRIV_PROTOCOL = "AES128";
     public static final String PRIV_PASSPHRASE = "SHAAES128PrivPassphrase";
