@@ -97,7 +97,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     public static final PropertyDescriptor SECRET_NAMES = new PropertyDescriptor.Builder()
             .name("secret-names")
             .displayName("Secret Names")
-            .description("Comma-separated list of secret names to fetch. This parameter is ignored if the Secret Listing Strategy parameter is set to 'Pattern'.")
+            .description("Comma-separated list of secret names to fetch.")
             .dependsOn(SECRET_LISTING_STRATEGY, ENUMERATED_STRATEGY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
