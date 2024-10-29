@@ -855,6 +855,14 @@
                                         <!-- Cat-X Deps -->
                                         <exclude>org.json:json:*:*:compile</exclude>
                                         <exclude>c3p0:c3p0:*:*:compile</exclude>
+                                        <!-- FindBugs Annotations is LGPL-2 -->
+                                        <exclude>com.google.code.findbugs:annotations:*</exclude>
+                                        <!-- Hibernate Commons Annotations is LGPL-2.1 before version 7.0.0 -->
+                                        <exclude>org.hibernate.common:hibernate-commons-annotations:[,7.0.0]</exclude>
+                                        <!-- Hibernate Core is LGPL-2.1 -->
+                                        <exclude>org.hibernate.orm:hibernate-core:*</exclude>
+                                        <!-- Hibernate Entity Manager is LGPL-2.1 -->
+                                        <exclude>org.hibernate:hibernate-entitymanager:*</exclude>
                                         <!-- Versions of JSR305 before 3.0.1 are not allowed https://github.com/findbugsproject/findbugs/issues/128 -->
                                         <exclude>com.google.code.findbugs:jsr305:[,3.0.0]:compile</exclude>
                                         <!-- SLF4J routing to Log4j 1.2 is a runtime implementation that conflicts with Logback -->

@@ -272,7 +272,7 @@
                     <artifactId>hibernate-entitymanager</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.hibernate</groupId>
+                    <groupId>org.hibernate.orm</groupId>
                     <artifactId>hibernate-core</artifactId>
                 </exclusion>
             </exclusions>
