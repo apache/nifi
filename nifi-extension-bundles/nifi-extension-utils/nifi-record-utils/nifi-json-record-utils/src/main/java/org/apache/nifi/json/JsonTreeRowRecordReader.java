@@ -149,14 +149,21 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                                            final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
 
         final Map<String, Object> values = new LinkedHashMap<>(schema.getFieldCount() * 2);
+        final JsonNode jsonNodeCopy = jsonNode.deepCopy();
 
         if (dropUnknown) {
             // we delete the unknown fields to make sure they're not in the serialized form
-            final Iterator<String> fieldNames = jsonNode.fieldNames();
+            final Iterator<String> fieldNames = jsonNodeCopy.fieldNames();
+            final List<String> fieldsToRemove = new ArrayList<String>();
             while (fieldNames.hasNext()) {
                 String fieldName = fieldNames.next();
-                if (!schema.getField(fieldName).isPresent() && jsonNode instanceof ObjectNode) {
-                    ((ObjectNode) jsonNode).remove(fieldName);
+                if (!schema.getField(fieldName).isPresent() && jsonNodeCopy instanceof ObjectNode) {
+                    fieldsToRemove.add(fieldName);
+                }
+            }
+            if (jsonNodeCopy instanceof ObjectNode) {
+                for (String fieldToRemove : fieldsToRemove) {
+                    ((ObjectNode) jsonNodeCopy).remove(fieldToRemove);
                 }
             }
             for (final RecordField recordField : schema.getFields()) {
@@ -199,7 +206,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             }
         }
 
-        final Supplier<String> supplier = jsonNode::toString;
+        final Supplier<String> supplier = jsonNodeCopy::toString;
         return new MapRecord(schema, values, SerializedForm.of(supplier, "application/json"), false, dropUnknown);
     }
 
