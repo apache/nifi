@@ -60,7 +60,7 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     && pip3 install selenium webdriver-manager \
     # && apt-get install -y selenium webdriver-manager \
     # --------------------
-    && pip install --upgrade numpy==1.21.6 \
+    && pip install --upgrade numpy==1.23.3 \
     && pip install spacy==3.5.1 \
     && python3 -m spacy download en_core_web_md 
 # ------------------------------------
