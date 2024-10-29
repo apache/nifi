@@ -108,12 +108,9 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     public static final PropertyDescriptor SECRET_LISTING_STRATEGY = new PropertyDescriptor.Builder()
             .name("secret-listing-strategy")
             .displayName("Secret Listing Strategy")
-            .description("Strategy to use when listing secrets. 'Pattern' strategy uses Secret Name Pattern property and fetches  " +
-                    "all secrets whose names match the pattern. 'Pattern' strategy requires ListSecrets and GetSecretValue permissions. "+
-                    "'Enumerated' strategy uses 'Secret Names' property and fetches all secrets in the list. " +
-                    "'Enumerated' strategy requires only GetSecretValue permission.")
+            .description("Strategy to use when listing secrets.")
             .required(true)
-            .allowableValues(PATTERN_STRATEGY, ENUMERATED_STRATEGY)
+            .allowableValues(ListingStrategy.class)
             .defaultValue(PATTERN_STRATEGY)
             .build();
 
@@ -123,7 +120,8 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .description("A Regular Expression matching on Secret Name that identifies Secrets whose parameters should be fetched. " +
                     "Any secrets whose names do not match this pattern will not be fetched.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .dependsOn(SECRET_LISTING_STRATEGY, PATTERN_STRATEGY)
+            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.PATTERN)
+            .required(true)
             .defaultValue(".*")
             .build();
 
