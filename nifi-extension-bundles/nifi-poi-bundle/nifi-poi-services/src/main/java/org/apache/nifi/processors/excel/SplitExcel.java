@@ -111,7 +111,7 @@ public class SplitExcel extends AbstractProcessor {
     private static final List<PropertyDescriptor> DESCRIPTORS = List.of(PROTECTION_TYPE, PASSWORD);
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_SPLIT);
     private static final CellCopyPolicy CELL_COPY_POLICY = new CellCopyPolicy.Builder()
-            .cellFormula(CellCopyPolicy.DEFAULT_COPY_CELL_FORMULA_POLICY)
+            .cellFormula(false) // NOTE: setting to false allows for copying the evaluated formula value.
             .cellStyle(false) // NOTE: setting to false avoids exceeding the maximum number of cell styles (64000) in a .xlsx Workbook.
             .cellValue(CellCopyPolicy.DEFAULT_COPY_CELL_VALUE_POLICY)
             .condenseRows(CellCopyPolicy.DEFAULT_CONDENSE_ROWS_POLICY)
