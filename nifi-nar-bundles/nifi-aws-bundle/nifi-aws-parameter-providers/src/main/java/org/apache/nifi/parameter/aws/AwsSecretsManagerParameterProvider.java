@@ -70,8 +70,41 @@ import java.util.regex.Pattern;
 @CapabilityDescription("Fetches parameters from AWS SecretsManager.  Each secret becomes a Parameter group, which can map to a Parameter Context, with " +
         "key/value pairs in the secret mapping to Parameters in the group.")
 public class AwsSecretsManagerParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
-    public static final String ENUMERATED_STRATEGY = "Enumerated";
-    public static final String PATTERN_STRATEGY = "Pattern";
+    enum ListingStrategy implements DescribedValue {
+        ENUMERATION(
+                "Enumerate secret names",
+                "Provides a set of secret names to fetch, separated by a comma delimiter ','. " +
+                        "This strategy requires the GetSecretValue permission only."
+        ),
+        PATTERN(
+                "Use regular expression",
+                "Provides a regular expression to match keys of attributes to filter for. " +
+                        "This strategy requires both ListSecrets and GetSecretValue permissions."
+        );
+
+        private final String value;
+        private final String description;
+
+        ListingStrategy(final String value, final String description) {
+            this.value = value;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return this.value;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return this.value;
+        }
+
+        @Override
+        public String getDescription() {
+            return this.description;
+        }
+    }
     public static final PropertyDescriptor SECRET_LISTING_STRATEGY = new PropertyDescriptor.Builder()
             .name("secret-listing-strategy")
             .displayName("Secret Listing Strategy")
