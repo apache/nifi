@@ -95,6 +95,9 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
     apt-get install -y google-chrome-stable && \
     rm -rf /var/lib/apt/lists/*
 
+# Grant execute permissions on chromedriver
+RUN chmod +x /home/nifi/chromedriver
+
 # Install Python dependencies including chromedriver-autoinstaller
 RUN pip3 install --upgrade numpy==1.23.3 spacy==3.5.1 selenium webdriver-manager chromedriver-autoinstaller && \
     python3 -m spacy download en_core_web_md
