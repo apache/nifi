@@ -98,7 +98,8 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .name("secret-names")
             .displayName("Secret Names")
             .description("Comma-separated list of secret names to fetch.")
-            .dependsOn(SECRET_LISTING_STRATEGY, ENUMERATED_STRATEGY)
+            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.ENUMERATION)
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     /**
