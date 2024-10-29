@@ -54,7 +54,8 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     # # --------------------
     && chown -R nifi:nifi ${NIFI_BASE_DIR} \
     && apt-get update \
-    && apt-get install -y jq xmlstarlet procps python3 python3-pip curl wget ffmpeg\
+    && apt-get install -y ffmpeg jq xmlstarlet procps python3 python3-pip curl wget \
+    && apt-get update \
     # --------------------
     && pip3 install selenium webdriver-manager \
     # && apt-get install -y selenium webdriver-manager \
