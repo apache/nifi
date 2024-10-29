@@ -88,8 +88,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .name("secret-name-pattern")
             .displayName("Secret Name Pattern")
             .description("A Regular Expression matching on Secret Name that identifies Secrets whose parameters should be fetched. " +
-                    "Any secrets whose names do not match this pattern will not be fetched. " +
-                    "This parameter is ignored if Secret Listing Strategy parameter is set to 'Enumerated'.")
+                    "Any secrets whose names do not match this pattern will not be fetched.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .dependsOn(SECRET_LISTING_STRATEGY, PATTERN_STRATEGY)
             .defaultValue(".*")
