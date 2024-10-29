@@ -23,14 +23,19 @@ import org.snmp4j.smi.UdpAddress;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
 public class SNMPManagerFactory {
+
+    private static final String ALL_ADDRESSES = "0.0.0.0";
 
     public Snmp createSnmpManagerInstance(final SNMPConfiguration configuration) {
         final int port = configuration.getManagerPort();
         final Snmp snmpManager;
         try {
-            final DefaultUdpTransportMapping transportMapping = new DefaultUdpTransportMapping(new UdpAddress(port));
+            final InetAddress listenAddress = InetAddress.getByName(ALL_ADDRESSES);
+            final UdpAddress udpAddress = new UdpAddress(listenAddress, port);
+            final DefaultUdpTransportMapping transportMapping = new DefaultUdpTransportMapping(udpAddress);
             snmpManager = new Snmp(transportMapping);
             snmpManager.listen();
         } catch (IOException e) {
