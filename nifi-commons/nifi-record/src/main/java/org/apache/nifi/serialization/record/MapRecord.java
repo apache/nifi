@@ -558,10 +558,6 @@ public class MapRecord implements Record {
     private Optional<RecordField> setValueAndGetField(final String fieldName, final Object value) {
         final Optional<RecordField> field = getSchema().getField(fieldName);
         if (field.isEmpty()) {
-            if (dropUnknownFields) {
-                return field;
-            }
-
             updateValue(fieldName, value);
             return field;
         }
