@@ -85,7 +85,7 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
 
 # Install Chrome dependencies
 RUN apt-get update && \
-    apt-get install -y gnupg ca-certificates unzip && \
+    apt-get install -y gnupg ca-certificates wget unzip && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Chrome
@@ -95,21 +95,25 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
     apt-get install -y google-chrome-stable && \
     rm -rf /var/lib/apt/lists/*
 
-# Fetch Chrome's major version and dynamically download matching ChromeDriver
-RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1) && \
-    wget -q "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/linux64/chromedriver-linux64.zip" -O chromedriver.zip && \
-    unzip chromedriver.zip && \
-    mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
-    chmod +x /usr/local/bin/chromedriver && \
-    rm -f chromedriver.zip
+# Install Python dependencies including chromedriver-autoinstaller
+RUN pip3 install --upgrade numpy==1.23.3 spacy==3.5.1 selenium webdriver-manager chromedriver-autoinstaller && \
+    python3 -m spacy download en_core_web_md
+
+# # Fetch Chrome's major version and dynamically download matching ChromeDriver
+# RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1) && \
+#     wget -q "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/linux64/chromedriver-linux64.zip" -O chromedriver.zip && \
+#     unzip chromedriver.zip && \
+#     mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+#     chmod +x /usr/local/bin/chromedriver && \
+#     rm -f chromedriver.zip
 
 # (Optional) Set headless Chrome options
 ENV CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --ignore-certificate-errors --disable-gpu"
 
-# Ensure Python dependencies
-RUN pip3 install --upgrade numpy==1.23.3 spacy==3.5.1 && \
-    python3 -m spacy download en_core_web_md && \
-    pip3 install selenium webdriver-manager
+# # Ensure Python dependencies
+# RUN pip3 install --upgrade numpy==1.23.3 spacy==3.5.1 && \
+#     python3 -m spacy download en_core_web_md && \
+#     pip3 install selenium webdriver-manager
 
 # ------------------------------------
 
