@@ -853,7 +853,7 @@
                                         <!-- JUnit 5 is the preferred test framework -->
                                         <exclude>org.testng:testng</exclude>
                                         <!-- Cat-X Deps -->
-                                        <exclude>org.json:json:*:*:compile</exclude>
+                                        <exclude>org.json:json:[,20240303]:compile</exclude>
                                         <exclude>c3p0:c3p0:*:*:compile</exclude>
                                         <!-- Versions of JSR305 before 3.0.1 are not allowed https://github.com/findbugsproject/findbugs/issues/128 -->
                                         <exclude>com.google.code.findbugs:jsr305:[,3.0.0]:compile</exclude>

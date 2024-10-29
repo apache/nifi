@@ -8,25 +8,77 @@ The Apache Software Foundation (http://www.apache.org/).
 Apache Software License v2
 ******************
 
-  (ASLv2) Jackson JSON processor
+  (ASLv2) Apache Commons Pool
     The following NOTICE information applies:
-      # Jackson JSON processor
+      Apache Commons Pool
+      Copyright 1999-2009 The Apache Software Foundation.
 
-      Jackson is a high-performance, Free/Open Source JSON processing library.
-      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
-      been in development since 2007.
-      It is currently developed by a community of developers, as well as supported
-      commercially by FasterXML.com.
+  (ASLv2) Open JSON
+    The following NOTICE information applies:
+      Android JSON library
+      Copyright (C) 2010 The Android Open Source Project
 
-      ## Licensing
+      This product includes software developed by
+      The Android Open Source Project
 
-      Jackson core and extension components may licensed under different licenses.
-      To find the details that apply to this artifact see the accompanying LICENSE file.
-      For more information, including possible other licensing options, contact
-      FasterXML.com (http://fasterxml.com).
+  (ASLv2) Spring Framework
+      The following NOTICE information applies:
+        Spring Framework 5
+        Copyright (c) 2002-2021 Pivotal, Inc.
 
-      ## Credits
+  (ASLv2) Micrometer
+    The following NOTICE information applies:
+      Micrometer
 
-      A list of contributors may be found from CREDITS file, which is included
-      in some artifacts (usually source distributions); but is always available
-      from the source code management (SCM) system project uses.
+      Copyright (c) 2017-Present VMware, Inc. All Rights Reserved.
+
+      Licensed under the Apache License, Version 2.0 (the "License");
+      you may not use this file except in compliance with the License.
+      You may obtain a copy of the License at
+
+         https://www.apache.org/licenses/LICENSE-2.0
+
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+
+      -------------------------------------------------------------------------------
+
+      This product contains a modified portion of 'io.netty.util.internal.logging',
+      in the Netty/Common library distributed by The Netty Project:
+
+        * Copyright 2013 The Netty Project
+        * License: Apache License v2.0
+        * Homepage: https://netty.io
+
+      This product contains a modified portion of 'StringUtils.isBlank()',
+      in the Commons Lang library distributed by The Apache Software Foundation:
+
+        * Copyright 2001-2019 The Apache Software Foundation
+        * License: Apache License v2.0
+        * Homepage: https://commons.apache.org/proper/commons-lang/
+
+      This product contains a modified portion of 'JsonUtf8Writer',
+      in the Moshi library distributed by Square, Inc:
+
+        * Copyright 2010 Google Inc.
+        * License: Apache License v2.0
+        * Homepage: https://github.com/square/moshi
+
+      This product contains a modified portion of the 'org.springframework.lang'
+      package in the Spring Framework library, distributed by VMware, Inc:
+
+        * Copyright 2002-2019 the original author or authors.
+        * License: Apache License v2.0
+        * Homepage: https://spring.io/projects/spring-framework
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:1.2.2)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3)
