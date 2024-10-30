@@ -63,6 +63,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         addOption(CommandOption.BUCKET_ID.createOption());
         addOption(CommandOption.FLOW_ID.createOption());
         addOption(CommandOption.FLOW_VERSION.createOption());
+        addOption(CommandOption.FLOW_BRANCH.createOption());
         addOption(CommandOption.POS_X.createOption());
         addOption(CommandOption.POS_Y.createOption());
         addOption(CommandOption.KEEP_EXISTING_PARAMETER_CONTEXT.createOption());
@@ -75,6 +76,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         final String bucketId = getRequiredArg(properties, CommandOption.BUCKET_ID);
         final String flowId = getRequiredArg(properties, CommandOption.FLOW_ID);
         final String flowVersion = getRequiredArg(properties, CommandOption.FLOW_VERSION);
+        final String flowBranch = getArg(properties, CommandOption.FLOW_BRANCH);
 
         final String posXStr = getArg(properties, CommandOption.POS_X);
         final String posYStr = getArg(properties, CommandOption.POS_Y);
@@ -131,6 +133,10 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         versionControlInfo.setBucketId(bucketId);
         versionControlInfo.setFlowId(flowId);
         versionControlInfo.setVersion(flowVersion);
+
+        if (StringUtils.isNotBlank(flowBranch)) {
+            versionControlInfo.setBranch(flowBranch);
+        }
 
         final PositionDTO posDto = new PositionDTO();
         if (posXExists && posYExists) {
