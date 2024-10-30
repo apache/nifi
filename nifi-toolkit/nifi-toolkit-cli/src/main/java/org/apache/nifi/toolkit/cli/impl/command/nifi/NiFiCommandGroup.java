@@ -106,6 +106,10 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.policies.UpdateAccessPolicy
 import org.apache.nifi.toolkit.cli.impl.command.nifi.processors.ChangeVersionProcessor;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.CreateRegistryClient;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.GetRegistryClientId;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListBranches;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListBuckets;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListFlowVersions;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListFlows;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListRegistryClients;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.UpdateRegistryClient;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.reporting.DeleteReportingTask;
@@ -145,6 +149,10 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new CreateRegistryClient());
         commands.add(new UpdateRegistryClient());
         commands.add(new GetRegistryClientId());
+        commands.add(new ListBranches());
+        commands.add(new ListBuckets());
+        commands.add(new ListFlows());
+        commands.add(new ListFlowVersions());
         commands.add(new PGImport());
         commands.add(new PGConnect());
         commands.add(new PGStart());

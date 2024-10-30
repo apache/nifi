@@ -23,6 +23,8 @@ import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBranchesEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
 import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
@@ -31,6 +33,7 @@ import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowsEntity;
 
 import java.io.IOException;
 
@@ -90,6 +93,18 @@ public interface FlowClient {
      * @return the set of snapshot metadata entities
      */
     VersionedFlowSnapshotMetadataSetEntity getVersions(String registryId, String bucketId, String flowId)
+            throws NiFiClientException, IOException;
+
+    /**
+     * Gets the possible versions for the given flow in the given bucket/branch in the given registry.
+     *
+     * @param registryId the id of the registry client
+     * @param bucketId the bucket id
+     * @param flowId the flow id
+     * @param branch the branch name
+     * @return the set of snapshot metadata entities
+     */
+    VersionedFlowSnapshotMetadataSetEntity getVersions(String registryId, String bucketId, String flowId, String branch)
             throws NiFiClientException, IOException;
 
     /**
@@ -190,4 +205,28 @@ public interface FlowClient {
      * @return the reporting task types
      */
     ReportingTaskTypesEntity getReportingTaskTypes() throws NiFiClientException, IOException;
+
+    /**
+     * Returns the list of branches for the specified registry client ID
+     * @param registryClientId Registry Client ID
+     * @return list of branches
+     */
+    FlowRegistryBranchesEntity getFlowRegistryBranches(String registryClientId) throws NiFiClientException, IOException;
+
+    /**
+     * Returns the list of buckets in a given branch for the specified registry client ID
+     * @param registryClientId Registry Client ID
+     * @param branch Name of the branch
+     * @return list of buckets
+     */
+    FlowRegistryBucketsEntity getFlowRegistryBuckets(String registryClientId, String branch) throws NiFiClientException, IOException;
+
+    /**
+     * Returns the list of flows in a given branch and bucket for the specified registry client ID
+     * @param registryClientId Registry Client ID
+     * @param branch Name of the branch
+     * @param bucket ID of the bucket
+     * @return list of flows
+     */
+    VersionedFlowsEntity getFlowRegistryFlows(String registryClientId, String branch, String bucket) throws NiFiClientException, IOException;
 }

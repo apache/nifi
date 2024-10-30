@@ -35,6 +35,8 @@ import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBranchesEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
 import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
@@ -43,6 +45,7 @@ import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowsEntity;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -164,6 +167,12 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     @Override
     public VersionedFlowSnapshotMetadataSetEntity getVersions(final String registryId, final String bucketId, final String flowId)
             throws NiFiClientException, IOException {
+        return getVersions(registryId, bucketId, flowId, null);
+    }
+
+    @Override
+    public VersionedFlowSnapshotMetadataSetEntity getVersions(final String registryId, final String bucketId, final String flowId, final String branch)
+            throws NiFiClientException, IOException {
 
         if (StringUtils.isBlank(registryId)) {
             throw new IllegalArgumentException("Registry id cannot be null");
@@ -177,15 +186,26 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
             throw new IllegalArgumentException("Flow id cannot be null");
         }
 
-        return executeAction("Error retrieving versions", () -> {
-            final WebTarget target = flowTarget
-                    .path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/versions")
-                    .resolveTemplate("registry-id", registryId)
-                    .resolveTemplate("bucket-id", bucketId)
-                    .resolveTemplate("flow-id", flowId);
-
-            return getRequestBuilder(target).get(VersionedFlowSnapshotMetadataSetEntity.class);
-        });
+        if (branch == null) {
+            return executeAction("Error retrieving versions", () -> {
+                final WebTarget target = flowTarget
+                        .path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/versions")
+                        .resolveTemplate("registry-id", registryId)
+                        .resolveTemplate("bucket-id", bucketId)
+                        .resolveTemplate("flow-id", flowId);
+                return getRequestBuilder(target).get(VersionedFlowSnapshotMetadataSetEntity.class);
+            });
+        } else {
+            return executeAction("Error retrieving versions", () -> {
+                final WebTarget target = flowTarget
+                        .path("registries/{registry-id}/buckets/{bucket-id}/flows/{flow-id}/versions")
+                        .resolveTemplate("registry-id", registryId)
+                        .resolveTemplate("bucket-id", bucketId)
+                        .resolveTemplate("flow-id", flowId)
+                        .queryParam("branch", branch);
+                return getRequestBuilder(target).get(VersionedFlowSnapshotMetadataSetEntity.class);
+            });
+        }
     }
 
     @Override
@@ -318,6 +338,66 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
         return executeAction("Error retrieving reporting task types", () -> {
             final WebTarget target = flowTarget.path("/reporting-task-types");
             return getRequestBuilder(target).get(ReportingTaskTypesEntity.class);
+        });
+    }
+
+    @Override
+    public FlowRegistryBranchesEntity getFlowRegistryBranches(String registryClientId)
+            throws NiFiClientException, IOException {
+
+        if (StringUtils.isBlank(registryClientId)) {
+            throw new IllegalArgumentException("Registry ID cannot be null");
+        }
+
+        return executeAction("Error retrieving branches", () -> {
+            final WebTarget target = flowTarget.path("/registries/{id}/branches")
+                .resolveTemplate("id", registryClientId);
+            return getRequestBuilder(target).get(FlowRegistryBranchesEntity.class);
+        });
+    }
+
+    @Override
+    public FlowRegistryBucketsEntity getFlowRegistryBuckets(String registryClientId, String branch)
+            throws NiFiClientException, IOException {
+
+        if (StringUtils.isBlank(registryClientId)) {
+            throw new IllegalArgumentException("Registry ID cannot be null");
+        }
+
+        if (StringUtils.isBlank(branch)) {
+            throw new IllegalArgumentException("Branch name cannot be null");
+        }
+
+        return executeAction("Error retrieving buckets", () -> {
+            final WebTarget target = flowTarget.path("/registries/{id}/buckets")
+                .resolveTemplate("id", registryClientId)
+                .queryParam("branch", branch);
+            return getRequestBuilder(target).get(FlowRegistryBucketsEntity.class);
+        });
+    }
+
+    @Override
+    public VersionedFlowsEntity getFlowRegistryFlows(String registryClientId, String branch, String bucket)
+            throws NiFiClientException, IOException {
+
+        if (StringUtils.isBlank(registryClientId)) {
+            throw new IllegalArgumentException("Registry ID cannot be null");
+        }
+
+        if (StringUtils.isBlank(bucket)) {
+            throw new IllegalArgumentException("Bucket ID cannot be null");
+        }
+
+        if (StringUtils.isBlank(branch)) {
+            throw new IllegalArgumentException("Branch name cannot be null");
+        }
+
+        return executeAction("Error retrieving buckets", () -> {
+            final WebTarget target = flowTarget.path("/registries/{registry-id}/buckets/{bucket-id}/flows")
+                .resolveTemplate("registry-id", registryClientId)
+                .resolveTemplate("bucket-id", bucket)
+                .queryParam("branch", branch);
+            return getRequestBuilder(target).get(VersionedFlowsEntity.class);
         });
     }
 }
