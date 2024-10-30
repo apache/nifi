@@ -184,7 +184,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
     public static final PropertyDescriptor TRANSLATION_STRATEGY = new PropertyDescriptor.Builder()
             .required(true)
             .name("Column Name Translation Strategy")
-            .description("The strategy used to normalize table column name")
+            .description("The strategy used to normalize table column name. Column Name will be uppercased to " +
+                    "do case-insensitive matching irrespective of strategy")
             .allowableValues(TranslationStrategy.class)
             .defaultValue(TranslationStrategy.REMOVE_UNDERSCORE.getValue())
             .dependsOn(TRANSLATE_FIELD_NAMES, TRANSLATE_FIELD_NAMES.getDefaultValue())
