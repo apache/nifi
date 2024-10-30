@@ -2560,6 +2560,7 @@ The following binary components are provided to the 'Public Domain'.  See projec
 
     (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - http://tukaani.org/xz/java.html
     (Public Domain) AOP Alliance 1.0 (http://aopalliance.sourceforge.net/)
+    (Public Domain) JSON (org.json:json:jar:20240303)
 
 The following binary components are provided under the Creative Commons Zero license version 1.0.  See project link for details.
 

@@ -853,7 +853,7 @@
                                         <!-- JUnit 5 is the preferred test framework -->
                                         <exclude>org.testng:testng</exclude>
                                         <!-- Cat-X Deps -->
-                                        <exclude>org.json:json:*:*:compile</exclude>
+                                        <exclude>org.json:json:(,20240303):compile</exclude>
                                         <exclude>c3p0:c3p0:*:*:compile</exclude>
                                         <!-- FindBugs Annotations is LGPL-2 -->
                                         <exclude>com.google.code.findbugs:annotations:*</exclude>
