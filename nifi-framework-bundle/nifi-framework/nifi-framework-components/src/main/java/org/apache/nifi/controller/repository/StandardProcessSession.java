@@ -1007,8 +1007,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                             // the representation of the FlowFile as it is committed, as this is the only way in which it really
                             // exists in our system -- all other representations are volatile representations that have not been
                             // exposed.
-                            final boolean isUpdateAttributes = rawEvent.getEventType() != ProvenanceEventType.SEND && rawEvent.getEventType() != ProvenanceEventType.UPLOAD;
-                            return enrich(rawEvent, flowFileRecordMap, checkpoint.records, isUpdateAttributes, commitNanos);
+                            final boolean isUpdateAttributesAndContent = rawEvent.getEventType() != ProvenanceEventType.SEND && rawEvent.getEventType() != ProvenanceEventType.UPLOAD
+                                    && rawEvent.getEventType() != ProvenanceEventType.CLONE;
+                            return enrich(rawEvent, flowFileRecordMap, checkpoint.records, isUpdateAttributesAndContent, commitNanos);
                         } else if (autoTermIterator != null && autoTermIterator.hasNext()) {
                             return enrich(autoTermIterator.next(), flowFileRecordMap, checkpoint.records, true, commitNanos);
                         }
@@ -1085,13 +1086,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     private ProvenanceEventRecord enrich(
         final ProvenanceEventRecord rawEvent, final Map<String, FlowFileRecord> flowFileRecordMap, final Map<Long, StandardRepositoryRecord> records,
-        final boolean updateAttributes, final long commitNanos) {
+        final boolean updateAttributesAndContent, final long commitNanos) {
         final ProvenanceEventBuilder recordBuilder = context.createProvenanceEventBuilder().fromEvent(rawEvent);
         final FlowFileRecord eventFlowFile = flowFileRecordMap.get(rawEvent.getFlowFileUuid());
         if (eventFlowFile != null) {
             final StandardRepositoryRecord repoRecord = records.get(eventFlowFile.getId());
 
-            if (repoRecord.getCurrent() != null && repoRecord.getCurrentClaim() != null) {
+            if (updateAttributesAndContent && repoRecord.getCurrent() != null && repoRecord.getCurrentClaim() != null) {
                 final ContentClaim currentClaim = repoRecord.getCurrentClaim();
                 final long currentOffset = repoRecord.getCurrentClaimOffset();
                 final long size = eventFlowFile.getSize();
@@ -1100,7 +1101,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 recordBuilder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(), currentOffset + currentClaim.getOffset(), size);
             }
 
-            if (repoRecord.getOriginal() != null && repoRecord.getOriginalClaim() != null) {
+            if (updateAttributesAndContent && repoRecord.getOriginal() != null && repoRecord.getOriginalClaim() != null) {
                 final ContentClaim originalClaim = repoRecord.getOriginalClaim();
                 final long originalOffset = repoRecord.getOriginal().getContentClaimOffset();
                 final long originalSize = repoRecord.getOriginal().getSize();
@@ -1114,7 +1115,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 recordBuilder.setSourceQueueIdentifier(originalQueue.getIdentifier());
             }
 
-            if (updateAttributes) {
+            if (updateAttributesAndContent) {
                 recordBuilder.setAttributes(repoRecord.getOriginalAttributes(), repoRecord.getUpdatedAttributes());
             }
 
