@@ -174,6 +174,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         verifyReadPermissions(repositoryClient);
 
         final Set<FlowRegistryBucket> buckets = repositoryClient.getTopLevelDirectoryNames(branch).stream()
+                .filter(bucketName -> !bucketName.startsWith("."))
                 .map(bucketName -> createFlowRegistryBucket(repositoryClient, bucketName))
                 .collect(Collectors.toSet());
 
