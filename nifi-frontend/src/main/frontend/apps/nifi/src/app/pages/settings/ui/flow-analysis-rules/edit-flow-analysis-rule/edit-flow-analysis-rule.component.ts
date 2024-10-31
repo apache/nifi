@@ -92,6 +92,11 @@ export class EditFlowAnalysisRule extends TabbedDialog {
             text: 'Enforce',
             value: 'ENFORCE',
             description: 'Treat violations of this rule as errors the correction of which is mandatory.'
+        },
+        {
+            text: 'Warn',
+            value: 'WARN',
+            description: 'Treat violations of this rule as warnings the correction of which is optional.'
         }
     ];
 
@@ -121,7 +126,10 @@ export class EditFlowAnalysisRule extends TabbedDialog {
         this.editFlowAnalysisRuleForm = this.formBuilder.group({
             name: new FormControl(request.flowAnalysisRule.component.name, Validators.required),
             state: new FormControl(request.flowAnalysisRule.component.state === 'STOPPED', Validators.required),
-            enforcementPolicy: new FormControl('ENFORCE', Validators.required),
+            enforcementPolicy: new FormControl(
+                request.flowAnalysisRule.component.enforcementPolicy,
+                Validators.required
+            ),
             properties: new FormControl({ value: properties, disabled: this.readonly }),
             comments: new FormControl(request.flowAnalysisRule.component.comments)
         });

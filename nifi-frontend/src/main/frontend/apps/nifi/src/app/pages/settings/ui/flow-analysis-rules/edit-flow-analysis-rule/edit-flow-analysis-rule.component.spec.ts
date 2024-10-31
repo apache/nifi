@@ -16,6 +16,8 @@
  */
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatSelectHarness } from '@angular/material/select/testing';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 
 import { EditFlowAnalysisRule } from './edit-flow-analysis-rule.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -26,10 +28,12 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 import 'codemirror/addon/hint/show-hint';
 import { MockComponent } from 'ng-mocks';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { HarnessLoader } from '@angular/cdk/testing';
 
 describe('EditFlowAnalysisRule', () => {
     let component: EditFlowAnalysisRule;
     let fixture: ComponentFixture<EditFlowAnalysisRule>;
+    let loader: HarnessLoader;
 
     const data: EditFlowAnalysisRuleDialogRequest = {
         id: 'd5142be7-018c-1000-7105-2b1163fe0355',
@@ -110,10 +114,21 @@ describe('EditFlowAnalysisRule', () => {
         });
         fixture = TestBed.createComponent(EditFlowAnalysisRule);
         component = fixture.componentInstance;
+        loader = TestbedHarnessEnvironment.loader(fixture);
         fixture.detectChanges();
     });
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    describe('Settings Tab', () => {
+        it('should default to selecting enforcementPolicy value passed in as data', () => {
+            loader.getAllHarnesses(MatSelectHarness).then((selectHarnesses) => {
+                selectHarnesses[0].getValueText().then((option) => {
+                    expect(option).toBe('Enforce');
+                });
+            });
+        });
     });
 });
