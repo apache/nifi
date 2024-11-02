@@ -22,13 +22,15 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 
 import { ControllerServiceApiTipInput, DocumentedType, RestrictionsTipInput } from '../../../state/shared';
-import { NifiTooltipDirective, NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
+import { CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
 import { RestrictionsTip } from '../tooltips/restrictions-tip/restrictions-tip.component';
 import { ControllerServiceApiTip } from '../tooltips/controller-service-api-tip/controller-service-api-tip.component';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { ReactiveFormsModule } from '@angular/forms';
+import { anyOf, onLowerCaseFilter } from './filter-predicate/extensions';
+import { matchesCamelCaseSearch } from './filter-predicate/camel-case.search';
 
 @Component({
     selector: 'extension-creation',
@@ -78,6 +80,12 @@ export class ExtensionCreation extends CloseOnEscapeDialog {
 
     constructor(private nifiCommon: NiFiCommon) {
         super();
+
+        const defaultPredicate = this.dataSource.filterPredicate;
+        this.dataSource.filterPredicate = anyOf(
+            (data: DocumentedType, filter: string) => matchesCamelCaseSearch(data.type, filter),
+            onLowerCaseFilter(defaultPredicate)
+        );
     }
 
     formatType(documentedType: DocumentedType): string {
@@ -146,7 +154,7 @@ export class ExtensionCreation extends CloseOnEscapeDialog {
         }
 
         const filterText: string = (event.target as HTMLInputElement).value;
-        this.dataSource.filter = filterText.trim().toLowerCase();
+        this.dataSource.filter = filterText.trim();
 
         if (this.dataSource.filteredData.length > 0) {
             this.selectType(this.dataSource.filteredData[0]);
