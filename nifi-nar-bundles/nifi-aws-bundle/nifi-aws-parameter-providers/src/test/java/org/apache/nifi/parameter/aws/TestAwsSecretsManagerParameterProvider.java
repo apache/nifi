@@ -92,39 +92,39 @@ public class TestAwsSecretsManagerParameterProvider {
     public void testFetchParametersWithNoSecrets() throws InitializationException {
         final List<ParameterGroup> expectedGroups = Collections.singletonList(new ParameterGroup("MySecret", Collections.emptyList()));
         runProviderTest(mockSecretsManager(expectedGroups), 0, ConfigVerificationResult.Outcome.SUCCESSFUL,
-                AwsSecretsManagerParameterProvider.PATTERN_STRATEGY, null);
+                "Pattern", null);
     }
 
     @Test
     public void testFetchParameters() throws InitializationException {
         runProviderTest(mockSecretsManager(mockParameterGroups), 8, ConfigVerificationResult.Outcome.SUCCESSFUL,
-                AwsSecretsManagerParameterProvider.PATTERN_STRATEGY, null);
+                "Pattern", null);
     }
 
     @Test
     public void testFetchSpecificSecret() throws InitializationException {
         runProviderTest(mockSecretsManagerNoList(mockParameterGroups, "MySecret"), 6, ConfigVerificationResult.Outcome.SUCCESSFUL,
-                AwsSecretsManagerParameterProvider.ENUMERATED_STRATEGY, "MySecret");
+                "Enumeration", "MySecret");
     }
 
     @Test
     public void testFetchTwoSecrets() throws InitializationException {
         runProviderTest(mockSecretsManagerNoList(mockParameterGroups, "MySecret,OtherSecret"), 8, ConfigVerificationResult.Outcome.SUCCESSFUL,
-                AwsSecretsManagerParameterProvider.ENUMERATED_STRATEGY, "MySecret,OtherSecret");
+                "Enumeration", "MySecret,OtherSecret");
     }
 
     @Test
     public void testFetchNonExistentSecret() throws InitializationException {
         when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecretDoesNotExist")))).thenThrow(new ResourceNotFoundException("Fake exception"));
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED,
-                AwsSecretsManagerParameterProvider.ENUMERATED_STRATEGY, "BadSecret");
+                "Enumeration", "BadSecret");
     }
 
     @Test
     public void testFetchParametersListFailure() throws InitializationException {
         when(defaultSecretsManager.listSecrets(any())).thenThrow(new AWSSecretsManagerException("Fake exception"));
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED,
-                AwsSecretsManagerParameterProvider.PATTERN_STRATEGY, null);
+                "Pattern", null);
     }
 
     @Test
@@ -135,7 +135,7 @@ public class TestAwsSecretsManagerParameterProvider {
         when(defaultSecretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(null)))).thenReturn(listSecretsResult);
         when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(new AWSSecretsManagerException("Fake exception"));
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED,
-                AwsSecretsManagerParameterProvider.PATTERN_STRATEGY, null);
+                "Pattern", null);
     }
 
     private AwsSecretsManagerParameterProvider getParameterProvider() {

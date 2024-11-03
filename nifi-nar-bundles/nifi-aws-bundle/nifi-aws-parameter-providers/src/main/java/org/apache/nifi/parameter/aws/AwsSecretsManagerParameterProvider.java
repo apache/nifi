@@ -38,6 +38,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -57,6 +58,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -71,21 +73,25 @@ import java.util.regex.Pattern;
         "key/value pairs in the secret mapping to Parameters in the group.")
 public class AwsSecretsManagerParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     enum ListingStrategy implements DescribedValue {
-        ENUMERATION(
+        Enumeration(
+                "Enumeration",
                 "Enumerate secret names",
                 "Provides a set of secret names to fetch, separated by a comma delimiter ','. " +
                         "This strategy requires the GetSecretValue permission only."
         ),
-        PATTERN(
+        Pattern(
+                "Pattern",
                 "Use regular expression",
                 "Provides a regular expression to match keys of attributes to filter for. " +
                         "This strategy requires both ListSecrets and GetSecretValue permissions."
         );
 
         private final String value;
+        private final String displayName;
         private final String description;
 
-        ListingStrategy(final String value, final String description) {
+        ListingStrategy(final String value, final String displayName, final String description) {
+            this.displayName = displayName;
             this.value = value;
             this.description = description;
         }
@@ -97,7 +103,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
         @Override
         public String getDisplayName() {
-            return this.value;
+            return this.displayName;
         }
 
         @Override
@@ -111,7 +117,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .description("Strategy to use when listing secrets.")
             .required(true)
             .allowableValues(ListingStrategy.class)
-            .defaultValue(PATTERN_STRATEGY)
+            .defaultValue(ListingStrategy.Pattern.getValue())
             .build();
 
     public static final PropertyDescriptor SECRET_NAME_PATTERN = new PropertyDescriptor.Builder()
@@ -120,7 +126,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .description("A Regular Expression matching on Secret Name that identifies Secrets whose parameters should be fetched. " +
                     "Any secrets whose names do not match this pattern will not be fetched.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.PATTERN)
+            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.Pattern)
             .required(true)
             .defaultValue(".*")
             .build();
@@ -129,7 +135,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .name("secret-names")
             .displayName("Secret Names")
             .description("Comma-separated list of secret names to fetch.")
-            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.ENUMERATION)
+            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.Enumeration)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -196,13 +202,12 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         final List<ParameterGroup> groups = new ArrayList<>();
 
         // Fetch either by pattern or by enumerated list. See description of SECRET_LISTING_STRATEGY for more details.
-        String listingStrategy = context.getProperty(SECRET_LISTING_STRATEGY).getValue();
-        if (ENUMERATED_STRATEGY.equals(listingStrategy)) {
-            // if secret-name is set, fetch the secrets
+        final String listingStrategy = context.getProperty(SECRET_LISTING_STRATEGY).getValue();
+        final ListingStrategy linstingStrategyType = ListingStrategy.valueOf(listingStrategy);
+        Set<String> secretsToFetch = new java.util.HashSet<>();
+        if (linstingStrategyType == ListingStrategy.Enumeration) {
             String secretNames = context.getProperty(SECRET_NAMES).getValue();
-            for (String secretName : secretNames.split(",")) {
-                groups.addAll(fetchSecret(secretsManager, secretName));
-            }
+            secretsToFetch = new java.util.HashSet<>(Arrays.asList(secretNames.split(",")));
         } else {
             final Pattern secretNamePattern = Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue());
             ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
@@ -214,7 +219,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
                         getLogger().debug("Secret [{}] does not match the secret name pattern {}", secretName, secretNamePattern);
                         continue;
                     }
-                    groups.addAll(fetchSecret(secretsManager, secretName));
+                    secretsToFetch.add(secretName);
                 }
                 final String nextToken = listSecretsResult.getNextToken();
                 if (nextToken == null) {
@@ -224,7 +229,11 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
                 listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
             }
         }
-
+        if(secretsToFetch.size() > 0) {
+            for (String secretName : secretsToFetch) {
+                groups.addAll(fetchSecret(secretsManager, secretName));
+            }
+        }
         return groups;
     }
 
