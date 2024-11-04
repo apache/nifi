@@ -39,6 +39,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -50,13 +51,16 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.ssl.SSLContextService;
 
+import javax.net.ssl.SSLContext;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import javax.net.ssl.SSLContext;
 
 /**
  * Reads secrets from AWS Secrets Manager to provide parameter values.  Secrets must be created similar to the following AWS cli command: <br/><br/>
@@ -68,6 +72,53 @@ import javax.net.ssl.SSLContext;
 @CapabilityDescription("Fetches parameters from AWS SecretsManager.  Each secret becomes a Parameter group, which can map to a Parameter Context, with " +
         "key/value pairs in the secret mapping to Parameters in the group.")
 public class AwsSecretsManagerParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
+    enum ListingStrategy implements DescribedValue {
+        Enumeration(
+                "Enumeration",
+                "Enumerate secret names",
+                "Provides a set of secret names to fetch, separated by a comma delimiter ','. " +
+                        "This strategy requires the GetSecretValue permission only."
+        ),
+        Pattern(
+                "Pattern",
+                "Use regular expression",
+                "Provides a regular expression to match keys of attributes to filter for. " +
+                        "This strategy requires both ListSecrets and GetSecretValue permissions."
+        );
+
+        private final String value;
+        private final String displayName;
+        private final String description;
+
+        ListingStrategy(final String value, final String displayName, final String description) {
+            this.displayName = displayName;
+            this.value = value;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return this.value;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return this.displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return this.description;
+        }
+    }
+    public static final PropertyDescriptor SECRET_LISTING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("secret-listing-strategy")
+            .displayName("Secret Listing Strategy")
+            .description("Strategy to use when listing secrets.")
+            .required(true)
+            .allowableValues(ListingStrategy.class)
+            .defaultValue(ListingStrategy.Pattern.getValue())
+            .build();
 
     public static final PropertyDescriptor SECRET_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("secret-name-pattern")
@@ -75,8 +126,18 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .description("A Regular Expression matching on Secret Name that identifies Secrets whose parameters should be fetched. " +
                     "Any secrets whose names do not match this pattern will not be fetched.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.Pattern)
             .required(true)
             .defaultValue(".*")
+            .build();
+
+    public static final PropertyDescriptor SECRET_NAMES = new PropertyDescriptor.Builder()
+            .name("secret-names")
+            .displayName("Secret Names")
+            .description("Comma-separated list of secret names to fetch.")
+            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.Enumeration)
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     /**
      * AWS credentials provider service
@@ -117,13 +178,15 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     private static final String DEFAULT_USER_AGENT = "NiFi";
     private static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            SECRET_LISTING_STRATEGY,
             SECRET_NAME_PATTERN,
+            SECRET_NAMES,
             REGION,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             TIMEOUT,
             SSL_CONTEXT_SERVICE
-    );
+    ));
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -137,21 +200,40 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         AWSSecretsManager secretsManager = this.configureClient(context);
 
         final List<ParameterGroup> groups = new ArrayList<>();
-        ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
-        ListSecretsResult listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
-        while (!listSecretsResult.getSecretList().isEmpty()) {
-            for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
-                groups.addAll(fetchSecret(secretsManager, context, entry.getName()));
-            }
-            final String nextToken = listSecretsResult.getNextToken();
-            if (nextToken == null) {
-                break;
-            }
 
-            listSecretsRequest.setNextToken(nextToken);
-            listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+        // Fetch either by pattern or by enumerated list. See description of SECRET_LISTING_STRATEGY for more details.
+        final String listingStrategy = context.getProperty(SECRET_LISTING_STRATEGY).getValue();
+        final ListingStrategy linstingStrategyType = ListingStrategy.valueOf(listingStrategy);
+        Set<String> secretsToFetch = new java.util.HashSet<>();
+        if (linstingStrategyType == ListingStrategy.Enumeration) {
+            String secretNames = context.getProperty(SECRET_NAMES).getValue();
+            secretsToFetch = new java.util.HashSet<>(Arrays.asList(secretNames.split(",")));
+        } else {
+            final Pattern secretNamePattern = Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue());
+            ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
+            ListSecretsResult listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+            while (!listSecretsResult.getSecretList().isEmpty()) {
+                for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
+                    String secretName = entry.getName();
+                    if (!secretNamePattern.matcher(secretName).matches()) {
+                        getLogger().debug("Secret [{}] does not match the secret name pattern {}", secretName, secretNamePattern);
+                        continue;
+                    }
+                    secretsToFetch.add(secretName);
+                }
+                final String nextToken = listSecretsResult.getNextToken();
+                if (nextToken == null) {
+                    break;
+                }
+                listSecretsRequest.setNextToken(nextToken);
+                listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+            }
         }
-
+        if (secretsToFetch.size() > 0) {
+            for (String secretName : secretsToFetch) {
+                groups.addAll(fetchSecret(secretsManager, secretName));
+            }
+        }
         return groups;
     }
 
@@ -182,18 +264,13 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         return results;
     }
 
-    private List<ParameterGroup> fetchSecret(final AWSSecretsManager secretsManager, final ConfigurationContext context, final String secretName) {
+    private List<ParameterGroup> fetchSecret(final AWSSecretsManager secretsManager, final String secretName) {
         final List<ParameterGroup> groups = new ArrayList<>();
-        final Pattern secretNamePattern = Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue());
 
         final List<Parameter> parameters = new ArrayList<>();
 
-        if (!secretNamePattern.matcher(secretName).matches()) {
-            getLogger().debug("Secret [{}] does not match the secret name pattern {}", secretName, secretNamePattern);
-            return groups;
-        }
-
         final GetSecretValueRequest getSecretValueRequest = new GetSecretValueRequest().withSecretId(secretName);
+
         try {
             final GetSecretValueResult getSecretValueResult = secretsManager.getSecretValue(getSecretValueRequest);
 
@@ -232,10 +309,10 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     private Parameter createParameter(final String parameterName, final String parameterValue) {
         return new Parameter.Builder()
-            .name(parameterName)
-            .value(parameterValue)
-            .provided(true)
-            .build();
+                .name(parameterName)
+                .value(parameterValue)
+                .provided(true)
+                .build();
     }
 
     protected ClientConfiguration createConfiguration(final ConfigurationContext context) {
