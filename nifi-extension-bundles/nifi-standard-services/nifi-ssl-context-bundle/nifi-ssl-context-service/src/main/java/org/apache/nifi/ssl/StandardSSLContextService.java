@@ -30,6 +30,7 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -42,7 +43,10 @@ import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.StringUtils;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.File;
@@ -58,6 +62,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
+
+
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
 @CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
         + "keystore and/or truststore properties once and reuse that configuration throughout the application. "
@@ -69,6 +76,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final String TLS_PROTOCOL = "TLS";
 
     public static final String SSL_PROTOCOL = "SSL";
+
+    public static final String TRUSTED_HOSTNAME = "Trusted Hostname";
 
     public static final PropertyDescriptor TRUSTSTORE = new PropertyDescriptor.Builder()
             .name("Truststore Filename")
@@ -131,6 +140,14 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .sensitive(false)
             .build();
 
+    public static final PropertyDescriptor TRUST_HOSTNAME = new PropertyDescriptor.Builder()
+            .name(TRUSTED_HOSTNAME)
+            .displayName(TRUSTED_HOSTNAME)
+            .required(false)
+            .description("Trusted Hostname")
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .build();
+
     private static final List<PropertyDescriptor> properties = List.of(
             KEYSTORE,
             KEYSTORE_PASSWORD,
@@ -139,7 +156,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             TRUSTSTORE,
             TRUSTSTORE_PASSWORD,
             TRUSTSTORE_TYPE,
-            SSL_ALGORITHM
+            SSL_ALGORITHM,
+            TRUST_HOSTNAME
     );
 
     protected ConfigurationContext configContext;
@@ -247,13 +265,23 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             getLogger().warn("Trust Store properties not found: using platform default Certificate Authorities");
         }
 
+        SSLContext sslContext;
         try {
             final TrustManager[] trustManagers = SslContextFactory.getTrustManagers(tlsConfiguration);
-            return SslContextFactory.createSslContext(tlsConfiguration, trustManagers);
+            sslContext = SslContextFactory.createSslContext(tlsConfiguration, trustManagers);
+
         } catch (final TlsException e) {
             getLogger().error("Unable to create SSLContext: {}", e.getLocalizedMessage());
             throw new ProcessException("Unable to create SSLContext", e);
         }
+
+        String trustedHostname = trimToEmpty(configContext.getProperty(TRUST_HOSTNAME).getValue());
+        if (!trustedHostname.isEmpty()) {
+            getLogger().warn("Override hostnameVerifier since " + TRUSTED_HOSTNAME + " is configured");
+            HttpsURLConnection.setDefaultHostnameVerifier(new OverrideHostnameVerifier(trustedHostname));
+        }
+
+        return sslContext;
     }
 
     /**
@@ -580,6 +608,28 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             }
         } catch (final Exception e) {
             return false;
+        }
+    }
+
+    static class OverrideHostnameVerifier implements HostnameVerifier {
+
+        private final String trustedHostname;
+
+        OverrideHostnameVerifier(String trustedHostname) {
+            this.trustedHostname = trustedHostname;
+        }
+
+        @Override
+        public boolean verify(String hostname, SSLSession session) {
+            if (!trustedHostname.isEmpty()) {
+                if (trustedHostname.equalsIgnoreCase(hostname)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return true;
+            }
         }
     }
 }
