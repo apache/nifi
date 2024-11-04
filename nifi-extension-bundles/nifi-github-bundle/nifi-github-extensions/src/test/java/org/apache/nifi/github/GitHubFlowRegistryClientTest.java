@@ -52,6 +52,7 @@ public class GitHubFlowRegistryClientTest {
 
     static final String DEFAULT_REPO_PATH = "some-path";
     static final String DEFAULT_REPO_BRANCH = "some-branch";
+    static final String DEFAULT_FILTER = "[.].*";
 
     private GitHubRepositoryClient repositoryClient;
     private FlowSnapshotSerializer flowSnapshotSerializer;
@@ -74,7 +75,14 @@ public class GitHubFlowRegistryClientTest {
 
         when(repositoryClient.hasReadPermission()).thenReturn(true);
         when(repositoryClient.hasWritePermission()).thenReturn(true);
-        when(repositoryClient.getTopLevelDirectoryNames(anyString())).thenReturn(Set.of("existing-bucket"));
+        when(repositoryClient.getTopLevelDirectoryNames(anyString())).thenReturn(Set.of("existing-bucket", ".github"));
+    }
+
+    @Test
+    public void testDirExclusion() throws IOException, FlowRegistryException {
+        setupClientConfigurationContextWithDefaults();
+        final Set<FlowRegistryBucket> buckets = flowRegistryClient.getBuckets(clientConfigurationContext, DEFAULT_REPO_BRANCH);
+        assertEquals(buckets.stream().filter(b -> b.getName().equals(".github")).count(), 0);
     }
 
     @Test
@@ -169,6 +177,9 @@ public class GitHubFlowRegistryClientTest {
 
         final PropertyValue branchPropertyValue = createMockPropertyValue(branch);
         when(clientConfigurationContext.getProperty(GitHubFlowRegistryClient.REPOSITORY_BRANCH)).thenReturn(branchPropertyValue);
+
+        final PropertyValue filterPropertyValue = createMockPropertyValue(DEFAULT_FILTER);
+        when(clientConfigurationContext.getProperty(GitHubFlowRegistryClient.DIRECTORY_FILTER_EXCLUDE)).thenReturn(filterPropertyValue);
     }
 
     private void setupClientConfigurationContextWithDefaults() {

@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -83,6 +84,15 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             .required(false)
             .build();
 
+    public static final PropertyDescriptor DIRECTORY_FILTER_EXCLUDE = new PropertyDescriptor.Builder()
+            .name("Directory Filter Exclusion")
+            .description("Directories whose names match the given regular expression will be ignored "
+                    + "when listing buckets.")
+            .defaultValue("[.].*")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .required(true)
+            .build();
+
     static final String DEFAULT_BUCKET_NAME = "default";
     static final String DEFAULT_BUCKET_KEEP_FILE_PATH = DEFAULT_BUCKET_NAME + "/.keep";
     static final String DEFAULT_BUCKET_KEEP_FILE_CONTENT = "Do Not Delete";
@@ -98,6 +108,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
 
     private volatile FlowSnapshotSerializer flowSnapshotSerializer;
     private volatile GitRepositoryClient repositoryClient;
+    private volatile Pattern directoryExclusionPattern;
     private final AtomicBoolean clientInitialized = new AtomicBoolean(false);
 
     private volatile List<PropertyDescriptor> propertyDescriptors;
@@ -109,6 +120,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final List<PropertyDescriptor> combinedPropertyDescriptors = new ArrayList<>(createPropertyDescriptors());
         combinedPropertyDescriptors.add(REPOSITORY_BRANCH);
         combinedPropertyDescriptors.add(REPOSITORY_PATH);
+        combinedPropertyDescriptors.add(DIRECTORY_FILTER_EXCLUDE);
         propertyDescriptors = Collections.unmodifiableList(combinedPropertyDescriptors);
 
         flowSnapshotSerializer = createFlowSnapshotSerializer();
@@ -174,6 +186,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         verifyReadPermissions(repositoryClient);
 
         final Set<FlowRegistryBucket> buckets = repositoryClient.getTopLevelDirectoryNames(branch).stream()
+                .filter(bucketName -> !directoryExclusionPattern.matcher(bucketName).matches())
                 .map(bucketName -> createFlowRegistryBucket(repositoryClient, bucketName))
                 .collect(Collectors.toSet());
 
@@ -568,6 +581,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             repositoryClient = createRepositoryClient(context);
             clientInitialized.set(true);
             initializeDefaultBucket(context);
+            directoryExclusionPattern = Pattern.compile(context.getProperty(DIRECTORY_FILTER_EXCLUDE).getValue());
         }
         return repositoryClient;
     }
