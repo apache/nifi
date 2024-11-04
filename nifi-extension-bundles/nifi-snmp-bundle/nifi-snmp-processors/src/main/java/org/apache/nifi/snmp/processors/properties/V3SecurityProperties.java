@@ -43,10 +43,6 @@ public class V3SecurityProperties {
             "Communication with authentication and privacy.");
 
     // SNMPv3 authentication protocols
-    public static final AllowableValue MD5 = new AllowableValue("MD5", "MD5",
-            "Provides authentication based on the HMAC-MD5 algorithm.");
-    public static final AllowableValue SHA = new AllowableValue("SHA", "SHA",
-            "Provides authentication based on the HMAC-SHA algorithm.");
     public static final AllowableValue HMAC128SHA224 = new AllowableValue("HMAC128SHA224", "SHA224",
             SHA_2_ALGORITHM);
     public static final AllowableValue HMAC192SHA256 = new AllowableValue("HMAC192SHA256", "SHA256",
@@ -59,10 +55,7 @@ public class V3SecurityProperties {
     // SNMPv3 encryption
     public static final AllowableValue DES = new AllowableValue("DES", "DES",
             "Symmetric-key algorithm for the encryption of digital data. DES has been considered insecure" +
-                    "because of the feasilibity of brute-force attacks. We recommend using the AES encryption protocol.");
-    public static final AllowableValue DES3 = new AllowableValue("3DES", "3DES",
-            "Symmetric-key block cipher, which applies the DES cipher algorithm three times to each data block." +
-                    " 3DES has been considered insecure has been deprecated by NIST in 2017. We recommend using the AES encryption protocol.");
+                    " because of the feasibility of brute-force attacks. We recommend using the AES encryption protocol.");
 
     public static final AllowableValue AES128 = new AllowableValue("AES128", "AES128", AES_DESCRIPTION);
     public static final AllowableValue AES192 = new AllowableValue("AES192", "AES192", AES_DESCRIPTION);
@@ -95,7 +88,7 @@ public class V3SecurityProperties {
             .displayName("SNMP Authentication Protocol")
             .description("Hash based authentication protocol for secure authentication.")
             .required(true)
-            .allowableValues(MD5, SHA, HMAC128SHA224, HMAC192SHA256, HMAC256SHA384, HMAC384SHA512)
+            .allowableValues(HMAC128SHA224, HMAC192SHA256, HMAC256SHA384, HMAC384SHA512)
             .dependsOn(SNMP_SECURITY_LEVEL, AUTH_NO_PRIV, AUTH_PRIV)
             .build();
 
@@ -114,7 +107,7 @@ public class V3SecurityProperties {
             .displayName("SNMP Privacy Protocol")
             .description("Privacy allows for encryption of SNMP v3 messages to ensure confidentiality of data.")
             .required(true)
-            .allowableValues(DES, DES3, AES128, AES192, AES256)
+            .allowableValues(DES, AES128, AES192, AES256)
             .dependsOn(SNMP_SECURITY_LEVEL, AUTH_PRIV)
             .build();
 
