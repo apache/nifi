@@ -42,7 +42,7 @@
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-salesforce</artifactId>
-            <version>3.22.2</version>
+            <version>4.8.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
@@ -56,7 +56,7 @@
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-jsonSchema</artifactId>
+            <artifactId>jackson-module-jsonSchema-jakarta</artifactId>
         </dependency>
         <!-- Provided from parent nar -->
         <dependency>
