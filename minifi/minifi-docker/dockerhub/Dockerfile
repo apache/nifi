@@ -41,7 +41,7 @@ RUN apt-get update \
     && apt-get install -y zip \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fSL "${MINIFI_BINARY_URL}" -o "${MINIFI_BASE_DIR}/${MINIFI_BINARY}" \
-    && echo "$(curl ${MINIFI_BINARY_URL}.sha256) *${MINIFI_BASE_DIR}/${MINIFI_BINARY}" | sha256sum -c - \
+    && echo "$(curl ${MINIFI_BINARY_URL}.sha512) *${MINIFI_BASE_DIR}/${MINIFI_BINARY}" | sha512sum -c - \
     && unzip "${MINIFI_BASE_DIR}/${MINIFI_BINARY}" -d "${MINIFI_BASE_DIR}" \
     && rm "${MINIFI_BASE_DIR}/${MINIFI_BINARY}" \
     && groupadd -g ${GID} minifi \

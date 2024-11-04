@@ -46,7 +46,7 @@ RUN chmod -R +x ${NIFI_TOOLKIT_BASE_DIR}/scripts/*.sh \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
     && mkdir -p ${NIFI_TOOLKIT_BASE_DIR} \
     && curl -fSL ${NIFI_TOOLKIT_BINARY_URL} -o ${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY} \
-    && echo "$(curl ${NIFI_TOOLKIT_BINARY_URL}.sha256) *${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY}" | sha256sum -c - \
+    && echo "$(curl ${NIFI_TOOLKIT_BINARY_URL}.sha512) *${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY}" | sha512sum -c - \
     && unzip ${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY} -d ${NIFI_TOOLKIT_BASE_DIR} \
     && rm ${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY} \
     && chown -R nifi:nifi ${NIFI_TOOLKIT_BASE_DIR}
