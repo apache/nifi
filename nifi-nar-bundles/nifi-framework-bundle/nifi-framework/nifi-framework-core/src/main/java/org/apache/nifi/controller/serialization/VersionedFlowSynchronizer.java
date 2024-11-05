@@ -116,7 +116,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -802,12 +801,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final Map<String, String> currentValues = new HashMap<>();
         parameterContext.getParameters().values().forEach(param -> currentValues.put(param.getDescriptor().getName(), param.getValue()));
-
-        if (logger.isDebugEnabled()) {
-            final Map<String, String> proposedValues = parameters.entrySet().stream()
-                    .collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getValue()));
-            logger.debug("For Parameter Context {}, current parameters = {}, proposed = {}", parameterContext.getName(), currentValues, proposedValues);
-        }
 
         final Map<String, Parameter> updatedParameters = new HashMap<>();
         final Set<String> proposedParameterNames = new HashSet<>();
