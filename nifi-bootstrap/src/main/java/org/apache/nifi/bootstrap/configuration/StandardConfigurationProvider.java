@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.bootstrap.configuration;
 
+import static java.util.function.Predicate.not;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -63,7 +65,7 @@ public class StandardConfigurationProvider implements ConfigurationProvider {
 
     /**
      * Get additional arguments for application command from Bootstrap Properties starting with java.arg
-     * Return the list sorted by java.arg names (not values) in ascending alphabetical order
+     * Return the list sorted by java.arg names in ascending alphabetical order
      *
      * @return Additional arguments
      */
@@ -71,9 +73,9 @@ public class StandardConfigurationProvider implements ConfigurationProvider {
     public List<String> getAdditionalArguments() {
         return bootstrapProperties.stringPropertyNames().stream()
                 .filter(name -> name.startsWith(BootstrapProperty.JAVA_ARGUMENT.getProperty()))
-                .filter(name -> !bootstrapProperties.getProperty(name).isBlank())
                 .sorted()
                 .map(bootstrapProperties::getProperty)
+                .filter(not(String::isBlank))
                 .toList();
     }
 
