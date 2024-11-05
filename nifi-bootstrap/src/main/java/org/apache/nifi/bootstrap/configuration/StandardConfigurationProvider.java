@@ -24,13 +24,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 /**
  * Standard implementation of Configuration Provider based on NIFI_HOME environment variable base directory
@@ -71,12 +69,12 @@ public class StandardConfigurationProvider implements ConfigurationProvider {
      */
     @Override
     public List<String> getAdditionalArguments() {
-        return new ArrayList<>(bootstrapProperties.stringPropertyNames()).stream()
+        return bootstrapProperties.stringPropertyNames().stream()
                 .filter(name -> name.startsWith(BootstrapProperty.JAVA_ARGUMENT.getProperty()))
                 .filter(name -> !bootstrapProperties.getProperty(name).isBlank())
                 .sorted()
                 .map(bootstrapProperties::getProperty)
-                .collect(Collectors.toCollection(ArrayList::new));
+                .toList();
     }
 
     /**
