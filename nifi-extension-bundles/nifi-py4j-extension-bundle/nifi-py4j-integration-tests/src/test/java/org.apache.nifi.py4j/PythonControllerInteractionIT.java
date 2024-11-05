@@ -679,6 +679,7 @@ public class PythonControllerInteractionIT {
         runner.run();
 
         runner.assertTransferCount("success", 1);
+        runner.getFlowFilesForRelationship("success").get(0).assertAttributeEquals("exception_msg", "Set state failed");
     }
 
     public interface StringLookupService extends ControllerService {

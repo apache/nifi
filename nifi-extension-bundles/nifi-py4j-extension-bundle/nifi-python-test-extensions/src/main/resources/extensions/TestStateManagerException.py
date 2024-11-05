@@ -28,15 +28,13 @@ class TestStateManagerException(FlowFileSource):
     def __init__(self, **kwargs):
         pass
 
-    def getPropertyDescriptors(self):
-        return self.property_descriptors
-
     def create(self, context):
         state_manager = context.getStateManager()
+        flowfile_attributes = None
         try:
             new_state = {'state_key_1': 'state_value_1'}
             state_manager.setState(new_state, Scope.CLUSTER)
         except StateException as state_exception:
-            pass
+            flowfile_attributes = {'exception_msg': str(state_exception)}
 
-        return FlowFileSourceResult(relationship='success', attributes=None, contents='Output FlowFile Contents')
+        return FlowFileSourceResult(relationship='success', attributes=flowfile_attributes, contents='Output FlowFile Contents')

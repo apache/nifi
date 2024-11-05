@@ -49,6 +49,9 @@ class StateManager:
     The methods in Java StateManager have corresponding methods in this class.
     Each method in this class propagates the method call to the Java StateManager object.
     Each method may raise StateException in case the Java object fails to execute the particular operation.
+    When an operation fails on the Java side, a Py4JJavaError is produced on the Python side by the Py4J bridge.
+    The Py4JJavaError is caught in the Python StateManager and a new StateException instance is raised,
+    indicating that the exception carries information regarding an error when accessing the state.
     """
 
     _java_state_manager = None
@@ -67,7 +70,7 @@ class StateManager:
         try:
             self._java_state_manager.setState(convert_pydict_to_jmap(state), convert_pyscope_to_jscope(scope))
         except Py4JJavaError as exception:
-            raise StateException(str(exception)) from None
+            raise StateException("Set state failed") from exception
 
     def getState(self, scope):
         """
@@ -78,7 +81,7 @@ class StateManager:
             java_statemap = self._java_state_manager.getState(convert_pyscope_to_jscope(scope))
             return StateMap(java_statemap)
         except Py4JJavaError as exception:
-            raise StateException(str(exception)) from None
+            raise StateException('Get state failed') from exception
 
     def replace(self, oldValue, newValue, scope):
         """
@@ -89,7 +92,7 @@ class StateManager:
         try:
             self._java_state_manager.replace(oldValue.get_java_statemap(), convert_pydict_to_jmap(newValue), convert_pyscope_to_jscope(scope))
         except Py4JJavaError as exception:
-            raise StateException(str(exception)) from None
+            raise StateException('Replace state failed') from exception
 
     def clear(self, scope):
         """
@@ -98,7 +101,7 @@ class StateManager:
         try:
             self._java_state_manager.clear(convert_pyscope_to_jscope(scope))
         except Py4JJavaError as exception:
-            raise StateException(str(exception)) from None
+            raise StateException('Clear state failed') from exception
 
 
 class StateMap:
@@ -111,21 +114,21 @@ class StateMap:
     """
 
     _java_statemap = None
+    _state_version = None
 
     def __init__(self, java_statemap):
         """
         :param java_statemap: Java StateMap object.
         """
         self._java_statemap = java_statemap
+        if not java_statemap.getStateVersion().isEmpty():
+            self._state_version = java_statemap.getStateVersion().get()
 
     def getStateVersion(self):
         """
         :return: (int) Integer value of the state version, or None if it is not set.
         """
-        if self._java_statemap.getStateVersion().isEmpty():
-            return None
-        else:
-            return self._java_statemap.getStateVersion().get()
+        return self._state_version
 
     def get(self, key):
         """
@@ -135,12 +138,6 @@ class StateMap:
         return self._java_statemap.get(key)
 
     def toMap(self):
-        """
-        :return: (dict) Python dictionary representation of the state.
-        """
-        return self.to_dictionary()
-
-    def to_dictionary(self):
         """
         :return: (dict) Python dictionary representation of the state.
         """
@@ -163,9 +160,4 @@ class StateMap:
 class StateException(Exception):
     """
     Exception class for any exception produced by the operations in StateManager.
-
-    The StateManager Python class propagates the method calls to the underlying Java StateManager object.
-    When an operation fails on the Java side, a Py4JJavaError is produced on the Python side by the Py4J bridge.
-    This Py4JJavaError is caught in the Python StateManager and raised as a StateException instead,
-    indicating that the exception carries information regarding an error when accessing the state.
     """
