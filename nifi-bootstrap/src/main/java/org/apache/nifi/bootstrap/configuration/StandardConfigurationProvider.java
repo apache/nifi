@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 /**
  * Standard implementation of Configuration Provider based on NIFI_HOME environment variable base directory
@@ -64,23 +65,18 @@ public class StandardConfigurationProvider implements ConfigurationProvider {
 
     /**
      * Get additional arguments for application command from Bootstrap Properties starting with java.arg
+     * Return the list sorted by java.arg names (not values) in ascending alphabetical order
      *
      * @return Additional arguments
      */
     @Override
     public List<String> getAdditionalArguments() {
-        final List<String> additionalArguments = new ArrayList<>();
-
-        for (final String propertyName : bootstrapProperties.stringPropertyNames()) {
-            if (propertyName.startsWith(BootstrapProperty.JAVA_ARGUMENT.getProperty())) {
-                final String additionalArgument = bootstrapProperties.getProperty(propertyName);
-                if (!additionalArgument.isBlank()) {
-                    additionalArguments.add(additionalArgument);
-                }
-            }
-        }
-
-        return additionalArguments;
+        return new ArrayList<>(bootstrapProperties.stringPropertyNames()).stream()
+                .filter(name -> name.startsWith(BootstrapProperty.JAVA_ARGUMENT.getProperty()))
+                .filter(name -> !bootstrapProperties.getProperty(name).isBlank())
+                .sorted()
+                .map(bootstrapProperties::getProperty)
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
