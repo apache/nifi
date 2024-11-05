@@ -109,5 +109,12 @@
             <fileMode>0644</fileMode>
             <filtered>true</filtered>
         </file>
+        <file>
+            <source>./DISCLAIMER</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>DISCLAIMER</destName>
+            <fileMode>0644</fileMode>
+            <filtered>true</filtered>
+        </file>
     </files>
 </assembly>
