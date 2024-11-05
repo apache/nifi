@@ -73,20 +73,17 @@ import java.util.regex.Pattern;
         "key/value pairs in the secret mapping to Parameters in the group.")
 public class AwsSecretsManagerParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     enum ListingStrategy implements DescribedValue {
-        Enumeration(
-                "Enumeration",
-                "Enumerate secret names",
+        ENUMERATION(
+                "Enumerate Secret Names",
                 "Provides a set of secret names to fetch, separated by a comma delimiter ','. " +
                         "This strategy requires the GetSecretValue permission only."
         ),
-        Pattern(
-                "Pattern",
-                "Use regular expression",
+        PATTERN(
+                "Match Regular Expression",
                 "Provides a regular expression to match keys of attributes to filter for. " +
                         "This strategy requires both ListSecrets and GetSecretValue permissions."
         );
 
-        private final String value;
         private final String displayName;
         private final String description;
 
@@ -98,7 +95,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
         @Override
         public String getValue() {
-            return this.value;
+            return name();
         }
 
         @Override
@@ -117,7 +114,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .description("Strategy to use when listing secrets.")
             .required(true)
             .allowableValues(ListingStrategy.class)
-            .defaultValue(ListingStrategy.Pattern.getValue())
+            .defaultValue(ListingStrategy.PATTERN)
             .build();
 
     public static final PropertyDescriptor SECRET_NAME_PATTERN = new PropertyDescriptor.Builder()
@@ -202,12 +199,11 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         final List<ParameterGroup> groups = new ArrayList<>();
 
         // Fetch either by pattern or by enumerated list. See description of SECRET_LISTING_STRATEGY for more details.
-        final String listingStrategy = context.getProperty(SECRET_LISTING_STRATEGY).getValue();
-        final ListingStrategy linstingStrategyType = ListingStrategy.valueOf(listingStrategy);
+        final ListingStrategy listingStrategy = context.getProperty(SECRET_LISTING_STRATEGY).asAllowableValue(ListingStrategy.class);
         Set<String> secretsToFetch = new java.util.HashSet<>();
         if (linstingStrategyType == ListingStrategy.Enumeration) {
             String secretNames = context.getProperty(SECRET_NAMES).getValue();
-            secretsToFetch = new java.util.HashSet<>(Arrays.asList(secretNames.split(",")));
+            secretsToFetch = new HashSet<>(Arrays.asList(secretNames.split(",")));
         } else {
             final Pattern secretNamePattern = Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue());
             ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
