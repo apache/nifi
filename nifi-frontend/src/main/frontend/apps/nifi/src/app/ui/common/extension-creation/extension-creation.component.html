@@ -15,23 +15,26 @@
   ~ limitations under the License.
   -->
 <div class="extension-creation-dialog" (keyup)="navigateSelectionList($event)">
-    <div class="flex justify-between items-center">
-        <h2 mat-dialog-title>Add {{ componentType }}</h2>
-        <div class="pt-5 pr-5">
-            <mat-form-field>
-                <mat-label>Filter types</mat-label>
-                <input
-                    matInput
-                    class="px-1.5 py-1 w-64"
-                    type="text"
-                    (keyup)="filterTypes($event)"
-                    tabindex="0"
-                    placeholder="Filter types..." />
-            </mat-form-field>
-        </div>
-    </div>
+    <h2 mat-dialog-title>Add {{ componentType }}</h2>
     <mat-dialog-content>
-        <div class="flex flex-col dialog-content">
+        <div class="flex flex-col dialog-content gap-y-2">
+            <div class="flex flex-col gap-y-2">
+                <div class="flex items-center">
+                    <mat-form-field subscriptSizing="dynamic" class="mt-1">
+                        <mat-label>Filter types</mat-label>
+                        <input
+                            matInput
+                            class="px-1.5 py-1 w-64"
+                            type="text"
+                            (keyup)="filterTypes($event)"
+                            tabindex="0"
+                            placeholder="Filter types..." />
+                    </mat-form-field>
+                </div>
+                <div class="tertiary-color font-medium">
+                    <div>Showing {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}</div>
+                </div>
+            </div>
             <div class="listing-table select-none flex-1 relative">
                 <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
                     <table
@@ -102,7 +105,7 @@
                     </table>
                 </div>
             </div>
-            <div class="flex flex-col pt-3">
+            <div class="flex flex-col">
                 @if (selectedType) {
                     <div class="flex items-center mb-1">
                         <div
