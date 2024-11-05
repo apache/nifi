@@ -1,0 +1,16 @@
+DISCLAIMER
+
+The Apache NiFi 1.x release line can no longer be reliably updated
+due to changes in the support life cycle of critical components
+the NiFi 1.x line is tied to.
+
+These no longer maintainable components include Java itself, Spring Framework,
+Jetty, and many other smaller but important libraries which have moved to
+newer JDK versions and have reached end of life or end of support for the
+dependencies we rely on.  The UI and front-end code is also built on very
+legacy frameworks and is not maintainable as-is from a vulnerability
+point of view.
+
+All users are encouraged to migrate to Apache NiFi 2.x where all of these
+key dependencies have been upgraded or completely rewritten to their latest
+forms and we are able to effectively address such reports or findings.
