@@ -55,6 +55,7 @@ import javax.net.ssl.SSLContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -87,9 +88,8 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         private final String displayName;
         private final String description;
 
-        ListingStrategy(final String value, final String displayName, final String description) {
+        ListingStrategy(final String displayName, final String description) {
             this.displayName = displayName;
-            this.value = value;
             this.description = description;
         }
 
@@ -123,7 +123,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .description("A Regular Expression matching on Secret Name that identifies Secrets whose parameters should be fetched. " +
                     "Any secrets whose names do not match this pattern will not be fetched.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.Pattern)
+            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.PATTERN)
             .required(true)
             .defaultValue(".*")
             .build();
@@ -132,7 +132,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .name("secret-names")
             .displayName("Secret Names")
             .description("Comma-separated list of secret names to fetch.")
-            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.Enumeration)
+            .dependsOn(SECRET_LISTING_STRATEGY, ListingStrategy.ENUMERATION)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -175,7 +175,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     private static final String DEFAULT_USER_AGENT = "NiFi";
     private static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             SECRET_LISTING_STRATEGY,
             SECRET_NAME_PATTERN,
             SECRET_NAMES,
@@ -183,7 +183,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             TIMEOUT,
             SSL_CONTEXT_SERVICE
-    ));
+    );
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -201,7 +201,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         // Fetch either by pattern or by enumerated list. See description of SECRET_LISTING_STRATEGY for more details.
         final ListingStrategy listingStrategy = context.getProperty(SECRET_LISTING_STRATEGY).asAllowableValue(ListingStrategy.class);
         Set<String> secretsToFetch = new java.util.HashSet<>();
-        if (linstingStrategyType == ListingStrategy.Enumeration) {
+        if (listingStrategy == ListingStrategy.ENUMERATION) {
             String secretNames = context.getProperty(SECRET_NAMES).getValue();
             secretsToFetch = new HashSet<>(Arrays.asList(secretNames.split(",")));
         } else {
