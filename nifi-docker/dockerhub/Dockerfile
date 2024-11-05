@@ -54,14 +54,15 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     # # --------------------
     && chown -R nifi:nifi ${NIFI_BASE_DIR} \
     && apt-get update \
-    && apt-get install -y jq xmlstarlet procps python3 python3-pip curl wget \
+    && apt-get install -y jq xmlstarlet procps python3 python3-pip curl wget ffmpeg liblzma-dev \
+    && apt-get update 
     # --------------------
-    && pip3 install selenium webdriver-manager \
+    # && pip3 install selenium webdriver-manager \
     # && apt-get install -y selenium webdriver-manager \
     # --------------------
-    && pip install --upgrade numpy==1.21.6 \
-    && pip install spacy==3.5.1 \
-    && python3 -m spacy download en_core_web_md 
+    # && pip install --upgrade numpy==1.23.3 \
+    # && pip install spacy==3.5.1 \
+    # && python3 -m spacy download en_core_web_md 
 # ------------------------------------
     # && mkdir -p $NIFI_HOME/bin \
     # && chown nifi:nifi $NIFI_HOME/bin
@@ -70,12 +71,12 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
 # Download and install ChromeDriver
 # RUN wget https://chromedriver.storage.googleapis.com/99.0.4844.51/chromedriver_linux64.zip && \
 # Download and install ChromeDriver
-RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chromedriver-linux64.zip && \
-    unzip chromedriver-linux64.zip && \
-    ls -l && \ 
-    mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
-    ls -l /usr/local/bin/ && \
-    chmod +x /usr/local/bin/chromedriver
+# RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chromedriver-linux64.zip && \
+#     unzip chromedriver-linux64.zip && \
+#     ls -l && \ 
+#     mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+#     ls -l /usr/local/bin/ && \
+#     chmod +x /usr/local/bin/chromedriver
 
     #  unzip chromedriver_linux64.zip && \ chromedriver-linux64
     #  mv chromedriver /usr/local/bin/chromedriver && \
@@ -84,7 +85,7 @@ RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.
 
 # Install Chrome dependencies
 RUN apt-get update && \
-    apt-get install -y gnupg ca-certificates && \
+    apt-get install -y gnupg ca-certificates wget unzip && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Chrome
@@ -92,11 +93,32 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
     echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
     apt-get update && \
     apt-get install -y google-chrome-stable && \
-    which google-chrome && \
     rm -rf /var/lib/apt/lists/*
+
+# Grant execute permissions on chromedriver
+RUN mkdir -p /home/nifi/chromedriver && \
+    chmod +xw /home/nifi/chromedriver && \
+    chown -R nifi:nifi /home/nifi/chromedriver
+
+# Install Python dependencies including chromedriver-autoinstaller
+RUN pip3 install --upgrade numpy==1.23.3 spacy==3.5.1 selenium webdriver-manager chromedriver-autoinstaller && \
+    python3 -m spacy download en_core_web_md
+
+# # Fetch Chrome's major version and dynamically download matching ChromeDriver
+# RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1) && \
+#     wget -q "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/linux64/chromedriver-linux64.zip" -O chromedriver.zip && \
+#     unzip chromedriver.zip && \
+#     mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+#     chmod +x /usr/local/bin/chromedriver && \
+#     rm -f chromedriver.zip
 
 # (Optional) Set headless Chrome options
 ENV CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --ignore-certificate-errors --disable-gpu"
+
+# # Ensure Python dependencies
+# RUN pip3 install --upgrade numpy==1.23.3 spacy==3.5.1 && \
+#     python3 -m spacy download en_core_web_md && \
+#     pip3 install selenium webdriver-manager
 
 # ------------------------------------
 

@@ -1,5 +1,5 @@
 mysql-connector-python==8.0.22
-pandas==1.5.0
+pandas==1.2.0
 requests==2.27.1
 yake
 rake-nltk
