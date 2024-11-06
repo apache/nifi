@@ -25,6 +25,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalQueries;
+import java.time.temporal.TemporalQuery;
 import java.util.Date;
 import java.util.Optional;
 
@@ -33,6 +35,8 @@ import java.util.Optional;
  */
 class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalDateTime> {
     private static final long YEAR_TEN_THOUSAND = 253_402_300_800_000L;
+
+    private static final TemporalQuery<LocalDateTime> LOCAL_DATE_TIME_TEMPORAL_QUERY = new LocalDateTimeQuery();
 
     /**
      * Convert Object field to java.sql.Timestamp using optional format supported in DateTimeFormatter
@@ -73,7 +77,7 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
                 if (pattern.isPresent()) {
                     final DateTimeFormatter formatter = DateTimeFormatterRegistry.getDateTimeFormatter(pattern.get());
                     try {
-                        return parseLocalDateTime(field, name, string, formatter);
+                        return formatter.parse(string, LOCAL_DATE_TIME_TEMPORAL_QUERY);
                     } catch (final DateTimeParseException e) {
                         return tryParseAsNumber(string, name);
                     }
@@ -86,24 +90,6 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
         }
 
         throw new FieldConversionException(LocalDateTime.class, field, name);
-    }
-
-    private LocalDateTime parseLocalDateTime(final Object field, final String name, final String string, final DateTimeFormatter formatter) {
-        final LocalDateTime parsed;
-
-        // Attempt ZonedDateTime parsing before LocalDateTime to handle zone offsets
-        final TemporalAccessor resolved = formatter.parseBest(string, ZonedDateTime::from, LocalDateTime::from);
-        if (resolved instanceof ZonedDateTime zonedDateTime) {
-            // Convert Instant to LocalDateTime using system default zone offset to incorporate adjusted hours and minutes
-            final Instant instant = zonedDateTime.toInstant();
-            parsed = ofInstant(instant);
-        } else if (resolved instanceof LocalDateTime localDateTime) {
-            parsed = localDateTime;
-        } else {
-            throw new FieldConversionException(LocalDateTime.class, field, name);
-        }
-
-        return parsed;
     }
 
     private LocalDateTime tryParseAsNumber(final String value, final String fieldName) {
@@ -149,7 +135,28 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
         return ofInstant(instant);
     }
 
-    private LocalDateTime ofInstant(final Instant instant) {
+    private static LocalDateTime ofInstant(final Instant instant) {
         return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+    }
+
+    private static class LocalDateTimeQuery implements TemporalQuery<LocalDateTime> {
+
+        @Override
+        public LocalDateTime queryFrom(final TemporalAccessor temporal) {
+            final LocalDateTime localDateTime;
+
+            // Query for ZoneId or ZoneOffset to determine time zone handling
+            final ZoneId zoneId = temporal.query(TemporalQueries.zone());
+            if (zoneId == null) {
+                localDateTime = LocalDateTime.from(temporal);
+            } else {
+                final ZonedDateTime zonedDateTime = ZonedDateTime.from(temporal);
+                // Convert Instant to LocalDateTime using system default zone offset to incorporate adjusted hours and minutes
+                final Instant instant = zonedDateTime.toInstant();
+                localDateTime = ofInstant(instant);
+            }
+
+            return localDateTime;
+        }
     }
 }
