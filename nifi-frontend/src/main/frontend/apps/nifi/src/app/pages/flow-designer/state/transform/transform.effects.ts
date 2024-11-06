@@ -19,13 +19,14 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as TransformActions from './transform.actions';
-import { map, tap } from 'rxjs';
+import { map, of, switchMap, tap } from 'rxjs';
 import { Storage } from '@nifi/shared';
 import { selectCurrentProcessGroupId } from '../flow/flow.selectors';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../index';
 import { CanvasView } from '../../service/canvas-view.service';
 import { BirdseyeView } from '../../service/birdseye-view.service';
+import { LabelManager } from '../../service/manager/label-manager.service';
 
 interface StorageTransform {
     scale: number;
@@ -42,28 +43,37 @@ export class TransformEffects {
         private store: Store<CanvasState>,
         private storage: Storage,
         private canvasView: CanvasView,
-        private birdseyeView: BirdseyeView
+        private birdseyeView: BirdseyeView,
+        private labelManager: LabelManager
     ) {}
 
-    transformComplete$ = createEffect(
+    transformComplete$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(TransformActions.transformComplete),
+            map((action) => action.transform),
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            tap(([transform, processGroupId]) => {
+                const name: string = TransformEffects.VIEW_PREFIX + processGroupId;
+
+                // create the item to store
+                const item: StorageTransform = {
+                    scale: transform.scale,
+                    translateX: transform.translate.x,
+                    translateY: transform.translate.y
+                };
+
+                // store the item
+                this.storage.setItem(name, item);
+            }),
+            switchMap(() => of(TransformActions.restoreViewportComplete()))
+        )
+    );
+
+    restoreViewportComplete$ = createEffect(
         () =>
             this.actions$.pipe(
-                ofType(TransformActions.transformComplete),
-                map((action) => action.transform),
-                concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-                tap(([transform, processGroupId]) => {
-                    const name: string = TransformEffects.VIEW_PREFIX + processGroupId;
-
-                    // create the item to store
-                    const item: StorageTransform = {
-                        scale: transform.scale,
-                        translateX: transform.translate.x,
-                        translateY: transform.translate.y
-                    };
-
-                    // store the item
-                    this.storage.setItem(name, item);
-                })
+                ofType(TransformActions.restoreViewportComplete),
+                tap(() => this.labelManager.render())
             ),
         { dispatch: false }
     );
