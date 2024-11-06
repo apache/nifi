@@ -25,6 +25,8 @@ export const transformComplete = createAction(
 
 export const restoreViewport = createAction('[Transform] Restore Viewport');
 
+export const restoreViewportComplete = createAction('[Transform] Restore Viewport Complete');
+
 export const translate = createAction('[Transform] Translate', props<{ translate: [number, number] }>());
 
 export const refreshBirdseyeView = createAction('[Transform] Refresh Birdseye View');
