@@ -47,6 +47,8 @@ import { bannerTextFeatureKey, BannerTextState } from './banner-text';
 import { bannerTextReducer } from './banner-text/banner-text.reducer';
 import { documentVisibilityFeatureKey, DocumentVisibilityState } from './document-visibility';
 import { documentVisibilityReducer } from './document-visibility/document-visibility.reducer';
+import { copyFeatureKey, CopyState } from './copy';
+import { copyReducer } from './copy/copy.reducer';
 
 export interface NiFiState {
     [DEFAULT_ROUTER_FEATURENAME]: RouterReducerState;
@@ -65,6 +67,7 @@ export interface NiFiState {
     [documentVisibilityFeatureKey]: DocumentVisibilityState;
     [clusterSummaryFeatureKey]: ClusterSummaryState;
     [propertyVerificationFeatureKey]: PropertyVerificationState;
+    [copyFeatureKey]: CopyState;
 }
 
 export const rootReducers: ActionReducerMap<NiFiState> = {
@@ -83,5 +86,6 @@ export const rootReducers: ActionReducerMap<NiFiState> = {
     [componentStateFeatureKey]: componentStateReducer,
     [documentVisibilityFeatureKey]: documentVisibilityReducer,
     [clusterSummaryFeatureKey]: clusterSummaryReducer,
-    [propertyVerificationFeatureKey]: propertyVerificationReducer
+    [propertyVerificationFeatureKey]: propertyVerificationReducer,
+    [copyFeatureKey]: copyReducer
 };

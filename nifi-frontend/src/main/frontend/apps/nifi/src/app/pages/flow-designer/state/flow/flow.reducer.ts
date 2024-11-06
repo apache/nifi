@@ -19,7 +19,6 @@ import { createReducer, on } from '@ngrx/store';
 import {
     changeVersionComplete,
     changeVersionSuccess,
-    copySuccess,
     createComponentComplete,
     createComponentSuccess,
     createConnection,
@@ -94,6 +93,9 @@ export const initialState: FlowState = {
     id: 'root',
     changeVersionRequest: null,
     flow: {
+        revision: {
+            version: 0
+        },
         permissions: {
             canRead: false,
             canWrite: false
@@ -158,7 +160,6 @@ export const initialState: FlowState = {
         parameterProviderBulletins: [],
         reportingTaskBulletins: []
     },
-    copiedSnippet: null,
     dragging: false,
     saving: false,
     versionSaving: false,
@@ -477,10 +478,6 @@ export const flowReducer = createReducer(
             });
         });
     }),
-    on(copySuccess, (state, { copiedSnippet }) => ({
-        ...state,
-        copiedSnippet
-    })),
     on(pasteSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const labels: any[] | null = getComponentCollection(draftState, ComponentType.Label);
@@ -518,8 +515,7 @@ export const flowReducer = createReducer(
             if (connections) {
                 connections.push(...response.flow.connections);
             }
-
-            draftState.copiedSnippet = null;
+            draftState.flow.revision = response.revision;
         });
     }),
     on(setDragging, (state, { dragging }) => ({
