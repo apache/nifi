@@ -18,7 +18,7 @@ import logging
 import textwrap
 import os
 import BundleCoordinate
-from nifiapi.documentation import UseCaseDetails, MultiProcessorUseCaseDetails, ProcessorConfiguration, PropertyDescription
+from nifiapi.documentation import UseCaseDetails, MultiProcessorUseCaseDetails, ProcessorConfiguration, PropertyDescription, PropertyDependency
 
 import ExtensionDetails
 
@@ -46,6 +46,71 @@ class StringConstantVisitor(ast.NodeVisitor):
                             variable_name = element.id
                             self.string_assignments.append[variable_name] = string_value
         self.generic_visit(node)
+
+class CollectPropertyDescriptorVisitors(ast.NodeVisitor):
+
+    def __init__(self, module_string_constants, processor_name):
+        self.module_string_constants = module_string_constants
+        self.discovered_property_descriptors = {}
+        self.processor_name = processor_name
+        self.logger = logging.getLogger("python.CollectPropertyDescriptorVisitors")
+
+    def resolve_dependencies(self, node: ast.AST):
+        resolved_dependencies = []
+        for dependency in node.elts:
+            variable_name = dependency.args[0].id
+            if not self.discovered_property_descriptors[variable_name]:
+                self.logger.error(f"Not able to find actual property descriptor for {variable_name}, so not able to resolve property dependencies in {self.processor_name}.")
+            else:
+                actual_property = self.discovered_property_descriptors[variable_name]
+                dependent_values = []
+                for dependent_value in dependency.args[1:]:
+                    dependent_values.append(get_constant_values(dependent_value, self.module_string_constants))
+                resolved_dependencies.append(PropertyDependency(name = actual_property.name,
+                                                                display_name = actual_property.display_name,
+                                                                dependent_values = dependent_values))
+        return resolved_dependencies
+
+    def resolve_property_descriptor_name_in_code(self, node: ast.AST):
+        if isinstance(node.targets[0], ast.Name):
+            return node.targets[0].id
+        elif isinstance(node.targets[0], ast.Attribute):
+            return node.targets[0].attr
+        else:
+            raise Exception("Unable to determine name from source code")
+
+    def visit_Assign(self, node: ast.AST):
+        if self.assignment_is_property_descriton(node):
+            property_descriptor_name_in_code = self.resolve_property_descriptor_name_in_code(node)
+            self.logger.debug(f"Found PropertyDescriptor in the following assignment {property_descriptor_name_in_code}")
+            if not node.value.keywords:
+                self.logger.error(f"Not able to parse {property_descriptor_name_in_code} PropertyDescriptor as no keywords assignments used.")
+            else:
+                descriptor_info = {}
+                for keyword in node.value.keywords:
+                    key = keyword.arg
+                    if key == 'dependencies':
+                        self.logger.debug(f"Resolving dependencies for {property_descriptor_name_in_code}.")
+                        value = self.resolve_dependencies(keyword.value)
+                    else:
+                        value = get_constant_values(keyword.value, self.module_string_constants)
+                    descriptor_info[key] = value
+
+                self.discovered_property_descriptors[property_descriptor_name_in_code] = PropertyDescription(name=descriptor_info.get('name'),
+                                                                                        description=descriptor_info.get('description'),
+                                                                                         display_name=replace_null(descriptor_info.get('display_name'), descriptor_info.get('name')),
+                                                                                         required=replace_null(descriptor_info.get('required'), False),
+                                                                                         sensitive=replace_null(descriptor_info.get('sensitive'), False),
+                                                                                         default_value=descriptor_info.get('default_value'),
+                                                                                         expression_language_scope=replace_null(descriptor_info.get('expression_language_scope'), 'NONE'),
+                                                                                            controller_service_definition=descriptor_info.get('controller_service_definition'),
+                                                                                          allowable_values = descriptor_info.get('allowable_values'),
+                                                                                          dependencies = descriptor_info.get('dependencies'))
+        self.generic_visit(node)
+
+
+    def assignment_is_property_descriton(self, node: ast.AST):
+        return isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id == 'PropertyDescriptor'
 
 
 def get_module_string_constants(module_file: str) -> dict:
@@ -219,36 +284,9 @@ def get_processor_configurations(constructor_calls: ast.List) -> list:
 
 
 def get_property_descriptions(class_node, module_string_constants):
-    descriptions = []
-
-    for element in class_node.body:
-        if not isinstance(element, ast.Assign) or not element.value:
-            continue
-        if not isinstance(element.value, ast.Call):
-            continue
-        if element.value.func.id != 'PropertyDescriptor':
-            continue
-        if not element.value.keywords:
-            continue
-
-        descriptor_info = {}
-        for keyword in element.value.keywords:
-            key = keyword.arg
-            value = get_constant_values(keyword.value, module_string_constants)
-            descriptor_info[key] = value
-
-        description = PropertyDescription(name=descriptor_info.get('name'),
-                                        description=descriptor_info.get('description'),
-                                        display_name=replace_null(descriptor_info.get('display_name'), descriptor_info.get('name')),
-                                        required=replace_null(descriptor_info.get('required'), False),
-                                        sensitive=replace_null(descriptor_info.get('sensitive'), False),
-                                        default_value=descriptor_info.get('default_value'),
-                                        expression_language_scope=replace_null(descriptor_info.get('expression_language_scope'), 'NONE'),
-                                        controller_service_definition=descriptor_info.get('controller_service_definition'),
-                                        allowable_values = descriptor_info.get('allowable_values'))
-        descriptions.append(description)
-
-    return descriptions
+    visitor = CollectPropertyDescriptorVisitors(module_string_constants, class_node.name)
+    visitor.visit(class_node)
+    return visitor.discovered_property_descriptors.values()
 
 
 def replace_null(val: any, replacement: any):
