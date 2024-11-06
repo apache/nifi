@@ -244,6 +244,30 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
 
     protected readonly TextTip = TextTip;
 
+    areAllNodesSelected(instanceVisibility: any): boolean {
+        const unChecked = Object.entries(instanceVisibility)
+            .filter(([node, checked]) => node !== 'nifi-instance-id' && !checked)
+            .map(([, checked]) => checked);
+        return unChecked.length === 0;
+    }
+
+    areAnyNodesSelected(instanceVisibility: any): boolean {
+        const checked = Object.entries(instanceVisibility)
+            .filter(([node, checked]) => node !== 'nifi-instance-id' && checked)
+            .map(([, checked]) => checked);
+        return checked.length > 0 && checked.length < this.nodes.length;
+    }
+
+    selectAllNodesChanged(event: MatCheckboxChange) {
+        const checked: boolean = event.checked;
+        const tmpInstanceVisibility: any = {};
+        this.nodes.forEach((node: Instance) => {
+            tmpInstanceVisibility[node.id] = checked;
+        });
+        tmpInstanceVisibility['nifi-instance-id'] = this.instanceVisibility['nifi-instance-id'];
+        this.instanceVisibility = tmpInstanceVisibility;
+    }
+
     selectNode(event: MatCheckboxChange) {
         const instanceId: string = event.source.value;
         const checked: boolean = event.checked;
