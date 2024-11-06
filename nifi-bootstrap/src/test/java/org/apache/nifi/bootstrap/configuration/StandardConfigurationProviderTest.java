@@ -26,8 +26,6 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,16 +121,16 @@ class StandardConfigurationProviderTest {
     @Test
     void testGetAdditionalArguments(@TempDir final Path applicationHomeDirectory) throws IOException {
         final Path bootstrapConfiguration = setRequiredConfiguration(applicationHomeDirectory);
-        // Properties in random order and containing some java.arg and some NOT java.arg arguments.
-        List<String> propertyNames = new ArrayList<>(
-                Arrays.asList("java.arg9", "java.arg2", "java.arg.my2", "non.java.arg.2", "java.arg1", "java.arg.memory", "java.arg", "java.arg.my1", "non.java.arg.3", "random.nothing"));
+        // Properties in random order and containing some java.arg and some non-java.arg names.
+        List<String> propertyNames = List.of("java.arg9", "java.arg2", "java.arg.my2", "non.java.arg.2",
+                "java.arg1", "java.arg.memory", "java.arg", "java.arg.my1", "non.java.arg.3", "random.nothing");
         // The expected returned list of java.arg properties sorted in ascending alphabetical order.
-        List<String> expectedArguments = new ArrayList<>(
-                Arrays.asList("java.arg", "java.arg.memory", "java.arg.my1", "java.arg.my2", "java.arg1", "java.arg2", "java.arg9"));
+        List<String> expectedArguments = List.of("java.arg", "java.arg.memory", "java.arg.my1", "java.arg.my2",
+                "java.arg1", "java.arg2", "java.arg9");
 
         final Properties bootstrapProperties = new Properties();
         for (String propertyName : propertyNames) {
-            bootstrapProperties.put(propertyName, propertyName + ".value");
+            bootstrapProperties.put(propertyName, propertyName);
         }
         try (OutputStream outputStream = Files.newOutputStream(bootstrapConfiguration)) {
             bootstrapProperties.store(outputStream, Properties.class.getSimpleName());
@@ -144,7 +142,7 @@ class StandardConfigurationProviderTest {
 
         assertEquals(expectedArguments.size(), actualAdditionalArguments.size());
         for (int i = 0; i < expectedArguments.size(); i++) {
-            assertEquals(expectedArguments.get(i) + ".value", actualAdditionalArguments.get(i));
+            assertEquals(expectedArguments.get(i), actualAdditionalArguments.get(i));
         }
     }
 
