@@ -38,6 +38,7 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.registry.flow.FlowLocation;
@@ -108,6 +109,8 @@ import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
+import org.apache.nifi.web.api.entity.CopyRequestEntity;
+import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
@@ -126,6 +129,7 @@ import org.apache.nifi.web.api.entity.NarSummaryEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentsEntity;
+import org.apache.nifi.web.api.entity.PasteResponseEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -1664,6 +1668,15 @@ public interface NiFiServiceFacade {
     FlowSnapshotContainer getVersionedFlowSnapshotByGroupId(String processGroupId);
 
     /**
+     * Copies the requested components from the specified Process Group.
+     *
+     * @param groupId the group id
+     * @param copyRequest the copy request
+     * @return the copy response
+     */
+    CopyResponseEntity copyComponents(String groupId, CopyRequestEntity copyRequest);
+
+    /**
      * Get the current state of the Process Group with the given ID, converted to a Versioned Flow Snapshot
      *
      * @param processGroupId the ID of the Process Group
@@ -1761,6 +1774,17 @@ public interface NiFiServiceFacade {
      * @throws IllegalStateException if the Process Group cannot have its local modifications reverted
      */
     void verifyCanRevertLocalModifications(String groupId, RegisteredFlowSnapshot versionedFlowSnapshot);
+
+    /**
+     * Adds versioned components to the specified Process Group
+     *
+     * @param revision the revision of the Process Group
+     * @param groupId the ID of the Process Group
+     * @param additions the components to add
+     * @param componentIdSeed the seed to use for generating new component ID's
+     * @return the Paste response entity
+     */
+    PasteResponseEntity pasteComponents(Revision revision, String groupId, VersionedComponentAdditions additions, String componentIdSeed);
 
     /**
      * Updates the Process group with the given ID to match the new snapshot
@@ -2755,8 +2779,9 @@ public interface NiFiServiceFacade {
      *  @param flowSnapshotContainer the flow snapshot container
      * @param parentGroupId the ID of the Process Group from which the Controller Services are inherited
      * @param user the NiFi user on whose behalf the request is happening; this user is used for validation so that only the Controller Services that the user has READ permissions to are included
+     * @return Any unresolved controller services
      */
-    void resolveInheritedControllerServices(FlowSnapshotContainer flowSnapshotContainer, String parentGroupId, NiFiUser user);
+    Set<String> resolveInheritedControllerServices(FlowSnapshotContainer flowSnapshotContainer, String parentGroupId, NiFiUser user);
 
     /**
      * For any Parameter Provider that is found in the given Versioned Process Group, attempts to find an existing Parameter Provider that matches the definition. If any is found,
@@ -2764,8 +2789,9 @@ public interface NiFiServiceFacade {
      *
      * @param versionedFlowSnapshot the flow snapshot
      * @param user the NiFi user on whose behalf the request is happening; this user is used for validation so that only the Parameter Providers that the user has READ permissions to are included
+     * @return any unresolved parameter provider ids
      */
-    void resolveParameterProviders(RegisteredFlowSnapshot versionedFlowSnapshot, NiFiUser user);
+    Set<String> resolveParameterProviders(RegisteredFlowSnapshot versionedFlowSnapshot, NiFiUser user);
 
     /**
      * @param type the component type

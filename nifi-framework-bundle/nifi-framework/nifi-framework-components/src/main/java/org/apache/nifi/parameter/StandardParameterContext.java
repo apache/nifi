@@ -485,7 +485,7 @@ public class StandardParameterContext implements ParameterContext {
 
             if (hasUserEnteredParameters) {
                 throw new IllegalArgumentException(String.format("A Parameter Provider [%s] cannot be set since there are already user-entered parameters " +
-                        "in Context [%s]", parameterProvider.getIdentifier(), name));
+                        "in Context [%s]", parameterProviderNode.getIdentifier(), name));
             }
 
             this.parameterProvider = parameterProviderNode.getParameterProvider();

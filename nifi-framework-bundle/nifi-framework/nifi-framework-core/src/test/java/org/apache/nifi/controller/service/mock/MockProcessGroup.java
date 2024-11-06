@@ -35,6 +35,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.BatchCounts;
+import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.DataValve;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileGate;
@@ -46,6 +47,7 @@ import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
+import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.flow.FlowLocation;
@@ -702,6 +704,11 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void synchronizeWithFlowRegistry(FlowManager flowRegistry) {
+    }
+
+    @Override
+    public ComponentAdditions addVersionedComponents(VersionedComponentAdditions additions, String componentIdSeed) {
+        return new ComponentAdditions.Builder().build();
     }
 
     @Override

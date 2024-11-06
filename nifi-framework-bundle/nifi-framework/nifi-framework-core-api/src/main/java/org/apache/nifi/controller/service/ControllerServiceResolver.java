@@ -19,6 +19,8 @@ package org.apache.nifi.controller.service;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 
+import java.util.Set;
+
 public interface ControllerServiceResolver {
 
     /**
@@ -34,7 +36,8 @@ public interface ControllerServiceResolver {
      *                              snapshots of any child groups that are also under version control
      * @param parentGroupId the id of the process group where the snapshot is being imported
      * @param user the user performing the import
+     * @return Any unresolved Controller Services
      */
-    void resolveInheritedControllerServices(FlowSnapshotContainer flowSnapshotContainer, String parentGroupId, NiFiUser user);
+    Set<String> resolveInheritedControllerServices(FlowSnapshotContainer flowSnapshotContainer, String parentGroupId, NiFiUser user);
 
 }

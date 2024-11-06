@@ -17,10 +17,14 @@
 package org.apache.nifi.toolkit.client;
 
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.CopyRequestEntity;
+import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
+import org.apache.nifi.web.api.entity.PasteRequestEntity;
+import org.apache.nifi.web.api.entity.PasteResponseEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
@@ -67,4 +71,8 @@ public interface ProcessGroupClient {
     DropRequestEntity emptyQueues(String processGroupId) throws NiFiClientException, IOException;
 
     DropRequestEntity getEmptyQueuesRequest(String processGroupId, String requestId) throws NiFiClientException, IOException;
+
+    CopyResponseEntity copy(String processGroupId, CopyRequestEntity copyRequestEntity) throws NiFiClientException, IOException;
+
+    PasteResponseEntity paste(String processGroupId, PasteRequestEntity pasteRequestEntity) throws NiFiClientException, IOException;
 }

@@ -20,6 +20,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.groups.ProcessGroup;
 
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Authorizable for a ProcessGroup and its encapsulated components.
@@ -33,11 +34,26 @@ public interface ProcessGroupAuthorizable extends AuthorizableHolder {
     ProcessGroup getProcessGroup();
 
     /**
+     * Returns the Parameter Context Authorizable. May be null if the underlying Process Group is not
+     * bound to a Parameter Context.
+     *
+     * @return the Parameter Context authorizable
+     */
+    Authorizable getParameterContextAuthorizable();
+
+    /**
      * The authorizables for all encapsulated processors. Non null
      *
      * @return all encapsulated processors
      */
     Set<ComponentAuthorizable> getEncapsulatedProcessors();
+
+    /**
+     * The authorizables for all encapsulated processors that meet the specified predicate. Non null
+     *
+     * @return all encapsulated processors
+     */
+    Set<ComponentAuthorizable> getEncapsulatedProcessors(Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> filter);
 
     /**
      * The authorizables for all encapsulated connections. Non null
@@ -89,10 +105,17 @@ public interface ProcessGroupAuthorizable extends AuthorizableHolder {
     Set<Authorizable> getEncapsulatedRemoteProcessGroups();
 
     /**
-     * The authorizables for all encapsulated input ports. Non null
+     * The authorizables for all encapsulated controller services. Non null
      *
-     * @return all encapsulated input ports
+     * @return all encapsulated controller services
      */
     Set<ComponentAuthorizable> getEncapsulatedControllerServices();
+
+    /**
+     * The authorizables for all encapsulated controller services that meet the specified predicate. Non null
+     *
+     * @return all encapsulated controller services
+     */
+    Set<ComponentAuthorizable> getEncapsulatedControllerServices(Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> filter);
 
 }

@@ -40,14 +40,34 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
+import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.parameter.ParameterContext;
 
 import java.util.concurrent.TimeoutException;
 
 public interface VersionedComponentSynchronizer {
+
+    /**
+     * Adds versioned components to the specified Process Group.
+     *
+     * @param group the Process Group to append to
+     * @param additions the component additions to add to the Process Group
+     * @param options sync options
+     * @return the component additions
+     */
+    ComponentAdditions addVersionedComponentsToProcessGroup(ProcessGroup group, VersionedComponentAdditions additions, FlowSynchronizationOptions options);
+
+    /**
+     * Verifies that the given additions can be applied to the specified process group.
+     *
+     * @param group the Process Group that will be appended to
+     * @param additions the component additions that will be added to the Process Group
+     */
+    void verifyCanAddVersionedComponents(ProcessGroup group, VersionedComponentAdditions additions);
 
     /**
      * Synchronize the given Process Group to match the proposed flow

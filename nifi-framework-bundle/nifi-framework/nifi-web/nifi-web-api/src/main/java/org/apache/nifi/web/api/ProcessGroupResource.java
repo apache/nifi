@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -60,6 +61,7 @@ import jakarta.ws.rs.core.UriBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeParameterProviders;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.ConnectionAuthorizable;
@@ -72,10 +74,14 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ExecutionEngine;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
@@ -107,6 +113,9 @@ import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.CopyRequestEntity;
+import org.apache.nifi.web.api.entity.CopyResponseEntity;
+import org.apache.nifi.web.api.entity.PasteRequestEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.Entity;
@@ -119,6 +128,7 @@ import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.LabelsEntity;
 import org.apache.nifi.web.api.entity.OutputPortsEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
+import org.apache.nifi.web.api.entity.PasteResponseEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
@@ -310,7 +320,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             // ensure access to process groups (nested), encapsulated controller services and referenced parameter contexts
             final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
             authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true,
-                    false, false, true);
+                    false, false, false, true);
         });
 
         // get the versioned flow
@@ -324,6 +334,85 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         final String filename = flowName.replaceAll("\\s", "_") + ".json";
 
         return generateOkResponse(currentVersionedFlowSnapshot).header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename)).build();
+    }
+
+    /**
+     * Generates a copy response for the given copy request.
+     *
+     * @param groupId The id of the process group
+     * @param copyRequestEntity The copy request
+     * @return A copyResponseEntity.
+     */
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/copy")
+    @Operation(
+            summary = "Generates a copy response for the given copy request",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = CopyResponseEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Read - /{component-type}/{uuid} - For all encapsulated components")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response copy(
+            @Parameter(
+                    description = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @Parameter(
+                    description = "The request including the components to be copied from the specified Process Group.",
+                    required = true
+            ) final CopyRequestEntity copyRequestEntity) {
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            copyRequestEntity.getProcessors().forEach(id -> {
+                final Authorizable authorizable = lookup.getProcessor(id).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            });
+            copyRequestEntity.getInputPorts().forEach(id -> {
+                final Authorizable authorizable = lookup.getInputPort(id);
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            });
+            copyRequestEntity.getOutputPorts().forEach(id -> {
+                final Authorizable authorizable = lookup.getOutputPort(id);
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            });
+            copyRequestEntity.getProcessGroups().forEach(id -> {
+                final ProcessGroupAuthorizable processGroupAuthorizable = lookup.getProcessGroup(id);
+                authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.READ, true, true, false, false, true);
+            });
+            copyRequestEntity.getRemoteProcessGroups().forEach(id -> {
+                final Authorizable authorizable = lookup.getRemoteProcessGroup(id);
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            });
+            copyRequestEntity.getFunnels().forEach(id -> {
+                final Authorizable authorizable = lookup.getFunnel(id);
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            });
+            copyRequestEntity.getLabels().forEach(id -> {
+                final Authorizable authorizable = lookup.getLabel(id);
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            });
+            copyRequestEntity.getConnections().forEach(id -> {
+                final Authorizable authorizable = lookup.getConnection(id).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            });
+        });
+
+        // copy the components
+        final CopyResponseEntity copyResponseEntity = serviceFacade.copyComponents(groupId, copyRequestEntity);
+        return generateOkResponse(copyResponseEntity).build();
     }
 
     /**
@@ -360,7 +449,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
-            authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, false, false, false, false);
+            authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
         });
 
         final FlowComparisonEntity entity = serviceFacade.getLocalModifications(groupId);
@@ -762,10 +851,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     private void authorizeHandleDropAllFlowFilesRequest(String processGroupId, AuthorizableLookup lookup) {
         final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
 
-        authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false);
+        authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
 
         processGroup.getEncapsulatedProcessGroups()
-                .forEach(encapsulatedProcessGroup -> authorizeProcessGroup(encapsulatedProcessGroup, authorizer, lookup, RequestAction.READ, false, false, false, false));
+                .forEach(encapsulatedProcessGroup -> authorizeProcessGroup(encapsulatedProcessGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false));
 
         processGroup.getEncapsulatedConnections().stream()
                 .map(ConnectionAuthorizable::getSourceData)
@@ -834,7 +923,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
                     // ensure write to this process group and all encapsulated components including controller services. additionally, ensure
                     // read to any referenced services by encapsulated components
-                    authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, false, false);
+                    authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, false, false, false);
 
                     // ensure write permission to the parent process group, if applicable... if this is the root group the
                     // request will fail later but still need to handle authorization here
@@ -940,6 +1029,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         //         for write access to the RestrictedComponents resource
         // Step 6: Replicate the request or call serviceFacade.updateProcessGroup
 
+        final Set<String> unresolvedControllerServices = new HashSet<>();
+        final Set<String> unresolvedParameterProviders = new HashSet<>();
         final VersionControlInformationDTO versionControlInfo = requestProcessGroupEntity.getComponent().getVersionControlInformation();
         if (versionControlInfo != null && requestProcessGroupEntity.getVersionedFlowSnapshot() == null) {
             // Step 1: Ensure that user has write permissions to the Process Group. If not, then immediately fail.
@@ -967,10 +1058,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
             // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
-            serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, NiFiUserUtils.getNiFiUser());
+            unresolvedControllerServices.addAll(serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, NiFiUserUtils.getNiFiUser()));
 
             // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
-            serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser());
+            unresolvedParameterProviders.addAll(serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser()));
 
             // Step 6: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
             requestProcessGroupEntity.setVersionedFlowSnapshot(flowSnapshot);
@@ -991,7 +1082,16 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         return withWriteLock(
                 serviceFacade,
                 requestProcessGroupEntity,
-                lookup -> authorizeAccess(groupId, requestProcessGroupEntity, lookup),
+                lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    authorizeAccess(groupId, requestProcessGroupEntity, lookup);
+
+                    // authorizer controller services
+                    AuthorizeControllerServiceReference.authorizeUnresolvedControllerServiceReferences(groupId, unresolvedControllerServices, authorizer, lookup, user);
+
+                    // authorize parameter providers
+                    AuthorizeParameterProviders.authorizeUnresolvedParameterProviders(unresolvedParameterProviders, authorizer, lookup, user);
+                },
                 () -> {
                     final RegisteredFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
                     if (versionedFlowSnapshot != null) {
@@ -2313,7 +2413,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                 requestCopySnippetEntity,
                 lookup -> {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
-                    final SnippetAuthorizable snippet = authorizeSnippetUsage(lookup, groupId, requestCopySnippetEntity.getSnippetId(), false, true);
+                    final SnippetAuthorizable snippet = authorizeSnippetUsage(lookup, groupId, requestCopySnippetEntity.getSnippetId(), false, true, true);
 
                     final Consumer<ComponentAuthorizable> authorizeRestricted = authorizable -> {
                         if (authorizable.isRestricted()) {
@@ -2367,7 +2467,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     private SnippetAuthorizable authorizeSnippetUsage(final AuthorizableLookup lookup, final String groupId, final String snippetId,
-                                                      final boolean authorizeTransitiveServices, final boolean authorizeParameterReferences) {
+                                                      final boolean authorizeTransitiveServices, final boolean authorizeParameterReferences,
+                                                      final boolean authorizeParameterContext) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -2376,7 +2477,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         // ensure read permission to every component in the snippet including referenced services
         final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
-        authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ, true, authorizeTransitiveServices, authorizeParameterReferences);
+        authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ, true, authorizeTransitiveServices, authorizeParameterReferences, authorizeParameterContext);
         return snippet;
     }
 
@@ -2772,10 +2873,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         // if there are any Controller Services referenced that are inherited from the parent group,
         // resolve those to point to the appropriate Controller Service, if we are able to.
         final FlowSnapshotContainer flowSnapshotContainer = new FlowSnapshotContainer(versionedFlowSnapshot);
-        serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, NiFiUserUtils.getNiFiUser());
+        final Set<String> unresolvedControllerServices = serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, NiFiUserUtils.getNiFiUser());
 
         // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
-        serviceFacade.resolveParameterProviders(versionedFlowSnapshot, NiFiUserUtils.getNiFiUser());
+        final Set<String> unresolvedParameterProviders = serviceFacade.resolveParameterProviders(versionedFlowSnapshot, NiFiUserUtils.getNiFiUser());
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, processGroupUploadEntity);
@@ -2789,7 +2890,16 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         return withWriteLock(
                 serviceFacade,
                 newProcessGroupEntity,
-                lookup -> authorizeAccess(groupId, newProcessGroupEntity, lookup),
+                lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    authorizeAccess(groupId, newProcessGroupEntity, lookup);
+
+                    // authorizer controller services
+                    AuthorizeControllerServiceReference.authorizeUnresolvedControllerServiceReferences(groupId, unresolvedControllerServices, authorizer, lookup, user);
+
+                    // authorize parameter providers
+                    AuthorizeParameterProviders.authorizeUnresolvedParameterProviders(unresolvedParameterProviders, authorizer, lookup, user);
+                },
                 () -> {
                     final RegisteredFlowSnapshot newVersionedFlowSnapshot = newProcessGroupEntity.getVersionedFlowSnapshot();
                     if (newVersionedFlowSnapshot != null) {
@@ -2836,6 +2946,331 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
     }
 
+    /**
+     * Pastes the specified payload into the given Process Group.
+     *
+     * @param pasteRequestEntity A PasteResponseEntity.
+     * @return A pasteResponseEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/paste")
+    @Operation(
+            summary = "Pastes into the specified process group",
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = PasteResponseEntity.class))),
+            security = {
+                    @SecurityRequirement(name = "Write - /process-groups/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            }
+    )
+    public Response paste(
+            @Parameter(
+                    description = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @Parameter(
+                    description = "The request including the components to be pasted into the specified Process Group.",
+                    required = true
+            ) final PasteRequestEntity pasteRequestEntity) {
+
+        // verify the payload was specified
+        if (pasteRequestEntity == null) {
+            throw new IllegalArgumentException("The paste payload must be specified.");
+        }
+
+        // verify the revision is specified
+        if (pasteRequestEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        // verify the copy response is specified
+        if (pasteRequestEntity.getCopyResponse() == null) {
+            throw new IllegalArgumentException("The details of the copied components must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, pasteRequestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(pasteRequestEntity.getDisconnectedNodeAcknowledged());
+        }
+
+        final CopyResponseEntity copyResponseEntity = pasteRequestEntity.getCopyResponse();
+        final VersionedProcessGroup versionedProcessGroup = getVersionedProcessGroup(copyResponseEntity);
+        mapVersionedIds(versionedProcessGroup, new HashMap<>(), new HashMap<>());
+
+        // resolve Bundle info
+        serviceFacade.discoverCompatibleBundles(versionedProcessGroup);
+
+        // prep a pasted flow snapshot to attempt to resolve external services and referenced parameter providers
+        final RegisteredFlowSnapshot pastedFlowSnapshot = new RegisteredFlowSnapshot();
+        pastedFlowSnapshot.setExternalControllerServices(copyResponseEntity.getExternalControllerServiceReferences());
+        pastedFlowSnapshot.setFlowContents(versionedProcessGroup);
+        pastedFlowSnapshot.setParameterContexts(copyResponseEntity.getParameterContexts());
+        pastedFlowSnapshot.setParameterProviders(copyResponseEntity.getParameterProviders());
+
+        // if there are any Controller Services referenced that are inherited from the parent group,
+        // resolve those to point to the appropriate Controller Service, if we are able to.
+        final FlowSnapshotContainer flowSnapshotContainer = new FlowSnapshotContainer(pastedFlowSnapshot);
+        final Set<String> unresolvedControllerServices = serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, NiFiUserUtils.getNiFiUser());
+
+        // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
+        final Set<String> unresolvedParameterProviders = serviceFacade.resolveParameterProviders(pastedFlowSnapshot, NiFiUserUtils.getNiFiUser());
+
+        final Revision requestRevision = getRevision(pasteRequestEntity.getRevision(), groupId);
+        return withWriteLock(
+                serviceFacade,
+                pasteRequestEntity,
+                requestRevision,
+                lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+                    // ensure the user can write to the current group
+                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
+                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
+
+                    // if the pasted content contains restricted components, ensure the user is allowed those restrictions
+                    final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedProcessGroup, serviceFacade);
+                    restrictedComponents.forEach(restrictedComponent -> {
+                        final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
+                        authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
+                    });
+
+                    // authorizer controller services
+                    AuthorizeControllerServiceReference.authorizeUnresolvedControllerServiceReferences(groupId, unresolvedControllerServices, authorizer, lookup, user);
+
+                    // if the pasted content contains parameter contexts, ensure the user can create them or add to existing matching contexts
+                    final Map<String, VersionedParameterContext> parameterContexts = copyResponseEntity.getParameterContexts();
+                    if (parameterContexts != null) {
+                        parameterContexts.values().forEach(context -> AuthorizeParameterReference.authorizeParameterContextAddition(context, serviceFacade, authorizer, lookup, user));
+                    }
+
+                    // authorize parameter providers
+                    AuthorizeParameterProviders.authorizeUnresolvedParameterProviders(unresolvedParameterProviders, authorizer, lookup, user);
+
+                    // if the pasted content contains instance ids, ensure the user can read those instances since sensitive values will be copied over
+                    authorizeInstanceIds(versionedProcessGroup, lookup);
+                },
+                () -> serviceFacade.verifyComponentTypes(versionedProcessGroup),
+                (revision, requestPasteRequestEntity) -> {
+                    final CopyResponseEntity requestCopyResponseEntity = requestPasteRequestEntity.getCopyResponse();
+
+                    // prepare the request to add versioned components
+                    final VersionedComponentAdditions additions = new VersionedComponentAdditions.Builder()
+                            .setProcessors(requestCopyResponseEntity.getProcessors())
+                            .setInputPorts(requestCopyResponseEntity.getInputPorts())
+                            .setOutputPorts(requestCopyResponseEntity.getOutputPorts())
+                            .setFunnels(requestCopyResponseEntity.getFunnels())
+                            .setLabels(requestCopyResponseEntity.getLabels())
+                            .setProcessGroups(requestCopyResponseEntity.getProcessGroups())
+                            .setRemoteProcessGroups(requestCopyResponseEntity.getRemoteProcessGroups())
+                            .setConnections(requestCopyResponseEntity.getConnections())
+                            .setParameterContexts(requestCopyResponseEntity.getParameterContexts())
+                            .setParameterProviders(requestCopyResponseEntity.getParameterProviders())
+                            .build();
+
+                    final PasteResponseEntity pasteResponseEntity = serviceFacade.pasteComponents(revision, groupId, additions, getIdGenerationSeed().orElse(null));
+
+                    // prune response as necessary
+                    for (ProcessGroupEntity childGroupEntity : pasteResponseEntity.getFlow().getProcessGroups()) {
+                        childGroupEntity.getComponent().setContents(null);
+                    }
+
+                    // create the response entity
+                    populateRemainingSnippetContent(pasteResponseEntity.getFlow());
+
+                    return generateOkResponse(pasteResponseEntity).build();
+                }
+        );
+    }
+
+    private static VersionedProcessGroup getVersionedProcessGroup(final CopyResponseEntity copyResponse) {
+        final VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
+        versionedProcessGroup.setProcessors(new HashSet<>(copyResponse.getProcessors()));
+        versionedProcessGroup.setInputPorts(new HashSet<>(copyResponse.getInputPorts()));
+        versionedProcessGroup.setOutputPorts(new HashSet<>(copyResponse.getOutputPorts()));
+        versionedProcessGroup.setProcessGroups(new HashSet<>(copyResponse.getProcessGroups()));
+        versionedProcessGroup.setRemoteProcessGroups(new HashSet<>(copyResponse.getRemoteProcessGroups()));
+        versionedProcessGroup.setFunnels(new HashSet<>(copyResponse.getFunnels()));
+        versionedProcessGroup.setLabels(new HashSet<>(copyResponse.getLabels()));
+        versionedProcessGroup.setConnections(new HashSet<>(copyResponse.getConnections()));
+        return versionedProcessGroup;
+    }
+
+    private void mapVersionedIds(final VersionedProcessGroup group, final Map<String, String> idMapping, final Map<String, String> serviceIdMapping) {
+        group.getControllerServices().forEach(cs -> {
+            final String newId = generateUuid(cs.getIdentifier());
+            idMapping.put(cs.getIdentifier(), newId);
+            serviceIdMapping.put(cs.getIdentifier(), newId);
+            cs.setIdentifier(newId);
+        });
+        group.getControllerServices().forEach(cs -> {
+            cs.getProperties().entrySet().stream()
+                    .filter(propertyEntry -> {
+                        final Map<String, VersionedPropertyDescriptor> propertyDescriptors = cs.getPropertyDescriptors();
+                        if (propertyDescriptors != null) {
+                            final VersionedPropertyDescriptor propertyDescriptor = propertyDescriptors.get(propertyEntry.getKey());
+                            if (propertyDescriptor != null && propertyDescriptor.getIdentifiesControllerService()) {
+                                return serviceIdMapping.containsKey(propertyEntry.getValue());
+                            }
+                        }
+
+                        return false;
+                    })
+                    .findFirst()
+                    .ifPresent(serviceEntry -> serviceEntry.setValue(serviceIdMapping.get(serviceEntry.getValue())));
+        });
+        group.getProcessors().forEach(p -> {
+            final String newId = generateUuid(p.getIdentifier());
+            idMapping.put(p.getIdentifier(), newId);
+            p.setIdentifier(newId);
+
+            p.getProperties().entrySet().stream()
+                    .filter(propertyEntry -> {
+                        final Map<String, VersionedPropertyDescriptor> propertyDescriptors = p.getPropertyDescriptors();
+                        if (propertyDescriptors != null) {
+                            final VersionedPropertyDescriptor propertyDescriptor = propertyDescriptors.get(propertyEntry.getKey());
+                            if (propertyDescriptor != null && propertyDescriptor.getIdentifiesControllerService()) {
+                                return serviceIdMapping.containsKey(propertyEntry.getValue());
+                            }
+                        }
+
+                        return false;
+                    })
+                    .findFirst()
+                    .ifPresent(serviceEntry -> serviceEntry.setValue(serviceIdMapping.get(serviceEntry.getValue())));
+        });
+        group.getInputPorts().forEach(ip -> {
+            final String newId = generateUuid(ip.getIdentifier());
+            idMapping.put(ip.getIdentifier(), newId);
+            ip.setIdentifier(newId);
+        });
+        group.getOutputPorts().forEach(op -> {
+            final String newId = generateUuid(op.getIdentifier());
+            idMapping.put(op.getIdentifier(), newId);
+            op.setIdentifier(newId);
+        });
+        group.getFunnels().forEach(f -> {
+            final String newId = generateUuid(f.getIdentifier());
+            idMapping.put(f.getIdentifier(), newId);
+            f.setIdentifier(newId);
+        });
+        group.getLabels().forEach(l -> {
+            final String newId = generateUuid(l.getIdentifier());
+            idMapping.put(l.getIdentifier(), newId);
+            l.setIdentifier(newId);
+        });
+        group.getRemoteProcessGroups().forEach(rpg -> {
+            final String newId = generateUuid(rpg.getIdentifier());
+            idMapping.put(rpg.getIdentifier(), newId);
+            rpg.setIdentifier(newId);
+
+            if (rpg.getInputPorts() != null) {
+                rpg.getInputPorts().forEach(rip -> {
+                    final String newRipId = generateUuid(rip.getIdentifier());
+                    idMapping.put(rip.getIdentifier(), newRipId);
+                    rip.setIdentifier(newRipId);
+                });
+            }
+            if (rpg.getOutputPorts() != null) {
+                rpg.getOutputPorts().forEach(rop -> {
+                    final String newRopId = generateUuid(rop.getIdentifier());
+                    idMapping.put(rop.getIdentifier(), newRopId);
+                    rop.setIdentifier(newRopId);
+                });
+            }
+        });
+        group.getProcessGroups().forEach(cpg -> {
+            final String newGroupId = generateUuid(cpg.getIdentifier());
+            idMapping.put(cpg.getIdentifier(), newGroupId);
+            cpg.setIdentifier(newGroupId);
+
+            if (cpg.getVersionedFlowCoordinates() == null) {
+                mapVersionedIds(cpg, idMapping, serviceIdMapping);
+            }
+        });
+        group.getConnections().forEach(c -> {
+            final String newId = generateUuid(c.getIdentifier());
+            idMapping.put(c.getIdentifier(), newId);
+            c.setIdentifier(newId);
+
+            if (c.getSource() != null) {
+                final ConnectableComponent source = c.getSource();
+
+                // map the source id
+                final String sourceId = source.getId();
+                final String newSourceId = idMapping.get(sourceId);
+                if (newSourceId != null) {
+                    source.setId(newSourceId);
+                }
+
+                // map the source group id
+                final String sourceGroupId = source.getGroupId();
+                final String newSourceGroupId = idMapping.get(sourceGroupId);
+                if (newSourceGroupId != null) {
+                    source.setGroupId(newSourceGroupId);
+                }
+            }
+            if (c.getDestination() != null) {
+                final ConnectableComponent destination = c.getDestination();
+
+                // map the destination id
+                final String destinationId = destination.getId();
+                final String newDestinationId = idMapping.get(destinationId);
+                if (newDestinationId != null) {
+                    destination.setId(newDestinationId);
+                }
+
+                // map the destination group id
+                final String destinationGroupId = destination.getGroupId();
+                final String newDestinationGroupId = idMapping.get(destinationGroupId);
+                if (newDestinationGroupId != null) {
+                    destination.setGroupId(newDestinationGroupId);
+                }
+            }
+        });
+    }
+
+    /**
+     * For the specified versioned process group, identify any versioned processors or services that contain an
+     * instance id. If that instance id, identifies a local processor or service, ensure the user has permissions
+     * to READ the local instance. This is needed because sensitive properties from the local processor or service
+     * will be copied into the new components as part of the paste action.
+     *
+     * @param group the versioned group
+     * @param lookup the authorizable lookup
+     */
+    private void authorizeInstanceIds(final VersionedProcessGroup group, final AuthorizableLookup lookup) {
+        final Set<String> processorInstanceIds = group.getProcessors().stream()
+                .map(VersionedComponent::getInstanceIdentifier)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        lookup.getRootProcessGroup().getEncapsulatedProcessors(ca -> processorInstanceIds.contains(ca.getIdentifier())).forEach(ca -> {
+            ca.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        final Set<String> serviceInstanceIds = group.getControllerServices().stream()
+                .map(VersionedComponent::getInstanceIdentifier)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        lookup.getRootProcessGroup().getEncapsulatedControllerServices(ca -> serviceInstanceIds.contains(ca.getIdentifier())).forEach(ca -> {
+            ca.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        group.getProcessGroups().forEach(cpg -> {
+            authorizeInstanceIds(cpg, lookup);
+        });
+    }
 
     /**
      * Replace the Process Group contents with the given ID with the specified Process Group contents.

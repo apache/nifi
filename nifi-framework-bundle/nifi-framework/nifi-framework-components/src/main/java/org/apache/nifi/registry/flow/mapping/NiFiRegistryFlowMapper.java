@@ -311,9 +311,13 @@ public class NiFiRegistryFlowMapper {
     }
 
     private String getId(final Optional<String> currentVersionedId, final String componentId) {
-        final String versionedId = flowMappingOptions.getComponentIdLookup().getComponentId(currentVersionedId, componentId);
-        versionedComponentIds.put(componentId, versionedId);
-        return versionedId;
+        if (versionedComponentIds.containsKey(componentId)) {
+            return versionedComponentIds.get(componentId);
+        } else {
+            final String versionedId = flowMappingOptions.getComponentIdLookup().getComponentId(currentVersionedId, componentId);
+            versionedComponentIds.put(componentId, versionedId);
+            return versionedId;
+        }
     }
 
     /**

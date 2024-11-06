@@ -18,6 +18,7 @@ package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -28,8 +29,22 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "processGroupFlowEntity")
 public class ProcessGroupFlowEntity extends Entity {
 
+    private RevisionDTO revision;
     private PermissionsDTO permissions;
     private ProcessGroupFlowDTO processGroupFlow;
+
+    /**
+     * @return revision for this component
+     */
+    @Schema(description = "The revision for this process group."
+    )
+    public RevisionDTO getRevision() {
+        return revision;
+    }
+
+    public void setRevision(RevisionDTO revision) {
+        this.revision = revision;
+    }
 
     /**
      * The permissions for this component.
