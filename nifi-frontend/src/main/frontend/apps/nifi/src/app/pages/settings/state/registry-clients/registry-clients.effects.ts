@@ -36,7 +36,7 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
+import { LARGE_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { BackNavigation } from '../../../../state/navigation';
 import { ErrorContextKey } from '../../../../state/error';
 
@@ -82,7 +82,7 @@ export class RegistryClientsEffects {
                 concatLatestFrom(() => this.store.select(selectRegistryClientTypes)),
                 tap(([, registryClientTypes]) => {
                     const dialogReference = this.dialog.open(CreateRegistryClient, {
-                        ...MEDIUM_DIALOG,
+                        ...LARGE_DIALOG,
                         data: {
                             registryClientTypes
                         }

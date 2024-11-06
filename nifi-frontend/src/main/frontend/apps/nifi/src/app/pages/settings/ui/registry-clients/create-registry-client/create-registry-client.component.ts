@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
@@ -30,7 +30,7 @@ import { Client } from '../../../../../service/client.service';
 import { MatSelectModule } from '@angular/material/select';
 import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { CloseOnEscapeDialog } from '@nifi/shared';
+import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
 
 @Component({
     selector: 'create-registry-client',
@@ -45,45 +45,30 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
         AsyncPipe,
         NifiSpinnerDirective,
         MatSelectModule,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        ExtensionCreation
     ],
     styleUrls: ['./create-registry-client.component.scss']
 })
-export class CreateRegistryClient extends CloseOnEscapeDialog {
+export class CreateRegistryClient {
     @Input() saving$!: Observable<boolean>;
     @Output() createRegistryClient: EventEmitter<CreateRegistryClientRequest> =
         new EventEmitter<CreateRegistryClientRequest>();
 
     protected readonly TextTip = TextTip;
 
-    createRegistryClientForm: FormGroup;
+    registryClientTypes: DocumentedType[];
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public request: CreateRegistryClientDialogRequest,
-        private formBuilder: FormBuilder,
         private nifiCommon: NiFiCommon,
         private client: Client,
         private clusterConnectionService: ClusterConnectionService
     ) {
-        super();
-        let type: string | null = null;
-        if (request.registryClientTypes.length > 0) {
-            type = request.registryClientTypes[0].type;
-        }
-
-        // build the form
-        this.createRegistryClientForm = this.formBuilder.group({
-            name: new FormControl('', Validators.required),
-            type: new FormControl(type, Validators.required),
-            description: new FormControl('')
-        });
+        this.registryClientTypes = request.registryClientTypes;
     }
 
-    formatType(option: DocumentedType): string {
-        return this.nifiCommon.getComponentTypeLabel(option.type);
-    }
-
-    createRegistryClientClicked() {
+    registryClientTypeSelected(registryClientType: DocumentedType) {
         const request: CreateRegistryClientRequest = {
             revision: {
                 clientId: this.client.getClientId(),
@@ -91,16 +76,12 @@ export class CreateRegistryClient extends CloseOnEscapeDialog {
             },
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
-                name: this.createRegistryClientForm.get('name')?.value,
-                type: this.createRegistryClientForm.get('type')?.value,
-                description: this.createRegistryClientForm.get('description')?.value
+                name: this.nifiCommon.getComponentTypeLabel(registryClientType.type),
+                type: registryClientType.type,
+                bundle: registryClientType.bundle
             }
         };
 
         this.createRegistryClient.next(request);
-    }
-
-    override isDirty(): boolean {
-        return this.createRegistryClientForm.dirty;
     }
 }
