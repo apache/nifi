@@ -103,14 +103,18 @@ RUN apt-get update && \
 #     rm -rf chromedriver-linux64.zip chromedriver-linux64
 
 # Install Chrome and matching chromedriver
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    dpkg -i google-chrome-stable_current_amd64.deb || apt-get install -f -y && \
-    apt-get install -y unzip && \
-    wget https://chromedriver.storage.googleapis.com/$(google-chrome --version | awk '{print $3}' | sed 's/\.[^.]*$//')/chromedriver_linux64.zip && \
-    unzip chromedriver_linux64.zip && \
+RUN apt-get update && \
+    apt-get install -y curl gnupg unzip && \
+    curl -sSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/chrome-keyring.gpg && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
+    apt-get update && \
+    apt-get install -y google-chrome-stable && \
+    CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d. -f1,2,3) && \
+    wget "https://chromedriver.storage.googleapis.com/${CHROME_VERSION}/chromedriver_linux64.zip" -O chromedriver.zip && \
+    unzip chromedriver.zip && \
     mv chromedriver /usr/local/bin/chromedriver && \
     chmod +x /usr/local/bin/chromedriver && \
-    rm -rf chromedriver_linux64.zip google-chrome-stable_current_amd64.deb
+    rm -f chromedriver.zip
 
 # Grant execute permissions on chromedriver
 RUN mkdir -p /home/nifi/chromedriver && \
