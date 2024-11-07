@@ -19,6 +19,11 @@ package org.apache.nifi.processors.poi;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +32,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
@@ -34,6 +42,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_IN
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSplitExcel {
     private TestRunner runner;
@@ -132,5 +141,31 @@ public class TestSplitExcel {
         runner.assertTransferCount(SplitExcel.REL_SPLIT, 2);
         runner.assertTransferCount(SplitExcel.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitExcel.REL_FAILURE, 0);
+
+        for (MockFlowFile flowFile : runner.getFlowFilesForRelationship(SplitExcel.REL_SPLIT)) {
+            try (XSSFWorkbook workbook = new XSSFWorkbook(flowFile.getContentStream())) {
+                Sheet firstSheet = workbook.sheetIterator().next();
+
+                // Start from the second row as the first row has column header names
+                List<Cell> formulaCells = Stream.iterate(firstSheet.getFirstRowNum() + 1, rowIndex -> rowIndex + 1)
+                        .limit(firstSheet.getLastRowNum())
+                        .map(firstSheet::getRow)
+                        .filter(Objects::nonNull)
+                        .map(row -> row.getCell(7)) // NOTE: The argument is 0 based although the formula column when viewed in Excel is in the 8th column.
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+
+                for (Cell formulaCell : formulaCells) {
+                    Row row = formulaCell.getRow();
+                    Sheet sheet = row.getSheet();
+                    String messagePrefix = String.format("Cell %s in row %s in sheet %s",
+                            formulaCell.getColumnIndex(), row.getRowNum(), sheet.getSheetName());
+
+                    // If copy cell formula is set to true the cell types would be FORMULA and the numeric value would be 0.0.
+                    assertEquals(CellType.NUMERIC, formulaCell.getCellType(), String.format("%s did not have the expected NUMERIC cell type", messagePrefix));
+                    assertTrue(formulaCell.getNumericCellValue() > 0.0, String.format("%s did not have expected numeric value greater than 0.0", messagePrefix));
+                }
+            }
+        }
     }
 }
