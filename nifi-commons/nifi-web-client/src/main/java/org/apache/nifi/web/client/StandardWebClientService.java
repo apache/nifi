@@ -346,7 +346,7 @@ public class StandardWebClientService implements WebClientService, Closeable {
             final InputStream responseBody = response.body();
             final InputStream body = responseBody == null ? new ByteArrayInputStream(EMPTY_BYTES) : responseBody;
 
-            return new StandardHttpResponseEntity(code, headers, body, request.uri());
+            return new StandardHttpResponseEntity(code, headers, body, response.uri());
         }
 
         private HttpResponse<InputStream> getResponse(final HttpRequest request) {

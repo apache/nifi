@@ -46,9 +46,9 @@ public interface HttpResponseEntity extends Closeable {
     InputStream body();
 
     /**
-     * Get the HTTP request endpoint that was accessed to generate this HTTP
+     * Get the endpoint URI that was accessed to generate this HTTP response
      *
-     * @return the HTTP request endpoint
+     * @return HTTP URI from which the response was retrieved
      */
-    URI getRequestEndpoint();
+   URI getUri();
 }

@@ -33,18 +33,18 @@ class StandardHttpResponseEntity implements HttpResponseEntity {
 
     private final InputStream body;
 
-    private final URI requestEndpoint;
+    private final URI uri;
 
     StandardHttpResponseEntity(
             final int statusCode,
             final HttpEntityHeaders headers,
             final InputStream body,
-            final URI requestEndpoint
+            final URI uri
     ) {
         this.statusCode = statusCode;
         this.headers = headers;
         this.body = body;
-        this.requestEndpoint = requestEndpoint;
+        this.uri = uri;
     }
 
     @Override
@@ -68,7 +68,7 @@ class StandardHttpResponseEntity implements HttpResponseEntity {
     }
 
     @Override
-    public URI getRequestEndpoint() {
-        return requestEndpoint;
+    public URI getUri() {
+        return uri;
     }
 }
