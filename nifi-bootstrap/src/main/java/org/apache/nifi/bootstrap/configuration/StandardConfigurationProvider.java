@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.bootstrap.configuration;
 
+import static java.util.function.Predicate.not;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -24,7 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -64,23 +65,18 @@ public class StandardConfigurationProvider implements ConfigurationProvider {
 
     /**
      * Get additional arguments for application command from Bootstrap Properties starting with java.arg
+     * Return the list sorted by java.arg names in ascending alphabetical order
      *
      * @return Additional arguments
      */
     @Override
     public List<String> getAdditionalArguments() {
-        final List<String> additionalArguments = new ArrayList<>();
-
-        for (final String propertyName : bootstrapProperties.stringPropertyNames()) {
-            if (propertyName.startsWith(BootstrapProperty.JAVA_ARGUMENT.getProperty())) {
-                final String additionalArgument = bootstrapProperties.getProperty(propertyName);
-                if (!additionalArgument.isBlank()) {
-                    additionalArguments.add(additionalArgument);
-                }
-            }
-        }
-
-        return additionalArguments;
+        return bootstrapProperties.stringPropertyNames().stream()
+                .filter(name -> name.startsWith(BootstrapProperty.JAVA_ARGUMENT.getProperty()))
+                .sorted()
+                .map(bootstrapProperties::getProperty)
+                .filter(not(String::isBlank))
+                .toList();
     }
 
     /**

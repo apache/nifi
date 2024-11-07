@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -115,6 +116,34 @@ class StandardConfigurationProviderTest {
         assertTrue(managementServerAddress.isPresent());
         final URI address = managementServerAddress.get();
         assertEquals(MANAGEMENT_SERVER_ADDRESS, address.toString());
+    }
+
+    @Test
+    void testGetAdditionalArguments(@TempDir final Path applicationHomeDirectory) throws IOException {
+        final Path bootstrapConfiguration = setRequiredConfiguration(applicationHomeDirectory);
+        // Properties in random order and containing some java.arg and some non-java.arg names.
+        List<String> propertyNames = List.of("java.arg9", "java.arg2", "java.arg.my2", "non.java.arg.2",
+                "java.arg1", "java.arg.memory", "java.arg", "java.arg.my1", "non.java.arg.3", "random.nothing");
+        // The expected returned list of java.arg properties sorted in ascending alphabetical order.
+        List<String> expectedArguments = List.of("java.arg", "java.arg.memory", "java.arg.my1", "java.arg.my2",
+                "java.arg1", "java.arg2", "java.arg9");
+
+        final Properties bootstrapProperties = new Properties();
+        for (String propertyName : propertyNames) {
+            bootstrapProperties.put(propertyName, propertyName);
+        }
+        try (OutputStream outputStream = Files.newOutputStream(bootstrapConfiguration)) {
+            bootstrapProperties.store(outputStream, Properties.class.getSimpleName());
+        }
+
+        final StandardConfigurationProvider provider = new StandardConfigurationProvider(environmentVariables, systemProperties);
+
+        final List<String> actualAdditionalArguments = provider.getAdditionalArguments();
+
+        assertEquals(expectedArguments.size(), actualAdditionalArguments.size());
+        for (int i = 0; i < expectedArguments.size(); i++) {
+            assertEquals(expectedArguments.get(i), actualAdditionalArguments.get(i));
+        }
     }
 
     private Path setRequiredConfiguration(final Path applicationHomeDirectory) throws IOException {
