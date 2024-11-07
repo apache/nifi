@@ -95,16 +95,26 @@ RUN apt-get update && \
 #     apt-get install -y google-chrome-stable && \
 #     rm -rf /var/lib/apt/lists/*
 
-# Download ChromeDriver and move to /usr/local/bin
-RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chromedriver-linux64.zip && \
-    unzip chromedriver-linux64.zip && \
-    mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+# # Download ChromeDriver and move to /usr/local/bin
+# RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chromedriver-linux64.zip && \
+#     unzip chromedriver-linux64.zip && \
+#     mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+#     chmod +x /usr/local/bin/chromedriver && \
+#     rm -rf chromedriver-linux64.zip chromedriver-linux64
+
+# Install Chrome and matching chromedriver
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    dpkg -i google-chrome-stable_current_amd64.deb || apt-get install -f -y && \
+    apt-get install -y unzip && \
+    wget https://chromedriver.storage.googleapis.com/$(google-chrome --version | awk '{print $3}' | sed 's/\.[^.]*$//')/chromedriver_linux64.zip && \
+    unzip chromedriver_linux64.zip && \
+    mv chromedriver /usr/local/bin/chromedriver && \
     chmod +x /usr/local/bin/chromedriver && \
-    rm -rf chromedriver-linux64.zip chromedriver-linux64
+    rm -rf chromedriver_linux64.zip google-chrome-stable_current_amd64.deb
 
 # Grant execute permissions on chromedriver
 RUN mkdir -p /home/nifi/chromedriver && \
-    chmod +xw /home/nifi/chromedriver && \
+    chmod +x /home/nifi/chromedriver && \
     chown -R nifi:nifi /home/nifi/chromedriver
 
 # Install Python dependencies including chromedriver-autoinstaller
