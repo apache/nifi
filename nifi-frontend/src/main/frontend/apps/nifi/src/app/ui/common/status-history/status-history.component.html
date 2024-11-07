@@ -55,87 +55,103 @@
                             @if (instances.length > 0 && fieldDescriptors.length > 0) {
                                 @if (componentDetails$ | async; as componentDetails) {
                                     <div class="flex flex-1 w-full gap-x-4">
-                                        <div class="component-details flex flex-col gap-y-3">
-                                            @for (detail of details; track detail) {
-                                                @if (detail.key && detail.value) {
+                                        <div class="component-details-panel relative h-full">
+                                            <div
+                                                class="component-details flex flex-col gap-y-3 overflow-y-auto absolute inset-0">
+                                                @for (detail of details; track detail) {
+                                                    @if (detail.key && detail.value) {
+                                                        <div class="flex flex-col">
+                                                            <div>{{ detail.key }}</div>
+                                                            <div
+                                                                [title]="detail.value"
+                                                                class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+                                                                {{ detail.value }}
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                }
+                                                <div class="flex flex-col">
+                                                    <div>Start</div>
+                                                    <div class="tertiary-color font-medium">
+                                                        {{ minDate }}
+                                                    </div>
+                                                </div>
+                                                <div class="flex flex-col">
+                                                    <div>End</div>
+                                                    <div class="tertiary-color font-medium">
+                                                        {{ maxDate }}
+                                                    </div>
+                                                </div>
+                                                <div class="flex flex-col">
+                                                    <div class="detail-item">
+                                                        <div>Min / Max / Mean</div>
+                                                        <div class="tertiary-color font-medium">
+                                                            {{ clusterStats.min }} / {{ clusterStats.max }} /
+                                                            {{ clusterStats.mean }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="legend-entry flex justify-between items-center mr-1">
+                                                        <mat-label
+                                                            [ngStyle]="{
+                                                                color: getColor(
+                                                                    nodeStats,
+                                                                    NIFI_NODE_CONFIG.nifiInstanceId
+                                                                )
+                                                            }"
+                                                            >NiFi
+                                                        </mat-label>
+                                                        <mat-checkbox
+                                                            value="nifi-instance-id"
+                                                            (change)="selectNode($event)"
+                                                            [checked]="
+                                                                !!instanceVisibility['nifi-instance-id']
+                                                            "></mat-checkbox>
+                                                    </div>
+                                                </div>
+                                                @if (!!nodes && nodes.length > 0) {
                                                     <div class="flex flex-col">
-                                                        <div>{{ detail.key }}</div>
-                                                        <div
-                                                            [title]="detail.value"
-                                                            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
-                                                            {{ detail.value }}
+                                                        <div class="flex justify-between items-center border-b mr-1">
+                                                            <mat-label class="font-bold secondary-color"
+                                                                >Nodes
+                                                            </mat-label>
+                                                            <mat-checkbox
+                                                                class="tertiary-checkbox"
+                                                                [checked]="areAllNodesSelected(instanceVisibility)"
+                                                                [indeterminate]="
+                                                                    areAnyNodesSelected(instanceVisibility)
+                                                                "
+                                                                (change)="selectAllNodesChanged($event)"></mat-checkbox>
+                                                        </div>
+                                                        <div>
+                                                            <div>Min / Max / Mean</div>
+                                                            <div class="tertiary-color font-medium">
+                                                                {{ nodeStats.min }} / {{ nodeStats.max }} /
+                                                                {{ nodeStats.mean }}
+                                                            </div>
+                                                        </div>
+                                                        <div class="legend-entry mr-1">
+                                                            @for (node of nodes; track node.id) {
+                                                                @if (node.snapshots?.length) {
+                                                                    <div class="flex justify-between items-start">
+                                                                        <mat-label
+                                                                            [ngStyle]="{
+                                                                                color: getColor(nodeStats, node.id)
+                                                                            }"
+                                                                            >{{ node.label }}
+                                                                        </mat-label>
+                                                                        <mat-checkbox
+                                                                            [value]="node.id"
+                                                                            (change)="selectNode($event)"
+                                                                            [checked]="
+                                                                                !!instanceVisibility[node.id]
+                                                                            "></mat-checkbox>
+                                                                    </div>
+                                                                }
+                                                            }
                                                         </div>
                                                     </div>
                                                 }
-                                            }
-                                            <div class="flex flex-col">
-                                                <div>Start</div>
-                                                <div class="tertiary-color font-medium">
-                                                    {{ minDate }}
-                                                </div>
                                             </div>
-                                            <div class="flex flex-col">
-                                                <div>End</div>
-                                                <div class="tertiary-color font-medium">
-                                                    {{ maxDate }}
-                                                </div>
-                                            </div>
-                                            <div class="flex flex-col">
-                                                <div class="font-bold">NiFi</div>
-                                                <div class="detail-item">
-                                                    <div>Min / Max / Mean</div>
-                                                    <div class="tertiary-color font-medium">
-                                                        {{ clusterStats.min }} / {{ clusterStats.max }} /
-                                                        {{ clusterStats.mean }}
-                                                    </div>
-                                                </div>
-                                                <div class="legend-entry">
-                                                    <mat-checkbox
-                                                        value="nifi-instance-id"
-                                                        (change)="selectNode($event)"
-                                                        [checked]="
-                                                            !!instanceVisibility['nifi-instance-id']
-                                                        "></mat-checkbox>
-                                                    <mat-label
-                                                        [ngStyle]="{
-                                                            color: getColor(nodeStats, NIFI_NODE_CONFIG.nifiInstanceId)
-                                                        }"
-                                                        >NiFi</mat-label
-                                                    >
-                                                </div>
-                                            </div>
-                                            @if (!!nodes && nodes.length > 0) {
-                                                <div class="flex flex-col">
-                                                    <div>Nodes</div>
-                                                    <div>
-                                                        <div>Min / Max / Mean</div>
-                                                        <div class="tertiary-color font-medium">
-                                                            {{ nodeStats.min }} / {{ nodeStats.max }} /
-                                                            {{ nodeStats.mean }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="legend-entry">
-                                                        @for (node of nodes; track node) {
-                                                            @if (node.snapshots?.length) {
-                                                                <div class="flex">
-                                                                    <mat-checkbox
-                                                                        [value]="node.id"
-                                                                        (change)="selectNode($event)"
-                                                                        [checked]="
-                                                                            !!instanceVisibility[node.id]
-                                                                        "></mat-checkbox>
-                                                                    <mat-label
-                                                                        [ngStyle]="{
-                                                                            color: getColor(nodeStats, node.id)
-                                                                        }"
-                                                                        >{{ node.label }}</mat-label
-                                                                    >
-                                                                </div>
-                                                            }
-                                                        }
-                                                    </div>
-                                                </div>
-                                            }
                                         </div>
                                         <div class="chart-panel grow flex flex-col">
                                             @if (fieldDescriptors$ | async) {
