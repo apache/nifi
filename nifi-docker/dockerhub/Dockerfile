@@ -115,14 +115,20 @@ RUN apt-get update && \
 #     chmod +x /usr/local/bin/chromedriver && \
 #     rm -f chromedriver.zip
 
+RUN rm -f /usr/local/bin/chromedriver && \
+    ln -sf /opt/chromedriver/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+    chmod +x /usr/local/bin/chromedriver
+
 # Download and install Chrome version 127
 RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6483.0/linux64/chrome-linux64.zip" -O chromedriver.zip && \
     rm -rf /opt/chromedriver && \
     mkdir -p /opt/chromedriver && \
     unzip -o chromedriver.zip -d /opt/chromedriver && \
     rm -f chromedriver.zip && \
+    ls /opt/chromedriver && \  
     ln -sf /opt/chromedriver/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
     chmod +x /usr/local/bin/chromedriver
+
 
 # Download and install ChromeDriver version 127
 RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6533.119/linux64/chromedriver-linux64.zip" -O chromedriver.zip && \
