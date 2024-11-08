@@ -51,6 +51,8 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -65,6 +67,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -122,16 +125,16 @@ class TestJsonTreeRowRecordReader {
             assertEquals(2, fieldsArray.length);
 
             final Object firstElement = fieldsArray[0];
-            assertTrue(firstElement instanceof Record);
+            assertInstanceOf(Record.class, firstElement);
             assertEquals("string", ((Record) firstElement).getAsString("type"));
 
             final Object secondElement = fieldsArray[1];
-            assertTrue(secondElement instanceof Record);
+            assertInstanceOf(Record.class, secondElement);
             final Object[] typeArray = ((Record) secondElement).getAsArray("type");
             assertEquals(1, typeArray.length);
 
             final Object firstType = typeArray[0];
-            assertTrue(firstType instanceof Record);
+            assertInstanceOf(Record.class, firstType);
             final Record firstTypeRecord = (Record) firstType;
             assertEquals("string", firstTypeRecord.getAsString("type"));
         }
@@ -215,7 +218,7 @@ class TestJsonTreeRowRecordReader {
 
             // child record should have a schema with "id" as the only field
             final Object childObject = firstRecord.getValue("child");
-            assertTrue(childObject instanceof Record);
+            assertInstanceOf(Record.class, childObject);
             final Record firstChildRecord = (Record) childObject;
             final RecordSchema firstChildSchema = firstChildRecord.getSchema();
 
@@ -237,7 +240,7 @@ class TestJsonTreeRowRecordReader {
 
             // child record should have a schema with "name" as the only field
             final Object secondChildObject = secondRecord.getValue("child");
-            assertTrue(secondChildObject instanceof Record);
+            assertInstanceOf(Record.class, secondChildObject);
             final Record secondChildRecord = (Record) secondChildObject;
             final RecordSchema secondChildSchema = secondChildRecord.getSchema();
 
@@ -320,7 +323,7 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testReadJSONDisallowComments() {
-        final MalformedRecordException mre = assertThrows(MalformedRecordException.class, () ->
+        assertThrows(MalformedRecordException.class, () ->
             testReadAccountJson("src/test/resources/json/bank-account-comments.jsonc", false, StreamReadConstraints.builder().maxStringLength(20_000).build()));
     }
 
@@ -458,7 +461,7 @@ class TestJsonTreeRowRecordReader {
         final String expectedMap = "{id=1, name=John Doe, address=123 My Street, city=My City, state=MS, zipCode=11111, country=USA, account={\"id\":42,\"balance\":4750.89}}";
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/single-element-nested.json");
-             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in,schema)) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final Record rawRecord = reader.nextRecord(false, false);
 
@@ -519,7 +522,7 @@ class TestJsonTreeRowRecordReader {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object value = record.getValue(dateField);
-                assertTrue(value instanceof java.sql.Date, "With coerceTypes set to " + coerceTypes + ", value is not a Date");
+                assertInstanceOf(Date.class, value, "With coerceTypes set to " + coerceTypes + ", value is not a Date");
                 assertEquals(date, value.toString());
             }
         }
@@ -532,11 +535,11 @@ class TestJsonTreeRowRecordReader {
 
         for (final boolean coerceTypes : new boolean[] {true, false}) {
             try (final InputStream in = new FileInputStream("src/test/resources/json/timestamp.json");
-                 final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema, dateFormat, timeFormat,"yyyy/MM/dd HH:mm:ss", null, null,null, null, false, null)) {
+                 final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema, dateFormat, timeFormat, "yyyy/MM/dd HH:mm:ss", null, null, null, null, false, null)) {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object value = record.getValue("timestamp");
-                assertTrue(value instanceof java.sql.Timestamp, "With coerceTypes set to " + coerceTypes + ", value is not a Timestamp");
+                assertInstanceOf(Timestamp.class, value, "With coerceTypes set to " + coerceTypes + ", value is not a Timestamp");
             }
         }
     }
@@ -582,9 +585,9 @@ class TestJsonTreeRowRecordReader {
                     RecordFieldType.DOUBLE, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING, RecordFieldType.STRING);
             final List<RecordField> fields = schema.getFields();
             for (int i = 0; i < schema.getFields().size(); i++) {
-                assertTrue(fields.get(i).getDataType() instanceof ChoiceDataType);
+                assertInstanceOf(ChoiceDataType.class, fields.get(i).getDataType());
                 final ChoiceDataType choiceDataType = (ChoiceDataType) fields.get(i).getDataType();
-                assertEquals(expectedTypes.get(i), choiceDataType.getPossibleSubTypes().get(0).getFieldType());
+                assertEquals(expectedTypes.get(i), choiceDataType.getPossibleSubTypes().getFirst().getFieldType());
             }
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
@@ -809,7 +812,7 @@ class TestJsonTreeRowRecordReader {
             final Object[] firstRecordValues = reader.nextRecord().getValues();
 
             final Object secondValue = firstRecordValues[1];
-            assertTrue(secondValue instanceof Long);
+            assertInstanceOf(Long.class, secondValue);
             assertEquals(832036744985577473L, secondValue);
 
             final Object unicodeValue = firstRecordValues[2];
@@ -858,12 +861,12 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedSchema, new HashMap<String, Object>() {{
+            new MapRecord(expectedSchema, new HashMap<>() {{
                 put("integer", 1);
                 put("boolean", true);
                 put("booleanOrString", true);
             }}),
-            new MapRecord(expectedSchema, new HashMap<String, Object>() {{
+            new MapRecord(expectedSchema, new HashMap<>() {{
                 put("integer", 2);
                 put("string", "stringValue2");
                 put("booleanOrString", "booleanOrStringValue2");
@@ -893,14 +896,14 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Arrays.asList(
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>() {{
-                put("record", new MapRecord(expectedRecordSchema1, new HashMap<String, Object>() {{
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
+                put("record", new MapRecord(expectedRecordSchema1, new HashMap<>() {{
                     put("integer", 1);
                     put("boolean", true);
                 }}));
             }}),
-            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>() {{
-                put("record", new MapRecord(expectedRecordSchema2, new HashMap<String, Object>() {{
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<>() {{
+                put("record", new MapRecord(expectedRecordSchema2, new HashMap<>() {{
                     put("integer", 2);
                     put("string", "stringValue2");
                 }}));
@@ -1149,7 +1152,7 @@ class TestJsonTreeRowRecordReader {
         ));
 
         List<Object> expected = Collections.singletonList(
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
+                new MapRecord(expectedRecordSchema, new HashMap<>() {{
                     put("nestedLevel2Int", 111);
                     put("nestedLevel2String", "root.level1.level2:string");
                 }})
@@ -1324,8 +1327,9 @@ class TestJsonTreeRowRecordReader {
 
     private JsonTreeRowRecordReader createJsonTreeRowRecordReader(InputStream inputStream, RecordSchema recordSchema, String dateFormat, String timeFormat, String timestampFormat,
                                                                   StartingFieldStrategy startingFieldStrategy, String startingFieldName, SchemaApplicationStrategy schemaApplicationStrategy,
-                                                                  BiPredicate<String, String> captureFieldPredicate, boolean allowComments, StreamReadConstraints streamReadConstraints) throws Exception {
-        return new JsonTreeRowRecordReader(inputStream,log, recordSchema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName, schemaApplicationStrategy,
+                                                                  BiPredicate<String, String> captureFieldPredicate, boolean allowComments, StreamReadConstraints streamReadConstraints)
+            throws Exception {
+        return new JsonTreeRowRecordReader(inputStream, log, recordSchema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName, schemaApplicationStrategy,
                 captureFieldPredicate, allowComments, streamReadConstraints, new JsonParserFactory());
     }
 }
