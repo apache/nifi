@@ -36,6 +36,7 @@ import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisRequest
 import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionRequest;
 import software.amazon.awssdk.services.textract.model.GetExpenseAnalysisRequest;
 import software.amazon.awssdk.services.textract.model.JobStatus;
+import software.amazon.awssdk.services.textract.model.ProvisionedThroughputExceededException;
 import software.amazon.awssdk.services.textract.model.TextractResponse;
 import software.amazon.awssdk.services.textract.model.ThrottlingException;
 
@@ -111,8 +112,9 @@ public class GetAwsTextractJobStatus extends AbstractAwsMachineLearningJobStatus
             } else {
                 throw new IllegalStateException("Unrecognized job status");
             }
-        } catch (final ThrottlingException e) {
+        } catch (final ThrottlingException | ProvisionedThroughputExceededException e) {
             getLogger().info("Request Rate Limit exceeded", e);
+            context.yield();
             session.transfer(flowFile, REL_THROTTLED);
         } catch (final Exception e) {
             getLogger().warn("Failed to get Textract Job status", e);
