@@ -136,7 +136,7 @@ RUN apt-get update && \
 
 # ================================
 
-RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/127.0.6483.0/linux64/chromedriver-linux64.zip && \
+RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/130.0.6723.116/linux64/chromedriver-linux64.zip && \
     unzip chromedriver-linux64.zip && \
     ls -l && \ 
     mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
