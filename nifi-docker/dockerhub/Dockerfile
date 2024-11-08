@@ -115,39 +115,64 @@ RUN apt-get update && \
 #     chmod +x /usr/local/bin/chromedriver && \
 #     rm -f chromedriver.zip
 
-RUN rm -f /usr/local/bin/chromedriver && \
-    ln -sf /opt/chromedriver/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+# =============================
+# RUN rm -f /usr/local/bin/chromedriver && \
+#     ln -sf /opt/chromedriver/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+#     chmod +x /usr/local/bin/chromedriver
+
+# # Download and install Chrome version 127
+# RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6483.0/linux64/chrome-linux64.zip" -O chromedriver.zip && \
+#     rm -rf /opt/chromedriver && \
+#     mkdir -p /opt/chromedriver && \
+#     unzip -o chromedriver.zip -d /opt/chromedriver && \
+#     rm -f chromedriver.zip && \
+#     # Check if chromedriver exists at the expected location
+#     ls -l /opt/chromedriver/chromedriver-linux64 && \
+#     rm -f /usr/local/bin/chromedriver && \
+#     ln -sf /opt/chromedriver/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+#     # Verify if the symlink is created successfully
+#     ls -l /usr/local/bin/chromedriver && \
+#     chmod +x /usr/local/bin/chromedriver
+
+# ================================
+
+RUN wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/127.0.6483.0/linux64/chromedriver-linux64.zip && \
+    unzip chromedriver-linux64.zip && \
+    ls -l && \ 
+    mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+    ls -l /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver
 
-# Download and install Chrome version 127
-RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6483.0/linux64/chrome-linux64.zip" -O chromedriver.zip && \
-    rm -rf /opt/chromedriver && \
-    mkdir -p /opt/chromedriver && \
-    unzip -o chromedriver.zip -d /opt/chromedriver && \
-    rm -f chromedriver.zip && \
-    # Check if chromedriver exists at the expected location
-    ls -l /opt/chromedriver/chromedriver-linux64 && \
-    rm -f /usr/local/bin/chromedriver && \
-    ln -sf /opt/chromedriver/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
-    # Verify if the symlink is created successfully
-    ls -l /usr/local/bin/chromedriver && \
-    chmod +x /usr/local/bin/chromedriver
+# =====================================
 
-
-# Download and install ChromeDriver version 127
-RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6533.119/linux64/chromedriver-linux64.zip" -O chromedriver.zip && \
-    rm -rf /opt/chromedriver && \
-    mkdir -p /opt/chromedriver && \
-    unzip -o chromedriver.zip -d /opt/chromedriver && \
-    rm -f chromedriver.zip && \
-    ln -sf /opt/chromedriver/chromedriver /usr/local/bin/chromedriver && \
-    chmod +x /usr/local/bin/chromedriver
+# # Download and install ChromeDriver version 127
+# RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6533.119/linux64/chromedriver-linux64.zip" -O chromedriver.zip && \
+#     rm -rf /opt/chromedriver && \
+#     mkdir -p /opt/chromedriver && \
+#     unzip -o chromedriver.zip -d /opt/chromedriver && \
+#     rm -f chromedriver.zip && \
+#     ln -sf /opt/chromedriver/chromedriver /usr/local/bin/chromedriver && \
+#     chmod +x /usr/local/bin/chromedriver
 
 # # Grant execute permissions on chromedriver
 # RUN mkdir -p /home/nifi/chromedriver && \
 #     chmod +x /home/nifi/chromedriver && \
 #     chown -R nifi:nifi /home/nifi/chromedriver
-    
+
+# =====================================
+
+# Install Chrome dependencies
+RUN apt-get update && \
+    apt-get install -y gnupg ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
+    apt-get update && \
+    apt-get install -y google-chrome-stable && \
+    which google-chrome && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies including chromedriver-autoinstaller
 RUN pip3 install --upgrade numpy==1.23.3 spacy==3.5.1 selenium webdriver-manager && \
