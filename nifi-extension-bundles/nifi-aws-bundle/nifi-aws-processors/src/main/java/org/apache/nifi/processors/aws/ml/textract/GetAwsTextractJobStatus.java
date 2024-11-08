@@ -114,6 +114,7 @@ public class GetAwsTextractJobStatus extends AbstractAwsMachineLearningJobStatus
             }
         } catch (final ThrottlingException | ProvisionedThroughputExceededException e) {
             getLogger().info("Request Rate Limit exceeded", e);
+            context.yield();
             session.transfer(flowFile, REL_THROTTLED);
         } catch (final Exception e) {
             getLogger().warn("Failed to get Textract Job status", e);
