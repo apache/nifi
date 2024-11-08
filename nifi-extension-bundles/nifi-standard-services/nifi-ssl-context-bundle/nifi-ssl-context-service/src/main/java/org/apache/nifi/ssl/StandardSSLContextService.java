@@ -250,7 +250,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             final StandardSslContextBuilder sslContextBuilder = new StandardSslContextBuilder().protocol(protocol);
 
             final TrustManager trustManager;
-            final String trustStoreFile = getKeyStoreFile();
+            final String trustStoreFile = getTrustStoreFile();
             if (trustStoreFile == null || trustStoreFile.isBlank()) {
                 getLogger().debug("Trust Store File not configured");
             } else {
