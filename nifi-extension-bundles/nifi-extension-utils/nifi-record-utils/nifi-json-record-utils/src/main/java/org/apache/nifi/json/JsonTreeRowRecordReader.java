@@ -54,23 +54,6 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     private final RecordSchema schema;
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
-                                   final String dateFormat, final String timeFormat, final String timestampFormat)
-            throws IOException, MalformedRecordException {
-
-        this(in, logger, schema, dateFormat, timeFormat, timestampFormat,  null, null, null, null);
-    }
-
-    public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
-                                   final String dateFormat, final String timeFormat, final String timestampFormat,
-                                   final StartingFieldStrategy startingFieldStrategy, final String startingFieldName,
-                                   final SchemaApplicationStrategy schemaApplicationStrategy, final BiPredicate<String, String> captureFieldPredicate)
-            throws IOException, MalformedRecordException {
-
-        this(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName, schemaApplicationStrategy,
-                captureFieldPredicate, false, null, new JsonParserFactory());
-    }
-
-    public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
                                    final String dateFormat, final String timeFormat, final String timestampFormat,
                                    final StartingFieldStrategy startingFieldStrategy, final String startingFieldName,
                                    final SchemaApplicationStrategy schemaApplicationStrategy, final BiPredicate<String, String> captureFieldPredicate,

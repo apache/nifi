@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.json.JsonParserFactory;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
@@ -460,15 +461,14 @@ public class TestForkRecord {
 
         @Override
         public RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
-            return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat);
+            return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null, null, false, null, new JsonParserFactory());
         }
 
         @Override
         public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger)
                 throws MalformedRecordException, IOException, SchemaNotFoundException {
-            return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat);
+            return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null, null, false, null, new JsonParserFactory());
         }
-
     }
 
     private class CustomRecordWriter extends MockRecordWriter {

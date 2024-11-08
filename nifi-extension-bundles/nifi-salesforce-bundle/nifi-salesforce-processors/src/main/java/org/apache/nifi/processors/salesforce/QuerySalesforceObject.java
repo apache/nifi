@@ -44,6 +44,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.json.JsonParserFactory;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
 import org.apache.nifi.json.SchemaApplicationStrategy;
 import org.apache.nifi.json.StartingFieldStrategy;
@@ -505,7 +506,9 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 StartingFieldStrategy.NESTED_FIELD,
                 STARTING_FIELD_NAME,
                 SchemaApplicationStrategy.SELECTED_PART,
-                CAPTURE_PREDICATE
+                CAPTURE_PREDICATE, false,
+                null,
+                new JsonParserFactory()
         );
     }
 
