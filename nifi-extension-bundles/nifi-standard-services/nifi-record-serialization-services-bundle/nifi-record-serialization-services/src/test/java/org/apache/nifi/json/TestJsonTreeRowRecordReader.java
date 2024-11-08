@@ -35,9 +35,11 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.util.EqualsWrapper;
-import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,13 +70,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 
+@ExtendWith(MockitoExtension.class)
 class TestJsonTreeRowRecordReader {
     private static final Logger LOGGER = LoggerFactory.getLogger(TestJsonTreeRowRecordReader.class);
     private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
     private final String timeFormat = RecordFieldType.TIME.getDefaultFormat();
     private final String timestampFormat = RecordFieldType.TIMESTAMP.getDefaultFormat();
+
+    @Mock
+    private ComponentLog log;
 
     private List<RecordField> getDefaultFields() {
         return getFields(RecordFieldType.DOUBLE.getDataType());
@@ -102,7 +107,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadChoiceOfStringOrArrayOfRecords() throws IOException, MalformedRecordException {
+    void testReadChoiceOfStringOrArrayOfRecords() throws Exception {
         final File schemaFile = new File("src/test/resources/json/choice-of-string-or-array-record.avsc");
         final File jsonFile = new File("src/test/resources/json/choice-of-string-or-array-record.json");
 
@@ -110,8 +115,7 @@ class TestJsonTreeRowRecordReader {
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
 
         try (final InputStream fis = new FileInputStream(jsonFile);
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(fis, new MockComponentLog("id", "id"),
-                    recordSchema, dateFormat, timeFormat, timestampFormat, null, null, null, null, false, null, new JsonParserFactory())) {
+            final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(fis, recordSchema)) {
 
             final Record record = reader.nextRecord();
             final Object[] fieldsArray = record.getAsArray("fields");
@@ -136,13 +140,11 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     @Disabled("Intended only for manual testing to determine performance before/after modifications")
-    void testPerformanceOnLocalFile() throws IOException, MalformedRecordException {
+    void testPerformanceOnLocalFile() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
 
         final File file = new File("/devel/nifi/nifi-assembly/target/nifi-1.2.0-SNAPSHOT-bin/nifi-1.2.0-SNAPSHOT/prov/16812193969219289");
         final byte[] data = Files.readAllBytes(file.toPath());
-
-        final ComponentLog logger = mock(ComponentLog.class);
 
         int recordCount = 0;
         final int iterations = 1000;
@@ -151,8 +153,7 @@ class TestJsonTreeRowRecordReader {
             final long start = System.nanoTime();
             for (int i = 0; i < iterations; i++) {
                 try (final InputStream in = new ByteArrayInputStream(data);
-                    final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null, null,
-                            false, null, new JsonParserFactory())) {
+                    final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
                         while (reader.nextRecord() != null) {
                             recordCount++;
                         }
@@ -166,13 +167,11 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     @Disabled("Intended only for manual testing to determine performance before/after modifications")
-    void testPerformanceOnIndividualMessages() throws IOException, MalformedRecordException {
+    void testPerformanceOnIndividualMessages() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
 
         final File file = new File("/devel/nifi/nifi-assembly/target/nifi-1.2.0-SNAPSHOT-bin/nifi-1.2.0-SNAPSHOT/1.prov.json");
         final byte[] data = Files.readAllBytes(file.toPath());
-
-        final ComponentLog logger = mock(ComponentLog.class);
 
         int recordCount = 0;
         final int iterations = 1_000_000;
@@ -181,8 +180,7 @@ class TestJsonTreeRowRecordReader {
             final long start = System.nanoTime();
             for (int i = 0; i < iterations; i++) {
                 try (final InputStream in = new ByteArrayInputStream(data);
-                    final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null,
-                            null, null, false, null, new JsonParserFactory())) {
+                    final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
                     while (reader.nextRecord() != null) {
                         recordCount++;
                     }
@@ -195,13 +193,12 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testChoiceOfRecordTypes() throws IOException, MalformedRecordException {
+    void testChoiceOfRecordTypes() throws Exception {
         final Schema avroSchema = new Schema.Parser().parse(new File("src/test/resources/json/record-choice.avsc"));
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/elements-for-record-choice.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), recordSchema, dateFormat, timeFormat, timestampFormat, null, null,
-                     null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, recordSchema)) {
 
             // evaluate first record
             final Record firstRecord = reader.nextRecord();
@@ -252,12 +249,11 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadArray() throws IOException, MalformedRecordException {
+    void testReadArray() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-array.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");
@@ -279,12 +275,11 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadOneLinePerJSON() throws IOException, MalformedRecordException {
+    void testReadOneLinePerJSON() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-oneline.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");
@@ -306,7 +301,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadMultilineJSON() throws IOException, MalformedRecordException {
+    void testReadMultilineJSON() throws Exception {
         testReadAccountJson("src/test/resources/json/bank-account-multiline.json", false, null);
     }
 
@@ -319,7 +314,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadJSONComments() throws IOException, MalformedRecordException {
+    void testReadJSONComments() throws Exception {
         testReadAccountJson("src/test/resources/json/bank-account-comments.jsonc", true, StreamReadConstraints.builder().maxStringLength(20_000).build());
     }
 
@@ -329,13 +324,12 @@ class TestJsonTreeRowRecordReader {
             testReadAccountJson("src/test/resources/json/bank-account-comments.jsonc", false, StreamReadConstraints.builder().maxStringLength(20_000).build()));
     }
 
-    private void testReadAccountJson(final String inputFile, final boolean allowComments, final StreamReadConstraints streamReadConstraints) throws IOException, MalformedRecordException {
+    private void testReadAccountJson(final String inputFile, final boolean allowComments, final StreamReadConstraints streamReadConstraints) throws Exception {
         final List<RecordField> fields = getFields(RecordFieldType.DECIMAL.getDecimalDataType(30, 10));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream(inputFile);
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, allowComments, streamReadConstraints, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema, null, null, null, null, null, null, null, allowComments, streamReadConstraints)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");
@@ -357,12 +351,11 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadMultilineArrays() throws IOException, MalformedRecordException {
+    void testReadMultilineArrays() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-multiarray.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");
@@ -390,12 +383,11 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadMixedJSON() throws IOException, MalformedRecordException {
+    void testReadMixedJSON() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-mixed.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");
@@ -424,15 +416,14 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadRawRecordIncludesFieldsNotInSchema() throws IOException, MalformedRecordException {
+    void testReadRawRecordIncludesFieldsNotInSchema() throws Exception {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-array.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final Record schemaValidatedRecord = reader.nextRecord(true, true);
             assertEquals(1, schemaValidatedRecord.getValue("id"));
@@ -441,8 +432,7 @@ class TestJsonTreeRowRecordReader {
         }
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-array.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final Record rawRecord = reader.nextRecord(false, false);
             assertEquals(1, rawRecord.getValue("id"));
@@ -457,7 +447,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadRawRecordFieldOrderPreserved() throws IOException, MalformedRecordException {
+    void testReadRawRecordFieldOrderPreserved() throws Exception {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
@@ -468,8 +458,7 @@ class TestJsonTreeRowRecordReader {
         final String expectedMap = "{id=1, name=John Doe, address=123 My Street, city=My City, state=MS, zipCode=11111, country=USA, account={\"id\":42,\"balance\":4750.89}}";
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/single-element-nested.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in,schema)) {
 
             final Record rawRecord = reader.nextRecord(false, false);
 
@@ -481,15 +470,14 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadRawRecordTypeCoercion() throws IOException, MalformedRecordException {
+    void testReadRawRecordTypeCoercion() throws Exception {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-array.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final Record schemaValidatedRecord = reader.nextRecord(true, true);
             assertEquals("1", schemaValidatedRecord.getValue("id")); // will be coerced into a STRING as per the schema
@@ -500,8 +488,7 @@ class TestJsonTreeRowRecordReader {
         }
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-array.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final Record rawRecord = reader.nextRecord(false, false);
             assertEquals(1, rawRecord.getValue("id")); // will return raw value of (int) 1
@@ -518,7 +505,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testDateCoercedFromString() throws IOException, MalformedRecordException {
+    void testDateCoercedFromString() throws Exception {
         final String dateField = "date";
         final List<RecordField> recordFields = Collections.singletonList(new RecordField(dateField, RecordFieldType.DATE.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(recordFields);
@@ -528,8 +515,7 @@ class TestJsonTreeRowRecordReader {
         final String json = String.format("{ \"%s\": \"%s\" }", dateField, date);
         for (final boolean coerceTypes : new boolean[] {true, false}) {
             try (final InputStream in = new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
-                 final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, datePattern, timeFormat, timestampFormat,
-                         null, null, null, null, false, null, new JsonParserFactory())) {
+                 final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema, datePattern, timeFormat, timestampFormat, null, null, null, null, false, null)) {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object value = record.getValue(dateField);
@@ -540,14 +526,13 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testTimestampCoercedFromString() throws IOException, MalformedRecordException {
+    void testTimestampCoercedFromString() throws Exception {
         final List<RecordField> recordFields = Collections.singletonList(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(recordFields);
 
         for (final boolean coerceTypes : new boolean[] {true, false}) {
             try (final InputStream in = new FileInputStream("src/test/resources/json/timestamp.json");
-                 final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, "yyyy/MM/dd HH:mm:ss",
-                         null, null, null, null, false, null, new JsonParserFactory())) {
+                 final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema, dateFormat, timeFormat,"yyyy/MM/dd HH:mm:ss", null, null,null, null, false, null)) {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object value = record.getValue("timestamp");
@@ -557,12 +542,11 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testSingleJsonElement() throws IOException, MalformedRecordException {
+    void testSingleJsonElement() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/single-bank-account.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");
@@ -581,15 +565,14 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testSingleJsonElementWithChoiceFields() throws IOException, MalformedRecordException {
+    void testSingleJsonElementWithChoiceFields() throws Exception {
         // Wraps default fields by Choice data type to test mapping to a Choice type.
         final List<RecordField> choiceFields = getDefaultFields().stream()
                 .map(f -> new RecordField(f.getFieldName(), RecordFieldType.CHOICE.getChoiceDataType(f.getDataType()))).collect(Collectors.toList());
         final RecordSchema schema = new SimpleRecordSchema(choiceFields);
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/single-bank-account.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");
@@ -612,7 +595,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testElementWithNestedData() throws IOException, MalformedRecordException {
+    void testElementWithNestedData() throws Exception {
         final DataType accountType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
         final List<RecordField> fields = getDefaultFields();
         fields.add(new RecordField("account", accountType));
@@ -620,8 +603,7 @@ class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/single-element-nested.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(DataType::getFieldType).collect(Collectors.toList());
             final List<RecordFieldType> expectedTypes = Arrays.asList(RecordFieldType.INT, RecordFieldType.STRING,
@@ -643,7 +625,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testElementWithNestedArray() throws IOException, MalformedRecordException {
+    void testElementWithNestedArray() throws Exception {
         final DataType accountRecordType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
         final DataType accountsType = RecordFieldType.ARRAY.getArrayDataType(accountRecordType);
 
@@ -653,8 +635,7 @@ class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/single-element-nested-array.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "address", "city", "state", "zipCode", "country", "accounts");
@@ -677,12 +658,11 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadArrayDifferentSchemas() throws IOException, MalformedRecordException {
+    void testReadArrayDifferentSchemas() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-array-different-schemas.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");
@@ -707,12 +687,11 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testReadArrayDifferentSchemasWithOptionalElementOverridden() throws IOException, MalformedRecordException {
+    void testReadArrayDifferentSchemasWithOptionalElementOverridden() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-array-optional-balance.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList("id", "name", "balance", "address", "city", "state", "zipCode", "country");
@@ -737,7 +716,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    public void testMultipleInputRecordsWithStartingFieldArray() throws IOException, MalformedRecordException {
+    public void testMultipleInputRecordsWithStartingFieldArray() throws Exception {
         final String inputJson = """
             [{
               "books": [{
@@ -764,8 +743,8 @@ class TestJsonTreeRowRecordReader {
 
         final List<String> ids = new ArrayList<>();
         try (final InputStream in = new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8));
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), bookSchema, dateFormat, timeFormat, timestampFormat,
-                 StartingFieldStrategy.NESTED_FIELD, "books", SchemaApplicationStrategy.SELECTED_PART, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, bookSchema, dateFormat, timeFormat, timestampFormat,
+                     StartingFieldStrategy.NESTED_FIELD, "books", SchemaApplicationStrategy.SELECTED_PART, null, false, null)) {
 
             Record record;
             while ((record = reader.nextRecord()) != null) {
@@ -778,7 +757,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    public void testMultipleInputRecordsWithStartingFieldSingleObject() throws IOException, MalformedRecordException {
+    public void testMultipleInputRecordsWithStartingFieldSingleObject() throws Exception {
         final String inputJson = """
             {"book": {"id": 1,"title": "Book 1"}}
             {"book": {"id": 2,"title": "Book 2"}}
@@ -793,8 +772,8 @@ class TestJsonTreeRowRecordReader {
 
         final List<String> ids = new ArrayList<>();
         try (final InputStream in = new ByteArrayInputStream(inputJson.getBytes(StandardCharsets.UTF_8));
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), bookSchema, dateFormat, timeFormat, timestampFormat,
-                 StartingFieldStrategy.NESTED_FIELD, "book", SchemaApplicationStrategy.SELECTED_PART, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, bookSchema, dateFormat, timeFormat, timestampFormat,
+                StartingFieldStrategy.NESTED_FIELD, "book", SchemaApplicationStrategy.SELECTED_PART, null, false, null)) {
 
             Record record;
             while ((record = reader.nextRecord()) != null) {
@@ -809,7 +788,7 @@ class TestJsonTreeRowRecordReader {
 
 
     @Test
-    void testReadUnicodeCharacters() throws IOException, MalformedRecordException {
+    void testReadUnicodeCharacters() throws Exception {
 
         final List<RecordField> fromFields = new ArrayList<>();
         fromFields.add(new RecordField("id", RecordFieldType.LONG.getDataType()));
@@ -825,8 +804,7 @@ class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/json-with-unicode.json");
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                     null, null, null, null, false, null, new JsonParserFactory())) {
+             final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
 
@@ -852,8 +830,7 @@ class TestJsonTreeRowRecordReader {
 
         MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> {
             try (final InputStream in = new FileInputStream("src/test/resources/json/single-bank-account-wrong-field-type.json");
-                 final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                         null, null, null, null, false, null, new JsonParserFactory())) {
+                 final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
                 reader.nextRecord().getValues();
             }
@@ -1015,7 +992,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartFromNestedArray() throws IOException, MalformedRecordException {
+    void testStartFromNestedArray() throws Exception {
         String jsonPath = "src/test/resources/json/single-element-nested-array.json";
 
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
@@ -1032,7 +1009,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartFromNestedObject() throws IOException, MalformedRecordException {
+    void testStartFromNestedObject() throws Exception {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
@@ -1046,7 +1023,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartFromMultipleNestedField() throws IOException, MalformedRecordException {
+    void testStartFromMultipleNestedField() throws Exception {
         String jsonPath = "src/test/resources/json/multiple-nested-field.json";
 
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
@@ -1063,14 +1040,14 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartFromSimpleFieldReturnsEmptyJson() throws IOException, MalformedRecordException {
+    void testStartFromSimpleFieldReturnsEmptyJson() throws Exception {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
         testReadRecords(jsonPath, Collections.emptyList(), StartingFieldStrategy.NESTED_FIELD, "name");
     }
 
     @Test
-    void testStartFromNonExistentFieldWithDefinedSchema() throws IOException, MalformedRecordException {
+    void testStartFromNonExistentFieldWithDefinedSchema() throws Exception {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(getDefaultFields());
@@ -1081,7 +1058,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartFromNestedFieldThenStartObject() throws IOException, MalformedRecordException {
+    void testStartFromNestedFieldThenStartObject() throws Exception {
         String jsonPath = "src/test/resources/json/nested-array-then-start-object.json";
 
         final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
@@ -1099,7 +1076,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartFromNestedObjectWithWholeJsonSchemaScope() throws IOException, MalformedRecordException {
+    void testStartFromNestedObjectWithWholeJsonSchemaScope() throws Exception {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
         final RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
@@ -1122,7 +1099,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartFromNestedArrayWithWholeJsonSchemaScope() throws IOException, MalformedRecordException {
+    void testStartFromNestedArrayWithWholeJsonSchemaScope() throws Exception {
         String jsonPath = "src/test/resources/json/single-element-nested-array.json";
 
         RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
@@ -1146,7 +1123,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartFromDeepNestedObject() throws IOException, MalformedRecordException {
+    void testStartFromDeepNestedObject() throws Exception {
         String jsonPath = "src/test/resources/json/single-element-deep-nested.json";
 
         RecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
@@ -1183,7 +1160,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testCaptureFields() throws IOException, MalformedRecordException {
+    void testCaptureFields() throws Exception {
         Map<String, String> expectedCapturedFields = new HashMap<>();
         expectedCapturedFields.put("id", "1");
         expectedCapturedFields.put("zipCode", "11111");
@@ -1217,11 +1194,9 @@ class TestJsonTreeRowRecordReader {
         ));
 
         try (InputStream in = new FileInputStream("src/test/resources/json/capture-fields.json")) {
-            JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(
-                    in, mock(ComponentLog.class), recordSchema,
-                    dateFormat, timeFormat, timestampFormat,
-                    StartingFieldStrategy.NESTED_FIELD, startingFieldName,
-                    SchemaApplicationStrategy.SELECTED_PART, capturePredicate, false, null, new JsonParserFactory());
+            JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, recordSchema, dateFormat, timeFormat, timestampFormat,
+                    StartingFieldStrategy.NESTED_FIELD, startingFieldName, SchemaApplicationStrategy.SELECTED_PART,
+                    capturePredicate, false, null);
 
             while (reader.nextRecord() != null);
             Map<String, String> capturedFields = reader.getCapturedFields();
@@ -1230,7 +1205,7 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(String jsonFilename, List<Object> expected) throws IOException, MalformedRecordException {
+    private void testReadRecords(String jsonFilename, List<Object> expected) throws Exception {
         final File jsonFile = new File(jsonFilename);
         try (final InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             final RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE, null);
@@ -1242,7 +1217,7 @@ class TestJsonTreeRowRecordReader {
                                  List<Object> expected,
                                  StartingFieldStrategy strategy,
                                  String startingFieldName)
-            throws IOException, MalformedRecordException {
+            throws Exception {
 
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
@@ -1251,7 +1226,7 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
+    private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected) throws Exception {
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             testReadRecords(jsonStream, schema, expected);
@@ -1263,16 +1238,15 @@ class TestJsonTreeRowRecordReader {
                                  List<Object> expected,
                                  StartingFieldStrategy strategy,
                                  String startingFieldName,
-                                 SchemaApplicationStrategy schemaApplicationStrategy) throws IOException, MalformedRecordException {
+                                 SchemaApplicationStrategy schemaApplicationStrategy) throws Exception {
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             testReadRecords(jsonStream, schema, expected, strategy, startingFieldName, schemaApplicationStrategy);
         }
     }
 
-    private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
-        try (JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                null, null, null, null, false, null, new JsonParserFactory())) {
+    private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected) throws Exception {
+        try (JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(jsonStream, schema)) {
             List<Object> actual = new ArrayList<>();
             Record record;
             while ((record = reader.nextRecord()) != null) {
@@ -1304,10 +1278,10 @@ class TestJsonTreeRowRecordReader {
                                  StartingFieldStrategy strategy,
                                  String startingFieldName,
                                  SchemaApplicationStrategy schemaApplicationStrategy)
-            throws IOException, MalformedRecordException {
+            throws Exception {
 
-        try (JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                strategy, startingFieldName, schemaApplicationStrategy, null, false, null, new JsonParserFactory())) {
+        try (JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(jsonStream, schema, dateFormat, timeFormat, timestampFormat,
+                strategy, startingFieldName, schemaApplicationStrategy, null, false, null)) {
             List<Object> actual = new ArrayList<>();
             Record record;
 
@@ -1336,12 +1310,22 @@ class TestJsonTreeRowRecordReader {
     private RecordSchema inferSchema(InputStream jsonStream, StartingFieldStrategy strategy, String startingFieldName) throws IOException {
         RecordSchema schema = new InferSchemaAccessStrategy<>(
             (__, inputStream) -> new JsonRecordSource(inputStream, strategy, startingFieldName, StreamReadConstraints.defaults()),
-            new JsonSchemaInference(new TimeValueInference(null, null, null)),
-            mock(ComponentLog.class)
+            new JsonSchemaInference(new TimeValueInference(null, null, null)), log
         ).getSchema(Collections.emptyMap(), jsonStream, null);
 
         jsonStream.reset();
 
         return schema;
+    }
+
+    private JsonTreeRowRecordReader createJsonTreeRowRecordReader(InputStream inputStream, RecordSchema recordSchema) throws Exception {
+        return createJsonTreeRowRecordReader(inputStream, recordSchema, dateFormat, timeFormat, timestampFormat, null, null, null, null, false, null);
+    }
+
+    private JsonTreeRowRecordReader createJsonTreeRowRecordReader(InputStream inputStream, RecordSchema recordSchema, String dateFormat, String timeFormat, String timestampFormat,
+                                                                  StartingFieldStrategy startingFieldStrategy, String startingFieldName, SchemaApplicationStrategy schemaApplicationStrategy,
+                                                                  BiPredicate<String, String> captureFieldPredicate, boolean allowComments, StreamReadConstraints streamReadConstraints) throws Exception {
+        return new JsonTreeRowRecordReader(inputStream,log, recordSchema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName, schemaApplicationStrategy,
+                captureFieldPredicate, allowComments, streamReadConstraints, new JsonParserFactory());
     }
 }

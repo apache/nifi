@@ -506,7 +506,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 StartingFieldStrategy.NESTED_FIELD,
                 STARTING_FIELD_NAME,
                 SchemaApplicationStrategy.SELECTED_PART,
-                CAPTURE_PREDICATE, false,
+                CAPTURE_PREDICATE,
+                false,
                 null,
                 new JsonParserFactory()
         );
