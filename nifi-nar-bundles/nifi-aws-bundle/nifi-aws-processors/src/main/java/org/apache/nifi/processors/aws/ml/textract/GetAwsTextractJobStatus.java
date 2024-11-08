@@ -26,6 +26,7 @@ import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
 import com.amazonaws.services.textract.model.GetDocumentTextDetectionRequest;
 import com.amazonaws.services.textract.model.GetExpenseAnalysisRequest;
 import com.amazonaws.services.textract.model.JobStatus;
+import com.amazonaws.services.textract.model.ProvisionedThroughputExceededException;
 import com.amazonaws.services.textract.model.ThrottlingException;
 import java.util.Collections;
 import java.util.List;
@@ -96,8 +97,9 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
                 session.transfer(flowFile, REL_FAILURE);
                 getLogger().error("Amazon Textract Task [{}] Failed", awsTaskId);
             }
-        } catch (ThrottlingException e) {
+        } catch (ThrottlingException | ProvisionedThroughputExceededException e) {
             getLogger().info("Request Rate Limit exceeded", e);
+            context.yield();
             session.transfer(flowFile, REL_THROTTLED);
             return;
         } catch (Exception e) {
