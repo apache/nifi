@@ -116,7 +116,7 @@ RUN apt-get update && \
 #     rm -f chromedriver.zip
 
 # Download and install Chrome version 127
-RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6533.119/linux64/chromedriver-linux64.zip" -O chromedriver.zip && \
+RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6483.0/linux64/chrome-linux64.zip" -O chromedriver.zip && \
     rm -rf /opt/chromedriver && \
     mkdir -p /opt/chromedriver && \
     unzip -o chromedriver.zip -d /opt/chromedriver && \
