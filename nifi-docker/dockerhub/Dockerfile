@@ -125,8 +125,12 @@ RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6483.0/
     mkdir -p /opt/chromedriver && \
     unzip -o chromedriver.zip -d /opt/chromedriver && \
     rm -f chromedriver.zip && \
-    ls /opt/chromedriver && \  
+    # Check if chromedriver exists at the expected location
+    ls -l /opt/chromedriver/chromedriver-linux64 && \
+    rm -f /usr/local/bin/chromedriver && \
     ln -sf /opt/chromedriver/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+    # Verify if the symlink is created successfully
+    ls -l /usr/local/bin/chromedriver && \
     chmod +x /usr/local/bin/chromedriver
 
 
