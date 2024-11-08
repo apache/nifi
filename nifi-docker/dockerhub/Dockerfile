@@ -103,26 +103,39 @@ RUN apt-get update && \
 #     rm -rf chromedriver-linux64.zip chromedriver-linux64
 
 # Install Chrome and matching chromedriver
-RUN apt-get update && \
-    apt-get install -y curl gnupg unzip && \
-    curl -sSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/chrome-keyring.gpg && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
-    apt-get update && \
-    apt-get install -y google-chrome-stable:127.0.6533.119 && \
-    wget "https://chromedriver.storage.googleapis.com/127.0.6533.119/chromedriver_linux64.zip" -O chromedriver.zip && \
-    unzip chromedriver.zip && \
-    mv chromedriver /usr/local/bin/chromedriver && \
-    chmod +x /usr/local/bin/chromedriver && \
-    rm -f chromedriver.zip
+# RUN apt-get update && \
+#     apt-get install -y curl gnupg unzip && \
+#     curl -sSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/chrome-keyring.gpg && \
+#     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
+#     apt-get update && \
+#     apt-get install -y google-chrome-stable:127.0.6533.119 && \
+#     wget "https://chromedriver.storage.googleapis.com/127.0.6533.119/chromedriver_linux64.zip" -O chromedriver.zip && \
+#     unzip chromedriver.zip && \
+#     mv chromedriver /usr/local/bin/chromedriver && \
+#     chmod +x /usr/local/bin/chromedriver && \
+#     rm -f chromedriver.zip
 
-# Grant execute permissions on chromedriver
-RUN mkdir -p /home/nifi/chromedriver && \
-    chmod +x /home/nifi/chromedriver && \
-    chown -R nifi:nifi /home/nifi/chromedriver
+# Download and install Chrome version 127
+RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6533.119/linux64/chrome-headless-shell-linux64.zip" -O chrome.zip && \
+    unzip chrome.zip -d /opt/chrome && \
+    rm -f chrome.zip && \
+    ln -s /opt/chrome/chrome-headless-shell /usr/local/bin/google-chrome
+
+# Download and install ChromeDriver version 127
+RUN wget "https://storage.googleapis.com/chrome-for-testing-public/127.0.6533.119/linux64/chromedriver-linux64.zip" -O chromedriver.zip && \
+    unzip chromedriver.zip -d /opt/chromedriver && \
+    rm -f chromedriver.zip && \
+    ln -s /opt/chromedriver/chromedriver /usr/local/bin/chromedriver && \
+    chmod +x /usr/local/bin/chromedriver
+
+# # Grant execute permissions on chromedriver
+# RUN mkdir -p /home/nifi/chromedriver && \
+#     chmod +x /home/nifi/chromedriver && \
+#     chown -R nifi:nifi /home/nifi/chromedriver
     
 
 # Install Python dependencies including chromedriver-autoinstaller
-RUN pip3 install --upgrade numpy==1.23.3 spacy==3.5.1 selenium webdriver-manager chromedriver-autoinstaller && \
+RUN pip3 install --upgrade numpy==1.23.3 spacy==3.5.1 selenium webdriver-manager && \
     python3 -m spacy download en_core_web_md
 
 # # Fetch Chrome's major version and dynamically download matching ChromeDriver
