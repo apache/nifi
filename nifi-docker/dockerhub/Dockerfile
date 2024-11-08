@@ -108,8 +108,8 @@ RUN apt-get update && \
     curl -sSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/chrome-keyring.gpg && \
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
     apt-get update && \
-    apt-get install -y google-chrome-stable && \
-    wget "https://chromedriver.storage.googleapis.com/114.0.5735.90/chromedriver_linux64.zip" -O chromedriver.zip && \
+    apt-get install -y google-chrome-stable:127.0.6533.119 && \
+    wget "https://chromedriver.storage.googleapis.com/127.0.6533.119/chromedriver_linux64.zip" -O chromedriver.zip && \
     unzip chromedriver.zip && \
     mv chromedriver /usr/local/bin/chromedriver && \
     chmod +x /usr/local/bin/chromedriver && \
@@ -119,6 +119,7 @@ RUN apt-get update && \
 RUN mkdir -p /home/nifi/chromedriver && \
     chmod +x /home/nifi/chromedriver && \
     chown -R nifi:nifi /home/nifi/chromedriver
+    
 
 # Install Python dependencies including chromedriver-autoinstaller
 RUN pip3 install --upgrade numpy==1.23.3 spacy==3.5.1 selenium webdriver-manager chromedriver-autoinstaller && \
