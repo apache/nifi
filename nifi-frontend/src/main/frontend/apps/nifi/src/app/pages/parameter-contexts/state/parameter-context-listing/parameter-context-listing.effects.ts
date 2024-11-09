@@ -396,8 +396,8 @@ export class ParameterContextListingEffects {
                                     }
                                 })
                             );
-                            this.store.dispatch(ParameterContextListingActions.editParameterContextComplete());
                         }
+                        this.store.dispatch(ParameterContextListingActions.editParameterContextComplete());
                     });
                 })
             ),
