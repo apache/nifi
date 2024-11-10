@@ -74,31 +74,27 @@ import java.util.regex.Pattern;
 public class AwsSecretsManagerParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     enum ListingStrategy implements DescribedValue {
         Enumeration(
-                "Enumeration",
                 "Enumerate secret names",
                 "Provides a set of secret names to fetch, separated by a comma delimiter ','. " +
                         "This strategy requires the GetSecretValue permission only."
         ),
         Pattern(
-                "Pattern",
                 "Use regular expression",
                 "Provides a regular expression to match keys of attributes to filter for. " +
                         "This strategy requires both ListSecrets and GetSecretValue permissions."
         );
 
-        private final String value;
         private final String displayName;
         private final String description;
 
-        ListingStrategy(final String value, final String displayName, final String description) {
+        ListingStrategy(final String displayName, final String description) {
             this.displayName = displayName;
-            this.value = value;
             this.description = description;
         }
 
         @Override
         public String getValue() {
-            return this.value;
+            return name();
         }
 
         @Override
