@@ -53,6 +53,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -78,12 +79,7 @@ public class TestExcelRecordReader {
     @BeforeAll
     static void setUpBeforeAll() throws Exception {
         //Generate an Excel file and populate it with data
-        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            final XSSFSheet sheet = workbook.createSheet("User Info");
-            populateSheet(sheet);
-            workbook.write(outputStream);
-        }
+        final InputStream workbook = createWorkbook(DATA);
 
         //Protect the Excel file with a password
         try (POIFSFileSystem poifsFileSystem = new POIFSFileSystem()) {
@@ -91,29 +87,11 @@ public class TestExcelRecordReader {
             Encryptor encryptor = encryptionInfo.getEncryptor();
             encryptor.confirmPassword(PASSWORD);
 
-            try (OPCPackage opc = OPCPackage.open(new ByteArrayInputStream(outputStream.toByteArray()));
+            try (OPCPackage opc = OPCPackage.open(workbook);
                  OutputStream os = encryptor.getDataStream(poifsFileSystem)) {
                 opc.save(os);
             }
             poifsFileSystem.writeFilesystem(PASSWORD_PROTECTED);
-        }
-    }
-
-    private static void populateSheet(XSSFSheet sheet) {
-        //Adding the data to the Excel worksheet
-        int rowCount = 0;
-        for (Object[] dataRow : DATA) {
-            Row row = sheet.createRow(rowCount++);
-            int columnCount = 0;
-
-            for (Object field : dataRow) {
-                Cell cell = row.createCell(columnCount++);
-                if (field instanceof String) {
-                    cell.setCellValue((String) field);
-                } else if (field instanceof Integer) {
-                    cell.setCellValue((Integer) field);
-                }
-            }
         }
     }
 
@@ -334,5 +312,50 @@ public class TestExcelRecordReader {
     private RecordSchema getPasswordProtectedSchema() {
         return new SimpleRecordSchema(Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("name", RecordFieldType.STRING.getDataType())));
+    }
+
+    @Test
+    void testWithNumberColumnWhoseValueIsEmptyString() throws Exception {
+        final RecordSchema schema = new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
+                new RecordField("second", RecordFieldType.LONG.getDataType())));
+        final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
+                .withSchema(schema)
+                .build();
+
+        final Object[][] data = {{"Manny", ""}};
+        final InputStream workbook = createWorkbook(data);
+        final ExcelRecordReader recordReader = new ExcelRecordReader(configuration, workbook, logger);
+
+        assertDoesNotThrow(() -> getRecords(recordReader, true, true));
+    }
+
+    private static InputStream createWorkbook(Object[][] data) throws Exception {
+        final ByteArrayOutputStream workbookOutputStream = new ByteArrayOutputStream();
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            final XSSFSheet sheet = workbook.createSheet("SomeSheetName");
+            populateSheet(sheet, data);
+            workbook.write(workbookOutputStream);
+        }
+
+        return new ByteArrayInputStream(workbookOutputStream.toByteArray());
+    }
+
+    private static void populateSheet(XSSFSheet sheet, Object[][] data) {
+        //Adding the data to the Excel worksheet
+        int rowCount = 0;
+        for (Object[] dataRow : data) {
+            Row row = sheet.createRow(rowCount++);
+            int columnCount = 0;
+
+            for (Object field : dataRow) {
+                Cell cell = row.createCell(columnCount++);
+                switch (field) {
+                    case String string -> cell.setCellValue(string);
+                    case Integer integer -> cell.setCellValue(integer.doubleValue());
+                    case Long l -> cell.setCellValue(l.doubleValue());
+                    default -> { }
+                }
+            }
+        }
     }
 }

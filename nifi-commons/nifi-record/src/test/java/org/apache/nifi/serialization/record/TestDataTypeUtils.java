@@ -1201,4 +1201,16 @@ public class TestDataTypeUtils {
         assertTrue(converted instanceof java.sql.Date, "Converted value is not java.sql.Date");
         assertEquals(ISO_8601_YEAR_MONTH_DAY, converted.toString());
     }
+
+    @Test
+    void testNumberParsingWhereStringBlank() {
+        final String fieldName = "someField";
+        assertNull(DataTypeUtils.toBigDecimal("", fieldName));
+        assertNull(DataTypeUtils.toBigInt("", fieldName));
+        assertNull(DataTypeUtils.toDouble("", fieldName));
+        assertNull(DataTypeUtils.toFloat("", fieldName));
+        assertNull(DataTypeUtils.toInteger("", fieldName));
+        assertNull(DataTypeUtils.toLong("", fieldName));
+        assertNull(DataTypeUtils.toShort("", fieldName));
+    }
 }
