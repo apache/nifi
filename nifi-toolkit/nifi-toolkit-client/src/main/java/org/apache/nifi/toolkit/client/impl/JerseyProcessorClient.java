@@ -24,6 +24,7 @@ import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.ProcessorClient;
 import org.apache.nifi.toolkit.client.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
@@ -282,6 +283,19 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
                     .resolveTemplate("id", processorId);
 
             return getRequestBuilder(target).delete(ProcessorEntity.class);
+        });
+    }
+
+    @Override
+    public ComponentStateEntity clearProcessorState(String processorId) throws NiFiClientException, IOException {
+        Objects.requireNonNull(processorId, "Processor ID required");
+
+        return executeAction("Error clearing state of the Processor", () -> {
+            final WebTarget target = processorTarget
+                .path("/state/clear-requests")
+                .resolveTemplate("id", processorId);
+
+            return getRequestBuilder(target).post(null, ComponentStateEntity.class);
         });
     }
 }

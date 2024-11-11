@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.client;
 
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
@@ -58,6 +59,8 @@ public interface ProcessorClient {
     PropertyDescriptorEntity getPropertyDescriptor(String processorId, String propertyName, Boolean sensitive) throws NiFiClientException, IOException;
 
     ProcessorEntity terminateProcessor(String processorId) throws NiFiClientException, IOException;
+
+    ComponentStateEntity clearProcessorState(String processorId) throws NiFiClientException, IOException;
 
     /**
      * Indicates that mutable requests should indicate that the client has
