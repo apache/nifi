@@ -1203,7 +1203,7 @@ public class DataTypeUtils {
             }
             case String string -> {
                 try {
-                    return new BigInteger(string);
+                    return string.isBlank() ? null : new BigInteger(string);
                 } catch (NumberFormatException nfe) {
                     throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName
                             + ", value is not a valid representation of BigInteger", nfe);
@@ -1286,9 +1286,9 @@ public class DataTypeUtils {
             }
         }
 
-        if (value instanceof String) {
+        if (value instanceof String string) {
             try {
-                return new BigDecimal((String) value);
+                return string.isBlank() ? null : new BigDecimal(string);
             } catch (NumberFormatException nfe) {
                 throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName
                         + ", value is not a valid representation of BigDecimal", nfe);
@@ -1302,7 +1302,7 @@ public class DataTypeUtils {
         return switch (value) {
             case null -> null;
             case Number number -> number.doubleValue();
-            case String s -> Double.parseDouble(s);
+            case String string -> string.isBlank() ? null : Double.parseDouble(string);
             default ->
                     throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Double for field " + fieldName);
         };
@@ -1327,7 +1327,7 @@ public class DataTypeUtils {
         return switch (value) {
             case null -> null;
             case Number number -> number.floatValue();
-            case String s -> Float.parseFloat(s);
+            case String string -> string.isBlank() ? null : Float.parseFloat(string);
             default ->
                     throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Float for field " + fieldName);
         };
@@ -1388,7 +1388,7 @@ public class DataTypeUtils {
         return switch (value) {
             case null -> null;
             case Number number -> number.longValue();
-            case String s -> Long.parseLong(s);
+            case String string -> string.isBlank() ? null : Long.parseLong(string);
             case java.util.Date date -> date.getTime();
             default ->
                     throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Long for field " + fieldName);
@@ -1464,8 +1464,8 @@ public class DataTypeUtils {
                             + " as it causes an arithmetic overflow (the value is too large, e.g.)", ae);
                 }
             }
-            case String s -> {
-                return Integer.parseInt(s);
+            case String string -> {
+                return string.isBlank() ? null : Integer.parseInt(string);
             }
             default -> {
             }
@@ -1491,7 +1491,7 @@ public class DataTypeUtils {
         return switch (value) {
             case null -> null;
             case Number number -> number.shortValue();
-            case String s -> Short.parseShort(s);
+            case String string -> string.isBlank() ? null : Short.parseShort(string);
             default ->
                     throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Short for field " + fieldName);
         };
