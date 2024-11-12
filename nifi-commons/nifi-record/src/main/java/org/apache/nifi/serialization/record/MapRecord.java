@@ -514,9 +514,6 @@ public class MapRecord implements Record {
     private Optional<RecordField> setValueAndGetField(final String fieldName, final Object value) {
         final Optional<RecordField> field = getSchema().getField(fieldName);
         if (!field.isPresent()) {
-            if (dropUnknownFields) {
-                return field;
-            }
 
             final Object previousValue = values.put(fieldName, value);
             if (!Objects.equals(value, previousValue)) {
