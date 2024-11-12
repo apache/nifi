@@ -18,6 +18,7 @@
 package org.apache.nifi.python.processor;
 
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -26,6 +27,7 @@ import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -44,6 +46,8 @@ import java.util.function.Supplier;
 
 @SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
 @SupportsSensitiveDynamicProperties
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
+        description = "Python processors can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 public abstract class PythonProcessorProxy<T extends PythonProcessor> extends AbstractProcessor implements AsyncLoadedProcessor {
     private final String processorType;
     private volatile PythonProcessorInitializationContext initContext;

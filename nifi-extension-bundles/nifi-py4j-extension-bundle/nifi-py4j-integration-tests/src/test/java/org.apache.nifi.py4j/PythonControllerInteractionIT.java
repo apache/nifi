@@ -19,6 +19,7 @@ package org.apache.nifi.py4j;
 
 import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.flowfile.FlowFile;
@@ -31,6 +32,7 @@ import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.python.PythonProcessorDetails;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -610,6 +612,76 @@ public class PythonControllerInteractionIT {
         runner.assertTransferCount("success", 0);
     }
 
+    @Test
+    public void testStateManagerSetState() {
+        final TestRunner runner = createStateManagerTesterProcessor("setState");
+
+        final MockStateManager stateManager = runner.getStateManager();
+        stateManager.assertStateNotSet();
+
+        runner.run();
+
+        stateManager.assertStateSet(Scope.CLUSTER);
+        stateManager.assertStateEquals(Map.of("state_key_1", "state_value_1"), Scope.CLUSTER);
+        runner.assertTransferCount("success", 1);
+    }
+
+    @Test
+    public void testStateManagerGetState() throws IOException {
+        final TestRunner runner = createStateManagerTesterProcessor("getState");
+
+        final MockStateManager stateManager = initializeStateManager(runner);
+
+        runner.run();
+
+        // The processor reads the state and adds the key-value pairs
+        // to the FlowFile as attributes.
+        stateManager.assertStateEquals(Map.of("state_key_1", "state_value_1"), Scope.CLUSTER);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship("success").get(0);
+        flowFile.assertAttributeEquals("state_key_1", "state_value_1");
+    }
+
+    @Test
+    public void testStateManagerReplace() throws IOException {
+        final TestRunner runner = createStateManagerTesterProcessor("replace");
+
+        final MockStateManager stateManager = initializeStateManager(runner);
+
+        runner.run();
+
+        final Map finalState = Map.of("state_key_2", "state_value_2");
+        stateManager.assertStateEquals(finalState, Scope.CLUSTER);
+        runner.assertTransferCount("success", 1);
+    }
+
+    @Test
+    public void testStateManagerClear() throws IOException {
+        final TestRunner runner = createStateManagerTesterProcessor("clear");
+
+        final MockStateManager stateManager = initializeStateManager(runner);
+
+        runner.run();
+
+        stateManager.assertStateEquals(Map.of(), Scope.CLUSTER);
+        runner.assertTransferCount("success", 1);
+    }
+
+    @Test
+    public void testStateManagerExceptionHandling() {
+        // Use-case tested: StateManager's exception can be caught
+        // in the Python code and execution continued without producing errors.
+        final TestRunner runner = createProcessor("TestStateManagerException");
+        waitForValid(runner);
+
+        final MockStateManager stateManager = runner.getStateManager();
+        stateManager.setFailOnStateSet(Scope.CLUSTER, true);
+
+        runner.run();
+
+        runner.assertTransferCount("success", 1);
+        runner.getFlowFilesForRelationship("success").get(0).assertAttributeEquals("exception_msg", "Set state failed");
+    }
+
     public interface StringLookupService extends ControllerService {
         Optional<String> lookup(Map<String, String> coordinates);
     }
@@ -688,6 +760,20 @@ public class PythonControllerInteractionIT {
 
         final MockFlowFile output = runner.getFlowFilesForRelationship(expectedOuputRelationship).get(0);
         output.assertContentEquals(expectedContent);
+    }
+
+    private TestRunner createStateManagerTesterProcessor(String methodToTest) {
+        final TestRunner runner = createProcessor("TestStateManager");
+        runner.setProperty("StateManager Method To Test", methodToTest);
+        waitForValid(runner);
+        return runner;
+    }
+
+    private MockStateManager initializeStateManager(TestRunner runner) throws IOException {
+        final MockStateManager stateManager = runner.getStateManager();
+        final Map initialState = Map.of("state_key_1", "state_value_1");
+        stateManager.setState(initialState, Scope.CLUSTER);
+        return stateManager;
     }
 
 }

@@ -61,7 +61,7 @@ public class FlowFileSourceProxy extends PythonProcessorProxy<FlowFileSource> {
         } catch (final Py4JNetworkException e) {
             throw new ProcessException("Failed to communicate with Python Process", e);
         } catch (final Exception e) {
-            getLogger().error("Failed to create FlowFile {}", e);
+            getLogger().error("Failed to create FlowFile", e);
             return;
         }
 
