@@ -20,6 +20,8 @@ import org.apache.nifi.framework.ssl.FrameworkSslContextHolder;
 import org.apache.nifi.framework.ssl.SecurityStoreChangedPathListener;
 import org.apache.nifi.framework.ssl.WatchServiceMonitorCommand;
 import org.apache.nifi.security.ssl.KeyManagerListener;
+import org.apache.nifi.security.ssl.PemCertificateKeyStoreBuilder;
+import org.apache.nifi.security.ssl.PemPrivateKeyCertificateKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.TrustManagerListener;
 import org.apache.nifi.util.FormatUtils;
@@ -54,9 +56,12 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_AUTO_RELOAD_ENABLED;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_AUTO_RELOAD_INTERVAL;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_KEYSTORE;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_KEYSTORE_CERTIFICATE;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_KEYSTORE_PASSWD;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_KEYSTORE_PRIVATE_KEY;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_KEYSTORE_TYPE;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_TRUSTSTORE;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_TRUSTSTORE_CERTIFICATE;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_TRUSTSTORE_PASSWD;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_TRUSTSTORE_TYPE;
 
@@ -69,6 +74,8 @@ public class SslContextConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(SslContextConfiguration.class);
 
     private static final String EMPTY = "";
+
+    private static final String PEM_STORE_TYPE = "PEM";
 
     private NiFiProperties properties;
 
@@ -146,7 +153,8 @@ public class SslContextConfiguration {
         final WatchService watchService;
 
         final String keyStoreProperty = properties.getProperty(SECURITY_KEYSTORE);
-        if (keyStoreProperty == null || keyStoreProperty.isBlank()) {
+        final String keyStorePrivateKeyProperty = properties.getProperty(SECURITY_KEYSTORE_PRIVATE_KEY);
+        if ((keyStoreProperty == null || keyStoreProperty.isBlank()) && (keyStorePrivateKeyProperty == null || keyStorePrivateKeyProperty.isBlank())) {
             watchService = null;
         } else if (isReloadEnabled()) {
             final Set<Path> storeDirectories = getStoreDirectories();
@@ -172,7 +180,22 @@ public class SslContextConfiguration {
         final KeyStore keyStore;
 
         final String keyStorePath = properties.getProperty(SECURITY_KEYSTORE);
-        if (keyStorePath == null || keyStorePath.isBlank()) {
+        if (isPemStoreType(SECURITY_KEYSTORE_TYPE)) {
+            final Path privateKeyPath = getPropertyPath(SECURITY_KEYSTORE_PRIVATE_KEY);
+            final Path certificatePath = getPropertyPath(SECURITY_KEYSTORE_CERTIFICATE);
+
+            try (
+                    InputStream privateKeyInputStream = Files.newInputStream(privateKeyPath);
+                    InputStream certificateInputStream = Files.newInputStream(certificatePath)
+            ) {
+                keyStore = new PemPrivateKeyCertificateKeyStoreBuilder()
+                        .privateKeyInputStream(privateKeyInputStream)
+                        .certificateInputStream(certificateInputStream)
+                        .build();
+            } catch (final IOException e) {
+                throw new IllegalStateException("Failed to load Key Store Certificate [%s] and Key [%s] Type [PEM]".formatted(certificatePath, privateKeyPath), e);
+            }
+        } else if (keyStorePath == null || keyStorePath.isBlank()) {
             keyStore = null;
         } else {
             final char[] keyStorePassword = properties.getProperty(SECURITY_KEYSTORE_PASSWD, EMPTY).toCharArray();
@@ -197,7 +220,14 @@ public class SslContextConfiguration {
         final KeyStore trustStore;
 
         final String trustStorePath = properties.getProperty(SECURITY_TRUSTSTORE);
-        if (trustStorePath == null || trustStorePath.isBlank()) {
+        if (isPemStoreType(SECURITY_TRUSTSTORE_TYPE)) {
+            final Path trustStoreCertificatePath = getPropertyPath(SECURITY_TRUSTSTORE_CERTIFICATE);
+            try (InputStream inputStream = Files.newInputStream(trustStoreCertificatePath)) {
+                trustStore = new PemCertificateKeyStoreBuilder().inputStream(inputStream).build();
+            } catch (final IOException e) {
+                throw new IllegalStateException("Failed to load Trust Store Certificate [%s] Type [PEM]".formatted(trustStorePath), e);
+            }
+        } else if (trustStorePath == null || trustStorePath.isBlank()) {
             trustStore = null;
         } else {
             final char[] trustStorePassword = properties.getProperty(SECURITY_TRUSTSTORE_PASSWD, EMPTY).toCharArray();
@@ -220,11 +250,23 @@ public class SslContextConfiguration {
     private Set<Path> getStoreFileNames() {
         final Set<Path> storeFileNames = new HashSet<>();
 
-        final Path keyStorePath = getKeyStorePath();
-        addStoreFileName(keyStorePath, storeFileNames);
+        if (isPemStoreType(SECURITY_KEYSTORE_TYPE)) {
+            final Path keyStorePrivateKeyPath = getPropertyPath(SECURITY_KEYSTORE_PRIVATE_KEY);
+            addStoreFileName(keyStorePrivateKeyPath, storeFileNames);
+            final Path keyStoreCertificatePath = getPropertyPath(SECURITY_KEYSTORE_CERTIFICATE);
+            addStoreFileName(keyStoreCertificatePath, storeFileNames);
+        } else {
+            final Path keyStorePath = getPropertyPath(SECURITY_KEYSTORE);
+            addStoreFileName(keyStorePath, storeFileNames);
+        }
 
-        final Path trustStorePath = getTrustStorePath();
-        addStoreFileName(trustStorePath, storeFileNames);
+        if (isPemStoreType(SECURITY_TRUSTSTORE_TYPE)) {
+            final Path trustStoreCertificatePath = getPropertyPath(SECURITY_TRUSTSTORE_CERTIFICATE);
+            addStoreFileName(trustStoreCertificatePath, storeFileNames);
+        } else {
+            final Path trustStorePath = getPropertyPath(SECURITY_TRUSTSTORE);
+            addStoreFileName(trustStorePath, storeFileNames);
+        }
 
         return storeFileNames;
     }
@@ -245,11 +287,23 @@ public class SslContextConfiguration {
     private Set<Path> getStoreDirectories() {
         final Set<Path> storeDirectories = new HashSet<>();
 
-        final Path keyStorePath = getKeyStorePath();
-        addStorePath(keyStorePath, storeDirectories);
+        if (isPemStoreType(SECURITY_KEYSTORE_TYPE)) {
+            final Path keyStorePrivateKeyPath = getPropertyPath(SECURITY_KEYSTORE_PRIVATE_KEY);
+            addStorePath(keyStorePrivateKeyPath, storeDirectories);
+            final Path keyStoreCertificatePath = getPropertyPath(SECURITY_KEYSTORE_CERTIFICATE);
+            addStorePath(keyStoreCertificatePath, storeDirectories);
+        } else {
+            final Path keyStorePath = getPropertyPath(SECURITY_KEYSTORE);
+            addStorePath(keyStorePath, storeDirectories);
+        }
 
-        final Path trustStorePath = getTrustStorePath();
-        addStorePath(trustStorePath, storeDirectories);
+        if (isPemStoreType(SECURITY_TRUSTSTORE_TYPE)) {
+            final Path trustStoreCertificatePath = getPropertyPath(SECURITY_TRUSTSTORE_CERTIFICATE);
+            addStorePath(trustStoreCertificatePath, storeDirectories);
+        } else {
+            final Path trustStorePath = getPropertyPath(SECURITY_TRUSTSTORE);
+            addStorePath(trustStorePath, storeDirectories);
+        }
 
         return storeDirectories;
     }
@@ -269,25 +323,22 @@ public class SslContextConfiguration {
         }
     }
 
-    private Path getKeyStorePath() {
-        final String keyStoreProperty = properties.getProperty(SECURITY_KEYSTORE);
-        if (keyStoreProperty == null || keyStoreProperty.isBlank()) {
-            throw new IllegalStateException("Security Property [%s] not configured".formatted(SECURITY_KEYSTORE));
-        }
-        return Paths.get(keyStoreProperty).toAbsolutePath();
-    }
-
-    private Path getTrustStorePath() {
-        final String trustStoreProperty = properties.getProperty(SECURITY_TRUSTSTORE);
-        if (trustStoreProperty == null || trustStoreProperty.isBlank()) {
-            throw new IllegalStateException("Security Property [%s] not configured".formatted(SECURITY_TRUSTSTORE));
+    private Path getPropertyPath(final String propertyName) {
+        final String propertyPath = properties.getProperty(propertyName);
+        if (propertyPath == null || propertyPath.isBlank()) {
+            throw new IllegalStateException("Security Property [%s] not configured".formatted(propertyName));
         }
 
-        return Paths.get(trustStoreProperty).toAbsolutePath();
+        return Paths.get(propertyPath);
     }
 
     private boolean isReloadEnabled() {
         final String reloadEnabledProperty = properties.getProperty(SECURITY_AUTO_RELOAD_ENABLED);
         return Boolean.parseBoolean(reloadEnabledProperty);
+    }
+
+    private boolean isPemStoreType(final String storeTypePropertyName) {
+        final String storeType = properties.getProperty(storeTypePropertyName);
+        return PEM_STORE_TYPE.contentEquals(storeType);
     }
 }

@@ -17,6 +17,8 @@
 package org.apache.nifi.framework.ssl;
 
 import org.apache.nifi.security.ssl.KeyManagerBuilder;
+import org.apache.nifi.security.ssl.PemCertificateKeyStoreBuilder;
+import org.apache.nifi.security.ssl.PemPrivateKeyCertificateKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.TrustManagerBuilder;
@@ -31,10 +33,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static org.apache.nifi.util.NiFiProperties.SECURITY_KEYSTORE;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_KEYSTORE_CERTIFICATE;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_KEYSTORE_PRIVATE_KEY;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_KEYSTORE_PASSWD;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_KEYSTORE_TYPE;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_KEY_PASSWD;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_TRUSTSTORE;
+import static org.apache.nifi.util.NiFiProperties.SECURITY_TRUSTSTORE_CERTIFICATE;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_TRUSTSTORE_PASSWD;
 import static org.apache.nifi.util.NiFiProperties.SECURITY_TRUSTSTORE_TYPE;
 
@@ -43,6 +48,8 @@ import static org.apache.nifi.util.NiFiProperties.SECURITY_TRUSTSTORE_TYPE;
  */
 public class FrameworkSslContextProvider {
     private static final String EMPTY = "";
+
+    private static final String PEM_STORE_TYPE = "PEM";
 
     private final NiFiProperties properties;
 
@@ -83,7 +90,7 @@ public class FrameworkSslContextProvider {
         final KeyManagerBuilder keyManagerBuilder;
 
         if (isPropertyConfigured(SECURITY_KEYSTORE) && isPropertyConfigured(SECURITY_KEYSTORE_PASSWD)) {
-            final Path keyStorePath = getKeyStorePath();
+            final Path keyStorePath = getPropertyPath(SECURITY_KEYSTORE);
             final String keyStorePassword = properties.getProperty(SECURITY_KEYSTORE_PASSWD, EMPTY);
             final char[] keyPassword = properties.getProperty(SECURITY_KEY_PASSWD, keyStorePassword).toCharArray();
             final String keyStoreType = properties.getProperty(SECURITY_KEYSTORE_TYPE);
@@ -92,6 +99,12 @@ public class FrameworkSslContextProvider {
                     .type(keyStoreType);
 
             keyManagerBuilder = new FrameworkKeyManagerBuilder(keyStorePath, keyStoreBuilder, keyPassword);
+        } else if (isPemStoreType(SECURITY_KEYSTORE_TYPE)) {
+            final Path privateKeyPath = getPropertyPath(SECURITY_KEYSTORE_PRIVATE_KEY);
+            final Path certificatePath = getPropertyPath(SECURITY_KEYSTORE_CERTIFICATE);
+            final PemPrivateKeyCertificateKeyStoreBuilder pemKeyStoreBuilder = new PemPrivateKeyCertificateKeyStoreBuilder();
+
+            keyManagerBuilder = new FrameworkKeyManagerBuilder(privateKeyPath, certificatePath, pemKeyStoreBuilder);
         } else {
             keyManagerBuilder = null;
         }
@@ -103,7 +116,7 @@ public class FrameworkSslContextProvider {
         final TrustManagerBuilder trustManagerBuilder;
 
         if (isPropertyConfigured(SECURITY_TRUSTSTORE) && isPropertyConfigured(SECURITY_TRUSTSTORE_PASSWD)) {
-            final Path trustStorePath = getTrustStorePath();
+            final Path trustStorePath = getPropertyPath(SECURITY_TRUSTSTORE);
             final String trustStorePassword = properties.getProperty(SECURITY_TRUSTSTORE_PASSWD, EMPTY);
             final String trustStoreType = properties.getProperty(SECURITY_TRUSTSTORE_TYPE);
             final StandardKeyStoreBuilder trustStoreBuilder = new StandardKeyStoreBuilder()
@@ -111,6 +124,10 @@ public class FrameworkSslContextProvider {
                     .type(trustStoreType);
 
             trustManagerBuilder = new FrameworkTrustManagerBuilder(trustStorePath, trustStoreBuilder);
+        } else if (isPemStoreType(SECURITY_TRUSTSTORE_TYPE)) {
+            final Path trustStoreCertificatePath = getPropertyPath(SECURITY_TRUSTSTORE_CERTIFICATE);
+            final PemCertificateKeyStoreBuilder trustStoreBuilder = new PemCertificateKeyStoreBuilder();
+            trustManagerBuilder = new FrameworkTrustManagerBuilder(trustStoreCertificatePath, trustStoreBuilder);
         } else {
             trustManagerBuilder = null;
         }
@@ -118,25 +135,22 @@ public class FrameworkSslContextProvider {
         return trustManagerBuilder;
     }
 
-    private Path getKeyStorePath() {
-        final String keyStoreProperty = properties.getProperty(SECURITY_KEYSTORE);
-        if (keyStoreProperty == null || keyStoreProperty.isBlank()) {
-            throw new IllegalStateException("Security Property [%s] not configured".formatted(SECURITY_KEYSTORE));
-        }
-        return Paths.get(keyStoreProperty);
-    }
-
-    private Path getTrustStorePath() {
-        final String trustStoreProperty = properties.getProperty(SECURITY_TRUSTSTORE);
-        if (trustStoreProperty == null || trustStoreProperty.isBlank()) {
-            throw new IllegalStateException("Security Property [%s] not configured".formatted(SECURITY_TRUSTSTORE));
+    private Path getPropertyPath(final String propertyName) {
+        final String propertyPath = properties.getProperty(propertyName);
+        if (propertyPath == null || propertyPath.isBlank()) {
+            throw new IllegalStateException("Security Property [%s] not configured".formatted(propertyName));
         }
 
-        return Paths.get(trustStoreProperty);
+        return Paths.get(propertyPath);
     }
 
     private boolean isPropertyConfigured(final String propertyName) {
         final String value = properties.getProperty(propertyName);
         return value != null && !value.isBlank();
+    }
+
+    private boolean isPemStoreType(final String storeTypePropertyName) {
+        final String storeType = properties.getProperty(storeTypePropertyName);
+        return PEM_STORE_TYPE.contentEquals(storeType);
     }
 }

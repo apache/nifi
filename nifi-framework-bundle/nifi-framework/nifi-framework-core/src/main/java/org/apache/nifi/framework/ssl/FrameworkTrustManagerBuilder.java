@@ -17,7 +17,7 @@
 package org.apache.nifi.framework.ssl;
 
 import org.apache.nifi.security.ssl.BuilderConfigurationException;
-import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.InputStreamKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
 import org.apache.nifi.security.ssl.StandardX509ExtendedTrustManager;
 import org.slf4j.Logger;
@@ -32,16 +32,16 @@ import java.security.KeyStore;
 import java.util.Objects;
 
 /**
- * Framework implementation fo Trust Manager Builder capable of reloading a Trust Store when building a Trust Manager
+ * Framework implementation of Trust Manager Builder capable of reloading a Trust Store when building a Trust Manager
  */
 public class FrameworkTrustManagerBuilder extends StandardTrustManagerBuilder {
     private static final Logger logger = LoggerFactory.getLogger(FrameworkTrustManagerBuilder.class);
 
     private final Path trustStorePath;
 
-    private final StandardKeyStoreBuilder trustStoreBuilder;
+    private final InputStreamKeyStoreBuilder trustStoreBuilder;
 
-    public FrameworkTrustManagerBuilder(final Path trustStorePath, final StandardKeyStoreBuilder trustStoreBuilder) {
+    public FrameworkTrustManagerBuilder(final Path trustStorePath, final InputStreamKeyStoreBuilder trustStoreBuilder) {
         this.trustStorePath = Objects.requireNonNull(trustStorePath, "Trust Store Path required");
         this.trustStoreBuilder = Objects.requireNonNull(trustStoreBuilder, "Trust Store Builder required");
     }
