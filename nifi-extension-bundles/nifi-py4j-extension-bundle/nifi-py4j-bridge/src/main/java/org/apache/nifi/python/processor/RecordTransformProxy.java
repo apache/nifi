@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.json.JsonParserFactory;
 import org.apache.nifi.json.JsonRecordSource;
 import org.apache.nifi.json.JsonSchemaInference;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
@@ -301,7 +302,8 @@ public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> 
         }
 
         try (final InputStream in = new ByteArrayInputStream(jsonBytes)) {
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, getLogger(), schema, null, null, null);
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, getLogger(), schema, null, null, null, null,
+                    null, null, null, false, null, new JsonParserFactory());
             final Record record = reader.nextRecord(false, false);
             return record;
         }
