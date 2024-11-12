@@ -1110,6 +1110,18 @@ public class TestDataTypeUtils {
         assertToLocalDateEquals(ISO_8601_YEAR_MONTH_DAY, epochMillis);
     }
 
+    @Test
+    void testNumberParsingWhereStringBlank() {
+        final String fieldName = "someField";
+        assertNull(DataTypeUtils.toBigDecimal("", fieldName));
+        assertNull(DataTypeUtils.toBigInt("", fieldName));
+        assertNull(DataTypeUtils.toDouble("", fieldName));
+        assertNull(DataTypeUtils.toFloat("", fieldName));
+        assertNull(DataTypeUtils.toInteger("", fieldName));
+        assertNull(DataTypeUtils.toLong("", fieldName));
+        assertNull(DataTypeUtils.toShort("", fieldName));
+    }
+
     private long toEpochMilliSystemDefaultZone(final LocalDate localDate) {
         final LocalTime localTime = LocalTime.of(0, 0);
         final Instant instantSystemDefaultZone = ZonedDateTime.of(localDate, localTime, SYSTEM_DEFAULT_ZONE_ID).toInstant();
