@@ -185,6 +185,10 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         return lazyTimestampFormat;
     }
 
+    @Override
+    public Record nextRecord() throws IOException, MalformedRecordException {
+        return nextRecord(true, true);
+    }
 
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
