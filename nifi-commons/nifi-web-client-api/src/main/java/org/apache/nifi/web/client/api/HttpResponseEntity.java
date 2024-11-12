@@ -50,5 +50,5 @@ public interface HttpResponseEntity extends Closeable {
      *
      * @return HTTP URI from which the response was retrieved
      */
-    URI getUri();
+    URI uri();
 }

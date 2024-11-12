@@ -68,7 +68,7 @@ class StandardHttpResponseEntity implements HttpResponseEntity {
     }
 
     @Override
-    public URI getUri() {
+    public URI uri() {
         return uri;
     }
 }
