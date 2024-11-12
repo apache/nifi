@@ -21,11 +21,11 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.derby.jdbc.EmbeddedDriver;
-import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -57,12 +57,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  *
  */
 public class TestJdbcHugeStream {
+
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
+
+    @TempDir
+    private static File tempDir;
 
     @BeforeAll
     public static void setDerbyLog() {
-        final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
-        derbyLog.deleteOnExit();
+        final File derbyLog = new File(tempDir, "derby.log");
         System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
     }
 
@@ -71,17 +74,16 @@ public class TestJdbcHugeStream {
     @BeforeEach
     public void setup() throws IOException, SQLException {
         DriverManager.registerDriver(new EmbeddedDriver());
-        tempFile = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
-                .resolve("db")
-                .toFile();
+        File topLevelTempDir = new File(tempDir, String.valueOf(System.currentTimeMillis()));
+        Files.createDirectories(topLevelTempDir.toPath());
+        tempFile = new File(topLevelTempDir, "db");
     }
 
     @AfterEach
-    public void cleanup() throws IOException {
+    public void cleanup() {
         if (tempFile != null && tempFile.exists()) {
             final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
             assertEquals("XJ015", exception.getSQLState());
-            FileUtils.deleteFile(tempFile, true);
         }
     }
 
@@ -137,7 +139,7 @@ public class TestJdbcHugeStream {
     static String createProducts = "create table products (id integer, name varchar(100), code integer)";
     static String createRelationships = "create table relationships (id integer,name varchar(100), code integer)";
 
-    static public void loadTestData2Database(Connection con, int nrOfPersons, int nrOfProducts, int nrOfRels) throws ClassNotFoundException, SQLException {
+    static public void loadTestData2Database(Connection con, int nrOfPersons, int nrOfProducts, int nrOfRels) throws SQLException {
 
         final Statement st = con.createStatement();
 
