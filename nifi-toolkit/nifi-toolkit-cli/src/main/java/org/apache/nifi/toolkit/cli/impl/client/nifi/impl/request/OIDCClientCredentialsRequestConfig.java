@@ -41,10 +41,10 @@ public class OIDCClientCredentialsRequestConfig implements RequestConfig {
 
     private final String token;
 
-    public OIDCClientCredentialsRequestConfig(NiFiClientConfig niFiClientConfig, final String oidcUrl, final String clientId, final String clientSecret) {
-        Objects.requireNonNull(oidcUrl);
-        Objects.requireNonNull(clientId);
-        Objects.requireNonNull(clientSecret);
+    public OIDCClientCredentialsRequestConfig(NiFiClientConfig niFiClientConfig, final String oidcTokenUrl, final String oidcClientId, final String oidcClientSecret) {
+        Objects.requireNonNull(oidcTokenUrl);
+        Objects.requireNonNull(oidcClientId);
+        Objects.requireNonNull(oidcClientSecret);
         Objects.requireNonNull(niFiClientConfig);
 
         final SSLContext sslContext = niFiClientConfig.getSslContext();
@@ -60,10 +60,10 @@ public class OIDCClientCredentialsRequestConfig implements RequestConfig {
 
         final Form form = new Form();
         form.param("grant_type", "client_credentials");
-        form.param("client_id", clientId);
-        form.param("client_secret", clientSecret);
+        form.param("client_id", oidcClientId);
+        form.param("client_secret", oidcClientSecret);
 
-        final WebTarget target = clientBuilder.build().target(oidcUrl);
+        final WebTarget target = clientBuilder.build().target(oidcTokenUrl);
         final String response = target.request().post(Entity.form(form), String.class);
 
         ObjectMapper mapper = new ObjectMapper();
