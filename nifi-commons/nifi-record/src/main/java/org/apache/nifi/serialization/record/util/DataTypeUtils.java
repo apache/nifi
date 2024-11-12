@@ -1476,7 +1476,8 @@ public class DataTypeUtils {
 
         if (value instanceof String) {
             try {
-                return new BigInteger((String) value);
+                final String string = (String)value;
+                return isBlank(string) ? null : new BigInteger((String) value);
             } catch (NumberFormatException nfe) {
                 throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName
                         + ", value is not a valid representation of BigInteger", nfe);
@@ -1562,7 +1563,8 @@ public class DataTypeUtils {
 
         if (value instanceof String) {
             try {
-                return new BigDecimal((String) value);
+                final String string = (String) value;
+                return isBlank(string) ? null : new BigDecimal(string);
             } catch (NumberFormatException nfe) {
                 throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName
                         + ", value is not a valid representation of BigDecimal", nfe);
@@ -1582,7 +1584,8 @@ public class DataTypeUtils {
         }
 
         if (value instanceof String) {
-            return Double.parseDouble((String) value);
+            final String string = (String) value;
+            return isBlank(string) ? null : Double.parseDouble(string);
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Double for field " + fieldName);
@@ -1618,7 +1621,8 @@ public class DataTypeUtils {
         }
 
         if (value instanceof String) {
-            return Float.parseFloat((String) value);
+            final String string = (String) value;
+            return isBlank(string) ? null : Float.parseFloat(string);
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Float for field " + fieldName);
@@ -1684,7 +1688,8 @@ public class DataTypeUtils {
         }
 
         if (value instanceof String) {
-            return Long.parseLong((String) value);
+            final String string = (String) value;
+            return isBlank(string) ? null : Long.parseLong(string);
         }
 
         if (value instanceof java.util.Date) {
@@ -1774,7 +1779,8 @@ public class DataTypeUtils {
         }
 
         if (value instanceof String) {
-            return Integer.parseInt((String) value);
+            final String string = (String) value;
+            return isBlank(string) ? null : Integer.parseInt(string);
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Integer for field " + fieldName);
@@ -1803,7 +1809,8 @@ public class DataTypeUtils {
         }
 
         if (value instanceof String) {
-            return Short.parseShort((String) value);
+            final String string = (String) value;
+            return isBlank(string) ? null : Short.parseShort(string);
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Short for field " + fieldName);
@@ -2385,5 +2392,18 @@ public class DataTypeUtils {
         }
 
         return false;
+    }
+
+    private static boolean isBlank(String string) {
+        final int strLen = string.length();
+        if (strLen == 0) {
+            return true;
+        }
+        for (int i = 0; i < strLen; i++) {
+            if (!Character.isWhitespace(string.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 }
