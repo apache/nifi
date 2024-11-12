@@ -21,6 +21,7 @@ import org.apache.nifi.web.client.api.HttpResponseEntity;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 
 /**
  * Standard implementation of HTTP Response Entity for Standard Web Client Service
@@ -32,14 +33,18 @@ class StandardHttpResponseEntity implements HttpResponseEntity {
 
     private final InputStream body;
 
+    private final URI uri;
+
     StandardHttpResponseEntity(
             final int statusCode,
             final HttpEntityHeaders headers,
-            final InputStream body
+            final InputStream body,
+            final URI uri
     ) {
         this.statusCode = statusCode;
         this.headers = headers;
         this.body = body;
+        this.uri = uri;
     }
 
     @Override
@@ -60,5 +65,10 @@ class StandardHttpResponseEntity implements HttpResponseEntity {
     @Override
     public void close() throws IOException {
         body.close();
+    }
+
+    @Override
+    public URI uri() {
+        return uri;
     }
 }

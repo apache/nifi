@@ -18,6 +18,7 @@ package org.apache.nifi.web.client.api;
 
 import java.io.Closeable;
 import java.io.InputStream;
+import java.net.URI;
 
 /**
  * HTTP Response Entity extends Closeable to handle closing Response Body
@@ -43,4 +44,11 @@ public interface HttpResponseEntity extends Closeable {
      * @return HTTP Response Body stream can be empty
      */
     InputStream body();
+
+    /**
+     * Get the endpoint URI that was accessed to generate this HTTP response
+     *
+     * @return HTTP URI from which the response was retrieved
+     */
+    URI uri();
 }

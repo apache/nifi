@@ -31,7 +31,6 @@ import org.apache.nifi.web.client.ssl.SSLContextProvider;
 import org.apache.nifi.web.client.ssl.StandardSSLContextProvider;
 import org.apache.nifi.web.client.ssl.TlsContext;
 
-import javax.net.ssl.SSLContext;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
@@ -48,11 +47,14 @@ import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.Flow;
+
+import javax.net.ssl.SSLContext;
 
 /**
  * Standard implementation of Web Client Service using Java HttpClient
@@ -318,6 +320,12 @@ public class StandardWebClientService implements WebClientService, Closeable {
         }
 
         @Override
+        public HttpRequestHeadersSpec body(final String body) {
+            final byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            return body(new ByteArrayInputStream(bytes), OptionalLong.of(bytes.length));
+        }
+
+        @Override
         public HttpRequestBodySpec header(final String headerName, final String headerValue) {
             Objects.requireNonNull(headerName, "Header Name required");
             Objects.requireNonNull(headerValue, "Header Value required");
@@ -338,7 +346,7 @@ public class StandardWebClientService implements WebClientService, Closeable {
             final InputStream responseBody = response.body();
             final InputStream body = responseBody == null ? new ByteArrayInputStream(EMPTY_BYTES) : responseBody;
 
-            return new StandardHttpResponseEntity(code, headers, body);
+            return new StandardHttpResponseEntity(code, headers, body, response.uri());
         }
 
         private HttpResponse<InputStream> getResponse(final HttpRequest request) {

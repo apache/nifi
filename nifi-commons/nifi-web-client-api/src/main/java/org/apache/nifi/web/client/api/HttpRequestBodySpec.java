@@ -31,4 +31,14 @@ public interface HttpRequestBodySpec extends HttpRequestHeadersSpec {
      * @return HTTP Request Headers Specification builder
      */
     HttpRequestHeadersSpec body(InputStream inputStream, OptionalLong contentLength);
+
+    /**
+     * Set Request Body as provided string encoded as UTF-8.
+     * This should be used only when the payload is small. For large amount of data,
+     * @see HttpRequestBodySpec#body(InputStream, OptionalLong)
+     *
+     * @param body String representation of the payload encoded as UTF-8
+     * @return HTTP Request Headers Specification builder
+     */
+    HttpRequestHeadersSpec body(String body);
 }
