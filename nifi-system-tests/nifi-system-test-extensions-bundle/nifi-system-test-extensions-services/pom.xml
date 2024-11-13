@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-system-test-extensions-bundle</artifactId>
-        <version>1.28.0</version>
+        <version>1.28.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-system-test-extensions-services</artifactId>
@@ -28,18 +28,18 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-system-test-extensions-services-api</artifactId>
-            <version>1.28.0</version>
+            <version>1.28.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>1.28.0</version>
+            <version>1.28.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-service-api</artifactId>
-            <version>1.28.0</version>
+            <version>1.28.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
