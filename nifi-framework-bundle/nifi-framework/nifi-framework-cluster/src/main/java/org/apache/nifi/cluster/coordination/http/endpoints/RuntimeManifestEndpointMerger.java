@@ -51,7 +51,7 @@ public class RuntimeManifestEndpointMerger implements EndpointResponseMerger {
         final Set<Bundle> responseBundles = responseManifest.getBundles() == null ? new LinkedHashSet<>() : new LinkedHashSet<>(responseManifest.getBundles());
 
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final RuntimeManifestEntity nodeResponseEntity = nodeResponse.getClientResponse().readEntity(RuntimeManifestEntity.class);
+            final RuntimeManifestEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(RuntimeManifestEntity.class);
             final RuntimeManifest nodeResponseManifest = nodeResponseEntity.getRuntimeManifest();
             final List<Bundle> nodeResponseBundles = nodeResponseManifest.getBundles() == null ? Collections.emptyList() : nodeResponseManifest.getBundles();
             responseBundles.retainAll(nodeResponseBundles);
