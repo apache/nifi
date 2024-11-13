@@ -33,7 +33,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { CopyDirective, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ComponentType } from 'libs/shared/src';
 import { NiFiState } from '../../../../../../../state';
@@ -88,7 +88,8 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         SourceRemoteProcessGroup,
         DestinationRemoteProcessGroup,
         ErrorBanner,
-        ContextErrorBanner
+        ContextErrorBanner,
+        CopyDirective
     ],
     templateUrl: './edit-connection.component.html',
     styleUrls: ['./edit-connection.component.scss']

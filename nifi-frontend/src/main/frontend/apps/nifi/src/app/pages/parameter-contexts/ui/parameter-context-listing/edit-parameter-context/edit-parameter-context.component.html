@@ -90,9 +90,13 @@
                             @if (!isNew) {
                                 <div class="flex flex-col mb-5">
                                     <div>Id</div>
-                                    <div class="tertiary-color font-medium">
-                                        {{ request.parameterContext?.id }}
-                                    </div>
+                                    @if (request.parameterContext) {
+                                        <div [copy]="request.parameterContext.id" class="tertiary-color font-medium">
+                                            {{ request.parameterContext.id }}
+                                        </div>
+                                    } @else {
+                                        <div class="font-medium unset neutral-color">No value set</div>
+                                    }
                                 </div>
                             }
                             @if (parameterProvider) {

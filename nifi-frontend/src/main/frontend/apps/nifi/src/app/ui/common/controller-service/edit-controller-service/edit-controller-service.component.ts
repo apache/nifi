@@ -34,7 +34,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
-import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
+import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective } from '@nifi/shared';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { PropertyTable } from '../../property-table/property-table.component';
@@ -76,7 +76,8 @@ import { ContextErrorBanner } from '../../context-error-banner/context-error-ban
         ErrorBanner,
         NifiTooltipDirective,
         PropertyVerification,
-        ContextErrorBanner
+        ContextErrorBanner,
+        CopyDirective
     ],
     styleUrls: ['./edit-controller-service.component.scss']
 })

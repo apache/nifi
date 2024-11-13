@@ -22,7 +22,9 @@
             <div class="panel-content flex flex-col h-full w-full gap-y-4">
                 <div>
                     <div>Id</div>
-                    <div class="tertiary-color font-medium">{{ actionEntity.sourceId }}</div>
+                    <div [copy]="actionEntity.sourceId" class="tertiary-color font-medium">
+                        {{ actionEntity.sourceId }}
+                    </div>
                 </div>
 
                 @if (actionEntity.action; as action) {

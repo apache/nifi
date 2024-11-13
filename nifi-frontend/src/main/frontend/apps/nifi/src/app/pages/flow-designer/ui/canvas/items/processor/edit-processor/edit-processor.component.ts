@@ -45,7 +45,7 @@ import { Client } from '../../../../../../../service/client.service';
 import { EditComponentDialogRequest, UpdateProcessorRequest } from '../../../../../state/flow';
 import { PropertyTable } from '../../../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
+import { NifiTooltipDirective, NiFiCommon, TextTip, CopyDirective } from '@nifi/shared';
 import { RunDurationSlider } from './run-duration-slider/run-duration-slider.component';
 import {
     RelationshipConfiguration,
@@ -87,7 +87,8 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         RelationshipSettings,
         ErrorBanner,
         PropertyVerification,
-        ContextErrorBanner
+        ContextErrorBanner,
+        CopyDirective
     ],
     styleUrls: ['./edit-processor.component.scss']
 })

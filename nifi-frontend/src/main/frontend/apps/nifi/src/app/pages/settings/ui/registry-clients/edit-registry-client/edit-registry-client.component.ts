@@ -33,7 +33,7 @@ import { EditRegistryClientDialogRequest, EditRegistryClientRequest } from '../.
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { MatSelectModule } from '@angular/material/select';
-import { TextTip, NifiTooltipDirective, NiFiCommon } from '@nifi/shared';
+import { TextTip, NifiTooltipDirective, NiFiCommon, CopyDirective } from '@nifi/shared';
 import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
@@ -59,7 +59,8 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         MatTabsModule,
         PropertyTable,
         ErrorBanner,
-        ContextErrorBanner
+        ContextErrorBanner,
+        CopyDirective
     ],
     styleUrls: ['./edit-registry-client.component.scss']
 })

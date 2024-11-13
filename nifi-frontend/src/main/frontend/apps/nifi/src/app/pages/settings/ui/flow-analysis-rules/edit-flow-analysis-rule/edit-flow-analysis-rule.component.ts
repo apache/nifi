@@ -27,7 +27,7 @@ import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModu
 import { Observable, of } from 'rxjs';
 import { Client } from '../../../../../service/client.service';
 import { InlineServiceCreationRequest, InlineServiceCreationResponse, Property } from '../../../../../state/shared';
-import { NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { CopyDirective, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import {
@@ -68,7 +68,8 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         FlowAnalysisRuleTable,
         ErrorBanner,
         PropertyVerification,
-        ContextErrorBanner
+        ContextErrorBanner,
+        CopyDirective
     ],
     styleUrls: ['./edit-flow-analysis-rule.component.scss']
 })

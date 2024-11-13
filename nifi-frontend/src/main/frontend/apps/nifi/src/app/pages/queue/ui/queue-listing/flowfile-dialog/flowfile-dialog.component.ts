@@ -25,7 +25,7 @@ import { AsyncPipe, KeyValuePipe, NgForOf, NgIf, NgTemplateOutlet } from '@angul
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatTabsModule } from '@angular/material/tabs';
 import { FlowFileDialogRequest } from '../../../state/queue-listing';
-import { NiFiCommon } from '@nifi/shared';
+import { CopyDirective, NiFiCommon } from '@nifi/shared';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 
 @Component({
@@ -46,7 +46,8 @@ import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dial
         MatTabsModule,
         NgTemplateOutlet,
         FormsModule,
-        KeyValuePipe
+        KeyValuePipe,
+        CopyDirective
     ]
 })
 export class FlowFileDialog extends TabbedDialog {
