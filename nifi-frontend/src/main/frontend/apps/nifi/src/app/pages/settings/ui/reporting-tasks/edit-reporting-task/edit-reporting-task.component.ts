@@ -41,7 +41,7 @@ import {
     UpdateReportingTaskRequest
 } from '../../../state/reporting-tasks';
 import { ControllerServiceApi } from '../../../../../ui/common/controller-service/controller-service-api/controller-service-api.component';
-import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
+import { NifiTooltipDirective, NiFiCommon, TextTip, CopyDirective } from '@nifi/shared';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import {
@@ -75,7 +75,8 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         NifiTooltipDirective,
         ErrorBanner,
         PropertyVerification,
-        ContextErrorBanner
+        ContextErrorBanner,
+        CopyDirective
     ],
     styleUrls: ['./edit-reporting-task.component.scss']
 })

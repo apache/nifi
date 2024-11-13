@@ -30,7 +30,7 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
-import { NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { CopyDirective, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { CloseOnEscapeDialog } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
@@ -51,7 +51,8 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         FormsModule,
         ErrorBanner,
         NifiTooltipDirective,
-        ContextErrorBanner
+        ContextErrorBanner,
+        CopyDirective
     ],
     styleUrls: ['./edit-remote-process-group.component.scss']
 })

@@ -38,7 +38,7 @@
                         </mat-form-field>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="tertiary-color font-medium">
+                            <div [copy]="request.flowAnalysisRule.id" class="tertiary-color font-medium">
                                 {{ request.flowAnalysisRule.id }}
                             </div>
                         </div>

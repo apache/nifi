@@ -59,7 +59,7 @@
                                 <div>FlowFile UUID</div>
                                 <ng-container
                                     *ngTemplateOutlet="
-                                        formatValue;
+                                        formatCopyableValue;
                                         context: { $implicit: request.event.flowFileUuid }
                                     "></ng-container>
                             </div>
@@ -78,7 +78,7 @@
                                 <div>Component Id</div>
                                 <ng-container
                                     *ngTemplateOutlet="
-                                        formatValue;
+                                        formatCopyableValue;
                                         context: { $implicit: request.event.componentId }
                                     "></ng-container>
                             </div>
@@ -114,7 +114,7 @@
                                     <div>Source FlowFile Id</div>
                                     <ng-container
                                         *ngTemplateOutlet="
-                                            formatValue;
+                                            formatCopyableValue;
                                             context: { $implicit: request.event.sourceSystemFlowFileId }
                                         "></ng-container>
                                 </div>
@@ -288,7 +288,7 @@
                                         <div>Identifier</div>
                                         <ng-container
                                             *ngTemplateOutlet="
-                                                formatContentValue;
+                                                formatCopyableContentValue;
                                                 context: { $implicit: request.event.inputContentClaimIdentifier }
                                             "></ng-container>
                                     </div>
@@ -350,7 +350,7 @@
                                         <div>Identifier</div>
                                         <ng-container
                                             *ngTemplateOutlet="
-                                                formatContentValue;
+                                                formatCopyableContentValue;
                                                 context: { $implicit: request.event.outputContentClaimIdentifier }
                                             "></ng-container>
                                     </div>
@@ -399,7 +399,7 @@
                                     <div>Connection Id</div>
                                     <ng-container
                                         *ngTemplateOutlet="
-                                            formatContentValue;
+                                            formatCopyableContentValue;
                                             context: { $implicit: request.event.sourceConnectionIdentifier }
                                         "></ng-container>
                                 </div>
@@ -443,6 +443,32 @@
             <div class="unset neutral-color">No value set</div>
         </ng-template>
     </ng-template>
+    <ng-template #formatCopyableValue let-value let-title="title">
+        <ng-container *ngIf="value != null; else nullValue">
+            <ng-container *ngIf="value === ''; else nonEmptyValue">
+                <div class="unset neutral-color">Empty string set</div>
+            </ng-container>
+            <ng-template #nonEmptyValue>
+                <div
+                    [copy]="value"
+                    class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                    *ngIf="title == null; else valueWithTitle">
+                    {{ value }}
+                </div>
+                <ng-template #valueWithTitle>
+                    <div
+                        [copy]="value"
+                        class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                        [title]="title">
+                        {{ value }}
+                    </div>
+                </ng-template>
+            </ng-template>
+        </ng-container>
+        <ng-template #nullValue>
+            <div class="unset neutral-color">No value set</div>
+        </ng-template>
+    </ng-template>
     <ng-template #formatContentValue let-value let-title="title">
         <ng-container *ngIf="value != null; else nullValue">
             <div
@@ -452,6 +478,27 @@
             </div>
             <ng-template #valueWithTitle>
                 <div
+                    class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                    [title]="title">
+                    {{ value }}
+                </div>
+            </ng-template>
+        </ng-container>
+        <ng-template #nullValue>
+            <div class="unset neutral-color">No value previously set</div>
+        </ng-template>
+    </ng-template>
+    <ng-template #formatCopyableContentValue let-value let-title="title">
+        <ng-container *ngIf="value != null; else nullValue">
+            <div
+                [copy]="value"
+                class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
+                *ngIf="title == null; else valueWithTitle">
+                {{ value }}
+            </div>
+            <ng-template #valueWithTitle>
+                <div
+                    [copy]="value"
                     class="tertiary-color font-medium overflow-ellipsis overflow-hidden whitespace-nowrap"
                     [title]="title">
                     {{ value }}

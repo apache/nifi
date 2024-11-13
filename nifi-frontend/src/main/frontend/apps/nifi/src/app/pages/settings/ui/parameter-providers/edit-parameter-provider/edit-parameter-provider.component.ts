@@ -43,7 +43,7 @@ import { PropertyTable } from '../../../../../ui/common/property-table/property-
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { CommonModule } from '@angular/common';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { TextTip, NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
+import { TextTip, NiFiCommon, NifiTooltipDirective, CopyDirective } from '@nifi/shared';
 import {
     ConfigVerificationResult,
     ModifiedProperties,
@@ -72,7 +72,8 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         CommonModule,
         NifiTooltipDirective,
         PropertyVerification,
-        ContextErrorBanner
+        ContextErrorBanner,
+        CopyDirective
     ],
     templateUrl: './edit-parameter-provider.component.html',
     styleUrls: ['./edit-parameter-provider.component.scss']

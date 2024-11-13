@@ -16,3 +16,4 @@
  */
 
 export * from './nifi-tooltip.directive';
+export * from './copy/copy.directive';

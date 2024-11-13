@@ -41,7 +41,9 @@
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="tertiary-color font-medium">{{ request.entity.id }}</div>
+                            <div [copy]="request.entity.id" class="tertiary-color font-medium">
+                                {{ request.entity.id }}
+                            </div>
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Type</div>

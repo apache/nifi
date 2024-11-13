@@ -107,7 +107,9 @@
                         </div>
                         <div class="flex flex-col mb-5">
                             <div>Id</div>
-                            <div class="tertiary-color font-medium">{{ dialogRequest.entity.id }}</div>
+                            <div [copy]="dialogRequest.entity.id" class="tertiary-color font-medium">
+                                {{ dialogRequest.entity.id }}
+                            </div>
                         </div>
                         <div>
                             <mat-form-field>

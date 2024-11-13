@@ -45,7 +45,7 @@ import { RouterLink } from '@angular/router';
 import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
-import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
+import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
@@ -72,7 +72,8 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         RouterLink,
         ErrorBanner,
         NifiTooltipDirective,
-        ContextErrorBanner
+        ContextErrorBanner,
+        CopyDirective
     ],
     styleUrls: ['./edit-parameter-context.component.scss']
 })
