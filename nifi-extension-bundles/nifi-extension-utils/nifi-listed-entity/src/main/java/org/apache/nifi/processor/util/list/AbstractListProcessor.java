@@ -909,10 +909,10 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     /**
      * Returns the path to perform a listing on.
      * Many resources can be comprised of a "path" (or a "container" or "bucket", etc.) as well as name or identifier that is unique only
-     * within that path. This method is responsible for returning the path that is currently being polled for entities. If this does concept
+     * within that path. This method is responsible for returning the path that is currently being polled for entities. If this concept
      * does not apply for the concrete implementation, it is recommended that the concrete implementation return "." or "/" for all invocations of this method.
      *
-     * @param context the ProcessContex to use in order to obtain configuration
+     * @param context the ProcessContext to use in order to obtain configuration
      * @return the path that is to be used to perform the listing, or <code>null</code> if not applicable.
      */
     protected abstract String getPath(final ProcessContext context);
