@@ -29,6 +29,8 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -41,8 +43,10 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -73,6 +77,7 @@ public class GenerateFlowFile extends AbstractProcessor {
 
     public static final String DATA_FORMAT_BINARY = "Binary";
     public static final String DATA_FORMAT_TEXT = "Text";
+    public static final String DATA_FORMAT_EXTERNAL_FILE = "External File";
 
     public static final PropertyDescriptor FILE_SIZE = new PropertyDescriptor.Builder()
             .name("File Size")
@@ -93,7 +98,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             .description("Specifies whether the data should be Text or Binary")
             .required(true)
             .defaultValue(DATA_FORMAT_TEXT)
-            .allowableValues(DATA_FORMAT_BINARY, DATA_FORMAT_TEXT)
+            .allowableValues(DATA_FORMAT_BINARY, DATA_FORMAT_TEXT, DATA_FORMAT_EXTERNAL_FILE)
             .build();
     public static final PropertyDescriptor UNIQUE_FLOWFILES = new PropertyDescriptor.Builder()
             .name("Unique FlowFiles")
@@ -111,7 +116,18 @@ public class GenerateFlowFile extends AbstractProcessor {
                     + "per batch of generated FlowFiles")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .dependsOn(DATA_FORMAT, DATA_FORMAT_TEXT)
+            .dependsOn(UNIQUE_FLOWFILES, "false")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor CUSTOM_CONTENT = new PropertyDescriptor.Builder()
+            .name("Custom Content")
+            .description("Path to a file. If specified, this file will be used as content of the generated FlowFiles and the File Size will be ignored.")
+            .required(false)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.URL, ResourceType.TEXT)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(DATA_FORMAT, DATA_FORMAT_EXTERNAL_FILE)
+            .dependsOn(UNIQUE_FLOWFILES, "false")
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("character-set")
@@ -135,6 +151,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             DATA_FORMAT,
             UNIQUE_FLOWFILES,
             CUSTOM_TEXT,
+            CUSTOM_CONTENT,
             CHARSET,
             MIME_TYPE
     );
@@ -173,7 +190,7 @@ public class GenerateFlowFile extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) {
         if (context.getProperty(UNIQUE_FLOWFILES).asBoolean()) {
             this.data.set(null);
-        } else if (!context.getProperty(CUSTOM_TEXT).isSet()) {
+        } else if (!context.getProperty(CUSTOM_TEXT).isSet() && !context.getProperty(CUSTOM_CONTENT).isSet()) {
             this.data.set(generateData(context));
         }
     }
@@ -183,11 +200,21 @@ public class GenerateFlowFile extends AbstractProcessor {
         final List<ValidationResult> results = new ArrayList<>(1);
         final boolean isUnique = validationContext.getProperty(UNIQUE_FLOWFILES).asBoolean();
         final boolean isText = validationContext.getProperty(DATA_FORMAT).getValue().equals(DATA_FORMAT_TEXT);
+        final boolean isExternal = validationContext.getProperty(DATA_FORMAT).getValue().equals(DATA_FORMAT_EXTERNAL_FILE);
         final boolean isCustom = validationContext.getProperty(CUSTOM_TEXT).isSet();
+        final boolean isCustomContent = validationContext.getProperty(CUSTOM_CONTENT).isSet();
 
         if (isCustom && (isUnique || !isText)) {
             results.add(new ValidationResult.Builder().subject("Custom Text").valid(false).explanation("If Custom Text is set, then Data Format must be "
                     + "text and Unique FlowFiles must be false.").build());
+        }
+        if (isCustomContent && (isUnique || !isExternal)) {
+            results.add(new ValidationResult.Builder().subject("Custom Content").valid(false).explanation("If Custom Content is set, then Data Format must be "
+                    + "External File and Unique FlowFiles must be false.").build());
+        }
+        if (isCustomContent && isCustom) {
+            results.add(new ValidationResult.Builder().subject("Custom Content").valid(false).explanation("Custom Text and Custom Content cannot be set "
+                    + "simultaneously.").build());
         }
 
         return results;
@@ -220,6 +247,8 @@ public class GenerateFlowFile extends AbstractProcessor {
             if (context.getProperty(CUSTOM_TEXT).isSet()) {
                 final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
                 data = context.getProperty(CUSTOM_TEXT).evaluateAttributeExpressions().getValue().getBytes(charset);
+            } else if (context.getProperty(CUSTOM_CONTENT).isSet()) {
+                data = new byte[0];
             } else {
                 data = this.data.get();
             }
@@ -240,7 +269,7 @@ public class GenerateFlowFile extends AbstractProcessor {
         }
 
         for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
-        FlowFile flowFile = session.create();
+            FlowFile flowFile = session.create();
             final byte[] writtenData = uniqueData ? generateData(context) : data;
             if (writtenData.length > 0) {
                 flowFile = session.write(flowFile, new OutputStreamCallback() {
@@ -249,6 +278,17 @@ public class GenerateFlowFile extends AbstractProcessor {
                         out.write(writtenData);
                     }
                 });
+            } else if (context.getProperty(CUSTOM_CONTENT).isSet()) {
+                try (final InputStream inputStream = context.getProperty(CUSTOM_CONTENT).asResource().read()) {
+                    flowFile = session.write(flowFile, new OutputStreamCallback() {
+                        @Override
+                        public void process(final OutputStream out) throws IOException {
+                            StreamUtils.copy(inputStream, out);
+                        }
+                    });
+                } catch (IOException e) {
+                    getLogger().error("Could not create FlowFile with specified Custom Content", e);
+                }
             }
             flowFile = session.putAllAttributes(flowFile, generatedAttributes);
 

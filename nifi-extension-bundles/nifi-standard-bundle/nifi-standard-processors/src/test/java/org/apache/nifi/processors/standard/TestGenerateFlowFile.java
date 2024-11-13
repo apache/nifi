@@ -21,6 +21,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.io.IOException;
+
 /**
  * Unit tests for the GenerateFlowFile processor.
  */
@@ -71,6 +74,29 @@ public class TestGenerateFlowFile {
         generatedFlowFile.assertAttributeEquals("plain.dynamic.property", "Plain Value");
         generatedFlowFile.assertAttributeEquals("expression.dynamic.property", "Expression Value");
         generatedFlowFile.assertAttributeEquals("mime.type", "application/text");
+    }
+
+    @Test
+    public void testCustomContent() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
+        runner.setProperty(GenerateFlowFile.BATCH_SIZE, "1");
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "100MB");
+        runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_BINARY);
+        runner.setProperty(GenerateFlowFile.CUSTOM_CONTENT, "src/test/resources/TestCountText/jabberwocky.txt");
+        runner.assertNotValid();
+
+        runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_EXTERNAL_FILE);
+        runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "true");
+        runner.assertNotValid();
+
+        runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_EXTERNAL_FILE);
+        runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "false");
+        runner.assertValid();
+
+        runner.run();
+
+        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
+        runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0).assertContentEquals(new File("src/test/resources/TestCountText/jabberwocky.txt"));
     }
 
 }
