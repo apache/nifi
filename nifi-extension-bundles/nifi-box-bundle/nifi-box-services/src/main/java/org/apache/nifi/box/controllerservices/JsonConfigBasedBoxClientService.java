@@ -17,6 +17,8 @@
 package org.apache.nifi.box.controllerservices;
 
 import com.box.sdk.BoxAPIConnection;
+import com.box.sdk.BoxAPIException;
+import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxConfig;
 import com.box.sdk.BoxDeveloperEditionAPIConnection;
 import java.io.FileNotFoundException;
@@ -25,13 +27,13 @@ import java.io.IOException;
 import java.io.Reader;
 import java.net.Proxy;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -39,17 +41,22 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 
+import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
+import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
+
 
 @CapabilityDescription("Provides Box client objects through which Box API calls can be used.")
 @Tags({"box", "client", "provider"})
-public class JsonConfigBasedBoxClientService extends AbstractControllerService implements BoxClientService {
+public class JsonConfigBasedBoxClientService extends AbstractControllerService implements BoxClientService, VerifiableControllerService {
     public static final PropertyDescriptor ACCOUNT_ID = new PropertyDescriptor.Builder()
         .name("box-account-id")
         .displayName("Account ID")
@@ -80,18 +87,45 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
         ACCOUNT_ID,
         APP_CONFIG_FILE,
         APP_CONFIG_JSON,
         ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS)
-    ));
+    );
 
     private volatile BoxAPIConnection boxAPIConnection;
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ConfigurationContext configurationContext, final ComponentLog componentLog, final Map<String, String> map) {
+
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+        try {
+            createBoxApiConnection(configurationContext);
+            results.add(
+                    new ConfigVerificationResult.Builder()
+                            .verificationStepName("Authentication")
+                            .outcome(SUCCESSFUL)
+                            .explanation("JSON App config verified")
+                            .build()
+            );
+        } catch (final Exception e) {
+            results.add(
+                    new ConfigVerificationResult.Builder()
+                            .verificationStepName("Authentication")
+                            .outcome(FAILED)
+                            .explanation("JSON App config failed to verify: " + e.getMessage())
+                            .build()
+            );
+        }
+
+
+        return results;
     }
 
     @OnEnabled
@@ -134,7 +168,6 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
     }
 
     private BoxAPIConnection createBoxApiConnection(ConfigurationContext context) {
-        final BoxAPIConnection api;
 
         final String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
@@ -156,7 +189,16 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
             boxConfig = BoxConfig.readFrom(appConfig);
         }
 
-        api = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
+        final BoxAPIConnection api;
+        try {
+            api = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
+        } catch (final BoxAPIResponseException e) {
+            if (boxConfig.getEnterpriseId().equals("0")) {
+                throw new BoxAPIException("Box API integration is not enabled for account, the account's enterprise ID cannot be 0", e);
+            } else {
+                throw e;
+            }
+        }
 
         api.asUser(accountId);
 
