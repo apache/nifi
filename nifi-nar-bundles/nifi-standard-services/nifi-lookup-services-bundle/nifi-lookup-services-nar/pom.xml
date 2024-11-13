@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-lookup-services-bundle</artifactId>
-        <version>1.28.1-SNAPSHOT</version>
+        <version>1.28.1</version>
     </parent>
     <artifactId>nifi-lookup-services-nar</artifactId>
     <packaging>nar</packaging>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lookup-services</artifactId>
-            <version>1.28.1-SNAPSHOT</version>
+            <version>1.28.1</version>
         </dependency>
     </dependencies>
 </project>
