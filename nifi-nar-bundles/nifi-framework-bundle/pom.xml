@@ -23,7 +23,7 @@
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
-        <curator.version>5.7.0</curator.version>
+        <curator.version>5.7.1</curator.version>
         <guava.version>33.3.1-jre</guava.version>
         <tika.version>2.9.2</tika.version>
         <org.opensaml.version>4.3.0</org.opensaml.version>
