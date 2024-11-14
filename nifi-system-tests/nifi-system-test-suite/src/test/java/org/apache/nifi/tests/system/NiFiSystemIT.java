@@ -18,11 +18,11 @@ package org.apache.nifi.tests.system;
 
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientConfig;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.RequestConfig;
+import org.apache.nifi.toolkit.client.impl.JerseyNiFiClient;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
@@ -74,7 +74,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     private final ConcurrentMap<String, Long> lastLogTimestamps = new ConcurrentHashMap<>();
 
     private static final String QUEUE_SIZE_LOGGING_KEY = "Queue Sizes";
-    //                                                   Group ID  | Source Name | Dest Name | Conn Name  | Queue Size |
+    // Group ID | Source Name | Dest Name | Conn Name | Queue Size |
     private static final String QUEUE_SIZES_FORMAT = "| %1$-36.36s | %2$-30.30s | %3$-30.30s | %4$-30.30s | %5$-30.30s |";
 
     public static final RequestConfig DO_NOT_REPLICATE = () -> Collections.singletonMap("request-replicated", Boolean.TRUE.toString());
@@ -136,7 +136,6 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         return true;
     }
 
-
     @AfterAll
     public static void cleanup() {
         logger.info("Beginning cleanup");
@@ -155,8 +154,10 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         logger.info("Beginning teardown");
 
         try {
-            // In some cases a test can pass, but still leave a clustered instance with one of the nodes in a bad state, if the instance then gets reused
-            // it will cause later tests to fail, so it is better to destroy the environment if the cluster is in a bad state at the end of a test
+            // In some cases a test can pass, but still leave a clustered instance with one
+            // of the nodes in a bad state, if the instance then gets reused
+            // it will cause later tests to fail, so it is better to destroy the environment
+            // if the cluster is in a bad state at the end of a test
             final NiFiInstance nifiInstance = nifiRef.get();
             if (nifiInstance != null && nifiInstance.isClustered() && (!isCoordinatorElected() || !allNodesConnected(nifiInstance.getNumberOfNodes()))) {
                 logger.info("Clustered environment is in a bad state, will completely tear down the environments and start with a clean environment for the next test.");
@@ -179,8 +180,10 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
                 instanceCache.poison(nifiRef.get());
                 cleanup();
             } else if (destroyFlowFailure != null) {
-                // If unable to destroy the flow, we need to shutdown the instance and delete the flow and completely recreate the environment.
-                // Otherwise, we will be left in an unknown state for the next test, and that can cause cascading failures that are very difficult
+                // If unable to destroy the flow, we need to shutdown the instance and delete
+                // the flow and completely recreate the environment.
+                // Otherwise, we will be left in an unknown state for the next test, and that
+                // can cause cascading failures that are very difficult
                 // to understand and troubleshoot.
                 logger.info("Because there was a failure when destroying the flow, will completely tear down the environments and start with a clean environment for the next test.");
                 instanceCache.poison(nifiRef.get());
@@ -214,18 +217,18 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
     public NiFiInstanceFactory createStandaloneInstanceFactory() {
         return new SpawnedStandaloneNiFiInstanceFactory(
-            new InstanceConfiguration.Builder()
-                .bootstrapConfig("src/test/resources/conf/default/bootstrap.conf")
-                .instanceDirectory("target/standalone-instance")
-                .overrideNifiProperties(getNifiPropertiesOverrides())
-                .unpackPythonExtensions(false)
-                .build());
+                new InstanceConfiguration.Builder()
+                        .bootstrapConfig("src/test/resources/conf/default/bootstrap.conf")
+                        .instanceDirectory("target/standalone-instance")
+                        .overrideNifiProperties(getNifiPropertiesOverrides())
+                        .unpackPythonExtensions(false)
+                        .build());
     }
 
     public NiFiInstanceFactory createTwoNodeInstanceFactory() {
         return new SpawnedClusterNiFiInstanceFactory(
-            "src/test/resources/conf/clustered/node1/bootstrap.conf",
-            "src/test/resources/conf/clustered/node2/bootstrap.conf");
+                "src/test/resources/conf/clustered/node1/bootstrap.conf",
+                "src/test/resources/conf/clustered/node2/bootstrap.conf");
     }
 
     public NiFiInstanceFactory createPythonicInstanceFactory() {
@@ -329,14 +332,14 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
     protected NiFiClient createClient(final int port) {
         final NiFiClientConfig clientConfig = new NiFiClientConfig.Builder()
-            .baseUrl("http://localhost:" + port)
-            .connectTimeout(30000)
-            .readTimeout(30000)
-            .build();
+                .baseUrl("http://localhost:" + port)
+                .connectTimeout(30000)
+                .readTimeout(30000)
+                .build();
 
         return new JerseyNiFiClient.Builder()
-            .config(clientConfig)
-            .build();
+                .config(clientConfig)
+                .build();
     }
 
     protected int getClientApiPort() {
@@ -418,7 +421,9 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
                 final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
                 final Collection<NodeDTO> nodes = clusterEntity.getCluster().getNodes();
                 final NodeDTO nodeDtoMatch = nodes.stream()
-                        .filter(n -> n.getApiPort().equals(nodeDto.getApiPort())).findFirst().get();
+                        .filter(n -> n.getApiPort().equals(nodeDto.getApiPort()))
+                        .findFirst()
+                        .get();
                 return nodeDtoMatch.getStatus().equals(status);
             } catch (final Exception e) {
                 logger.error("Failed to determine node status", e);
@@ -509,11 +514,11 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
         logger.info("Dump of Queue Sizes:");
         final String headerLine = String.format(QUEUE_SIZES_FORMAT,
-            "Group ID",
-            "Source Name",
-            "Destination Name",
-            "Connection Name",
-            "Queued");
+                "Group ID",
+                "Source Name",
+                "Destination Name",
+                "Connection Name",
+                "Queued");
         logger.info(headerLine);
 
         for (final ConnectionStatusSnapshotEntity connectionStatus : connectionStatuses) {
@@ -523,11 +528,11 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
             }
 
             final String formatted = String.format(QUEUE_SIZES_FORMAT,
-                statusSnapshotDto.getGroupId(),
-                statusSnapshotDto.getSourceName(),
-                statusSnapshotDto.getDestinationName(),
-                statusSnapshotDto.getName(),
-                statusSnapshotDto.getQueued());
+                    statusSnapshotDto.getGroupId(),
+                    statusSnapshotDto.getSourceName(),
+                    statusSnapshotDto.getDestinationName(),
+                    statusSnapshotDto.getName(),
+                    statusSnapshotDto.getQueued());
             logger.info(formatted);
         }
 
@@ -572,16 +577,19 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
     public NodeDTO getNodeDtoByApiPort(final int apiPort) throws NiFiClientException, IOException {
         final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
-        final NodeDTO node2Dto = clusterEntity.getCluster().getNodes().stream()
-            .filter(nodeDto -> nodeDto.getApiPort() == apiPort)
-            .findAny()
-            .orElseThrow(() -> new RuntimeException("Could not locate Node 2"));
+        final NodeDTO node2Dto = clusterEntity.getCluster()
+                .getNodes()
+                .stream()
+                .filter(nodeDto -> nodeDto.getApiPort() == apiPort)
+                .findAny()
+                .orElseThrow(() -> new RuntimeException("Could not locate Node 2"));
 
         return node2Dto;
     }
 
     /**
      * Disconnects a node from the cluster
+     *
      * @param nodeIndex the 1-based index of the node
      */
     protected void disconnectNode(final int nodeIndex) throws NiFiClientException, IOException, InterruptedException {

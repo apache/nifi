@@ -27,11 +27,11 @@ import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Result;
 import org.apache.nifi.toolkit.cli.api.Session;
 import org.apache.nifi.toolkit.cli.api.SessionException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractCommand;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -39,7 +39,8 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * Base class for higher-level marco commands that interact with NiFi & Registry to perform a series of actions.
+ * Base class for higher-level marco commands that interact with NiFi & Registry
+ * to perform a series of actions.
  */
 public abstract class AbstractCompositeCommand<R extends Result> extends AbstractCommand<R> {
 
@@ -75,7 +76,7 @@ public abstract class AbstractCompositeCommand<R extends Result> extends Abstrac
             }
 
             final ClientFactory<NiFiRegistryClient> registryClientFactory = getContext().getNiFiRegistryClientFactory();
-            final NiFiRegistryClient  registryClient = registryClientFactory.createClient(registryProperties);
+            final NiFiRegistryClient registryClient = registryClientFactory.createClient(registryProperties);
 
             return doExecute(cli, nifiClient, nifiProperties, registryClient, registryProperties);
         } catch (CommandException ce) {
@@ -86,12 +87,14 @@ public abstract class AbstractCompositeCommand<R extends Result> extends Abstrac
     }
 
     /**
-     * Creates a Properties instance by looking at the propertOption and falling back to the session.
+     * Creates a Properties instance by looking at the propertOption and falling
+     * back to the session.
      *
-     * @param commandLine the current command line
-     * @param propertyOption the options specifying a properties to load
+     * @param commandLine     the current command line
+     * @param propertyOption  the options specifying a properties to load
      * @param sessionVariable the session variable specifying a properties file
-     * @return a Properties instance or null if the option wasn't specified and nothing is in the session
+     * @return a Properties instance or null if the option wasn't specified and
+     *         nothing is in the session
      */
     private Properties createProperties(final CommandLine commandLine, final CommandOption propertyOption, final SessionVariable sessionVariable)
             throws IOException, SessionException {
@@ -128,10 +131,10 @@ public abstract class AbstractCompositeCommand<R extends Result> extends Abstrac
      * Sub-classes implement specific logic using both clients.
      */
     public abstract R doExecute(final CommandLine commandLine,
-                                final NiFiClient nifiClient,
-                                final Properties nifiProperties,
-                                final NiFiRegistryClient nifiRegistryClient,
-                                final Properties nifiRegistryProperties)
+            final NiFiClient nifiClient,
+            final Properties nifiProperties,
+            final NiFiRegistryClient nifiRegistryClient,
+            final Properties nifiRegistryProperties)
             throws CommandException, IOException, NiFiRegistryException, ParseException, NiFiClientException;
 
 }

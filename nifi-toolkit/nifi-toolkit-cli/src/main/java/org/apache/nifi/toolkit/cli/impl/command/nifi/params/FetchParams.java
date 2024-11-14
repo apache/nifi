@@ -21,14 +21,14 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamProviderClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.ParamProviderResult;
 import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.ParamContextClient;
+import org.apache.nifi.toolkit.client.ParamProviderClient;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
@@ -100,7 +100,7 @@ public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
     }
 
     private void applyParametersAndWait(final ParamProviderClient paramProviderClient, final ParameterProviderEntity fetchedParameterProvider,
-                                        final ParameterProviderParameterApplicationEntity inputApplicationEntity, final String sensitiveParamPattern)
+            final ParameterProviderParameterApplicationEntity inputApplicationEntity, final String sensitiveParamPattern)
             throws NiFiClientException, IOException {
         ParameterProviderParameterApplicationEntity applicationEntity = inputApplicationEntity;
         if (applicationEntity == null) {

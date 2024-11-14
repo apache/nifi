@@ -19,10 +19,10 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.params;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.Result;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.ParamContextClient;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -48,7 +48,7 @@ public abstract class AbstractUpdateParamContextCommand<R extends Result> extend
     }
 
     protected ParameterContextUpdateRequestEntity performUpdate(final ParamContextClient client, final ParameterContextEntity parameterContextEntity,
-                                                                final ParameterContextUpdateRequestEntity updateRequestEntity, final int updateTimeoutSeconds)
+            final ParameterContextUpdateRequestEntity updateRequestEntity, final int updateTimeoutSeconds)
             throws NiFiClientException, IOException {
 
         final int maxPollIterations = Math.min(Math.max(Long.valueOf(updateTimeoutSeconds * 1000L / POLL_INTERVAL_MILLIS).intValue(), 1), MAX_TIMEOUT_SECONDS);
@@ -56,7 +56,8 @@ public abstract class AbstractUpdateParamContextCommand<R extends Result> extend
         final AtomicBoolean cancelled = new AtomicBoolean(false);
 
         // poll the update request for up to 30 seconds to see if it has completed
-        // if it doesn't complete then an exception will be thrown, but in either case the request will be deleted
+        // if it doesn't complete then an exception will be thrown, but in either case
+        // the request will be deleted
         final String contextId = parameterContextEntity.getId();
         final String updateRequestId = updateRequestEntity.getRequest().getRequestId();
         try {
@@ -108,8 +109,8 @@ public abstract class AbstractUpdateParamContextCommand<R extends Result> extend
     }
 
     protected ParameterContextEntity createContextEntityForUpdate(final String paramContextId, final ParameterDTO parameterDTO,
-                                                                  final List<ParameterContextReferenceEntity> inheritedParameterContexts,
-                                                                  final RevisionDTO paramContextRevision) {
+            final List<ParameterContextReferenceEntity> inheritedParameterContexts,
+            final RevisionDTO paramContextRevision) {
         final ParameterEntity parameterEntity = new ParameterEntity();
         parameterEntity.setParameter(parameterDTO);
 

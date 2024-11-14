@@ -21,11 +21,11 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiActivateCommand;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleRunStatusEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRulesEntity;
@@ -38,8 +38,7 @@ import java.util.Set;
 /**
  * Command for disabling flow analysis rule.
  */
-public class DisableFlowAnalysisRules extends AbstractNiFiActivateCommand<FlowAnalysisRuleEntity,
-        FlowAnalysisRuleRunStatusEntity> {
+public class DisableFlowAnalysisRules extends AbstractNiFiActivateCommand<FlowAnalysisRuleEntity, FlowAnalysisRuleRunStatusEntity> {
 
     public DisableFlowAnalysisRules() {
         super("disable-flow-analysis-rules");
@@ -48,7 +47,7 @@ public class DisableFlowAnalysisRules extends AbstractNiFiActivateCommand<FlowAn
     @Override
     public String getDescription() {
         return "Attempts to disable one or all flow analysis rule(s). In stand-alone mode this command " +
-            "will not produce all of the output seen in interactive mode unless the --verbose argument is specified.";
+                "will not produce all of the output seen in interactive mode unless the --verbose argument is specified.";
     }
 
     @Override
@@ -59,8 +58,7 @@ public class DisableFlowAnalysisRules extends AbstractNiFiActivateCommand<FlowAn
     @Override
     public VoidResult doExecute(
             final NiFiClient client,
-            final Properties properties
-    ) throws NiFiClientException, IOException, MissingOptionException, CommandException {
+            final Properties properties) throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final String ruleId = getArg(properties, CommandOption.FAR_ID);
         final Set<FlowAnalysisRuleEntity> ruleEntities = new HashSet<>();
 
@@ -85,8 +83,7 @@ public class DisableFlowAnalysisRules extends AbstractNiFiActivateCommand<FlowAn
     public FlowAnalysisRuleEntity activateComponent(
             final NiFiClient client,
             final FlowAnalysisRuleEntity ruleEntity,
-            final FlowAnalysisRuleRunStatusEntity runStatusEntity
-    ) throws NiFiClientException, IOException {
+            final FlowAnalysisRuleRunStatusEntity runStatusEntity) throws NiFiClientException, IOException {
         return client.getControllerClient().activateFlowAnalysisRule(ruleEntity.getId(), runStatusEntity);
     }
 

@@ -21,11 +21,11 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiActivateCommand;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
@@ -38,8 +38,7 @@ import java.util.Set;
 /**
  * Command for enabling controller services for reporting tasks.
  */
-public class EnableControllerServices extends AbstractNiFiActivateCommand<ControllerServiceEntity,
-        ControllerServiceRunStatusEntity> {
+public class EnableControllerServices extends AbstractNiFiActivateCommand<ControllerServiceEntity, ControllerServiceRunStatusEntity> {
 
     public EnableControllerServices() {
         super("enable-services");
@@ -48,7 +47,7 @@ public class EnableControllerServices extends AbstractNiFiActivateCommand<Contro
     @Override
     public String getDescription() {
         return "Attempts to enable all controller services for reporting tasks. In stand-alone mode this command " +
-            "will not produce all of the output seen in interactive mode unless the --verbose argument is specified.";
+                "will not produce all of the output seen in interactive mode unless the --verbose argument is specified.";
     }
 
     @Override

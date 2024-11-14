@@ -18,13 +18,13 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.StringResult;
+import org.apache.nifi.toolkit.client.ConnectionClient;
+import org.apache.nifi.toolkit.client.FlowClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -80,7 +80,8 @@ public class PGConnect extends AbstractNiFiCommand<StringResult> {
             throw new IOException("The source process group and the destination process group are not at the same level");
         }
 
-        // retrieving the ID of the output port based on its name in source process group
+        // retrieving the ID of the output port based on its name in source process
+        // group
         Set<PortEntity> outputPorts = sourcePgEntity.getProcessGroupFlow().getFlow().getOutputPorts();
         for (PortEntity outputPort : outputPorts) {
             if (outputPort.getComponent().getName().equals(sourceOutputPort)) {
@@ -92,7 +93,8 @@ public class PGConnect extends AbstractNiFiCommand<StringResult> {
             throw new IOException("Unable to find an output port with the name '" + sourceOutputPort + "' in the source process group");
         }
 
-        // retrieving the ID of the output port based on its name in source process group
+        // retrieving the ID of the output port based on its name in source process
+        // group
         Set<PortEntity> inputPorts = destinationPgEntity.getProcessGroupFlow().getFlow().getInputPorts();
         for (PortEntity inputPort : inputPorts) {
             if (inputPort.getComponent().getName().equals(destinationInputPort)) {

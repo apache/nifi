@@ -24,6 +24,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>nifi-toolkit-assembly</module>
+        <module>nifi-toolkit-client</module>
         <module>nifi-toolkit-cli</module>
         <module>nifi-toolkit-api</module>
     </modules>

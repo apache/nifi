@@ -22,10 +22,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Result;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractPropertyCommand;
 import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.TenantDTO;
 import org.apache.nifi.web.api.entity.TenantEntity;
@@ -67,15 +67,15 @@ public abstract class AbstractNiFiCommand<R extends Result> extends AbstractProp
     }
 
     /**
-     * Sub-classes implement to perform the desired action using the provided client and properties.
+     * Sub-classes implement to perform the desired action using the provided client
+     * and properties.
      *
-     * @param client a NiFi client
+     * @param client     a NiFi client
      * @param properties properties for the command
      * @return the Result of executing the command
      */
     public abstract R doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException;
-
 
     protected RevisionDTO getInitialRevisionDTO() {
         final String clientId = getContext().getSession().getNiFiClientID();
@@ -87,22 +87,24 @@ public abstract class AbstractNiFiCommand<R extends Result> extends AbstractProp
     }
 
     protected static Set<TenantEntity> generateTenantEntities(final String ids)
-        throws IOException {
+            throws IOException {
         final CSVParser csvParser = new CSVParser();
         return Arrays.stream(csvParser.parseLine(ids))
-            .map(AbstractNiFiCommand::createTenantEntity)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+                .map(AbstractNiFiCommand::createTenantEntity)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     protected static Set<TenantEntity> generateTenantEntities(final String users, final UsersEntity existingUsers)
-        throws IOException, CommandException {
+            throws IOException, CommandException {
         final CSVParser csvParser = new CSVParser();
         final String[] userArray = csvParser.parseLine(users);
         final Set<TenantEntity> tenantEntities = new LinkedHashSet<>();
 
         for (String user : userArray) {
-            Optional<UserEntity> existingUser = existingUsers.getUsers().stream()
-                .filter(entity -> user.equals(entity.getComponent().getIdentity())).findAny();
+            Optional<UserEntity> existingUser = existingUsers.getUsers()
+                    .stream()
+                    .filter(entity -> user.equals(entity.getComponent().getIdentity()))
+                    .findAny();
 
             if (!existingUser.isPresent()) {
                 throw new CommandException("User with the identity '" + user + "' not found.");
@@ -115,14 +117,16 @@ public abstract class AbstractNiFiCommand<R extends Result> extends AbstractProp
     }
 
     protected static Set<TenantEntity> generateTenantEntities(final String groups, final UserGroupsEntity existingGroups)
-        throws IOException, CommandException {
+            throws IOException, CommandException {
         final CSVParser csvParser = new CSVParser();
         final String[] groupArray = csvParser.parseLine(groups);
         final Set<TenantEntity> tenantEntities = new LinkedHashSet<>();
 
         for (String group : groupArray) {
-            Optional<UserGroupEntity> existingGroup = existingGroups.getUserGroups().stream()
-                .filter(entity -> group.equals(entity.getComponent().getIdentity())).findAny();
+            Optional<UserGroupEntity> existingGroup = existingGroups.getUserGroups()
+                    .stream()
+                    .filter(entity -> group.equals(entity.getComponent().getIdentity()))
+                    .findAny();
 
             if (!existingGroup.isPresent()) {
                 throw new CommandException("User group with the identity '" + group + "' not found.");
