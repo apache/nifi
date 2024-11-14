@@ -25,10 +25,10 @@
     <artifactId>nifi-graph-test-clients</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <gremlin.version>3.7.2</gremlin.version>
-        <janusgraph.version>0.6.3</janusgraph.version>
+        <gremlin.version>3.7.3</gremlin.version>
+        <janusgraph.version>0.6.5-20231118-145611.aefbc55</janusgraph.version>
         <guava.version>33.3.1-jre</guava.version>
-        <amqp-client.version>5.20.0</amqp-client.version>
+        <amqp-client.version>5.22.0</amqp-client.version>
     </properties>
     <dependencyManagement>
         <dependencies>

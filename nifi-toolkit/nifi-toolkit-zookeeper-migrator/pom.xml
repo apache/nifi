@@ -24,7 +24,7 @@
         <version>1.28.1-SNAPSHOT</version>
     </parent>
     <properties>
-        <curator.version>5.7.0</curator.version>
+        <curator.version>5.7.1</curator.version>
     </properties>
     <dependencies>
         <dependency>
