@@ -52,6 +52,7 @@ org.apache.nifi.processors.standard.GenerateRecord
 org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GenerateTableFetch
 org.apache.nifi.processors.standard.GetFile
+org.apache.nifi.processors.standard.GetFileResource
 org.apache.nifi.processors.standard.GetFTP
 org.apache.nifi.processors.standard.GetSFTP
 org.apache.nifi.processors.standard.HandleHttpRequest
