@@ -32,12 +32,13 @@ public class TestGetFileResource {
 
     @Test
     public void testGetFileResource() throws IOException {
+        final String filePath = "src/test/resources/TestCountText/jabberwocky.txt";
         final TestRunner runner = TestRunners.newTestRunner(new GetFileResource());
 
         runner.setProperty(GetFileResource.FILE_RESOURCE, "");
         runner.assertNotValid();
 
-        runner.setProperty(GetFileResource.FILE_RESOURCE, "src/test/resources/TestCountText/jabberwocky.txt");
+        runner.setProperty(GetFileResource.FILE_RESOURCE, filePath);
         runner.setProperty(GetFileResource.MIME_TYPE, "text/plain");
         runner.setProperty("foo", "foo");
         runner.assertValid();
@@ -46,7 +47,7 @@ public class TestGetFileResource {
 
         runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
         final MockFlowFile ff = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0);
-        ff.assertContentEquals(new File("src/test/resources/TestCountText/jabberwocky.txt"));
+        ff.assertContentEquals(new File(filePath));
         ff.assertAttributeEquals("foo", "foo");
         ff.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
     }

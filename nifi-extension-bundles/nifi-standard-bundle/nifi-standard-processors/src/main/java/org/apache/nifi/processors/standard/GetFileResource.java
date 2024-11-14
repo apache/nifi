@@ -38,40 +38,37 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@Tags({"test", "file", "generate", "load"})
+@Tags({ "test", "file", "generate", "load" })
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("This processor creates FlowFiles with the content of the configured File Resource. GetFileResource "
-        + "is useful for load testing, configuration, and simulation.")
-@DynamicProperty(name = "Generated FlowFile attribute name", value = "Generated FlowFile attribute value",
-        expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
-        description = "Specifies an attribute on generated FlowFiles defined by the Dynamic Property's key and value." +
-        " If Expression Language is used, evaluation will be performed only once per batch of generated FlowFiles.")
-@WritesAttributes({
-        @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'Mime Type' property is set"),
-})
+@CapabilityDescription("""
+        This processor creates FlowFiles with the content of the configured File Resource. GetFileResource
+        is useful for load testing, configuration, and simulation.
+        """)
+@DynamicProperty(
+        name = "Generated FlowFile attribute name", value = "Generated FlowFile attribute value", expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT,
+        description = "Specifies an attribute on generated FlowFiles defined by the Dynamic Property's key and value."
+)
+@WritesAttributes(
+    {
+            @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'MIME Type' property is set"),
+    }
+)
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 @Restricted(
         restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
-                        explanation = "Provides operator the ability to read from any file that NiFi has access to."),
-                @Restriction(
-                        requiredPermission = RequiredPermission.REFERENCE_REMOTE_RESOURCES,
-                        explanation = "File Resource can reference resources over HTTP/HTTPS"
-                )
+                @Restriction(requiredPermission = RequiredPermission.READ_FILESYSTEM, explanation = "Provides operator the ability to read from any file that NiFi has access to."),
+                @Restriction(requiredPermission = RequiredPermission.REFERENCE_REMOTE_RESOURCES, explanation = "File Resource can reference resources over HTTP/HTTPS")
         }
 )
 public class GetFileResource extends AbstractProcessor {
@@ -84,8 +81,8 @@ public class GetFileResource extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
-            .name("Mime Type")
-            .description("Specifies the value to set for the \"mime.type\" attribute.")
+            .name("MIME Type")
+            .description("Specifies the value to set for the [mime.type] attribute.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -122,12 +119,12 @@ public class GetFileResource extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        Map<PropertyDescriptor, String> processorProperties = context.getProperties();
-        Map<String, String> generatedAttributes = new HashMap<String, String>();
+        final Map<PropertyDescriptor, String> processorProperties = context.getProperties();
+        final Map<String, String> generatedAttributes = new HashMap<String, String>();
         for (final Map.Entry<PropertyDescriptor, String> entry : processorProperties.entrySet()) {
-            PropertyDescriptor property = entry.getKey();
-            if (property.isDynamic() && property.isExpressionLanguageSupported()) {
-                String dynamicValue = context.getProperty(property).evaluateAttributeExpressions().getValue();
+            final PropertyDescriptor property = entry.getKey();
+            if (property.isDynamic()) {
+                final String dynamicValue = context.getProperty(property).evaluateAttributeExpressions().getValue();
                 generatedAttributes.put(property.getName(), dynamicValue);
             }
         }
@@ -139,14 +136,9 @@ public class GetFileResource extends AbstractProcessor {
         FlowFile flowFile = session.create();
 
         try (final InputStream inputStream = context.getProperty(FILE_RESOURCE).asResource().read()) {
-            flowFile = session.write(flowFile, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    StreamUtils.copy(inputStream, out);
-                }
-            });
+            flowFile = session.write(flowFile, out -> StreamUtils.copy(inputStream, out));
         } catch (IOException e) {
-            getLogger().error("Could not create FlowFile with specified Custom Content", e);
+            getLogger().error("Could not create FlowFile from Resource [{}]", context.getProperty(FILE_RESOURCE).getValue(), e);
         }
 
         flowFile = session.putAllAttributes(flowFile, generatedAttributes);
