@@ -177,6 +177,10 @@ public enum CommandOption {
     USERNAME("usr", "username", "The username for authentication when obtaining an access token", true),
     PASSWORD("pwd", "password", "The password for authentication when obtaining an access token", true),
 
+    OIDC_TOKEN_URL("oidctokenurl", "oidcTokenUrl", "The OIDC URL to access the token endpoint for the OAuth Client Credentials Flow", true),
+    OIDC_CLIENT_ID("oidcid", "oidcClientId", "The Client ID for the OAuth Client Credentials Flow", true),
+    OIDC_CLIENT_SECRET("oidcsecret", "oidcClientSecret", "The Client Secret for the OAuth Client Credentials Flow", true),
+
     KERBEROS_PRINCIPAL("krbPr", "kerberosPrincipal", "The kerberos principal", true),
     KERBEROS_KEYTAB("krbKt", "kerberosKeytab", "The keytab for a kerberos principal", true, true),
     KERBEROS_PASSWORD("krbPw", "kerberosPassword", "The password for a kerberos principal", true),
@@ -206,7 +210,6 @@ public enum CommandOption {
         this.hasArg = hasArg;
         this.isFile = isFile;
     }
-
 
     public String getShortName() {
         return shortName;

@@ -46,6 +46,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.BasicAuthRequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.BearerTokenRequestConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.OIDCClientCredentialsRequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.ProxiedEntityRequestConfig;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 
@@ -83,6 +84,10 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         final String basicAuthUsername = properties.getProperty(CommandOption.BASIC_AUTH_USER.getLongName());
         final String basicAuthPassword = properties.getProperty(CommandOption.BASIC_AUTH_PASSWORD.getLongName());
 
+        final String oidcTokenUrl = properties.getProperty(CommandOption.OIDC_TOKEN_URL.getLongName());
+        final String oidcClientId = properties.getProperty(CommandOption.OIDC_CLIENT_ID.getLongName());
+        final String oidcClientSecret = properties.getProperty(CommandOption.OIDC_CLIENT_SECRET.getLongName());
+
         final String bearerToken = properties.getProperty(CommandOption.BEARER_TOKEN.getLongName());
 
         final boolean secureUrl = url.startsWith("https");
@@ -116,6 +121,16 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         if (!StringUtils.isBlank(basicAuthPassword) && StringUtils.isBlank(basicAuthUsername)) {
             throw new MissingOptionException(CommandOption.BASIC_AUTH_USER.getLongName()
                     + " is required when specifying " + CommandOption.BASIC_AUTH_PASSWORD.getLongName());
+        }
+
+        if (!StringUtils.isBlank(oidcTokenUrl) && StringUtils.isBlank(oidcClientId)) {
+            throw new MissingOptionException(CommandOption.OIDC_CLIENT_ID.getLongName()
+                    + " is required when specifying " + CommandOption.OIDC_TOKEN_URL.getLongName());
+        }
+
+        if (!StringUtils.isBlank(oidcTokenUrl) && StringUtils.isBlank(oidcClientSecret)) {
+            throw new MissingOptionException(CommandOption.OIDC_CLIENT_SECRET.getLongName()
+                    + " is required when specifying " + CommandOption.OIDC_TOKEN_URL.getLongName());
         }
 
         final NiFiClientConfig.Builder clientConfigBuilder = new NiFiClientConfig.Builder()
@@ -179,6 +194,9 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         } else if (!StringUtils.isBlank(basicAuthUsername) && !StringUtils.isBlank(basicAuthPassword)) {
             final RequestConfig basicAuthConfig = new BasicAuthRequestConfig(basicAuthUsername, basicAuthPassword);
             return new NiFiClientWithRequestConfig(client, basicAuthConfig);
+        } else if (!StringUtils.isBlank(oidcTokenUrl) && !StringUtils.isBlank(oidcClientId) && !StringUtils.isBlank(oidcClientSecret)) {
+            final RequestConfig oidcAuthConfig = new OIDCClientCredentialsRequestConfig(clientConfigBuilder.build(), oidcTokenUrl, oidcClientId, oidcClientSecret);
+            return new NiFiClientWithRequestConfig(client, oidcAuthConfig);
         } else {
             return client;
         }
