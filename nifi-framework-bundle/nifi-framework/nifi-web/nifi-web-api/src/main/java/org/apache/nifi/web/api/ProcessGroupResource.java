@@ -320,8 +320,13 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         // determine the name of the attachment - possible issues with spaces in file names
         final VersionedProcessGroup currentVersionedProcessGroup = currentVersionedFlowSnapshot.getFlowContents();
-        final String flowName = currentVersionedProcessGroup.getName();
-        final String filename = flowName.replaceAll("\\s", "_") + ".json";
+        // Determine the option chosen (with or without external services)
+        String var = "";
+        if (includeReferencedServices) {
+            var = "_with_services";  // Appending "_with_services" if services are included
+        }
+        final String flowName = currentVersionedProcessGroup.getName() + var;
+        final String filename = flowName.replaceAll("[^a-zA-Z0-9._-]", "_") + ".json";
 
         return generateOkResponse(currentVersionedFlowSnapshot).header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", filename)).build();
     }
