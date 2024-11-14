@@ -20,13 +20,13 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.client.FlowClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.VersionsClient;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
@@ -83,7 +83,8 @@ public class PGChangeVersion extends AbstractNiFiCommand<VoidResult> {
         final VersionsClient versionsClient = client.getVersionsClient();
         final VersionControlInformationDTO existingVersionControlDTO = existingVersionControlInfo.getVersionControlInformation();
 
-        // if no version was specified, automatically determine the latest and change to that
+        // if no version was specified, automatically determine the latest and change to
+        // that
         if (newVersion == null) {
             newVersion = getLatestVersion(client, existingVersionControlDTO);
 
@@ -92,14 +93,17 @@ public class PGChangeVersion extends AbstractNiFiCommand<VoidResult> {
             }
         }
 
-        // update the version in the existing DTO to the new version so we can submit it back
+        // update the version in the existing DTO to the new version so we can submit it
+        // back
         existingVersionControlDTO.setVersion(newVersion);
 
-        // initiate the version change which creates an update request that must be checked for completion
+        // initiate the version change which creates an update request that must be
+        // checked for completion
         final VersionedFlowUpdateRequestEntity initialUpdateRequest = versionsClient.updateVersionControlInfo(pgId, existingVersionControlInfo);
 
         // poll the update request for up to 30 seconds to see if it has completed
-        // if it doesn't complete then an exception will be thrown, but in either case the request will be deleted
+        // if it doesn't complete then an exception will be thrown, but in either case
+        // the request will be deleted
         final String updateRequestId = initialUpdateRequest.getRequest().getRequestId();
         try {
             boolean completed = false;

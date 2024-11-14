@@ -21,13 +21,13 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
 import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.ProcessGroupClient;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
@@ -36,7 +36,8 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Command to replace the content of an existing process group with the content from a versioned flow snapshot.
+ * Command to replace the content of an existing process group with the content
+ * from a versioned flow snapshot.
  */
 public class PGReplace extends AbstractNiFiCommand<VoidResult> {
 
@@ -82,8 +83,7 @@ public class PGReplace extends AbstractNiFiCommand<VoidResult> {
         try {
             boolean completed = false;
             for (int i = 0; i < 30; i++) {
-                final ProcessGroupReplaceRequestEntity replaceRequest =
-                        pgClient.getProcessGroupReplaceRequest(pgId, requestId);
+                final ProcessGroupReplaceRequestEntity replaceRequest = pgClient.getProcessGroupReplaceRequest(pgId, requestId);
 
                 if (replaceRequest != null && replaceRequest.getRequest().isComplete()) {
                     completed = true;

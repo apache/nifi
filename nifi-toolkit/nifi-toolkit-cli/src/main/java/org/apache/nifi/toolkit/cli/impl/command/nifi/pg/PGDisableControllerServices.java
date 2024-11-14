@@ -19,15 +19,15 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.cs.ControllerServiceStateCounts;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.cs.ControllerServiceStates;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.cs.ControllerServiceUtil;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.client.FlowClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -65,7 +65,8 @@ public class PGDisableControllerServices extends AbstractNiFiCommand<VoidResult>
 
         final ControllerServiceStateCounts initialServiceStates = getControllerServiceStates(flowClient, pgId);
 
-        // if we have no enabled or enabling services then there is nothing to do so return
+        // if we have no enabled or enabling services then there is nothing to do so
+        // return
         if (initialServiceStates.getEnabled() == 0 && initialServiceStates.getEnabling() == 0) {
             if (shouldPrint(properties)) {
                 println();
@@ -91,7 +92,8 @@ public class PGDisableControllerServices extends AbstractNiFiCommand<VoidResult>
         flowClient.activateControllerServices(disableEntity);
         sleep(1000);
 
-        // wait for disabling services to become disabled, or until we've waited up to max number of waits
+        // wait for disabling services to become disabled, or until we've waited up to
+        // max number of waits
         int disablingWaitCount = 1;
         ControllerServiceStateCounts serviceStates = getControllerServiceStates(flowClient, pgId);
         while (serviceStates.getDisabling() > 0 && disablingWaitCount < MAX_DISABLING_ITERATIONS) {
@@ -104,7 +106,8 @@ public class PGDisableControllerServices extends AbstractNiFiCommand<VoidResult>
             serviceStates = getControllerServiceStates(flowClient, pgId);
         }
 
-        // if we have still have disabling services then we may have a stuck service so throw an exception
+        // if we have still have disabling services then we may have a stuck service so
+        // throw an exception
         if (serviceStates.getDisabling() > 0) {
             if (shouldPrint(properties)) {
                 printServicesStillDisabling(flowClient, pgId);

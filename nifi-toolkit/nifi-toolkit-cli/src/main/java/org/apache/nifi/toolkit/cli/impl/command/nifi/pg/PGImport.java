@@ -19,20 +19,20 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupBox;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.StringResult;
+import org.apache.nifi.toolkit.client.FlowClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.ProcessGroupBox;
+import org.apache.nifi.toolkit.client.ProcessGroupClient;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
-import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -98,8 +98,10 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
             keepExistingPC = "true";
         }
 
-        // if a registry client is specified use it, otherwise see if there is only one available and use that,
-        // if more than one is available then throw an exception because we don't know which one to use
+        // if a registry client is specified use it, otherwise see if there is only one
+        // available and use that,
+        // if more than one is available then throw an exception because we don't know
+        // which one to use
         String registryId = getArg(properties, CommandOption.REGISTRY_CLIENT_ID);
         if (StringUtils.isBlank(registryId)) {
             final FlowRegistryClientsEntity registries = client.getControllerClient().getRegistryClients();

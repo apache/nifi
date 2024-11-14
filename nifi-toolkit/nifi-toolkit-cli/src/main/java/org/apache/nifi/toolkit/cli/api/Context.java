@@ -17,7 +17,7 @@
 package org.apache.nifi.toolkit.cli.api;
 
 import org.apache.nifi.registry.client.NiFiRegistryClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
 
 import java.io.PrintStream;
 

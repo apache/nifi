@@ -24,12 +24,12 @@ import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.Session;
 import org.apache.nifi.toolkit.cli.impl.client.NiFiClientFactory;
 import org.apache.nifi.toolkit.cli.impl.client.NiFiRegistryClientFactory;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandFactory;
 import org.apache.nifi.toolkit.cli.impl.command.registry.NiFiRegistryCommandGroup;
 import org.apache.nifi.toolkit.cli.impl.context.StandardContext;
 import org.apache.nifi.toolkit.cli.impl.session.InMemorySession;
 import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
+import org.apache.nifi.toolkit.client.NiFiClient;
 import org.apache.nifi.util.StringUtils;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
@@ -224,8 +224,7 @@ public class TestCLICompleter {
 
         private TestParsedLine(
                 final List<String> words,
-                final int wordIndex
-        ) {
+                final int wordIndex) {
             this.words = words;
             this.wordIndex = wordIndex;
         }

@@ -18,11 +18,11 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.flow;
 
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.CommandException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.ControllerConfigurationResult;
+import org.apache.nifi.toolkit.client.ControllerClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 
 import java.io.IOException;

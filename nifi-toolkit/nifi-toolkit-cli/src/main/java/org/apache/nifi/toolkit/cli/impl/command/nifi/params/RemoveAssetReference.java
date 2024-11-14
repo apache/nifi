@@ -20,11 +20,11 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.params;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.ParamContextClient;
 import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
@@ -71,13 +71,15 @@ public class RemoveAssetReference extends AbstractUpdateParamContextCommand<Void
         final ParameterContextDTO existingParameterContextDTO = existingParameterContextEntity.getComponent();
 
         // Find the existing parameter by name or throw an exception
-        final ParameterDTO existingParam = existingParameterContextDTO.getParameters().stream()
+        final ParameterDTO existingParam = existingParameterContextDTO.getParameters()
+                .stream()
                 .map(ParameterEntity::getParameter)
                 .filter(p -> p.getName().equals(paramName))
                 .findFirst()
                 .orElseThrow(() -> new NiFiClientException("Parameter does not exist with the given name"));
 
-        // Remove the given assetId from the referenced assets, or throw an exception if not referenced
+        // Remove the given assetId from the referenced assets, or throw an exception if
+        // not referenced
         final List<AssetReferenceDTO> assetReferences = existingParam.getReferencedAssets();
         if (assetReferences == null) {
             throw new NiFiClientException("Parameter does not reference any assets");

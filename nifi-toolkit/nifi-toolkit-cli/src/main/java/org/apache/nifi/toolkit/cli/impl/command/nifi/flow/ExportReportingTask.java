@@ -20,11 +20,11 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.VersionedReportingTaskSnapshotResult;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -54,7 +54,8 @@ public class ExportReportingTask extends AbstractNiFiCommand<VersionedReportingT
         final VersionedReportingTaskSnapshot snapshot = client.getFlowClient().getReportingTaskSnapshot(reportingTaskId);
 
         // currently export doesn't use the ResultWriter concept, it always writes JSON
-        // destination will be a file if outputFile is specified, otherwise it will be the output stream of the CLI
+        // destination will be a file if outputFile is specified, otherwise it will be
+        // the output stream of the CLI
         final String outputFile;
         if (properties.containsKey(CommandOption.OUTPUT_FILE.getLongName())) {
             outputFile = properties.getProperty(CommandOption.OUTPUT_FILE.getLongName());

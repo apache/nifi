@@ -20,11 +20,11 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.ParamContextClient;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
@@ -81,7 +81,8 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
         final ParameterContextDTO existingParameterContextDTO = existingParameterContextEntity.getComponent();
 
         // Determine if this is an existing param or a new one...
-        final Optional<ParameterDTO> existingParam = existingParameterContextDTO.getParameters().stream()
+        final Optional<ParameterDTO> existingParam = existingParameterContextDTO.getParameters()
+                .stream()
                 .map(ParameterEntity::getParameter)
                 .filter(p -> p.getName().equals(paramName))
                 .findFirst();

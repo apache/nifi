@@ -19,11 +19,11 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.params;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.ParamContextClient;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
@@ -69,7 +69,9 @@ public class DeleteParam extends AbstractUpdateParamContextCommand<VoidResult> {
         final ParameterContextEntity existingEntity = paramContextClient.getParamContext(paramContextId, false);
 
         // Determine if this is an existing param or a new one...
-        final Optional<ParameterDTO> existingParam = existingEntity.getComponent().getParameters().stream()
+        final Optional<ParameterDTO> existingParam = existingEntity.getComponent()
+                .getParameters()
+                .stream()
                 .map(ParameterEntity::getParameter)
                 .filter(p -> p.getName().equals(paramName))
                 .findFirst();
@@ -78,7 +80,8 @@ public class DeleteParam extends AbstractUpdateParamContextCommand<VoidResult> {
             throw new NiFiClientException("Unable to delete parameter, no parameter found with name '" + paramName + "'");
         }
 
-        // Construct the objects for the update, a NULL value indicates to the server to removes the parameter...
+        // Construct the objects for the update, a NULL value indicates to the server to
+        // removes the parameter...
         final ParameterDTO parameterDTO = existingParam.get();
         parameterDTO.setValue(null);
         parameterDTO.setDescription(null);
