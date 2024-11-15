@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-aws-bundle</artifactId>
-        <version>1.28.1-SNAPSHOT</version>
+        <version>1.28.1</version>
     </parent>
 
     <artifactId>nifi-aws-service-api-nar</artifactId>
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-service-api</artifactId>
-            <version>1.28.1-SNAPSHOT</version>
+            <version>1.28.1</version>
         </dependency>
     </dependencies>
 </project>
