@@ -57,7 +57,7 @@ import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletContextRequest;
@@ -381,7 +381,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         this.containerQueue = new LinkedBlockingQueue<>(context.getProperty(CONTAINER_QUEUE_SIZE).asInteger());
         final String host = context.getProperty(HOSTNAME).getValue();
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextProvider.class);
         final HttpContextMap httpContextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
         final long requestTimeout = httpContextMap.getRequestTimeout(TimeUnit.MILLISECONDS);
 
@@ -396,7 +396,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         serverConnectorFactory.setNeedClientAuth(needClientAuth);
         final boolean wantClientAuth = CLIENT_WANT.getValue().equals(clientAuthValue);
         serverConnectorFactory.setWantClientAuth(wantClientAuth);
-        final SSLContext sslContext = sslService == null ? null : sslService.createContext();
+        final SSLContext sslContext = sslContextProvider == null ? null : sslContextProvider.createContext();
         serverConnectorFactory.setSslContext(sslContext);
         final HttpProtocolStrategy httpProtocolStrategy = context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
         serverConnectorFactory.setApplicationLayerProtocols(httpProtocolStrategy.getApplicationLayerProtocols());

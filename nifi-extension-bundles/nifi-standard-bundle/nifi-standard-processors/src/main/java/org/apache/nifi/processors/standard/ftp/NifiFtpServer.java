@@ -31,8 +31,8 @@ import org.apache.ftpserver.ftplet.FileSystemFactory;
 import org.apache.ftpserver.ftplet.User;
 import org.apache.ftpserver.listener.Listener;
 import org.apache.ftpserver.listener.ListenerFactory;
+import org.apache.ftpserver.ssl.ClientAuth;
 import org.apache.ftpserver.ssl.SslConfiguration;
-import org.apache.ftpserver.ssl.SslConfigurationFactory;
 import org.apache.ftpserver.usermanager.impl.BaseUser;
 import org.apache.ftpserver.usermanager.impl.WritePermission;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -40,9 +40,11 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.ftp.commands.CommandMapFactory;
 import org.apache.nifi.processors.standard.ftp.filesystem.VirtualFileSystemFactory;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
-import java.io.File;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocketFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -105,7 +107,7 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
         private int port;
         private String username;
         private String password;
-        private SSLContextService sslContextService;
+        private SSLContextProvider sslContextProvider;
 
         public Builder sessionFactory(AtomicReference<ProcessSessionFactory> sessionFactory) {
             this.sessionFactory = sessionFactory;
@@ -146,8 +148,8 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
             return this;
         }
 
-        public Builder sslContextService(SSLContextService sslContextService) {
-            this.sslContextService = sslContextService;
+        public Builder sslContextProvider(SSLContextProvider sslContextProvider) {
+            this.sslContextProvider = sslContextProvider;
             return this;
         }
 
@@ -159,7 +161,7 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
                 CommandMapFactory commandMapFactory = new CommandMapFactory(sessionFactory, sessionFactorySetSignal, relationshipSuccess);
                 Map<String, Command> commandMap = commandMapFactory.createCommandMap();
                 ConnectionConfig connectionConfig = createConnectionConfig(anonymousLoginEnabled);
-                Listener listener = createListener(bindAddress, port, sslContextService);
+                Listener listener = createListener(bindAddress, port, sslContextProvider);
                 User user = createUser(username, password, HOME_DIRECTORY);
 
                 return new NifiFtpServer(commandMap, fileSystemFactory, connectionConfig, listener, user);
@@ -174,26 +176,13 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
             return connectionConfigFactory.createConnectionConfig();
         }
 
-        private Listener createListener(String bindAddress, int port, SSLContextService sslContextService) throws FtpServerConfigurationException {
+        private Listener createListener(String bindAddress, int port, SSLContextProvider sslContextProvider) throws FtpServerConfigurationException {
             ListenerFactory listenerFactory = new ListenerFactory();
             listenerFactory.setServerAddress(bindAddress);
             listenerFactory.setPort(port);
-            if (sslContextService != null) {
-                SslConfigurationFactory ssl = new SslConfigurationFactory();
-                ssl.setKeystoreFile(new File(sslContextService.getKeyStoreFile()));
-                ssl.setKeystorePassword(sslContextService.getKeyStorePassword());
-                ssl.setKeyPassword(sslContextService.getKeyPassword());
-                ssl.setKeystoreType(sslContextService.getKeyStoreType());
-                ssl.setSslProtocol(sslContextService.getSslAlgorithm());
-
-                if (sslContextService.getTrustStoreFile() != null) {
-                    ssl.setClientAuthentication("NEED");
-                    ssl.setTruststoreFile(new File(sslContextService.getTrustStoreFile()));
-                    ssl.setTruststorePassword(sslContextService.getTrustStorePassword());
-                    ssl.setTruststoreType(sslContextService.getTrustStoreType());
-                }
-
-                SslConfiguration sslConfiguration = ssl.createSslConfiguration();
+            if (sslContextProvider != null) {
+                final SSLContext sslContext = sslContextProvider.createContext();
+                SslConfiguration sslConfiguration = new StandardSslConfiguration(sslContext);
 
                 // Set implicit security for the control socket
                 listenerFactory.setSslConfiguration(sslConfiguration);
@@ -233,6 +222,47 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
             user.setHomeDirectory(homeDirectory);
             user.setAuthorities(authorities);
             return user;
+        }
+    }
+
+    private static class StandardSslConfiguration implements SslConfiguration {
+        private final SSLContext sslContext;
+
+        private final SSLParameters sslParameters;
+
+        private StandardSslConfiguration(final SSLContext sslContext) {
+            this.sslContext = sslContext;
+            this.sslParameters = sslContext.getDefaultSSLParameters();
+        }
+
+        @Override
+        public SSLSocketFactory getSocketFactory() {
+            return sslContext.getSocketFactory();
+        }
+
+        @Override
+        public SSLContext getSSLContext() {
+            return sslContext;
+        }
+
+        @Override
+        public SSLContext getSSLContext(String enabledProtocol) {
+            return sslContext;
+        }
+
+        @Override
+        public String[] getEnabledCipherSuites() {
+            return sslParameters.getCipherSuites();
+        }
+
+        @Override
+        public String[] getEnabledProtocols() {
+            return sslParameters.getProtocols();
+        }
+
+        @Override
+        public ClientAuth getClientAuth() {
+            return ClientAuth.WANT;
         }
     }
 }

@@ -25,7 +25,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.util.List;
 import java.util.Map;
@@ -47,7 +47,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
                     + "connections. This service only applies if the Elasticsearch endpoint(s) have been secured with TLS/SSL.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .addValidator(Validator.VALID)
             .build();
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP);

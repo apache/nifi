@@ -47,7 +47,7 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.Fi
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.ImplicitDefaultCredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.NamedProfileCredentialsStrategy;
 import org.apache.nifi.proxy.ProxyConfigurationService;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 
@@ -191,7 +191,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .name("assume-role-ssl-context-service")
         .displayName("Assume Role SSL Context Service")
         .description("SSL Context Service used when connecting to the STS Endpoint.")
-        .identifiesControllerService(SSLContextService.class)
+        .identifiesControllerService(SSLContextProvider.class)
         .required(false)
         .dependsOn(ASSUME_ROLE_ARN)
         .build();

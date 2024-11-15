@@ -19,8 +19,7 @@ package org.apache.nifi.redis.service;
 import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.StandardProcessorTestRunner;
@@ -33,7 +32,6 @@ import org.mockito.Mockito;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 
 import javax.net.ssl.SSLContext;
-import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -49,7 +47,7 @@ public class TestRedisConnectionPoolService {
     private static SSLContext sslContext;
 
     @BeforeAll
-    public static void classSetup() throws IOException, GeneralSecurityException {
+    public static void classSetup() throws GeneralSecurityException {
         sslContext = SSLContext.getDefault();
     }
 
@@ -63,11 +61,11 @@ public class TestRedisConnectionPoolService {
     }
 
     private void enableSslContextService() throws InitializationException {
-        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
-        Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
-        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
-        testRunner.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextService);
-        testRunner.enableControllerService(sslContextService);
+        final SSLContextProvider sslContextProvider = Mockito.mock(SSLContextProvider.class);
+        Mockito.when(sslContextProvider.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
+        Mockito.when(sslContextProvider.createContext()).thenReturn(sslContext);
+        testRunner.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextProvider);
+        testRunner.enableControllerService(sslContextProvider);
         testRunner.setProperty(redisService, RedisUtils.SSL_CONTEXT_SERVICE, SSL_CONTEXT_IDENTIFIER);
     }
 
@@ -123,8 +121,8 @@ public class TestRedisConnectionPoolService {
                 .get(redisService.getIdentifier()).getProperties(), processContext, null);
         SSLContext providedSslContext = null;
         if (configContext.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).isSet()) {
-            final SSLContextService sslContextService = configContext.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            providedSslContext = sslContextService.createContext();
+            final SSLContextProvider sslContextProvider = configContext.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+            providedSslContext = sslContextProvider.createContext();
         }
         JedisConnectionFactory connectionFactory = RedisUtils.createConnectionFactory(configContext, providedSslContext);
         return connectionFactory;

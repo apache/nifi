@@ -23,15 +23,19 @@ import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -47,6 +51,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -76,6 +81,10 @@ public class StandardSSLContextServiceTest {
 
     private static Path trustStorePath;
 
+    private TestRunner runner;
+
+    private StandardSSLContextService service;
+
     @BeforeAll
     public static void setConfiguration() throws Exception {
         final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
@@ -97,19 +106,20 @@ public class StandardSSLContextServiceTest {
         }
     }
 
+    @BeforeEach
+    public void setRunner() {
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        service = new StandardSSLContextService();
+    }
+
     @Test
     public void testNotValidMissingProperties() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardSSLContextService service = new StandardSSLContextService();
-
         runner.addControllerService(SERVICE_ID, service, Map.of());
         runner.assertNotValid(service);
     }
 
     @Test
     public void testNotValidMissingKeyStoreType() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardSSLContextService service = new StandardSSLContextService();
         final Map<String, String> properties = new HashMap<>();
 
         properties.put(StandardSSLContextService.KEYSTORE.getName(), keyStorePath.toString());
@@ -120,8 +130,6 @@ public class StandardSSLContextServiceTest {
 
     @Test
     public void testNotValidMissingTrustStoreType() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardSSLContextService service = new StandardSSLContextService();
         final Map<String, String> properties = new HashMap<>();
 
         properties.put(StandardSSLContextService.KEYSTORE.getName(), keyStorePath.toString());
@@ -134,8 +142,6 @@ public class StandardSSLContextServiceTest {
 
     @Test
     public void testNotValidIncorrectPassword() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardSSLContextService service = new StandardSSLContextService();
         final Map<String, String> properties = new HashMap<>();
 
         runner.addControllerService(SERVICE_ID, service, properties);
@@ -152,8 +158,6 @@ public class StandardSSLContextServiceTest {
 
     @Test
     public void testShouldFailToAddControllerServiceWithNonExistentFiles() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardSSLContextService service = new StandardSSLContextService();
         final Map<String, String> properties = new HashMap<>();
 
         properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/DOES-NOT-EXIST.jks");
@@ -169,9 +173,6 @@ public class StandardSSLContextServiceTest {
 
     @Test
     public void testCreateContext() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardSSLContextService service = new StandardSSLContextService();
-
         runner.addControllerService(SERVICE_ID, service);
         runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), keyStorePath.toString());
         runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEY_STORE_PASS);
@@ -189,10 +190,70 @@ public class StandardSSLContextServiceTest {
     }
 
     @Test
-    public void testCreateContextExpressionLanguageProperties() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardSSLContextService service = new StandardSSLContextService();
+    public void testCreateTrustManager() throws InitializationException {
+        runner.addControllerService(SERVICE_ID, service);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE.getName(), trustStorePath.toString());
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), TRUST_STORE_PASS);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), keyStoreType);
+        runner.enableControllerService(service);
 
+        runner.setProperty(SERVICE_PROPERTY, SERVICE_ID);
+        runner.assertValid(service);
+
+        final X509TrustManager trustManager = service.createTrustManager();
+        assertNotNull(trustManager);
+    }
+
+    @Test
+    public void testCreateTrustManagerKeyStoreConfigured() throws InitializationException {
+        runner.addControllerService(SERVICE_ID, service);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), keyStorePath.toString());
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEY_STORE_PASS);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), keyStoreType);
+        runner.enableControllerService(service);
+
+        runner.setProperty(SERVICE_PROPERTY, SERVICE_ID);
+        runner.assertValid(service);
+
+        final X509TrustManager trustManager = service.createTrustManager();
+        assertNotNull(trustManager);
+    }
+
+    @Test
+    public void testCreateKeyManager() throws InitializationException {
+        runner.addControllerService(SERVICE_ID, service);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), keyStorePath.toString());
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEY_STORE_PASS);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), keyStoreType);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE.getName(), trustStorePath.toString());
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), TRUST_STORE_PASS);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), keyStoreType);
+        runner.enableControllerService(service);
+
+        runner.setProperty(SERVICE_PROPERTY, SERVICE_ID);
+        runner.assertValid(service);
+
+        final Optional<X509ExtendedKeyManager> keyManagerFound = service.createKeyManager();
+        assertTrue(keyManagerFound.isPresent());
+    }
+
+    @Test
+    public void testCreateKeyManagerKeyStoreNotConfigured() throws InitializationException {
+        runner.addControllerService(SERVICE_ID, service);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE.getName(), trustStorePath.toString());
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), TRUST_STORE_PASS);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), keyStoreType);
+        runner.enableControllerService(service);
+
+        runner.setProperty(SERVICE_PROPERTY, SERVICE_ID);
+        runner.assertValid(service);
+
+        final Optional<X509ExtendedKeyManager> keyManagerFound = service.createKeyManager();
+        assertTrue(keyManagerFound.isEmpty());
+    }
+
+    @Test
+    public void testCreateContextExpressionLanguageProperties() throws InitializationException {
         runner.addControllerService(SERVICE_ID, service);
         runner.setEnvironmentVariableValue("keystore", keyStorePath.toString());
         runner.setEnvironmentVariableValue("truststore", trustStorePath.toString());
@@ -213,9 +274,6 @@ public class StandardSSLContextServiceTest {
 
     @Test
     public void testValidPropertiesChanged() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardSSLContextService service = new StandardSSLContextService();
-
         runner.addControllerService(SERVICE_ID, service);
         runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), keyStorePath.toString());
         runner.setProperty(service, StandardSSLContextService.KEY_PASSWORD.getName(), KEY_STORE_PASS);
@@ -249,8 +307,6 @@ public class StandardSSLContextServiceTest {
         Files.copy(keyStorePath, tempKeyStore, StandardCopyOption.REPLACE_EXISTING);
         Files.copy(trustStorePath, tempTrustStore, StandardCopyOption.REPLACE_EXISTING);
 
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardSSLContextService service = new StandardSSLContextService();
         runner.addControllerService(SERVICE_ID, service);
         runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), tempKeyStore.toString());
         runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEY_STORE_PASS);
@@ -283,8 +339,6 @@ public class StandardSSLContextServiceTest {
 
     @Test
     public void testCreateContextTrustStoreWithoutKeyStore() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final StandardSSLContextService service = new StandardSSLContextService();
         final Map<String, String> properties = new HashMap<>();
 
         properties.put(StandardSSLContextService.TRUSTSTORE.getName(), trustStorePath.toString());
@@ -292,9 +346,6 @@ public class StandardSSLContextServiceTest {
         properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), keyStoreType);
         runner.addControllerService(SERVICE_ID, service, properties);
         runner.enableControllerService(service);
-
-        runner.setProperty(SERVICE_PROPERTY, SERVICE_ID);
-        runner.assertValid();
 
         final SSLContext sslContext = service.createContext();
         assertNotNull(sslContext);

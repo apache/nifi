@@ -22,7 +22,7 @@ import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
 import org.apache.nifi.elasticsearch.TestControllerServiceProcessor;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,10 +32,7 @@ import org.opentest4j.AssertionFailedError;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ElasticSearchClientServiceImplTest {
@@ -107,24 +104,14 @@ class ElasticSearchClientServiceImplTest {
     void testValidatePkiAuth() throws InitializationException {
         runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.PKI);
 
-        final SSLContextService sslService = mock(SSLContextService.class);
-        when(sslService.getIdentifier()).thenReturn("ssl-context");
-        runner.addControllerService("ssl-context", sslService);
+        final SSLContextProvider sslContextProvider = mock(SSLContextProvider.class);
+        when(sslContextProvider.getIdentifier()).thenReturn("ssl-context");
+        runner.addControllerService("ssl-context", sslContextProvider);
         runner.setProperty(service, ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
-        when(sslService.isKeyStoreConfigured()).thenReturn(true);
         runner.assertValid(service);
-        verify(sslService, atMostOnce()).isKeyStoreConfigured();
-        reset(sslService);
-
-        when(sslService.isKeyStoreConfigured()).thenReturn(false);
-        assertPKIAuthorizationValidationErrorMessage();
-        verify(sslService, atMostOnce()).isKeyStoreConfigured();
-        reset(sslService);
 
         runner.removeProperty(service, ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE);
         assertPKIAuthorizationValidationErrorMessage();
-        verify(sslService, atMostOnce()).isKeyStoreConfigured();
-        reset(sslService);
     }
 
     private void assertAuthorizationPropertyValidationErrorMessage(final PropertyDescriptor presentProperty, final PropertyDescriptor missingProperty) {

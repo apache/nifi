@@ -27,7 +27,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 public abstract class AbstractCacheServer extends AbstractControllerService {
 
@@ -47,7 +47,7 @@ public abstract class AbstractCacheServer extends AbstractControllerService {
         .description("If specified, this service will be used to create an SSL Context that will be used "
             + "to secure communications; if not specified, communications will not be secure")
         .required(false)
-        .identifiesControllerService(RestrictedSSLContextService.class)
+        .identifiesControllerService(SSLContextProvider.class)
         .build();
     public static final PropertyDescriptor MAX_CACHE_ENTRIES = new PropertyDescriptor.Builder()
         .name("Maximum Cache Entries")

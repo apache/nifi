@@ -41,7 +41,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.bson.Document;
 
 @Tags({"mongo", "mongodb", "service"})
@@ -83,13 +83,13 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         writeConcernProperty = context.getProperty(WRITE_CONCERN).getValue();
 
         // Set up the client for secure (SSL/TLS communications) if configured to do so
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         final SSLContext sslContext;
 
-        if (sslService == null) {
+        if (sslContextProvider == null) {
             sslContext = null;
         } else {
-            sslContext = sslService.createContext();
+            sslContext = sslContextProvider.createContext();
         }
 
         try {

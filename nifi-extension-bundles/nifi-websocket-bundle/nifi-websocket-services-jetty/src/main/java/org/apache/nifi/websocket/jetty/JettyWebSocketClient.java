@@ -30,7 +30,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.websocket.WebSocketClientService;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
@@ -235,12 +235,12 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         connectCount = configurationContext.getProperty(CONNECTION_ATTEMPT_COUNT).evaluateAttributeExpressions().asInteger();
 
         final HttpClient httpClient;
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
-        if (sslContextService == null) {
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider == null) {
             httpClient = new HttpClient();
         } else {
             final SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
-            final SSLContext sslContext = sslContextService.createContext();
+            final SSLContext sslContext = sslContextProvider.createContext();
             sslContextFactory.setSslContext(sslContext);
             final ClientConnector clientConnector = new ClientConnector();
             clientConnector.setSslContextFactory(sslContextFactory);

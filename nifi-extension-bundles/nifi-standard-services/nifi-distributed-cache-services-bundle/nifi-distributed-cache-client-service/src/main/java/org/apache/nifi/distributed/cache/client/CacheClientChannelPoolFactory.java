@@ -27,7 +27,7 @@ import io.netty.channel.pool.FixedChannelPool;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.nifi.event.transport.netty.channel.pool.InitializingChannelPoolHandler;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import javax.net.ssl.SSLContext;
 import java.time.Duration;
@@ -53,22 +53,22 @@ class CacheClientChannelPoolFactory {
     /**
      * Instantiate a new netty pool of channels to be used for distributed cache communications
      *
-     * @param hostname          the network name / IP address of the server running the distributed cache service
-     * @param port              the port on which the distributed cache service is running
-     * @param timeoutMillis     the network timeout associated with requests to the service
-     * @param sslContextService the SSL context (if any) associated with requests to the service; if not specified,
-     *                          communications will not be encrypted
-     * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
-     * @param eventLoopGroup    Netty Event Loop Group providing threads for managing connections
+     * @param hostname           the network name / IP address of the server running the distributed cache service
+     * @param port               the port on which the distributed cache service is running
+     * @param timeoutMillis      the network timeout associated with requests to the service
+     * @param sslContextProvider the SSL context (if any) associated with requests to the service; if not specified,
+     *                           communications will not be encrypted
+     * @param factory            creator of object used to broker the version of the distributed cache protocol with the service
+     * @param eventLoopGroup     Netty Event Loop Group providing threads for managing connections
      * @return a channel pool object from which {@link Channel} objects may be obtained
      */
     public ChannelPool createChannelPool(final String hostname,
                                          final int port,
                                          final int timeoutMillis,
-                                         final SSLContextService sslContextService,
+                                         final SSLContextProvider sslContextProvider,
                                          final VersionNegotiatorFactory factory,
                                          final EventLoopGroup eventLoopGroup) {
-        final SSLContext sslContext = (sslContextService == null) ? null : sslContextService.createContext();
+        final SSLContext sslContext = (sslContextProvider == null) ? null : sslContextProvider.createContext();
         final Bootstrap bootstrap = new Bootstrap();
         final CacheClientChannelInitializer initializer = new CacheClientChannelInitializer(sslContext, factory, Duration.ofMillis(timeoutMillis), Duration.ofMillis(timeoutMillis));
         bootstrap.group(eventLoopGroup)

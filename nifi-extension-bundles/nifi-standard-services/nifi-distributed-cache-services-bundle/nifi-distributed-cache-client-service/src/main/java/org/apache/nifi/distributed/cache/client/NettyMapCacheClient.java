@@ -27,7 +27,7 @@ import org.apache.nifi.distributed.cache.operations.MapOperation;
 import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -45,25 +45,25 @@ public class NettyMapCacheClient extends CacheClient {
     /**
      * Constructor.
      *
-     * @param hostname          the network name / IP address of the server running the distributed cache service
-     * @param port              the port on which the distributed cache service is running
-     * @param timeoutMillis     the network timeout associated with requests to the service
-     * @param sslContextService the SSL context (if any) associated with requests to the service; if not specified,
-     *                          communications will not be encrypted
-     * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
-     * @param identifier        uniquely identifies this client
-     * @param log               Component Log from instantiating Services
+     * @param hostname           the network name / IP address of the server running the distributed cache service
+     * @param port               the port on which the distributed cache service is running
+     * @param timeoutMillis      the network timeout associated with requests to the service
+     * @param sslContextProvider the SSL context (if any) associated with requests to the service; if not specified,
+     *                           communications will not be encrypted
+     * @param factory            creator of object used to broker the version of the distributed cache protocol with the service
+     * @param identifier         uniquely identifies this client
+     * @param log                Component Log from instantiating Services
      */
     public NettyMapCacheClient(
             final String hostname,
             final int port,
             final int timeoutMillis,
-            final SSLContextService sslContextService,
+            final SSLContextProvider sslContextProvider,
             final VersionNegotiatorFactory factory,
             final String identifier,
             final ComponentLog log
     ) {
-        super(hostname, port, timeoutMillis, sslContextService, factory, identifier);
+        super(hostname, port, timeoutMillis, sslContextProvider, factory, identifier);
         this.log = Objects.requireNonNull(log, "Component Log required");
     }
 

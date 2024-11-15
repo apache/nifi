@@ -34,6 +34,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.ssl.BuilderConfigurationException;
+import org.apache.nifi.security.ssl.StandardKeyManagerBuilder;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
@@ -44,6 +46,9 @@ import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,11 +60,13 @@ import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
 @CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
@@ -258,10 +265,34 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 sslContextBuilder.trustManager(trustManager);
             }
 
-            final String keyStoreFile = getKeyStoreFile();
-            if (keyStoreFile == null || keyStoreFile.isBlank()) {
-                getLogger().debug("Key Store File not configured");
-            } else {
+            final Optional<X509ExtendedKeyManager> keyManagerFound = createKeyManager();
+            if (keyManagerFound.isPresent()) {
+                final X509ExtendedKeyManager keyManager = keyManagerFound.get();
+                sslContextBuilder.keyManager(keyManager);
+            }
+
+            return sslContextBuilder.build();
+        } catch (final Exception e) {
+            throw new ProcessException("Unable to create SSLContext", e);
+        }
+    }
+
+    /**
+     * Create and initialize an X.509 Key Manager when configured with key and certificate properties
+     *
+     * @return X.509 Extended Key Manager or empty when not configured
+     */
+    @Override
+    public Optional<X509ExtendedKeyManager> createKeyManager() {
+        final Optional<X509ExtendedKeyManager> keyManager;
+
+        final String keyStoreFile = getKeyStoreFile();
+        if (keyStoreFile == null || keyStoreFile.isBlank()) {
+            keyManager = Optional.empty();
+        } else {
+            try {
+                final StandardKeyManagerBuilder keyManagerBuilder = new StandardKeyManagerBuilder();
+
                 final StandardKeyStoreBuilder keyStoreBuilder = new StandardKeyStoreBuilder();
                 keyStoreBuilder.type(getKeyStoreType());
                 keyStoreBuilder.password(getKeyStorePassword().toCharArray());
@@ -270,7 +301,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 try (InputStream keyStoreInputStream = Files.newInputStream(keyStorePath)) {
                     keyStoreBuilder.inputStream(keyStoreInputStream);
                     final KeyStore keyStore = keyStoreBuilder.build();
-                    sslContextBuilder.keyStore(keyStore);
+                    keyManagerBuilder.keyStore(keyStore);
                 }
 
                 final char[] keyProtectionPassword;
@@ -280,13 +311,16 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 } else {
                     keyProtectionPassword = keyPassword.toCharArray();
                 }
-                sslContextBuilder.keyPassword(keyProtectionPassword);
-            }
+                keyManagerBuilder.keyPassword(keyProtectionPassword);
 
-            return sslContextBuilder.build();
-        } catch (final Exception e) {
-            throw new ProcessException("Unable to create SSLContext", e);
+                final X509ExtendedKeyManager extendedKeyManager = keyManagerBuilder.build();
+                keyManager = Optional.of(extendedKeyManager);
+            } catch (final Exception e) {
+                throw new ProcessException("Unable to create X.509 Key Manager", e);
+            }
         }
+
+        return keyManager;
     }
 
     /**
@@ -297,27 +331,40 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Override
     public X509TrustManager createTrustManager() {
         try {
-            final char[] password;
-            final String trustStorePassword = getTrustStorePassword();
-            if (trustStorePassword == null || trustStorePassword.isBlank()) {
-                password = null;
-            } else {
-                password = trustStorePassword.toCharArray();
-            }
-
-            final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder().type(getTrustStoreType()).password(password);
+            final X509TrustManager trustManager;
 
             final String trustStoreFile = getTrustStoreFile();
             if (trustStoreFile == null || trustStoreFile.isBlank()) {
-                throw new ProcessException("Trust Store File not specified");
+                final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                trustManagerFactory.init((KeyStore) null);
+                final TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+
+                final Optional<X509ExtendedTrustManager> configuredTrustManager = Arrays.stream(trustManagers)
+                        .filter(manager -> manager instanceof X509ExtendedTrustManager)
+                        .map(manager -> (X509ExtendedTrustManager) manager)
+                        .findFirst();
+
+                trustManager = configuredTrustManager.orElseThrow(() -> new BuilderConfigurationException("X.509 Trust Manager not found"));
+            } else {
+                final char[] password;
+                final String trustStorePassword = getTrustStorePassword();
+                if (trustStorePassword == null || trustStorePassword.isBlank()) {
+                    password = null;
+                } else {
+                    password = trustStorePassword.toCharArray();
+                }
+
+                final StandardKeyStoreBuilder builder = new StandardKeyStoreBuilder().type(getTrustStoreType()).password(password);
+
+                final Path trustStorePath = Paths.get(trustStoreFile);
+                try (InputStream trustStoreInputStream = Files.newInputStream(trustStorePath)) {
+                    builder.inputStream(trustStoreInputStream);
+                    final KeyStore trustStore = builder.build();
+                    trustManager = new StandardTrustManagerBuilder().trustStore(trustStore).build();
+                }
             }
 
-            final Path trustStorePath = Paths.get(trustStoreFile);
-            try (InputStream trustStoreInputStream = Files.newInputStream(trustStorePath)) {
-                builder.inputStream(trustStoreInputStream);
-                final KeyStore trustStore = builder.build();
-                return new StandardTrustManagerBuilder().trustStore(trustStore).build();
-            }
+            return trustManager;
         } catch (final Exception e) {
             throw new ProcessException("Unable to create X.509 Trust Manager", e);
         }

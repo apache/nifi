@@ -40,7 +40,7 @@ import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -1034,22 +1034,22 @@ public class InvokeHTTPTest {
     private void setSslContextConfiguration(final SSLContext clientSslContext) throws InitializationException {
         setMockWebServerSslSocketFactory();
 
-        final SSLContextService sslContextService = setSslContextService();
-        when(sslContextService.createContext()).thenReturn(clientSslContext);
-        when(sslContextService.createTrustManager()).thenReturn(trustManager);
+        final SSLContextProvider sslContextProvider = setSslContextProvider();
+        when(sslContextProvider.createContext()).thenReturn(clientSslContext);
+        when(sslContextProvider.createTrustManager()).thenReturn(trustManager);
     }
 
-    private SSLContextService setSslContextService() throws InitializationException {
-        final String serviceIdentifier = SSLContextService.class.getName();
-        final SSLContextService sslContextService = mock(SSLContextService.class);
-        when(sslContextService.getIdentifier()).thenReturn(serviceIdentifier);
+    private SSLContextProvider setSslContextProvider() throws InitializationException {
+        final String serviceIdentifier = SSLContextProvider.class.getName();
+        final SSLContextProvider sslContextProvider = mock(SSLContextProvider.class);
+        when(sslContextProvider.getIdentifier()).thenReturn(serviceIdentifier);
 
-        runner.addControllerService(serviceIdentifier, sslContextService);
-        runner.enableControllerService(sslContextService);
+        runner.addControllerService(serviceIdentifier, sslContextProvider);
+        runner.enableControllerService(sslContextProvider);
         runner.setProperty(InvokeHTTP.SSL_CONTEXT_SERVICE, serviceIdentifier);
         runner.setProperty(InvokeHTTP.SOCKET_READ_TIMEOUT, TLS_CONNECTION_TIMEOUT);
         runner.setProperty(InvokeHTTP.SOCKET_CONNECT_TIMEOUT, TLS_CONNECTION_TIMEOUT);
-        return sslContextService;
+        return sslContextProvider;
     }
 
     private void setMockWebServerSslSocketFactory() {

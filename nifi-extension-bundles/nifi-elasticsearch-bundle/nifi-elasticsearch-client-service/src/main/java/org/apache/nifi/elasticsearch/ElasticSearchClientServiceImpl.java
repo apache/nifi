@@ -50,7 +50,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.elasticsearch.client.Node;
@@ -143,9 +143,9 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final boolean apiKeyIdSet = validationContext.getProperty(API_KEY_ID).isSet();
         final boolean apiKeySet = validationContext.getProperty(API_KEY).isSet();
 
-        final SSLContextService sslService = validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider = validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
 
-        if (authorizationScheme == AuthorizationScheme.PKI && (sslService == null || !sslService.isKeyStoreConfigured())) {
+        if (authorizationScheme == AuthorizationScheme.PKI && (sslContextProvider == null)) {
             results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName()).valid(false)
                     .explanation(String.format("if '%s' is '%s' then '%s' must be set and specify a Keystore for mutual TLS encryption.",
                             AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName(), PROP_SSL_CONTEXT_SERVICE.getDisplayName())
@@ -462,12 +462,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     private SSLContext getSSLContext(final ConfigurationContext context) throws InitializationException {
-        final SSLContextService sslService =
-                context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
 
         try {
-            return (sslService != null && (sslService.isKeyStoreConfigured() || sslService.isTrustStoreConfigured()))
-                    ? sslService.createContext() : null;
+            return sslContextProvider == null ? null : sslContextProvider.createContext();
         } catch (final Exception e) {
             getLogger().error("Error building up SSL Context from the supplied configuration.", e);
             throw new InitializationException(e);
