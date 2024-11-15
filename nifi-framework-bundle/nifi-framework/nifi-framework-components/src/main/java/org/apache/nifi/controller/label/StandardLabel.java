@@ -29,8 +29,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class StandardLabel implements Label {
     public static final long DEFAULT_Z_INDEX = 0;
@@ -112,10 +112,7 @@ public class StandardLabel implements Label {
         if (style != null) {
             boolean updated = false;
             while (!updated) {
-                final Map<String, String> existingStyles = this.style.get();
-                final Map<String, String> updatedStyles = new HashMap<>(existingStyles);
-                updatedStyles.putAll(style);
-                updated = this.style.compareAndSet(existingStyles, Collections.unmodifiableMap(updatedStyles));
+                updated = this.style.compareAndSet(this.style.get(), Collections.unmodifiableMap(style));
             }
         }
     }
