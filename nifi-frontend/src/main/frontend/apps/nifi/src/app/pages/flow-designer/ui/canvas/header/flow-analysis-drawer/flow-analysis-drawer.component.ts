@@ -107,7 +107,11 @@ export class FlowAnalysisDrawerComponent {
             .select(selectBreadcrumbs)
             .pipe(takeUntilDestroyed())
             .subscribe((breadcrumbs: BreadcrumbEntity) => {
-                this.processGroupName = breadcrumbs.breadcrumb.name;
+                if (breadcrumbs.permissions.canRead && breadcrumbs.breadcrumb) {
+                    this.processGroupName = breadcrumbs.breadcrumb.name;
+                } else {
+                    this.processGroupName = this.currentProcessGroupId;
+                }
             });
     }
 
