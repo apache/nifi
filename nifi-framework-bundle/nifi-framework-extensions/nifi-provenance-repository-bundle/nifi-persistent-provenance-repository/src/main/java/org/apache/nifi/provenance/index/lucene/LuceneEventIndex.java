@@ -758,6 +758,11 @@ public class LuceneEventIndex implements EventIndex {
     @Override
     public AsyncLineageSubmission retrieveLineageSubmission(final String lineageIdentifier, final NiFiUser user) {
         final AsyncLineageSubmission submission = lineageSubmissionMap.get(lineageIdentifier);
+
+        if (submission == null) {
+            throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission. It has already been deleted or submitted to another NiFi node in the cluster.");
+        }
+
         final String userId = submission.getSubmitterIdentity();
 
         if (user == null && userId == null) {
