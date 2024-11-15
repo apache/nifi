@@ -1573,6 +1573,14 @@ public final class StandardProcessGroup implements ProcessGroup {
         List<Connection> connections = findAllConnections(this);
 
         DropFlowFileRequest aggregateDropFlowFileStatus = new DropFlowFileRequest(dropRequestId);
+
+        if (connections.isEmpty()) {
+            aggregateDropFlowFileStatus.setState(DropFlowFileState.COMPLETE);
+            aggregateDropFlowFileStatus.setCurrentSize(new QueueSize(0, 0L));
+            aggregateDropFlowFileStatus.setOriginalSize(new QueueSize(0, 0L));
+            return aggregateDropFlowFileStatus;
+        }
+
         aggregateDropFlowFileStatus.setState(null);
 
         AtomicBoolean processedAtLeastOne = new AtomicBoolean(false);
