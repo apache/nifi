@@ -62,6 +62,7 @@ import java.util.Set;
 @WritesAttributes(
     {
             @WritesAttribute(attribute = "mime.type", description = "Sets the MIME type of the output if the 'MIME Type' property is set"),
+            @WritesAttribute(attribute = "Dynamic property key", description = "Value for the corresponding dynamic property, if any is set")
     }
 )
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
@@ -105,6 +106,7 @@ public class GetFileResource extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
+                .description("Specifies an attribute on generated FlowFiles defined by the Dynamic Property's key and value.")
                 .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
                 .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
                 .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)

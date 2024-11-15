@@ -31,12 +31,16 @@ import java.io.IOException;
 public class TestGetFileResource {
 
     @Test
+    public void testInvalidConfiguration() {
+        final TestRunner runner = TestRunners.newTestRunner(new GetFileResource());
+        runner.setProperty(GetFileResource.FILE_RESOURCE, "");
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testGetFileResource() throws IOException {
         final String filePath = "src/test/resources/TestCountText/jabberwocky.txt";
         final TestRunner runner = TestRunners.newTestRunner(new GetFileResource());
-
-        runner.setProperty(GetFileResource.FILE_RESOURCE, "");
-        runner.assertNotValid();
 
         runner.setProperty(GetFileResource.FILE_RESOURCE, filePath);
         runner.setProperty(GetFileResource.MIME_TYPE, "text/plain");
