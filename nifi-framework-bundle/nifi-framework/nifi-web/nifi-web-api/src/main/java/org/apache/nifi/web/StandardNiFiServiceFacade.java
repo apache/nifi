@@ -6398,7 +6398,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
         BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
 
-        final String instanceId = StringUtils.isEmpty(controllerFacade.getInstanceId()) ? "" : controllerFacade.getInstanceId();
+        final NodeIdentifier node = controllerFacade.getNodeId();
+        final String instId = StringUtils.isEmpty(controllerFacade.getInstanceId()) ? "" : controllerFacade.getInstanceId();
+        final String instanceId = node == null ? instId : node.getId();
         ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
 
         PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", ROOT_PROCESS_GROUP,
