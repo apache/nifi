@@ -51,17 +51,18 @@ public class TestAsynchronousCommitTracker {
         assertEquals(connectable2, tracker.getNextReady());
 
         tracker.addConnectable(connectable3);
-        assertEquals(Arrays.asList(connectable3, connectable2, connectable1), tracker.getReady());
+        assertEquals(Arrays.asList(connectable3, connectable1, connectable2), tracker.getReady());
         assertEquals(connectable3, tracker.getNextReady());
 
         // connectable1 should now be moved to the start of the List
+        // connectable3 should be at the end from the last call to getNextReady
         tracker.addConnectable(connectable1);
-        assertEquals(Arrays.asList(connectable1, connectable3, connectable2), tracker.getReady());
+        assertEquals(Arrays.asList(connectable1, connectable2, connectable3), tracker.getReady());
         assertEquals(connectable1, tracker.getNextReady());
 
         // Adding connectable1 again should now have effect since it is already first
         tracker.addConnectable(connectable1);
-        assertEquals(Arrays.asList(connectable1, connectable3, connectable2), tracker.getReady());
+        assertEquals(Arrays.asList(connectable1, connectable2, connectable3), tracker.getReady());
         assertEquals(connectable1, tracker.getNextReady());
     }
 

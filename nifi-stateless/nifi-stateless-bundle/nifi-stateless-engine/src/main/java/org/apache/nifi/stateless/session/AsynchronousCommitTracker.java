@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.Stack;
 import java.util.function.Consumer;
 
@@ -41,7 +40,7 @@ public class AsynchronousCommitTracker {
     private static final Logger logger = LoggerFactory.getLogger(AsynchronousCommitTracker.class);
 
     private final ProcessGroup rootGroup;
-    private final Set<Connectable> ready = new LinkedHashSet<>();
+    private final LinkedHashSet<Connectable> ready = new LinkedHashSet<>();
     private final Stack<CommitCallbacks> commitCallbacks = new Stack<>();
     private int flowFilesProduced = 0;
     private long bytesProduced = 0L;
@@ -70,15 +69,17 @@ public class AsynchronousCommitTracker {
         }
     }
 
-
     public Connectable getNextReady() {
         if (ready.isEmpty()) {
             return null;
         }
 
-        Connectable last = null;
-        for (final Connectable connectable : ready) {
-            last = connectable;
+        final Connectable last = ready.getLast();
+
+        //When selecting the next ready Connectable move the selected Connectable to the first position. The Connectable in the first position will be
+        //the last to be executed. This way execution of Connectables gets continuously rotated.  We only need to do this when there is more than one ready.
+        if (ready.size() > 1) {
+            ready.addFirst(last);
         }
 
         return last;
