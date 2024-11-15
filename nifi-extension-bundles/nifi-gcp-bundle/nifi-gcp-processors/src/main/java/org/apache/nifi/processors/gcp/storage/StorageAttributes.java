@@ -19,10 +19,18 @@ package org.apache.nifi.processors.gcp.storage;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
-import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import static com.google.cloud.storage.Acl.Role.OWNER;
+import static com.google.cloud.storage.Acl.Role.READER;
+import static com.google.cloud.storage.Acl.Role.WRITER;
 
 /**
  * Common attributes being written and accessed through Google Cloud Storage.
@@ -56,13 +64,11 @@ public class StorageAttributes {
 
     public static final String CRC32C_ATTR = "gcs.crc32c";
     public static final String CRC32C_DESC = "The CRC32C checksum of object's data, encoded in base64 in " +
-                                                    "big-endian order.";
+            "big-endian order.";
 
     public static final String CREATE_TIME_ATTR = "gcs.create.time";
     public static final String CREATE_TIME_DESC = "The creation time of the object (milliseconds)";
 
-    public static final String DELETE_TIME_ATTR = "gcs.delete.time";
-    public static final String DELETE_TIME_DESC = "The deletion time of the object (milliseconds)";
 
     public static final String UPDATE_TIME_ATTR = "gcs.update.time";
     public static final String UPDATE_TIME_DESC = "The last modification time of the object (milliseconds)";
@@ -100,6 +106,13 @@ public class StorageAttributes {
     public static final String URI_ATTR = "gcs.uri";
     public static final String URI_DESC = "The URI of the object as a string.";
 
+    public static final String ACL_OWNER_ATTR = "gcs.acl.owner";
+    public static final String ACL_OWNER_DESC = "A comma-delimited list of ACL entities that have owner access to the object. Entities will be either email addresses, domains, or project IDs.";
+    public static final String ACL_WRITER_ATTR = "gcs.acl.writer";
+    public static final String ACL_WRITER_DESC = "A comma-delimited list of ACL entities that have write access to the object. Entities will be either email addresses, domains, or project IDs.";
+    public static final String ACL_READER_ATTR = "gcs.acl.reader";
+    public static final String ACL_READER_DESC = "A comma-delimited list of ACL entities that have read access to the object. Entities will be either email addresses, domains, or project IDs.";
+
     public static Map<String, String> createAttributes(final Blob blob) {
         final Map<String, String> attributes = new HashMap<>();
 
@@ -131,30 +144,55 @@ public class StorageAttributes {
 
         if (blob.getOwner() != null) {
             final Acl.Entity entity = blob.getOwner();
+            final String entityID = getEntityID(entity);
+            if (entityID != null) {
+                addAttribute(attributes, OWNER_ATTR, entityID);
+                addAttribute(attributes, OWNER_TYPE_ATTR, entity.getType().name().toLowerCase(Locale.ROOT));
+            }
+        }
 
-            if (entity instanceof Acl.User) {
-                addAttribute(attributes, OWNER_ATTR, ((Acl.User) entity).getEmail());
-                addAttribute(attributes, OWNER_TYPE_ATTR, "user");
-            } else if (entity instanceof Acl.Group) {
-                addAttribute(attributes, OWNER_ATTR, ((Acl.Group) entity).getEmail());
-                addAttribute(attributes, OWNER_TYPE_ATTR, "group");
-            } else if (entity instanceof Acl.Domain) {
-                addAttribute(attributes, OWNER_ATTR, ((Acl.Domain) entity).getDomain());
-                addAttribute(attributes, OWNER_TYPE_ATTR, "domain");
-            } else if (entity instanceof Acl.Project) {
-                addAttribute(attributes, OWNER_ATTR, ((Acl.Project) entity).getProjectId());
-                addAttribute(attributes, OWNER_TYPE_ATTR, "project");
+        if (blob.getAcl() != null) {
+            final Map<Acl.Role, List<String>> aclRoles = new HashMap<>();
+            for (final Acl acl : blob.getAcl()) {
+                final Acl.Role role = acl.getRole();
+                if (!aclRoles.containsKey(role)) {
+                    aclRoles.put(role, new ArrayList<>());
+                }
+
+                final String entityID = getEntityID(acl.getEntity());
+                if (entityID != null) {
+                    aclRoles.get(role).add(entityID);
+                }
+            }
+            for (final Map.Entry<Acl.Role, List<String>> roleEntry : aclRoles.entrySet()) {
+                final String entities = StringUtils.join(roleEntry.getValue(), ",");
+                if (roleEntry.getKey().equals(OWNER)) {
+                    addAttribute(attributes, ACL_OWNER_ATTR, entities);
+                } else if (roleEntry.getKey().equals(WRITER)) {
+                    addAttribute(attributes, ACL_WRITER_ATTR, entities);
+                } else if (roleEntry.getKey().equals(READER)) {
+                    addAttribute(attributes, ACL_READER_ATTR, entities);
+                }
             }
         }
 
         addAttribute(attributes, URI_ATTR, blob.getSelfLink());
         addAttribute(attributes, CoreAttributes.FILENAME.key(), blob.getName());
 
-        final OffsetDateTime created = blob.getCreateTimeOffsetDateTime();
         addAttribute(attributes, CREATE_TIME_ATTR, blob.getCreateTimeOffsetDateTime().toInstant().toEpochMilli());
         addAttribute(attributes, UPDATE_TIME_ATTR, blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli());
 
         return attributes;
+    }
+
+    private static String getEntityID(final Acl.Entity entity) {
+        return switch (entity.getType()) {
+            case DOMAIN -> ((Acl.Domain) entity).getDomain();
+            case GROUP -> ((Acl.Group) entity).getEmail();
+            case USER -> ((Acl.User) entity).getEmail();
+            case PROJECT -> ((Acl.Project) entity).getProjectId();
+            case UNKNOWN -> null;
+        };
     }
 
     private static void addAttribute(final Map<String, String> attributes, final String key, final Object value) {
@@ -172,5 +210,4 @@ public class StorageAttributes {
 
         attributes.put(key, value);
     }
-
 }

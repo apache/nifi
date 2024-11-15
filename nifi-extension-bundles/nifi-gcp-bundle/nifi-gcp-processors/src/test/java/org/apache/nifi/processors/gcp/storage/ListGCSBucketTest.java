@@ -57,6 +57,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_OWNER_ATTR;
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_READER_ATTR;
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ACL_WRITER_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CACHE_CONTROL_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.COMPONENT_COUNT_ATTR;
@@ -618,6 +621,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final Blob blob = buildMockBlob("test-bucket-1", "test-key-1", 2L);
         final Acl.User mockUser = mock(Acl.User.class);
         when(mockUser.getEmail()).thenReturn(OWNER_USER_EMAIL);
+        when(mockUser.getType()).thenReturn(Acl.Entity.Type.USER);
         when(blob.getOwner()).thenReturn(mockUser);
 
         final Iterable<Blob> mockList = Collections.singletonList(blob);
@@ -642,6 +646,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final Blob blob = buildMockBlob("test-bucket-1", "test-key-1", 2L);
         final Acl.Group mockGroup = mock(Acl.Group.class);
         when(mockGroup.getEmail()).thenReturn(OWNER_GROUP_EMAIL);
+        when(mockGroup.getType()).thenReturn(Acl.Entity.Type.GROUP);
         when(blob.getOwner()).thenReturn(mockGroup);
 
         final Iterable<Blob> mockList = Collections.singletonList(blob);
@@ -666,6 +671,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final Blob blob = buildMockBlob("test-bucket-1", "test-key-1", 2L);
         final Acl.Domain mockDomain = mock(Acl.Domain.class);
         when(mockDomain.getDomain()).thenReturn(OWNER_DOMAIN);
+        when(mockDomain.getType()).thenReturn(Acl.Entity.Type.DOMAIN);
         when(blob.getOwner()).thenReturn(mockDomain);
 
         final Iterable<Blob> mockList = Collections.singletonList(blob);
@@ -689,6 +695,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final Blob blob = buildMockBlob("test-bucket-1", "test-key-1", 2L);
         final Acl.Project mockProject = mock(Acl.Project.class);
         when(mockProject.getProjectId()).thenReturn(OWNER_PROJECT_ID);
+        when(mockProject.getType()).thenReturn(Acl.Entity.Type.PROJECT);
         when(blob.getOwner()).thenReturn(mockProject);
 
         final Iterable<Blob> mockList = Collections.singletonList(blob);
@@ -706,6 +713,58 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
         assertEquals(OWNER_PROJECT_ID, flowFile.getAttribute(OWNER_ATTR));
         assertEquals("project", flowFile.getAttribute(OWNER_TYPE_ATTR));
+    }
+
+    @Test
+    public void testFileAcls() {
+        final Blob blob = buildMockBlob("test-bucket-1", "test-key-1", 2L);
+        final Acl mockUser = mock(Acl.class);
+        final Acl.User mockUserEntity = mock(Acl.User.class);
+        final Acl mockGroup = mock(Acl.class);
+        final Acl.Group mockGroupEntity = mock(Acl.Group.class);
+        final Acl mockDomain = mock(Acl.class);
+        final Acl.Domain mockDomainEntity = mock(Acl.Domain.class);
+        final Acl mockProject = mock(Acl.class);
+        final Acl.Project mockProjectEntity = mock(Acl.Project.class);
+
+        when(blob.getAcl()).thenReturn(List.of(mockUser, mockGroup, mockDomain, mockProject));
+
+        when(mockUser.getEntity()).thenReturn(mockUserEntity);
+        when(mockUser.getRole()).thenReturn(Acl.Role.OWNER);
+        when(mockUserEntity.getType()).thenReturn(Acl.Entity.Type.USER);
+        when(mockUserEntity.getEmail()).thenReturn(OWNER_USER_EMAIL);
+
+        when(mockGroup.getEntity()).thenReturn(mockGroupEntity);
+        when(mockGroup.getRole()).thenReturn(Acl.Role.WRITER);
+        when(mockGroupEntity.getType()).thenReturn(Acl.Entity.Type.GROUP);
+        when(mockGroupEntity.getEmail()).thenReturn(OWNER_GROUP_EMAIL);
+
+        when(mockDomain.getEntity()).thenReturn(mockDomainEntity);
+        when(mockDomain.getRole()).thenReturn(Acl.Role.WRITER);
+        when(mockDomainEntity.getType()).thenReturn(Acl.Entity.Type.DOMAIN);
+        when(mockDomainEntity.getDomain()).thenReturn(OWNER_DOMAIN);
+
+        when(mockProject.getEntity()).thenReturn(mockProjectEntity);
+        when(mockProject.getRole()).thenReturn(Acl.Role.READER);
+        when(mockProjectEntity.getType()).thenReturn(Acl.Entity.Type.PROJECT);
+        when(mockProjectEntity.getProjectId()).thenReturn(OWNER_PROJECT_ID);
+
+        final Iterable<Blob> mockList = Collections.singletonList(blob);
+
+        when(mockBlobPage.getValues()).thenReturn(mockList);
+        when(mockBlobPage.getNextPage()).thenReturn(null);
+        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
+
+        runner.enqueue("test");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS);
+        runner.assertTransferCount(FetchGCSObject.REL_SUCCESS, 1);
+
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS).get(0);
+        assertEquals(OWNER_USER_EMAIL, flowFile.getAttribute(ACL_OWNER_ATTR));
+        assertEquals("%s,%s".formatted(OWNER_GROUP_EMAIL, OWNER_DOMAIN), flowFile.getAttribute(ACL_WRITER_ATTR));
+        assertEquals(OWNER_PROJECT_ID, flowFile.getAttribute(ACL_READER_ATTR));
     }
 
     @Test
