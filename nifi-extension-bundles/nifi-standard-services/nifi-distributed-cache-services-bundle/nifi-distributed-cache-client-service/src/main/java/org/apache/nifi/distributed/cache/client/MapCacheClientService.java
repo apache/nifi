@@ -33,7 +33,7 @@ import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.StandardVersionNegotiatorFactory;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -71,7 +71,7 @@ public class MapCacheClientService extends AbstractControllerService implements 
         .description("If specified, indicates the SSL Context Service that is used to communicate with the "
                 + "remote server. If not specified, communications will not be encrypted")
         .required(false)
-        .identifiesControllerService(SSLContextService.class)
+        .identifiesControllerService(SSLContextProvider.class)
         .build();
     public static final PropertyDescriptor COMMUNICATIONS_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Communications Timeout")
@@ -108,7 +108,7 @@ public class MapCacheClientService extends AbstractControllerService implements 
                 context.getProperty(HOSTNAME).getValue(),
                 context.getProperty(PORT).asInteger(),
                 context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(),
-                context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class),
+                context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class),
                 versionNegotiatorFactory,
                 this.getIdentifier(),
                 getLogger());

@@ -37,7 +37,7 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -146,12 +146,12 @@ public class TestPutTCP {
     @Test
     public void testRunSuccessSslContextService() throws Exception {
         final SSLContext sslContext = getSslContext();
-        final String identifier = SSLContextService.class.getName();
-        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
-        Mockito.when(sslContextService.getIdentifier()).thenReturn(identifier);
-        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
-        runner.addControllerService(identifier, sslContextService);
-        runner.enableControllerService(sslContextService);
+        final String identifier = SSLContextProvider.class.getName();
+        final SSLContextProvider sslContextProvider = Mockito.mock(SSLContextProvider.class);
+        Mockito.when(sslContextProvider.getIdentifier()).thenReturn(identifier);
+        Mockito.when(sslContextProvider.createContext()).thenReturn(sslContext);
+        runner.addControllerService(identifier, sslContextProvider);
+        runner.enableControllerService(sslContextProvider);
         runner.setProperty(PutTCP.SSL_CONTEXT_SERVICE, identifier);
         createTestServer(sslContext, OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);

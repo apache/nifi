@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -26,8 +25,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.SslSessionStatus;
@@ -51,8 +48,7 @@ import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.processor.util.listen.queue.TrackingLinkedBlockingQueue;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -60,8 +56,6 @@ import java.net.InetAddress;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,15 +96,16 @@ public class ListenTCP extends AbstractProcessor {
             .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
                     "messages will be received over a secure connection.")
             .required(false)
-            .identifiesControllerService(RestrictedSSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Auth")
             .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
-            .required(false)
+            .required(true)
             .allowableValues(ClientAuth.values())
             .defaultValue(ClientAuth.REQUIRED.name())
+            .dependsOn(SSL_CONTEXT_SERVICE)
             .build();
 
     protected static final PropertyDescriptor POOL_RECV_BUFFERS = new PropertyDescriptor.Builder()
@@ -188,11 +183,11 @@ public class ListenTCP extends AbstractProcessor {
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
         final NettyEventServerFactory eventFactory = new ByteArrayMessageNettyEventServerFactory(getLogger(), address, port, TransportProtocol.TCP, messageDemarcatorBytes, bufferSize, events);
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
             ClientAuth clientAuth = ClientAuth.valueOf(clientAuthValue);
-            SSLContext sslContext = sslContextService.createContext();
+            SSLContext sslContext = sslContextProvider.createContext();
             eventFactory.setSslContext(sslContext);
             eventFactory.setClientAuth(clientAuth);
         }
@@ -254,22 +249,6 @@ public class ListenTCP extends AbstractProcessor {
             eventServer.shutdown();
         }
         eventBatcher = null;
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>();
-
-        final String clientAuth = validationContext.getProperty(CLIENT_AUTH).getValue();
-        final SSLContextService sslContextService = validationContext.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-
-        if (sslContextService != null && StringUtils.isBlank(clientAuth)) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("Client Auth must be provided when using TLS/SSL")
-                    .valid(false).subject("Client Auth").build());
-        }
-
-        return results;
     }
 
     protected Map<String, String> getAttributes(final FlowFileEventBatch<ByteArrayMessage> batch) {

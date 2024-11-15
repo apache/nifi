@@ -81,8 +81,7 @@ import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.security.util.TlsException;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import javax.annotation.Nullable;
@@ -218,7 +217,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .name("SSL Context Service")
             .description("SSL Context Service provides trusted certificates and client certificates for TLS communication.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     public static final PropertyDescriptor SOCKET_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
@@ -725,7 +724,7 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void setUpClient(final ProcessContext context) throws TlsException, IOException {
+    public void setUpClient(final ProcessContext context) throws IOException {
         okHttpClientAtomicReference.set(null);
 
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
@@ -763,11 +762,11 @@ public class InvokeHTTP extends AbstractProcessor {
                 )
         );
 
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslService != null) {
-            final SSLContext sslContext = sslService.createContext();
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider != null) {
+            final SSLContext sslContext = sslContextProvider.createContext();
             final SSLSocketFactory socketFactory = sslContext.getSocketFactory();
-            final X509TrustManager trustManager = sslService.createTrustManager();;
+            final X509TrustManager trustManager = sslContextProvider.createTrustManager();
             okHttpClientBuilder.sslSocketFactory(socketFactory, trustManager);
         }
 

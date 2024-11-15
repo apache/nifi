@@ -49,7 +49,7 @@ import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import javax.net.ssl.SSLContext;
 import java.util.ArrayList;
@@ -160,7 +160,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .displayName("SSL Context Service")
             .description("Specifies an optional SSL Context Service that, if provided, will be used to create connections")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     private static final String DEFAULT_USER_AGENT = "NiFi";
@@ -311,9 +311,9 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         config.setConnectionTimeout(commsTimeout);
         config.setSocketTimeout(commsTimeout);
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
-            final SSLContext sslContext = sslContextService.createContext();
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider != null) {
+            final SSLContext sslContext = sslContextProvider.createContext();
             SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
             config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
         }

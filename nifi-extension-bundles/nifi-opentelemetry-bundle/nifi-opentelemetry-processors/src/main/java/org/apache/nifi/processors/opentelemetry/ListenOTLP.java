@@ -42,7 +42,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetAddress;
@@ -96,7 +96,7 @@ public class ListenOTLP extends AbstractProcessor {
             .displayName("SSL Context Service")
             .description("SSL Context Service enables TLS communication for HTTPS")
             .required(true)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
@@ -224,8 +224,8 @@ public class ListenOTLP extends AbstractProcessor {
         final BlockingQueue<Message> messages = new LinkedBlockingQueue<>(queueCapacity);
         requestCallbackProvider = new RequestCallbackProvider(transitBaseUri, batchSize, messages);
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslContextService.createContext();
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        final SSLContext sslContext = sslContextProvider.createContext();
 
         final NettyEventServerFactory eventServerFactory = new HttpServerFactory(getLogger(), messages, serverAddress, port, sslContext);
         eventServerFactory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));

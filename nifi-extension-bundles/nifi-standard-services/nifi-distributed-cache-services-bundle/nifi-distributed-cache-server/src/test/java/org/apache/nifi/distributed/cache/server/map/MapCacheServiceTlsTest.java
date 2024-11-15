@@ -25,7 +25,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -54,7 +54,7 @@ import static org.mockito.Mockito.when;
 public class MapCacheServiceTlsTest {
 
     private static TestRunner runner = null;
-    private static SSLContextService sslContextService = null;
+    private static SSLContextProvider sslContextProvider = null;
     private static MapCacheServer server = null;
     private static MapCacheClientService client = null;
     private static final Serializer<String> serializer = new StringSerializer();
@@ -63,14 +63,14 @@ public class MapCacheServiceTlsTest {
     @BeforeAll
     public static void setServices() throws Exception {
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
-        sslContextService = createSslContextService();
-        runner.addControllerService(sslContextService.getIdentifier(), sslContextService);
-        runner.enableControllerService(sslContextService);
+        sslContextProvider = createSslContextService();
+        runner.addControllerService(sslContextProvider.getIdentifier(), sslContextProvider);
+        runner.enableControllerService(sslContextProvider);
 
         server = new MapCacheServer();
         runner.addControllerService(server.getClass().getName(), server);
         runner.setProperty(server, MapCacheServer.PORT, "0");
-        runner.setProperty(server, MapCacheServer.SSL_CONTEXT_SERVICE, sslContextService.getIdentifier());
+        runner.setProperty(server, MapCacheServer.SSL_CONTEXT_SERVICE, sslContextProvider.getIdentifier());
         runner.enableControllerService(server);
         final int listeningPort = server.getPort();
 
@@ -78,7 +78,7 @@ public class MapCacheServiceTlsTest {
         runner.addControllerService(client.getClass().getName(), client);
         runner.setProperty(client, MapCacheClientService.HOSTNAME, "localhost");
         runner.setProperty(client, MapCacheClientService.PORT, String.valueOf(listeningPort));
-        runner.setProperty(client, MapCacheClientService.SSL_CONTEXT_SERVICE, sslContextService.getIdentifier());
+        runner.setProperty(client, MapCacheClientService.SSL_CONTEXT_SERVICE, sslContextProvider.getIdentifier());
         runner.enableControllerService(client);
     }
 
@@ -90,8 +90,8 @@ public class MapCacheServiceTlsTest {
         runner.disableControllerService(server);
         runner.removeControllerService(server);
 
-        runner.disableControllerService(sslContextService);
-        runner.removeControllerService(sslContextService);
+        runner.disableControllerService(sslContextProvider);
+        runner.removeControllerService(sslContextProvider);
     }
 
     @Test
@@ -106,7 +106,7 @@ public class MapCacheServiceTlsTest {
         assertFalse(client.containsKey(key, serializer));
     }
 
-    private static SSLContextService createSslContextService() throws NoSuchAlgorithmException {
+    private static SSLContextProvider createSslContextService() throws NoSuchAlgorithmException {
         final KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
         final X509Certificate certificate = new StandardCertificateBuilder(keyPair, new X500Principal("CN=localhost"), Duration.ofHours(1)).build();
         final KeyStore keyStore = new EphemeralKeyStoreBuilder()
@@ -118,7 +118,7 @@ public class MapCacheServiceTlsTest {
                 .keyPassword(new char[]{})
                 .build();
 
-        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        final SSLContextProvider sslContextService = Mockito.mock(SSLContextProvider.class);
         when(sslContextService.getIdentifier()).thenReturn(sslContextService.getClass().getName());
         when(sslContextService.createContext()).thenReturn(sslContext);
         return sslContextService;

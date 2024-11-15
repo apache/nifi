@@ -17,7 +17,7 @@
 package org.apache.nifi.amqp.processors;
 
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,10 +90,10 @@ public class AbstractAMQPProcessorTest {
     }
 
     private void configureSSLContextService() throws InitializationException {
-        SSLContextService sslService = mock(SSLContextService.class);
-        when(sslService.getIdentifier()).thenReturn("ssl-context");
-        testRunner.addControllerService("ssl-context", sslService);
-        testRunner.enableControllerService(sslService);
+        SSLContextProvider sslContextProvider = mock(SSLContextProvider.class);
+        when(sslContextProvider.getIdentifier()).thenReturn("ssl-context");
+        testRunner.addControllerService("ssl-context", sslContextProvider);
+        testRunner.enableControllerService(sslContextProvider);
 
         testRunner.setProperty(AbstractAMQPProcessor.SSL_CONTEXT_SERVICE, "ssl-context");
     }

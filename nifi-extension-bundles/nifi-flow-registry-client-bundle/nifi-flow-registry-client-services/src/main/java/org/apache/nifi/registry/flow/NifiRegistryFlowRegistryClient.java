@@ -29,7 +29,7 @@ import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -55,7 +55,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             .displayName("SSL Context Service")
             .description("Specifies the SSL Context Service to use for communicating with NiFiRegistry")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     private volatile String registryUrl;
@@ -129,8 +129,8 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     private SSLContext extractSSLContext(final FlowRegistryClientConfigurationContext context) {
         final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
         if (sslContextServiceProperty.isSet()) {
-            final SSLContextService sslContextService = sslContextServiceProperty.asControllerService(SSLContextService.class);
-            return sslContextService.createContext();
+            final SSLContextProvider sslContextProvider = sslContextServiceProperty.asControllerService(SSLContextProvider.class);
+            return sslContextProvider.createContext();
         } else {
             return getSystemSslContext().orElse(null);
         }

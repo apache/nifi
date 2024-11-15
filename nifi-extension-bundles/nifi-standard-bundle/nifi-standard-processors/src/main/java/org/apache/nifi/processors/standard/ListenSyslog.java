@@ -45,8 +45,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.syslog.events.SyslogEvent;
 import org.apache.nifi.syslog.parsers.SyslogParser;
@@ -170,7 +169,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, syslog " +
                     "messages will be received over a secure connection.")
         .required(false)
-        .identifiesControllerService(RestrictedSSLContextService.class)
+        .identifiesControllerService(SSLContextProvider.class)
         .dependsOn(PROTOCOL, TCP_VALUE)
         .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
@@ -290,9 +289,9 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         final Boolean socketKeepAlive = context.getProperty(SOCKET_KEEP_ALIVE).asBoolean();
         factory.setSocketKeepAlive(socketKeepAlive);
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null && TCP_VALUE.getValue().equals(protocol)) {
-            final SSLContext sslContext = sslContextService.createContext();
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider != null && TCP_VALUE.getValue().equals(protocol)) {
+            final SSLContext sslContext = sslContextProvider.createContext();
             ClientAuth clientAuth = ClientAuth.REQUIRED;
             final PropertyValue clientAuthProperty = context.getProperty(CLIENT_AUTH);
             if (clientAuthProperty.isSet()) {

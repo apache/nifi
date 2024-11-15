@@ -36,7 +36,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.ftp.FtpServer;
 import org.apache.nifi.processors.standard.ftp.NifiFtpServer;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -72,7 +72,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
                     + "preferred TLS Protocol, TLSv1.3 will be used (regardless of TLSv1.2 being selected) because Java 11 "
                     + "supports TLSv1.3.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     public static final PropertyDescriptor BIND_ADDRESS = new PropertyDescriptor.Builder()
@@ -155,7 +155,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
             String bindAddress = context.getProperty(BIND_ADDRESS).evaluateAttributeExpressions().getValue();
             int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-            SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
 
             try {
                 sessionFactorySetSignal = new CountDownLatch(1);
@@ -167,7 +167,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
                         .port(port)
                         .username(username)
                         .password(password)
-                        .sslContextService(sslContextService)
+                        .sslContextProvider(sslContextProvider)
                         .build();
                 ftpServer.start();
             } catch (ProcessException processException) {

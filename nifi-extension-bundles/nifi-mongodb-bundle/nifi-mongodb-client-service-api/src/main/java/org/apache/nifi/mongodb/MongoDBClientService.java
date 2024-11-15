@@ -26,7 +26,7 @@ import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.bson.Document;
 
 public interface MongoDBClientService extends ControllerService, VerifiableControllerService {
@@ -101,7 +101,7 @@ public interface MongoDBClientService extends ControllerService, VerifiableContr
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
                     + "connections.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
      PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("ssl-client-auth")

@@ -27,7 +27,7 @@ import org.apache.nifi.distributed.cache.server.CacheServer;
 import org.apache.nifi.distributed.cache.server.AbstractCacheServer;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 @Tags({"distributed", "cluster", "map", "cache", "server", "key/value"})
 @CapabilityDescription("Provides a map (key/value) cache that can be accessed over a socket. Interaction with this service"
@@ -39,16 +39,16 @@ public class MapCacheServer extends AbstractCacheServer {
     protected CacheServer createCacheServer(final ConfigurationContext context) {
         final int port = context.getProperty(PORT).asInteger();
         final String persistencePath = context.getProperty(PERSISTENCE_PATH).getValue();
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         final int maxSize = context.getProperty(MAX_CACHE_ENTRIES).asInteger();
         final String evictionPolicyName = context.getProperty(EVICTION_POLICY).getValue();
         final int maxReadSize = context.getProperty(MAX_READ_SIZE).asDataSize(DataUnit.B).intValue();
 
         final SSLContext sslContext;
-        if (sslContextService == null) {
+        if (sslContextProvider == null) {
             sslContext = null;
         } else {
-            sslContext = sslContextService.createContext();
+            sslContext = sslContextProvider.createContext();
         }
 
         final EvictionPolicy evictionPolicy;

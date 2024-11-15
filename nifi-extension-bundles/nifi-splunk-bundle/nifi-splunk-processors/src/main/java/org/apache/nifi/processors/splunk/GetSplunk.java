@@ -52,7 +52,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -255,7 +255,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
             .name("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -584,9 +584,9 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
             serviceArgs.setSSLSecurityProtocol(SSLSecurityProtocol.valueOf(secProtocol));
         }
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
-            Service.setSSLSocketFactory(sslContextService.createContext().getSocketFactory());
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider != null) {
+            Service.setSSLSocketFactory(sslContextProvider.createContext().getSocketFactory());
         }
 
         return Service.connect(serviceArgs);
@@ -625,11 +625,11 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
 
     @Override
     public String getClassloaderIsolationKey(PropertyContext context) {
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider != null) {
             // Class loader isolation is only necessary when SSL is enabled, as Service.setSSLSocketFactory
             // changes the Socket Factory for all instances.
-            return sslContextService.getIdentifier();
+            return sslContextProvider.getIdentifier();
         } else {
             // This workaround ensures that instances don't unnecessarily use an isolated classloader.
             return getClass().getName();

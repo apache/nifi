@@ -32,7 +32,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
 import org.apache.nifi.websocket.WebSocketMessageRouter;
 import org.apache.nifi.websocket.WebSocketServerService;
@@ -328,11 +328,11 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, listenPort);
         final ServerConnector serverConnector;
 
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
-        if (sslContextService == null) {
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider == null) {
             serverConnector = serverConnectorFactory.getServerConnector();
         } else {
-            final SSLContext sslContext = sslContextService.createContext();
+            final SSLContext sslContext = sslContextProvider.createContext();
             serverConnectorFactory.setSslContext(sslContext);
 
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();

@@ -36,9 +36,6 @@ import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.elasticsearch.MapBuilder;
 import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.elasticsearch.UpdateOperationResponse;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceLookup;
 import org.apache.nifi.util.StringUtils;
@@ -170,35 +167,6 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CLIENT_SETUP)
                         && Objects.equals(result.getExplanation(), "Incorrect/invalid " + ElasticSearchClientService.HTTP_HOSTS.getDisplayName())
-                        && result.getOutcome() == ConfigVerificationResult.Outcome.FAILED).count(),
-                results.toString()
-        );
-    }
-
-    @Test
-    void testVerifyFailedSSL() throws Exception {
-        runner.disableControllerService(service);
-        final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
-        runner.addControllerService("SSL Context", sslContextService);
-        runner.setProperty(service, ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE, "SSL Context");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "not/a/file");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "ignored");
-        try {
-            runner.enableControllerService(sslContextService);
-        } catch (final Exception ignored) {
-            // expected, ignore
-        }
-
-        final List<ConfigVerificationResult> results = service.verify(
-                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), null),
-                runner.getLogger(),
-                Collections.emptyMap()
-        );
-        assertEquals(4, results.size());
-        assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
-        assertEquals(1, results.stream().filter(
-                result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CLIENT_SETUP)
-                        && Objects.equals(result.getExplanation(), "Incorrect/invalid " + ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE.getDisplayName())
                         && result.getOutcome() == ConfigVerificationResult.Outcome.FAILED).count(),
                 results.toString()
         );

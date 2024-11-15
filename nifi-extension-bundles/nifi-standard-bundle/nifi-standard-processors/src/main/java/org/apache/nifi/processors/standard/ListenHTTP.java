@@ -52,8 +52,7 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
 import org.apache.nifi.stream.io.StreamThrottler;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
@@ -63,7 +62,12 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
+import java.security.KeyStore;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -199,7 +203,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .name("SSL Context Service")
         .description("SSL Context Service enables support for HTTPS")
         .required(false)
-        .identifiesControllerService(RestrictedSSLContextService.class)
+        .identifiesControllerService(SSLContextProvider.class)
         .build();
     public static final PropertyDescriptor HTTP_PROTOCOL_STRATEGY = new PropertyDescriptor.Builder()
         .name("HTTP Protocols")
@@ -413,7 +417,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         }
         runOnPrimary.set(context.getExecutionNode().equals(ExecutionNode.PRIMARY));
         final String basePath = context.getProperty(BASE_PATH).evaluateAttributeExpressions().getValue();
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
         final int returnCode = context.getProperty(RETURN_CODE).asInteger();
@@ -424,7 +428,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         throttlerRef.set(streamThrottler);
 
         final PropertyValue clientAuthenticationProperty = context.getProperty(CLIENT_AUTHENTICATION);
-        final ClientAuthentication clientAuthentication = getClientAuthentication(sslContextService, clientAuthenticationProperty);
+        final ClientAuthentication clientAuthentication = getClientAuthentication(sslContextProvider, clientAuthenticationProperty);
 
         // thread pool for the jetty instance
         final QueuedThreadPool threadPool = new QueuedThreadPool(maxThreadPoolSize);
@@ -439,7 +443,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final ServerConnector connector = createServerConnector(server,
                 port,
                 requestHeaderSize,
-                sslContextService,
+                sslContextProvider,
                 clientAuthentication,
                 httpProtocolStrategy
         );
@@ -451,14 +455,14 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             final ServerConnector healthCheckConnector = createServerConnector(server,
                     healthCheckPort,
                     requestHeaderSize,
-                    sslContextService,
+                    sslContextProvider,
                     ClientAuthentication.NONE,
                     httpProtocolStrategy
             );
             server.addConnector(healthCheckConnector);
         }
 
-        final boolean securityEnabled = sslContextService != null;
+        final boolean securityEnabled = sslContextProvider != null;
         final ServletContextHandler contextHandler = new ServletContextHandler("/", true, securityEnabled);
         for (final Class<? extends Servlet> cls : getServerClasses()) {
             final Path path = cls.getAnnotation(Path.class);
@@ -512,35 +516,57 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         initialized.set(true);
     }
 
-    private ClientAuthentication getClientAuthentication(final SSLContextService sslContextService,
+    private ClientAuthentication getClientAuthentication(final SSLContextProvider sslContextProvider,
                                                          final PropertyValue clientAuthenticationProperty) {
         ClientAuthentication clientAuthentication = ClientAuthentication.NONE;
         if (clientAuthenticationProperty.isSet()) {
             clientAuthentication = ClientAuthentication.valueOf(clientAuthenticationProperty.getValue());
-            final boolean trustStoreConfigured = sslContextService != null && sslContextService.isTrustStoreConfigured();
-
-            if (ClientAuthentication.AUTO.equals(clientAuthentication) && trustStoreConfigured) {
-                clientAuthentication = ClientAuthentication.REQUIRED;
-                getLogger().debug("Client Authentication REQUIRED from SSLContextService Trust Store configuration");
+            if (ClientAuthentication.AUTO == clientAuthentication && sslContextProvider != null) {
+                final X509TrustManager trustManager = sslContextProvider.createTrustManager();
+                if (isTrustManagerConfigured(trustManager)) {
+                    clientAuthentication = ClientAuthentication.REQUIRED;
+                    getLogger().debug("Client Authentication REQUIRED from SSLContextService Trust Manager configuration");
+                }
             }
         }
         return clientAuthentication;
     }
 
+    private boolean isTrustManagerConfigured(final X509TrustManager configuredTrustManager) {
+        boolean trustManagerConfigured = false;
+
+        try {
+            final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init((KeyStore) null);
+            final TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+            final TrustManager trustManager = trustManagers[0];
+
+            if (trustManager instanceof X509TrustManager defaultTrustManager) {
+                final X509Certificate[] defaultAcceptedIssuers = defaultTrustManager.getAcceptedIssuers();
+                final X509Certificate[] acceptedIssuers = configuredTrustManager.getAcceptedIssuers();
+                trustManagerConfigured = !Arrays.deepEquals(defaultAcceptedIssuers, acceptedIssuers);
+            }
+        } catch (final Exception e) {
+            getLogger().warn("Loading default SSLContext for Client Authentication evaluation failed", e);
+        }
+
+        return trustManagerConfigured;
+    }
+
     private ServerConnector createServerConnector(final Server server,
                                                   final int port,
                                                   final int requestMaxHeaderSize,
-                                                  final SSLContextService sslContextService,
+                                                  final SSLContextProvider sslContextProvider,
                                                   final ClientAuthentication clientAuthentication,
                                                   final HttpProtocolStrategy httpProtocolStrategy
     ) {
         final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port);
         serverConnectorFactory.setRequestHeaderSize(requestMaxHeaderSize);
 
-        final SSLContext sslContext = sslContextService == null ? null : sslContextService.createContext();
+        final SSLContext sslContext = sslContextProvider == null ? null : sslContextProvider.createContext();
         serverConnectorFactory.setSslContext(sslContext);
 
-        final String[] enabledProtocols = sslContextService == null ? new String[0] : sslContextService.createTlsConfiguration().getEnabledProtocols();
+        final String[] enabledProtocols = sslContext == null ? new String[0] : sslContext.getDefaultSSLParameters().getProtocols();
         serverConnectorFactory.setIncludeSecurityProtocols(enabledProtocols);
 
         if (ClientAuthentication.REQUIRED == clientAuthentication) {

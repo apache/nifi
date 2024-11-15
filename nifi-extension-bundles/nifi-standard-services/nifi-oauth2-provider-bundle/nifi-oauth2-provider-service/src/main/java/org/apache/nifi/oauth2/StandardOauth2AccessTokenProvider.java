@@ -44,7 +44,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
@@ -195,7 +195,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .name("ssl-context-service")
         .displayName("SSL Context Service")
         .addValidator(Validator.VALID)
-        .identifiesControllerService(SSLContextService.class)
+        .identifiesControllerService(SSLContextProvider.class)
         .required(false)
         .build();
 
@@ -316,10 +316,10 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     protected OkHttpClient createHttpClient(ConfigurationContext context) {
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
 
-        SSLContextService sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
-        if (sslService != null) {
-            final X509TrustManager trustManager = sslService.createTrustManager();
-            SSLContext sslContext = sslService.createContext();
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider != null) {
+            final X509TrustManager trustManager = sslContextProvider.createTrustManager();
+            final SSLContext sslContext = sslContextProvider.createContext();
             clientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
 
