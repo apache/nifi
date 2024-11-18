@@ -17,7 +17,7 @@
 package org.apache.nifi.websocket;
 
 public class WebSocketDisconnectedMessage extends WebSocketMessage {
-       public WebSocketDisconnectedMessage(final WebSocketSessionInfo sessionInfo) {
-              super(sessionInfo);
-       }
+    public WebSocketDisconnectedMessage(final WebSocketSessionInfo sessionInfo) {
+        super(sessionInfo);
+    }
 }

@@ -71,6 +71,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     public static final Relationship REL_DISCONNECTED = new Relationship.Builder()
             .name("disconnected")
             .description("The WebSocket session is disconnected")
+            .autoTerminateDefault(true)
             .build();
 
     public static final Relationship REL_MESSAGE_TEXT = new Relationship.Builder()
