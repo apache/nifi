@@ -18,6 +18,7 @@ package org.apache.nifi.security.cert;
 
 import javax.security.auth.x500.X500Principal;
 import java.security.cert.X509Certificate;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -25,6 +26,12 @@ import java.util.Objects;
  */
 public class StandardPrincipalFormatter implements PrincipalFormatter {
     private static final PrincipalFormatter INSTANCE = new StandardPrincipalFormatter();
+
+    /** Map of Object Identifiers to Names not included in the standard set from X500Principal.RFC1779 */
+    private static final Map<String, String> OBJECT_IDENTIFIER_NAMES = Map.of(
+            "0.9.2342.19200300.100.1.1", "UID",
+            "0.9.2342.19200300.100.1.25", "DC"
+    );
 
     private StandardPrincipalFormatter() {
 
@@ -64,6 +71,6 @@ public class StandardPrincipalFormatter implements PrincipalFormatter {
     }
 
     private String getFormatted(final X500Principal principal) {
-        return principal.getName(X500Principal.RFC1779);
+        return principal.getName(X500Principal.RFC1779, OBJECT_IDENTIFIER_NAMES);
     }
 }
