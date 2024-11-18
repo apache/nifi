@@ -64,6 +64,7 @@ import org.apache.nifi.web.api.entity.UsersEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
 @Controller
@@ -74,8 +75,14 @@ public class TenantsResource extends ApplicationResource {
     private final NiFiServiceFacade serviceFacade;
     private final Authorizer authorizer;
 
-    public TenantsResource(NiFiServiceFacade serviceFacade, Authorizer authorizer, NiFiProperties properties, RequestReplicator requestReplicator,
-                           ClusterCoordinator clusterCoordinator, FlowController flowController) {
+    public TenantsResource(
+            NiFiServiceFacade serviceFacade,
+            Authorizer authorizer,
+            NiFiProperties properties,
+            @Autowired(required = false) final RequestReplicator requestReplicator,
+            @Autowired(required = false) final ClusterCoordinator clusterCoordinator,
+            @Autowired(required = false) final FlowController flowController
+    ) {
         this.serviceFacade = serviceFacade;
         this.authorizer = authorizer;
         setProperties(properties);

@@ -7094,7 +7094,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         this.clusterCoordinator = coordinator;
     }
 
-    @Autowired
+    @Autowired(required = false)
     public void setHeartbeatMonitor(final HeartbeatMonitor heartbeatMonitor) {
         this.heartbeatMonitor = heartbeatMonitor;
     }
