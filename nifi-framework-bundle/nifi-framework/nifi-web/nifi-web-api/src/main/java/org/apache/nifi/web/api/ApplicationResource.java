@@ -1055,7 +1055,7 @@ public abstract class ApplicationResource {
         }
     }
 
-    @Autowired
+    @Autowired(required = false)
     public void setRequestReplicator(final RequestReplicator requestReplicator) {
         this.requestReplicator = requestReplicator;
     }
@@ -1071,7 +1071,7 @@ public abstract class ApplicationResource {
         this.properties = properties;
     }
 
-    @Autowired
+    @Autowired(required = false)
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
     }

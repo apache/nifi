@@ -317,7 +317,7 @@ public class SiteToSiteResource extends ApplicationResource {
         this.authorizer = authorizer;
     }
 
-    @Autowired
+    @Autowired(required = false)
     @Override
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         super.setClusterCoordinator(clusterCoordinator);
