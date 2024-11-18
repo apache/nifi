@@ -35,6 +35,7 @@ import org.apache.nifi.websocket.TextMessageConsumer;
 import org.apache.nifi.websocket.WebSocketClientService;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
 import org.apache.nifi.websocket.WebSocketConnectedMessage;
+import org.apache.nifi.websocket.WebSocketDisconnectedMessage;
 import org.apache.nifi.websocket.WebSocketMessage;
 import org.apache.nifi.websocket.WebSocketService;
 import org.apache.nifi.websocket.WebSocketSessionInfo;
@@ -67,6 +68,11 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             .description("The WebSocket session is established")
             .build();
 
+    public static final Relationship REL_DISCONNECTED = new Relationship.Builder()
+            .name("disconnected")
+            .description("The WebSocket session is disconnected")
+            .build();
+
     public static final Relationship REL_MESSAGE_TEXT = new Relationship.Builder()
             .name("text message")
             .description("The WebSocket text message output")
@@ -92,6 +98,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     static Set<Relationship> getAbstractRelationships() {
         final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_CONNECTED);
+        relationships.add(REL_DISCONNECTED);
         relationships.add(REL_MESSAGE_TEXT);
         relationships.add(REL_MESSAGE_BINARY);
         return relationships;
@@ -110,6 +117,13 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     @Override
     public void connected(WebSocketSessionInfo sessionInfo) {
         final WebSocketMessage message = new WebSocketConnectedMessage(sessionInfo);
+        sessionInfo.setTransitUri(getTransitUri(sessionInfo));
+        enqueueMessage(message);
+    }
+
+    @Override
+    public void disconnected(WebSocketSessionInfo sessionInfo) {
+        final WebSocketMessage message = new WebSocketDisconnectedMessage(sessionInfo);
         sessionInfo.setTransitUri(getTransitUri(sessionInfo));
         enqueueMessage(message);
     }
@@ -252,6 +266,8 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
 
             if (incomingMessage instanceof WebSocketConnectedMessage) {
                 session.transfer(messageFlowFile, REL_CONNECTED);
+            } else if (incomingMessage instanceof WebSocketDisconnectedMessage) {
+                session.transfer(messageFlowFile, REL_DISCONNECTED);
             } else {
                 switch (Objects.requireNonNull(messageType)) {
                     case TEXT:
