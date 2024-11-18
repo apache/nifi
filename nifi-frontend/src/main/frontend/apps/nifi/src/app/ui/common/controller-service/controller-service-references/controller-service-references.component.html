@@ -107,7 +107,7 @@
                                         nifiTooltip
                                         [tooltipComponentType]="BulletinsTip"
                                         [tooltipInputData]="getBulletinsTipData(reference)"
-                                        [delayClose]="false"></div>
+                                        [delayClose]="true"></div>
                                 }
                                 @if (hasActiveThreads(reference.component)) {
                                     <div>({{ reference.component.activeThreadCount }})</div>
@@ -142,6 +142,7 @@
                                         <div
                                             class="pointer fa fa-sticky-note-o primary-color"
                                             nifiTooltip
+                                            [delayClose]="true"
                                             [tooltipComponentType]="BulletinsTip"
                                             [tooltipInputData]="getBulletinsTipData(service)"></div>
                                     }

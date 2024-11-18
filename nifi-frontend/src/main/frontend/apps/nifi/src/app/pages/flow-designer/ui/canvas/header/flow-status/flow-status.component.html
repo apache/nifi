@@ -138,6 +138,7 @@
             @if (hasBulletins()) {
                 <button
                     nifiTooltip
+                    [delayClose]="true"
                     [tooltipComponentType]="BulletinsTip"
                     [tooltipInputData]="getBulletins()"
                     [position]="getBulletinTooltipPosition()"
