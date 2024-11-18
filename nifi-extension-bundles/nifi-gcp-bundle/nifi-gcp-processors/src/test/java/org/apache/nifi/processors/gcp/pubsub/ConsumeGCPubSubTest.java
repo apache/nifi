@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.gcp.pubsub;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.rpc.UnaryCallable;
 import com.google.cloud.pubsub.v1.stub.SubscriberStub;
 import com.google.protobuf.ByteString;
@@ -43,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -56,6 +60,7 @@ public class ConsumeGCPubSubTest {
     private SubscriberStub subscriberMock;
     private TestRunner runner;
     private List<ReceivedMessage> messages = new ArrayList<ReceivedMessage>();
+    private ObjectMapper mapper = new ObjectMapper();
 
     @BeforeEach
     void setRunner() throws InitializationException {
@@ -155,7 +160,7 @@ public class ConsumeGCPubSubTest {
     }
 
     @Test
-    void testRecordStrategyWithWrapper() throws InitializationException {
+    void testRecordStrategyWithWrapper() throws InitializationException, JsonMappingException, JsonProcessingException {
         runner.setProperty(ConsumeGCPubSub.PROCESSING_STRATEGY, ProcessingStrategy.RECORD);
         runner.setProperty(ConsumeGCPubSub.OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER);
 
@@ -211,7 +216,8 @@ public class ConsumeGCPubSubTest {
                 } ]""";
 
         final MockFlowFile flowFileSuccess = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_SUCCESS).iterator().next();
-        flowFileSuccess.assertContentEquals(expected);
+        final String content = flowFileSuccess.getContent();
+        assertEquals(mapper.readTree(content), mapper.readTree(expected));
         flowFileSuccess.assertAttributeNotExists(PubSubAttributes.MESSAGE_ID_ATTRIBUTE);
         flowFileSuccess.assertAttributeEquals(PubSubAttributes.SUBSCRIPTION_NAME_ATTRIBUTE, SUBSCRIPTION_FULL);
 
