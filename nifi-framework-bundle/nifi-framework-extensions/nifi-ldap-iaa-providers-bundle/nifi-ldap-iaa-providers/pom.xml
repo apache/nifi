@@ -91,6 +91,12 @@
             <version>7.0.1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-cert-builder</artifactId>
+            <version>2.1.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <name>nifi-ldap-iaa-providers</name>
 </project>
