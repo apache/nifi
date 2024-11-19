@@ -63,8 +63,11 @@
                                         Core Load Average
                                     </div>
                                 </th>
-                                <td mat-cell *matCellDef="let item" [title]="item.snapshot.processorLoadAverage">
-                                    {{ item.snapshot.processorLoadAverage }}
+                                <td
+                                    mat-cell
+                                    *matCellDef="let item"
+                                    [title]="formatFloat(item.snapshot.processorLoadAverage)">
+                                    {{ formatFloat(item.snapshot.processorLoadAverage) }}
                                 </td>
                             </ng-container>
 
