@@ -98,9 +98,13 @@
                                 } @else {
                                     <div [ngClass]="getNonServiceStateIcon(reference.component)"></div>
                                 }
-                                <a (click)="goToReferencingComponentClicked($event, reference.component)">{{
-                                    reference.component.name
-                                }}</a>
+                                @if (!disabledLinks) {
+                                    <a (click)="goToReferencingComponentClicked($event, reference.component)">{{
+                                        reference.component.name
+                                    }}</a>
+                                } @else {
+                                    <div>{{ reference.component.name }}</div>
+                                }
                                 @if (hasBulletins(reference)) {
                                     <div
                                         class="pointer fa fa-sticky-note-o primary-color"
@@ -135,9 +139,15 @@
                                     } @else {
                                         <div [ngClass]="getServiceStateIcon(service.component)"></div>
                                     }
-                                    <a (click)="goToReferencingComponentClicked($event, service.component)">{{
-                                        service.component.name
-                                    }}</a>
+
+                                    @if (!disabledLinks) {
+                                        <a (click)="goToReferencingComponentClicked($event, service.component)">{{
+                                            service.component.name
+                                        }}</a>
+                                    } @else {
+                                        <div>{{ service.component.name }}</div>
+                                    }
+
                                     @if (hasBulletins(service)) {
                                         <div
                                             class="pointer fa fa-sticky-note-o primary-color"

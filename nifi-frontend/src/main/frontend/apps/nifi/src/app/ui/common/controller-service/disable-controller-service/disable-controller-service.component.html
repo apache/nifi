@@ -157,6 +157,10 @@
                             <div class="relative h-full border" style="min-height: 320px">
                                 <div class="absolute inset-0 overflow-y-auto p-1">
                                     <controller-service-references
+                                        [disabledLinks]="
+                                            disableRequest.currentStep !== SetEnableStep.Completed &&
+                                            !disableRequest.error
+                                        "
                                         [serviceReferences]="controllerService.component.referencingComponents"
                                         [goToReferencingComponent]="
                                             goToReferencingComponent
