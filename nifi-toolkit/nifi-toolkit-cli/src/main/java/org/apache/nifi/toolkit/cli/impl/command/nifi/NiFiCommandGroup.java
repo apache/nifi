@@ -115,6 +115,7 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListBuckets;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListFlowVersions;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListFlows;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListRegistryClients;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.SetRegistryClientProperty;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.UpdateRegistryClient;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.reporting.DeleteReportingTask;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.tenants.CreateUser;
@@ -152,6 +153,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new ListRegistryClients());
         commands.add(new CreateRegistryClient());
         commands.add(new UpdateRegistryClient());
+        commands.add(new SetRegistryClientProperty());
         commands.add(new GetRegistryClientId());
         commands.add(new ListBranches());
         commands.add(new ListBuckets());

@@ -53,11 +53,13 @@ public class TestRegistryClientResult {
     public void testWriteSimpleRegistryClientsResult() throws IOException {
         final FlowRegistryClientDTO r1 = new FlowRegistryClientDTO();
         r1.setName("Registry 1");
+        r1.setType("Type 1");
         r1.setProperties(Map.of("url", "http://thisisalonglonglonglonglonglonglonglonglonguri.com:18080"));
         r1.setId(UUID.fromString("ea752054-22c6-4fc0-b851-967d9a3837cb").toString());
 
         final FlowRegistryClientDTO r2 = new FlowRegistryClientDTO();
         r2.setName("Registry 2 with a longer than usual name");
+        r2.setType("Type 2");
         r2.setProperties(Map.of("url", "http://localhost:18080"));
         r2.setId(UUID.fromString("ddf5f289-7502-46df-9798-4b0457c1816b").toString());
 
@@ -83,10 +85,10 @@ public class TestRegistryClientResult {
 
         final String expected = """
 
-            #   Name                                   Id                                     Properties                                                             \s
-            -   ------------------------------------   ------------------------------------   ---------------------------------------------------------------------  \s
-            1   Registry 1                             ea752054-22c6-4fc0-b851-967d9a3837cb   {url=http://thisisalonglonglonglonglonglonglonglonglonguri.com:18080}  \s
-            2   Registry 2 with a longer than usu...   ddf5f289-7502-46df-9798-4b0457c1816b   {url=http://localhost:18080}                                           \s
+            #   Name                                   Type     Id                                     Properties                                                             \s
+            -   ------------------------------------   ------   ------------------------------------   ---------------------------------------------------------------------  \s
+            1   Registry 1                             Type 1   ea752054-22c6-4fc0-b851-967d9a3837cb   {url=http://thisisalonglonglonglonglonglonglonglonglonguri.com:18080}  \s
+            2   Registry 2 with a longer than usu...   Type 2   ddf5f289-7502-46df-9798-4b0457c1816b   {url=http://localhost:18080}                                           \s
 
             """;
 

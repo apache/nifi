@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.nifi.registry;
 
+import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
@@ -41,34 +42,25 @@ public class GetRegistryClientId extends AbstractNiFiCommand<RegistryClientIDRes
 
     @Override
     public String getDescription() {
-        return "Returns the id of the first registry client found with the given name or url. " +
-                "Only one of name or url can be specified.";
+        return "Returns the id of the first registry client found with the given name.";
     }
 
     @Override
     protected void doInitialize(final Context context) {
         addOption(CommandOption.REGISTRY_CLIENT_NAME.createOption());
-        addOption(CommandOption.REGISTRY_CLIENT_URL.createOption());
     }
 
     @Override
     public RegistryClientIDResult doExecute(final NiFiClient client, final Properties properties)
-            throws NiFiClientException, IOException, CommandException {
-        final String regClientName = getArg(properties, CommandOption.REGISTRY_CLIENT_NAME);
-
+            throws NiFiClientException, IOException, CommandException, MissingOptionException {
+        final String regClientName = getRequiredArg(properties, CommandOption.REGISTRY_CLIENT_NAME);
         final FlowRegistryClientsEntity registries = client.getControllerClient().getRegistryClients();
-
-        FlowRegistryClientDTO registry;
+        FlowRegistryClientDTO registry = null;
 
         if (!StringUtils.isBlank(regClientName)) {
             registry = registries.getRegistries().stream()
                     .map(r -> r.getComponent())
                     .filter(r -> r.getName().equalsIgnoreCase(regClientName.trim()))
-                    .findFirst()
-                    .orElse(null);
-        } else {
-            registry = registries.getRegistries().stream()
-                    .map(r -> r.getComponent())
                     .findFirst()
                     .orElse(null);
         }
