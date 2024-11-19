@@ -19,12 +19,12 @@
     <parent>
         <artifactId>nifi-standard-shared-bom</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.28.1-SNAPSHOT</version>
+        <version>1.28.2-SNAPSHOT</version>
         <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
     <artifactId>nifi-dropbox-bundle</artifactId>
-    <version>1.28.1-SNAPSHOT</version>
+    <version>1.28.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
