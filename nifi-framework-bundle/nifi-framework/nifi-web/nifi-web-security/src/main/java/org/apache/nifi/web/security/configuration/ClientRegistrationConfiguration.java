@@ -34,7 +34,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
-import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLContext;
@@ -75,7 +75,7 @@ public class ClientRegistrationConfiguration {
     public ClientRegistrationRepository clientRegistrationRepository() {
         final ClientRegistrationRepository clientRegistrationRepository;
         if (properties.isOidcEnabled()) {
-            final ClientRegistrationProvider clientRegistrationProvider = new StandardClientRegistrationProvider(properties, oidcRestOperations());
+            final ClientRegistrationProvider clientRegistrationProvider = new StandardClientRegistrationProvider(properties, oidcRestClient());
             final ClientRegistration clientRegistration = clientRegistrationProvider.getClientRegistration();
             clientRegistrationRepository = new InMemoryClientRegistrationRepository(clientRegistration);
         } else {
@@ -84,6 +84,15 @@ public class ClientRegistrationConfiguration {
         return clientRegistrationRepository;
     }
 
+    /**
+     * OpenID Connect REST Client for communication with Authorization Servers
+     *
+     * @return REST Client
+     */
+    @Bean
+    public RestClient oidcRestClient() {
+        return RestClient.create(oidcRestOperations());
+    }
 
     /**
      * OpenID Connect REST Operations for communication with Authorization Servers
@@ -91,7 +100,7 @@ public class ClientRegistrationConfiguration {
      * @return REST Operations
      */
     @Bean
-    public RestOperations oidcRestOperations() {
+    public RestTemplate oidcRestOperations() {
         final RestTemplate restTemplate = new RestTemplate(oidcClientHttpRequestFactory());
         restTemplate.setErrorHandler(new OAuth2ErrorResponseErrorHandler());
         restTemplate.setMessageConverters(

@@ -119,6 +119,6 @@ public class StandardRelyingPartyRegistrationResolver implements Converter<HttpS
         final URI requestUri = RequestUriBuilder.fromHttpServletRequest(request, allowedContextPaths).build();
         final String httpUrl = requestUri.toString();
         final String contextPath = request.getContextPath();
-        return UriComponentsBuilder.fromHttpUrl(httpUrl).path(contextPath).replaceQuery(null).fragment(null).build().toString();
+        return UriComponentsBuilder.fromUriString(httpUrl).path(contextPath).replaceQuery(null).fragment(null).build().toString();
     }
 }

@@ -111,7 +111,7 @@ public class StandardRelyingPartyRegistrationRepository implements RelyingPartyR
                 .toList();
         logger.debug("Loaded SAML2 Verification Credentials [{}]", verificationCredentials.size());
 
-        builder.assertingPartyDetails(assertingPartyDetails -> assertingPartyDetails
+        builder.assertingPartyMetadata(assertingPartyMetadata -> assertingPartyMetadata
                 .signingAlgorithms(signingAlgorithms -> signingAlgorithms.add(properties.getSamlSignatureAlgorithm()))
                 .verificationX509Credentials(credentials -> credentials.addAll(verificationCredentials))
                 .encryptionX509Credentials(credentials -> credentials.addAll(verificationCredentials))
