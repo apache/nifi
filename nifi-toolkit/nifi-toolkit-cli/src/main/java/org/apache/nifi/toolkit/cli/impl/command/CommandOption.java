@@ -102,7 +102,6 @@ public enum CommandOption {
 
     // NiFi - Processors
     PROC_ID("procid", "processorId", "The id of a processor", true),
-    RUN_ONCE("runonce", "runonce", "Flag to run the processor only once", false),
 
     // NiFi - Controller Services
     CS_ID("cs", "controllerServiceId", "The id of a controller service", true),

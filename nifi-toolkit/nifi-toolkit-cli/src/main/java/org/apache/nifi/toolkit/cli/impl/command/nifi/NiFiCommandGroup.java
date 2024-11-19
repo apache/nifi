@@ -105,6 +105,7 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.policies.GetAccessPolicy;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.policies.UpdateAccessPolicy;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.processors.ChangeVersionProcessor;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.processors.ProcessorClearState;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.processors.ProcessorRunOnce;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.processors.ProcessorStart;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.CreateRegistryClient;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.GetRegistryClientId;
@@ -220,6 +221,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new UpdateControllerConfiguration());
         commands.add(new ChangeVersionProcessor());
         commands.add(new ProcessorStart());
+        commands.add(new ProcessorRunOnce());
         commands.add(new ProcessorClearState());
         commands.add(new UploadNar());
         commands.add(new DownloadNar());

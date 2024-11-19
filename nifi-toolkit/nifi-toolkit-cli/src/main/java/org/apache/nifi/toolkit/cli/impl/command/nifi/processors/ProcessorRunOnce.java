@@ -31,17 +31,17 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Command to start a processor
+ * Command to execute run once on a processor
  */
-public class ProcessorStart extends AbstractNiFiCommand<ProcessorResult> {
+public class ProcessorRunOnce extends AbstractNiFiCommand<ProcessorResult> {
 
-    public ProcessorStart() {
-        super("processor-start", ProcessorResult.class);
+    public ProcessorRunOnce() {
+        super("processor-run-once", ProcessorResult.class);
     }
 
     @Override
     public String getDescription() {
-        return "Starts a processor.";
+        return "Executes Run Once on a processor.";
     }
 
     @Override
@@ -56,7 +56,7 @@ public class ProcessorStart extends AbstractNiFiCommand<ProcessorResult> {
         final String procId = getRequiredArg(properties, CommandOption.PROC_ID);
         final ProcessorClient processorClient = client.getProcessorClient();
         final ProcessorEntity processor = processorClient.getProcessor(procId);
-        final ProcessorEntity result = processorClient.startProcessor(processor);
+        final ProcessorEntity result = processorClient.runProcessorOnce(processor);
 
         return new ProcessorResult(getResultType(properties), result);
     }
