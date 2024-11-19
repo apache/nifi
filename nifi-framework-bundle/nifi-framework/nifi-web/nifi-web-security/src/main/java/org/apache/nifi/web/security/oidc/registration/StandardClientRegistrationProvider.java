@@ -31,7 +31,7 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
-import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestClient;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,14 +53,14 @@ public class StandardClientRegistrationProvider implements ClientRegistrationPro
 
     private final NiFiProperties properties;
 
-    private final RestOperations restOperations;
+    private final RestClient restClient;
 
     public StandardClientRegistrationProvider(
             final NiFiProperties properties,
-            final RestOperations restOperations
+            final RestClient restClient
     ) {
         this.properties = Objects.requireNonNull(properties, "Properties required");
-        this.restOperations = Objects.requireNonNull(restOperations, "REST Operations required");
+        this.restClient = Objects.requireNonNull(restClient, "REST Client required");
     }
 
     /**
@@ -110,7 +110,7 @@ public class StandardClientRegistrationProvider implements ClientRegistrationPro
 
         final String metadataObject;
         try {
-            metadataObject = restOperations.getForObject(discoveryUrl, String.class);
+            metadataObject = restClient.get().uri(discoveryUrl).retrieve().body(String.class);
         } catch (final RuntimeException e) {
             final String message = String.format("OpenID Connect Metadata URL [%s] retrieval failed", discoveryUrl);
             throw new OidcConfigurationException(message, e);

@@ -25,7 +25,6 @@ import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.saml2.SamlUrlPath;
-import org.apache.nifi.web.security.saml2.registration.EntityDescriptorCustomizer;
 import org.apache.nifi.web.security.saml2.service.authentication.ResponseAuthenticationConverter;
 import org.apache.nifi.web.security.saml2.registration.Saml2RegistrationProperty;
 import org.apache.nifi.web.security.saml2.service.web.StandardRelyingPartyRegistrationResolver;
@@ -44,26 +43,26 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.saml2.provider.service.authentication.AbstractSaml2AuthenticationRequest;
-import org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider;
-import org.springframework.security.saml2.provider.service.authentication.logout.OpenSamlLogoutRequestValidator;
-import org.springframework.security.saml2.provider.service.authentication.logout.OpenSamlLogoutResponseValidator;
+import org.springframework.security.saml2.provider.service.authentication.OpenSaml5AuthenticationProvider;
+import org.springframework.security.saml2.provider.service.authentication.logout.OpenSaml5LogoutRequestValidator;
+import org.springframework.security.saml2.provider.service.authentication.logout.OpenSaml5LogoutResponseValidator;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequestValidator;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutResponseValidator;
-import org.springframework.security.saml2.provider.service.metadata.OpenSamlMetadataResolver;
+import org.springframework.security.saml2.provider.service.metadata.OpenSaml5MetadataResolver;
 import org.springframework.security.saml2.provider.service.metadata.Saml2MetadataResolver;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
+import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml5AuthenticationRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.Saml2WebSsoAuthenticationFilter;
 import org.springframework.security.saml2.provider.service.web.Saml2WebSsoAuthenticationRequestFilter;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationRequestRepository;
 import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationTokenConverter;
 import org.springframework.security.saml2.provider.service.web.Saml2MetadataFilter;
-import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml4AuthenticationRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.Saml2AuthenticationRequestResolver;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutRequestResolver;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutResponseResolver;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml5LogoutRequestResolver;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml5LogoutResponseResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestRepository;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestResolver;
@@ -222,11 +221,11 @@ public class SamlAuthenticationSecurityConfiguration {
     /**
      * Spring Security OpenSAML Authentication Provider for processing SAML 2 login responses
      *
-     * @return OpenSAML 4 Authentication Provider compatible with Java 11
+     * @return OpenSAML Authentication Provider
      */
     @Bean
-    public OpenSaml4AuthenticationProvider openSamlAuthenticationProvider() {
-        final OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
+    public OpenSaml5AuthenticationProvider openSamlAuthenticationProvider() {
+        final OpenSaml5AuthenticationProvider provider = new OpenSaml5AuthenticationProvider();
         final ResponseAuthenticationConverter responseAuthenticationConverter = new ResponseAuthenticationConverter(properties.getSamlGroupAttributeName());
         provider.setResponseAuthenticationConverter(responseAuthenticationConverter);
         return provider;
@@ -235,11 +234,11 @@ public class SamlAuthenticationSecurityConfiguration {
     /**
      * Spring Security SAML 2 Authentication Request Resolver uses OpenSAML 4
      *
-     * @return OpenSAML 4 version of SAML 2 Authentication Request Resolver
+     * @return OpenSAML SAML 2 Authentication Request Resolver
      */
     @Bean
     public Saml2AuthenticationRequestResolver saml2AuthenticationRequestResolver() {
-        return new OpenSaml4AuthenticationRequestResolver(relyingPartyRegistrationResolver());
+        return new OpenSaml5AuthenticationRequestResolver(relyingPartyRegistrationResolver());
     }
 
     /**
@@ -249,7 +248,7 @@ public class SamlAuthenticationSecurityConfiguration {
      */
     @Bean
     public Saml2LogoutRequestValidator saml2LogoutRequestValidator() {
-        return new OpenSamlLogoutRequestValidator();
+        return new OpenSaml5LogoutRequestValidator();
     }
 
     /**
@@ -259,27 +258,27 @@ public class SamlAuthenticationSecurityConfiguration {
      */
     @Bean
     public Saml2LogoutResponseValidator saml2LogoutResponseValidator() {
-        return new OpenSamlLogoutResponseValidator();
+        return new OpenSaml5LogoutResponseValidator();
     }
 
     /**
      * Spring Security SAML 2 Logout Request Resolver uses OpenSAML 4
      *
-     * @return OpenSAML 4 version of SAML 2 Logout Request Resolver
+     * @return OpenSAML SAML 2 Logout Request Resolver
      */
     @Bean
     public Saml2LogoutRequestResolver saml2LogoutRequestResolver() {
-        return new OpenSaml4LogoutRequestResolver(relyingPartyRegistrationResolver());
+        return new OpenSaml5LogoutRequestResolver(relyingPartyRegistrationResolver());
     }
 
     /**
      * Spring Security SAML 2 Logout Response Resolver uses OpenSAML 4
      *
-     * @return OpenSAML 4 version of SAML 2 Logout Response Resolver
+     * @return OpenSAML SAML 2 Logout Response Resolver
      */
     @Bean
     public Saml2LogoutResponseResolver saml2LogoutResponseResolver() {
-        return new OpenSaml4LogoutResponseResolver(relyingPartyRegistrationResolver());
+        return new OpenSaml5LogoutResponseResolver(relyingPartyRegistrationResolver());
     }
 
     /**
@@ -326,12 +325,8 @@ public class SamlAuthenticationSecurityConfiguration {
      */
     @Bean
     public Saml2MetadataResolver saml2MetadataResolver() {
-        final OpenSamlMetadataResolver resolver = new OpenSamlMetadataResolver();
-        final EntityDescriptorCustomizer customizer = new EntityDescriptorCustomizer(
-                properties.isSamlWantAssertionsSigned(),
-                properties.isSamlRequestSigningEnabled()
-        );
-        resolver.setEntityDescriptorCustomizer(customizer);
+        final OpenSaml5MetadataResolver resolver = new OpenSaml5MetadataResolver();
+        resolver.setSignMetadata(properties.isSamlRequestSigningEnabled());
         return resolver;
     }
 
@@ -395,9 +390,9 @@ public class SamlAuthenticationSecurityConfiguration {
         final RelyingPartyRegistration registration = RelyingPartyRegistration
                 .withRegistrationId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty())
                 .entityId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty())
-                .assertingPartyDetails(assertingPartyDetails -> {
-                    assertingPartyDetails.entityId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());
-                    assertingPartyDetails.singleSignOnServiceLocation(SamlUrlPath.LOGIN_RESPONSE_REGISTRATION_ID.getPath());
+                .assertingPartyMetadata(assertingPartyMetadata -> {
+                    assertingPartyMetadata.entityId(Saml2RegistrationProperty.REGISTRATION_ID.getProperty());
+                    assertingPartyMetadata.singleSignOnServiceLocation(SamlUrlPath.LOGIN_RESPONSE_REGISTRATION_ID.getPath());
                 })
                 .build();
         return new InMemoryRelyingPartyRegistrationRepository(registration);

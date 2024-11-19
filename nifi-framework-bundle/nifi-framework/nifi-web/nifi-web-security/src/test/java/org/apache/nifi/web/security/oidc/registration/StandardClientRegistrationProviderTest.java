@@ -29,7 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.AuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
-import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestClient;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -43,6 +43,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -70,17 +72,26 @@ class StandardClientRegistrationProviderTest {
     private static final String INVALID_CONFIGURATION = "{}";
 
     @Mock
-    RestOperations restOperations;
+    RestClient restClient;
+
+    @Mock
+    RestClient.RequestHeadersUriSpec<?> requestHeadersUriSpec;
+
+    @Mock
+    RestClient.ResponseSpec responseSpec;
 
     @Test
     void testGetClientRegistration() {
         final NiFiProperties properties = getProperties();
-        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restOperations);
+        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restClient);
 
         final OIDCProviderMetadata providerMetadata = getProviderMetadata();
         final String serializedMetadata = providerMetadata.toString();
 
-        when(restOperations.getForObject(eq(DISCOVERY_URL), eq(String.class))).thenReturn(serializedMetadata);
+        doReturn(requestHeadersUriSpec).when(restClient).get();
+        doReturn(requestHeadersUriSpec).when(requestHeadersUriSpec).uri(eq(DISCOVERY_URL));
+        doReturn(responseSpec).when(requestHeadersUriSpec).retrieve();
+        when(responseSpec.body(eq(String.class))).thenReturn(serializedMetadata);
 
         final ClientRegistration clientRegistration = provider.getClientRegistration();
 
@@ -106,9 +117,11 @@ class StandardClientRegistrationProviderTest {
     @Test
     void testGetClientRegistrationRetrievalFailed() {
         final NiFiProperties properties = getProperties();
-        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restOperations);
+        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restClient);
 
-        when(restOperations.getForObject(eq(DISCOVERY_URL), eq(String.class))).thenThrow(new RuntimeException());
+        doReturn(requestHeadersUriSpec).when(restClient).get();
+        doReturn(requestHeadersUriSpec).when(requestHeadersUriSpec).uri(eq(DISCOVERY_URL));
+        doThrow(new RuntimeException()).when(requestHeadersUriSpec).retrieve();
 
         assertThrows(OidcConfigurationException.class, provider::getClientRegistration);
     }
@@ -116,9 +129,12 @@ class StandardClientRegistrationProviderTest {
     @Test
     void testGetClientRegistrationParsingFailed() {
         final NiFiProperties properties = getProperties();
-        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restOperations);
+        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restClient);
 
-        when(restOperations.getForObject(eq(DISCOVERY_URL), eq(String.class))).thenReturn(INVALID_CONFIGURATION);
+        doReturn(requestHeadersUriSpec).when(restClient).get();
+        doReturn(requestHeadersUriSpec).when(requestHeadersUriSpec).uri(eq(DISCOVERY_URL));
+        doReturn(responseSpec).when(requestHeadersUriSpec).retrieve();
+        when(responseSpec.body(eq(String.class))).thenReturn(INVALID_CONFIGURATION);
 
         assertThrows(OidcConfigurationException.class, provider::getClientRegistration);
     }

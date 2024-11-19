@@ -49,10 +49,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationCodeTokenResponseClient;
-import org.springframework.security.oauth2.client.endpoint.DefaultRefreshTokenTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.RestClientAuthorizationCodeTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.RestClientRefreshTokenTokenResponseClient;
 import org.springframework.security.oauth2.client.oidc.authentication.OidcAuthorizationCodeAuthenticationProvider;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -71,6 +71,7 @@ import org.springframework.security.web.authentication.logout.LogoutSuccessHandl
 import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestOperations;
 
 import java.time.Duration;
@@ -110,6 +111,8 @@ public class OidcSecurityConfiguration {
 
     private final RestOperations oidcRestOperations;
 
+    private final RestClient oidcRestClient;
+
     private final LogoutRequestManager logoutRequestManager;
 
     @Autowired
@@ -124,6 +127,8 @@ public class OidcSecurityConfiguration {
             final JwtDecoderFactory<ClientRegistration> idTokenDecoderFactory,
             @Qualifier("oidcRestOperations")
             final RestOperations oidcRestOperations,
+            @Qualifier("oidcRestClient")
+            final RestClient oidcRestClient,
             final LogoutRequestManager logoutRequestManager
     ) {
         this.properties = Objects.requireNonNull(properties, "Properties required");
@@ -135,6 +140,7 @@ public class OidcSecurityConfiguration {
         this.jwtDecoder = Objects.requireNonNull(jwtDecoder, "JWT Decoder required");
         this.idTokenDecoderFactory = Objects.requireNonNull(idTokenDecoderFactory, "ID Token Decoder Factory required");
         this.oidcRestOperations = Objects.requireNonNull(oidcRestOperations, "OIDC REST Operations required");
+        this.oidcRestClient = Objects.requireNonNull(oidcRestClient, "OIDC Rest Client required");
         this.logoutRequestManager = Objects.requireNonNull(logoutRequestManager, "Logout Request Manager required");
         this.keyRotationPeriod = properties.getSecurityUserJwsKeyRotationPeriod();
     }
@@ -207,8 +213,8 @@ public class OidcSecurityConfiguration {
      */
     @Bean
     public OidcBearerTokenRefreshFilter oidcBearerTokenRefreshFilter() {
-        final DefaultRefreshTokenTokenResponseClient refreshTokenResponseClient = new DefaultRefreshTokenTokenResponseClient();
-        refreshTokenResponseClient.setRestOperations(oidcRestOperations);
+        final RestClientRefreshTokenTokenResponseClient refreshTokenResponseClient = new RestClientRefreshTokenTokenResponseClient();
+        refreshTokenResponseClient.setRestClient(oidcRestClient);
 
         final String refreshWindowProperty = properties.getOidcTokenRefreshWindow();
         final double refreshWindowSeconds = FormatUtils.getPreciseTimeDuration(refreshWindowProperty, TimeUnit.SECONDS);
@@ -271,9 +277,9 @@ public class OidcSecurityConfiguration {
      */
     @Bean
     public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> accessTokenResponseClient() {
-        final DefaultAuthorizationCodeTokenResponseClient accessTokenResponseClient = new DefaultAuthorizationCodeTokenResponseClient();
-        accessTokenResponseClient.setRestOperations(oidcRestOperations);
-        return accessTokenResponseClient;
+        final RestClientAuthorizationCodeTokenResponseClient tokenResponseClient = new RestClientAuthorizationCodeTokenResponseClient();
+        tokenResponseClient.setRestClient(oidcRestClient);
+        return tokenResponseClient;
     }
 
     /**

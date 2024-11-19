@@ -155,7 +155,7 @@
         <netty.4.version>4.1.115.Final</netty.4.version>
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.version>6.2.0</spring.version>
-        <spring.security.version>6.3.4</spring.security.version>
+        <spring.security.version>6.4.0</spring.security.version>
         <swagger.annotations.version>2.2.26</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
