@@ -28,7 +28,7 @@ import java.util.Objects;
 /**
  * Standard implementation of Key Store Builder
  */
-public class StandardKeyStoreBuilder implements KeyStoreBuilder {
+public class StandardKeyStoreBuilder implements InputStreamKeyStoreBuilder {
     private Provider provider;
 
     private String type = KeyStore.getDefaultType();
@@ -98,6 +98,7 @@ public class StandardKeyStoreBuilder implements KeyStoreBuilder {
      * @param inputStream Key Store InputStream
      * @return Builder
      */
+    @Override
     public StandardKeyStoreBuilder inputStream(final InputStream inputStream) {
         this.inputStream = Objects.requireNonNull(inputStream, "Key Store InputStream required");
         return this;

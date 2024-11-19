@@ -17,6 +17,7 @@
 package org.apache.nifi.framework.ssl;
 
 import org.apache.nifi.security.ssl.BuilderConfigurationException;
+import org.apache.nifi.security.ssl.PemPrivateKeyCertificateKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardKeyManagerBuilder;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardX509ExtendedKeyManager;
@@ -37,9 +38,17 @@ import java.util.Objects;
 public class FrameworkKeyManagerBuilder extends StandardKeyManagerBuilder {
     private static final Logger logger = LoggerFactory.getLogger(FrameworkKeyManagerBuilder.class);
 
+    private static final char[] EMPTY_PROTECTION_PARAMETER = new char[]{};
+
     private final Path keyStorePath;
 
     private final StandardKeyStoreBuilder keyStoreBuilder;
+
+    private final Path privateKeyPath;
+
+    private final Path certificatePath;
+
+    private final PemPrivateKeyCertificateKeyStoreBuilder pemKeyStoreBuilder;
 
     public FrameworkKeyManagerBuilder(
             final Path keyStorePath,
@@ -49,6 +58,23 @@ public class FrameworkKeyManagerBuilder extends StandardKeyManagerBuilder {
         this.keyStorePath = Objects.requireNonNull(keyStorePath, "Key Store Path required");
         this.keyStoreBuilder = Objects.requireNonNull(keyStoreBuilder, "Key Store Builder required");
         keyPassword(Objects.requireNonNull(keyPassword, "Key Password required"));
+
+        this.privateKeyPath = null;
+        this.certificatePath = null;
+        this.pemKeyStoreBuilder = null;
+    }
+
+    public FrameworkKeyManagerBuilder(
+            final Path privateKeyPath,
+            final Path certificatePath,
+            final PemPrivateKeyCertificateKeyStoreBuilder pemKeyStoreBuilder
+    ) {
+        this.keyStorePath = null;
+        this.keyStoreBuilder = null;
+
+        this.privateKeyPath = Objects.requireNonNull(privateKeyPath, "Private Key Path required");
+        this.certificatePath = Objects.requireNonNull(certificatePath, "Certificate Path required");
+        this.pemKeyStoreBuilder = Objects.requireNonNull(pemKeyStoreBuilder, "PEM Key Store Builder required");
     }
 
     /**
@@ -58,11 +84,34 @@ public class FrameworkKeyManagerBuilder extends StandardKeyManagerBuilder {
      */
     @Override
     public X509ExtendedKeyManager build() {
-        this.loadKeyStore();
+        if (privateKeyPath == null) {
+            loadKeyStore();
+        } else {
+            // Set empty key password as placeholder for construction of Key Managers
+            keyPassword(EMPTY_PROTECTION_PARAMETER);
+            loadPemKeyStore();
+        }
         final X509ExtendedKeyManager keyManager = super.build();
 
-        logger.info("Key Manager loaded from Key Store [{}]", keyStorePath);
+        if (privateKeyPath == null) {
+            logger.info("Key Manager loaded from Key Store [{}]", keyStorePath);
+        } else {
+            logger.info("Key Manager loaded from PEM Private Key [{}] and Certificate [{}]", privateKeyPath, certificatePath);
+        }
+
         return new StandardX509ExtendedKeyManager(keyManager);
+    }
+
+    private void loadPemKeyStore() {
+        try (
+                InputStream privateKeyInputStream = Files.newInputStream(privateKeyPath);
+                InputStream certificateInputStream = Files.newInputStream(certificatePath)
+        ) {
+            final KeyStore loadedKeyStore = pemKeyStoreBuilder.privateKeyInputStream(privateKeyInputStream).certificateInputStream(certificateInputStream).build();
+            keyStore(loadedKeyStore);
+        } catch (final IOException e) {
+            throw new BuilderConfigurationException("PEM Key Store loading failed", e);
+        }
     }
 
     private void loadKeyStore() {

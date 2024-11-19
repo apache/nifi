@@ -262,14 +262,24 @@ NiFi provides several different configuration options for security purposes. The
 
 [options="header,footer"]
 |==================================================================================================================================================
-| Property Name | Description
-|`nifi.security.keystore` | Filename of the Keystore that contains the server's private key.
-|`nifi.security.keystoreType` | The type of Keystore. Must be `PKCS12` or `JKS` or `BCFKS`.  PKCS12 is the preferred type, BCFKS and PKCS12 files will be loaded with BouncyCastle provider.
-|`nifi.security.keystorePasswd` | The password for the Keystore.
-|`nifi.security.keyPasswd` | The password for the certificate in the Keystore. If not set, the value of `nifi.security.keystorePasswd` will be used.
-|`nifi.security.truststore` | Filename of the Truststore that will be used to authorize those connecting to NiFi.  A secured instance with no Truststore will refuse all incoming connections.
-|`nifi.security.truststoreType` | The type of the Truststore. Must be `PKCS12` or `JKS` or `BCFKS`.  PKCS12 is the preferred type, BCFKS and PKCS12 files will be loaded with BouncyCastle provider.
-|`nifi.security.truststorePasswd` | The password for the Truststore.
+| Property Name                         | Description
+|`nifi.security.keystore`               | File path to the key store containing the server private key and certificate entry.
+|`nifi.security.keystore.certificate`   | File path to `PEM` certificate chain file containing one or more X.509 certificates each having a `BEGIN CERTIFICATE` header and `END CERTIFICATE` footer.
+                                          The first certificate entry is the server certificate corresponding to the server private key.
+                                          This property requires setting `nifi.security.keystoreType` to `PEM`.
+|`nifi.security.keystore.privateKey`    | File path to `PEM` key file containing the server private key corresponding to the `PEM` server certificate entry.
+                                          Supported formats include PKCS1 with `BEGIN RSA PRIVATE KEY` as the header, and PKCS8 with `BEGIN PRIVATE KEY` as the header.
+                                          Supported key algorithms include RSA, Ed25519, and ECDSA with NIST curves P-256, P-384, and P-521.
+|`nifi.security.keystoreType`           | The type of key store. Supported types include `BCFKS`, `JKS`, `PEM`, and `PKCS12`.
+                                          The `PEM` type requires configuring the `nifi.security.keystore.privateKey` and `nifi.security.keystore.certificate` properties.
+|`nifi.security.keystorePasswd`         | The password for the key store. This property will be used as the key password when `nifi.security.keyPasswd` is not configured.
+|`nifi.security.keyPasswd`              | The password for the server private key entry in the key store. The `nifi.security.keystorePasswd` property will be used when this property is not configured.
+|`nifi.security.truststore`             | File path to the trust store containing one or more certificates of trusted authorities for TLS connections.
+|`nifi.security.truststore.certificate` | File path to `PEM` trust store file containing one or more X.509 certificates each having a `BEGIN CERTIFICATE` header and `END CERTIFICATE` footer.
+                                          This property requires setting `nifi.security.truststoreType` to `PEM`.
+|`nifi.security.truststoreType`         | The type of trust store. Supported types include `BCFKS`, `JKS`, `PEM`, and `PKCS12`.
+                                          The `PEM` type requires configuring the `nifi.security.truststore.certificate` property.
+|`nifi.security.truststorePasswd`       | The password for the trust store.
 |==================================================================================================================================================
 
 Once the above properties have been configured, we can enable the User Interface to be accessed over HTTPS instead of HTTP. This is accomplished

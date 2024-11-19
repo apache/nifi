@@ -147,10 +147,13 @@
         <nifi.security.autoreload.enabled>false</nifi.security.autoreload.enabled>
         <nifi.security.autoreload.interval>10 secs</nifi.security.autoreload.interval>
         <nifi.security.keystore>./conf/keystore.p12</nifi.security.keystore>
+        <nifi.security.keystore.certificate />
+        <nifi.security.keystore.privateKey />
         <nifi.security.keystoreType>PKCS12</nifi.security.keystoreType>
         <nifi.security.keystorePasswd />
         <nifi.security.keyPasswd />
         <nifi.security.truststore>./conf/truststore.p12</nifi.security.truststore>
+        <nifi.security.truststore.certificate />
         <nifi.security.truststoreType>PKCS12</nifi.security.truststoreType>
         <nifi.security.truststorePasswd />
         <nifi.security.user.authorizer>single-user-authorizer</nifi.security.user.authorizer>

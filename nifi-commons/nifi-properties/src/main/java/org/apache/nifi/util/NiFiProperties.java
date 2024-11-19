@@ -141,8 +141,11 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String SECURITY_KEYSTORE = "nifi.security.keystore";
     public static final String SECURITY_KEYSTORE_TYPE = "nifi.security.keystoreType";
     public static final String SECURITY_KEYSTORE_PASSWD = "nifi.security.keystorePasswd";
+    public static final String SECURITY_KEYSTORE_PRIVATE_KEY = "nifi.security.keystore.privateKey";
+    public static final String SECURITY_KEYSTORE_CERTIFICATE = "nifi.security.keystore.certificate";
     public static final String SECURITY_KEY_PASSWD = "nifi.security.keyPasswd";
     public static final String SECURITY_TRUSTSTORE = "nifi.security.truststore";
+    public static final String SECURITY_TRUSTSTORE_CERTIFICATE = "nifi.security.truststore.certificate";
     public static final String SECURITY_TRUSTSTORE_TYPE = "nifi.security.truststoreType";
     public static final String SECURITY_TRUSTSTORE_PASSWD = "nifi.security.truststorePasswd";
     public static final String SECURITY_AUTO_RELOAD_ENABLED = "nifi.security.autoreload.enabled";
