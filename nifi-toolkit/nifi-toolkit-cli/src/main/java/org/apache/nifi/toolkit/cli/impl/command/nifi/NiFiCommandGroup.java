@@ -95,6 +95,7 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetParamContext;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVersion;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGImport;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGList;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGListProcessors;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGReplace;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGSetParamContext;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStart;
@@ -170,6 +171,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new PGExport());
         commands.add(new PGEmptyQueues());
         commands.add(new PGDelete());
+        commands.add(new PGListProcessors());
         commands.add(new GetControllerServices());
         commands.add(new GetControllerService());
         commands.add(new CreateControllerService());

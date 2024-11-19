@@ -190,6 +190,7 @@ public enum CommandOption {
     KERBEROS_PASSWORD("krbPw", "kerberosPassword", "The password for a kerberos principal", true),
 
     // Miscellaneous
+    FILTER("filter", "filter", "Indicates a filter that should be used to perform the action", true),
     FORCE("force", "force", "Indicates to force the operation", false),
     OUTPUT_TYPE("ot", "outputType", "The type of output to produce (json or simple)", true),
     VERBOSE("verbose", "verbose", "Indicates that verbose output should be provided", false),

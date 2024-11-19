@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Command to stop the components of a process group.
+ * Command to empty all queues of a process group.
  */
 public class PGEmptyQueues extends AbstractNiFiCommand<VoidResult> {
 
