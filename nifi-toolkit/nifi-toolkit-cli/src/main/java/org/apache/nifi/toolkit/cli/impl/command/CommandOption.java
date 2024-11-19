@@ -47,6 +47,7 @@ public enum CommandOption {
     FLOW_NAME("fn", "flowName", "A flow name", true),
     FLOW_DESC("fd", "flowDesc", "A flow description", true),
     FLOW_VERSION("fv", "flowVersion", "A version of a flow", true),
+    FLOW_BRANCH("fb", "flowBranch", "A branch for the flow", true),
 
     FLOW_VERSION_1("fv1", "flowVersion1", "A version of a flow", true),
     FLOW_VERSION_2("fv2", "flowVersion2", "A version of a flow", true),
