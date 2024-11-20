@@ -1259,8 +1259,8 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public Authorizable getParameterContextAuthorizable() {
-            return processGroup.getParameterContext();
+        public Optional<Authorizable> getParameterContextAuthorizable() {
+            return Optional.ofNullable(processGroup.getParameterContext());
         }
 
         @Override

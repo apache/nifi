@@ -221,7 +221,8 @@ public interface AuthorizableLookup {
     /**
      * Get the authorizables for all parameter providers that meet the specified predicate. Non null
      *
-     * @return all encapsulated parameter providers
+     * @param filter predicate to filter which parameter providers should be included
+     * @return all parameter providers that meet the specified filter
      */
     Set<ComponentAuthorizable> getParameterProviders(Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> filter);
 

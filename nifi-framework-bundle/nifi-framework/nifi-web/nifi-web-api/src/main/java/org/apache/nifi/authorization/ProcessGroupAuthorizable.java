@@ -19,6 +19,7 @@ package org.apache.nifi.authorization;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.groups.ProcessGroup;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -34,12 +35,11 @@ public interface ProcessGroupAuthorizable extends AuthorizableHolder {
     ProcessGroup getProcessGroup();
 
     /**
-     * Returns the Parameter Context Authorizable. May be null if the underlying Process Group is not
-     * bound to a Parameter Context.
+     * Returns the optional Parameter Context Authorizable.
      *
      * @return the Parameter Context authorizable
      */
-    Authorizable getParameterContextAuthorizable();
+    Optional<Authorizable> getParameterContextAuthorizable();
 
     /**
      * The authorizables for all encapsulated processors. Non null
@@ -51,7 +51,8 @@ public interface ProcessGroupAuthorizable extends AuthorizableHolder {
     /**
      * The authorizables for all encapsulated processors that meet the specified predicate. Non null
      *
-     * @return all encapsulated processors
+     * @param filter predicate to filter which processors should be included
+     * @return all encapsulated processors that meet the specified predicate
      */
     Set<ComponentAuthorizable> getEncapsulatedProcessors(Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> filter);
 
@@ -114,7 +115,8 @@ public interface ProcessGroupAuthorizable extends AuthorizableHolder {
     /**
      * The authorizables for all encapsulated controller services that meet the specified predicate. Non null
      *
-     * @return all encapsulated controller services
+     * @param filter predicate to filter which controller services should be included
+     * @return all controller services that meet the specified predicate
      */
     Set<ComponentAuthorizable> getEncapsulatedControllerServices(Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> filter);
 

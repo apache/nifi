@@ -451,10 +451,7 @@ public abstract class ApplicationResource {
 
         // authorize the parameter context for the specified process group
         if (authorizeParameterContext) {
-            final Authorizable parameterContextAuthorizable = processGroupAuthorizable.getParameterContextAuthorizable();
-            if (parameterContextAuthorizable != null) {
-                authorize.accept(parameterContextAuthorizable);
-            }
+            processGroupAuthorizable.getParameterContextAuthorizable().ifPresent(authorize);
         }
 
         // authorize the contents of the group - these methods return all encapsulated components (recursive)
@@ -483,10 +480,7 @@ public abstract class ApplicationResource {
             authorize.accept(authorizable);
 
             if (authorizeParameterContext) {
-                final Authorizable parameterContextAuthorizable = pga.getParameterContextAuthorizable();
-                if (parameterContextAuthorizable != null) {
-                    authorize.accept(parameterContextAuthorizable);
-                }
+                pga.getParameterContextAuthorizable().ifPresent(authorize);
             }
         });
         processGroupAuthorizable.getEncapsulatedRemoteProcessGroups().forEach(authorize);

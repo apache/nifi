@@ -29,6 +29,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -41,9 +42,9 @@ public class CopyResponseEntity extends Entity {
 
     private String id;
 
-    private Map<String, ExternalControllerServiceReference> externalControllerServiceReferences;
-    private Map<String, VersionedParameterContext> parameterContexts;
-    private Map<String, ParameterProviderReference> parameterProviders;
+    private Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = new HashMap<>();
+    private Map<String, VersionedParameterContext> parameterContexts = new HashMap<>();
+    private Map<String, ParameterProviderReference> parameterProviders = new HashMap<>();
 
     private Set<VersionedProcessGroup> processGroups = new HashSet<>();
     private Set<VersionedRemoteProcessGroup> remoteProcessGroups = new HashSet<>();

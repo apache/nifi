@@ -344,7 +344,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      * @return A copyResponseEntity.
      */
     @POST
-    @Consumes(MediaType.WILDCARD)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/copy")
     @Operation(
@@ -373,6 +373,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     description = "The request including the components to be copied from the specified Process Group.",
                     required = true
             ) final CopyRequestEntity copyRequestEntity) {
+
+        if (copyRequestEntity == null) {
+            throw new IllegalArgumentException("The copy request payload must be specified.");
+        }
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
@@ -3044,7 +3048,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                         authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
                     });
 
-                    // authorizer controller services
+                    // authorize controller services
                     AuthorizeControllerServiceReference.authorizeUnresolvedControllerServiceReferences(groupId, unresolvedControllerServices, authorizer, lookup, user);
 
                     // if the pasted content contains parameter contexts, ensure the user can create them or add to existing matching contexts
