@@ -646,7 +646,6 @@ public class InvokeHTTP extends AbstractProcessor {
         config.renameProperty("Always Output Response", RESPONSE_GENERATION_REQUIRED.getName());
         config.renameProperty("flow-file-naming-strategy", RESPONSE_FLOW_FILE_NAMING_STRATEGY.getName());
         config.renameProperty("Add Response Headers to Request", RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED.getName());
-        config.renameProperty("Prefix to Added Response Headers to the Request", RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX.getName());
         config.renameProperty("Follow Redirects", RESPONSE_REDIRECTS_ENABLED.getName());
     }
 
@@ -923,7 +922,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
                         // write the response headers as attributes
                         // this will overwrite any existing flowfile attributes
-                        responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(responseHttp));
+                        responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(responseHttp, ""));
 
                         // update FlowFile's filename attribute with an extracted value from the remote URL
                         if (FlowFileNamingStrategy.URL_PATH.equals(getFlowFileNamingStrategy(context)) && HttpMethod.GET.name().equals(httpRequest.method())) {
@@ -992,12 +991,10 @@ public class InvokeHTTP extends AbstractProcessor {
                     }
                 }
 
-                // If the property to add the response headers to the request flowfile is true then add them
-                //
                 // This needs to be done after the response flowFile has been created from the request flowFile
                 // as the added attribute headers may have a prefix added that doesn't make sense for the response flowFile.
                 if (context.getProperty(RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED).asBoolean() && requestFlowFile != null) {
-                    String prefix = context.getProperty(RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX).evaluateAttributeExpressions(requestFlowFile).getValue();
+                    final String prefix = context.getProperty(RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX).evaluateAttributeExpressions(requestFlowFile).getValue();
 
                     // write the response headers as attributes
                     // this will overwrite any existing flowfile attributes
@@ -1272,18 +1269,12 @@ public class InvokeHTTP extends AbstractProcessor {
 
     /**
      * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
-     */
-    private Map<String, String> convertAttributesFromHeaders(final Response responseHttp) {
-        return convertAttributesFromHeaders(responseHttp, "");
-    }
-
-    /**
-     * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
      * Prefix is passed in to allow differentiation for these new attributes.
      */
-    private Map<String, String> convertAttributesFromHeaders(final Response responseHttp, String prefix) {
+    private Map<String, String> convertAttributesFromHeaders(final Response responseHttp, final String prefix) {
         // create a new hashmap to store the values from the connection
         final Map<String, String> attributes = new HashMap<>();
+        final String trimmedPrefix = trimToEmpty(prefix);
         final Headers headers = responseHttp.headers();
         headers.names().forEach((key) -> {
             final List<String> values = headers.values(key);
@@ -1291,7 +1282,7 @@ public class InvokeHTTP extends AbstractProcessor {
             if (!values.isEmpty()) {
                 // create a comma separated string from the values, this is stored in the map
                 final String value = StringUtils.join(values, MULTIPLE_HEADER_DELIMITER);
-                attributes.put(trimToEmpty(prefix) + key, value);
+                attributes.put(trimmedPrefix + key, value);
             }
         });
 
