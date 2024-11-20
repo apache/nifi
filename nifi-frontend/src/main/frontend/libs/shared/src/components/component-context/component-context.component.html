@@ -30,6 +30,6 @@
         </div>
     </div>
     @if (id) {
-        <div class="context-id tertiary-color">{{ id }}</div>
+        <div [copy]="id" class="context-id tertiary-color">{{ id }}</div>
     }
 </div>

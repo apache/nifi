@@ -19,12 +19,12 @@ import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButton } from '@angular/material/button';
 import { ClusterNode } from '../../../state/cluster-listing';
-import { CloseOnEscapeDialog } from '@nifi/shared';
+import { CloseOnEscapeDialog, CopyDirective } from '@nifi/shared';
 
 @Component({
     selector: 'cluster-node-detail-dialog',
     standalone: true,
-    imports: [MatDialogModule, MatButton],
+    imports: [MatDialogModule, MatButton, CopyDirective],
     templateUrl: './cluster-node-detail-dialog.component.html',
     styleUrl: './cluster-node-detail-dialog.component.scss'
 })
