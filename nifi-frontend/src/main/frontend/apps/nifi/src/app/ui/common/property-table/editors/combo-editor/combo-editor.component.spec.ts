@@ -115,6 +115,7 @@ describe('ComboEditor', () => {
             deleted: false,
             added: false,
             dirty: false,
+            savedValue: 'flowfile-attribute',
             type: 'required'
         };
     });
