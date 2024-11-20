@@ -50,7 +50,7 @@
                             @if (hasBulletins(item)) {
                                 <div
                                     class="pointer fa fa-sticky-note-o primary-color"
-                                    [delayClose]="false"
+                                    [delayClose]="true"
                                     nifiTooltip
                                     [tooltipComponentType]="BulletinsTip"
                                     [tooltipInputData]="getBulletinsTipData(item)"></div>

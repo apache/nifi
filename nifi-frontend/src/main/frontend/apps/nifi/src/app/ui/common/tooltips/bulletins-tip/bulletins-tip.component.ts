@@ -17,14 +17,27 @@
 
 import { Component, Input } from '@angular/core';
 import { BulletinsTipInput } from '../../../../state/shared';
+import { CopyDirective } from '@nifi/shared';
 
 @Component({
     selector: 'bulletins-tip',
     standalone: true,
     templateUrl: './bulletins-tip.component.html',
-    imports: [],
+    imports: [CopyDirective],
     styleUrls: ['./bulletins-tip.component.scss']
 })
 export class BulletinsTip {
     @Input() data: BulletinsTipInput | undefined;
+
+    getSeverity(severity: string) {
+        switch (severity.toLowerCase()) {
+            case 'error':
+                return 'bulletin-error error-color';
+            case 'warn':
+            case 'warning':
+                return 'bulletin-warn caution-color';
+            default:
+                return 'bulletin-normal success-color-default';
+        }
+    }
 }
