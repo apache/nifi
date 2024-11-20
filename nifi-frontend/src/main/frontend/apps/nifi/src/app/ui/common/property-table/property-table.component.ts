@@ -31,7 +31,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
-import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import {
     AllowableValueEntity,
     ComponentHistory,
@@ -57,7 +57,6 @@ import {
 import { ComboEditor } from './editors/combo-editor/combo-editor.component';
 import { Observable, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
 import { ConvertToParameterResponse } from '../../../pages/flow-designer/service/parameter-helper.service';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
@@ -68,6 +67,7 @@ export interface PropertyItem extends Property {
     dirty: boolean;
     added: boolean;
     type: 'required' | 'userDefined' | 'optional';
+    savedValue: string | null;
     serviceLink?: string[];
 }
 
@@ -85,8 +85,6 @@ export interface PropertyItem extends Property {
         CdkOverlayOrigin,
         CdkConnectedOverlay,
         ComboEditor,
-        RouterLink,
-        AsyncPipe,
         MatMenu,
         MatMenuItem,
         MatMenuTrigger
@@ -299,6 +297,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                 deleted: false,
                 added: false,
                 dirty: false,
+                savedValue: property.value,
                 type: property.descriptor.required
                     ? 'required'
                     : property.descriptor.dynamic
@@ -383,6 +382,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                         deleted: false,
                         added: true,
                         dirty: true,
+                        savedValue: property.value,
                         type: property.descriptor.required
                             ? 'required'
                             : property.descriptor.dynamic
@@ -571,6 +571,10 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
 
     savePropertyValue(item: PropertyItem, newValue: string | null): void {
         if (item.value != newValue) {
+            if (!item.savedValue) {
+                item.savedValue = item.value;
+            }
+
             item.value = newValue;
             item.dirty = true;
 

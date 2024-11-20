@@ -71,7 +71,7 @@ export class EditProcessGroup extends TabbedDialog {
                 this.parameterContextsOptions.push({
                     text: parameterContext.id,
                     value: parameterContext.id,
-                    disabled: true
+                    disabled: this.request.entity.component.parameterContext.id !== parameterContext.id
                 });
             }
         });

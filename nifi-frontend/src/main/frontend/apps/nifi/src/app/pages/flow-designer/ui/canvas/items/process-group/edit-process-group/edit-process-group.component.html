@@ -45,9 +45,11 @@
                                                 >{{ option.text }}</mat-option
                                             >
                                         } @else {
-                                            <mat-option [value]="option.value" [disabled]="readonly || option.disabled">{{
-                                                option.text
-                                            }}</mat-option>
+                                            <mat-option
+                                                [value]="option.value"
+                                                [disabled]="readonly || option.disabled"
+                                                >{{ option.text }}</mat-option
+                                            >
                                         }
                                     }
                                 </mat-select>
