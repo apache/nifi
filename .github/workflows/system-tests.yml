@@ -61,6 +61,7 @@ env:
     -pl :nifi-python-framework
     -pl :nifi-python-extension-api
     -pl :nifi-python-test-extensions
+    -pl :nifi-py4j-integration-tests
     -pl nifi-system-tests/nifi-system-test-suite
     -pl nifi-system-tests/nifi-stateless-system-test-suite
 
