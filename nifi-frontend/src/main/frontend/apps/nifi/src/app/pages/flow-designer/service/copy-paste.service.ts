@@ -80,14 +80,12 @@ export class CopyPasteService {
             .forEach((values: any[]) => {
                 values.forEach((value) => {
                     if (value.position) {
-                        const newPos = this.canvasView.getCanvasPosition(value.position);
-                        value.position.x = (newPos?.x || value.position.x) + offset * (pasteIncrement + 1);
-                        value.position.y = (newPos?.y || value.position.y) + offset * (pasteIncrement + 1);
+                        value.position.x += offset * (pasteIncrement + 1);
+                        value.position.y += offset * (pasteIncrement + 1);
                     } else if (value.bends) {
                         value.bends.forEach((bend: Position) => {
-                            const newPos = this.canvasView.getCanvasPosition(bend);
-                            bend.x = (newPos?.x || bend.x) + offset * (pasteIncrement + 1);
-                            bend.y = (newPos?.y || bend.y) + offset * (pasteIncrement + 1);
+                            bend.x += offset * (pasteIncrement + 1);
+                            bend.y += offset * (pasteIncrement + 1);
                         });
                     }
                 });
@@ -237,7 +235,7 @@ export class CopyPasteService {
                             acc.left = Math.min(acc.left, bend.x);
                             acc.top = Math.min(acc.top, bend.y);
                             acc.right = Math.max(acc.right, bend.x);
-                            acc.right = Math.max(acc.bottom, bend.y);
+                            acc.bottom = Math.max(acc.bottom, bend.y);
                         });
                     } else {
                         acc.left = Math.min(acc.left, current.position.x);

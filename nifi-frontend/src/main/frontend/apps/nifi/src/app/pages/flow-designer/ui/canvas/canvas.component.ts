@@ -72,6 +72,7 @@ import { CanvasUtils } from '../../service/canvas-utils.service';
 import { CanvasActionsService } from '../../service/canvas-actions.service';
 import { MatDialog } from '@angular/material/dialog';
 import { CopyResponseEntity } from '../../../../state/copy';
+import { snackBarError } from '../../../../state/error/error.actions';
 
 @Component({
     selector: 'fd-canvas',
@@ -707,22 +708,16 @@ export class Canvas implements OnInit, OnDestroy {
 
         const textToPaste = event.clipboardData?.getData('text/plain');
         if (textToPaste) {
-            try {
-                const copyResponse: CopyResponseEntity = JSON.parse(textToPaste);
-                // make sure at least one of the properties are set
-                if (Object.keys(copyResponse).length > 0) {
-                    if (copyResponse) {
-                        this.store.dispatch(
-                            paste({
-                                request: copyResponse
-                            })
-                        );
-                        event.preventDefault();
-                    }
-                }
-            } catch (e) {
-                // attempting to paste something other than CopyResponseEntity, ignore it
-                return;
+            const copyResponse: CopyResponseEntity | null = this.toCopyResponseEntity(textToPaste);
+            if (copyResponse) {
+                this.store.dispatch(
+                    paste({
+                        request: copyResponse
+                    })
+                );
+                event.preventDefault();
+            } else {
+                this.store.dispatch(snackBarError({ error: 'Cannot paste: incompatible format' }));
             }
         }
     }
@@ -738,6 +733,37 @@ export class Canvas implements OnInit, OnDestroy {
     handleKeyDownMetaA(event: KeyboardEvent) {
         if (this.executeAction('selectAll', event)) {
             event.preventDefault();
+        }
+    }
+
+    private toCopyResponseEntity(json: string): CopyResponseEntity | null {
+        try {
+            const copyResponse: CopyResponseEntity = JSON.parse(json);
+            const supportedKeys: string[] = [
+                'processGroups',
+                'remoteProcessGroups',
+                'processors',
+                'inputPorts',
+                'outputPorts',
+                'connections',
+                'labels',
+                'funnels'
+            ];
+
+            // ensure at least one of the copyable component types has something to paste
+            const hasCopiedContent = Object.entries(copyResponse).some((entry) => {
+                return supportedKeys.includes(entry[0]) && Array.isArray(entry[1]) && entry[1].length > 0;
+            });
+
+            if (hasCopiedContent) {
+                return copyResponse;
+            }
+
+            // attempting to paste something other than CopyResponseEntity
+            return null;
+        } catch (e) {
+            // attempting to paste something other than CopyResponseEntity
+            return null;
         }
     }
 }

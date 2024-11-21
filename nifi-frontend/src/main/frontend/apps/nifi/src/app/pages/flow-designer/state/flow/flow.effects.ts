@@ -2237,7 +2237,12 @@ export class FlowEffects {
                 };
                 return from(this.copyPasteService.copy(copyRequest)).pipe(
                     switchMap((response) => {
-                        return from(navigator.clipboard.writeText(JSON.stringify(response, null, 2))).pipe(
+                        // if (typeof ClipboardItem && navigator.clipboard.write) {
+                        const copyBlob = new Blob([JSON.stringify(response, null, 2)], { type: 'text/plain' });
+                        const clipboardItem: ClipboardItem = new ClipboardItem({
+                            'text/plain': copyBlob
+                        });
+                        return from(navigator.clipboard.write([clipboardItem])).pipe(
                             switchMap(() => {
                                 return of(
                                     FlowActions.copySuccess({
@@ -2249,10 +2254,30 @@ export class FlowEffects {
                                     })
                                 );
                             }),
-                            catchError(() => {
+                            catchError((e) => {
+                                console.log(e);
                                 return of(FlowActions.flowSnackbarError({ error: 'Copy failed' }));
                             })
                         );
+                        // } else {
+                        //     return from(navigator.clipboard.writeText(JSON.stringify(response, null, 2))).pipe(
+                        //         switchMap(() => {
+                        //             return of(
+                        //                 FlowActions.copySuccess({
+                        //                     response: {
+                        //                         copyResponse: response,
+                        //                         processGroupId,
+                        //                         pasteCount: 0
+                        //                     } as CopyResponseContext
+                        //                 })
+                        //             );
+                        //         }),
+                        //         catchError((e) => {
+                        //             console.log(e);
+                        //             return of(FlowActions.flowSnackbarError({ error: 'Copy failed' }));
+                        //         })
+                        //     );
+                        // }
                     }),
                     catchError((errorResponse: HttpErrorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
                 );

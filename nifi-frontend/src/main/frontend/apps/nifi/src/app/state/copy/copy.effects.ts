@@ -18,9 +18,6 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Actions } from '@ngrx/effects';
 
 @Injectable()
-export class CopyEffects {
-    constructor(private actions$: Actions) {}
-}
+export class CopyEffects {}

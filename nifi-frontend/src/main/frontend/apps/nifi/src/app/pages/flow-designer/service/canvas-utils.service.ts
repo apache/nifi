@@ -134,13 +134,6 @@ export class CanvasUtils {
                 this.breadcrumbs = breadcrumbs;
             });
 
-        // this.store
-        //     .select(selectCopiedSnippet)
-        //     .pipe(takeUntilDestroyed(this.destroyRef))
-        //     .subscribe((copiedSnippet) => {
-        //         this.copiedSnippet = copiedSnippet;
-        //     });
-
         this.store
             .select(selectScale)
             .pipe(takeUntilDestroyed(this.destroyRef))
