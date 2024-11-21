@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { CanvasUtils } from './canvas-utils.service';
 import {
-    copy,
+    copySuccess,
     deleteComponents,
     disableComponents,
     disableCurrentProcessGroup,
@@ -54,7 +54,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { CanvasView } from './canvas-view.service';
 import { ComponentType } from 'libs/shared/src';
 import { Client } from '../../../service/client.service';
-import { CopyRequest, CopyRequestEntity } from '../../../state/copy';
+import { CopyRequestContext, CopyRequestEntity, CopyResponseEntity } from '../../../state/copy';
+import { CopyPasteService } from './copy-paste.service';
+import { firstValueFrom } from 'rxjs';
+import { selectCurrentProcessGroupId } from '../state/flow/flow.selectors';
+import { snackBarError } from '../../../state/error/error.actions';
 
 export type CanvasConditionFunction = (selection: d3.Selection<any, any, any, any>) => boolean;
 export type CanvasActionFunction = (selection: d3.Selection<any, any, any, any>, extraArgs?: any) => void;
@@ -138,10 +142,6 @@ export class CanvasActionsService {
             },
             action: (selection: d3.Selection<any, any, any, any>) => {
                 const copyRequestEntity: CopyRequestEntity = {};
-                const request: CopyRequest = {
-                    copyRequestEntity
-                };
-
                 selection.each((d) => {
                     switch (d.type) {
                         case ComponentType.Processor:
@@ -195,7 +195,36 @@ export class CanvasActionsService {
                     }
                 });
 
-                this.store.dispatch(copy({ request }));
+                const copyRequestContext: CopyRequestContext = {
+                    copyRequestEntity,
+                    processGroupId: this.currentProcessGroupId()
+                };
+                let copyResponse: CopyResponseEntity | null = null;
+
+                // Safari in particular is strict in enforcing that any writing to the clipboard needs to be triggered directly by a user action.
+                // As such, firing a simple async rxjs action to initiate the copy sequence fails this check.
+                // However, below is the workaround to construct a ClipboardItem from an async call.
+                const clipboardItem = new ClipboardItem({
+                    'text/plain': firstValueFrom(this.copyService.copy(copyRequestContext)).then((response) => {
+                        copyResponse = response;
+                        return new Blob([JSON.stringify(response, null, 2)], { type: 'text/plain' });
+                    })
+                });
+                navigator.clipboard.write([clipboardItem]).then(() => {
+                    if (copyResponse) {
+                        this.store.dispatch(
+                            copySuccess({
+                                response: {
+                                    copyResponse,
+                                    processGroupId: copyRequestContext.processGroupId,
+                                    pasteCount: 0
+                                }
+                            })
+                        );
+                    } else {
+                        this.store.dispatch(snackBarError({ error: 'Copy failed' }));
+                    }
+                });
             }
         },
         selectAll: {
@@ -497,12 +526,15 @@ export class CanvasActionsService {
         }
     };
 
+    currentProcessGroupId = this.store.selectSignal(selectCurrentProcessGroupId);
+
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
         private dialog: MatDialog,
-        private client: Client
+        private client: Client,
+        private copyService: CopyPasteService
     ) {}
 
     private select(selection: d3.Selection<any, any, any, any>) {

@@ -25,17 +25,22 @@ import { ClusterConnectionService } from '../../../service/cluster-connection.se
 import { Position } from '../state/shared';
 import { CanvasView } from './canvas-view.service';
 import { CopyRequestContext, CopyResponseEntity, PasteRequestStrategy } from '../../../state/copy';
+import { Store } from '@ngrx/store';
+import { NiFiState } from '../../../state';
+import { selectCurrentProcessGroupId } from '../state/flow/flow.selectors';
 
 @Injectable({
     providedIn: 'root'
 })
 export class CopyPasteService {
     private static readonly API: string = '../nifi-api';
+    currentProcessGroupId = this.store.selectSignal(selectCurrentProcessGroupId);
 
     constructor(
         private httpClient: HttpClient,
         private clusterConnectionService: ClusterConnectionService,
-        private canvasView: CanvasView
+        private canvasView: CanvasView,
+        private store: Store<NiFiState>
     ) {}
 
     copy(copyRequest: CopyRequestContext): Observable<CopyResponseEntity> {
