@@ -31,7 +31,7 @@ import {
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, JsonPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
@@ -40,7 +40,8 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterContextEntity,
-    Property
+    Property,
+    ValidationErrorsTipInput
 } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
 import {
@@ -71,6 +72,8 @@ import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbe
 import { ComponentType, SelectOption } from 'libs/shared/src';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ValidationErrorsTip } from '../../../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
+import { FlowAnalysisRuleEntity } from '../../../../../../settings/state/flow-analysis-rules';
 
 @Component({
     selector: 'edit-processor',
@@ -95,7 +98,8 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         ErrorBanner,
         PropertyVerification,
         ContextErrorBanner,
-        CopyDirective
+        CopyDirective,
+        JsonPipe
     ],
     styleUrls: ['./edit-processor.component.scss']
 })
@@ -124,6 +128,7 @@ export class EditProcessor extends TabbedDialog {
     @Output() startComponentRequest: EventEmitter<StartComponentRequest> = new EventEmitter<StartComponentRequest>();
 
     protected readonly TextTip = TextTip;
+    protected readonly ValidationErrorsTip = ValidationErrorsTip;
 
     editProcessorForm: FormGroup;
     readonly: boolean = true;
@@ -322,6 +327,13 @@ export class EditProcessor extends TabbedDialog {
         }
 
         return `${this.status.runStatus}`;
+    }
+
+    getValidationErrorsTipData(entity: any): ValidationErrorsTipInput {
+        return {
+            isValidating: entity.status.validationStatus === 'VALIDATING',
+            validationErrors: entity.component.validationErrors
+        };
     }
 
     concurrentTasksChanged(): void {
