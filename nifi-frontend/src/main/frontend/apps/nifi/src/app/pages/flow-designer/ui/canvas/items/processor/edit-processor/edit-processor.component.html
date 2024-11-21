@@ -17,17 +17,51 @@
 
 <h2 mat-dialog-title>
     <div class="flex justify-between items-baseline">
-        <div>
-            {{ readonly ? 'Processor Details' : 'Edit Processor' }}
+        <div class="flex items-baseline">
+            <div class="mr-2">
+                {{ readonly ? 'Processor Details' : 'Edit Processor' }}
+            </div>
+            |
+            <div class="ml-2 text-base">
+                {{ formatType(request.entity) }}
+            </div>
         </div>
-        <div class="text-base">
-            {{ formatType(request.entity) }}
+        <div>
+            @if (isStoppable(request.entity)) {
+                <button type="button" mat-stroked-button [matMenuTriggerFor]="operateMenu">
+                    <div class="flex items-center">
+                        <i class="mr-2 success-color-default fa fa-play"></i>Running<i
+                            class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                    </div>
+                </button>
+            } @else if (isRunnable(request.entity)) {
+                <button type="button" mat-stroked-button [matMenuTriggerFor]="operateMenu">
+                    <div class="flex items-center">
+                        <i class="mr-2 error-color-variant fa fa-stop"></i>Stopped<i
+                            class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                    </div>
+                </button>
+            } @else {
+                <button type="button" mat-stroked-button [disabled]="true">
+                    <div class="flex items-center">
+                        <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>{{ formatRunStatus() }}
+                    </div>
+                </button>
+            }
+            <mat-menu #operateMenu="matMenu" xPosition="before">
+                @if (isStoppable(request.entity)) {
+                    <button mat-menu-item (click)="stop(request.entity)">Stop</button>
+                } @else if (isRunnable(request.entity)) {
+                    <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="start(request.entity)">
+                        Start
+                    </button>
+                }
+            </mat-menu>
         </div>
     </div>
 </h2>
 <form class="processor-edit-form" [formGroup]="editProcessorForm">
     <context-error-banner [context]="ErrorContextKey.PROCESSOR"></context-error-banner>
-    <!-- TODO - Stop & Configure -->
     <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
         <mat-tab label="Settings">
             <mat-dialog-content>

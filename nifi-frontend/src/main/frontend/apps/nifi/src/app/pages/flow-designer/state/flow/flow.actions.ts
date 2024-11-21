@@ -87,6 +87,7 @@ import {
     StartComponentRequest,
     StartComponentResponse,
     StartComponentsRequest,
+    StartPollingProcessorUntilStoppedRequest,
     StartProcessGroupRequest,
     StartProcessGroupResponse,
     StopComponentRequest,
@@ -775,6 +776,20 @@ export const pollChangeVersionSuccess = createAction(
 );
 
 export const stopPollingChangeVersion = createAction(`${CANVAS_PREFIX} Stop Polling Change Version`);
+
+export const startPollingProcessorUntilStopped = createAction(
+    `${CANVAS_PREFIX} Start Polling Processor Until Stopped`,
+    props<{ request: StartPollingProcessorUntilStoppedRequest }>()
+);
+
+export const pollProcessorUntilStopped = createAction(`${CANVAS_PREFIX} Poll Processor Until Stopped`);
+
+export const pollProcessorUntilStoppedSuccess = createAction(
+    `${CANVAS_PREFIX} Poll Processor Until Stopped Success`,
+    props<{ response: LoadProcessorSuccess }>()
+);
+
+export const stopPollingProcessor = createAction(`${CANVAS_PREFIX} Stop Polling Processor`);
 
 export const openSaveVersionDialog = createAction(
     `${CANVAS_PREFIX} Open Save Flow Version Dialog`,

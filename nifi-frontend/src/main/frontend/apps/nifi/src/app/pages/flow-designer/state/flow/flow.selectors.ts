@@ -30,6 +30,8 @@ export const selectChangeVersionRequest = createSelector(
     (state: FlowState) => state.changeVersionRequest
 );
 
+export const selectPollingProcessor = createSelector(selectFlowState, (state: FlowState) => state.pollingProcessor);
+
 export const selectSaving = createSelector(selectFlowState, (state: FlowState) => state.saving);
 
 export const selectVersionSaving = createSelector(selectFlowState, (state: FlowState) => state.versionSaving);
