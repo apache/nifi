@@ -19,7 +19,13 @@
     <div class="flex justify-between items-baseline">
         <div class="flex items-baseline">
             <div class="mr-2">
-                {{ readonly ? 'Processor Details' : 'Edit Processor' }}
+                @if (isInvalid(request.entity)) {
+                    <i
+                        class="mr-2 fa fa-warning caution-color"
+                        nifiTooltip
+                        [tooltipComponentType]="ValidationErrorsTip"
+                        [tooltipInputData]="getValidationErrorsTipData(request.entity)"></i>
+                }{{ readonly ? 'Processor Details' : 'Edit Processor' }}
             </div>
             |
             <div class="ml-2 text-base">
@@ -42,15 +48,9 @@
                     </div>
                 </button>
             } @else {
-                <button type="button" mat-stroked-button>
+                <button type="button" mat-stroked-button [disabled]="true">
                     <div class="flex items-center">
-                        @if (isInvalid(request.entity)) {
-                            <i
-                                class="mr-2 fa fa-warning caution-color"
-                                nifiTooltip
-                                [tooltipComponentType]="ValidationErrorsTip"
-                                [tooltipInputData]="getValidationErrorsTipData(request.entity)"></i>
-                        } @else {
+                        @if (!isInvalid(request.entity)) {
                             <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>
                         }
                         {{ formatRunStatus() }}
