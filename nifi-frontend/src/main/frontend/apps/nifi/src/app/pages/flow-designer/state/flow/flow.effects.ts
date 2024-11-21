@@ -56,6 +56,8 @@ import {
     SaveVersionRequest,
     SelectedComponent,
     Snippet,
+    StartComponentRequest,
+    StopComponentRequest,
     StopVersionControlRequest,
     StopVersionControlResponse,
     UpdateComponentFailure,
@@ -80,6 +82,7 @@ import {
     selectParentProcessGroupId,
     selectProcessGroup,
     selectProcessor,
+    selectPollingProcessor,
     selectRefreshRpgDetails,
     selectRemoteProcessGroup,
     selectSaving,
@@ -160,6 +163,7 @@ import { selectDocumentVisibilityState } from '../../../../state/document-visibi
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DocumentVisibility } from '../../../../state/document-visibility';
 import { ErrorContextKey } from '../../../../state/error';
+import { startComponent, startPollingProcessorUntilStopped, stopComponent } from './flow.actions';
 import { CopyPasteService } from '../../service/copy-paste.service';
 import { selectCopiedContent } from '../../../../state/copy/copy.selectors';
 import { CopyRequestContext, CopyResponseContext } from '../../../../state/copy';
@@ -1556,6 +1560,83 @@ export class FlowEffects {
                             );
                         });
 
+                    this.store
+                        .select(selectProcessor(processorId))
+                        .pipe(
+                            takeUntil(editDialogReference.afterClosed()),
+                            isDefinedAndNotNull(),
+                            filter((processorEntity) => {
+                                return (
+                                    processorEntity.revision.clientId === this.client.getClientId() ||
+                                    processorEntity.revision.clientId === request.entity.revision.clientId
+                                );
+                            })
+                        )
+                        .subscribe((response) => {
+                            editDialogReference.componentInstance.processorUpdates = response;
+
+                            if (
+                                !editDialogReference.componentInstance.isStoppable(response) &&
+                                !editDialogReference.componentInstance.isRunnable(response)
+                            ) {
+                                this.store.dispatch(
+                                    startPollingProcessorUntilStopped({
+                                        request: {
+                                            id: response.id,
+                                            uri: response.uri,
+                                            type: ComponentType.Processor,
+                                            revision: response.revision,
+                                            errorStrategy: 'snackbar'
+                                        }
+                                    })
+                                );
+                            }
+                        });
+
+                    editDialogReference.componentInstance.stopComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((stopComponentRequest: StopComponentRequest) => {
+                            this.store.dispatch(
+                                stopComponent({
+                                    request: {
+                                        id: stopComponentRequest.id,
+                                        uri: stopComponentRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: stopComponentRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+
+                            this.store.dispatch(
+                                startPollingProcessorUntilStopped({
+                                    request: {
+                                        id: stopComponentRequest.id,
+                                        uri: stopComponentRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: stopComponentRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.startComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((startComponentRequest: StartComponentRequest) => {
+                            this.store.dispatch(
+                                startComponent({
+                                    request: {
+                                        id: startComponentRequest.id,
+                                        uri: startComponentRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: startComponentRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
+
                     editDialogReference.afterClosed().subscribe((response) => {
                         this.store.dispatch(resetPropertyVerificationState());
                         if (response != 'ROUTED') {
@@ -1576,6 +1657,57 @@ export class FlowEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    startPollingProcessorUntilStopped = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startPollingProcessorUntilStopped),
+            switchMap(() =>
+                interval(2000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(FlowActions.stopPollingProcessor)))
+                )
+            ),
+            switchMap(() => of(FlowActions.pollProcessorUntilStopped()))
+        )
+    );
+
+    pollProcessorUntilStopped$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pollProcessorUntilStopped),
+            concatLatestFrom(() => [this.store.select(selectPollingProcessor).pipe(isDefinedAndNotNull())]),
+            switchMap(([, pollingProcessor]) => {
+                return from(
+                    this.flowService.getProcessor(pollingProcessor.id).pipe(
+                        map((response) =>
+                            FlowActions.pollProcessorUntilStoppedSuccess({
+                                response: {
+                                    id: pollingProcessor.id,
+                                    processor: response
+                                }
+                            })
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(FlowActions.stopPollingProcessor());
+                            return of(this.snackBarOrFullScreenError(errorResponse));
+                        })
+                    )
+                );
+            })
+        )
+    );
+
+    pollProcessorUntilStoppedSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pollProcessorUntilStoppedSuccess),
+            map((action) => action.response),
+            filter((response) => {
+                return !(
+                    response.processor.status.runStatus === 'Stopped' &&
+                    response.processor.status.aggregateSnapshot.activeThreadCount > 0
+                );
+            }),
+            switchMap(() => of(FlowActions.stopPollingProcessor()))
+        )
     );
 
     openEditConnectionDialog$ = createEffect(

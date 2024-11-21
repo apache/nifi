@@ -17,6 +17,7 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
 import {
     AbstractControl,
     FormBuilder,
@@ -42,7 +43,12 @@ import {
     Property
 } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
-import { EditComponentDialogRequest, UpdateProcessorRequest } from '../../../../../state/flow';
+import {
+    EditComponentDialogRequest,
+    StartComponentRequest,
+    StopComponentRequest,
+    UpdateProcessorRequest
+} from '../../../../../state/flow';
 import { PropertyTable } from '../../../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { NifiTooltipDirective, NiFiCommon, TextTip, CopyDirective } from '@nifi/shared';
@@ -79,6 +85,7 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         MatTabsModule,
         MatOptionModule,
         MatSelectModule,
+        MatMenuModule,
         AsyncPipe,
         PropertyTable,
         NifiSpinnerDirective,
@@ -93,6 +100,9 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
     styleUrls: ['./edit-processor.component.scss']
 })
 export class EditProcessor extends TabbedDialog {
+    @Input() set processorUpdates(processorUpdates: any | undefined) {
+        this.initialize(processorUpdates);
+    }
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() parameterContext: ParameterContextEntity | undefined;
@@ -110,11 +120,15 @@ export class EditProcessor extends TabbedDialog {
 
     @Output() verify: EventEmitter<VerifyPropertiesRequestContext> = new EventEmitter<VerifyPropertiesRequestContext>();
     @Output() editProcessor: EventEmitter<UpdateProcessorRequest> = new EventEmitter<UpdateProcessorRequest>();
+    @Output() stopComponentRequest: EventEmitter<StopComponentRequest> = new EventEmitter<StopComponentRequest>();
+    @Output() startComponentRequest: EventEmitter<StartComponentRequest> = new EventEmitter<StartComponentRequest>();
 
     protected readonly TextTip = TextTip;
 
     editProcessorForm: FormGroup;
-    readonly: boolean;
+    readonly: boolean = true;
+    status: any = true;
+    revision: any = true;
 
     bulletinLevels = [
         {
@@ -182,8 +196,7 @@ export class EditProcessor extends TabbedDialog {
     ) {
         super('edit-processor-selected-index');
 
-        this.readonly =
-            !request.entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(request.entity);
+        this.initialize(request.entity);
 
         const processorProperties: any = request.entity.component.config.properties;
         const properties: Property[] = Object.entries(processorProperties).map((entry: any) => {
@@ -255,6 +268,13 @@ export class EditProcessor extends TabbedDialog {
         }
     }
 
+    initialize(entity: any) {
+        this.status = entity.status;
+        this.revision = entity.revision;
+
+        this.readonly = !entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(entity);
+    }
+
     private relationshipConfigurationValidator(): ValidatorFn {
         return (control: AbstractControl): ValidationErrors | null => {
             const relationshipConfiguration: RelationshipConfiguration = control.value;
@@ -294,6 +314,14 @@ export class EditProcessor extends TabbedDialog {
 
     formatBundle(entity: any): string {
         return this.nifiCommon.formatBundle(entity.component.bundle);
+    }
+
+    formatRunStatus() {
+        if (this.status.runStatus === 'Stopped' && this.status.aggregateSnapshot.activeThreadCount > 0) {
+            return `Stopping (${this.status.aggregateSnapshot.activeThreadCount})`;
+        }
+
+        return `${this.status.runStatus}`;
     }
 
     concurrentTasksChanged(): void {
@@ -351,7 +379,10 @@ export class EditProcessor extends TabbedDialog {
             .map((relationship) => relationship.name);
 
         const payload: any = {
-            revision: this.client.getRevision(this.request.entity),
+            revision: this.client.getRevision({
+                ...this.request.entity,
+                revision: this.revision
+            }),
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
                 id: this.request.entity.id,
@@ -398,6 +429,51 @@ export class EditProcessor extends TabbedDialog {
             postUpdateNavigation,
             postUpdateNavigationBoundary,
             payload
+        });
+    }
+
+    isStoppable(entity: any): boolean {
+        if (!this.canOperate(entity)) {
+            return false;
+        }
+
+        return this.status.aggregateSnapshot.runStatus === 'Running';
+    }
+
+    isRunnable(entity: any): boolean {
+        if (!this.canOperate(entity)) {
+            return false;
+        }
+
+        return (
+            !(
+                this.status.aggregateSnapshot.runStatus === 'Running' ||
+                this.status.aggregateSnapshot.activeThreadCount > 0
+            ) && this.status.aggregateSnapshot.runStatus === 'Stopped'
+        );
+    }
+
+    canOperate(entity: any): boolean {
+        return entity.permissions.canWrite || entity.operatePermissions?.canWrite;
+    }
+
+    stop(entity: any) {
+        this.stopComponentRequest.next({
+            id: entity.id,
+            uri: entity.uri,
+            type: ComponentType.Processor,
+            revision: this.revision,
+            errorStrategy: 'snackbar'
+        });
+    }
+
+    start(entity: any) {
+        this.startComponentRequest.next({
+            id: entity.id,
+            uri: entity.uri,
+            type: ComponentType.Processor,
+            revision: this.revision,
+            errorStrategy: 'snackbar'
         });
     }
 
