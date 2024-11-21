@@ -44,7 +44,12 @@
             } @else {
                 <button type="button" mat-stroked-button [disabled]="true">
                     <div class="flex items-center">
-                        <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>{{ formatRunStatus() }}
+                        @if (isInvalid(request.entity)) {
+                            <i class="mr-2 fa fa-warning caution-color"></i>
+                        } @else {
+                            <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>
+                        }
+                        {{ formatRunStatus() }}
                     </div>
                 </button>
             }
