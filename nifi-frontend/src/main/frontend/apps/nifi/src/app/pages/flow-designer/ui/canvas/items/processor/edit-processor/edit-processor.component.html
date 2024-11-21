@@ -42,10 +42,14 @@
                     </div>
                 </button>
             } @else {
-                <button type="button" mat-stroked-button [disabled]="true">
+                <button type="button" mat-stroked-button>
                     <div class="flex items-center">
                         @if (isInvalid(request.entity)) {
-                            <i class="mr-2 fa fa-warning caution-color"></i>
+                            <i
+                                class="mr-2 fa fa-warning caution-color"
+                                nifiTooltip
+                                [tooltipComponentType]="ValidationErrorsTip"
+                                [tooltipInputData]="getValidationErrorsTipData(request.entity)"></i>
                         } @else {
                             <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>
                         }
