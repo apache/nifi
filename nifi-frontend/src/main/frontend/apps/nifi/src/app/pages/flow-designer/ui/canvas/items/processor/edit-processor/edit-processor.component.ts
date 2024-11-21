@@ -440,6 +440,14 @@ export class EditProcessor extends TabbedDialog {
         return this.status.aggregateSnapshot.runStatus === 'Running';
     }
 
+    isInvalid(entity: any): boolean {
+        if (!this.canOperate(entity)) {
+            return false;
+        }
+
+        return this.status.aggregateSnapshot.runStatus === 'Invalid';
+    }
+
     isRunnable(entity: any): boolean {
         if (!this.canOperate(entity)) {
             return false;
