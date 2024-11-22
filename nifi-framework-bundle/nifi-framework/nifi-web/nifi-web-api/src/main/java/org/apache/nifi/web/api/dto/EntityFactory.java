@@ -219,8 +219,9 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ProcessGroupFlowEntity createProcessGroupFlowEntity(final ProcessGroupFlowDTO dto, final PermissionsDTO permissions) {
+    public ProcessGroupFlowEntity createProcessGroupFlowEntity(final ProcessGroupFlowDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
         final ProcessGroupFlowEntity entity = new ProcessGroupFlowEntity();
+        entity.setRevision(revision);
         entity.setProcessGroupFlow(dto);
         entity.setPermissions(permissions);
         return entity;

@@ -65,6 +65,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextsEndp
 import org.apache.nifi.cluster.coordination.http.endpoints.ParameterProviderEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ParameterProviderFetchRequestsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ParameterProvidersEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.PasteEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PrioritizerTypesEndpointMerger;
@@ -145,6 +146,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new ProcessGroupEndpointMerger());
         endpointMergers.add(new ProcessGroupsEndpointMerger());
         endpointMergers.add(new FlowSnippetEndpointMerger());
+        endpointMergers.add(new PasteEndpointMerger());
         endpointMergers.add(new ProvenanceQueryEndpointMerger());
         endpointMergers.add(new ProvenanceEventEndpointMerger());
         endpointMergers.add(new LatestProvenanceEventsMerger());

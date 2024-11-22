@@ -22,6 +22,9 @@ import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.web.api.dto.BundleDTO;
 
+import java.util.Set;
+import java.util.function.Predicate;
+
 public interface AuthorizableLookup {
 
     /**
@@ -135,6 +138,13 @@ public interface AuthorizableLookup {
     ConnectionAuthorizable getConnection(String id);
 
     /**
+     * Get the authorizable root ProcessGroup.
+     *
+     * @return authorizable
+     */
+    ProcessGroupAuthorizable getRootProcessGroup();
+
+    /**
      * Get the authorizable ProcessGroup.
      *
      * @param id process group id
@@ -165,6 +175,15 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     Authorizable getFunnel(String id);
+
+    /**
+     * Get the authorizables for all controller services that meet the specified predicate. Non null
+     *
+     * @param groupId the group id
+     * @param filter the filter
+     * @return all encapsulated controller services
+     */
+    Set<ComponentAuthorizable> getControllerServices(String groupId, Predicate<org.apache.nifi.authorization.resource.VersionedComponentAuthorizable> filter);
 
     /**
      * Get the authorizable ControllerService.
@@ -198,6 +217,14 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     ComponentAuthorizable getFlowAnalysisRule(String id);
+
+    /**
+     * Get the authorizables for all parameter providers that meet the specified predicate. Non null
+     *
+     * @param filter predicate to filter which parameter providers should be included
+     * @return all parameter providers that meet the specified filter
+     */
+    Set<ComponentAuthorizable> getParameterProviders(Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> filter);
 
     /**
      * Get the authorizable ParameterProvider.

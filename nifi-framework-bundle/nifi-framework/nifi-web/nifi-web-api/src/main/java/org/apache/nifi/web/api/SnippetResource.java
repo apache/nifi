@@ -115,7 +115,7 @@ public class SnippetResource extends ApplicationResource {
         snippetRequest.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
             // we are not checking referenced services since we do not know how this snippet will be used. these checks should be performed
             // in a subsequent action with this snippet
-            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false);
+            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false, false);
         });
         snippetRequest.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
         snippetRequest.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
@@ -282,7 +282,7 @@ public class SnippetResource extends ApplicationResource {
                     final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
 
                     // Note: we are explicitly not authorizing parameter references here because they are being authorized below
-                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, false, false, false);
+                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, false, false, false, false);
 
                     final ProcessGroup destinationGroup = lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getProcessGroup();
 
@@ -356,7 +356,7 @@ public class SnippetResource extends ApplicationResource {
                 lookup -> {
                     // ensure write permission to every component in the snippet excluding referenced services
                     final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
-                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, true, false, false);
+                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, true, false, false, false);
 
                     // ensure write permission to the parent process group
                     snippet.getParentProcessGroup().getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());

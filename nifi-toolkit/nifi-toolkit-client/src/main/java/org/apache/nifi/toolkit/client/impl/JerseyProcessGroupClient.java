@@ -25,10 +25,14 @@ import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.ProcessGroupClient;
 import org.apache.nifi.toolkit.client.RequestConfig;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.CopyRequestEntity;
+import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
+import org.apache.nifi.web.api.entity.PasteRequestEntity;
+import org.apache.nifi.web.api.entity.PasteResponseEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
@@ -333,4 +337,45 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
         }
     }
 
+    @Override
+    public CopyResponseEntity copy(String processGroupId, CopyRequestEntity copyRequestEntity) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (copyRequestEntity == null) {
+            throw new IllegalArgumentException("Copy Request Entity cannot be null");
+        }
+
+        return executeAction("Error copying", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{id}/copy")
+                    .resolveTemplate("id", processGroupId);
+
+            return getRequestBuilder(target).post(
+                    Entity.entity(copyRequestEntity, MediaType.APPLICATION_JSON_TYPE),
+                    CopyResponseEntity.class);
+        });
+    }
+
+    @Override
+    public PasteResponseEntity paste(String processGroupId, PasteRequestEntity pasteRequestEntity) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(processGroupId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        if (pasteRequestEntity == null) {
+            throw new IllegalArgumentException("Paste Request Entity cannot be null");
+        }
+
+        return executeAction("Error pasting", () -> {
+            final WebTarget target = processGroupsTarget
+                    .path("{id}/paste")
+                    .resolveTemplate("id", processGroupId);
+
+            return getRequestBuilder(target).put(
+                    Entity.entity(pasteRequestEntity, MediaType.APPLICATION_JSON_TYPE),
+                    PasteResponseEntity.class);
+        });
+    }
 }

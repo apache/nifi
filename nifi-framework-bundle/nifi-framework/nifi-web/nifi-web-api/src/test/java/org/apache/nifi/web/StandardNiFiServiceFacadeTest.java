@@ -33,9 +33,13 @@ import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -44,24 +48,31 @@ import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
+import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.flow.FlowRegistryUtil;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinFactory;
 import org.apache.nifi.reporting.ComponentType;
+import org.apache.nifi.reporting.UserAwareEventAccess;
+import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.MockBulletinRepository;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.DtoFactory;
@@ -72,6 +83,8 @@ import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
+import org.apache.nifi.web.api.entity.CopyRequestEntity;
+import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
@@ -81,6 +94,7 @@ import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
+import org.apache.nifi.web.revision.NaiveRevisionManager;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.revision.RevisionUpdate;
 import org.apache.nifi.web.revision.StandardRevisionUpdate;
@@ -106,6 +120,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -118,10 +133,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.spy;
@@ -242,9 +261,23 @@ public class StandardNiFiServiceFacadeTest {
         when(flowController.getResource()).thenCallRealMethod();
         when(flowController.getParentAuthorizable()).thenCallRealMethod();
 
+        final UserAwareEventAccess eventAccess = mock(UserAwareEventAccess.class);
+        when(flowController.getEventAccess()).thenReturn(eventAccess);
+        when(eventAccess.getGroupStatus(anyString(), any(NiFiUser.class), anyInt())).thenReturn(mock(ProcessGroupStatus.class));
+
+        // props
+        final NiFiProperties properties = mock(NiFiProperties.class);
+        when(properties.getFlowServiceWriteDelay()).thenReturn("0 sec");
+
+        // flow service
+        final FlowService flowService = mock(FlowService.class);
+        doNothing().when(flowService).saveFlowChanges(any(TimeUnit.class), anyLong());
+
         // controller facade
         final ControllerFacade controllerFacade = new ControllerFacade();
         controllerFacade.setFlowController(flowController);
+        controllerFacade.setProperties(properties);
+        controllerFacade.setFlowService(flowService);
 
         processGroupDAO = mock(ProcessGroupDAO.class, Answers.RETURNS_DEEP_STUBS);
         ruleViolationsManager = mock(RuleViolationsManager.class);
@@ -378,6 +411,128 @@ public class StandardNiFiServiceFacadeTest {
                 assertTrue(action.getCanRead());
             }
         });
+    }
+
+    @Test
+    public void testCopyComponents() {
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+
+        final FlowManager flowManager = mock(FlowManager.class);
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+
+        final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
+        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
+
+        final VersionControlInformation versionControlInformation = mock(VersionControlInformation.class);
+        when(processGroup.getVersionControlInformation()).thenReturn(versionControlInformation);
+
+        // use spy to mock the make() method for generating a new flow mapper to make this testable
+        final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
+        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        doReturn(flowMapper).when(serviceFacadeSpy).makeNiFiRegistryFlowMapper(eq(extensionManager), any(FlowMappingOptions.class));
+
+        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
+        when(flowMapper.mapProcessGroup(processGroup, controllerServiceProvider, flowManager, true)).thenReturn(nonVersionedProcessGroup);
+
+        final String controllerServiceId = "controllerServiceId";
+        final String processorOneId = "processorOneId";
+        final String processorTwoId = "processorTwoId";
+        final VersionedProcessor one = mock(VersionedProcessor.class);
+        when(one.getInstanceIdentifier()).thenReturn(processorOneId);
+        final VersionedProcessor two = mock(VersionedProcessor.class);
+        when(two.getInstanceIdentifier()).thenReturn(processorTwoId);
+        when(two.getProperties()).thenReturn(Map.of("CS Property", controllerServiceId));
+
+        final Set<VersionedProcessor> versionedProcessors = Set.of(one, two);
+        when(nonVersionedProcessGroup.getProcessors()).thenReturn(versionedProcessors);
+
+        final ExternalControllerServiceReference externalControllerServiceReference = mock(ExternalControllerServiceReference.class);
+        final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = new LinkedHashMap<>();
+        externalControllerServiceReferences.put(controllerServiceId, externalControllerServiceReference);
+        when(nonVersionedProcessGroup.getExternalControllerServiceReferences()).thenReturn(externalControllerServiceReferences);
+
+        final CopyRequestEntity copyRequestEntity = new CopyRequestEntity();
+        copyRequestEntity.setProcessors(Set.of(processorOneId));
+        CopyResponseEntity copyResponseEntity = serviceFacadeSpy.copyComponents(groupId, copyRequestEntity);
+
+        assertNotNull(copyResponseEntity);
+        assertEquals(1, copyResponseEntity.getProcessors().size());
+        assertEquals(processorOneId, copyResponseEntity.getProcessors().iterator().next().getInstanceIdentifier());
+        assertTrue(copyResponseEntity.getExternalControllerServiceReferences().isEmpty());
+        assertTrue(copyResponseEntity.getParameterContexts().isEmpty());
+        assertTrue(copyResponseEntity.getParameterProviders().isEmpty());
+
+        final CopyRequestEntity copyRequestEntityTwo = new CopyRequestEntity();
+        copyRequestEntityTwo.setProcessors(Set.of(processorTwoId));
+        copyResponseEntity = serviceFacadeSpy.copyComponents(groupId, copyRequestEntityTwo);
+
+        assertNotNull(copyResponseEntity);
+        assertEquals(1, copyResponseEntity.getProcessors().size());
+        assertEquals(processorTwoId, copyResponseEntity.getProcessors().iterator().next().getInstanceIdentifier());
+        assertEquals(1, copyResponseEntity.getExternalControllerServiceReferences().size());
+        assertTrue(copyResponseEntity.getParameterContexts().isEmpty());
+        assertTrue(copyResponseEntity.getParameterProviders().isEmpty());
+    }
+
+    @Test
+    public void testPasteComponents() {
+        // set the user
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final String groupId = "groupId";
+        final String seed = "seed";
+
+        final String sensitiveValue = "sensitiveValue";
+        final String sensitiveProperty = "sensitiveProperty";
+
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
+
+        final RevisionManager revisionManager = new NaiveRevisionManager();
+        serviceFacade.setRevisionManager(revisionManager);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(sensitiveProperty, null);
+
+        final String instanceId = "67890";
+        final VersionedProcessor versionedProcessor = new VersionedProcessor();
+        versionedProcessor.setIdentifier("12345");
+        versionedProcessor.setInstanceIdentifier(instanceId);
+        versionedProcessor.setProperties(properties);
+
+        final PropertyDescriptor propertyDescriptor = mock(PropertyDescriptor.class);
+        when(propertyDescriptor.getName()).thenReturn(sensitiveProperty);
+        when(propertyDescriptor.isSensitive()).thenReturn(true);
+
+        final Map<PropertyDescriptor, PropertyConfiguration> copiedInstanceProperties = new HashMap<>();
+        copiedInstanceProperties.put(propertyDescriptor, null);
+
+        final ProcessorNode copiedInstance = mock(ProcessorNode.class);
+        when(copiedInstance.getProperties()).thenReturn(copiedInstanceProperties);
+        when(copiedInstance.getRawPropertyValue(propertyDescriptor)).thenReturn(sensitiveValue);
+        when(flowManager.getProcessorNode(eq(instanceId))).thenReturn(copiedInstance);
+
+        final VersionedComponentAdditions additions = new VersionedComponentAdditions.Builder()
+                .setProcessors(Set.of(versionedProcessor))
+                .build();
+
+        when(processGroupDAO.addVersionedComponents(groupId, additions, seed)).thenReturn(new ComponentAdditions.Builder().build());
+
+        final ArgumentCaptor<VersionedComponentAdditions> additionsCaptor = ArgumentCaptor.forClass(VersionedComponentAdditions.class);
+
+        serviceFacade.pasteComponents(new Revision(0l, "", groupId), groupId, additions, seed);
+
+        verify(processGroupDAO).addVersionedComponents(eq(groupId), additionsCaptor.capture(), eq(seed));
+        final VersionedComponentAdditions capturedAdditions = additionsCaptor.getValue();
+
+        // verify the sensitive value was mapped to the local instance
+        assertEquals(sensitiveValue, capturedAdditions.getProcessors().iterator().next().getProperties().get(propertyDescriptor.getName()));
     }
 
     @Test

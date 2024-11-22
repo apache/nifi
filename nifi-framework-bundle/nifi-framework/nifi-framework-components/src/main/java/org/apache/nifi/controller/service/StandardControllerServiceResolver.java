@@ -62,7 +62,7 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
     }
 
     @Override
-    public void resolveInheritedControllerServices(final FlowSnapshotContainer flowSnapshotContainer, final String parentGroupId, final NiFiUser user) {
+    public Set<String> resolveInheritedControllerServices(final FlowSnapshotContainer flowSnapshotContainer, final String parentGroupId, final NiFiUser user) {
         final RegisteredFlowSnapshot topLevelSnapshot = flowSnapshotContainer.getFlowSnapshot();
         final VersionedProcessGroup versionedGroup = topLevelSnapshot.getFlowContents();
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = topLevelSnapshot.getExternalControllerServices();
@@ -77,12 +77,15 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
         final Stack<Set<VersionedControllerService>> serviceHierarchyStack = new Stack<>();
         serviceHierarchyStack.push(ancestorServices);
 
-        resolveInheritedControllerServices(flowSnapshotContainer, versionedGroup, externalControllerServiceReferences, serviceHierarchyStack);
+        final Set<String> unresolvedServices = new HashSet<>();
+        resolveInheritedControllerServices(flowSnapshotContainer, versionedGroup, externalControllerServiceReferences, serviceHierarchyStack, unresolvedServices);
+        return unresolvedServices;
     }
 
     private void resolveInheritedControllerServices(final FlowSnapshotContainer flowSnapshotContainer, final VersionedProcessGroup versionedGroup,
                                                     final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
-                                                    final Stack<Set<VersionedControllerService>> serviceHierarchyStack) {
+                                                    final Stack<Set<VersionedControllerService>> serviceHierarchyStack,
+                                                    final Set<String> unresolvedServices) {
 
         final Set<VersionedControllerService> currentGroupServices = versionedGroup.getControllerServices() == null ? Collections.emptySet() : versionedGroup.getControllerServices();
         serviceHierarchyStack.push(currentGroupServices);
@@ -92,11 +95,11 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
                 .collect(Collectors.toSet());
 
         for (final VersionedProcessor processor : versionedGroup.getProcessors()) {
-            resolveInheritedControllerServices(processor, availableControllerServices, externalControllerServiceReferences);
+            resolveInheritedControllerServices(processor, availableControllerServices, externalControllerServiceReferences, unresolvedServices);
         }
 
         for (final VersionedControllerService service : versionedGroup.getControllerServices()) {
-            resolveInheritedControllerServices(service, availableControllerServices, externalControllerServiceReferences);
+            resolveInheritedControllerServices(service, availableControllerServices, externalControllerServiceReferences, unresolvedServices);
         }
 
         // If the child group is under version, the external service references need to come from the snapshot of the
@@ -113,14 +116,15 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
                     childExternalServices = childSnapshot.getExternalControllerServices();
                 }
             }
-            resolveInheritedControllerServices(flowSnapshotContainer, child, childExternalServices, serviceHierarchyStack);
+            resolveInheritedControllerServices(flowSnapshotContainer, child, childExternalServices, serviceHierarchyStack, unresolvedServices);
         }
 
         serviceHierarchyStack.pop();
     }
 
     private void resolveInheritedControllerServices(final VersionedConfigurableExtension component, final Set<VersionedControllerService> availableControllerServices,
-                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
+                                                    final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                    final Set<String> unresolvedServices) {
 
         final Map<String, ControllerServiceAPI> componentRequiredApis = controllerServiceApiLookup.getRequiredServiceApis(component.getType(), component.getBundle());
         if (componentRequiredApis.isEmpty()) {
@@ -133,6 +137,11 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
         for (final Map.Entry<String, String> entry : componentProperties.entrySet()) {
             final String propertyName = entry.getKey();
             final String propertyValue = entry.getValue();
+
+            // if the property isn't set there is nothing to resolve
+            if (propertyValue == null) {
+                continue;
+            }
 
             final VersionedPropertyDescriptor propertyDescriptor = propertyDescriptors.get(propertyName);
             if (propertyDescriptor == null) {
@@ -149,16 +158,19 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
 
             // If the referenced Controller Service is available, there is nothing to resolve.
             if (availableControllerServiceIds.contains(propertyValue)) {
+                unresolvedServices.add(propertyValue);
                 continue;
             }
 
             final ExternalControllerServiceReference externalServiceReference = externalControllerServiceReferences == null ? null : externalControllerServiceReferences.get(propertyValue);
             if (externalServiceReference == null) {
+                unresolvedServices.add(propertyValue);
                 continue;
             }
 
             final ControllerServiceAPI descriptorRequiredApi = componentRequiredApis.get(propertyName);
             if (descriptorRequiredApi == null) {
+                unresolvedServices.add(propertyValue);
                 continue;
             }
 
@@ -169,6 +181,7 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
                     .collect(Collectors.toList());
 
             if (matchingControllerServices.size() != 1) {
+                unresolvedServices.add(propertyValue);
                 continue;
             }
 
