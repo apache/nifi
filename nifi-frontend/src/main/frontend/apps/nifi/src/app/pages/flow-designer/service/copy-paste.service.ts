@@ -28,6 +28,7 @@ import { CopyRequestContext, CopyResponseEntity, PasteRequestStrategy } from '..
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { selectCurrentProcessGroupId } from '../state/flow/flow.selectors';
+import * as d3 from 'd3';
 
 @Injectable({
     providedIn: 'root'
@@ -134,18 +135,21 @@ export class CopyPasteService {
                     y: canvasCenterNormalized.y - centerOfCopiedContent.y
                 };
 
+                // try to detect if the proposed paste content has already been pasted and might overlap
+                const offset = this.calculateOffsetForCenterPaste(paste.copyResponse, centerOffset);
+
                 // offset all items (and bends) by the diff of the centers
                 Object.values(paste.copyResponse)
                     .filter((values) => !!values && Array.isArray(values))
                     .forEach((componentArray: any[]) => {
                         componentArray.forEach((component) => {
                             if (component.position) {
-                                component.position.x += centerOffset.x;
-                                component.position.y += centerOffset.y;
+                                component.position.x += centerOffset.x + offset;
+                                component.position.y += centerOffset.y + offset;
                             } else if (component.bends) {
                                 component.bends.forEach((bend: Position) => {
-                                    bend.x += centerOffset.x;
-                                    bend.y += centerOffset.y;
+                                    bend.x += centerOffset.x + offset;
+                                    bend.y += centerOffset.y + offset;
                                 });
                             }
                         });
@@ -168,6 +172,61 @@ export class CopyPasteService {
             }
         }
         return paste;
+    }
+
+    private calculateOffsetForCenterPaste(proposedPaste: CopyResponseEntity, centerOffset: Position): number {
+        // get the positions of things already on the screen
+        const existingPositions = this.getAllComponentPositions();
+        const offsetIncrement = 25;
+        const buffer = 4;
+        let offset = 0;
+
+        // get a sample component to probe the canvas with to detect a duplicate paste
+        const positioned = Object.values(proposedPaste)
+            .filter((values) => !!values && Array.isArray(values))
+            .flat()
+            .filter((component) => {
+                return !!component.position;
+            })
+            .map((component) => component.position);
+
+        if (positioned.length > 0) {
+            const sample: Position = {
+                x: positioned[0].x + centerOffset.x,
+                y: positioned[0].y + centerOffset.y
+            };
+
+            let foundCollision = existingPositions.some(
+                (position) =>
+                    position.x >= sample.x - buffer &&
+                    position.x <= sample.x + buffer &&
+                    position.y >= sample.y - buffer &&
+                    position.y <= sample.y + buffer
+            );
+
+            while (foundCollision) {
+                offset += offsetIncrement;
+                foundCollision = existingPositions.some(
+                    (position) =>
+                        position.x >= sample.x + offset - buffer &&
+                        position.x <= sample.x + offset + buffer &&
+                        position.y >= sample.y + offset - buffer &&
+                        position.y <= sample.y + offset + buffer
+                );
+            }
+        }
+        return offset;
+    }
+
+    private getAllComponentPositions() {
+        const positions: Position[] = [];
+        const selectionBoundingBox = this.canvasView.getCanvasBoundingClientRect();
+        if (selectionBoundingBox) {
+            d3.selectAll('g.component').each((d: any) => {
+                positions.push(d.position);
+            });
+        }
+        return positions;
     }
 
     private cloneCopyResponseEntity(copyResponse: CopyResponseEntity): CopyResponseEntity {
