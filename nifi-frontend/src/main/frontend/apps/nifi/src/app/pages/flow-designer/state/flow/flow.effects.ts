@@ -45,6 +45,8 @@ import {
     CreateConnectionDialogRequest,
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
+    DisableComponentRequest,
+    EnableComponentRequest,
     GroupComponentsDialogRequest,
     ImportFromRegistryDialogRequest,
     LoadProcessGroupResponse,
@@ -163,7 +165,13 @@ import { selectDocumentVisibilityState } from '../../../../state/document-visibi
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DocumentVisibility } from '../../../../state/document-visibility';
 import { ErrorContextKey } from '../../../../state/error';
-import { startComponent, startPollingProcessorUntilStopped, stopComponent } from './flow.actions';
+import {
+    disableComponent,
+    enableComponent,
+    startComponent,
+    startPollingProcessorUntilStopped,
+    stopComponent
+} from './flow.actions';
 import { CopyPasteService } from '../../service/copy-paste.service';
 import { selectCopiedContent } from '../../../../state/copy/copy.selectors';
 import { CopyRequestContext, CopyResponseContext } from '../../../../state/copy';
@@ -1367,6 +1375,37 @@ export class FlowEffects {
             this.actions$.pipe(
                 ofType(FlowActions.openEditProcessorDialog),
                 map((action) => action.request),
+                switchMap((request) =>
+                    combineLatest([
+                        this.flowService.getProcessor(request.entity.id),
+                        this.propertyTableHelperService.getComponentHistory(request.entity.id)
+                    ]).pipe(
+                        map(([entity, history]) => {
+                            return {
+                                ...request,
+                                entity,
+                                history: history.componentHistory
+                            };
+                        }),
+                        tap({
+                            error: (errorResponse: HttpErrorResponse) => {
+                                this.store.dispatch(
+                                    FlowActions.selectComponents({
+                                        request: {
+                                            components: [
+                                                {
+                                                    id: request.entity.id,
+                                                    componentType: request.type
+                                                }
+                                            ]
+                                        }
+                                    })
+                                );
+                                this.store.dispatch(this.snackBarOrFullScreenError(errorResponse));
+                            }
+                        })
+                    )
+                ),
                 concatLatestFrom(() => [
                     this.store.select(selectCurrentParameterContext),
                     this.store.select(selectCurrentProcessGroupId)
@@ -1405,6 +1444,7 @@ export class FlowEffects {
 
                     const editDialogReference = this.dialog.open(EditProcessor, {
                         ...XL_DIALOG,
+                        data: request,
                         id: processorId
                     });
 
@@ -1431,7 +1471,7 @@ export class FlowEffects {
                     );
 
                     const goTo = (commands: string[], commandBoundary: string[], destination: string): void => {
-                        if (editDialogReference.componentInstance.editProcessorForm?.dirty) {
+                        if (editDialogReference.componentInstance.editProcessorForm.dirty) {
                             const saveChangesDialogReference = this.dialog.open(YesNoDialog, {
                                 ...SMALL_DIALOG,
                                 data: {
@@ -1537,65 +1577,28 @@ export class FlowEffects {
                             filter((processorEntity) => {
                                 return (
                                     processorEntity.revision.clientId === this.client.getClientId() ||
-                                    (runStatusChanged
-                                        ? false
-                                        : processorEntity.revision.clientId === request.entity.revision.clientId)
+                                    processorEntity.revision.clientId === request.entity.revision.clientId
                                 );
-                            }),
-                            switchMap((processorEntity) =>
-                                combineLatest([
-                                    this.flowService.getProcessor(processorEntity.id),
-                                    this.propertyTableHelperService.getComponentHistory(processorEntity.id)
-                                ]).pipe(
-                                    tap((response) => {
-                                        return FlowActions.loadProcessorSuccess({
-                                            response: {
-                                                id: request.entity.id,
-                                                processor: response
-                                            }
-                                        });
-                                    }),
-                                    map(([entity, history]) => {
-                                        return {
-                                            ...request,
-                                            entity,
-                                            history: history.componentHistory
-                                        };
-                                    }),
-                                    tap({
-                                        error: (errorResponse: HttpErrorResponse) => {
-                                            this.store.dispatch(
-                                                FlowActions.selectComponents({
-                                                    request: {
-                                                        components: [
-                                                            {
-                                                                id: request.entity.id,
-                                                                componentType: request.type
-                                                            }
-                                                        ]
-                                                    }
-                                                })
-                                            );
-                                            this.store.dispatch(this.snackBarOrFullScreenError(errorResponse));
-                                        }
-                                    })
-                                )
-                            )
+                            })
                         )
                         .subscribe((response) => {
                             editDialogReference.componentInstance.processorUpdates = response;
 
                             if (
-                                !editDialogReference.componentInstance.isStoppable(response.entity) &&
-                                !editDialogReference.componentInstance.isRunnable(response.entity)
+                                (editDialogReference.componentInstance.status.aggregateSnapshot.runStatus ===
+                                    'Stopped' &&
+                                    editDialogReference.componentInstance.status.aggregateSnapshot.activeThreadCount >
+                                        0) ||
+                                editDialogReference.componentInstance.status.aggregateSnapshot.runStatus ===
+                                    'Validating'
                             ) {
                                 this.store.dispatch(
                                     startPollingProcessorUntilStopped({
                                         request: {
-                                            id: response.entity.id,
-                                            uri: response.entity.uri,
+                                            id: response.id,
+                                            uri: response.uri,
                                             type: ComponentType.Processor,
-                                            revision: response.entity.revision,
+                                            revision: response.revision,
                                             errorStrategy: 'snackbar'
                                         }
                                     })
@@ -1614,6 +1617,40 @@ export class FlowEffects {
                                         uri: stopComponentRequest.uri,
                                         type: ComponentType.Processor,
                                         revision: stopComponentRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.disableComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((disableComponentsRequest: DisableComponentRequest) => {
+                            runStatusChanged = true;
+                            this.store.dispatch(
+                                disableComponent({
+                                    request: {
+                                        id: disableComponentsRequest.id,
+                                        uri: disableComponentsRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: disableComponentsRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.enableComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((enableComponentsRequest: EnableComponentRequest) => {
+                            runStatusChanged = true;
+                            this.store.dispatch(
+                                enableComponent({
+                                    request: {
+                                        id: enableComponentsRequest.id,
+                                        uri: enableComponentsRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: enableComponentsRequest.revision,
                                         errorStrategy: 'snackbar'
                                     }
                                 })
