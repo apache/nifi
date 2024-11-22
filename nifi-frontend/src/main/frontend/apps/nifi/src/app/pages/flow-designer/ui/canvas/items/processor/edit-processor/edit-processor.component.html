@@ -23,18 +23,18 @@
             </div>
             |
             <div class="ml-2 text-base">
-                {{ formatType(request.entity) }}
+                {{ formatType() }}
             </div>
         </div>
         <div>
-            @if (isStoppable(request.entity)) {
+            @if (isStoppable()) {
                 <button type="button" mat-stroked-button [matMenuTriggerFor]="operateMenu">
                     <div class="flex items-center">
                         <i class="mr-2 success-color-default fa fa-play"></i>Running<i
                             class="ml-2 -mt-1 fa fa-sort-desc"></i>
                     </div>
                 </button>
-            } @else if (isRunnable(request.entity)) {
+            } @else if (isRunnable()) {
                 <button type="button" mat-stroked-button [matMenuTriggerFor]="operateMenu">
                     <div class="flex items-center">
                         <i class="mr-2 error-color-variant fa fa-stop"></i>Stopped<i
@@ -44,9 +44,9 @@
             } @else {
                 <button type="button" mat-stroked-button [matMenuTriggerFor]="operateMenu">
                     <div class="flex items-center">
-                        @if (isInvalid(request.entity)) {
+                        @if (isInvalid()) {
                             <i class="mr-2 fa fa-warning caution-color"></i>
-                        } @else if (isDisabled(request.entity)) {
+                        } @else if (isDisabled()) {
                             <i class="mr-2 icon icon-enable-false"></i>
                         } @else {
                             <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>
@@ -56,19 +56,19 @@
                 </button>
             }
             <mat-menu #operateMenu="matMenu" xPosition="before">
-                @if (isStoppable(request.entity)) {
+                @if (isStoppable()) {
                     <button mat-menu-item (click)="stop(request.entity)">
                         <i class="mr-2 fa fa-stop primary-color"></i>Stop
                     </button>
-                } @else if (isRunnable(request.entity)) {
+                } @else if (isRunnable()) {
                     <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="start(request.entity)">
                         <i class="mr-2 fa fa-play primary-color"></i>Start
                     </button>
-                } @else if (isDisableable(request.entity)) {
+                } @else if (isDisableable()) {
                     <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="disable(request.entity)">
                         <i class="mr-2 icon icon-enable-false primary-color"></i>Disable
                     </button>
-                } @else if (isEnableable(request.entity)) {
+                } @else if (isEnableable()) {
                     <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="enable(request.entity)">
                         <i class="mr-2 fa fa-flash primary-color"></i>Enable
                     </button>
@@ -99,13 +99,13 @@
                         <div class="flex flex-col mb-5">
                             <div>Type</div>
                             <div class="tertiary-color font-medium">
-                                {{ formatType(request.entity) }}
+                                {{ formatType() }}
                             </div>
                         </div>
                         <div class="flex flex-col mb-6">
                             <div>Bundle</div>
                             <div class="tertiary-color font-medium">
-                                {{ formatBundle(request.entity) }}
+                                {{ formatBundle() }}
                             </div>
                         </div>
                         <div class="flex gap-x-4">
