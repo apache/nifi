@@ -1577,7 +1577,9 @@ export class FlowEffects {
                             filter((processorEntity) => {
                                 return (
                                     processorEntity.revision.clientId === this.client.getClientId() ||
-                                    processorEntity.revision.clientId === request.entity.revision.clientId
+                                    (runStatusChanged
+                                        ? false
+                                        : processorEntity.revision.clientId === request.entity.revision.clientId)
                                 );
                             })
                         )
@@ -1738,9 +1740,9 @@ export class FlowEffects {
             ofType(FlowActions.pollProcessorUntilStoppedSuccess),
             map((action) => action.response),
             filter((response) => {
-                return !(
+                return (
                     response.processor.status.runStatus === 'Stopped' &&
-                    response.processor.status.aggregateSnapshot.activeThreadCount > 0
+                    response.processor.status.aggregateSnapshot.activeThreadCount === 0
                 );
             }),
             switchMap(() => of(FlowActions.stopPollingProcessor()))
