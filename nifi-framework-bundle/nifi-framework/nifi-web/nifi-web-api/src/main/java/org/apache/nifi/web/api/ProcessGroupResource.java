@@ -3129,8 +3129,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
                         return false;
                     })
-                    .findFirst()
-                    .ifPresent(serviceEntry -> serviceEntry.setValue(serviceIdMapping.get(serviceEntry.getValue())));
+                    .forEach(serviceEntry -> serviceEntry.setValue(serviceIdMapping.get(serviceEntry.getValue())));
         });
         group.getProcessors().forEach(p -> {
             final String newId = generateUuid(p.getIdentifier());
@@ -3149,8 +3148,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
                         return false;
                     })
-                    .findFirst()
-                    .ifPresent(serviceEntry -> serviceEntry.setValue(serviceIdMapping.get(serviceEntry.getValue())));
+                    .forEach(serviceEntry -> serviceEntry.setValue(serviceIdMapping.get(serviceEntry.getValue())));
         });
         group.getInputPorts().forEach(ip -> {
             final String newId = generateUuid(ip.getIdentifier());
