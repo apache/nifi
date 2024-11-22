@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import {
     AbstractControl,
@@ -31,7 +31,7 @@ import {
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe, JsonPipe } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
@@ -40,8 +40,7 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterContextEntity,
-    Property,
-    ValidationErrorsTipInput
+    Property
 } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
 import {
@@ -72,8 +71,6 @@ import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbe
 import { ComponentType, SelectOption } from 'libs/shared/src';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
-import { ValidationErrorsTip } from '../../../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
-import { FlowAnalysisRuleEntity } from '../../../../../../settings/state/flow-analysis-rules';
 
 @Component({
     selector: 'edit-processor',
@@ -98,8 +95,7 @@ import { FlowAnalysisRuleEntity } from '../../../../../../settings/state/flow-an
         ErrorBanner,
         PropertyVerification,
         ContextErrorBanner,
-        CopyDirective,
-        JsonPipe
+        CopyDirective
     ],
     styleUrls: ['./edit-processor.component.scss']
 })
@@ -128,10 +124,10 @@ export class EditProcessor extends TabbedDialog {
     @Output() startComponentRequest: EventEmitter<StartComponentRequest> = new EventEmitter<StartComponentRequest>();
 
     protected readonly TextTip = TextTip;
-    protected readonly ValidationErrorsTip = ValidationErrorsTip;
 
-    editProcessorForm: FormGroup;
+    editProcessorForm: FormGroup | undefined;
     readonly: boolean = true;
+    request: EditComponentDialogRequest | undefined;
     status: any = true;
     revision: any = true;
 
@@ -184,15 +180,14 @@ export class EditProcessor extends TabbedDialog {
         }
     ];
 
-    schedulingStrategy: string;
-    cronDrivenConcurrentTasks: string;
-    cronDrivenSchedulingPeriod: string;
-    timerDrivenConcurrentTasks: string;
-    timerDrivenSchedulingPeriod: string;
-    runDurationMillis: number;
+    schedulingStrategy: string | undefined;
+    cronDrivenConcurrentTasks: string | undefined;
+    cronDrivenSchedulingPeriod: string | undefined;
+    timerDrivenConcurrentTasks: string | undefined;
+    timerDrivenSchedulingPeriod: string | undefined;
+    runDurationMillis: number | undefined;
 
     constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
         private formBuilder: FormBuilder,
         private client: Client,
         private canvasUtils: CanvasUtils,
@@ -200,8 +195,15 @@ export class EditProcessor extends TabbedDialog {
         private nifiCommon: NiFiCommon
     ) {
         super('edit-processor-selected-index');
+    }
 
-        this.initialize(request.entity);
+    initialize(request: EditComponentDialogRequest) {
+        this.request = request;
+        this.status = request.entity.status;
+        this.revision = request.entity.revision;
+
+        this.readonly =
+            !request.entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(request.entity);
 
         const processorProperties: any = request.entity.component.config.properties;
         const properties: Property[] = Object.entries(processorProperties).map((entry: any) => {
@@ -216,8 +218,8 @@ export class EditProcessor extends TabbedDialog {
         const defaultConcurrentTasks: any = request.entity.component.config.defaultConcurrentTasks;
         const defaultSchedulingPeriod: any = request.entity.component.config.defaultSchedulingPeriod;
 
-        let concurrentTasks: string;
-        let schedulingPeriod: string;
+        let concurrentTasks: string | undefined;
+        let schedulingPeriod: string | undefined;
 
         this.schedulingStrategy = request.entity.component.config.schedulingStrategy;
         if (this.schedulingStrategy === 'CRON_DRIVEN') {
@@ -266,18 +268,11 @@ export class EditProcessor extends TabbedDialog {
         });
 
         if (this.supportsBatching()) {
-            this.editProcessorForm.addControl(
+            this.editProcessorForm?.addControl(
                 'runDuration',
                 new FormControl({ value: this.runDurationMillis, disabled: this.readonly }, Validators.required)
             );
         }
-    }
-
-    initialize(entity: any) {
-        this.status = entity.status;
-        this.revision = entity.revision;
-
-        this.readonly = !entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(entity);
     }
 
     private relationshipConfigurationValidator(): ValidatorFn {
@@ -310,7 +305,7 @@ export class EditProcessor extends TabbedDialog {
     }
 
     supportsBatching(): boolean {
-        return this.request.entity.component.supportsBatching == true;
+        return this.request?.entity.component.supportsBatching == true;
     }
 
     formatType(entity: any): string {
@@ -329,26 +324,19 @@ export class EditProcessor extends TabbedDialog {
         return `${this.status.runStatus}`;
     }
 
-    getValidationErrorsTipData(entity: any): ValidationErrorsTipInput {
-        return {
-            isValidating: entity.status.validationStatus === 'VALIDATING',
-            validationErrors: entity.component.validationErrors
-        };
-    }
-
     concurrentTasksChanged(): void {
         if (this.schedulingStrategy === 'CRON_DRIVEN') {
-            this.cronDrivenConcurrentTasks = this.editProcessorForm.get('concurrentTasks')?.value;
+            this.cronDrivenConcurrentTasks = this.editProcessorForm?.get('concurrentTasks')?.value;
         } else {
-            this.timerDrivenConcurrentTasks = this.editProcessorForm.get('concurrentTasks')?.value;
+            this.timerDrivenConcurrentTasks = this.editProcessorForm?.get('concurrentTasks')?.value;
         }
     }
 
     schedulingPeriodChanged(): void {
         if (this.schedulingStrategy === 'CRON_DRIVEN') {
-            this.cronDrivenSchedulingPeriod = this.editProcessorForm.get('schedulingPeriod')?.value;
+            this.cronDrivenSchedulingPeriod = this.editProcessorForm?.get('schedulingPeriod')?.value;
         } else {
-            this.timerDrivenSchedulingPeriod = this.editProcessorForm.get('schedulingPeriod')?.value;
+            this.timerDrivenSchedulingPeriod = this.editProcessorForm?.get('schedulingPeriod')?.value;
         }
     }
 
@@ -356,33 +344,34 @@ export class EditProcessor extends TabbedDialog {
         this.schedulingStrategy = value;
 
         if (value === 'CRON_DRIVEN') {
-            this.editProcessorForm.get('concurrentTasks')?.setValue(this.cronDrivenConcurrentTasks);
-            this.editProcessorForm.get('schedulingPeriod')?.setValue(this.cronDrivenSchedulingPeriod);
+            this.editProcessorForm?.get('concurrentTasks')?.setValue(this.cronDrivenConcurrentTasks);
+            this.editProcessorForm?.get('schedulingPeriod')?.setValue(this.cronDrivenSchedulingPeriod);
         } else {
-            this.editProcessorForm.get('concurrentTasks')?.setValue(this.timerDrivenConcurrentTasks);
-            this.editProcessorForm.get('schedulingPeriod')?.setValue(this.timerDrivenSchedulingPeriod);
+            this.editProcessorForm?.get('concurrentTasks')?.setValue(this.timerDrivenConcurrentTasks);
+            this.editProcessorForm?.get('schedulingPeriod')?.setValue(this.timerDrivenSchedulingPeriod);
         }
     }
 
     executionStrategyDisabled(option: SelectOption): boolean {
-        return option.value == 'ALL' && this.request.entity.component.executionNodeRestricted === true;
+        return option.value == 'ALL' && this.request?.entity.component.executionNodeRestricted === true;
     }
 
     runDurationChanged(): void {
-        this.runDurationMillis = this.editProcessorForm.get('runDuration')?.value;
+        this.runDurationMillis = this.editProcessorForm?.get('runDuration')?.value;
     }
 
     shouldShowWarning(): boolean {
         return (
+            this.runDurationMillis !== undefined &&
             this.runDurationMillis > 0 &&
-            (this.request.entity.component.inputRequirement === 'INPUT_FORBIDDEN' ||
-                this.request.entity.component.inputRequirement === 'INPUT_ALLOWED')
+            (this.request?.entity.component.inputRequirement === 'INPUT_FORBIDDEN' ||
+                this.request?.entity.component.inputRequirement === 'INPUT_ALLOWED')
         );
     }
 
     submitForm(postUpdateNavigation?: string[], postUpdateNavigationBoundary?: string[]) {
         const relationshipConfiguration: RelationshipConfiguration =
-            this.editProcessorForm.get('relationshipConfiguration')?.value;
+            this.editProcessorForm?.get('relationshipConfiguration')?.value;
         const autoTerminated: string[] = relationshipConfiguration.relationships
             .filter((relationship) => relationship.autoTerminate)
             .map((relationship) => relationship.name);
@@ -392,29 +381,29 @@ export class EditProcessor extends TabbedDialog {
 
         const payload: any = {
             revision: this.client.getRevision({
-                ...this.request.entity,
+                ...this.request?.entity,
                 revision: this.revision
             }),
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             component: {
-                id: this.request.entity.id,
-                name: this.editProcessorForm.get('name')?.value,
+                id: this.request?.entity.id,
+                name: this.editProcessorForm?.get('name')?.value,
                 config: {
-                    penaltyDuration: this.editProcessorForm.get('penaltyDuration')?.value,
-                    yieldDuration: this.editProcessorForm.get('yieldDuration')?.value,
-                    bulletinLevel: this.editProcessorForm.get('bulletinLevel')?.value,
-                    schedulingStrategy: this.editProcessorForm.get('schedulingStrategy')?.value,
-                    concurrentlySchedulableTaskCount: this.editProcessorForm.get('concurrentTasks')?.value,
-                    schedulingPeriod: this.editProcessorForm.get('schedulingPeriod')?.value,
-                    executionNode: this.editProcessorForm.get('executionNode')?.value,
+                    penaltyDuration: this.editProcessorForm?.get('penaltyDuration')?.value,
+                    yieldDuration: this.editProcessorForm?.get('yieldDuration')?.value,
+                    bulletinLevel: this.editProcessorForm?.get('bulletinLevel')?.value,
+                    schedulingStrategy: this.editProcessorForm?.get('schedulingStrategy')?.value,
+                    concurrentlySchedulableTaskCount: this.editProcessorForm?.get('concurrentTasks')?.value,
+                    schedulingPeriod: this.editProcessorForm?.get('schedulingPeriod')?.value,
+                    executionNode: this.editProcessorForm?.get('executionNode')?.value,
                     autoTerminatedRelationships: autoTerminated,
                     retriedRelationships: retried,
-                    comments: this.editProcessorForm.get('comments')?.value
+                    comments: this.editProcessorForm?.get('comments')?.value
                 }
             }
         };
 
-        const propertyControl: AbstractControl | null = this.editProcessorForm.get('properties');
+        const propertyControl: AbstractControl | null | undefined = this.editProcessorForm?.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
             payload.component.config.properties = this.getModifiedProperties();
@@ -424,7 +413,7 @@ export class EditProcessor extends TabbedDialog {
         }
 
         if (this.supportsBatching()) {
-            payload.component.config.runDurationMillis = this.editProcessorForm.get('runDuration')?.value;
+            payload.component.config.runDurationMillis = this.editProcessorForm?.get('runDuration')?.value;
         }
 
         if (retried.length > 0) {
@@ -434,8 +423,8 @@ export class EditProcessor extends TabbedDialog {
         }
 
         this.editProcessor.next({
-            id: this.request.entity.id,
-            uri: this.request.entity.uri,
+            id: this.request?.entity.id,
+            uri: this.request?.entity.uri,
             type: ComponentType.Processor,
             errorStrategy: 'banner',
             postUpdateNavigation,
@@ -498,7 +487,7 @@ export class EditProcessor extends TabbedDialog {
     }
 
     private getModifiedProperties(): ModifiedProperties {
-        const propertyControl: AbstractControl | null = this.editProcessorForm.get('properties');
+        const propertyControl: AbstractControl | null | undefined = this.editProcessorForm?.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
             const values: { [key: string]: string | null } = {};
@@ -509,7 +498,7 @@ export class EditProcessor extends TabbedDialog {
     }
 
     override isDirty(): boolean {
-        return this.editProcessorForm.dirty;
+        return this.editProcessorForm?.dirty || false;
     }
 
     verifyClicked(entity: any): void {
