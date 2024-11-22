@@ -37,6 +37,7 @@ import org.mockito.Mockito;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -56,6 +57,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.function.Function;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -90,7 +92,7 @@ public class TestPutSQL {
     @BeforeAll
     public static void setupDerbyLog() throws ProcessException, SQLException {
         System.setProperty(DERBY_LOG_PROPERTY, "target/derby.log");
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = new File(getEmptyDirectory(), "db");
         service = new MockDBCPService(dbDir.getAbsolutePath());
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -1756,6 +1758,11 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
         return runner;
+    }
+
+    private static File getEmptyDirectory() {
+        final String randomDirectory = String.format("%s-%s", TestPutSQL.class.getSimpleName(), UUID.randomUUID());
+        return Paths.get(tempDir.getAbsolutePath(), randomDirectory).toFile();
     }
 
     private static void assertSQLExceptionRelatedAttributes(final TestRunner runner, Relationship relationship) {
