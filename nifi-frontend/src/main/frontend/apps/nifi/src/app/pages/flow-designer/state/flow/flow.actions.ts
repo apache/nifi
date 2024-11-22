@@ -112,7 +112,7 @@ import {
     VersionControlInformationEntity
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
-import { FetchComponentVersionsRequest } from '../../../../state/shared';
+import { FetchComponentVersionsRequest, RegistryClientEntity } from '../../../../state/shared';
 import { ErrorContext } from '../../../../state/error';
 
 const CANVAS_PREFIX = '[Canvas]';
@@ -160,6 +160,11 @@ export const loadChildProcessGroupSuccess = createAction(
 export const startProcessGroupPolling = createAction(`${CANVAS_PREFIX} Start Process Group Polling`);
 
 export const stopProcessGroupPolling = createAction(`${CANVAS_PREFIX} Stop Process Group Polling`);
+
+export const setRegistryClients = createAction(
+    `${CANVAS_PREFIX} Set Registry Clients`,
+    props<{ request: RegistryClientEntity[] }>()
+);
 
 export const loadConnectionsForComponent = createAction(
     `${CANVAS_PREFIX} Load Connections For Component`,
