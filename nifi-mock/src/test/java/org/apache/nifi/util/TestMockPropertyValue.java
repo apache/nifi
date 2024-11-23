@@ -29,7 +29,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,18 +66,18 @@ public class TestMockPropertyValue {
         // property is not supposed to support evaluation against a FlowFile
         processor.setTestCase(ENV_SCOPE_WITH_FF);
         runner.enqueue("");
-        assertThrows(AssertionError.class, () -> runner.run());
+        assertThrows(AssertionError.class, runner::run);
 
         // This case is not expected to work: no EL support on the property
         processor.setTestCase(NONE_SCOPE_WITH_FF);
         runner.enqueue("");
-        assertThrows(AssertionError.class, () -> runner.run());
+        assertThrows(AssertionError.class, runner::run);
 
         // This case is supposed to fail: there is an incoming connection, there is a
         // FlowFile available, we have EL scope but we don't evaluate against the FF
         processor.setTestCase(FF_SCOPE_NO_FF);
         runner.enqueue("");
-        assertThrows(AssertionError.class, () -> runner.run());
+        assertThrows(AssertionError.class, runner::run);
 
         processor.setTestCase(ENV_SCOPE_NO_FF);
         runner.enqueue("");
@@ -87,7 +86,7 @@ public class TestMockPropertyValue {
         // This case is not expected to work: no EL support on the property
         processor.setTestCase(NONE_SCOPE_NO_FF);
         runner.enqueue("");
-        assertThrows(AssertionError.class, () -> runner.run());
+        assertThrows(AssertionError.class, runner::run);
 
         // This case is accepted as we have an incoming connection, we may be evaluating
         // against a map made of the flow file attributes + additional key/value pairs.
@@ -102,7 +101,7 @@ public class TestMockPropertyValue {
         // This case is not expected to work: no EL support on the property
         processor.setTestCase(NONE_SCOPE_WITH_MAP);
         runner.enqueue("");
-        assertThrows(AssertionError.class, () -> runner.run());
+        assertThrows(AssertionError.class, runner::run);
     }
 
     @Test
@@ -126,7 +125,7 @@ public class TestMockPropertyValue {
 
         // This case is not expected to work: no EL support on the property
         processor.setTestCase(NONE_SCOPE_NO_FF);
-        assertThrows(AssertionError.class, () -> runner.run());
+        assertThrows(AssertionError.class, runner::run);
 
         // This case is supposed to be OK: in that case, we don't care if attributes are
         // not available even though scope is FLOWFILE_ATTRIBUTES it likely means that
@@ -140,7 +139,7 @@ public class TestMockPropertyValue {
 
         // This case is not expected to work: no EL support on the property
         processor.setTestCase(NONE_SCOPE_WITH_MAP);
-        assertThrows(AssertionError.class, () -> runner.run());
+        assertThrows(AssertionError.class, runner::run);
     }
 
     @InputRequirement(Requirement.INPUT_ALLOWED)
@@ -165,22 +164,16 @@ public class TestMockPropertyValue {
                 .name("success")
                 .build();
 
-        private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS);
-
         private String testCase;
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            final List<PropertyDescriptor> properties = new ArrayList<>();
-            properties.add(PROP_FF_SCOPE);
-            properties.add(PROP_ENV_SCOPE);
-            properties.add(PROP_NONE_SCOPE);
-            return properties;
+            return List.of(PROP_ENV_SCOPE, PROP_FF_SCOPE, PROP_NONE_SCOPE);
         }
 
         @Override
         public Set<Relationship> getRelationships() {
-            return RELATIONSHIPS;
+            return Set.of(SUCCESS);
         }
 
         @Override
@@ -190,33 +183,15 @@ public class TestMockPropertyValue {
             final Map<String, String> map = Map.of("test", "test");
 
             switch (getTestCase()) {
-            case FF_SCOPE_WITH_FF -> {
-                context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(ff);
-            }
-            case ENV_SCOPE_WITH_FF -> {
-                context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(ff);
-            }
-            case NONE_SCOPE_WITH_FF -> {
-                context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(ff);
-            }
-            case FF_SCOPE_NO_FF -> {
-                context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions();
-            }
-            case ENV_SCOPE_NO_FF -> {
-                context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions();
-            }
-            case NONE_SCOPE_NO_FF -> {
-                context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions();
-            }
-            case FF_SCOPE_WITH_MAP -> {
-                context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(map);
-            }
-            case ENV_SCOPE_WITH_MAP -> {
-                context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(map);
-            }
-            case NONE_SCOPE_WITH_MAP -> {
-                context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(map);
-            }
+            case FF_SCOPE_WITH_FF -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(ff);
+            case ENV_SCOPE_WITH_FF -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(ff);
+            case NONE_SCOPE_WITH_FF -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(ff);
+            case FF_SCOPE_NO_FF -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions();
+            case ENV_SCOPE_NO_FF -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions();
+            case NONE_SCOPE_NO_FF -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions();
+            case FF_SCOPE_WITH_MAP -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(map);
+            case ENV_SCOPE_WITH_MAP -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(map);
+            case NONE_SCOPE_WITH_MAP -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(map);
             }
 
             if (ff != null) {
@@ -255,22 +230,16 @@ public class TestMockPropertyValue {
                 .name("success")
                 .build();
 
-        private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS);
-
         private String testCase;
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            final List<PropertyDescriptor> properties = new ArrayList<>();
-            properties.add(PROP_FF_SCOPE);
-            properties.add(PROP_ENV_SCOPE);
-            properties.add(PROP_NONE_SCOPE);
-            return properties;
+            return List.of(PROP_ENV_SCOPE, PROP_FF_SCOPE, PROP_NONE_SCOPE);
         }
 
         @Override
         public Set<Relationship> getRelationships() {
-            return RELATIONSHIPS;
+            return Set.of(SUCCESS);
         }
 
         @Override
@@ -278,24 +247,12 @@ public class TestMockPropertyValue {
             final Map<String, String> map = Map.of("test", "test");
 
             switch (getTestCase()) {
-            case FF_SCOPE_NO_FF -> {
-                context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions();
-            }
-            case ENV_SCOPE_NO_FF -> {
-                context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions();
-            }
-            case NONE_SCOPE_NO_FF -> {
-                context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions();
-            }
-            case FF_SCOPE_WITH_MAP -> {
-                context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(map);
-            }
-            case ENV_SCOPE_WITH_MAP -> {
-                context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(map);
-            }
-            case NONE_SCOPE_WITH_MAP -> {
-                context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(map);
-            }
+            case FF_SCOPE_NO_FF -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions();
+            case ENV_SCOPE_NO_FF -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions();
+            case NONE_SCOPE_NO_FF -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions();
+            case FF_SCOPE_WITH_MAP -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(map);
+            case ENV_SCOPE_WITH_MAP -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(map);
+            case NONE_SCOPE_WITH_MAP -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(map);
             }
         }
 
