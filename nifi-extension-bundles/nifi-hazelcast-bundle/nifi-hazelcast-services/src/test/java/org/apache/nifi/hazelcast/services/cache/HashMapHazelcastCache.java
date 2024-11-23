@@ -37,6 +37,11 @@ final public class HashMapHazelcastCache implements HazelcastCache {
     }
 
     @Override
+    public Set<String> keySet() {
+        return values.keySet();
+    }
+
+    @Override
     public byte[] get(final String key) {
         return values.get(key);
     }
