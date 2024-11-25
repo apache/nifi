@@ -31,12 +31,13 @@ import {
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, NgClass } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable, of } from 'rxjs';
 import {
+    BulletinsTipInput,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterContextEntity,
@@ -73,6 +74,8 @@ import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbe
 import { ComponentType, SelectOption } from 'libs/shared/src';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { BulletinsTip } from '../../../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
+import { ConnectedPosition } from '@angular/cdk/overlay';
 
 @Component({
     selector: 'edit-processor',
@@ -97,7 +100,8 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         ErrorBanner,
         PropertyVerification,
         ContextErrorBanner,
-        CopyDirective
+        CopyDirective,
+        NgClass
     ],
     styleUrls: ['./edit-processor.component.scss']
 })
@@ -129,11 +133,13 @@ export class EditProcessor extends TabbedDialog {
     @Output() enableComponentRequest: EventEmitter<EnableComponentRequest> = new EventEmitter<EnableComponentRequest>();
 
     protected readonly TextTip = TextTip;
+    protected readonly BulletinsTip = BulletinsTip;
 
     editProcessorForm: FormGroup;
     readonly: boolean = true;
-    status: any = true;
-    revision: any = true;
+    status: any;
+    revision: any;
+    bulletins: any;
 
     bulletinLevels = [
         {
@@ -276,6 +282,7 @@ export class EditProcessor extends TabbedDialog {
     initialize(entity: any) {
         this.status = entity.status;
         this.revision = entity.revision;
+        this.bulletins = entity.bulletins;
 
         this.readonly = !entity.permissions.canWrite || !this.canvasUtils.runnableSupportsModification(entity);
 
@@ -451,6 +458,33 @@ export class EditProcessor extends TabbedDialog {
             postUpdateNavigationBoundary,
             payload
         });
+    }
+
+    hasBulletins(): boolean {
+        return this.request.entity.permissions.canRead && !this.nifiCommon.isEmpty(this.bulletins);
+    }
+
+    getBulletinsTipData(): BulletinsTipInput {
+        return {
+            bulletins: this.bulletins
+        };
+    }
+
+    getBulletinTooltipPosition(): ConnectedPosition {
+        return {
+            originX: 'end',
+            originY: 'bottom',
+            overlayX: 'end',
+            overlayY: 'top',
+            offsetX: -8,
+            offsetY: 8
+        };
+    }
+
+    getMostSevereBulletinLevel(): string | null {
+        // determine the most severe of the bulletins
+        const mostSevere = this.canvasUtils.getMostSevereBulletin(this.bulletins);
+        return mostSevere ? mostSevere.bulletin.level.toLowerCase() : null;
     }
 
     isStoppable(): boolean {

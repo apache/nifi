@@ -33,6 +33,7 @@
     birdseye-control;
 @use 'app/pages/flow-designer/ui/canvas/graph-controls/operation-control/operation-control.component-theme' as
     operation-control;
+@use 'app/pages/flow-designer/ui/canvas/items/processor/edit-processor/edit-processor.component-theme' as edit-processor;
 @use 'app/pages/flow-designer/ui/canvas/header/flow-status/flow-status.component-theme' as flow-status;
 @use 'app/pages/flow-designer/ui/canvas/header/new-canvas-item/new-canvas-item.component-theme' as new-canvas-item;
 @use 'app/pages/flow-designer/ui/canvas/header/search/search.component-theme' as search;
@@ -94,6 +95,7 @@ html {
     @include navigation-control.generate-theme($m3-light-theme, $m3-light-theme-config);
     @include operation-control.generate-theme($m3-light-theme, $m3-light-theme-config);
     @include flow-status.generate-theme($m3-light-theme, $m3-light-theme-config);
+    @include edit-processor.generate-theme($m3-light-theme, $m3-light-theme-config);
     @include violation-details-dialog.generate-theme($m3-light-theme, $m3-light-theme-config);
     @include new-canvas-item.generate-theme($m3-light-theme, $m3-light-theme-config);
     @include search.generate-theme($m3-light-theme, $m3-light-theme-config);
@@ -127,6 +129,7 @@ html {
         @include navigation-control.generate-theme($m3-dark-theme, $m3-dark-theme-config);
         @include operation-control.generate-theme($m3-dark-theme, $m3-dark-theme-config);
         @include flow-status.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include edit-processor.generate-theme($m3-dark-theme, $m3-dark-theme-config);
         @include violation-details-dialog.generate-theme($m3-dark-theme, $m3-dark-theme-config);
         @include new-canvas-item.generate-theme($m3-dark-theme, $m3-dark-theme-config);
         @include search.generate-theme($m3-dark-theme, $m3-dark-theme-config);

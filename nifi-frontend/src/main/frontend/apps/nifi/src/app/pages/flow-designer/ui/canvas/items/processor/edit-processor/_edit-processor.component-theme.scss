@@ -30,16 +30,6 @@
         error,
         map.get(map.get($config, error), default)
     );
-    $material-theme-neutral-palette-darker: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), darker)
-    );
-    $material-theme-neutral-palette-lighter: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), lighter)
-    );
 
     $material-theme-primary-palette-default: mat.get-theme-color(
         $material-theme,
@@ -53,13 +43,7 @@
     $success: map.get(map.get($config, success), default);
     $caution: map.get(map.get($config, caution), default);
 
-    .flow-status {
-        background-color: if(
-            $is-material-dark,
-            $material-theme-neutral-palette-darker,
-            $material-theme-neutral-palette-lighter
-        );
-
+    #edit-processor-header {
         .controller-bulletins {
             background-color: unset;
 
@@ -91,22 +75,6 @@
             &.debug,
             &.trace {
                 background-color: $success;
-            }
-        }
-
-        .flow-analysis-notifications.warn {
-            background-color: $material-theme-secondary-palette-default;
-
-            .fa {
-                color: $primary-contrast;
-            }
-        }
-
-        .flow-analysis-notifications.enforce {
-            background-color: $material-theme-error-palette-default;
-
-            .fa {
-                color: $primary-contrast;
             }
         }
     }
