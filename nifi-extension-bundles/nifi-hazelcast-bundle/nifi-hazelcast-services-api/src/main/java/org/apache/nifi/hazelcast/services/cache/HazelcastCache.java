@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.hazelcast.services.cache;
 
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -32,7 +33,14 @@ public interface HazelcastCache {
     String name();
 
     /**
-     * Returns the value of the cache entry defined by the the key.
+     * Returns a set of all keys currently in the cache
+     *
+     * @return The Set of all keys currently in the cache
+     */
+    Set<String> keySet();
+
+    /**
+     * Returns the value of the cache entry defined by the key.
      *
      * @param key Key of the entry, must not be null.
      *

@@ -52,6 +52,11 @@ public class IMapBasedHazelcastCache implements HazelcastCache {
     }
 
     @Override
+    public Set<String> keySet() {
+        return storage.keySet();
+    }
+
+    @Override
     public byte[] get(final String key) {
         return storage.get(key);
     }

@@ -35,7 +35,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -291,6 +293,40 @@ public class HazelcastMapCacheClientTest {
         assertEquals(value, result);
     }
 
+    @Test
+    void testKeySetOnEmptyCache() throws IOException {
+        thenKeySetEquals(Set.of(), SERIALIZER);
+    }
+
+    @Test
+    void testKeySetOnNonEmptyCache() throws IOException {
+        //when
+        whenPutEntry("key1", "1-value");
+        whenPutEntry("key2", "2-value");
+        whenPutEntry("key3", "3-value");
+        whenPutEntry("key4", "4-value");
+
+        // then
+        thenKeySetEquals(Set.of("key1", "key2", "key3", "key4"), SERIALIZER);
+    }
+
+    @Test
+    void testKeyWithNonStringKeys() throws IOException {
+        // given
+        final Serializer<Integer> nonStringKeySerializer =
+                (value, output) -> output.write(ByteBuffer.allocate(4).putInt(value).array());
+        final Deserializer<Integer> nonStringKeyDeserializer = input -> ByteBuffer.wrap(input).getInt();
+
+        // when
+        testSubject.put(1, "1-value", nonStringKeySerializer, SERIALIZER);
+        testSubject.put(2, "2-value", nonStringKeySerializer, SERIALIZER);
+        testSubject.put(3, "3-value", nonStringKeySerializer, SERIALIZER);
+        testSubject.put(4, "4-value", nonStringKeySerializer, SERIALIZER);
+
+        // then
+        thenKeySetEquals(Set.of(1, 2, 3, 4), nonStringKeyDeserializer);
+    }
+
     private void whenRemoveEntryIsSuccessful() throws IOException {
         assertTrue(testSubject.remove(KEY, SERIALIZER));
     }
@@ -327,6 +363,10 @@ public class HazelcastMapCacheClientTest {
     private void whenReplaceEntryIsFailed(final Long version, final String newValue) throws IOException {
         final AtomicCacheEntry<String, String, Long> cacheEntry = new AtomicCacheEntry<>(KEY, newValue, version);
         assertFalse(testSubject.replace(cacheEntry, SERIALIZER, SERIALIZER));
+    }
+
+    private <K> void thenKeySetEquals(final Set<K> keys, final Deserializer<K> keyDeserializer) throws IOException {
+        assertEquals(testSubject.keySet(keyDeserializer), keys);
     }
 
     private void thenEntryIsNotInCache(final String key) throws IOException {
