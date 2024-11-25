@@ -93,14 +93,14 @@ public class MockPropertyValue implements PropertyValue {
         }
     }
 
-    private void validateExpressionScope(boolean attributesAvailable) {
+    private void validateExpressionScope(boolean flowFileProvided, boolean additionalAttributesAvailable) {
         if (expressionLanguageScope == null) {
             return;
         }
 
         // language scope is not null, we have attributes available but scope is not equal to FF attributes
         // it means that we're not evaluating against flow file attributes even though attributes are available
-        if (attributesAvailable && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)) {
+        if (flowFileProvided && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)) {
             throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
                     + " using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
                     + " proper scope should be set in the property descriptor using"
@@ -124,8 +124,8 @@ public class MockPropertyValue implements PropertyValue {
             return;
         }
 
-        // we're trying to evaluate against flow files attributes but we don't have any attributes available.
-        if (!attributesAvailable && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)) {
+        // we're trying to evaluate against flow files attributes but we don't have a FlowFile available.
+        if (!flowFileProvided && !additionalAttributesAvailable && ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)) {
             throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
                     + " without using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
                     + " proper scope should be set in the property descriptor using"
@@ -263,7 +263,7 @@ public class MockPropertyValue implements PropertyValue {
         }
 
         if (!alreadyValidated) {
-            validateExpressionScope(flowFile != null || additionalAttributes != null);
+            validateExpressionScope(flowFile != null, additionalAttributes != null);
         }
 
         if (additionalAttributes == null ) {
