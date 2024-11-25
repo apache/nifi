@@ -144,7 +144,7 @@ public class GenericDataConverters {
         }
     }
 
-    static class FixedConverter extends DataConverter<Byte[], byte[]> {
+    static class FixedConverter extends DataConverter<Object[], byte[]> {
 
         private final int length;
 
@@ -153,23 +153,33 @@ public class GenericDataConverters {
         }
 
         @Override
-        public byte[] convert(Byte[] data) {
+        public byte[] convert(Object[] data) {
             if (data == null) {
                 return null;
             }
             Validate.isTrue(data.length == length, String.format("Cannot write byte array of length %s as fixed[%s]", data.length, length));
-            return ArrayUtils.toPrimitive(data);
+
+            Byte[] byteArray = new Byte[data.length];
+            for (int i = 0; i < data.length; i++) {
+                byteArray[i] = DataTypeUtils.toByte(data[i], null);
+            }
+            return ArrayUtils.toPrimitive(byteArray);
         }
     }
 
-    static class BinaryConverter extends DataConverter<Byte[], ByteBuffer> {
+    static class BinaryConverter extends DataConverter<Object[], ByteBuffer> {
 
         @Override
-        public ByteBuffer convert(Byte[] data) {
+        public ByteBuffer convert(Object[] data) {
             if (data == null) {
                 return null;
             }
-            return ByteBuffer.wrap(ArrayUtils.toPrimitive(data));
+
+            Byte[] byteArray = new Byte[data.length];
+            for (int i = 0; i < data.length; i++) {
+                byteArray[i] = DataTypeUtils.toByte(data[i], null);
+            }
+            return ByteBuffer.wrap(ArrayUtils.toPrimitive(byteArray));
         }
     }
 

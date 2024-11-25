@@ -467,8 +467,8 @@ public class TestIcebergRecordConverter {
         values.put("decimal", new BigDecimal("12345678.12"));
         values.put("decimalLowerScore", 12345678.1);
         values.put("boolean", true);
-        values.put("fixed", "hello".getBytes());
-        values.put("binary", "hello".getBytes());
+        values.put("fixed", new Object[]{104, 101, 108, 108, 111});
+        values.put("binary", new Object[]{104, 101, 108, 108, 111});
         values.put("date", localDate);
         values.put("time", Time.valueOf(localTime));
         values.put("timestamp", Timestamp.from(offsetDateTime.toInstant()));
@@ -491,8 +491,8 @@ public class TestIcebergRecordConverter {
         values.put("double", 3.14159D);
         values.put("decimal", new BigDecimal("12345678.12"));
         values.put("boolean", true);
-        values.put("fixed", "hello".getBytes());
-        values.put("binary", "hello".getBytes());
+        values.put("fixed", new Object[]{104, 101, 108, 108, 111});
+        values.put("binary", new Object[]{104, 101, 108, 108, 111});
         values.put("date", localDate);
         values.put("time", Time.valueOf(localTime));
         values.put("timestamp", Timestamp.from(offsetDateTime.toInstant()));
@@ -512,8 +512,8 @@ public class TestIcebergRecordConverter {
         values.put("long", 42L);
         values.put("double", 3.14159);
         values.put("decimal", 12345678.12);
-        values.put("fixed", "hello".getBytes());
-        values.put("binary", "hello".getBytes());
+        values.put("fixed", new Object[]{104, 101, 108, 108, 111});
+        values.put("binary", new Object[]{104, 101, 108, 108, 111});
         values.put("date", "2017-04-04");
         values.put("time", "14:20:33.000");
         values.put("timestamp", "2017-04-04 14:20:33.789-0500");
