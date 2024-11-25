@@ -140,6 +140,20 @@ public class BitBucketRepositoryClient implements GitRepositoryClient {
         return canWrite;
     }
 
+    /**
+     * @return the name of the workspace
+     */
+    public String getWorkspace() {
+        return workspace;
+    }
+
+    /**
+     * @return the name of the repository
+     */
+    public String getRepoName() {
+        return repoName;
+    }
+
     @Override
     public Set<String> getBranches() throws FlowRegistryException {
         LOGGER.debug("Getting branches for repository [{}]", repoName);

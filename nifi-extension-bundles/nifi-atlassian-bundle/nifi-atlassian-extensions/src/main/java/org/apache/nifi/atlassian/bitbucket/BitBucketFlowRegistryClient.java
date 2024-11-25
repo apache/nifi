@@ -126,6 +126,9 @@ public class BitBucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
             APP_PASSWORD,
             OAUTH_TOKEN_PROVIDER);
 
+    static final String STORAGE_LOCATION_PREFIX = "git@bitbucket.org:";
+    static final String STORAGE_LOCATION_FORMAT = STORAGE_LOCATION_PREFIX + "%s/%s.git";
+
     @Override
     protected List<PropertyDescriptor> createPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -151,13 +154,12 @@ public class BitBucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     @Override
     public boolean isStorageLocationApplicable(FlowRegistryClientConfigurationContext context, String location) {
-        // TODO Auto-generated method stub
-        return false;
+        return location != null && location.startsWith(STORAGE_LOCATION_PREFIX);
     }
 
     @Override
     protected String getStorageLocation(GitRepositoryClient repositoryClient) {
-        // TODO Auto-generated method stub
-        return null;
+        final BitBucketRepositoryClient gitLabRepositoryClient = (BitBucketRepositoryClient) repositoryClient;
+        return STORAGE_LOCATION_FORMAT.formatted(gitLabRepositoryClient.getWorkspace(), gitLabRepositoryClient.getRepoName());
     }
 }
