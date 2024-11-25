@@ -60,15 +60,18 @@
                     <button mat-menu-item (click)="stop(request.entity)">
                         <i class="mr-2 fa fa-stop primary-color"></i>Stop
                     </button>
-                } @else if (isRunnable()) {
+                }
+                @if (isRunnable()) {
                     <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="start(request.entity)">
                         <i class="mr-2 fa fa-play primary-color"></i>Start
                     </button>
-                } @else if (isDisableable()) {
+                }
+                @if (isDisableable()) {
                     <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="disable(request.entity)">
                         <i class="mr-2 icon icon-enable-false primary-color"></i>Disable
                     </button>
-                } @else if (isEnableable()) {
+                }
+                @if (isEnableable()) {
                     <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="enable(request.entity)">
                         <i class="mr-2 fa fa-flash primary-color"></i>Enable
                     </button>
