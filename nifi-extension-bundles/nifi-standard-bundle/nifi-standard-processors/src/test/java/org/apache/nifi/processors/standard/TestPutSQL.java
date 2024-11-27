@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import jakarta.xml.bind.DatatypeConverter;
-import org.apache.commons.io.FileUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -37,12 +36,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -62,7 +56,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 import java.util.function.Function;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -83,7 +76,6 @@ public class TestPutSQL {
     private static final String createPersonsAutoId = "CREATE TABLE PERSONS_AI (id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1), name VARCHAR(100), code INTEGER check(code <= 100))";
 
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
-    private static final String RANDOM_DIRECTORY_PREFIX = TestPutSQL.class.getSimpleName();
     private static final Random random = new Random();
 
     /**
@@ -98,7 +90,7 @@ public class TestPutSQL {
     @BeforeAll
     public static void setupDerbyLog() throws ProcessException, SQLException {
         System.setProperty(DERBY_LOG_PROPERTY, "target/derby.log");
-        final File dbDir = new File(getEmptyDirectory(), "db");
+        final File dbDir = new File(tempDir, "db");
         service = new MockDBCPService(dbDir.getAbsolutePath());
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -111,12 +103,8 @@ public class TestPutSQL {
     @AfterAll
     public static void cleanupAfterAll() {
         System.clearProperty(DERBY_LOG_PROPERTY);
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(tempDir.toPath(), RANDOM_DIRECTORY_PREFIX + "*")) {
-            for (Path directory : stream) {
-                FileUtils.deleteDirectory(directory.toFile());
-            }
-        } catch (IOException ignore) {
-        }
+        final File dbDir = new File(tempDir, "db");
+        dbDir.deleteOnExit();
     }
 
     @Test
@@ -1770,11 +1758,6 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
         return runner;
-    }
-
-    private static File getEmptyDirectory() {
-        final String randomDirectory = String.format("%s-%s", RANDOM_DIRECTORY_PREFIX, UUID.randomUUID());
-        return Paths.get(tempDir.getAbsolutePath(), randomDirectory).toFile();
     }
 
     private static void assertSQLExceptionRelatedAttributes(final TestRunner runner, Relationship relationship) {
