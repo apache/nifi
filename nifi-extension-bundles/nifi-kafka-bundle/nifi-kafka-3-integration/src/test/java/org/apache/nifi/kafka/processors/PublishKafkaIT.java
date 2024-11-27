@@ -35,10 +35,11 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class PublishKafkaIT extends AbstractPublishKafkaIT {
+    private static final String TEST_KEY_ATTRIBUTE = "my-key";
+    private static final String TEST_KEY_VALUE = "some-key-value";
     private static final String TEST_RECORD_VALUE = "value-" + System.currentTimeMillis();
 
     @Test
@@ -48,11 +49,12 @@ public class PublishKafkaIT extends AbstractPublishKafkaIT {
         runner.setProperty(PublishKafka.CONNECTION_SERVICE, addKafkaConnectionService(runner));
         runner.setProperty(PublishKafka.TOPIC_NAME, getClass().getName());
         runner.setProperty(PublishKafka.ATTRIBUTE_HEADER_PATTERN, "a.*");
-        //runner.setProperty(PublishKafka.USE_TRANSACTIONS, Boolean.FALSE.toString());
+        runner.setProperty(PublishKafka.KAFKA_KEY, TEST_KEY_ATTRIBUTE);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("a1", "valueA1");
         attributes.put("b1", "valueB1");
+        attributes.put(TEST_KEY_ATTRIBUTE, TEST_KEY_VALUE);
 
         runner.enqueue(TEST_RECORD_VALUE, attributes);
         runner.run();
@@ -66,7 +68,7 @@ public class PublishKafkaIT extends AbstractPublishKafkaIT {
             final ConsumerRecords<String, String> records = consumer.poll(DURATION_POLL);
             assertEquals(1, records.count());
             final ConsumerRecord<String, String> record = records.iterator().next();
-            assertNull(record.key());
+            assertEquals(TEST_KEY_VALUE, record.key());
             assertEquals(TEST_RECORD_VALUE, record.value());
             final List<Header> headers = Arrays.asList(record.headers().toArray());
             assertEquals(1, headers.size());
