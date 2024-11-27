@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import jakarta.xml.bind.DatatypeConverter;
+import org.apache.commons.io.FileUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -36,7 +37,11 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -78,6 +83,7 @@ public class TestPutSQL {
     private static final String createPersonsAutoId = "CREATE TABLE PERSONS_AI (id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1), name VARCHAR(100), code INTEGER check(code <= 100))";
 
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
+    private static final String RANDOM_DIRECTORY_PREFIX = TestPutSQL.class.getSimpleName();
     private static final Random random = new Random();
 
     /**
@@ -103,8 +109,13 @@ public class TestPutSQL {
     }
 
     @AfterAll
-    public static void cleanupDerbyLog() {
+    public static void cleanupAfterAll() {
         System.clearProperty(DERBY_LOG_PROPERTY);
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(tempDir.toPath(), RANDOM_DIRECTORY_PREFIX + "*")) {
+            for (Path directory : stream) {
+                FileUtils.deleteDirectory(directory.toFile());            }
+        } catch (IOException ignore) {
+        }
     }
 
     @Test
@@ -1761,7 +1772,7 @@ public class TestPutSQL {
     }
 
     private static File getEmptyDirectory() {
-        final String randomDirectory = String.format("%s-%s", TestPutSQL.class.getSimpleName(), UUID.randomUUID());
+        final String randomDirectory = String.format("%s-%s", RANDOM_DIRECTORY_PREFIX, UUID.randomUUID());
         return Paths.get(tempDir.getAbsolutePath(), randomDirectory).toFile();
     }
 
