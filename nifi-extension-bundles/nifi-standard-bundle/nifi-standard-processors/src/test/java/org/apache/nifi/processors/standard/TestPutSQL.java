@@ -32,11 +32,14 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -56,6 +59,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.function.Function;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -76,6 +80,8 @@ public class TestPutSQL {
     private static final String createPersonsAutoId = "CREATE TABLE PERSONS_AI (id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1), name VARCHAR(100), code INTEGER check(code <= 100))";
 
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
+    private static final Path SYSTEM_TEMP_DIR = Paths.get(System.getProperty("java.io.tmpdir"));
+    private static final String RANDOM_DIRECTORY_PREFIX = TestPutSQL.class.getSimpleName();
     private static final Random random = new Random();
 
     /**
@@ -84,13 +90,12 @@ public class TestPutSQL {
      */
     static protected DBCPService service;
 
-    @TempDir
-    private static File tempDir;
-
     @BeforeAll
-    public static void setupDerbyLog() throws ProcessException, SQLException {
+    public static void setupBeforeAll() throws ProcessException, SQLException {
         System.setProperty(DERBY_LOG_PROPERTY, "target/derby.log");
-        final File dbDir = new File(tempDir, "db");
+        final String randomDirectory = String.format("%s-%s", RANDOM_DIRECTORY_PREFIX, UUID.randomUUID());
+        final File dbDir = Paths.get(SYSTEM_TEMP_DIR.toFile().getAbsolutePath(), randomDirectory, "db").toFile();
+        dbDir.deleteOnExit();
         service = new MockDBCPService(dbDir.getAbsolutePath());
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -103,8 +108,14 @@ public class TestPutSQL {
     @AfterAll
     public static void cleanupAfterAll() {
         System.clearProperty(DERBY_LOG_PROPERTY);
-        final File dbDir = new File(tempDir, "db");
-        dbDir.deleteOnExit();
+
+        // Cleanup all the temporary directories .
+        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(SYSTEM_TEMP_DIR, RANDOM_DIRECTORY_PREFIX + "*")) {
+            for (Path tmpFile : directoryStream) {
+                Files.deleteIfExists(tmpFile);
+            }
+        } catch (Exception ignore) {
+        }
     }
 
     @Test
