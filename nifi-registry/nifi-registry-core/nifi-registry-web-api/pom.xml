@@ -96,6 +96,7 @@
                     <outputPath>${api.docs.dir}</outputPath>
                     <outputFileName>swagger</outputFileName>
                     <outputFormat>JSONANDYAML</outputFormat>
+                    <sortOutput>true</sortOutput>
                     <prettyPrint>true</prettyPrint>
                     <defaultResponseCode>200</defaultResponseCode>
                     <configurationFilePath>${project.build.outputDirectory}/openapi.yaml</configurationFilePath>
