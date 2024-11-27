@@ -113,7 +113,8 @@ public class TestPutSQL {
         System.clearProperty(DERBY_LOG_PROPERTY);
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(tempDir.toPath(), RANDOM_DIRECTORY_PREFIX + "*")) {
             for (Path directory : stream) {
-                FileUtils.deleteDirectory(directory.toFile());            }
+                FileUtils.deleteDirectory(directory.toFile());
+            }
         } catch (IOException ignore) {
         }
     }
