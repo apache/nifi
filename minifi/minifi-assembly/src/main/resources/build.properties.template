@@ -17,15 +17,11 @@
 
 Build-Branch:${buildBranch}
 Build-Timestamp:${timestamp}
-Built-By:${user.name}
 MiNiFi-Version:${project.version}
 Build-Revision:${buildRevision}
-Maven-Home:${maven.home}
 Maven-Version:${maven.version}
 Created-By:${maven.build.version}
-Build-Java-Home:${java.home}
 Build-Jdk:${java.version}
 Build-Jdk-Vendor:${java.vendor}
 Build-Arch:${os.arch}
 Build-Os:${os.name}
-Build-Os-Version:${os.version}
