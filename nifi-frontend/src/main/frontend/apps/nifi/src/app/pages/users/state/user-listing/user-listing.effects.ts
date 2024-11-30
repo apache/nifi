@@ -26,7 +26,7 @@ import { selectTenant } from './user-listing.actions';
 import { catchError, combineLatest, filter, from, map, mergeMap, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { UsersService } from '../../service/users.service';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { YesNoDialog } from '@nifi/shared';
 import { EditTenantDialog } from '../../../../ui/common/edit-tenant/edit-tenant-dialog.component';
 import { selectSaving, selectStatus, selectUserGroups, selectUsers } from './user-listing.selectors';
 import { EditTenantRequest, UserGroupEntity } from '../../../../state/shared';

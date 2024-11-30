@@ -34,14 +34,13 @@ import {
     ParameterStatusEntity
 } from '../../../state/parameter-providers';
 import { debounceTime, Observable, Subject } from 'rxjs';
-import { TextTip, NiFiCommon, NifiTooltipDirective, PipesModule } from '@nifi/shared';
+import { TextTip, NiFiCommon, NifiTooltipDirective, PipesModule, AffectedComponentEntity } from '@nifi/shared';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { ParameterGroupsTable } from './parameter-groups-table/parameter-groups-table.component';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { MatInputModule } from '@angular/material/input';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
-import { AffectedComponentEntity } from '../../../../../state/shared';
 import * as ParameterProviderActions from '../../../state/parameter-providers/parameter-providers.actions';
 import { Store } from '@ngrx/store';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';

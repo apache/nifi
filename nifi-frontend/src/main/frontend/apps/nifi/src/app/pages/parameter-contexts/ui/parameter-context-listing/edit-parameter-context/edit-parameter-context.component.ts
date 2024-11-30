@@ -32,7 +32,6 @@ import { Client } from '../../../../../service/client.service';
 import { ParameterTable } from '../parameter-table/parameter-table.component';
 import {
     EditParameterResponse,
-    Parameter,
     ParameterContextEntity,
     ParameterContextUpdateRequestEntity,
     ParameterEntity,
@@ -42,10 +41,9 @@ import { ProcessGroupReferences } from '../process-group-references/process-grou
 import { ParameterContextInheritance } from '../parameter-context-inheritance/parameter-context-inheritance.component';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 import { RouterLink } from '@angular/router';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
-import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective } from '@nifi/shared';
+import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective, Parameter } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
@@ -70,7 +68,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         ParameterContextInheritance,
         ParameterReferences,
         RouterLink,
-        ErrorBanner,
         NifiTooltipDirective,
         ContextErrorBanner,
         CopyDirective

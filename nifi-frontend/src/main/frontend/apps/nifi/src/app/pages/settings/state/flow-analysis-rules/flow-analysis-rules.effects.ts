@@ -24,7 +24,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { selectFlowAnalysisRuleTypes } from '../../../../state/extension-types/extension-types.selectors';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { YesNoDialog } from '@nifi/shared';
 import { FlowAnalysisRuleService } from '../../service/flow-analysis-rule.service';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { CreateFlowAnalysisRule } from '../../ui/flow-analysis-rules/create-flow-analysis-rule/create-flow-analysis-rule.component';

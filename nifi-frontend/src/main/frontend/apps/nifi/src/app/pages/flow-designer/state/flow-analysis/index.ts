@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-import { PropertyDescriptor, Bundle, Permissions } from '../../../../state/shared';
+import { PropertyDescriptor, Bundle } from '../../../../state/shared';
+import { Permissions } from '@nifi/shared';
 
 export const flowAnalysisFeatureKey = 'flowAnalysis';
 

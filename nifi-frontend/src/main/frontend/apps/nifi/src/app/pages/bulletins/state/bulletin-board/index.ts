@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { BulletinEntity } from '../../../../state/shared';
+import { BulletinEntity } from '@nifi/shared';
 
 export const bulletinBoardFeatureKey = 'bulletin-board';
 

@@ -31,7 +31,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { ActionDetails } from '../../ui/flow-configuration-history-listing/action-details/action-details.component';
 import { PurgeHistory } from '../../ui/flow-configuration-history-listing/purge-history/purge-history.component';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { YesNoDialog } from '@nifi/shared';
 import { isDefinedAndNotNull } from 'libs/shared/src';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { selectAbout } from '../../../../state/about/about.selectors';
