@@ -62,6 +62,26 @@ public class AuthorizeParameterReference {
         }
     }
 
+    public static void authorizeParameterReferences(final String annotationData, final Authorizer authorizer, final Authorizable parameterContextAuthorizable, final NiFiUser user) {
+        if (annotationData == null || parameterContextAuthorizable == null) {
+            return;
+        }
+
+        final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+
+        boolean referencesParameter = false;
+
+        // Check if any Parameter is referenced. If so, user must have READ policy on the Parameter Context
+        ParameterTokenList tokenList = parameterParser.parseTokens(annotationData);
+        if (!tokenList.toReferenceList().isEmpty()) {
+            referencesParameter = true;
+        }
+
+        if (referencesParameter) {
+            parameterContextAuthorizable.authorize(authorizer, RequestAction.READ, user);
+        }
+    }
+
     public static void authorizeParameterReferences(final ComponentAuthorizable authorizable, final Authorizer authorizer, final Authorizable parameterContextAuthorizable, final NiFiUser user) {
         if (parameterContextAuthorizable == null) {
             return;

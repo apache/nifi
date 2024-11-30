@@ -22,12 +22,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonModule } from '@angular/material/button';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Observable, of } from 'rxjs';
-import {
-    InlineServiceCreationRequest,
-    InlineServiceCreationResponse,
-    ParameterContextReferenceEntity,
-    Property
-} from '../../../../../state/shared';
+import { InlineServiceCreationRequest, InlineServiceCreationResponse, Property } from '../../../../../state/shared';
 import {
     EditParameterProviderRequest,
     ParameterProviderEntity,
@@ -37,13 +32,17 @@ import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModu
 import { Client } from '../../../../../service/client.service';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { ControllerServiceReferences } from '../../../../../ui/common/controller-service/controller-service-references/controller-service-references.component';
 import { ParameterProviderReferences } from '../parameter-context-references/parameter-provider-references.component';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { CommonModule } from '@angular/common';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
-import { TextTip, NiFiCommon, NifiTooltipDirective, CopyDirective } from '@nifi/shared';
+import {
+    TextTip,
+    NiFiCommon,
+    NifiTooltipDirective,
+    CopyDirective,
+    ParameterContextReferenceEntity
+} from '@nifi/shared';
 import {
     ConfigVerificationResult,
     ModifiedProperties,
@@ -65,10 +64,8 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         ReactiveFormsModule,
         MatFormFieldModule,
         MatInputModule,
-        ControllerServiceReferences,
         ParameterProviderReferences,
         PropertyTable,
-        ErrorBanner,
         CommonModule,
         NifiTooltipDirective,
         PropertyVerification,

@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-import { AccessPolicySummaryEntity, Revision, UserEntity, UserGroupEntity } from '../../../../state/shared';
+import { AccessPolicySummaryEntity, UserEntity, UserGroupEntity } from '../../../../state/shared';
+import { Revision } from '@nifi/shared';
 
 export interface SelectedTenant {
     id: string;

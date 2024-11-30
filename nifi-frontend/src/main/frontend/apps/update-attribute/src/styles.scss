@@ -1,0 +1,67 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Custom Theming for Angular Material
+// For more information: https://v16.material.angular.io/guide/theming-your-components
+@use '@angular/material' as mat;
+@use 'sass:map';
+@use 'libs/shared/src/assets/styles/app' as app;
+@use 'libs/shared/src/assets/styles/codemirror-theme' as codemirror-theme;
+@use 'libs/shared/src/assets/styles/listing-table' as listing-table;
+@use 'app/pages/update-attribute/feature/update-attribute.component-theme' as update-attribute;
+@use 'app/pages/update-attribute/ui/ua-editor/ua-editor.component-theme' as ua-editor;
+
+// Plus imports for other components in your app.
+@use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
+@use 'codemirror/lib/codemirror.css';
+@use 'codemirror/addon/fold/foldgutter.css';
+@use 'codemirror/addon/hint/show-hint.css';
+
+@import 'font-awesome';
+@import 'libs/shared/src/assets/themes/material';
+
+// Include the common styles for Angular Material. We include this here so that you only
+// have to load a single css file for Angular Material in your app.
+// Be sure that you only ever include this mixin once!
+@include mat.core();
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// only include these once (not needed for dark mode)
+@include app.styles();
+@include listing-table.styles();
+
+html {
+    @include mat.typography-hierarchy($m3-light-theme);
+    @include mat.all-component-themes($m3-light-theme);
+    @include app.generate-material-theme($m3-light-theme, $m3-light-theme-config);
+    @include listing-table.generate-theme($m3-light-theme, $m3-light-theme-config);
+    @include codemirror-theme.generate-codemirror-theme($m3-light-theme, $m3-light-theme-config);
+    @include update-attribute.generate-theme($m3-light-theme, $m3-light-theme-config);
+    @include ua-editor.generate-theme();
+
+    .dark-theme {
+        @include mat.all-component-colors($m3-dark-theme);
+        @include app.generate-material-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include listing-table.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include codemirror-theme.generate-codemirror-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include update-attribute.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include ua-editor.generate-theme();
+    }
+}

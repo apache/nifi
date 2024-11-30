@@ -23,128 +23,45 @@
     <artifactId>nifi-update-attribute-ui</artifactId>
     <packaging>war</packaging>
     <properties>
-        <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
-        <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
-        <frontend.assets>${project.build.directory}/${project.build.finalName}/assets</frontend.assets>
+        <update-attribute.ui.working.dir>${project.build.directory}/update-attribute-ui-working-directory</update-attribute.ui.working.dir>
     </properties>
     <build>
         <plugins>
+            <!--
+                Unpack the built update attribute front end application
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
+                <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>copy-client-side-deps</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${frontend.assets}</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${frontend.working.dir}/node_modules</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <!-- font awesome -->
-                                        <include>font-awesome/css/**/*</include>
-                                        <include>font-awesome/fonts/**/*</include>
-                                        <include>font-awesome/README.md</include>
-                                        <!-- jquery -->
-                                        <include>jquery/dist/jquery.min*</include>
-                                        <include>jquery/LICENSE.txt</include>
-                                        <!-- jquery ui -->
-                                        <include>jquery-ui-dist/jquery-ui.min.js</include>
-                                        <include>jquery-ui-dist/jquery-ui.min.css</include>
-                                        <include>jquery-ui-dist/images/**/*</include>
-                                        <include>jquery-ui-dist/LICENSE.txt</include>
-                                        <!-- reset.css -->
-                                        <include>reset.css/reset.css</include>
-                                        <include>reset.css/README.md</include>
-                                        <!-- qtip2 -->
-                                        <include>qtip2/dist/*.css</include>
-                                        <include>qtip2/dist/jquery.qtip.min*</include>
-                                        <include>qtip2/LICENSE</include>
-                                        <!-- JSON2 -->
-                                        <include>JSON2/json2.js</include>
-                                        <!-- slickgrid -->
-                                        <include>slickgrid/slick.core.js</include>
-                                        <include>slickgrid/slick.dataview.js</include>
-                                        <include>slickgrid/slick.editors.js</include>
-                                        <include>slickgrid/slick.formatters.js</include>
-                                        <include>slickgrid/slick.grid.js</include>
-                                        <include>slickgrid/plugins/slick.autotooltips.js</include>
-                                        <include>slickgrid/plugins/slick.cellrangedecorator.js</include>
-                                        <include>slickgrid/plugins/slick.cellrangeselector.js</include>
-                                        <include>slickgrid/plugins/slick.cellselectionmodel.js</include>
-                                        <include>slickgrid/plugins/slick.rowselectionmodel.js</include>
-                                        <include>slickgrid/lib/jquery.event.drag-2.3.0.js</include>
-                                        <include>slickgrid/slick.grid.css</include>
-                                        <include>slickgrid/images/collapse.gif</include>
-                                        <include>slickgrid/images/expand.gif</include>
-                                        <include>slickgrid/MIT-LICENSE.txt</include>
-                                    </includes>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>copy-package-json</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${frontend.working.dir}</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${frontend.dependency.configs}</directory>
-                                    <filtering>false</filtering>
-                                    <includes>
-                                        <include>package.json</include>
-                                        <include>package-lock.json</include>
-                                    </includes>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.github.eirslett</groupId>
-                <artifactId>frontend-maven-plugin</artifactId>
-                <version>${frontend.mvn.plugin.version}</version>
-                <configuration>
-                    <installDirectory>${frontend.working.dir}</installDirectory>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>install-node-and-npm</id>
-                        <goals>
-                            <goal>install-node-and-npm</goal>
-                        </goals>
+                        <id>unpack-update-attribute-ui</id>
                         <phase>generate-resources</phase>
-                        <configuration>
-                            <nodeVersion>${node.version}</nodeVersion>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>npm install</id>
                         <goals>
-                            <goal>npm</goal>
+                            <goal>unpack-dependencies</goal>
                         </goals>
                         <configuration>
-                            <arguments>run ci</arguments>
-                            <workingDirectory>${frontend.working.dir}</workingDirectory>
+                            <includeGroupIds>org.apache.nifi</includeGroupIds>
+                            <includeArtifactIds>nifi-frontend</includeArtifactIds>
+                            <excludeTransitive>true</excludeTransitive>
+                            <silent>false</silent>
+                            <outputDirectory>${update-attribute.ui.working.dir}</outputDirectory>
+                            <includes>update-attribute/**/*</includes>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
+            <!--
+                Include the Update Attribute UI and exclude the JAR dependency
+            -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <configuration>
                     <webResources>
+                        <resource>
+                            <directory>${update-attribute.ui.working.dir}/update-attribute</directory>
+                            <includes>**/*</includes>
+                        </resource>
                         <resource>
                             <directory>src/main/webapp/META-INF</directory>
                             <targetPath>META-INF</targetPath>
@@ -154,18 +71,7 @@
                             <filtering>true</filtering>
                         </resource>
                     </webResources>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/main/frontend/package.json</exclude>
-                        <exclude>src/main/frontend/package-lock.json</exclude>
-                        <exclude>src/main/webapp/js/codemirror/</exclude>
-                        <exclude>src/main/webapp/fonts/**/*</exclude>
-                    </excludes>
+                    <packagingExcludes>WEB-INF/lib/nifi-frontend*.jar</packagingExcludes>
                 </configuration>
             </plugin>
         </plugins>
@@ -177,7 +83,6 @@
             <version>2.1.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
@@ -232,6 +137,16 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-servlet-shared</artifactId>
+            <version>2.1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-frontend</artifactId>
+            <version>2.1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

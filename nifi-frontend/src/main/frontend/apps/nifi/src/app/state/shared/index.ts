@@ -17,6 +17,14 @@
 
 import { Observable } from 'rxjs';
 import { GarbageCollection } from '../system-diagnostics';
+import {
+    AffectedComponentEntity,
+    BulletinEntity,
+    Parameter,
+    ParameterContextReferenceEntity,
+    Permissions,
+    Revision
+} from '@nifi/shared';
 
 export interface OkDialogRequest {
     title: string;
@@ -24,11 +32,6 @@ export interface OkDialogRequest {
 }
 
 export interface CancelDialogRequest {
-    title: string;
-    message: string;
-}
-
-export interface YesNoDialogRequest {
     title: string;
     message: string;
 }
@@ -249,14 +252,6 @@ export interface PropertyTipInput {
     propertyHistory?: PropertyHistory;
 }
 
-export interface ParameterTipInput {
-    parameter: Parameter;
-}
-
-export interface ElFunctionTipInput {
-    elFunction: ElFunction;
-}
-
 export interface PropertyHintTipInput {
     supportsEl: boolean;
     supportsParameters: boolean;
@@ -272,11 +267,6 @@ export interface GarbageCollectionTipInput {
     garbageCollections: GarbageCollection[];
 }
 
-export interface Permissions {
-    canRead: boolean;
-    canWrite: boolean;
-}
-
 export interface ExplicitRestriction {
     requiredPermission: RequiredPermission;
     explanation: string;
@@ -287,54 +277,9 @@ export interface RequiredPermission {
     label: string;
 }
 
-export interface Revision {
-    version: number;
-    clientId?: string;
-    lastModifier?: string;
-}
-
-export interface BulletinEntity {
-    canRead: boolean;
-    id: number;
-    sourceId: string;
-    groupId: string;
-    timestamp: string;
-    nodeAddress?: string;
-    bulletin: {
-        id: number;
-        sourceId: string;
-        groupId: string;
-        category: string;
-        level: string;
-        message: string;
-        sourceName: string;
-        timestamp: string;
-        nodeAddress?: string;
-        sourceType: string;
-    };
-}
-
-export interface ReferencedAsset {
-    id: string;
-    name: string;
-}
-
 export interface ParameterEntity {
     canWrite?: boolean;
     parameter: Parameter;
-}
-
-export interface Parameter {
-    name: string;
-    description: string;
-    sensitive: boolean;
-    value: string | null;
-    valueRemoved?: boolean;
-    provided?: boolean;
-    referencingComponents?: AffectedComponentEntity[];
-    parameterContext?: ParameterContextReferenceEntity;
-    inherited?: boolean;
-    referencedAssets?: ReferencedAsset[];
 }
 
 export interface ParameterContextEntity {
@@ -362,41 +307,9 @@ export interface BoundProcessGroup {
     component: any;
 }
 
-export interface ParameterContextReferenceEntity {
-    permissions: Permissions;
-    id: string;
-    component?: ParameterContextReference;
-    bulletins?: BulletinEntity[];
-}
-
-export interface ParameterContextReference {
-    id: string;
-    name: string;
-}
-
 export interface ParameterConfig {
     supportsParameters: boolean;
     parameters: Parameter[] | null;
-}
-
-export interface AffectedComponentEntity {
-    permissions: Permissions;
-    id: string;
-    revision: Revision;
-    bulletins: BulletinEntity[];
-    component: AffectedComponent;
-    processGroup: ProcessGroupName;
-    referenceType: string;
-}
-
-export interface AffectedComponent {
-    processGroupId: string;
-    id: string;
-    referenceType: string;
-    name: string;
-    state: string;
-    activeThreadCount?: number;
-    validationErrors: string[];
 }
 
 export interface SubmitParameterContextUpdate {
@@ -424,19 +337,6 @@ export interface ParameterContextUpdateRequest {
 export interface ParameterContextUpdateRequestEntity {
     parameterContextRevision: Revision;
     request: ParameterContextUpdateRequest;
-}
-
-export interface ElFunction {
-    name: string;
-    description: string;
-    args: { [key: string]: string };
-    subject?: string;
-    returnType: string;
-}
-
-export interface ProcessGroupName {
-    id: string;
-    name: string;
 }
 
 export interface ControllerServiceReferencingComponent {

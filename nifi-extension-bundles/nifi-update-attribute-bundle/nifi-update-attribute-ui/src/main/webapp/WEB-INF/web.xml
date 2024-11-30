@@ -33,13 +33,19 @@
         <servlet-name>api</servlet-name>
         <url-pattern>/api/*</url-pattern>
     </servlet-mapping>
-    
-    <servlet>
-        <servlet-name>worksheet</servlet-name>
-        <jsp-file>/WEB-INF/jsp/worksheet.jsp</jsp-file>
-    </servlet>
+
+    <!-- fragment filter -->
+    <filter>
+        <filter-name>FragmentFilter</filter-name>
+        <filter-class>org.apache.nifi.web.servlet.filter.QueryStringToFragmentFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>FragmentFilter</filter-name>
+        <url-pattern></url-pattern>
+    </filter-mapping>
+
     <servlet-mapping>
-        <servlet-name>worksheet</servlet-name>
+        <servlet-name>default</servlet-name>
         <url-pattern></url-pattern>
     </servlet-mapping>
 </web-app>

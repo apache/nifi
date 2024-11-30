@@ -28,7 +28,7 @@ import { DropRequest } from './index';
 import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { isDefinedAndNotNull } from 'libs/shared/src';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { YesNoDialog } from '@nifi/shared';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { loadChildProcessGroup, loadConnection, loadProcessGroup } from '../flow/flow.actions';
 import { resetQueueState } from './queue.actions';

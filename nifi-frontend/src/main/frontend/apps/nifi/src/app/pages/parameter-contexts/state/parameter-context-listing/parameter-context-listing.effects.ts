@@ -39,7 +39,7 @@ import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { Router } from '@angular/router';
 import { ParameterContextService } from '../../service/parameter-contexts.service';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { Parameter, YesNoDialog } from '@nifi/shared';
 import { EditParameterContext } from '../../ui/parameter-context-listing/edit-parameter-context/edit-parameter-context.component';
 import {
     selectParameterContexts,
@@ -47,12 +47,7 @@ import {
     selectSaving,
     selectUpdateRequest
 } from './parameter-context-listing.selectors';
-import {
-    EditParameterRequest,
-    EditParameterResponse,
-    Parameter,
-    ParameterContextUpdateRequest
-} from '../../../../state/shared';
+import { EditParameterRequest, EditParameterResponse, ParameterContextUpdateRequest } from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';

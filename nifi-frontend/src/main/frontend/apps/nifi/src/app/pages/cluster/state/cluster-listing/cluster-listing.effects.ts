@@ -28,7 +28,7 @@ import { selectClusterListingStatus } from './cluster-listing.selectors';
 import { reloadSystemDiagnostics } from '../../../../state/system-diagnostics/system-diagnostics.actions';
 import { ClusterService } from '../../service/cluster.service';
 import { MatDialog } from '@angular/material/dialog';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { YesNoDialog } from '@nifi/shared';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { ClusterNodeDetailDialog } from '../../ui/cluster-node-listing/cluster-node-detail-dialog/cluster-node-detail-dialog.component';
 import * as ErrorActions from '../../../../state/error/error.actions';
