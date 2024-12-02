@@ -166,7 +166,7 @@
         <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
-            <version>9.42</version>
+            <version>9.47</version>
         </dependency>
     </dependencies>
 
