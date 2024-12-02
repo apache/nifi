@@ -260,16 +260,15 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
                                                       final ProcessSession session, final FlowFile aggFlowFile,
                                                       final Map<String, String> attributes) {
         FlowFile ff = session.write(aggFlowFile, out -> out.write(json.getBytes()));
-        ff = session.putAllAttributes(ff, new HashMap<String, String>() {{
-            if (name != null) {
-                put("aggregation.name", name);
-            }
-            if (number != null) {
-                put("aggregation.number", number.toString());
-            }
-        }});
+        Map<String, String> latestAttributes = new HashMap<>(attributes);
+        if (name != null) {
+            latestAttributes.put("aggregation.name", name);
+        }
+        if (number != null) {
+            latestAttributes.put("aggregation.number", number.toString());
+        }
 
-        return session.putAllAttributes(ff, attributes);
+        return session.putAllAttributes(ff, latestAttributes);
     }
 
     private void handleAggregations(final Map<String, Object> aggregations, final ProcessSession session,

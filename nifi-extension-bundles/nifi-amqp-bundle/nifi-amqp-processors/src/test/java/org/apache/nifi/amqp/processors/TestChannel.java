@@ -86,7 +86,7 @@ class TestChannel implements Channel {
         if (this.routingKeyToQueueMappings != null) {
             for (List<String> queues : routingKeyToQueueMappings.values()) {
                 for (String queue : queues) {
-                    this.enqueuedMessages.put(queue, new ArrayBlockingQueue<GetResponse>(100));
+                    this.enqueuedMessages.put(queue, new ArrayBlockingQueue<>(100));
                 }
             }
         }

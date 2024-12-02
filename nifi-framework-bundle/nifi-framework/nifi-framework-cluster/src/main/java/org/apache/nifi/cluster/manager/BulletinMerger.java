@@ -32,21 +32,18 @@ public final class BulletinMerger {
 
     private BulletinMerger() { }
 
-    public static Comparator<BulletinEntity> BULLETIN_COMPARATOR = new Comparator<BulletinEntity>() {
-        @Override
-        public int compare(BulletinEntity o1, BulletinEntity o2) {
-            if (o1 == null && o2 == null) {
-                return 0;
-            }
-            if (o1 == null) {
-                return 1;
-            }
-            if (o2 == null) {
-                return -1;
-            }
-
-            return -Long.compare(o1.getId(), o2.getId());
+    public static Comparator<BulletinEntity> BULLETIN_COMPARATOR = (o1, o2) -> {
+        if (o1 == null && o2 == null) {
+            return 0;
         }
+        if (o1 == null) {
+            return 1;
+        }
+        if (o2 == null) {
+            return -1;
+        }
+
+        return -Long.compare(o1.getId(), o2.getId());
     };
 
     /**

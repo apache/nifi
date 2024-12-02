@@ -64,7 +64,7 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         final Map<String, Object> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
         final JsonObjectBuilder builder = factory.createObjectBuilder();
-        Map<String, String> values = new LinkedHashMap<String, String>();
+        Map<String, String> values = new LinkedHashMap<>();
         values.put("TestKeyString1", "StringValue1");
         values.put("TestKeyString2", "StringValue2");
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, factory, "TestKeyString", values, true);
@@ -80,7 +80,7 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         final Map<String, Object> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
         final JsonObjectBuilder builder = factory.createObjectBuilder();
-        Collection<String> values = new ArrayList<String>();
+        Collection<String> values = new ArrayList<>();
         values.add("TestValueString1");
         values.add("TestValueString2");
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, factory, "TestKeyString", values, true);

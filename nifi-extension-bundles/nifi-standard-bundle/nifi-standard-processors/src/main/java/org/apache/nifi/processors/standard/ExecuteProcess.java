@@ -57,7 +57,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -371,69 +370,66 @@ public class ExecuteProcess extends AbstractProcessor {
 
         // Submit task to read output of Process and write to FlowFile.
         failure = new AtomicBoolean(false);
-        final Future<?> future = executor.submit(new Callable<Object>() {
-            @Override
-            public Object call() throws IOException {
-                try {
-                    if (batchNanos == null) {
-                        // if we aren't batching, just copy the stream from the
-                        // process to the flowfile.
-                        try (final BufferedInputStream bufferedIn = new BufferedInputStream(externalProcess.getInputStream())) {
-                            final byte[] buffer = new byte[4096];
-                            int len;
-                            while ((len = bufferedIn.read(buffer)) > 0) {
+        final Future<?> future = executor.submit(() -> {
+            try {
+                if (batchNanos == null) {
+                    // if we aren't batching, just copy the stream from the
+                    // process to the flowfile.
+                    try (final BufferedInputStream bufferedIn = new BufferedInputStream(externalProcess.getInputStream())) {
+                        final byte[] buffer = new byte[4096];
+                        int len;
+                        while ((len = bufferedIn.read(buffer)) > 0) {
 
-                                // NB!!!! Maybe all data should be read from
-                                // input stream in case of !isScheduled() to
-                                // avoid subprocess deadlock?
-                                // (we just don't write data to proxyOut)
-                                // Or because we don't use this subprocess
-                                // anymore anyway, we don't care?
-                                if (!isScheduled()) {
-                                    return null;
-                                }
-
-                                proxyOut.write(buffer, 0, len);
+                            // NB!!!! Maybe all data should be read from
+                            // input stream in case of !isScheduled() to
+                            // avoid subprocess deadlock?
+                            // (we just don't write data to proxyOut)
+                            // Or because we don't use this subprocess
+                            // anymore anyway, we don't care?
+                            if (!isScheduled()) {
+                                return null;
                             }
-                        }
-                    } else {
-                        // we are batching, which means that the output of the
-                        // process is text. It doesn't make sense to grab
-                        // arbitrary batches of bytes from some process and send
-                        // it along as a piece of data, so we assume that
-                        // setting a batch during means text.
-                        // Also, we don't want that text to get split up in the
-                        // middle of a line, so we use BufferedReader
-                        // to read lines of text and write them as lines of text.
-                        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(externalProcess.getInputStream()))) {
-                            String line;
 
-                            while ((line = reader.readLine()) != null) {
-                                if (!isScheduled()) {
-                                    return null;
-                                }
-
-                                proxyOut.write((line + "\n").getBytes(StandardCharsets.UTF_8));
-                            }
+                            proxyOut.write(buffer, 0, len);
                         }
                     }
-                } catch (final IOException ioe) {
-                    failure.set(true);
-                    throw ioe;
-                } finally {
-                    try {
-                        // Since we are going to exit anyway, one sec gives it an extra chance to exit gracefully.
-                        // In the future consider exposing it via configuration.
-                        boolean terminated = externalProcess.waitFor(1000, TimeUnit.MILLISECONDS);
-                        int exitCode = terminated ? externalProcess.exitValue() : -9999;
-                        getLogger().info("Process finished with exit code {} ", exitCode);
-                    } catch (InterruptedException e1) {
-                        Thread.currentThread().interrupt();
+                } else {
+                    // we are batching, which means that the output of the
+                    // process is text. It doesn't make sense to grab
+                    // arbitrary batches of bytes from some process and send
+                    // it along as a piece of data, so we assume that
+                    // setting a batch during means text.
+                    // Also, we don't want that text to get split up in the
+                    // middle of a line, so we use BufferedReader
+                    // to read lines of text and write them as lines of text.
+                    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(externalProcess.getInputStream()))) {
+                        String line;
+
+                        while ((line = reader.readLine()) != null) {
+                            if (!isScheduled()) {
+                                return null;
+                            }
+
+                            proxyOut.write((line + "\n").getBytes(StandardCharsets.UTF_8));
+                        }
                     }
                 }
-
-                return null;
+            } catch (final IOException ioe) {
+                failure.set(true);
+                throw ioe;
+            } finally {
+                try {
+                    // Since we are going to exit anyway, one sec gives it an extra chance to exit gracefully.
+                    // In the future consider exposing it via configuration.
+                    boolean terminated = externalProcess.waitFor(1000, TimeUnit.MILLISECONDS);
+                    int exitCode = terminated ? externalProcess.exitValue() : -9999;
+                    getLogger().info("Process finished with exit code {} ", exitCode);
+                } catch (InterruptedException e1) {
+                    Thread.currentThread().interrupt();
+                }
             }
+
+            return null;
         });
 
         return future;

@@ -122,7 +122,7 @@ public class GetFileResource extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final Map<PropertyDescriptor, String> processorProperties = context.getProperties();
-        final Map<String, String> generatedAttributes = new HashMap<String, String>();
+        final Map<String, String> generatedAttributes = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : processorProperties.entrySet()) {
             final PropertyDescriptor property = entry.getKey();
             if (property.isDynamic()) {

@@ -36,14 +36,12 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -103,21 +101,13 @@ public class TestSocketLoadBalancedFlowFileQueue {
         nodeIds.add(createNodeIdentifier("11111111-1111-1111-1111-111111111111"));
         nodeIds.add(createNodeIdentifier("22222222-2222-2222-2222-222222222222"));
 
-        Mockito.doAnswer(new Answer<Set<NodeIdentifier>>() {
-            @Override
-            public Set<NodeIdentifier> answer(InvocationOnMock invocation) throws Throwable {
-                return new HashSet<>(nodeIds);
-            }
-        }).when(clusterCoordinator).getNodeIdentifiers();
+        Mockito.doAnswer((Answer<Set<NodeIdentifier>>) invocation -> new HashSet<>(nodeIds)).when(clusterCoordinator).getNodeIdentifiers();
 
         when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(localNodeIdentifier);
 
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
-                clusterTopologyEventListener = invocation.getArgument(0);
-                return null;
-            }
+        doAnswer(invocation -> {
+            clusterTopologyEventListener = invocation.getArgument(0);
+            return null;
         }).when(clusterCoordinator).registerEventListener(Mockito.any(ClusterTopologyEventListener.class));
 
         final ProcessScheduler scheduler = mock(ProcessScheduler.class);
@@ -174,13 +164,10 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
     @Test
     public void testPriorities() {
-        final FlowFilePrioritizer iValuePrioritizer = new FlowFilePrioritizer() {
-            @Override
-            public int compare(final FlowFile o1, final FlowFile o2) {
-                final int i1 = Integer.parseInt(o1.getAttribute("i"));
-                final int i2 = Integer.parseInt(o2.getAttribute("i"));
-                return Integer.compare(i1, i2);
-            }
+        final FlowFilePrioritizer iValuePrioritizer = (o1, o2) -> {
+            final int i1 = Integer.parseInt(o1.getAttribute("i"));
+            final int i2 = Integer.parseInt(o2.getAttribute("i"));
+            return Integer.compare(i1, i2);
         };
 
         queue.setPriorities(Collections.singletonList(iValuePrioritizer));
@@ -205,13 +192,10 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
     @Test
     public void testPrioritiesWhenSetBeforeLocalNodeIdDetermined() {
-        final FlowFilePrioritizer iValuePrioritizer = new FlowFilePrioritizer() {
-            @Override
-            public int compare(final FlowFile o1, final FlowFile o2) {
-                final int i1 = Integer.parseInt(o1.getAttribute("i"));
-                final int i2 = Integer.parseInt(o2.getAttribute("i"));
-                return Integer.compare(i1, i2);
-            }
+        final FlowFilePrioritizer iValuePrioritizer = (o1, o2) -> {
+            final int i1 = Integer.parseInt(o1.getAttribute("i"));
+            final int i2 = Integer.parseInt(o2.getAttribute("i"));
+            return Integer.compare(i1, i2);
         };
 
         final ProcessScheduler scheduler = mock(ProcessScheduler.class);
@@ -525,7 +509,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
     @Test
     @Timeout(10)
-    public void testChangeInPartitionerTriggersRebalance() throws InterruptedException {
+    public void testChangeInPartitionerTriggersRebalance() {
         // Create partitioner that sends first 2 FlowFiles to Partition 0, next 2 to Partition 1, and then next 4 to Partition 3.
         queue.setFlowFilePartitioner(new StaticSequencePartitioner(new int[] {0, 1, 0, 1}, false));
 
@@ -545,7 +529,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
     @Test
     @Timeout(10)
-    public void testDataInRemotePartitionForLocalIdIsMovedToLocalPartition() throws InterruptedException {
+    public void testDataInRemotePartitionForLocalIdIsMovedToLocalPartition() {
         nodeIds.clear();
 
         final NodeIdentifier id1 = createNodeIdentifier();

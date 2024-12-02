@@ -27,7 +27,8 @@ public class JacksonExtensionSerializer extends JacksonSerializer<Extension> {
 
     @Override
     TypeReference<SerializationContainer<Extension>> getDeserializeTypeRef() throws SerializationException {
-        return new TypeReference<SerializationContainer<Extension>>() { };
+        return new TypeReference<>() {
+        };
     }
 
 }

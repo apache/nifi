@@ -37,7 +37,7 @@ public class EmbeddedAvroSchemaAccessStrategy implements SchemaAccessStrategy {
 
     @Override
     public RecordSchema getSchema(Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
-        final DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(contentStream, new GenericDatumReader<GenericRecord>());
+        final DataFileStream<GenericRecord> dataFileStream = new DataFileStream<>(contentStream, new GenericDatumReader<>());
         final Schema avroSchema = dataFileStream.getSchema();
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
         return recordSchema;

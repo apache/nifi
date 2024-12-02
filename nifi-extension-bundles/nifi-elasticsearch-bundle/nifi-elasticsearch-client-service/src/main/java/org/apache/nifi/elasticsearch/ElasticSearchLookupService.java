@@ -196,13 +196,8 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
 
     @SuppressWarnings("unchecked")
     private Record getById(final String _id, final Map<String, String> context) throws IOException, LookupFailureException, SchemaNotFoundException {
-        final Map<String, Object> query = new HashMap<String, Object>() {{
-            put("query", new HashMap<String, Object>() {{
-                put("match", new HashMap<String, String>() {{
-                    put("_id", _id);
-                }});
-            }});
-        }};
+        final Map<String, Object> query = Map.of(
+            "query", Map.of("match", Map.of("_id", _id)));
 
         final String json = mapper.writeValueAsString(query);
 
@@ -229,37 +224,27 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     Map<String, Object> getNested(final String key, final Object value) {
         final String path = key.substring(0, key.lastIndexOf("."));
 
-        return new HashMap<String, Object>() {{
-            put("path", path);
-            put("query", new HashMap<String, Object>() {{
-                put("match", new HashMap<String, Object>() {{
-                    put(key, value);
-                }});
-            }});
-        }};
+        return Map.of("path", path, "query", Map.of("match", Map.of(key, value)));
     }
 
     private Map<String, Object> buildQuery(final Map<String, Object> coordinates) {
-        final Map<String, Object> query = new HashMap<String, Object>() {{
+        final Map<String, Object> query = new HashMap<>() {{
             put("bool", new HashMap<String, Object>() {{
                 put("must", coordinates.entrySet().stream()
-                    .map(e -> new HashMap<String, Object>() {{
-                        if (e.getKey().contains(".")) {
-                            put("nested", getNested(e.getKey(), e.getValue()));
-                        } else {
-                            put("match", new HashMap<String, Object>() {{
-                                put(e.getKey(), e.getValue());
-                            }});
-                        }
-                    }}).collect(Collectors.toList())
+                        .map(e -> new HashMap<String, Object>() {{
+                            if (e.getKey().contains(".")) {
+                                put("nested", getNested(e.getKey(), e.getValue()));
+                            } else {
+                                put("match", new HashMap<String, Object>() {{
+                                    put(e.getKey(), e.getValue());
+                                }});
+                            }
+                        }}).collect(Collectors.toList())
                 );
             }});
         }};
 
-        return new HashMap<String, Object>() {{
-            put("size", 1);
-            put("query", query);
-        }};
+        return Map.of("size", 1, "query", query);
     }
 
     @SuppressWarnings("unchecked")

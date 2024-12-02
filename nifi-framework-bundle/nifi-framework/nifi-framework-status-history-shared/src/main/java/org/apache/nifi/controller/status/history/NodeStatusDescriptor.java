@@ -40,7 +40,7 @@ public enum NodeStatusDescriptor {
             "The percentage of available heap currently used by the Java virtual machine.",
             MetricDescriptor.Formatter.COUNT,
             s -> s.getHeapUtilization(),
-            new ValueReducer<StatusSnapshot, Long>() {
+            new ValueReducer<>() {
                 @Override
                 public Long reduce(final List<StatusSnapshot> values) {
                     return (long) values.stream()
@@ -75,7 +75,7 @@ public enum NodeStatusDescriptor {
             "The processor load. Every measurement point represents the system load average for the last minute.",
             MetricDescriptor.Formatter.FRACTION,
             s -> Double.valueOf(s.getProcessorLoadAverage() * MetricDescriptor.FRACTION_MULTIPLIER).longValue(),
-            new ValueReducer<StatusSnapshot, Long>() {
+            new ValueReducer<>() {
                 @Override
                 public Long reduce(final List<StatusSnapshot> values) {
                     return (long) values.stream()

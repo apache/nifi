@@ -45,7 +45,7 @@ import java.util.Map;
  */
 public class CredentialsFactory {
 
-    private final List<CredentialsStrategy> strategies = new ArrayList<CredentialsStrategy>();
+    private final List<CredentialsStrategy> strategies = new ArrayList<>();
 
     public CredentialsFactory() {
         // Primary Credential Strategies
@@ -78,7 +78,7 @@ public class CredentialsFactory {
      */
     public Collection<ValidationResult> validate(final ValidationContext validationContext) {
         final CredentialsStrategy selectedStrategy = selectPrimaryStrategy(validationContext);
-        final ArrayList<ValidationResult> validationFailureResults = new ArrayList<ValidationResult>();
+        final ArrayList<ValidationResult> validationFailureResults = new ArrayList<>();
 
         for (CredentialsStrategy strategy : strategies) {
             final Collection<ValidationResult> strategyValidationFailures = strategy.validate(validationContext,

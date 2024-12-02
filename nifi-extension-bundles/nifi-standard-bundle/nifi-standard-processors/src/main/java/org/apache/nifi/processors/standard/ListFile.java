@@ -528,7 +528,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
         int maxDepth = recurse ? Integer.MAX_VALUE : 1;
 
-        final BiPredicate<Path, BasicFileAttributes> matcher = new BiPredicate<Path, BasicFileAttributes>() {
+        final BiPredicate<Path, BasicFileAttributes> matcher = new BiPredicate<>() {
             private long lastTimestamp = System.currentTimeMillis();
 
             @Override
@@ -579,7 +579,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             final long start = System.currentTimeMillis();
             final List<FileInfo> result = new LinkedList<>();
 
-            Files.walkFileTree(basePath, Set.of(FileVisitOption.FOLLOW_LINKS), maxDepth, new FileVisitor<Path>() {
+            Files.walkFileTree(basePath, Set.of(FileVisitOption.FOLLOW_LINKS), maxDepth, new FileVisitor<>() {
                 @Override
                 public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attributes) {
                     if (Files.isReadable(dir)) {
@@ -841,7 +841,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             this.logger = logger;
             this.maxDiskOperationMillis = maxDiskOperationMillis;
 
-            directoryToTimingInfo = new LinkedHashMap<Tuple<String, String>, TimingInfo>() {
+            directoryToTimingInfo = new LinkedHashMap<>() {
                 @Override
                 protected boolean removeEldestEntry(final Map.Entry<Tuple<String, String>, TimingInfo> eldest) {
                     return size() > maxEntries;

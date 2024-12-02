@@ -315,7 +315,7 @@ public class TestPutFile {
 
 
     private void emptyTestDirectory() throws IOException {
-        Files.walkFileTree(Paths.get("target/test/data/out/PutFile"), new FileVisitor<Path>() {
+        Files.walkFileTree(Paths.get("target/test/data/out/PutFile"), new FileVisitor<>() {
 
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {

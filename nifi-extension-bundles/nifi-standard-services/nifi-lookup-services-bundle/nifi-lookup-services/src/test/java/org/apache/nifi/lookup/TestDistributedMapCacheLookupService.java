@@ -64,7 +64,7 @@ public class TestDistributedMapCacheLookupService {
 
     static final class EphemeralMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
 
-        private Map<String, String> map = new HashMap<String, String>();
+        private Map<String, String> map = new HashMap<>();
 
         @OnEnabled
         public void onEnabled(final ConfigurationContext context) {

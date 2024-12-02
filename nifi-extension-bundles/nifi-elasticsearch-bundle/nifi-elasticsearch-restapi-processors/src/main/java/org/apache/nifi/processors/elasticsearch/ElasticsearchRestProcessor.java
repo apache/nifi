@@ -311,9 +311,11 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             final List<Map<String, Object>> sortList;
             final JsonNode sort = mapper.readTree(context.getProperty(SORT).evaluateAttributeExpressions(attributes).getValue());
             if (sort.isArray()) {
-                sortList = mapper.convertValue(sort, new TypeReference<List<Map<String, Object>>>() { });
+                sortList = mapper.convertValue(sort, new TypeReference<>() {
+                });
             } else {
-                sortList = Collections.singletonList(mapper.convertValue(sort, new TypeReference<Map<String, Object>>() { }));
+                sortList = Collections.singletonList(mapper.convertValue(sort, new TypeReference<>() {
+                }));
             }
             query.put("sort", new ArrayList<>(sortList));
         }

@@ -54,7 +54,7 @@ public class TestFlowConfigurationArchiveManager {
 
         // Clean up old files.
         if (Files.isDirectory(archiveDir.toPath())) {
-            Files.walkFileTree(archiveDir.toPath(), new SimpleFileVisitor<Path>() {
+            Files.walkFileTree(archiveDir.toPath(), new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     Files.delete(file);

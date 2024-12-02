@@ -25,8 +25,8 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class TestAbstractPolicyBasedAuthorizer {
@@ -320,13 +320,13 @@ public class TestAbstractPolicyBasedAuthorizer {
     @Test
     public void testEmptyAuthorizer() {
         AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
-        when(authorizer.getGroups()).thenReturn(new HashSet<Group>());
-        when(authorizer.getUsers()).thenReturn(new HashSet<User>());
-        when(authorizer.getAccessPolicies()).thenReturn(new HashSet<AccessPolicy>());
+        when(authorizer.getGroups()).thenReturn(new HashSet<>());
+        when(authorizer.getUsers()).thenReturn(new HashSet<>());
+        when(authorizer.getAccessPolicies()).thenReturn(new HashSet<>());
 
         final String fingerprint = authorizer.getFingerprint();
         assertNotNull(fingerprint);
-        assertTrue(fingerprint.length() > 0);
+        assertFalse(fingerprint.isEmpty());
     }
 
 }

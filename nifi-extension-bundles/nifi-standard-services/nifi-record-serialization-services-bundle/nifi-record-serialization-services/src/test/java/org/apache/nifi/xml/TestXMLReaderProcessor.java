@@ -33,7 +33,6 @@ import org.apache.nifi.util.StringUtils;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -88,6 +87,6 @@ public class TestXMLReaderProcessor extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return new HashSet<Relationship>() {{ add(SUCCESS); }};
+        return Set.of(SUCCESS);
     }
 }

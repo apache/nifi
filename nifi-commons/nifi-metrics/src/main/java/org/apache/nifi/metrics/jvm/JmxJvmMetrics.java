@@ -210,7 +210,7 @@ public class JmxJvmMetrics implements JvmMetrics {
     @Override
     public Map<Thread.State, Double> threadStatePercentages() {
         int totalThreadCount = (Integer) getMetric(THREADS_COUNT);
-        final Map<Thread.State, Double> threadStatePercentages = new HashMap<Thread.State, Double>();
+        final Map<Thread.State, Double> threadStatePercentages = new HashMap<>();
         for (Thread.State state : Thread.State.values()) {
             threadStatePercentages.put(state, (Integer) getMetric(REGISTRY_METRICSET_THREADS + "." + state.name().toLowerCase() + ".count") / (double) totalThreadCount);
         }

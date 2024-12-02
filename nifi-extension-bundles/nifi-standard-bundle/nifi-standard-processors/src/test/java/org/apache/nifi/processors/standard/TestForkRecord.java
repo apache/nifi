@@ -298,7 +298,7 @@ public class TestForkRecord {
         fields.add(new RecordField("accounts", accountsType));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final List<RecordField> fieldsWrite = new ArrayList<RecordField>();
+        final List<RecordField> fieldsWrite = new ArrayList<>();
         fieldsWrite.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fieldsWrite.add(new RecordField("amount", RecordFieldType.DOUBLE.getDataType()));
         final RecordSchema schemaWrite = new SimpleRecordSchema(fieldsWrite);

@@ -33,7 +33,7 @@ public class TestUpdateCounter {
         final TestRunner firstrunner = TestRunners.newTestRunner(new UpdateCounter());
         firstrunner.setProperty(UpdateCounter.COUNTER_NAME, "firewall");
         firstrunner.setProperty(UpdateCounter.DELTA, "1");
-        Map<String, String> attributes = new HashMap<String, String>();
+        Map<String, String> attributes = new HashMap<>();
         firstrunner.enqueue("", attributes);
         firstrunner.run();
         firstrunner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);

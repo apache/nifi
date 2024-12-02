@@ -77,7 +77,7 @@ public class TestClientTimeout {
 
     @Test
     public void testNiFiClientTimeoutSettings() {
-        testClientTimeoutSettings(new AbstractNiFiCommand<Result>("test", Result.class) {
+        testClientTimeoutSettings(new AbstractNiFiCommand<>("test", Result.class) {
             @Override
             public Result doExecute(NiFiClient client, Properties properties) {
                 return null;

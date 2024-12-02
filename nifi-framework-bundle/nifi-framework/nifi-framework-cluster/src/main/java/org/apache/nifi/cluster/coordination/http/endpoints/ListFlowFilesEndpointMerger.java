@@ -62,27 +62,24 @@ public class ListFlowFilesEndpointMerger extends AbstractSingleDTOEndpoint<Listi
 
     @Override
     protected void mergeResponses(ListingRequestDTO clientDto, Map<NodeIdentifier, ListingRequestDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        final Comparator<FlowFileSummaryDTO> comparator = new Comparator<FlowFileSummaryDTO>() {
-            @Override
-            public int compare(final FlowFileSummaryDTO dto1, final FlowFileSummaryDTO dto2) {
-                int positionCompare = dto1.getPosition().compareTo(dto2.getPosition());
-                if (positionCompare != 0) {
-                    return positionCompare;
-                }
-
-                final String address1 = dto1.getClusterNodeAddress();
-                final String address2 = dto2.getClusterNodeAddress();
-                if (address1 == null && address2 == null) {
-                    return 0;
-                }
-                if (address1 == null) {
-                    return 1;
-                }
-                if (address2 == null) {
-                    return -1;
-                }
-                return address1.compareTo(address2);
+        final Comparator<FlowFileSummaryDTO> comparator = (dto1, dto2) -> {
+            int positionCompare = dto1.getPosition().compareTo(dto2.getPosition());
+            if (positionCompare != 0) {
+                return positionCompare;
             }
+
+            final String address1 = dto1.getClusterNodeAddress();
+            final String address2 = dto2.getClusterNodeAddress();
+            if (address1 == null && address2 == null) {
+                return 0;
+            }
+            if (address1 == null) {
+                return 1;
+            }
+            if (address2 == null) {
+                return -1;
+            }
+            return address1.compareTo(address2);
         };
 
         final NavigableSet<FlowFileSummaryDTO> flowFileSummaries = new TreeSet<>(comparator);

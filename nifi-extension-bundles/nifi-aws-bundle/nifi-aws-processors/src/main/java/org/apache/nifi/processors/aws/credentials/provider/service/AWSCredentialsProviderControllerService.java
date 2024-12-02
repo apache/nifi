@@ -346,7 +346,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final CredentialsStrategy selectedStrategy = selectPrimaryStrategy(validationContext);
-        final ArrayList<ValidationResult> validationFailureResults = new ArrayList<ValidationResult>();
+        final ArrayList<ValidationResult> validationFailureResults = new ArrayList<>();
 
         for (CredentialsStrategy strategy : strategies) {
             final Collection<ValidationResult> strategyValidationFailures = strategy.validate(validationContext,

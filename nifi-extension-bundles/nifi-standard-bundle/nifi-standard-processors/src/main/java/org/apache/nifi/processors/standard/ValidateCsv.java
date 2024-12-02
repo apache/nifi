@@ -454,14 +454,14 @@ public class ValidateCsv extends AbstractProcessor {
         final boolean isWholeFFValidation = context.getProperty(VALIDATION_STRATEGY).getValue().equals(VALIDATE_WHOLE_FLOWFILE.getValue());
         final boolean includeAllViolations = context.getProperty(INCLUDE_ALL_VIOLATIONS).asBoolean();
 
-        final AtomicReference<Boolean> valid = new AtomicReference<Boolean>(true);
-        final AtomicReference<Boolean> isFirstLineValid = new AtomicReference<Boolean>(true);
-        final AtomicReference<Boolean> isFirstLineInvalid = new AtomicReference<Boolean>(true);
-        final AtomicReference<Integer> okCount = new AtomicReference<Integer>(0);
-        final AtomicReference<Integer> totalCount = new AtomicReference<Integer>(0);
-        final AtomicReference<FlowFile> invalidFF = new AtomicReference<FlowFile>(null);
-        final AtomicReference<FlowFile> validFF = new AtomicReference<FlowFile>(null);
-        final AtomicReference<String> validationError = new AtomicReference<String>(null);
+        final AtomicReference<Boolean> valid = new AtomicReference<>(true);
+        final AtomicReference<Boolean> isFirstLineValid = new AtomicReference<>(true);
+        final AtomicReference<Boolean> isFirstLineInvalid = new AtomicReference<>(true);
+        final AtomicReference<Integer> okCount = new AtomicReference<>(0);
+        final AtomicReference<Integer> totalCount = new AtomicReference<>(0);
+        final AtomicReference<FlowFile> invalidFF = new AtomicReference<>(null);
+        final AtomicReference<FlowFile> validFF = new AtomicReference<>(null);
+        final AtomicReference<String> validationError = new AtomicReference<>(null);
 
         if (!isWholeFFValidation) {
             invalidFF.set(session.create(flowFile));

@@ -23,17 +23,17 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
@@ -58,22 +58,16 @@ public class TestSplitXml {
         runner.setProperty(SplitXml.SPLIT_DEPTH, "0");
 
         runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"));
-        assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
+        assertThrows(AssertionError.class, runner::run);
     }
 
     @Test
     public void testDepthOf1() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new SplitXml());
-        runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"), new HashMap<String, String>() {
-            {
-                put(CoreAttributes.FILENAME.key(), "test.xml");
-            }
-        });
+        runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"), Map.of(CoreAttributes.FILENAME.key(), "test.xml"));
         runner.run();
         runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
-        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).get(0);
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).getFirst();
         originalFlowFile.assertAttributeExists(FRAGMENT_ID.key());
         originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "6");
         runner.assertTransferCount(SplitXml.REL_SPLIT, 6);
@@ -95,7 +89,7 @@ public class TestSplitXml {
         runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"));
         runner.run();
         runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
-        runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "12");
+        runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).getFirst().assertAttributeEquals(FRAGMENT_COUNT.key(), "12");
         runner.assertTransferCount(SplitXml.REL_SPLIT, 12);
 
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL));
@@ -109,7 +103,7 @@ public class TestSplitXml {
         runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"));
         runner.run();
         runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
-        runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "12");
+        runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).getFirst().assertAttributeEquals(FRAGMENT_COUNT.key(), "12");
         runner.assertTransferCount(SplitXml.REL_SPLIT, 12);
 
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL));
@@ -129,7 +123,7 @@ public class TestSplitXml {
         runner.enqueue(Paths.get("src/test/resources/TestXml/namespace.xml"));
         runner.run();
         runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
-        runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "2");
+        runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).getFirst().assertAttributeEquals(FRAGMENT_COUNT.key(), "2");
         runner.assertTransferCount(SplitXml.REL_SPLIT, 2);
 
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL));
@@ -141,10 +135,10 @@ public class TestSplitXml {
         split2.assertContentEquals(Paths.get("src/test/resources/TestXml/namespaceSplit2.xml"));
     }
 
-    public void parseFlowFiles(List<MockFlowFile> flowfiles) throws Exception, SAXException {
+    public void parseFlowFiles(List<MockFlowFile> flowfiles) throws Exception {
         for (MockFlowFile out : flowfiles) {
             final byte[] outData = out.toByteArray();
-            final String outXml = new String(outData, "UTF-8");
+            final String outXml = new String(outData, StandardCharsets.UTF_8);
             saxParser.parse(new InputSource(new StringReader(outXml)), new DefaultHandler());
         }
     }

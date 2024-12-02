@@ -27,6 +27,7 @@ public class JacksonVersionedProcessGroupSerializer extends JacksonSerializer<Ve
 
     @Override
     TypeReference<SerializationContainer<VersionedProcessGroup>> getDeserializeTypeRef() throws SerializationException {
-        return new TypeReference<SerializationContainer<VersionedProcessGroup>>() { };
+        return new TypeReference<>() {
+        };
     }
 }

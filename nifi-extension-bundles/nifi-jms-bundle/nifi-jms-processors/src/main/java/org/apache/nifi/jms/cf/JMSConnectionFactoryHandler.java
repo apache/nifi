@@ -133,7 +133,7 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
             } else {
                 String[] brokerList = brokerValue.split(",");
                 if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
-                    List<String> ibmConList = new ArrayList<String>();
+                    List<String> ibmConList = new ArrayList<>();
                     for (String broker : brokerList) {
                         String[] hostPort = broker.split(":");
                         if (hostPort.length == 2) {

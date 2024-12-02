@@ -86,11 +86,11 @@ public class StandardComponentManifestBuilder implements ComponentManifestBuilde
     @Override
     public ComponentManifest build() {
         final ComponentManifest componentManifest = new ComponentManifest();
-        componentManifest.setProcessors(new ArrayList<ProcessorDefinition>(processors));
-        componentManifest.setControllerServices(new ArrayList<ControllerServiceDefinition>(controllerServices));
-        componentManifest.setReportingTasks(new ArrayList<ReportingTaskDefinition>(reportingTasks));
-        componentManifest.setParameterProviders(new ArrayList<ParameterProviderDefinition>(parameterProviders));
-        componentManifest.setFlowAnalysisRules(new ArrayList<FlowAnalysisRuleDefinition>(flowAnalysisRules));
+        componentManifest.setProcessors(new ArrayList<>(processors));
+        componentManifest.setControllerServices(new ArrayList<>(controllerServices));
+        componentManifest.setReportingTasks(new ArrayList<>(reportingTasks));
+        componentManifest.setParameterProviders(new ArrayList<>(parameterProviders));
+        componentManifest.setFlowAnalysisRules(new ArrayList<>(flowAnalysisRules));
         return componentManifest;
     }
 

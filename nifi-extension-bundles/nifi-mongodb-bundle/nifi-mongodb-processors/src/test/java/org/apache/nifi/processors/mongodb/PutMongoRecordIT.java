@@ -160,26 +160,17 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         personFields.add(sportField);
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
         recordReader.addSchemaField("person", RecordFieldType.RECORD);
-        recordReader.addRecord(1, new MapRecord(personSchema, new HashMap<String, Object>() {{
-            put("name", "John Doe");
-            put("age", 48);
-            put("sport", "Soccer");
-        }}));
-        recordReader.addRecord(2, new MapRecord(personSchema, new HashMap<String, Object>() {{
-            put("name", "Jane Doe");
-            put("age", 47);
-            put("sport", "Tennis");
-        }}));
-        recordReader.addRecord(3, new MapRecord(personSchema, new HashMap<String, Object>() {{
-            put("name", "Sally Doe");
-            put("age", 47);
-            put("sport", "Curling");
-        }}));
-        recordReader.addRecord(4, new MapRecord(personSchema, new HashMap<String, Object>() {{
-            put("name", "Jimmy Doe");
-            put("age", 14);
-            put("sport", null);
-        }}));
+        recordReader.addRecord(1, new MapRecord(personSchema, Map.of("name", "John Doe",
+                "age", 48, "sport", "Soccer")));
+        recordReader.addRecord(2, new MapRecord(personSchema, Map.of("name", "Jane Doe", "age",
+                47, "sport", "Tennis")));
+        recordReader.addRecord(3, new MapRecord(personSchema, Map.of("name", "Sally Doe",
+                "age", 47, "sport", "Curling")));
+        Map<String, Object> mapWithNullValue = new HashMap<>();
+        mapWithNullValue.put("name", "Jimmy Doe");
+        mapWithNullValue.put("age", 14);
+        mapWithNullValue.put("sport", null);
+        recordReader.addRecord(4, new MapRecord(personSchema, mapWithNullValue));
 
         runner.enqueue("");
         runner.run();
@@ -230,35 +221,16 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             new RecordField("age", RecordFieldType.INT.getDataType())
         ));
 
-        List<List<Object[]>> inputs = Arrays.asList(
-            Arrays.asList(
-                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "name1");
-                    put("age", 21);
-                }})},
-                new Object[]{2, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "name2");
-                    put("age", 22);
-                }})}
-            )
+        List<List<Object[]>> inputs = List.of(
+                List.of(
+                        new Object[]{1, new MapRecord(personSchema, Map.of("name", "name1", "age", 21))},
+                        new Object[]{2, new MapRecord(personSchema, Map.of("name", "name2", "age", 22))}
+                )
         );
 
-        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
-            new HashMap<String, Object>() {{
-                put("id", 1);
-                put("person", new Document(new HashMap<String, Object>() {{
-                    put("name", "name1");
-                    put("age", 21);
-                }}));
-            }},
-            new HashMap<String, Object>() {{
-                put("id", 2);
-                put("person", new Document(new HashMap<String, Object>() {{
-                    put("name", "name2");
-                    put("age", 22);
-                }}));
-            }}
-        ));
+        Set<Map<String, Object>> expected = Set.of(
+            Map.of("id", 1, "person", new Document(Map.of("name", "name1", "age", 21))),
+            Map.of("id", 2, "person", new Document(Map.of("name", "name2", "age", 22))));
 
         testUpsertSuccess(runner, inputs, expected);
     }
@@ -279,43 +251,18 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
         List<List<Object[]>> inputs = Arrays.asList(
             Arrays.asList(
-                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "updating_name1");
-                    put("age", "age1".length());
-                }})},
-                new Object[]{2, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "name2");
-                    put("age", "updating_age2".length());
-                }})}
+                new Object[]{1, new MapRecord(personSchema, Map.of("name", "updating_name1", "age", "age1".length()))},
+                new Object[]{2, new MapRecord(personSchema, Map.of("name", "name2", "age", "updating_age2".length()))}
             ),
             Arrays.asList(
-                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "updated_name1");
-                    put("age", "age1".length());
-                }})},
-                new Object[]{2, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "name2");
-                    put("age", "updated_age2".length());
-                }})}
+                new Object[]{1, new MapRecord(personSchema, Map.of("name", "updated_name1", "age", "age1".length()))},
+                new Object[]{2, new MapRecord(personSchema, Map.of("name", "name2", "age", "updated_age2".length()))}
             )
         );
 
         Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
-            new HashMap<String, Object>() {{
-                put("id", 1);
-                put("person", new Document(new HashMap<String, Object>() {{
-                    put("name", "updated_name1");
-                    put("age", "age1".length());
-                }}));
-            }},
-            new HashMap<String, Object>() {{
-                put("id", 2);
-                put("person", new Document(new HashMap<String, Object>() {{
-                    put("name", "name2");
-                    put("age", "updated_age2".length());
-                }}));
-            }}
-        ));
+            Map.of("id", 1, "person", new Document(Map.of("name", "updated_name1", "age", "age1".length()))),
+            Map.of("id", 2, "person", new Document(Map.of("name", "name2", "age", "updated_age2".length())))));
 
         testUpsertSuccess(runner, inputs, expected);
     }
@@ -336,39 +283,17 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
         List<List<Object[]>> inputs = Arrays.asList(
             Collections.singletonList(
-                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "updating_name1");
-                    put("age", "updating_age1".length());
-                }})}
+                new Object[]{1, new MapRecord(personSchema, Map.of("name", "updating_name1", "age", "updating_age1".length()))}
             ),
             Arrays.asList(
-                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "updated_name1");
-                    put("age", "updated_age1".length());
-                }})},
-                new Object[]{2, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "inserted_name2");
-                    put("age", "inserted_age2".length());
-                }})}
+                new Object[]{1, new MapRecord(personSchema, Map.of("name", "updated_name1", "age", "updated_age1".length()))},
+                new Object[]{2, new MapRecord(personSchema, Map.of("name", "inserted_name2", "age", "inserted_age2".length()))}
             )
         );
 
-        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
-            new HashMap<String, Object>() {{
-                put("id", 1);
-                put("person", new Document(new HashMap<String, Object>() {{
-                    put("name", "updated_name1");
-                    put("age", "updated_age1".length());
-                }}));
-            }},
-            new HashMap<String, Object>() {{
-                put("id", 2);
-                put("person", new Document(new HashMap<String, Object>() {{
-                    put("name", "inserted_name2");
-                    put("age", "inserted_age2".length());
-                }}));
-            }}
-        ));
+        Set<Map<String, Object>> expected = Set.of(
+            Map.of("id", 1, "person", new Document(Map.of("name", "updated_name1", "age", "updated_age1".length()))),
+            Map.of("id", 2, "person", new Document(Map.of("name", "inserted_name2", "age", "inserted_age2".length()))));
 
         testUpsertSuccess(runner, inputs, expected);
     }
@@ -387,13 +312,10 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             new RecordField("age", RecordFieldType.INT.getDataType())
         ));
 
-        List<List<Object[]>> inputs = Arrays.asList(
-            Collections.singletonList(
-                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "unimportant");
-                    put("age", "unimportant".length());
-                }})}
-            )
+        List<List<Object[]>> inputs = List.of(
+                Collections.singletonList(
+                        new Object[]{1, new MapRecord(personSchema, Map.of("name", "unimportant", "age", "unimportant".length()))}
+                )
         );
 
         testUpsertFailure(runner, inputs);
@@ -429,35 +351,18 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
 
-        List<List<Object[]>> inputs = Arrays.asList(
-            Arrays.asList(
-                new Object[]{"A", "yellow"},
-                new Object[]{"B", "red"}
-            )
+        List<List<Object[]>> inputs = List.of(
+                Arrays.asList(
+                        new Object[]{"A", "yellow"},
+                        new Object[]{"B", "red"}
+                )
         );
 
-        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
-            new HashMap<String, Object>() {{
-                put("name", "Joe");
-                put("team", "A");
-                put("color", "yellow");
-            }},
-            new HashMap<String, Object>() {{
-                put("name", "Jane");
-                put("team", "A");
-                put("color", "yellow");
-            }},
-            new HashMap<String, Object>() {{
-                put("name", "Jeff");
-                put("team", "B");
-                put("color", "red");
-            }},
-            new HashMap<String, Object>() {{
-                put("name", "Janet");
-                put("team", "B");
-                put("color", "red");
-            }}
-        ));
+        Set<Map<String, Object>> expected = Set.of(
+            Map.of("name", "Joe", "team", "A", "color", "yellow"),
+            Map.of("name", "Jane", "team", "A", "color", "yellow"),
+            Map.of("name", "Jeff", "team", "B", "color", "red"),
+            Map.of("name", "Janet", "team", "B", "color", "red"));
 
         testUpsertSuccess(updateRunner, inputs, expected);
     }
@@ -492,43 +397,24 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
 
-        List<List<Object[]>> inputs = Arrays.asList(
-            Arrays.asList(
-                new Object[]{"A", "yellow"},
-                new Object[]{"B", "red"}
-            )
+        List<List<Object[]>> inputs = List.of(
+                Arrays.asList(
+                        new Object[]{"A", "yellow"},
+                        new Object[]{"B", "red"}
+                )
         );
 
-        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
-            new HashMap<String, Object>() {{
-                put("name", "Joe");
-                put("team", "A");
-                put("color", "yellow");
-            }},
-            new HashMap<String, Object>() {{
-                put("name", "Jane");
-                put("team", "A");
-                put("color", "yellow");
-            }},
-            new HashMap<String, Object>() {{
-                put("name", "Jeff");
-                put("team", "B");
-                put("color", "red");
-            }},
-            new HashMap<String, Object>() {{
-                put("name", "Janet");
-                put("team", "B");
-                put("color", "red");
-            }}
-        ));
+        Set<Map<String, Object>> expected = Set.of(
+            Map.of("name", "Joe", "team", "A", "color", "yellow"),
+            Map.of("name", "Jane", "team", "A", "color", "yellow"),
+            Map.of("name", "Jeff", "team", "B", "color", "red"),
+            Map.of("name", "Janet", "team", "B", "color", "red"));
 
         inputs.forEach(input -> {
             input.forEach(recordReader::addRecord);
 
             MockFlowFile flowFile = new MockFlowFile(1);
-            flowFile.putAttributes(new HashMap<String, String>() {{
-                put(AbstractMongoProcessor.ATTRIBUTE_MONGODB_UPDATE_MODE, "many");
-            }});
+            flowFile.putAttributes(Map.of(AbstractMongoProcessor.ATTRIBUTE_MONGODB_UPDATE_MODE, "many"));
             updateRunner.enqueue(flowFile);
             updateRunner.run();
         });
@@ -557,11 +443,11 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
 
-        List<List<Object[]>> inputs = Arrays.asList(
-            Arrays.asList(
-                new Object[]{"A", "yellow"},
-                new Object[]{"B", "red"}
-            )
+        List<List<Object[]>> inputs = List.of(
+                Arrays.asList(
+                        new Object[]{"A", "yellow"},
+                        new Object[]{"B", "red"}
+                )
         );
 
         testUpsertFailure(runner, inputs);
@@ -581,14 +467,9 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             new RecordField("age", RecordFieldType.INT.getDataType())
         ));
 
-        List<List<Object[]>> inputs = Arrays.asList(
-            Collections.singletonList(
-                new Object[]{1, new MapRecord(personSchema, new HashMap<String, Object>() {{
-                    put("name", "unimportant");
-                    put("age", "unimportant".length());
-                }})}
-            )
-        );
+        List<List<Object[]>> inputs = List.of(
+                Collections.singletonList(
+                        new Object[]{1, new MapRecord(personSchema, Map.of("name", "unimportant", "age", "unimportant".length()))}));
 
         testUpsertFailure(runner, inputs);
     }

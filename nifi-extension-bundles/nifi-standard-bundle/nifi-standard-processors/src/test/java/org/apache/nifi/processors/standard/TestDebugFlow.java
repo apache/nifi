@@ -50,7 +50,7 @@ public class TestDebugFlow {
             String filename = "testFile" + (n + 1) + ".txt";
             String content = "Hello World " + (n + 1) + "!";
             contents.put(n, content);
-            attribs.put(n, new HashMap<String, String>());
+            attribs.put(n, new HashMap<>());
             attribs.get(n).put(CoreAttributes.FILENAME.key(), filename);
             attribs.get(n).put(CoreAttributes.UUID.key(), "TESTING-FILE-" + (n + 1) + "-TESTING");
             namesToContent.put(filename, content);

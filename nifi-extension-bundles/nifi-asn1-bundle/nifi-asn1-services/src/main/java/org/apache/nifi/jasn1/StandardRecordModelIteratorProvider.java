@@ -36,7 +36,7 @@ public class StandardRecordModelIteratorProvider implements RecordModelIteratorP
     @SuppressWarnings("unchecked")
     public Iterator<BerType> iterator(InputStream inputStream, ComponentLog logger, Class<? extends BerType> rootClass, String recordField, Field seqOfField) {
         if (StringUtils.isEmpty(recordField)) {
-            return new Iterator<BerType>() {
+            return new Iterator<>() {
                 @Override
                 public boolean hasNext() {
                     boolean hasNext;

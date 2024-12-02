@@ -178,8 +178,10 @@ public class JMSPublisherConsumerIT {
             ObjectMapper objectMapper = new ObjectMapper();
 
             try {
-                Map<String, Object> actual = objectMapper.readValue(response.getMessageBody(), new TypeReference<Map<String, Object>>() { });
-                Map<String, Object> expected = objectMapper.readValue(expectedJson.getBytes(), new TypeReference<Map<String, Object>>() { });
+                Map<String, Object> actual = objectMapper.readValue(response.getMessageBody(), new TypeReference<>() {
+                });
+                Map<String, Object> expected = objectMapper.readValue(expectedJson.getBytes(), new TypeReference<>() {
+                });
 
                 assertEquals(expected, actual);
             } catch (IOException e) {

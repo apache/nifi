@@ -91,7 +91,7 @@ public class TestLeakyBucketThrottler {
         try (final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024);
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             // create 3 threads, each sending ~2 MB
-            final List<Thread> threads = new ArrayList<Thread>();
+            final List<Thread> threads = new ArrayList<>();
             for (int i = 0; i < 3; i++) {
                 final Thread t = new WriterThread(i, throttler, baos);
                 threads.add(t);

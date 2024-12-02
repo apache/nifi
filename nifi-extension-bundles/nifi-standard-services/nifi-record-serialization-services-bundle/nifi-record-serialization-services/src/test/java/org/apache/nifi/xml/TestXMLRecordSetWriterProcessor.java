@@ -37,7 +37,6 @@ import org.apache.nifi.serialization.record.RecordSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -90,12 +89,12 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return new ArrayList<PropertyDescriptor>() {{ add(XML_WRITER); add(MULTIPLE_RECORDS); }};
+        return List.of(XML_WRITER, MULTIPLE_RECORDS);
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return new HashSet<Relationship>() {{ add(SUCCESS); }};
+        return Set.of(SUCCESS);
     }
 
     protected static RecordSet getRecordSet(boolean multipleRecords) {

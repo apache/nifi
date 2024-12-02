@@ -56,16 +56,13 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
 
         final AtomicInteger threadIndex = new AtomicInteger(0);
         final ThreadFactory defaultThreadFactory = getThreadFactory();
-        setThreadFactory(new ThreadFactory() {
-            @Override
-            public Thread newThread(final Runnable r) {
-                final Thread t = defaultThreadFactory.newThread(r);
-                if (daemon) {
-                    t.setDaemon(true);
-                }
-                t.setName(threadNamePrefix + " Thread-" + threadIndex.incrementAndGet());
-                return t;
+        setThreadFactory(r -> {
+            final Thread t = defaultThreadFactory.newThread(r);
+            if (daemon) {
+                t.setDaemon(true);
             }
+            t.setName(threadNamePrefix + " Thread-" + threadIndex.incrementAndGet());
+            return t;
         });
     }
 
@@ -116,15 +113,12 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     }
 
     private <T> Callable<T> wrap(final Callable<T> callable) {
-        return new Callable<T>() {
-            @Override
-            public T call() throws Exception {
-                try {
-                    return callable.call();
-                } catch (final Throwable t) {
-                    logger.error("Uncaught Exception in Callable task", t);
-                    throw t;
-                }
+        return () -> {
+            try {
+                return callable.call();
+            } catch (final Throwable t) {
+                logger.error("Uncaught Exception in Callable task", t);
+                throw t;
             }
         };
     }

@@ -21,8 +21,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.nifi.processors.standard.DuplicateFlowFile.COPY_INDEX_ATTRIBUTE;
 
@@ -51,9 +51,7 @@ public class TestDuplicateFlowFile {
         final TestRunner runner = TestRunners.newTestRunner(DuplicateFlowFile.class);
         runner.setProperty(DuplicateFlowFile.NUM_COPIES, "${num.copies}");
 
-        runner.enqueue("hello".getBytes(), new HashMap<String, String>() {{
-            put("num.copies", "100");
-        }});
+        runner.enqueue("hello".getBytes(), Map.of("num.copies", "100"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(DuplicateFlowFile.REL_SUCCESS, 101);

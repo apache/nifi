@@ -190,7 +190,7 @@ public class ReflectionUtils {
 
     private static List<Method> discoverMethodsWithAnnotations(final Class<?> clazz, final Class<? extends Annotation>[] annotations) {
         // Consider two methods equal if they have the same name and same parameter types.
-        final Comparator<Method> comparator = Comparator.comparing(Method::getName).thenComparing(new Comparator<Method>() {
+        final Comparator<Method> comparator = Comparator.comparing(Method::getName).thenComparing(new Comparator<>() {
             @Override
             public int compare(final Method o1, final Method o2) {
                 return createString(o1.getParameterTypes()).compareTo(createString(o2.getParameterTypes()));

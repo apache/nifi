@@ -52,7 +52,7 @@ public class SearchState<T> {
     }
 
     void addResult(final SearchTerm matchingTerm) {
-        final List<Long> indexes = (resultMap.containsKey(matchingTerm)) ? resultMap.get(matchingTerm) : new ArrayList<Long>(5);
+        final List<Long> indexes = (resultMap.containsKey(matchingTerm)) ? resultMap.get(matchingTerm) : new ArrayList<>(5);
         indexes.add(bytesRead);
         resultMap.put(matchingTerm, indexes);
     }

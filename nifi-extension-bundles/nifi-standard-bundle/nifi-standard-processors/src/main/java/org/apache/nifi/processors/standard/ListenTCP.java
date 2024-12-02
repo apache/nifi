@@ -285,7 +285,7 @@ public class ListenTCP extends AbstractProcessor {
 
     private EventBatcher<ByteArrayMessage> getEventBatcher() {
         if (eventBatcher == null) {
-            eventBatcher = new EventBatcher<ByteArrayMessage>(getLogger(), events, errorEvents) {
+            eventBatcher = new EventBatcher<>(getLogger(), events, errorEvents) {
                 @Override
                 protected String getBatchKey(ByteArrayMessage event) {
                     return event.getSender();

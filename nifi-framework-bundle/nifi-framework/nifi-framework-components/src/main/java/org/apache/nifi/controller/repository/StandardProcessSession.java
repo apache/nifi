@@ -984,13 +984,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         final long commitNanos = System.nanoTime();
         final List<ProvenanceEventRecord> autoTermEvents = checkpoint.autoTerminatedEvents;
-        final Iterable<ProvenanceEventRecord> iterable = new Iterable<ProvenanceEventRecord>() {
+        final Iterable<ProvenanceEventRecord> iterable = new Iterable<>() {
             final Iterator<ProvenanceEventRecord> recordsToSubmitIterator = recordsToSubmit.iterator();
             final Iterator<ProvenanceEventRecord> autoTermIterator = autoTermEvents == null ? null : autoTermEvents.iterator();
 
             @Override
             public Iterator<ProvenanceEventRecord> iterator() {
-                return new Iterator<ProvenanceEventRecord>() {
+                return new Iterator<>() {
                     @Override
                     public boolean hasNext() {
                         return recordsToSubmitIterator.hasNext() || autoTermIterator != null && autoTermIterator.hasNext();
@@ -2536,46 +2536,42 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
 
         try {
-            final Iterable<ProvenanceEventRecord> iterable = new Iterable<ProvenanceEventRecord>() {
-                @Override
-                public Iterator<ProvenanceEventRecord> iterator() {
-                    final Iterator<ProvenanceEventRecord> expiredEventIterator = expiredReporter.getEvents().iterator();
-                    final Iterator<ProvenanceEventRecord> enrichingIterator = new Iterator<ProvenanceEventRecord>() {
-                        @Override
-                        public boolean hasNext() {
-                            return expiredEventIterator.hasNext();
+            final Iterable<ProvenanceEventRecord> iterable = () -> {
+                final Iterator<ProvenanceEventRecord> expiredEventIterator = expiredReporter.getEvents().iterator();
+
+                return new Iterator<>() {
+                    @Override
+                    public boolean hasNext() {
+                        return expiredEventIterator.hasNext();
+                    }
+
+                    @Override
+                    public ProvenanceEventRecord next() {
+                        final ProvenanceEventRecord event = expiredEventIterator.next();
+                        final ProvenanceEventBuilder enriched = context.createProvenanceEventBuilder().fromEvent(event);
+                        final FlowFileRecord record = recordIdMap.get(event.getFlowFileUuid());
+                        if (record == null) {
+                            return null;
                         }
 
-                        @Override
-                        public ProvenanceEventRecord next() {
-                            final ProvenanceEventRecord event = expiredEventIterator.next();
-                            final ProvenanceEventBuilder enriched = context.createProvenanceEventBuilder().fromEvent(event);
-                            final FlowFileRecord record = recordIdMap.get(event.getFlowFileUuid());
-                            if (record == null) {
-                                return null;
-                            }
-
-                            final ContentClaim claim = record.getContentClaim();
-                            if (claim != null) {
-                                final ResourceClaim resourceClaim = claim.getResourceClaim();
-                                enriched.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                        final ContentClaim claim = record.getContentClaim();
+                        if (claim != null) {
+                            final ResourceClaim resourceClaim = claim.getResourceClaim();
+                            enriched.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
                                     record.getContentClaimOffset() + claim.getOffset(), record.getSize());
-                                enriched.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                            enriched.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
                                     record.getContentClaimOffset() + claim.getOffset(), record.getSize());
-                            }
-
-                            enriched.setAttributes(record.getAttributes(), Collections.<String, String> emptyMap());
-                            return enriched.build();
                         }
 
-                        @Override
-                        public void remove() {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
+                        enriched.setAttributes(record.getAttributes(), Collections.<String, String>emptyMap());
+                        return enriched.build();
+                    }
 
-                    return enrichingIterator;
-                }
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
             };
 
             context.getProvenanceRepository().registerEvents(iterable);

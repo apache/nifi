@@ -597,7 +597,7 @@ public class TestFileSystemRepository {
     }
 
     @Test
-    public void testSizeWithNoContent() throws IOException {
+    public void testSizeWithNoContent() {
         final ContentClaim claim =
          new StandardContentClaim(new StandardResourceClaim(claimManager,
                  "container1", "section 1", "1", false), 0L);
@@ -606,7 +606,7 @@ public class TestFileSystemRepository {
     }
 
     @Test
-    public void testReadWithNoContent() throws IOException {
+    public void testReadWithNoContent() {
         final ContentClaim claim = new StandardContentClaim(new StandardResourceClaim(claimManager, "container1", "section 1", "1", false), 0L);
 
         assertThrows(ContentNotFoundException.class,
@@ -709,14 +709,14 @@ public class TestFileSystemRepository {
     public void testMarkDestructableDoesNotArchiveIfStreamOpenAndWrittenTo() throws IOException, InterruptedException {
         FileSystemRepository repository = null;
         try {
-            final List<Path> archivedPaths = Collections.synchronizedList(new ArrayList<Path>());
+            final List<Path> archivedPaths = Collections.synchronizedList(new ArrayList<>());
 
             // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
             shutdown();
 
             repository = new FileSystemRepository(nifiProperties) {
                 @Override
-                protected boolean archive(Path curPath) throws IOException {
+                protected boolean archive(Path curPath) {
                     archivedPaths.add(curPath);
                     return true;
                 }
@@ -760,14 +760,14 @@ public class TestFileSystemRepository {
     public void testWriteCannotProvideNullOutput() throws IOException {
         FileSystemRepository repository = null;
         try {
-            final List<Path> archivedPathsWithOpenStream = Collections.synchronizedList(new ArrayList<Path>());
+            final List<Path> archivedPathsWithOpenStream = Collections.synchronizedList(new ArrayList<>());
 
             // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
             shutdown();
 
             repository = new FileSystemRepository(nifiProperties) {
                 @Override
-                protected boolean archive(Path curPath) throws IOException {
+                protected boolean archive(Path curPath) {
                     if (getOpenStreamCount() > 0) {
                         archivedPathsWithOpenStream.add(curPath);
                     }
@@ -845,7 +845,7 @@ public class TestFileSystemRepository {
 
             repository = new FileSystemRepository(nifiProperties) {
                 @Override
-                protected boolean archive(Path curPath) throws IOException {
+                protected boolean archive(Path curPath) {
                     if (getOpenStreamCount() > 0) {
                         archivedPathsWithOpenStream.add(curPath);
                     }

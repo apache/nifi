@@ -27,6 +27,7 @@ public class JacksonFlowContentSerializer extends JacksonSerializer<FlowContent>
 
     @Override
     TypeReference<SerializationContainer<FlowContent>> getDeserializeTypeRef() throws SerializationException {
-        return new TypeReference<SerializationContainer<org.apache.nifi.registry.serialization.FlowContent>>() { };
+        return new TypeReference<>() {
+        };
     }
 }

@@ -54,7 +54,7 @@ public class TransformJSONResource extends AbstractStandardResource {
 
             if (evaluateAttributes) {
                 PreparedQuery preparedQuery = Query.prepare(specificationDTO.getSpecification());
-                Map<String, String> attributes = specificationDTO.getExpressionLanguageAttributes() == null ? Collections.unmodifiableMap(new HashMap<String, String>())
+                Map<String, String> attributes = specificationDTO.getExpressionLanguageAttributes() == null ? Collections.unmodifiableMap(new HashMap<>())
                         : specificationDTO.getExpressionLanguageAttributes();
                 specification = preparedQuery.evaluateExpressions(new StandardEvaluationContext(attributes), null);
             } else {

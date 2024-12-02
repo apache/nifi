@@ -66,8 +66,6 @@ import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
 import java.text.Collator;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -427,12 +425,9 @@ public class RuleResource {
         }
 
         // sort the rules
-        Collections.sort(ruleDtos, new Comparator<RuleDTO>() {
-            @Override
-            public int compare(RuleDTO r1, RuleDTO r2) {
-                final Collator collator = Collator.getInstance(Locale.US);
-                return collator.compare(r1.getName(), r2.getName());
-            }
+        ruleDtos.sort((r1, r2) -> {
+            final Collator collator = Collator.getInstance(Locale.US);
+            return collator.compare(r1.getName(), r2.getName());
         });
 
         // create the response entity

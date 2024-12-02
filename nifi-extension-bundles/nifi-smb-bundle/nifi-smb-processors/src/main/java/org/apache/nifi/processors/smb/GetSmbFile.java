@@ -241,7 +241,7 @@ public class GetSmbFile extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(HOSTNAME);
         descriptors.add(SHARE);
         descriptors.add(DIRECTORY);
@@ -262,7 +262,7 @@ public class GetSmbFile extends AbstractProcessor {
         descriptors.add(TIMEOUT);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
-        final Set<Relationship> relationships = new HashSet<Relationship>();
+        final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_SUCCESS);
         this.relationships = Collections.unmodifiableSet(relationships);
     }

@@ -267,7 +267,7 @@ public class MockPropertyValue implements PropertyValue {
         }
 
         if (additionalAttributes == null ) {
-            additionalAttributes = new HashMap<String, String>();
+            additionalAttributes = new HashMap<>();
         }
         // we need a new map here because additionalAttributes can be an unmodifiable map when it's the FlowFile attributes
         final Map<String, String> attAndEnvVarRegistry = new HashMap<>(additionalAttributes);

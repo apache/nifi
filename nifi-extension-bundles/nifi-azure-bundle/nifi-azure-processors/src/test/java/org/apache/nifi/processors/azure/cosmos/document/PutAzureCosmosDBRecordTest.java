@@ -142,7 +142,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
         recordReader.addSchemaField("person", RecordFieldType.RECORD);
 
-        recordReader.addRecord("1", "A", new MapRecord(personSchema, new HashMap<String, Object>() {
+        recordReader.addRecord("1", "A", new MapRecord(personSchema, new HashMap<>() {
             private static final long serialVersionUID = -3185956498135742190L;
             {
                 put("name", "John Doe");
@@ -150,7 +150,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
                 put("sport", "Soccer");
             }
         }));
-        recordReader.addRecord("2", "B", new MapRecord(personSchema, new HashMap<String, Object>() {
+        recordReader.addRecord("2", "B", new MapRecord(personSchema, new HashMap<>() {
             private static final long serialVersionUID = 1L;
             {
                 put("name", "Jane Doe");
@@ -158,7 +158,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
                 put("sport", "Tennis");
             }
         }));
-        recordReader.addRecord("3", "A", new MapRecord(personSchema, new HashMap<String, Object>() {
+        recordReader.addRecord("3", "A", new MapRecord(personSchema, new HashMap<>() {
             private static final long serialVersionUID = -1329194249439570573L;
             {
                 put("name", "Sally Doe");
@@ -166,7 +166,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
                 put("sport", "Curling");
             }
         }));
-        recordReader.addRecord("4", "C", new MapRecord(personSchema, new HashMap<String, Object>() {
+        recordReader.addRecord("4", "C", new MapRecord(personSchema, new HashMap<>() {
             private static final long serialVersionUID = -1329194249439570574L;
             {
                 put("name", "Jimmy Doe");

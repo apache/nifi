@@ -172,7 +172,7 @@ public class TestGetHDFSFileInfo {
         runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_DIRS, "true");
         runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_FILES, "true");
         runner.setProperty(GetHDFSFileInfo.DESTINATION, GetHDFSFileInfo.DESTINATION_CONTENT);
-        runner.enqueue("foo", new HashMap<String, String>());
+        runner.enqueue("foo", new HashMap<>());
 
         runner.run();
 

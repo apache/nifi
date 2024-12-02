@@ -67,8 +67,7 @@ public class PGListProcessors extends AbstractNiFiCommand<ProcessorsResult> {
 
         ProcessGroupFlowEntity entity = client.getFlowClient().getProcessGroup(pgId);
         final FlowDTO flow = entity.getProcessGroupFlow().getFlow();
-        final Set<ProcessorEntity> processors = new HashSet<ProcessorEntity>();
-        processors.addAll(getProcessors(client, flow, filter));
+        final Set<ProcessorEntity> processors = new HashSet<>(getProcessors(client, flow, filter));
 
         ProcessorsEntity processorsEntity = new ProcessorsEntity();
         processorsEntity.setProcessors(processors);
@@ -77,7 +76,7 @@ public class PGListProcessors extends AbstractNiFiCommand<ProcessorsResult> {
     }
 
     private Set<ProcessorEntity> getProcessors(final NiFiClient client, final FlowDTO flow, final String filter) throws NiFiClientException, IOException {
-        final Set<ProcessorEntity> processors = new HashSet<ProcessorEntity>();
+        final Set<ProcessorEntity> processors = new HashSet<>();
         for (ProcessGroupEntity pg : flow.getProcessGroups()) {
             processors.addAll(getProcessors(client, pg, filter));
         }

@@ -88,13 +88,7 @@ public class ExecuteGraphQueryRecordTest {
         setupGraphClient(false);
         List<Map<String, Object>> test = new ArrayList<>();
         Map<String, Object> tempMap = new HashMap<>();
-        tempMap.put("M", new ArrayList<Integer>() {
-            {
-                add(1);
-                add(2);
-                add(3);
-            }
-        });
+        tempMap.put("M", List.of(1, 2, 3));
         test.add(tempMap);
 
         byte[] json = JsonOutput.toJson(test).getBytes();

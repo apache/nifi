@@ -79,7 +79,7 @@ public class TestSplitAvro {
             userList.add(user);
         }
 
-        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>(schema))) {
+        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(new GenericDatumWriter<>(schema))) {
             dataFileWriter.setMeta(META_KEY1, META_VALUE1);
             dataFileWriter.setMeta(META_KEY2, META_VALUE2);
             dataFileWriter.setMeta(META_KEY3, META_VALUE3.getBytes("UTF-8"));
@@ -112,7 +112,7 @@ public class TestSplitAvro {
         final TestRunner runner = TestRunners.newTestRunner(new SplitAvro());
 
         final String filename = "users.avro";
-        runner.enqueue(users.toByteArray(), new HashMap<String, String>() {{
+        runner.enqueue(users.toByteArray(), new HashMap<>() {{
             put(CoreAttributes.FILENAME.key(), filename);
         }});
         runner.run();
@@ -187,7 +187,7 @@ public class TestSplitAvro {
 
         for (final MockFlowFile flowFile : flowFiles) {
             try (final ByteArrayInputStream in = new ByteArrayInputStream(flowFile.toByteArray());
-                 final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+                 final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
                 assertFalse(reader.getMetaKeys().contains(META_KEY1));
                 assertFalse(reader.getMetaKeys().contains(META_KEY2));
                 assertFalse(reader.getMetaKeys().contains(META_KEY3));
@@ -303,7 +303,7 @@ public class TestSplitAvro {
     private void checkDataFileSplitSize(List<MockFlowFile> flowFiles, int expectedRecordsPerSplit, boolean checkMetadata) throws IOException {
         for (final MockFlowFile flowFile : flowFiles) {
             try (final ByteArrayInputStream in = new ByteArrayInputStream(flowFile.toByteArray());
-                final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+                final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
 
                 int count = 0;
                 GenericRecord record = null;
@@ -328,7 +328,7 @@ public class TestSplitAvro {
         int count = 0;
         for (final MockFlowFile flowFile : flowFiles) {
             try (final ByteArrayInputStream in = new ByteArrayInputStream(flowFile.toByteArray());
-                 final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+                 final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
 
                 GenericRecord record = null;
                 while (reader.hasNext()) {

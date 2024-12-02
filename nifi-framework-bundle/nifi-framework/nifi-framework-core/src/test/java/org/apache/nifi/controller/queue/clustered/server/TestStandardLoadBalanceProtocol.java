@@ -107,19 +107,16 @@ public class TestStandardLoadBalanceProtocol {
         flowController = Mockito.mock(FlowController.class);
         claimContents = new ConcurrentHashMap<>();
 
-        Mockito.doAnswer(new Answer<ContentClaim>() {
-            @Override
-            public ContentClaim answer(final InvocationOnMock invocation) throws Throwable {
-                final ContentClaim contentClaim = Mockito.mock(ContentClaim.class);
-                final ResourceClaim resourceClaim = Mockito.mock(ResourceClaim.class);
-                when(contentClaim.getResourceClaim()).thenReturn(resourceClaim);
-                return contentClaim;
-            }
+        Mockito.doAnswer((Answer<ContentClaim>) invocation -> {
+            final ContentClaim contentClaim = Mockito.mock(ContentClaim.class);
+            final ResourceClaim resourceClaim = Mockito.mock(ResourceClaim.class);
+            when(contentClaim.getResourceClaim()).thenReturn(resourceClaim);
+            return contentClaim;
         }).when(contentRepo).create(Mockito.anyBoolean());
 
         Mockito.doAnswer(new Answer<OutputStream>() {
             @Override
-            public OutputStream answer(final InvocationOnMock invocation) throws Throwable {
+            public OutputStream answer(final InvocationOnMock invocation) {
                 final ContentClaim contentClaim = invocation.getArgument(0);
 
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream() {
@@ -143,36 +140,24 @@ public class TestStandardLoadBalanceProtocol {
         when(flowFileQueue.getLoadBalanceCompression()).thenReturn(LoadBalanceCompression.DO_NOT_COMPRESS);
         when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
 
-        Mockito.doAnswer(new Answer<Void>() {
-            @Override
-            public Void answer(final InvocationOnMock invocation) throws Throwable {
-                flowFileQueuePutRecords.addAll(invocation.getArgument(0));
-                return null;
-            }
+        Mockito.doAnswer((Answer<Void>) invocation -> {
+            flowFileQueuePutRecords.addAll(invocation.getArgument(0));
+            return null;
         }).when(flowFileQueue).putAll(anyCollection());
 
-        Mockito.doAnswer(new Answer<Void>() {
-            @Override
-            public Void answer(final InvocationOnMock invocation) throws Throwable {
-                flowFileQueueReceiveRecords.addAll(invocation.getArgument(0));
-                return null;
-            }
+        Mockito.doAnswer((Answer<Void>) invocation -> {
+            flowFileQueueReceiveRecords.addAll(invocation.getArgument(0));
+            return null;
         }).when(flowFileQueue).receiveFromPeer(anyCollection());
 
-        Mockito.doAnswer(new Answer<Void>() {
-            @Override
-            public Void answer(final InvocationOnMock invocation) throws Throwable {
-                flowFileRepoUpdateRecords.addAll(invocation.getArgument(0));
-                return null;
-            }
+        Mockito.doAnswer((Answer<Void>) invocation -> {
+            flowFileRepoUpdateRecords.addAll(invocation.getArgument(0));
+            return null;
         }).when(flowFileRepo).updateRepository(anyCollection());
 
-        Mockito.doAnswer(new Answer<Void>() {
-            @Override
-            public Void answer(final InvocationOnMock invocation) throws Throwable {
-                provRepoUpdateRecords.addAll(invocation.getArgument(0));
-                return null;
-            }
+        Mockito.doAnswer((Answer<Void>) invocation -> {
+            provRepoUpdateRecords.addAll(invocation.getArgument(0));
+            return null;
         }).when(provenanceRepo).registerEvents(anyCollection());
     }
 
