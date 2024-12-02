@@ -43,13 +43,13 @@ import org.apache.nifi.util.TestRunners;
 import org.ietf.jgss.GSSException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 import javax.security.sasl.SaslException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
@@ -710,7 +710,7 @@ public class PutHDFSTest {
     }
 
     @Test
-    public void testPutFileFromLocalFile() throws Exception {
+    public void testPutFileFromLocalFile(@TempDir java.nio.file.Path tempDir) throws Exception {
         final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
         final PutHDFS proc = new TestablePutHDFS(spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
@@ -723,7 +723,6 @@ public class PutHDFSTest {
 
         String serviceId = FileResourceService.class.getSimpleName();
         FileResourceService service = new StandardFileResourceService();
-        byte[] FILE_DATA = "0123456789".getBytes(StandardCharsets.UTF_8);
         byte[] EMPTY_CONTENT = new byte[0];
         runner.addControllerService(serviceId, service);
         runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
@@ -731,8 +730,8 @@ public class PutHDFSTest {
 
         runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
         runner.setProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE, serviceId);
-        java.nio.file.Path tempFilePath = Files.createTempFile("PutHDFS_testPutFileFromLocalFile_", "");
-        Files.write(tempFilePath, FILE_DATA);
+        java.nio.file.Path tempFilePath = tempDir.resolve("PutHDFS_testPutFileFromLocalFile_" + System.currentTimeMillis());
+        Files.writeString(tempFilePath, "0123456789");
 
         Map<String, String> attributes = new HashMap<>();
 

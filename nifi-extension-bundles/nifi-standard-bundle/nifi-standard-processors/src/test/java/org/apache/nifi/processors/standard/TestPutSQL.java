@@ -16,8 +16,27 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
+import jakarta.xml.bind.DatatypeConverter;
+import org.apache.commons.io.FileUtils;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,23 +59,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.Function;
-import jakarta.xml.bind.DatatypeConverter;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.processor.FlowFileFilter;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
@@ -76,6 +78,9 @@ public class TestPutSQL {
     private static final String createPersonsAutoId = "CREATE TABLE PERSONS_AI (id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1), name VARCHAR(100), code INTEGER check(code <= 100))";
 
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
+    private static final Path SYSTEM_TEMP_DIR = Paths.get(System.getProperty("java.io.tmpdir"));
+    private static final String TEST_DIRECTORY_NAME = "%s-%s".formatted(TestPutSQL.class.getSimpleName(), UUID.randomUUID());
+    private static final Path DB_DIRECTORY = SYSTEM_TEMP_DIR.resolve(TEST_DIRECTORY_NAME);
     private static final Random random = new Random();
 
     /**
@@ -85,11 +90,9 @@ public class TestPutSQL {
     static protected DBCPService service;
 
     @BeforeAll
-    public static void setupDerbyLog() throws ProcessException, SQLException {
+    public static void setupBeforeAll() throws ProcessException, SQLException {
         System.setProperty(DERBY_LOG_PROPERTY, "target/derby.log");
-        final File dbDir = new File(getEmptyDirectory(), "db");
-        dbDir.deleteOnExit();
-        service = new MockDBCPService(dbDir.getAbsolutePath());
+        service = new MockDBCPService(DB_DIRECTORY.toAbsolutePath().toString());
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(createPersons);
@@ -99,8 +102,14 @@ public class TestPutSQL {
     }
 
     @AfterAll
-    public static void cleanupDerbyLog() {
+    public static void cleanupAfterAll() {
         System.clearProperty(DERBY_LOG_PROPERTY);
+
+        try {
+            FileUtils.deleteDirectory(DB_DIRECTORY.toFile());
+        } catch (final Exception ignored) {
+
+        }
     }
 
     @Test
@@ -1756,11 +1765,6 @@ public class TestPutSQL {
         return runner;
     }
 
-    private static File getEmptyDirectory() {
-        final String randomDirectory = String.format("%s-%s", TestPutSQL.class.getSimpleName(), UUID.randomUUID());
-        return Paths.get(getSystemTemporaryDirectory(), randomDirectory).toFile();
-    }
-
     private static void assertSQLExceptionRelatedAttributes(final TestRunner runner, Relationship relationship) {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
         flowFiles.forEach(ff -> {
@@ -1802,9 +1806,5 @@ public class TestPutSQL {
         return ff.getAttribute("error.message") != null
                 && ff.getAttribute("error.code") != null
                 && ff.getAttribute("error.sql.state") != null;
-    }
-
-    private static String getSystemTemporaryDirectory() {
-        return System.getProperty("java.io.tmpdir");
     }
 }
