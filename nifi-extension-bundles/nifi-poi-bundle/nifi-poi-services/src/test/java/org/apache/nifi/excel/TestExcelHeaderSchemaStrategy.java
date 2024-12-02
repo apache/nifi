@@ -36,13 +36,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -65,7 +63,7 @@ public class TestExcelHeaderSchemaStrategy {
      */
     @AfterAll
     public static void cleanUpAfterAll() {
-        final Path tempDir = Paths.get(System.getProperty("java.io.tmpdir") + File.separator + "poifiles");
+        final Path tempDir = Path.of(System.getProperty("java.io.tmpdir")).resolve("poifiles");
         try (DirectoryStream<Path> directoryStream = newDirectoryStream(tempDir, "tmp-[0-9]*.xlsx")) {
             for (Path tmpFile : directoryStream) {
                 Files.deleteIfExists(tmpFile);

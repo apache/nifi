@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import jakarta.xml.bind.DatatypeConverter;
+import org.apache.commons.io.FileUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -34,10 +35,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.File;
 import java.nio.ByteBuffer;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -81,7 +79,8 @@ public class TestPutSQL {
 
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
     private static final Path SYSTEM_TEMP_DIR = Paths.get(System.getProperty("java.io.tmpdir"));
-    private static final String RANDOM_DIRECTORY_PREFIX = TestPutSQL.class.getSimpleName();
+    private static final String TEST_DIRECTORY_NAME = "%s-%s".formatted(TestPutSQL.class.getSimpleName(), UUID.randomUUID());
+    private static final Path DB_DIRECTORY = SYSTEM_TEMP_DIR.resolve(TEST_DIRECTORY_NAME);
     private static final Random random = new Random();
 
     /**
@@ -93,10 +92,7 @@ public class TestPutSQL {
     @BeforeAll
     public static void setupBeforeAll() throws ProcessException, SQLException {
         System.setProperty(DERBY_LOG_PROPERTY, "target/derby.log");
-        final String randomDirectory = String.format("%s-%s", RANDOM_DIRECTORY_PREFIX, UUID.randomUUID());
-        final File dbDir = Paths.get(SYSTEM_TEMP_DIR.toFile().getAbsolutePath(), randomDirectory, "db").toFile();
-        dbDir.deleteOnExit();
-        service = new MockDBCPService(dbDir.getAbsolutePath());
+        service = new MockDBCPService(DB_DIRECTORY.toAbsolutePath().toString());
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(createPersons);
@@ -109,12 +105,10 @@ public class TestPutSQL {
     public static void cleanupAfterAll() {
         System.clearProperty(DERBY_LOG_PROPERTY);
 
-        // Cleanup all the temporary directories .
-        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(SYSTEM_TEMP_DIR, RANDOM_DIRECTORY_PREFIX + "*")) {
-            for (Path tmpFile : directoryStream) {
-                Files.deleteIfExists(tmpFile);
-            }
-        } catch (Exception ignore) {
+        try {
+            FileUtils.deleteDirectory(DB_DIRECTORY.toFile());
+        } catch (final Exception ignored) {
+
         }
     }
 
