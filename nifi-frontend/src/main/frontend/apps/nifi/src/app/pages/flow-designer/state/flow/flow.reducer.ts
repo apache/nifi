@@ -65,6 +65,7 @@ import {
     setFlowAnalysisOpen,
     setNavigationCollapsed,
     setOperationCollapsed,
+    setRegistryClients,
     setSkipTransform,
     setTransitionRequired,
     startComponent,
@@ -158,6 +159,7 @@ export const initialState: FlowState = {
         parameterProviderBulletins: [],
         reportingTaskBulletins: []
     },
+    registryClients: [],
     copiedSnippet: null,
     dragging: false,
     saving: false,
@@ -270,11 +272,16 @@ export const flowReducer = createReducer(
             };
             draftState.flowStatus = response.flowStatus;
             draftState.controllerBulletins = response.controllerBulletins;
+            draftState.registryClients = response.registryClients;
             draftState.addedCache = [];
             draftState.removedCache = [];
             draftState.status = 'success' as const;
         });
     }),
+    on(setRegistryClients, (state, { request }) => ({
+        ...state,
+        registryClients: request
+    })),
     on(loadProcessGroupComplete, (state) => ({
         ...state,
         status: 'complete' as const
