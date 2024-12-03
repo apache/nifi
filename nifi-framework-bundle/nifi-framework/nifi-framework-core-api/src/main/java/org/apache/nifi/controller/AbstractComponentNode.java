@@ -555,10 +555,11 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     // Keep setProperty/removeProperty private so that all calls go through setProperties
     private void setProperty(final PropertyDescriptor descriptor, final PropertyConfiguration propertyConfiguration, final Function<PropertyDescriptor, PropertyConfiguration> valueToCompareFunction) {
+        final PropertyConfiguration propertyModComparisonValue = valueToCompareFunction.apply(descriptor);
+
         // Remove current PropertyDescriptor to force updated instance references
         final PropertyConfiguration removed = properties.remove(descriptor);
 
-        final PropertyConfiguration propertyModComparisonValue = valueToCompareFunction.apply(descriptor);
         properties.put(descriptor, propertyConfiguration);
         final String effectiveValue = propertyConfiguration.getEffectiveValue(getParameterContext());
         final String resolvedValue = resolveAllowableValue(effectiveValue, descriptor);
