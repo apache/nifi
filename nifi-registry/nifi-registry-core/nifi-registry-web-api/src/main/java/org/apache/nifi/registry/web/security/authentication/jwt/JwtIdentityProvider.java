@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -70,7 +71,8 @@ public class JwtIdentityProvider extends BearerAuthIdentityProvider implements I
 
         try {
             final String jwtPrincipal = jwtService.getUserIdentityFromToken(jwtAuthToken);
-            return new AuthenticationResponse(jwtPrincipal, jwtPrincipal, expiration, issuer);
+            final Set<String> groups = jwtService.getUserGroupsFromToken(jwtAuthToken);
+            return new AuthenticationResponse(jwtPrincipal, jwtPrincipal, expiration, issuer, groups);
         } catch (JwtException e) {
             throw new InvalidAuthenticationException(e.getMessage(), e);
         }
