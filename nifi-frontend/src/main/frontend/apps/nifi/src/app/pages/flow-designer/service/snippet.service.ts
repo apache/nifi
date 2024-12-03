@@ -22,7 +22,6 @@ import { Snippet, SnippetComponentRequest } from '../state/flow';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { ComponentType } from 'libs/shared/src';
 import { Client } from '../../../service/client.service';
-import { Position } from '../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class SnippetService {
@@ -95,16 +94,6 @@ export class SnippetService {
             }
         };
         return this.httpClient.put(`${SnippetService.API}/snippets/${snippetId}`, payload);
-    }
-
-    copySnippet(snippetId: string, pasteLocation: Position, groupId: string): Observable<any> {
-        const payload: any = {
-            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
-            originX: pasteLocation.x,
-            originY: pasteLocation.y,
-            snippetId
-        };
-        return this.httpClient.post(`${SnippetService.API}/process-groups/${groupId}/snippet-instance`, payload);
     }
 
     deleteSnippet(snippetId: string): Observable<any> {

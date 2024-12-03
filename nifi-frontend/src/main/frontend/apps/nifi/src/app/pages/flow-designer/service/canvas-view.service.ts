@@ -177,6 +177,15 @@ export class CanvasView {
         this.canvasInitialized = true;
     }
 
+    public getCanvasBoundingClientRect(): DOMRect | null {
+        const canvasContainer: any = document.getElementById('canvas-container');
+        if (canvasContainer == null) {
+            return null;
+        }
+
+        return canvasContainer.getBoundingClientRect() as DOMRect;
+    }
+
     // filters zoom events as programmatically modifying the translate or scale now triggers the handlers
     private isBirdseyeEvent(): boolean {
         return this.birdseyeTranslateInProgress;
@@ -252,7 +261,7 @@ export class CanvasView {
     }
 
     /**
-     * Determines if a bounding box is fully in the current viewable canvas area.
+     * Determines if a bounding box is in the current viewable canvas area.
      *
      * @param {type} boundingBox       Bounding box to check.
      * @param {boolean} strict         If true, the entire bounding box must be in the viewport.
@@ -260,17 +269,10 @@ export class CanvasView {
      * @returns {boolean}
      */
     public isBoundingBoxInViewport(boundingBox: any, strict: boolean): boolean {
-        const selection: any = this.canvasUtils.getSelection();
-        if (selection.size() !== 1) {
-            return false;
-        }
-
         const canvasContainer: any = document.getElementById('canvas-container');
         if (!canvasContainer) {
             return false;
         }
-
-        const yOffset = canvasContainer.getBoundingClientRect().top;
 
         // scale the translation
         const translate = [this.x / this.k, this.y / this.k];
@@ -287,8 +289,8 @@ export class CanvasView {
 
         const left = Math.ceil(boundingBox.x);
         const right = Math.floor(boundingBox.x + boundingBox.width);
-        const top = Math.ceil(boundingBox.y - yOffset / this.k);
-        const bottom = Math.floor(boundingBox.y - yOffset / this.k + boundingBox.height);
+        const top = Math.ceil(boundingBox.y);
+        const bottom = Math.floor(boundingBox.y + boundingBox.height);
 
         if (strict) {
             return !(left < screenLeft || right > screenRight || top < screenTop || bottom > screenBottom);
@@ -497,6 +499,13 @@ export class CanvasView {
         return bbox;
     }
 
+    /**
+     * Translates a position to the space visible on the canvas
+     *
+     * @param position
+     *
+     * @returns {Position | null}
+     */
     public getCanvasPosition(position: Position): Position | null {
         const canvasContainer: any = document.getElementById('canvas-container');
         if (!canvasContainer) {
@@ -528,7 +537,11 @@ export class CanvasView {
         return null;
     }
 
-    private centerBoundingBox(boundingBox: any): void {
+    /**
+     * Centers the canvas to a bounding box. If a scale is provided, it will zoom to that scale.
+     * @param {type} boundingBox
+     */
+    public centerBoundingBox(boundingBox: any): void {
         let scale: number = this.k;
         if (boundingBox.scale != null) {
             scale = boundingBox.scale;

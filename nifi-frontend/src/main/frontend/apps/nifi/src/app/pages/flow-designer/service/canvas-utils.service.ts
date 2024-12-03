@@ -24,7 +24,6 @@ import {
     selectBreadcrumbs,
     selectCanvasPermissions,
     selectConnections,
-    selectCopiedSnippet,
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
     selectParentProcessGroupId
@@ -133,13 +132,6 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((breadcrumbs) => {
                 this.breadcrumbs = breadcrumbs;
-            });
-
-        this.store
-            .select(selectCopiedSnippet)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe((copiedSnippet) => {
-                this.copiedSnippet = copiedSnippet;
             });
 
         this.store
@@ -1011,7 +1003,7 @@ export class CanvasUtils {
     }
 
     public isPastable(): boolean {
-        return this.canvasPermissions.canWrite && this.copiedSnippet != null;
+        return this.canvasPermissions.canWrite;
     }
 
     /**

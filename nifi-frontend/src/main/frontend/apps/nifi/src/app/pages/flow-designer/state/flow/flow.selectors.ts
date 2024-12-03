@@ -36,9 +36,12 @@ export const selectVersionSaving = createSelector(selectFlowState, (state: FlowS
 
 export const selectCurrentProcessGroupId = createSelector(selectFlowState, (state: FlowState) => state.id);
 
-export const selectRefreshRpgDetails = createSelector(selectFlowState, (state: FlowState) => state.refreshRpgDetails);
+export const selectCurrentProcessGroupRevision = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.revision
+);
 
-export const selectCopiedSnippet = createSelector(selectFlowState, (state: FlowState) => state.copiedSnippet);
+export const selectRefreshRpgDetails = createSelector(selectFlowState, (state: FlowState) => state.refreshRpgDetails);
 
 export const selectCurrentParameterContext = createSelector(
     selectFlowState,
