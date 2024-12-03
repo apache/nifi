@@ -56,6 +56,8 @@ env:
     -pl -:nifi-jolt-transform-json-ui
     -pl -:nifi-standard-content-viewer-nar
     -pl -:nifi-standard-content-viewer
+    -pl -:nifi-update-attribute-nar
+    -pl -:nifi-update-attribute-ui
   MAVEN_VERIFY_COMMAND: >-
     verify
     --show-version
