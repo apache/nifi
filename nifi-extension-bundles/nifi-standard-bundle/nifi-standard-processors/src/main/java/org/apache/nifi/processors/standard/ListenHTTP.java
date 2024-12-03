@@ -17,6 +17,9 @@
 package org.apache.nifi.processors.standard;
 
 import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -476,6 +479,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             }
         }
 
+        contextHandler.addServlet(Default405Servlet.class, "/");
+
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_PROCESSOR, this);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_LOGGER, getLogger());
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER, sessionFactoryReference);
@@ -670,6 +675,20 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         public String getClientIP() {
             return clientIP;
+        }
+    }
+
+    public static class Default405Servlet extends HttpServlet {
+        public Default405Servlet() {
+        }
+
+        protected void doTrace(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method Not Allowed");
+
+        }
+
+        protected void doOptions(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
+            resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method Not Allowed");
         }
     }
 }
