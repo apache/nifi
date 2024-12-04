@@ -21,5 +21,7 @@ import { createAction, props } from '@ngrx/store';
 import { CopiedContentInfo, CopyResponseContext } from './index';
 
 export const setCopiedContent = createAction('[Copy] Copied Content', props<{ content: CopyResponseContext }>());
+
 export const contentPasted = createAction('[Copy] Copied Content Pasted', props<{ pasted: CopiedContentInfo }>());
+
 export const resetCopiedContent = createAction('[Copy] Reset Copied Content');

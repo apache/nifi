@@ -455,29 +455,35 @@ export interface MoveComponentsRequest {
 }
 
 ///////////////////////////////////////////////////////////
+
 export interface PasteRequest {
     copyResponse: CopyResponseEntity;
     strategy: PasteRequestStrategy;
     fitToScreen?: boolean;
     bbox?: any;
 }
+
 export interface PasteRequestEntity {
     copyResponse: CopyResponseEntity;
     revision: Revision;
     disconnectedNodeAcknowledged?: boolean;
 }
+
 export interface PasteRequestContext {
     processGroupId: string;
     pasteRequest: PasteRequestEntity;
     pasteStrategy: PasteRequestStrategy;
 }
+
 export interface PasteResponseEntity {
     flow: Flow;
     revision: Revision;
 }
+
 export interface PasteResponseContext extends PasteResponseEntity {
     pasteRequest: PasteRequest;
 }
+
 ///////////////////////////////////////////////////////////
 
 export interface DeleteComponentRequest {

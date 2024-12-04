@@ -210,21 +210,26 @@ export class CanvasActionsService {
                         return new Blob([JSON.stringify(response, null, 2)], { type: 'text/plain' });
                     })
                 });
-                navigator.clipboard.write([clipboardItem]).then(() => {
-                    if (copyResponse) {
-                        this.store.dispatch(
-                            copySuccess({
-                                response: {
-                                    copyResponse,
-                                    processGroupId: copyRequestContext.processGroupId,
-                                    pasteCount: 0
-                                }
-                            })
-                        );
-                    } else {
+                navigator.clipboard
+                    .write([clipboardItem])
+                    .then(() => {
+                        if (copyResponse) {
+                            this.store.dispatch(
+                                copySuccess({
+                                    response: {
+                                        copyResponse,
+                                        processGroupId: copyRequestContext.processGroupId,
+                                        pasteCount: 0
+                                    }
+                                })
+                            );
+                        } else {
+                            this.store.dispatch(snackBarError({ error: 'Copy failed' }));
+                        }
+                    })
+                    .catch(() => {
                         this.store.dispatch(snackBarError({ error: 'Copy failed' }));
-                    }
-                });
+                    });
             }
         },
         selectAll: {
