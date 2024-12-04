@@ -191,6 +191,7 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         final Extension extension = new Extension();
         extension.setDescription(pythonProcessorDetails.getCapabilityDescription());
         extension.setName(pythonProcessorDetails.getProcessorType());
+        extension.setTags(pythonProcessorDetails.getTags());
         extension.setInputRequirement(InputRequirement.INPUT_REQUIRED);
         extension.setSupportsBatching(true);
         extension.setType(ExtensionType.PROCESSOR);

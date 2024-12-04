@@ -25,7 +25,12 @@ import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser;
+import org.apache.nifi.nar.ExtensionDefinition;
+import org.apache.nifi.nar.ExtensionDefinition.ExtensionRuntime;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.PythonBundle;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.python.PythonProcessorDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +38,9 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
@@ -43,6 +50,7 @@ public class StandardRuntimeManifestServiceTest {
 
     private Bundle frameworkBundle;
     private Bundle testComponentsBundle;
+    private Bundle testPythonComponentsBundle;
     private ExtensionManager extensionManager;
     private ExtensionManifestParser extensionManifestParser;
     private RuntimeManifestService runtimeManifestService;
@@ -68,6 +76,13 @@ public class StandardRuntimeManifestServiceTest {
                 .build();
 
         testComponentsBundle = new Bundle(testComponentsBundleDetails, this.getClass().getClassLoader());
+
+        final BundleDetails testPythonComponentsBundleDetails = new BundleDetails.Builder()
+                .coordinate(PythonBundle.PYTHON_BUNDLE_COORDINATE)
+                .workingDir(new File("src/test/resources/TestRuntimeManifest/nifi-test-python-components-nar"))
+                .build();
+
+        testPythonComponentsBundle = new Bundle(testPythonComponentsBundleDetails, this.getClass().getClassLoader());
 
         extensionManager = mock(ExtensionManager.class);
         extensionManifestParser = new JAXBExtensionManifestParser();
@@ -103,6 +118,49 @@ public class StandardRuntimeManifestServiceTest {
 
         final List<ControllerServiceDefinition> controllerServiceDefinitions = testComponentsManifest.getControllerServices();
         assertEquals(1, controllerServiceDefinitions.size());
+    }
+
+    @Test
+    public void testGetPythonManifest() {
+        final String processorClassName = "ClassName";
+        final List<String> expectedTags = List.of("tag1", "tag2");
+
+        when(extensionManager.getAllBundles()).thenReturn(emptySet());
+        when(extensionManager.getExtensions(Processor.class)).thenReturn(Set.of(
+                new ExtensionDefinition.Builder()
+                        .implementationClassName(processorClassName)
+                        .runtime(ExtensionRuntime.PYTHON)
+                        .bundle(testPythonComponentsBundle)
+                        .extensionType(Processor.class)
+                        .tags(expectedTags)
+                        .version(PythonBundle.VERSION)
+                        .build()
+        ));
+
+        final PythonProcessorDetails pythonProcessorDetails = mock(PythonProcessorDetails.class);
+        when(pythonProcessorDetails.getTags()).thenReturn(expectedTags);
+
+        when(extensionManager.getPythonProcessorDetails(processorClassName, PythonBundle.VERSION)).thenReturn(pythonProcessorDetails);
+
+        final List<org.apache.nifi.c2.protocol.component.api.Bundle> bundles = runtimeManifestService.getManifest().getBundles();
+        assertNotNull(bundles);
+        assertEquals(1, bundles.size());
+
+        final org.apache.nifi.c2.protocol.component.api.Bundle testPythonComponentsManifestBundle = bundles.getFirst();
+        assertEquals(PythonBundle.GROUP_ID, testPythonComponentsManifestBundle.getGroup());
+        assertEquals(PythonBundle.ARTIFACT_ID, testPythonComponentsManifestBundle.getArtifact());
+        assertEquals(PythonBundle.VERSION, testPythonComponentsManifestBundle.getVersion());
+
+        final ComponentManifest testComponentsManifest = testPythonComponentsManifestBundle.getComponentManifest();
+        assertNotNull(testComponentsManifest);
+
+        final List<ProcessorDefinition> processorDefinitions = testComponentsManifest.getProcessors();
+        assertEquals(1, processorDefinitions.size());
+
+        assertEquals(new HashSet<>(expectedTags), processorDefinitions.getFirst().getTags());
+
+        final List<ControllerServiceDefinition> controllerServiceDefinitions = testComponentsManifest.getControllerServices();
+        assertEquals(0, controllerServiceDefinitions.size());
     }
 
     /**
