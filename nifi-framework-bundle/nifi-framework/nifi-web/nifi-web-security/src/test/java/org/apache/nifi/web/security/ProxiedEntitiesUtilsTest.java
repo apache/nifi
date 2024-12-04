@@ -19,8 +19,6 @@ package org.apache.nifi.web.security;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,7 +31,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,7 +42,6 @@ public class ProxiedEntitiesUtilsTest {
     private static final String SAFE_USER_NAME_PROXY_2 = "proxy2.nifi.apache.org";
     private static final String SAFE_USER_DN_PROXY_2 = "CN=" + SAFE_USER_NAME_PROXY_2 + ", OU=Apache NiFi";
     private static final String MALICIOUS_USER_NAME_JOHN = SAFE_USER_NAME_JOHN + ", OU=Apache NiFi><CN=" + SAFE_USER_NAME_PROXY_1;
-    private static final String MALICIOUS_USER_DN_JOHN = "CN=" + MALICIOUS_USER_NAME_JOHN + ", OU=Apache NiFi";
     private static final String MALICIOUS_USER_NAME_JOHN_ESCAPED = sanitizeDn(MALICIOUS_USER_NAME_JOHN);
     private static final String UNICODE_DN_1 = "CN=Алйс, OU=Apache NiFi";
     private static final String UNICODE_DN_1_ENCODED = "<" + base64Encode(UNICODE_DN_1) + ">";
@@ -60,57 +56,6 @@ public class ProxiedEntitiesUtilsTest {
 
     private static String base64Encode(String dn) {
         return Base64.getEncoder().encodeToString(dn.getBytes(StandardCharsets.UTF_8));
-    }
-
-    @ParameterizedTest
-    @MethodSource("getMaliciousNames" )
-    public void testSanitizeDnShouldHandleFuzzing(String maliciousName) {
-        assertNotEquals(formatDn(SAFE_USER_NAME_JOHN), ProxiedEntitiesUtils.formatProxyDn(maliciousName));
-    }
-
-    // Contains various attempted >< escapes, trailing NULL, and BACKSPACE + 'n'
-    private static List<String> getMaliciousNames() {
-        return Arrays.asList(MALICIOUS_USER_NAME_JOHN,
-                SAFE_USER_NAME_JOHN + ">",
-                SAFE_USER_NAME_JOHN + "><>",
-                SAFE_USER_NAME_JOHN + "\\>",
-                SAFE_USER_NAME_JOHN + "\u003e",
-                SAFE_USER_NAME_JOHN + "\u005c\u005c\u003e",
-                SAFE_USER_NAME_JOHN + "\u0000",
-                SAFE_USER_NAME_JOHN + "\u0008n");
-    }
-
-    @Test
-    public void testShouldFormatProxyDn() {
-        assertEquals(formatDn(SAFE_USER_DN_JOHN), ProxiedEntitiesUtils.formatProxyDn(SAFE_USER_DN_JOHN));
-    }
-
-    @Test
-    public void testFormatProxyDnShouldHandleMaliciousInput() {
-        assertEquals(formatSanitizedDn(MALICIOUS_USER_DN_JOHN), ProxiedEntitiesUtils.formatProxyDn(MALICIOUS_USER_DN_JOHN));
-    }
-
-    @Test
-    public void testGetProxiedEntitiesChain() {
-        String[] input = new String[] {SAFE_USER_NAME_JOHN, SAFE_USER_DN_PROXY_1, SAFE_USER_DN_PROXY_2};
-        assertEquals(formatDns(input), ProxiedEntitiesUtils.getProxiedEntitiesChain(input));
-    }
-
-    @Test
-    public void testGetProxiedEntitiesChainShouldHandleMaliciousInput() {
-        final String expectedOutput = formatSanitizedDn(MALICIOUS_USER_DN_JOHN) + formatDns(SAFE_USER_DN_PROXY_1, SAFE_USER_DN_PROXY_2);
-        assertEquals(expectedOutput, ProxiedEntitiesUtils.getProxiedEntitiesChain(MALICIOUS_USER_DN_JOHN, SAFE_USER_DN_PROXY_1, SAFE_USER_DN_PROXY_2));
-    }
-
-    @Test
-    public void testGetProxiedEntitiesChainShouldEncodeUnicode() {
-        assertEquals(formatDns(SAFE_USER_NAME_JOHN, UNICODE_DN_1_ENCODED, UNICODE_DN_2_ENCODED),
-                ProxiedEntitiesUtils.getProxiedEntitiesChain(SAFE_USER_NAME_JOHN, UNICODE_DN_1, UNICODE_DN_2));
-    }
-
-    @Test
-    public void testFormatProxyDnShouldEncodeNonAsciiCharacters() {
-        assertEquals(formatDn(UNICODE_DN_1_ENCODED), ProxiedEntitiesUtils.formatProxyDn(UNICODE_DN_1));
     }
 
     @Test

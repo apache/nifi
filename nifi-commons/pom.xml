@@ -51,6 +51,7 @@
         <module>nifi-security-identity</module>
         <module>nifi-security-kerberos-api</module>
         <module>nifi-security-kerberos</module>
+        <module>nifi-security-proxied-entity</module>
         <module>nifi-security-ssl</module>
         <module>nifi-security-utils-api</module>
         <module>nifi-single-user-utils</module>

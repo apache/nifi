@@ -29,6 +29,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.security.proxied.entity.ProxiedEntityEncoder;
+import org.apache.nifi.security.proxied.entity.StandardProxiedEntityEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.AuthenticationException;
@@ -51,32 +53,7 @@ public class ProxiedEntitiesUtils {
     private static final String ANONYMOUS_CHAIN = "<>";
     private static final String ANONYMOUS_IDENTITY = "";
 
-    /**
-     * Formats a list of DN/usernames to be set as a HTTP header using well known conventions.
-     *
-     * @param proxiedEntities the raw identities (usernames and DNs) to be formatted as a chain
-     * @return the value to use in the X-ProxiedEntitiesChain header
-     */
-    public static String getProxiedEntitiesChain(final String... proxiedEntities) {
-        return getProxiedEntitiesChain(Arrays.asList(proxiedEntities));
-    }
-
-    /**
-     * Formats a list of DN/usernames to be set as a HTTP header using well known conventions.
-     *
-     * @param proxiedEntities the raw identities (usernames and DNs) to be formatted as a chain
-     * @return the value to use in the X-ProxiedEntitiesChain header
-     */
-    public static String getProxiedEntitiesChain(final List<String> proxiedEntities) {
-        if (proxiedEntities == null) {
-            return null;
-        }
-
-        final List<String> proxiedEntityChain = proxiedEntities.stream()
-                .map(org.apache.nifi.registry.security.util.ProxiedEntitiesUtils::formatProxyDn)
-                .collect(Collectors.toList());
-        return StringUtils.join(proxiedEntityChain, "");
-    }
+    private static final ProxiedEntityEncoder proxiedEntityEncoder = StandardProxiedEntityEncoder.getInstance();
 
     /**
      * Tokenizes the specified proxy chain.
@@ -134,15 +111,13 @@ public class ProxiedEntitiesUtils {
         if (proxyChain.isEmpty()) {
             return ANONYMOUS_CHAIN;
         }
-        proxyChain = proxyChain.stream().map(ProxiedEntitiesUtils::formatProxyDn).collect(Collectors.toList());
+        proxyChain = proxyChain.stream().map(proxiedEntityEncoder::getEncodedEntity).collect(Collectors.toList());
         return StringUtils.join(proxyChain, "");
     }
 
     /**
      * Builds the string representation for a set of groups that belong to a proxied entity.
-     *
      * The resulting string will be formatted similar to a proxied-entity chain.
-     *
      * Example:
      *   Groups set:    ("group1", "group2", "group3")
      *   Returns:       {@code "<group1><group2><group3> }
@@ -155,7 +130,7 @@ public class ProxiedEntitiesUtils {
             return PROXY_ENTITY_GROUPS_EMPTY;
         }
 
-        final List<String> formattedGroups = groups.stream().map(ProxiedEntitiesUtils::formatProxyDn).collect(Collectors.toList());
+        final List<String> formattedGroups = groups.stream().map(proxiedEntityEncoder::getEncodedEntity).collect(Collectors.toList());
         return StringUtils.join(formattedGroups, "");
     }
 
@@ -184,68 +159,6 @@ public class ProxiedEntitiesUtils {
             final AuthenticationException failed) {
         if (StringUtils.isNotBlank(request.getHeader(PROXY_ENTITIES_CHAIN))) {
             response.setHeader(PROXY_ENTITIES_DETAILS, failed.getMessage());
-        }
-    }
-
-    /**
-     * Formats the specified DN to be set as a HTTP header using well known conventions.
-     *
-     * @param dn raw dn
-     * @return the dn formatted as an HTTP header
-     */
-    public static String formatProxyDn(final String dn) {
-        return LT + sanitizeDn(dn) + GT;
-    }
-
-    /**
-     * Sanitizes a DN for safe and lossless transmission.
-     *
-     * Sanitization requires:
-     * <ol>
-     *   <li>Encoded so that it can be sent losslessly using US-ASCII (the character set of HTTP Header values)</li>
-     *   <li>Resilient to a DN with the sequence '><' to attempt to escape the tokenization process and impersonate another user.</li>
-     * </ol>
-     *
-     * <p>
-     * Example:
-     * <p>
-     * Provided DN: {@code jdoe><alopresto} -> {@code <jdoe><alopresto><proxy...>} would allow the user to impersonate jdoe
-     * <p>Алйс
-     * Provided DN: {@code Алйс} -> {@code <Алйс>} cannot be encoded/decoded as ASCII
-     *
-     * @param rawDn the unsanitized DN
-     * @return the sanitized DN
-     */
-    private static String sanitizeDn(final String rawDn) {
-        if (StringUtils.isEmpty(rawDn)) {
-            return rawDn;
-        } else {
-
-            // First, escape any GT [>] or LT [<] characters, which are not safe
-            final String escapedDn = rawDn.replaceAll(GT, ESCAPED_GT).replaceAll(LT, ESCAPED_LT);
-            if (!escapedDn.equals(rawDn)) {
-                logger.warn("The provided DN [{}] contained dangerous characters that were escaped to [{}]", rawDn, escapedDn);
-            }
-
-            // Second, check for characters outside US-ASCII.
-            // This is necessary because X509 Certs can contain international/Unicode characters,
-            // but this value will be passed in an HTTP Header which must be US-ASCII.
-            // If non-ascii characters are present, base64 encode the DN and wrap in <angled-brackets>,
-            // to indicate to the receiving end that the value must be decoded.
-            // Note: We could have decided to always base64 encode these values,
-            //       not only to avoid the isPureAscii(...) check, but also as a
-            //       method of sanitizing  GT [>] or LT [<] chars. However, there
-            //       are advantages to encoding only when necessary, namely:
-            //         1. Backwards compatibility
-            //         2. Debugging this X-ProxiedEntitiesChain headers is easier unencoded.
-            //       This algorithm can be revisited as part of the next major version change.
-            if (isPureAscii(escapedDn)) {
-                return escapedDn;
-            } else {
-                final String encodedDn = base64Encode(escapedDn);
-                logger.debug("The provided DN [{}] contained non-ASCII characters and was encoded as [{}]", rawDn, encodedDn);
-                return encodedDn;
-            }
         }
     }
 
@@ -281,19 +194,7 @@ public class ProxiedEntitiesUtils {
     }
 
     /**
-     * Base64 encodes a DN and wraps it in angled brackets to indicate the value is base64 and not a raw DN.
-     *
-     * @param rawValue The value to encode
-     * @return A string containing a wrapped, encoded value.
-     */
-    private static String base64Encode(final String rawValue) {
-        final String base64String = Base64.getEncoder().encodeToString(rawValue.getBytes(StandardCharsets.UTF_8));
-        final String wrappedEncodedValue = LT + base64String + GT;
-        return wrappedEncodedValue;
-    }
-
-    /**
-     * Performs the reverse of ${@link #base64Encode(String)}.
+     * Performs the reverse of Base64 encoding
      *
      * @param encodedValue the encoded value to decode.
      * @return The original, decoded string.
@@ -314,7 +215,7 @@ public class ProxiedEntitiesUtils {
     }
 
     /**
-     * Check if a value has been encoded by ${@link #base64Encode(String)}, and therefore needs to be decoded.
+     * Check if a value has been encoded by Base64 encoding and therefore needs to be decoded.
      *
      * @param token the value to check
      * @return true if the value is encoded, false otherwise.
@@ -331,15 +232,5 @@ public class ProxiedEntitiesUtils {
      */
     private static boolean isWrappedInAngleBrackets(final String string) {
         return string.startsWith(LT) && string.endsWith(GT);
-    }
-
-    /**
-     * Check if a string contains only pure ascii characters.
-     *
-     * @param stringWithUnknownCharacters - the string to check
-     * @return true if string can be encoded as ascii. false otherwise.
-     */
-    private static boolean isPureAscii(final String stringWithUnknownCharacters) {
-        return StandardCharsets.US_ASCII.newEncoder().canEncode(stringWithUnknownCharacters);
     }
 }

@@ -17,8 +17,8 @@
 package org.apache.nifi.toolkit.client.impl.request;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.proxied.entity.StandardProxiedEntityEncoder;
 import org.apache.nifi.toolkit.client.RequestConfig;
-import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
  */
 public class ProxiedEntityRequestConfig implements RequestConfig {
 
+    private static final String PROXIED_ENTITIES_CHAIN_HEADER = "X-Proxied-Entities-Chain";
+
     private final String[] proxiedEntities;
 
     public ProxiedEntityRequestConfig(final String... proxiedEntities) {
@@ -41,22 +43,22 @@ public class ProxiedEntityRequestConfig implements RequestConfig {
 
     @Override
     public Map<String, String> getHeaders() {
-        final String proxiedEntitiesValue = getProxiedEntitesValue(proxiedEntities);
+        final String proxiedEntitiesValue = getProxiedEntitiesValue(proxiedEntities);
 
         final Map<String, String> headers = new HashMap<>();
         if (proxiedEntitiesValue != null) {
-            headers.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesValue);
+            headers.put(PROXIED_ENTITIES_CHAIN_HEADER, proxiedEntitiesValue);
         }
         return headers;
     }
 
-    private String getProxiedEntitesValue(final String[] proxiedEntities) {
+    private String getProxiedEntitiesValue(final String[] proxiedEntities) {
         if (proxiedEntities == null) {
             return null;
         }
 
         final List<String> proxiedEntityChain = Arrays.stream(proxiedEntities)
-                .map(ProxiedEntitiesUtils::formatProxyDn)
+                .map(StandardProxiedEntityEncoder.getInstance()::getEncodedEntity)
                 .collect(Collectors.toList());
         return StringUtils.join(proxiedEntityChain, "");
     }

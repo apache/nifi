@@ -21,7 +21,6 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import com.google.common.collect.ComparisonChain;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
@@ -47,6 +46,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,11 +116,9 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
         final List<VersionFileMetaData> files = getFilePathList(properties);
 
         // As we need to keep the version order the list needs to be sorted
-        files.sort((o1, o2) -> ComparisonChain.start()
-                .compare(o1.getBucketName(), o2.getBucketName())
-                .compare(o1.getFlowName(), o2.getFlowName())
-                .compare(o1.getVersion(), o2.getVersion())
-                .result());
+        files.sort(Comparator.comparing(VersionFileMetaData::getBucketName)
+                .thenComparing(VersionFileMetaData::getFlowName)
+                .thenComparing(VersionFileMetaData::getVersion));
 
         for (VersionFileMetaData file : files) {
             final String inputSource = file.getInputSource();

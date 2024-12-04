@@ -20,11 +20,11 @@ import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Form;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.client.AccessClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.RequestConfig;
 import org.apache.nifi.toolkit.client.impl.request.BearerTokenRequestConfig;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.util.Map;
