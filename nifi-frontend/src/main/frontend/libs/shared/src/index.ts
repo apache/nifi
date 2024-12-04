@@ -18,8 +18,6 @@
 import { MatDialogConfig } from '@angular/material/dialog';
 import { filter, Observable } from 'rxjs';
 
-import 'codemirror/addon/hint/show-hint';
-
 export const SMALL_DIALOG: MatDialogConfig = {
     maxWidth: '24rem',
     minWidth: 320,
