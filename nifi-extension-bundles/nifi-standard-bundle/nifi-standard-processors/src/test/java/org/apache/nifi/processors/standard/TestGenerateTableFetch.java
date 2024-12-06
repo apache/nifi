@@ -1109,8 +1109,9 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "${table.name}");
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty("initial.maxvalue.ID", "${maxval.id}");
-        Map<String, String> attrs = Map.of("maxval.id", "1", "table.name", "TEST_QUERY_DB_TABLE");
-        runner.setIncomingConnection(true);
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("maxval.id", "1");
+        attrs.put("table.name", "TEST_QUERY_DB_TABLE");        runner.setIncomingConnection(true);
         runner.enqueue(new byte[0], attrs);
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
