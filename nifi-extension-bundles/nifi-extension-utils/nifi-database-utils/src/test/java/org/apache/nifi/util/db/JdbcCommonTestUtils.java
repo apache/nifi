@@ -17,7 +17,6 @@
 package org.apache.nifi.util.db;
 
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayInputStream;
@@ -38,12 +37,7 @@ class JdbcCommonTestUtils {
         when(rs.getMetaData()).thenReturn(metadata);
 
         final AtomicInteger counter = new AtomicInteger(1);
-        Mockito.doAnswer(new Answer<Boolean>() {
-            @Override
-            public Boolean answer(InvocationOnMock invocation) throws Throwable {
-                return counter.getAndDecrement() > 0;
-            }
-        }).when(rs).next();
+        Mockito.doAnswer((Answer<Boolean>) invocation -> counter.getAndDecrement() > 0).when(rs).next();
 
         return rs;
     }

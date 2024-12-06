@@ -19,7 +19,6 @@ package org.apache.nifi.controller.status.history;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -106,31 +105,28 @@ public class StandardStatusSnapshot implements StatusSnapshot {
 
     @Override
     public ValueReducer<StatusSnapshot, StatusSnapshot> getValueReducer() {
-        return new ValueReducer<StatusSnapshot, StatusSnapshot>() {
-            @Override
-            public StatusSnapshot reduce(final List<StatusSnapshot> values) {
-                Date reducedTimestamp = null;
-                final Set<MetricDescriptor<?>> allDescriptors = new LinkedHashSet<>(getMetricDescriptors());
+        return values -> {
+            Date reducedTimestamp = null;
+            final Set<MetricDescriptor<?>> allDescriptors = new LinkedHashSet<>(getMetricDescriptors());
 
-                for (final StatusSnapshot statusSnapshot : values) {
-                    if (reducedTimestamp == null) {
-                        reducedTimestamp = statusSnapshot.getTimestamp();
-                    }
-                    allDescriptors.addAll(statusSnapshot.getMetricDescriptors());
+            for (final StatusSnapshot statusSnapshot : values) {
+                if (reducedTimestamp == null) {
+                    reducedTimestamp = statusSnapshot.getTimestamp();
                 }
-
-                final StandardStatusSnapshot reduced = new StandardStatusSnapshot(allDescriptors);
-                if (reducedTimestamp != null) {
-                    reduced.setTimestamp(reducedTimestamp);
-                }
-
-                for (final MetricDescriptor<?> descriptor : allDescriptors) {
-                    final Long descriptorValue = descriptor.getValueReducer().reduce(values);
-                    reduced.addStatusMetric(descriptor, descriptorValue);
-                }
-
-                return reduced;
+                allDescriptors.addAll(statusSnapshot.getMetricDescriptors());
             }
+
+            final StandardStatusSnapshot reduced = new StandardStatusSnapshot(allDescriptors);
+            if (reducedTimestamp != null) {
+                reduced.setTimestamp(reducedTimestamp);
+            }
+
+            for (final MetricDescriptor<?> descriptor : allDescriptors) {
+                final Long descriptorValue = descriptor.getValueReducer().reduce(values);
+                reduced.addStatusMetric(descriptor, descriptorValue);
+            }
+
+            return reduced;
         };
     }
 }

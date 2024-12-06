@@ -37,7 +37,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
@@ -82,15 +81,12 @@ public class TestStandardFlowFileQueue {
         provRepo = Mockito.mock(ProvenanceEventRepository.class);
 
         Mockito.when(provRepo.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
-        Mockito.doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final Iterable<ProvenanceEventRecord> iterable = (Iterable<ProvenanceEventRecord>) invocation.getArguments()[0];
-                for (final ProvenanceEventRecord record : iterable) {
-                    provRecords.add(record);
-                }
-                return null;
+        Mockito.doAnswer((Answer<Object>) invocation -> {
+            final Iterable<ProvenanceEventRecord> iterable = (Iterable<ProvenanceEventRecord>) invocation.getArguments()[0];
+            for (final ProvenanceEventRecord record : iterable) {
+                provRecords.add(record);
             }
+            return null;
         }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
 
         queue = new StandardFlowFileQueue("id", flowFileRepo, provRepo, scheduler, swapManager, null, 10000, "0 sec", 0L, "0 B");

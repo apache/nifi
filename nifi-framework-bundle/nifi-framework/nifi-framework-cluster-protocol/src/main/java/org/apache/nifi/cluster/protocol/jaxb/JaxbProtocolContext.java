@@ -35,8 +35,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 /**
@@ -65,89 +63,76 @@ public class JaxbProtocolContext<T> implements ProtocolContext<T> {
 
     @Override
     public ProtocolMessageMarshaller<T> createMarshaller() {
-        return new ProtocolMessageMarshaller<T>() {
+        return (msg, os) -> {
 
-            @Override
-            public void marshal(final T msg, final OutputStream os) throws IOException {
+            try {
 
-                try {
+                // marshal message to output stream
+                final Marshaller marshaller = jaxbCtx.createMarshaller();
+                final ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
+                marshaller.marshal(msg, msgBytes);
 
-                    // marshal message to output stream
-                    final Marshaller marshaller = jaxbCtx.createMarshaller();
-                    final ByteArrayOutputStream msgBytes = new ByteArrayOutputStream();
-                    marshaller.marshal(msg, msgBytes);
+                final DataOutputStream dos = new DataOutputStream(os);
 
-                    final DataOutputStream dos = new DataOutputStream(os);
+                // write message protocol sentinel
+                dos.write(MESSAGE_PROTOCOL_START_SENTINEL);
 
-                    // write message protocol sentinel
-                    dos.write(MESSAGE_PROTOCOL_START_SENTINEL);
+                // write message size in bytes
+                dos.writeInt(msgBytes.size());
 
-                    // write message size in bytes
-                    dos.writeInt(msgBytes.size());
+                // write message
+                msgBytes.writeTo(dos);
 
-                    // write message
-                    msgBytes.writeTo(dos);
+                dos.flush();
 
-                    dos.flush();
-
-                } catch (final JAXBException je) {
-                    throw new IOException("Failed marshalling protocol message due to: " + je, je);
-                }
-
+            } catch (final JAXBException je) {
+                throw new IOException("Failed marshalling protocol message due to: " + je, je);
             }
+
         };
     }
 
     @Override
     public ProtocolMessageUnmarshaller<T> createUnmarshaller() {
-        return new ProtocolMessageUnmarshaller<T>() {
+        return is -> {
 
-            @Override
-            public T unmarshal(final InputStream is) throws IOException {
+            try {
 
-                try {
+                final DataInputStream dis = new DataInputStream(is);
 
-                    final DataInputStream dis = new DataInputStream(is);
-
-                    // check for the presence of the message protocol sentinel
-                    final byte sentinel = (byte) dis.read();
-                    if (sentinel == -1) {
-                        throw new EOFException();
-                    }
-
-                    if (MESSAGE_PROTOCOL_START_SENTINEL != sentinel) {
-                        throw new IOException("Failed reading protocol message due to malformed header");
-                    }
-
-                    // read the message size
-                    final int msgBytesSize = dis.readInt();
-
-                    // read the message
-                    final ByteBuffer buffer = ByteBuffer.allocate(msgBytesSize);
-                    int totalBytesRead = 0;
-                    do {
-                        final int bytesToRead;
-                        if ((msgBytesSize - totalBytesRead) >= BUF_SIZE) {
-                            bytesToRead = BUF_SIZE;
-                        } else {
-                            bytesToRead = msgBytesSize - totalBytesRead;
-                        }
-                        totalBytesRead += dis.read(buffer.array(), totalBytesRead, bytesToRead);
-                    } while (totalBytesRead < msgBytesSize);
-
-                    // unmarshall message and return
-                    final Unmarshaller unmarshaller = jaxbCtx.createUnmarshaller();
-                    final byte[] msg = new byte[totalBytesRead];
-                    buffer.get(msg);
-                    final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
-                    final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(new ByteArrayInputStream(msg)));
-                    return (T) unmarshaller.unmarshal(xsr);
-
-                } catch (final JAXBException | ProcessingException e) {
-                    throw new IOException("Failed unmarshalling protocol message due to: " + e, e);
+                // check for the presence of the message protocol sentinel
+                final byte sentinel = (byte) dis.read();
+                if (sentinel == -1) {
+                    throw new EOFException();
                 }
 
+                if (MESSAGE_PROTOCOL_START_SENTINEL != sentinel) {
+                    throw new IOException("Failed reading protocol message due to malformed header");
+                }
+
+                // read the message size
+                final int msgBytesSize = dis.readInt();
+
+                // read the message
+                final ByteBuffer buffer = ByteBuffer.allocate(msgBytesSize);
+                int totalBytesRead = 0;
+                do {
+                    final int bytesToRead = Math.min((msgBytesSize - totalBytesRead), BUF_SIZE);
+                    totalBytesRead += dis.read(buffer.array(), totalBytesRead, bytesToRead);
+                } while (totalBytesRead < msgBytesSize);
+
+                // unmarshall message and return
+                final Unmarshaller unmarshaller = jaxbCtx.createUnmarshaller();
+                final byte[] msg = new byte[totalBytesRead];
+                buffer.get(msg);
+                final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+                final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(new ByteArrayInputStream(msg)));
+                return (T) unmarshaller.unmarshal(xsr);
+
+            } catch (final JAXBException | ProcessingException e) {
+                throw new IOException("Failed unmarshalling protocol message due to: " + e, e);
             }
+
         };
     }
 }

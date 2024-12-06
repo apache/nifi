@@ -39,7 +39,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -315,12 +314,8 @@ public class TestThreadPoolRequestReplicator {
 
     private ClusterCoordinator createClusterCoordinator() {
         final ClusterCoordinator coordinator = mock(ClusterCoordinator.class);
-        when(coordinator.getConnectionStatus(Mockito.any(NodeIdentifier.class))).thenAnswer(new Answer<NodeConnectionStatus>() {
-            @Override
-            public NodeConnectionStatus answer(InvocationOnMock invocation) throws Throwable {
-                return new NodeConnectionStatus(invocation.getArgument(0), NodeConnectionState.CONNECTED);
-            }
-        });
+        when(coordinator.getConnectionStatus(Mockito.any(NodeIdentifier.class))).thenAnswer((Answer<NodeConnectionStatus>) invocation ->
+                new NodeConnectionStatus(invocation.getArgument(0), NodeConnectionState.CONNECTED));
 
         return coordinator;
     }
@@ -361,7 +356,7 @@ public class TestThreadPoolRequestReplicator {
             }
         };
 
-        final IllegalClusterStateException exception = assertThrows(IllegalClusterStateException.class, () -> {
+        assertThrows(IllegalClusterStateException.class, () -> {
             final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -381,23 +376,19 @@ public class TestThreadPoolRequestReplicator {
             final CountDownLatch preNotifyLatch = new CountDownLatch(1);
             final CountDownLatch postNotifyLatch = new CountDownLatch(1);
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    synchronized (monitor) {
-                        while (true) {
-                            // If monitor is not notified, this will block indefinitely, and the test will timeout
-                            try {
-                                preNotifyLatch.countDown();
-                                monitor.wait();
-                                break;
-                            } catch (InterruptedException e) {
-                                continue;
-                            }
+            new Thread(() -> {
+                synchronized (monitor) {
+                    while (true) {
+                        // If monitor is not notified, this will block indefinitely, and the test will timeout
+                        try {
+                            preNotifyLatch.countDown();
+                            monitor.wait();
+                            break;
+                        } catch (InterruptedException ignored) {
                         }
-
-                        postNotifyLatch.countDown();
                     }
+
+                    postNotifyLatch.countDown();
                 }
             }).start();
 
@@ -431,23 +422,19 @@ public class TestThreadPoolRequestReplicator {
             final CountDownLatch preNotifyLatch = new CountDownLatch(1);
             final CountDownLatch postNotifyLatch = new CountDownLatch(1);
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    synchronized (monitor) {
-                        while (true) {
-                            // If monitor is not notified, this will block indefinitely, and the test will timeout
-                            try {
-                                preNotifyLatch.countDown();
-                                monitor.wait();
-                                break;
-                            } catch (InterruptedException e) {
-                                continue;
-                            }
+            new Thread(() -> {
+                synchronized (monitor) {
+                    while (true) {
+                        // If monitor is not notified, this will block indefinitely, and the test will timeout
+                        try {
+                            preNotifyLatch.countDown();
+                            monitor.wait();
+                            break;
+                        } catch (InterruptedException ignored) {
                         }
-
-                        postNotifyLatch.countDown();
                     }
+
+                    postNotifyLatch.countDown();
                 }
             }).start();
 
@@ -485,23 +472,19 @@ public class TestThreadPoolRequestReplicator {
             final CountDownLatch preNotifyLatch = new CountDownLatch(1);
             final CountDownLatch postNotifyLatch = new CountDownLatch(1);
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    synchronized (monitor) {
-                        while (true) {
-                            // If monitor is not notified, this will block indefinitely, and the test will timeout
-                            try {
-                                preNotifyLatch.countDown();
-                                monitor.wait();
-                                break;
-                            } catch (InterruptedException e) {
-                                continue;
-                            }
+            new Thread(() -> {
+                synchronized (monitor) {
+                    while (true) {
+                        // If monitor is not notified, this will block indefinitely, and the test will timeout
+                        try {
+                            preNotifyLatch.countDown();
+                            monitor.wait();
+                            break;
+                        } catch (InterruptedException ignored) {
                         }
-
-                        postNotifyLatch.countDown();
                     }
+
+                    postNotifyLatch.countDown();
                 }
             }).start();
 
@@ -557,9 +540,7 @@ public class TestThreadPoolRequestReplicator {
                     final StandardAsyncClusterResponse response) {
 
                 if (delayMillis > 0L) {
-                    assertDoesNotThrow(() -> {
-                        Thread.sleep(delayMillis);
-                    }, "Thread Interrupted during test");
+                    assertDoesNotThrow(() -> Thread.sleep(delayMillis), "Thread Interrupted during test");
                 }
 
                 if (failure != null) {
@@ -581,9 +562,7 @@ public class TestThreadPoolRequestReplicator {
             }
         };
 
-        assertDoesNotThrow(() -> {
-            function.withReplicator(replicator);
-        });
+        assertDoesNotThrow(() -> function.withReplicator(replicator));
         replicator.shutdown();
     }
 

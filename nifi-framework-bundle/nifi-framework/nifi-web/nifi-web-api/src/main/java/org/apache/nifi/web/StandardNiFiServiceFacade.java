@@ -404,14 +404,12 @@ import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
-import org.apache.nifi.web.revision.DeleteRevisionTask;
 import org.apache.nifi.web.revision.ExpiredRevisionClaimException;
 import org.apache.nifi.web.revision.RevisionClaim;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.revision.RevisionUpdate;
 import org.apache.nifi.web.revision.StandardRevisionClaim;
 import org.apache.nifi.web.revision.StandardRevisionUpdate;
-import org.apache.nifi.web.revision.UpdateRevisionTask;
 import org.apache.nifi.web.util.PredictionBasedParallelProcessingService;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
@@ -1183,27 +1181,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final RevisionUpdate<SnippetDTO> snapshot;
         try {
-            snapshot = revisionManager.updateRevision(revisionClaim, user, new UpdateRevisionTask<SnippetDTO>() {
-                @Override
-                public RevisionUpdate<SnippetDTO> update() {
-                    // get the updated component
-                    final Snippet snippet = snippetDAO.updateSnippetComponents(snippetDto);
+            snapshot = revisionManager.updateRevision(revisionClaim, user, () -> {
+                // get the updated component
+                final Snippet snippet = snippetDAO.updateSnippetComponents(snippetDto);
 
-                    // drop the snippet
-                    snippetDAO.dropSnippet(snippet.getId());
+                // drop the snippet
+                snippetDAO.dropSnippet(snippet.getId());
 
-                    // save updated controller
-                    controllerFacade.save();
+                // save updated controller
+                controllerFacade.save();
 
-                    // increment the revisions
-                    final Set<Revision> updatedRevisions = revisions.stream().map(revision -> {
-                        final Revision currentRevision = revisionManager.getRevision(revision.getComponentId());
-                        return currentRevision.incrementRevision(revision.getClientId());
-                    }).collect(Collectors.toSet());
+                // increment the revisions
+                final Set<Revision> updatedRevisions = revisions.stream().map(revision -> {
+                    final Revision currentRevision = revisionManager.getRevision(revision.getComponentId());
+                    return currentRevision.incrementRevision(revision.getClientId());
+                }).collect(Collectors.toSet());
 
-                    final SnippetDTO dto = dtoFactory.createSnippetDto(snippet);
-                    return new StandardRevisionUpdate<>(dto, null, updatedRevisions);
-                }
+                final SnippetDTO dto = dtoFactory.createSnippetDto(snippet);
+                return new StandardRevisionUpdate<>(dto, null, updatedRevisions);
             });
         } catch (final ExpiredRevisionClaimException e) {
             throw new InvalidRevisionException("Failed to update Snippet", e);
@@ -1831,30 +1826,26 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ScheduleComponentsEntity enableComponents(String processGroupId, ScheduledState state, Map<String, Revision> componentRevisions) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        final RevisionUpdate<ScheduleComponentsEntity> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(componentRevisions.values()), user, new
-                UpdateRevisionTask<ScheduleComponentsEntity>() {
-                    @Override
-                    public RevisionUpdate<ScheduleComponentsEntity> update() {
-                        // schedule the components
-                        processGroupDAO.enableComponents(processGroupId, state, componentRevisions.keySet());
+        final RevisionUpdate<ScheduleComponentsEntity> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(componentRevisions.values()), user, () -> {
+            // schedule the components
+            processGroupDAO.enableComponents(processGroupId, state, componentRevisions.keySet());
 
-                        // update the revisions
-                        final Map<String, Revision> updatedRevisions = new HashMap<>();
-                        for (final Revision revision : componentRevisions.values()) {
-                            final Revision currentRevision = revisionManager.getRevision(revision.getComponentId());
-                            updatedRevisions.put(revision.getComponentId(), currentRevision.incrementRevision(revision.getClientId()));
-                        }
+            // update the revisions
+            final Map<String, Revision> updatedRevisions = new HashMap<>();
+            for (final Revision revision : componentRevisions.values()) {
+                final Revision currentRevision = revisionManager.getRevision(revision.getComponentId());
+                updatedRevisions.put(revision.getComponentId(), currentRevision.incrementRevision(revision.getClientId()));
+            }
 
-                        // save
-                        controllerFacade.save();
+            // save
+            controllerFacade.save();
 
-                        // gather details for response
-                        final ScheduleComponentsEntity entity = new ScheduleComponentsEntity();
-                        entity.setId(processGroupId);
-                        entity.setState(state.name());
-                        return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
-                    }
-                });
+            // gather details for response
+            final ScheduleComponentsEntity entity = new ScheduleComponentsEntity();
+            entity.setId(processGroupId);
+            entity.setState(state.name());
+            return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
+        });
 
         return updatedComponent.getComponent();
     }
@@ -1862,30 +1853,26 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ScheduleComponentsEntity scheduleComponents(final String processGroupId, final ScheduledState state, final Map<String, Revision> componentRevisions) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final RevisionUpdate<ScheduleComponentsEntity> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(componentRevisions.values()), user, new
-                UpdateRevisionTask<ScheduleComponentsEntity>() {
-                    @Override
-                    public RevisionUpdate<ScheduleComponentsEntity> update() {
-                        // schedule the components
-                        processGroupDAO.scheduleComponents(processGroupId, state, componentRevisions.keySet());
+        final RevisionUpdate<ScheduleComponentsEntity> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(componentRevisions.values()), user, () -> {
+            // schedule the components
+            processGroupDAO.scheduleComponents(processGroupId, state, componentRevisions.keySet());
 
-                        // update the revisions
-                        final Map<String, Revision> updatedRevisions = new HashMap<>();
-                        for (final Revision revision : componentRevisions.values()) {
-                            final Revision currentRevision = revisionManager.getRevision(revision.getComponentId());
-                            updatedRevisions.put(revision.getComponentId(), currentRevision.incrementRevision(revision.getClientId()));
-                        }
+            // update the revisions
+            final Map<String, Revision> updatedRevisions = new HashMap<>();
+            for (final Revision revision : componentRevisions.values()) {
+                final Revision currentRevision = revisionManager.getRevision(revision.getComponentId());
+                updatedRevisions.put(revision.getComponentId(), currentRevision.incrementRevision(revision.getClientId()));
+            }
 
-                        // save
-                        controllerFacade.save();
+            // save
+            controllerFacade.save();
 
-                        // gather details for response
-                        final ScheduleComponentsEntity entity = new ScheduleComponentsEntity();
-                        entity.setId(processGroupId);
-                        entity.setState(state.name());
-                        return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
-                    }
-                });
+            // gather details for response
+            final ScheduleComponentsEntity entity = new ScheduleComponentsEntity();
+            entity.setId(processGroupId);
+            entity.setState(state.name());
+            return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
+        });
 
         return updatedComponent.getComponent();
     }
@@ -1894,9 +1881,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ActivateControllerServicesEntity activateControllerServices(final String processGroupId, final ControllerServiceState state, final Map<String, Revision> serviceRevisions) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final RevisionUpdate<ActivateControllerServicesEntity> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(serviceRevisions.values()), user,
-            new UpdateRevisionTask<ActivateControllerServicesEntity>() {
-                @Override
-                public RevisionUpdate<ActivateControllerServicesEntity> update() {
+                () -> {
                     // schedule the components
                     processGroupDAO.activateControllerServices(processGroupId, state, serviceRevisions.keySet());
 
@@ -1915,8 +1900,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     entity.setId(processGroupId);
                     entity.setState(state.name());
                     return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
-                }
-            });
+                });
 
         return updatedComponent.getComponent();
     }
@@ -2229,24 +2213,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionClaim claim = new StandardRevisionClaim(revision);
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        return revisionManager.deleteRevision(claim, user, new DeleteRevisionTask<D>() {
-            @Override
-            public D performTask() {
-                logger.debug("Attempting to delete component {} with claim {}", resource.getIdentifier(), claim);
+        return revisionManager.deleteRevision(claim, user, () -> {
+            logger.debug("Attempting to delete component {} with claim {}", resource.getIdentifier(), claim);
 
-                // run the delete action
-                deleteAction.run();
+            // run the delete action
+            deleteAction.run();
 
-                // save the flow
-                controllerFacade.save();
-                logger.debug("Deletion of component {} was successful", resource.getIdentifier());
+            // save the flow
+            controllerFacade.save();
+            logger.debug("Deletion of component {} was successful", resource.getIdentifier());
 
-                if (cleanUpPolicies) {
-                    cleanUpPolicies(resource);
-                }
-
-                return dto;
+            if (cleanUpPolicies) {
+                cleanUpPolicies(resource);
             }
+
+            return dto;
         });
     }
 
@@ -2318,21 +2299,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final RevisionClaim claim = new StandardRevisionClaim(revisions);
-        final SnippetDTO dto = revisionManager.deleteRevision(claim, user, new DeleteRevisionTask<SnippetDTO>() {
-            @Override
-            public SnippetDTO performTask() {
-                // delete the components in the snippet
-                snippetDAO.deleteSnippetComponents(snippetId);
+        final SnippetDTO dto = revisionManager.deleteRevision(claim, user, () -> {
+            // delete the components in the snippet
+            snippetDAO.deleteSnippetComponents(snippetId);
 
-                // drop the snippet
-                snippetDAO.dropSnippet(snippetId);
+            // drop the snippet
+            snippetDAO.dropSnippet(snippetId);
 
-                // save
-                controllerFacade.save();
+            // save
+            controllerFacade.save();
 
-                // create the dto for the snippet that was just removed
-                return dtoFactory.createSnippetDto(snippet);
-            }
+            // create the dto for the snippet that was just removed
+            return dtoFactory.createSnippetDto(snippet);
         });
 
         // clean up component policies
@@ -3012,30 +2990,27 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final RevisionUpdate<ControllerServiceReferencingComponentsEntity> update = revisionManager.updateRevision(claim, user,
-                new UpdateRevisionTask<ControllerServiceReferencingComponentsEntity>() {
-                    @Override
-                    public RevisionUpdate<ControllerServiceReferencingComponentsEntity> update() {
-                        final Set<ComponentNode> updated = controllerServiceDAO.updateControllerServiceReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
-                        controllerFacade.save();
+                () -> {
+                    final Set<ComponentNode> updated = controllerServiceDAO.updateControllerServiceReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
+                    controllerFacade.save();
 
-                        final ControllerServiceReference updatedReference = controllerServiceDAO.getControllerService(controllerServiceId).getReferences();
+                    final ControllerServiceReference updatedReference = controllerServiceDAO.getControllerService(controllerServiceId).getReferences();
 
-                        // get the revisions of the updated components
-                        final Map<String, Revision> updatedRevisions = new HashMap<>();
-                        for (final ComponentNode component : updated) {
-                            final Revision currentRevision = revisionManager.getRevision(component.getIdentifier());
-                            final Revision requestRevision = referenceRevisions.get(component.getIdentifier());
-                            updatedRevisions.put(component.getIdentifier(), currentRevision.incrementRevision(requestRevision.getClientId()));
-                        }
-
-                        // ensure the revision for all referencing components is included regardless of whether they were updated in this request
-                        for (final ComponentNode component : updatedReference.findRecursiveReferences(ComponentNode.class)) {
-                            updatedRevisions.putIfAbsent(component.getIdentifier(), revisionManager.getRevision(component.getIdentifier()));
-                        }
-
-                        final ControllerServiceReferencingComponentsEntity entity = createControllerServiceReferencingComponentsEntity(updatedReference, updatedRevisions);
-                        return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
+                    // get the revisions of the updated components
+                    final Map<String, Revision> updatedRevisions = new HashMap<>();
+                    for (final ComponentNode component : updated) {
+                        final Revision currentRevision = revisionManager.getRevision(component.getIdentifier());
+                        final Revision requestRevision = referenceRevisions.get(component.getIdentifier());
+                        updatedRevisions.put(component.getIdentifier(), currentRevision.incrementRevision(requestRevision.getClientId()));
                     }
+
+                    // ensure the revision for all referencing components is included regardless of whether they were updated in this request
+                    for (final ComponentNode component : updatedReference.findRecursiveReferences(ComponentNode.class)) {
+                        updatedRevisions.putIfAbsent(component.getIdentifier(), revisionManager.getRevision(component.getIdentifier()));
+                    }
+
+                    final ControllerServiceReferencingComponentsEntity entity = createControllerServiceReferencingComponentsEntity(updatedReference, updatedRevisions);
+                    return new StandardRevisionUpdate<>(entity, null, new HashSet<>(updatedRevisions.values()));
                 });
 
         return update.getComponent();
@@ -4783,21 +4758,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private List<BulletinEntity> pruneAndSortBulletins(final List<BulletinEntity> bulletinEntities, final int maxBulletins) {
         // sort the bulletins
-        Collections.sort(bulletinEntities, new Comparator<BulletinEntity>() {
-            @Override
-            public int compare(BulletinEntity o1, BulletinEntity o2) {
-                if (o1 == null && o2 == null) {
-                    return 0;
-                }
-                if (o1 == null) {
-                    return 1;
-                }
-                if (o2 == null) {
-                    return -1;
-                }
-
-                return -Long.compare(o1.getId(), o2.getId());
+        Collections.sort(bulletinEntities, (o1, o2) -> {
+            if (o1 == null && o2 == null) {
+                return 0;
             }
+            if (o1 == null) {
+                return 1;
+            }
+            if (o2 == null) {
+                return -1;
+            }
+
+            return -Long.compare(o1.getId(), o2.getId());
         });
 
         // prune the response to only include the max number of bulletins
@@ -6347,29 +6319,26 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final RevisionClaim revisionClaim = new StandardRevisionClaim(revisions);
 
-        final RevisionUpdate<ProcessGroupDTO> revisionUpdate = revisionManager.updateRevision(revisionClaim, user, new UpdateRevisionTask<ProcessGroupDTO>() {
-            @Override
-            public RevisionUpdate<ProcessGroupDTO> update() {
-                // update the Process Group
-                final VersionedExternalFlow externalFlow = createVersionedExternalFlow(proposedFlowSnapshot);
-                processGroupDAO.updateProcessGroupFlow(groupId, externalFlow, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings,
-                    updateDescendantVersionedFlows);
+        final RevisionUpdate<ProcessGroupDTO> revisionUpdate = revisionManager.updateRevision(revisionClaim, user, () -> {
+            // update the Process Group
+            final VersionedExternalFlow externalFlow = createVersionedExternalFlow(proposedFlowSnapshot);
+            processGroupDAO.updateProcessGroupFlow(groupId, externalFlow, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings,
+                updateDescendantVersionedFlows);
 
-                // update the revisions
-                final Set<Revision> updatedRevisions = revisions.stream()
-                    .map(rev -> revisionManager.getRevision(rev.getComponentId()).incrementRevision(revision.getClientId()))
-                    .collect(Collectors.toSet());
+            // update the revisions
+            final Set<Revision> updatedRevisions = revisions.stream()
+                .map(rev -> revisionManager.getRevision(rev.getComponentId()).incrementRevision(revision.getClientId()))
+                .collect(Collectors.toSet());
 
-                // save
-                controllerFacade.save();
+            // save
+            controllerFacade.save();
 
-                // gather details for response
-                final ProcessGroupDTO dto = dtoFactory.createProcessGroupDto(processGroup);
+            // gather details for response
+            final ProcessGroupDTO dto = dtoFactory.createProcessGroupDto(processGroup);
 
-                final Revision updatedRevision = revisionManager.getRevision(groupId).incrementRevision(revision.getClientId());
-                final FlowModification lastModification = new FlowModification(updatedRevision, user.getIdentity());
-                return new StandardRevisionUpdate<>(dto, lastModification, updatedRevisions);
-            }
+            final Revision updatedRevision = revisionManager.getRevision(groupId).incrementRevision(revision.getClientId());
+            final FlowModification lastModification = new FlowModification(updatedRevision, user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastModification, updatedRevisions);
         });
 
         final FlowModification lastModification = revisionUpdate.getLastModification();

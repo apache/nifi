@@ -1613,12 +1613,7 @@ public final class DtoFactory {
        dto.setDefaultSchedulingPeriod(defaultSchedulingPeriod);
 
        // sort a copy of the properties
-       final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-           @Override
-           public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-               return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-           }
-       });
+       final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>((o1, o2) -> Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName()));
        sortedProperties.putAll(reportingTaskNode.getRawPropertyValues());
 
        // get the property order from the reporting task
@@ -1814,12 +1809,7 @@ public final class DtoFactory {
        dto.setVersionedComponentId(controllerServiceNode.getVersionedComponentId().orElse(null));
 
        // sort a copy of the properties
-       final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-           @Override
-           public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-               return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-           }
-       });
+       final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>((o1, o2) -> Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName()));
        sortedProperties.putAll(controllerServiceNode.getRawPropertyValues());
 
        // get the property order from the controller service
@@ -1942,12 +1932,7 @@ public final class DtoFactory {
        }
 
        // process properties unconditionally since dynamic properties are available here and not in getPropertyDescriptors
-       final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-           @Override
-           public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-               return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-           }
-       });
+       final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>((o1, o2) -> Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName()));
        sortedProperties.putAll(component.getRawPropertyValues());
 
        final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
@@ -3373,12 +3358,7 @@ public final class DtoFactory {
        }
 
        // sort the relationships
-       relationships.sort(new Comparator<RelationshipDTO>() {
-           @Override
-           public int compare(final RelationshipDTO r1, final RelationshipDTO r2) {
-               return Collator.getInstance(Locale.US).compare(r1.getName(), r2.getName());
-           }
-       });
+       relationships.sort((r1, r2) -> Collator.getInstance(Locale.US).compare(r1.getName(), r2.getName()));
 
        // set the relationships
        dto.setRelationships(relationships);
@@ -3413,28 +3393,25 @@ public final class DtoFactory {
     */
    public BulletinBoardDTO createBulletinBoardDto(final List<BulletinEntity> bulletins) {
        // sort the bulletins
-       Collections.sort(bulletins, new Comparator<BulletinEntity>() {
-           @Override
-           public int compare(final BulletinEntity bulletin1, final BulletinEntity bulletin2) {
-               if (bulletin1 == null && bulletin2 == null) {
-                   return 0;
-               } else if (bulletin1 == null) {
-                   return 1;
-               } else if (bulletin2 == null) {
-                   return -1;
-               }
+       Collections.sort(bulletins, (bulletin1, bulletin2) -> {
+           if (bulletin1 == null && bulletin2 == null) {
+               return 0;
+           } else if (bulletin1 == null) {
+               return 1;
+           } else if (bulletin2 == null) {
+               return -1;
+           }
 
-               final Date timestamp1 = bulletin1.getTimestamp();
-               final Date timestamp2 = bulletin2.getTimestamp();
-               if (timestamp1 == null && timestamp2 == null) {
-                   return 0;
-               } else if (timestamp1 == null) {
-                   return 1;
-               } else if (timestamp2 == null) {
-                   return -1;
-               } else {
-                   return timestamp1.compareTo(timestamp2);
-               }
+           final Date timestamp1 = bulletin1.getTimestamp();
+           final Date timestamp2 = bulletin2.getTimestamp();
+           if (timestamp1 == null && timestamp2 == null) {
+               return 0;
+           } else if (timestamp1 == null) {
+               return 1;
+           } else if (timestamp2 == null) {
+               return -1;
+           } else {
+               return timestamp1.compareTo(timestamp2);
            }
        });
 
@@ -4913,12 +4890,7 @@ public final class DtoFactory {
 
        // populate node events
        final List<NodeEvent> nodeEvents = new ArrayList<>(events);
-       Collections.sort(nodeEvents, new Comparator<NodeEvent>() {
-           @Override
-           public int compare(final NodeEvent event1, final NodeEvent event2) {
-               return new Date(event2.getTimestamp()).compareTo(new Date(event1.getTimestamp()));
-           }
-       });
+       Collections.sort(nodeEvents, (event1, event2) -> new Date(event2.getTimestamp()).compareTo(new Date(event1.getTimestamp())));
 
        // create the node event dtos
        final List<NodeEventDTO> nodeEventDtos = new ArrayList<>();
