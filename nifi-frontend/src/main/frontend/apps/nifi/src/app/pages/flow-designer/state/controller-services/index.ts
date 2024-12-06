@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-import { ControllerServiceEntity, ParameterContextReferenceEntity } from '../../../../state/shared';
+import { ControllerServiceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../shared';
+import { ParameterContextReferenceEntity } from '@nifi/shared';
 
 export const controllerServicesFeatureKey = 'controllerServiceListing';
 

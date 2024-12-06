@@ -17,7 +17,7 @@
 
 import { createReducer, on } from '@ngrx/store';
 import { CurrentUserState } from './index';
-import { Permissions } from '../shared';
+import { Permissions } from '@nifi/shared';
 import { loadCurrentUser, loadCurrentUserSuccess, resetCurrentUser } from './current-user.actions';
 
 export const NO_PERMISSIONS: Permissions = {

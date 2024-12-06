@@ -15,14 +15,8 @@
  * limitations under the License.
  */
 
-import {
-    BulletinEntity,
-    Bundle,
-    ComponentHistory,
-    DocumentedType,
-    Permissions,
-    Revision
-} from '../../../../state/shared';
+import { Bundle, ComponentHistory, DocumentedType } from '../../../../state/shared';
+import { BulletinEntity, Permissions, Revision } from '@nifi/shared';
 
 export const flowAnalysisRulesFeatureKey = 'flowAnalysisRules';
 

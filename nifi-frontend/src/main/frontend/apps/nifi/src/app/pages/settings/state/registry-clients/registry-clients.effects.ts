@@ -24,7 +24,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { selectRegistryClientTypes } from '../../../../state/extension-types/extension-types.selectors';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { YesNoDialog } from '@nifi/shared';
 import { Router } from '@angular/router';
 import { RegistryClientService } from '../../service/registry-client.service';
 import { CreateRegistryClient } from '../../ui/registry-clients/create-registry-client/create-registry-client.component';

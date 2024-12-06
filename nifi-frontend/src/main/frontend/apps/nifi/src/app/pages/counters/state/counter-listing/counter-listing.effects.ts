@@ -24,7 +24,7 @@ import * as CounterListingActions from './counter-listing.actions';
 import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
 import { CountersService } from '../../service/counters.service';
 import { MatDialog } from '@angular/material/dialog';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { YesNoDialog } from '@nifi/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';

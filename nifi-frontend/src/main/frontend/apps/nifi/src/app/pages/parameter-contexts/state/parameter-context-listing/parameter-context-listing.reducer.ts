@@ -32,7 +32,8 @@ import {
     submitParameterContextUpdateRequestSuccess,
     deleteParameterContextUpdateRequestSuccess
 } from './parameter-context-listing.actions';
-import { ParameterContextUpdateRequestEntity, Revision } from '../../../../state/shared';
+import { ParameterContextUpdateRequestEntity } from '../../../../state/shared';
+import { Revision } from '@nifi/shared';
 
 export const initialState: ParameterContextListingState = {
     parameterContexts: [],

@@ -91,6 +91,114 @@ export interface MapTableEntryData {
     entryTypeLabel?: string;
 }
 
+export interface ElFunction {
+    name: string;
+    description: string;
+    args: { [key: string]: string };
+    subject?: string;
+    returnType: string;
+}
+
+export interface Parameter {
+    name: string;
+    description: string;
+    sensitive: boolean;
+    value: string | null;
+    valueRemoved?: boolean;
+    provided?: boolean;
+    referencingComponents?: AffectedComponentEntity[];
+    parameterContext?: ParameterContextReferenceEntity;
+    inherited?: boolean;
+    referencedAssets?: ReferencedAsset[];
+}
+
+export interface AffectedComponentEntity {
+    permissions: Permissions;
+    id: string;
+    revision: Revision;
+    bulletins: BulletinEntity[];
+    component: AffectedComponent;
+    processGroup: ProcessGroupName;
+    referenceType: string;
+}
+
+export interface ParameterContextReferenceEntity {
+    permissions: Permissions;
+    id: string;
+    component?: ParameterContextReference;
+    bulletins?: BulletinEntity[];
+}
+
+export interface ParameterContextReference {
+    id: string;
+    name: string;
+}
+
+export interface AffectedComponent {
+    processGroupId: string;
+    id: string;
+    referenceType: string;
+    name: string;
+    state: string;
+    activeThreadCount?: number;
+    validationErrors: string[];
+}
+
+export interface ReferencedAsset {
+    id: string;
+    name: string;
+}
+
+export interface Permissions {
+    canRead: boolean;
+    canWrite: boolean;
+}
+
+export interface Revision {
+    version: number;
+    clientId?: string;
+    lastModifier?: string;
+}
+
+export interface BulletinEntity {
+    canRead: boolean;
+    id: number;
+    sourceId: string;
+    groupId: string;
+    timestamp: string;
+    nodeAddress?: string;
+    bulletin: {
+        id: number;
+        sourceId: string;
+        groupId: string;
+        category: string;
+        level: string;
+        message: string;
+        sourceName: string;
+        timestamp: string;
+        nodeAddress?: string;
+        sourceType: string;
+    };
+}
+
+export interface ProcessGroupName {
+    id: string;
+    name: string;
+}
+
+export interface ParameterTipInput {
+    parameter: Parameter;
+}
+
+export interface ElFunctionTipInput {
+    elFunction: ElFunction;
+}
+
+export interface YesNoDialogRequest {
+    title: string;
+    message: string;
+}
+
 export function isDefinedAndNotNull<T>() {
     return (source$: Observable<null | undefined | T>) =>
         source$.pipe(

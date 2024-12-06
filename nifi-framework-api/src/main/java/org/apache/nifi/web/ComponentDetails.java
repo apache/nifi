@@ -26,6 +26,7 @@ import java.util.Map;
 public class ComponentDetails {
 
     private final String id;
+    private final Revision revision;
     private final String name;
     private final String type;
     private final String state;
@@ -37,6 +38,7 @@ public class ComponentDetails {
 
     private ComponentDetails(final Builder builder) {
         this.id = builder.id;
+        this.revision = builder.revision;
         this.name = builder.name;
         this.type = builder.type;
         this.state = builder.state;
@@ -44,7 +46,6 @@ public class ComponentDetails {
         this.properties = builder.properties;
         this.descriptors = builder.descriptors;
         this.validationErrors = builder.validationErrors;
-
     }
 
     /**
@@ -52,6 +53,13 @@ public class ComponentDetails {
      */
     public String getId() {
         return id;
+    }
+
+    /**
+     * @return component revision
+     */
+    public Revision getRevision() {
+        return revision;
     }
 
     /**
@@ -107,6 +115,7 @@ public class ComponentDetails {
     public static final class Builder {
 
         private String id;
+        private Revision revision;
         private String name;
         private String type;
         private String state;
@@ -118,6 +127,11 @@ public class ComponentDetails {
 
         public Builder id(final String id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder revision(final Revision revision) {
+            this.revision = revision;
             return this;
         }
 

@@ -25,7 +25,7 @@ import {
     updateControllerConfig,
     updateControllerConfigSuccess
 } from './general.actions';
-import { Revision } from '../../../../state/shared';
+import { Revision } from '@nifi/shared';
 
 export const INITIAL_REVISION: Revision = {
     version: 0,
