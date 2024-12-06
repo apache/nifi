@@ -97,7 +97,6 @@ import { ConnectedPosition } from '@angular/cdk/overlay';
         NifiTooltipDirective,
         RunDurationSlider,
         RelationshipSettings,
-        ErrorBanner,
         PropertyVerification,
         ContextErrorBanner,
         CopyDirective,
@@ -107,7 +106,7 @@ import { ConnectedPosition } from '@angular/cdk/overlay';
 })
 export class EditProcessor extends TabbedDialog {
     @Input() set processorUpdates(processorUpdates: any | undefined) {
-        this.initialize(processorUpdates);
+        this.processRunStateUpdates(processorUpdates);
     }
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
@@ -276,10 +275,10 @@ export class EditProcessor extends TabbedDialog {
             );
         }
 
-        this.initialize(request.entity);
+        this.processRunStateUpdates(request.entity);
     }
 
-    initialize(entity: any) {
+    processRunStateUpdates(entity: any) {
         this.status = entity.status;
         this.revision = entity.revision;
         this.bulletins = entity.bulletins;
