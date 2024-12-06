@@ -83,12 +83,8 @@ public class TestParquetReader {
         final int numUsers = 1000025; // intentionally so large, to test input with many record groups
         final int expectedRecords = 2;
         final File parquetFile = ParquetTestUtils.createUsersParquetFile(numUsers);
-        final List<Record> results = getRecords(parquetFile, new HashMap<>() {
-            {
-                put(ParquetAttribute.RECORD_OFFSET, "1000020");
-                put(ParquetAttribute.RECORD_COUNT, "2");
-            }
-        });
+        final List<Record> results = getRecords(parquetFile, Map.of(ParquetAttribute.RECORD_OFFSET, "1000020",
+                ParquetAttribute.RECORD_COUNT, "2"));
 
         assertEquals(expectedRecords, results.size());
         IntStream.range(0, expectedRecords)
