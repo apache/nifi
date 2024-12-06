@@ -553,9 +553,7 @@ public class GetMongoIT extends AbstractMongoIT {
         //Test a bad flowfile attribute
         runner.setIncomingConnection(true);
         runner.setProperty(GetMongo.QUERY, "${badfromff}");
-        runner.enqueue("<<?>>", new HashMap<String, String>() {{
-            put("badfromff", "{\"prop\":}");
-        }});
+        runner.enqueue("<<?>>", Map.of("badfromff", "{\"prop\":}"));
         runner.run();
         runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
@@ -566,9 +564,7 @@ public class GetMongoIT extends AbstractMongoIT {
         //Test for regression on a good query from a flowfile attribute
         runner.setIncomingConnection(true);
         runner.setProperty(GetMongo.QUERY, "${badfromff}");
-        runner.enqueue("<<?>>", new HashMap<String, String>() {{
-            put("badfromff", "{}");
-        }});
+        runner.enqueue("<<?>>", Map.of("badfromff", "{}"));
         runner.run();
         runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);

@@ -583,7 +583,7 @@ public class TestConsumeSlack {
 
         @Override
         public Map<String, String> fetchChannelIds() {
-            final Map<String, String> nameIdMapping = new HashMap<String, String>();
+            final Map<String, String> nameIdMapping = new HashMap<>();
             nameIdMapping.put("#cname1", "cid1");
             nameIdMapping.put("#cname2", "cid2");
             return nameIdMapping;

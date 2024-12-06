@@ -480,7 +480,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 }
 
                 do {
-                    userList.addAll(ldapTemplate.search(userSearchBase, userFilter.encode(), userControls, new AbstractContextMapper<User>() {
+                    userList.addAll(ldapTemplate.search(userSearchBase, userFilter.encode(), userControls, new AbstractContextMapper<>() {
                         @Override
                         protected User doMapFromContext(DirContextOperations ctx) {
                             // get the user identity
@@ -554,7 +554,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 }
 
                 do {
-                    groupList.addAll(ldapTemplate.search(groupSearchBase, groupFilter.encode(), groupControls, new AbstractContextMapper<Group>() {
+                    groupList.addAll(ldapTemplate.search(groupSearchBase, groupFilter.encode(), groupControls, new AbstractContextMapper<>() {
                         @Override
                         protected Group doMapFromContext(DirContextOperations ctx) {
                             // get the group identity

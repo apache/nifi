@@ -79,7 +79,7 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
         }
 
         final PGList doPGList = new PGList();
-        final List<ProcessGroupDTO> pgList = new ArrayList<ProcessGroupDTO>();
+        final List<ProcessGroupDTO> pgList = new ArrayList<>();
         recursivePGList(pgList, doPGList, client, properties, parentPgId);
 
         final PGChangeVersion doPGChangeVersion = new PGChangeVersion();
@@ -91,7 +91,7 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
         final boolean forceOperation = properties.containsKey(CommandOption.FORCE.getLongName());
 
         final List<ProcessGroupDTO> processGroups = new ArrayList<>();
-        final Map<String, ChangeVersionResult> changeVersionResults = new HashMap<String, ChangeVersionResult>();
+        final Map<String, ChangeVersionResult> changeVersionResults = new HashMap<>();
 
         for (final ProcessGroupDTO pgDTO : pgList) {
             final VersionControlInformationEntity entity = client.getVersionsClient().getVersionControlInfo(pgDTO.getId());

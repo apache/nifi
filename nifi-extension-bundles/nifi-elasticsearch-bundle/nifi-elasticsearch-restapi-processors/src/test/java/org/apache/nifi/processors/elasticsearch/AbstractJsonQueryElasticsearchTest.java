@@ -586,7 +586,8 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
         }
 
         if (QueryDefinitionType.BUILD_QUERY.getValue().equals(runner.getProcessContext().getProperty(ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE).getValue())) {
-            final Map<String, Object> queryMap = TEST_MAPPER.readValue(query, new TypeReference<Map<String, Object>>() { });
+            final Map<String, Object> queryMap = TEST_MAPPER.readValue(query, new TypeReference<>() {
+            });
             if (queryMap.containsKey("query")) {
                 if (runner.getProcessor() instanceof ConsumeElasticsearch) {
                     runner.setProperty(ConsumeElasticsearch.RANGE_FIELD, RANGE_FIELD_NAME);

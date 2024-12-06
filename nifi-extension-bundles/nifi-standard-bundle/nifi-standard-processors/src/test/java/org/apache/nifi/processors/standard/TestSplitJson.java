@@ -33,7 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Map;
 
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
@@ -151,11 +151,7 @@ public class TestSplitJson {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
         testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[*].name");
 
-        testRunner.enqueue(JSON_SNIPPET, new HashMap<String, String>() {
-            {
-                put(CoreAttributes.FILENAME.key(), "test.json");
-            }
-        });
+        testRunner.enqueue(JSON_SNIPPET, Map.of(CoreAttributes.FILENAME.key(), "test.json"));
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);

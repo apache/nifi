@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class LeakyBucketStreamThrottler implements StreamThrottler {
 
     private final int maxBytesPerSecond;
-    private final BlockingQueue<Request> requestQueue = new LinkedBlockingQueue<Request>();
+    private final BlockingQueue<Request> requestQueue = new LinkedBlockingQueue<>();
     private final ScheduledExecutorService executorService;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
@@ -304,7 +304,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
             this.out = out;
             this.in = in;
             this.maxBytesToCopy = maxBytesToCopy;
-            this.responseQueue = new LinkedBlockingQueue<Response>(1);
+            this.responseQueue = new LinkedBlockingQueue<>(1);
         }
 
         public BlockingQueue<Response> getResponseQueue() {

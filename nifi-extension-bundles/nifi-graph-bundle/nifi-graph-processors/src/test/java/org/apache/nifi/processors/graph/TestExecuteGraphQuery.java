@@ -24,7 +24,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -63,9 +62,7 @@ public class TestExecuteGraphQuery {
     @Test
     public void testExecuteFromParameterWithEL() throws Exception {
         runner.setProperty(AbstractGraphExecutor.QUERY, "${query}");
-        runner.enqueue("test-data", new HashMap<String, String>() {{
-            put("query", "MATCH (p:person) RETURN p");
-        }});
+        runner.enqueue("test-data", Map.of("query", "MATCH (p:person) RETURN p"));
         testExecute(1, 0, 1);
     }
 

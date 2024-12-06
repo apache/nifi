@@ -269,7 +269,7 @@ public class IndexConfiguration {
         try {
             final List<File> indices = indexDirectoryMap.get(provenanceLogFile.getParentFile());
             if (indices == null) {
-                return Collections.<File>emptyList();
+                return Collections.emptyList();
             }
 
             final List<File> sortedIndexDirectories = new ArrayList<>(indices);

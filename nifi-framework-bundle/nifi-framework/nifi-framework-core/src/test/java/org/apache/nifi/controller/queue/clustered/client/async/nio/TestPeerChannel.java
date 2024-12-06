@@ -162,7 +162,7 @@ public class TestPeerChannel {
 
     private int read(final PeerChannel peerChannel) throws IOException {
         OptionalInt read = peerChannel.read();
-        while (!read.isPresent()) {
+        while (read.isEmpty()) {
             try {
                 TimeUnit.MILLISECONDS.sleep(READ_SLEEP_INTERVAL);
             } catch (InterruptedException e) {
@@ -223,7 +223,7 @@ public class TestPeerChannel {
         final ServerBootstrap bootstrap = new ServerBootstrap();
         bootstrap.group(group);
         bootstrap.channel(NioServerSocketChannel.class);
-        bootstrap.childHandler(new ChannelInitializer<Channel>() {
+        bootstrap.childHandler(new ChannelInitializer<>() {
             @Override
             protected void initChannel(final Channel channel) {
                 final ChannelPipeline pipeline = channel.pipeline();

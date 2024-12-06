@@ -200,7 +200,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
 
         final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap = bulletinStoreMap.get(groupId);
         if (componentMap == null) {
-            return Collections.<Bulletin>emptyList();
+            return Collections.emptyList();
         }
 
         final List<Bulletin> allComponentBulletins = new ArrayList<>();

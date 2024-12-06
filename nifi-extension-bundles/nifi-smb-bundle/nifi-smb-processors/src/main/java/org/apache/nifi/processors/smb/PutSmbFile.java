@@ -59,7 +59,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -181,28 +180,24 @@ public class PutSmbFile extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
-        descriptors.add(HOSTNAME);
-        descriptors.add(SHARE);
-        descriptors.add(DIRECTORY);
-        descriptors.add(DOMAIN);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(CREATE_DIRS);
-        descriptors.add(SHARE_ACCESS);
-        descriptors.add(CONFLICT_RESOLUTION);
-        descriptors.add(BATCH_SIZE);
-        descriptors.add(RENAME_SUFFIX);
-        descriptors.add(SMB_DIALECT);
-        descriptors.add(USE_ENCRYPTION);
-        descriptors.add(ENABLE_DFS);
-        descriptors.add(TIMEOUT);
-        this.descriptors = Collections.unmodifiableList(descriptors);
+        this.descriptors = List.of(
+                HOSTNAME,
+                SHARE,
+                DIRECTORY,
+                DOMAIN,
+                USERNAME,
+                PASSWORD,
+                CREATE_DIRS,
+                SHARE_ACCESS,
+                CONFLICT_RESOLUTION,
+                BATCH_SIZE,
+                RENAME_SUFFIX,
+                SMB_DIALECT,
+                USE_ENCRYPTION,
+                ENABLE_DFS,
+                TIMEOUT);
 
-        final Set<Relationship> relationships = new HashSet<Relationship>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        this.relationships = Set.of(REL_SUCCESS, REL_FAILURE);
     }
 
     @Override

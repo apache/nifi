@@ -226,7 +226,7 @@ public class GenerateFlowFile extends AbstractProcessor {
         }
 
         Map<PropertyDescriptor, String> processorProperties = context.getProperties();
-        Map<String, String> generatedAttributes = new HashMap<String, String>();
+        Map<String, String> generatedAttributes = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : processorProperties.entrySet()) {
             PropertyDescriptor property = entry.getKey();
             if (property.isDynamic() && property.isExpressionLanguageSupported()) {

@@ -51,7 +51,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -68,9 +67,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         BooleanWrapper berValue = new BooleanWrapper();
         berValue.setValue(new BerBoolean(true));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", true);
-        }};
+        Map<String, Object> expectedValues = Map.of("value", true);
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.BOOLEAN.getDataType()))
@@ -86,9 +83,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         IntegerWrapper berValue = new IntegerWrapper();
         berValue.setValue(new BerInteger(4321234));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", BigInteger.valueOf(4321234));
-        }};
+        Map<String, Object> expectedValues = Map.of("value", BigInteger.valueOf(4321234));
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.BIGINT.getDataType()))
@@ -104,9 +99,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         BitStringWrapper berValue = new BitStringWrapper();
         berValue.setValue(new BerBitString(new boolean[]{false, true, false, false, true, true, true, true, false, true, false, false}));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", "010011110100");
-        }};
+        Map<String, Object> expectedValues = Map.of("value", "010011110100");
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.STRING.getDataType()))
@@ -122,9 +115,8 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         OctetStringWrapper berValue = new OctetStringWrapper();
         berValue.setValue(new BerOctetString("0123456789ABCDEFGHIJKLMNopqrstuvwxyz".getBytes()));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", octetStringExpectedValueConverter("0123456789ABCDEFGHIJKLMNopqrstuvwxyz".getBytes()));
-        }};
+        Map<String, Object> expectedValues =
+                Map.of("value", octetStringExpectedValueConverter("0123456789ABCDEFGHIJKLMNopqrstuvwxyz".getBytes()));
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.STRING.getDataType()))
@@ -140,9 +132,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         UTF8StringWrapper berValue = new UTF8StringWrapper();
         berValue.setValue(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", "Some UTF-8 String. こんにちは世界。");
-        }};
+        Map<String, Object> expectedValues = Map.of("value", "Some UTF-8 String. こんにちは世界。");
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.STRING.getDataType()))
@@ -158,9 +148,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         BMPStringWrapper berValue = new BMPStringWrapper();
         berValue.setValue(new BerBMPString("Some UTF-8 String. こんにちは世界。".getBytes(StandardCharsets.UTF_8)));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", "Some UTF-8 String. こんにちは世界。");
-        }};
+        Map<String, Object> expectedValues = Map.of("value", "Some UTF-8 String. こんにちは世界。");
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.STRING.getDataType()))
@@ -176,9 +164,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         DateWrapper berValue = new DateWrapper();
         berValue.setValue(new BerDate("2019-10-16"));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", LocalDate.parse("2019-10-16"));
-        }};
+        Map<String, Object> expectedValues = Map.of("value", LocalDate.parse("2019-10-16"));
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.DATE.getDataType()))
@@ -209,9 +195,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         TimeOfDayWrapper berValue = new TimeOfDayWrapper();
         berValue.setValue(new BerTimeOfDay("16:13:12"));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", LocalTime.parse("16:13:12"));
-        }};
+        Map<String, Object> expectedValues = Map.of("value", LocalTime.parse("16:13:12"));
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.TIME.getDataType()))
@@ -242,9 +226,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         DateTimeWrapper berValue = new DateTimeWrapper();
         berValue.setValue(new BerDateTime("2019-10-16T16:18:20"));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", LocalDateTime.parse("2019-10-16T16:18:20"));
-        }};
+        Map<String, Object> expectedValues = Map.of("value", LocalDateTime.parse("2019-10-16T16:18:20"));
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.TIMESTAMP.getDataType("yyyy-MM-ddTHH:mm:ss")))
@@ -275,9 +257,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         RealWrapper berValue = new RealWrapper();
         berValue.setValue(new BerReal(176.34D));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", 176.34D);
-        }};
+        Map<String, Object> expectedValues = Map.of("value", 176.34D);
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.DOUBLE.getDataType()))
@@ -293,9 +273,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         EnumeratedWrapper berValue = new EnumeratedWrapper();
         berValue.setValue(new BerEnum(0));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", 0);
-        }};
+        Map<String, Object> expectedValues = Map.of("value", 0);
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.INT.getDataType()))

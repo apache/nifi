@@ -23,7 +23,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.db.impl.DerbyDatabaseAdapter;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockSessionFactory;
@@ -156,7 +155,7 @@ public class TestGenerateTableFetch {
 
         // Verify the expected FlowFile
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
         flowFile.assertAttributeEquals(FRAGMENT_INDEX, "0");
@@ -192,7 +191,7 @@ public class TestGenerateTableFetch {
         assertEquals(ff2.getAttribute(FRAGMENT_COUNT), "2");
 
         // Verify first flow file's contents
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
@@ -215,7 +214,7 @@ public class TestGenerateTableFetch {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (6, 'Mr. NiFi', 1.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 5 AND ID <= 6 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
@@ -249,7 +248,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testAddedRowsTwoTables() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testAddedRowsTwoTables() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -278,7 +277,7 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
         ResultSet resultSet = stmt.executeQuery(query);
@@ -304,7 +303,7 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
@@ -324,7 +323,7 @@ public class TestGenerateTableFetch {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
 
         // Verify first flow file's contents
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID > 2 AND ID <= 5 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
@@ -345,7 +344,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testAddedRowsRightBounded() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testAddedRowsRightBounded() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -368,7 +367,7 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
         ResultSet resultSet = stmt.executeQuery(query);
@@ -393,7 +392,7 @@ public class TestGenerateTableFetch {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
 
         // Verify first flow file's contents
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
@@ -416,7 +415,7 @@ public class TestGenerateTableFetch {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (6, 'Mr. NiFi', 1.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 5 AND ID <= 6 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
@@ -443,7 +442,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testAddedRowsTimestampRightBounded() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testAddedRowsTimestampRightBounded() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -466,7 +465,7 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE created_on <= '2010-01-01 00:00:00.0' ORDER BY created_on FETCH NEXT 10000 ROWS ONLY", query);
         ResultSet resultSet = stmt.executeQuery(query);
@@ -493,7 +492,7 @@ public class TestGenerateTableFetch {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
 
         // Verify first flow file's contents
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE created_on > '2010-01-01 00:00:00.0' AND "
                 + "created_on <= '2011-01-01 04:23:34.236' ORDER BY created_on FETCH NEXT 2 ROWS ONLY", query);
@@ -518,7 +517,7 @@ public class TestGenerateTableFetch {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (8, 'Mr. NiFi', 1.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE created_on > '2011-01-01 04:23:34.236' AND created_on <= '2012-01-01 03:23:34.234' ORDER BY created_on FETCH NEXT 2 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
@@ -529,7 +528,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testOnePartition() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testOnePartition() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -554,7 +553,7 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2");
         flowFile.assertAttributeExists("generatetablefetch.limit");
         flowFile.assertAttributeEquals("generatetablefetch.limit", null);
@@ -591,7 +590,7 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS, "true");
         runner.run();
         runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).getFirst();
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
         assertEquals("ID,BUCKET", flowFile.getAttribute("generatetablefetch.columnNames"));
         assertEquals("1=1", flowFile.getAttribute("generatetablefetch.whereClause"));
@@ -603,7 +602,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testMultiplePartitions() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testMultiplePartitions() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -654,7 +653,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testMultiplePartitionsIncomingFlowFiles() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testMultiplePartitionsIncomingFlowFiles() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -684,21 +683,12 @@ public class TestGenerateTableFetch {
         runner.setIncomingConnection(true);
         runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "${partSize}");
 
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE1");
-            put("partSize", "1");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE1", "partSize", "1"));
 
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE2");
-            put("partSize", "2");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE2", "partSize", "2"));
 
         // The table does not exist, expect the original flow file to be routed to failure
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE3");
-            put("partSize", "1");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE3", "partSize", "1"));
 
         runner.run(3);
         runner.assertTransferCount(AbstractDatabaseFetchProcessor.REL_SUCCESS, 3);
@@ -747,15 +737,11 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(true);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("maxValueCol", "id");
-        }});
+        runner.enqueue("".getBytes(), Map.of("maxValueCol", "id"));
 
         // Pre-populate the state with a key for column name (not fully-qualified)
         StateManager stateManager = runner.getStateManager();
-        stateManager.setState(new HashMap<String, String>() {{
-            put("id", "0");
-        }}, Scope.CLUSTER);
+        stateManager.setState(Map.of("id", "0"), Scope.CLUSTER);
 
         // Pre-populate the column type map with an entry for id (not fully-qualified)
         processor.columnTypeMap.put("id", 4);
@@ -763,7 +749,7 @@ public class TestGenerateTableFetch {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 0 AND id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
     }
 
@@ -786,16 +772,11 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
         runner.setIncomingConnection(true);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE");
-            put("maxValueCol", "id");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE", "maxValueCol", "id"));
 
         // Pre-populate the state with a key for column name (not fully-qualified)
         StateManager stateManager = runner.getStateManager();
-        stateManager.setState(new HashMap<String, String>() {{
-            put("id", "0");
-        }}, Scope.CLUSTER);
+        stateManager.setState(Map.of("id", "0"), Scope.CLUSTER);
 
         // Pre-populate the column type map with an entry for id (not fully-qualified)
         processor.columnTypeMap.put("id", 4);
@@ -803,11 +784,11 @@ public class TestGenerateTableFetch {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         // Note there is no WHERE clause here. Because we are using dynamic tables, the old state key/value is not retrieved
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
-        assertEquals(null, flowFile.getAttribute("generatetablefetch.columnNames"));
+        assertNull(flowFile.getAttribute("generatetablefetch.columnNames"));
         assertEquals("id <= 1", flowFile.getAttribute("generatetablefetch.whereClause"));
         assertEquals("id", flowFile.getAttribute("generatetablefetch.maxColumnNames"));
         assertEquals("10000", flowFile.getAttribute("generatetablefetch.limit"));
@@ -816,17 +797,14 @@ public class TestGenerateTableFetch {
         runner.clearTransferState();
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
 
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE");
-            put("maxValueCol", "id");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE", "maxValueCol", "id"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 AND id <= 2 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
-        assertEquals(null, flowFile.getAttribute("generatetablefetch.columnNames"));
+        assertNull(flowFile.getAttribute("generatetablefetch.columnNames"));
         assertEquals("id > 1 AND id <= 2", flowFile.getAttribute("generatetablefetch.whereClause"));
         assertEquals("id", flowFile.getAttribute("generatetablefetch.maxColumnNames"));
         assertEquals("10000", flowFile.getAttribute("generatetablefetch.limit"));
@@ -852,15 +830,11 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
         runner.setIncomingConnection(true);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "id");
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE"));
 
         // Pre-populate the state with a key for column name (not fully-qualified)
         StateManager stateManager = runner.getStateManager();
-        stateManager.setState(new HashMap<String, String>() {{
-            put("id", "0");
-        }}, Scope.CLUSTER);
+        stateManager.setState(Map.of("id", "0"), Scope.CLUSTER);
 
         // Pre-populate the column type map with an entry for id (not fully-qualified)
         processor.columnTypeMap.put("id", 4);
@@ -868,21 +842,18 @@ public class TestGenerateTableFetch {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         // Note there is no WHERE clause here. Because we are using dynamic tables, the old state key/value is not retrieved
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
 
         runner.clearTransferState();
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
 
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE");
-            put("maxValueCol", "id");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE", "maxValueCol", "id"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 AND id <= 2 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
     }
 
@@ -911,24 +882,21 @@ public class TestGenerateTableFetch {
 
         // Pre-populate the state with a key for column name (not fully-qualified)
         StateManager stateManager = runner.getStateManager();
-        stateManager.setState(new HashMap<String, String>() {{
-            put("id", "0");
-        }}, Scope.CLUSTER);
-
+        stateManager.setState(Map.of("id", "0"), Scope.CLUSTER);
         // Pre-populate the column type map with an entry for id (not fully-qualified)
         processor.columnTypeMap.put("id", 4);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         // Note there is no WHERE clause here. Because we are using dynamic tables (i.e. Expression Language,
         // even when not referring to flow file attributes), the old state key/value is not retrieved
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
     }
 
     @Test
-    public void testRidiculousRowCount() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testRidiculousRowCount() throws SQLException {
         long rowCount = Long.parseLong(Integer.toString(Integer.MAX_VALUE)) + 100;
         int partitionSize = 1000000;
         int expectedFileCount = (int) (rowCount / partitionSize) + 1;
@@ -962,14 +930,14 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, expectedFileCount);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE 1=1 ORDER BY ID FETCH NEXT 1000000 ROWS ONLY", query);
         runner.clearTransferState();
     }
 
     @Test
-    public void testInitialMaxValue() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testInitialMaxValue() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -993,7 +961,7 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
         ResultSet resultSet = stmt.executeQuery(query);
@@ -1017,7 +985,7 @@ public class TestGenerateTableFetch {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
 
         // Verify first flow file's contents
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
@@ -1038,7 +1006,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testInitialMaxValueWithEL() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testInitialMaxValueWithEL() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1063,7 +1031,7 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
         ResultSet resultSet = stmt.executeQuery(query);
@@ -1079,7 +1047,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testInitialMaxValueWithELAndIncoming() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testInitialMaxValueWithELAndIncoming() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1099,14 +1067,12 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty("initial.maxvalue.ID", "${maxval.id}");
-        Map<String, String> attrs = new HashMap<String, String>() {{
-            put("maxval.id", "1");
-        }};
+        Map<String, String> attrs = Map.of("maxval.id", "1");
         runner.setIncomingConnection(true);
         runner.enqueue(new byte[0], attrs);
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
         ResultSet resultSet = stmt.executeQuery(query);
@@ -1123,7 +1089,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testInitialMaxValueWithELAndMultipleTables() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testInitialMaxValueWithELAndMultipleTables() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1143,15 +1109,13 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "${table.name}");
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty("initial.maxvalue.ID", "${maxval.id}");
-        Map<String, String> attrs = new HashMap<String, String>() {{
-            put("maxval.id", "1");
-            put("table.name", "TEST_QUERY_DB_TABLE");
-        }};
-        runner.setIncomingConnection(true);
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("maxval.id", "1");
+        attrs.put("table.name", "TEST_QUERY_DB_TABLE");        runner.setIncomingConnection(true);
         runner.enqueue(new byte[0], attrs);
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
         ResultSet resultSet = stmt.executeQuery(query);
@@ -1182,7 +1146,7 @@ public class TestGenerateTableFetch {
         runner.enqueue(new byte[0], attrs);
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID > 1 AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
@@ -1199,7 +1163,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testNoDuplicateWithRightBounded() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testNoDuplicateWithRightBounded() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1222,7 +1186,7 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
 
         // we now insert a row before the query issued by GFT is actually executed by, let's say, ExecuteSQL processor
@@ -1240,7 +1204,7 @@ public class TestGenerateTableFetch {
         // Run again
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
 
         resultSet = stmt.executeQuery(query);
@@ -1256,7 +1220,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testAddedRowsWithCustomWhereClause() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testAddedRowsWithCustomWhereClause() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1280,7 +1244,7 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE (type = 'male' OR type IS NULL)"
                 + " AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
@@ -1305,7 +1269,7 @@ public class TestGenerateTableFetch {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
 
         // Verify first flow file's contents
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND (type = 'male' OR type IS NULL)"
                 + " AND ID <= 5 ORDER BY ID FETCH NEXT 1 ROWS ONLY", query);
@@ -1329,7 +1293,7 @@ public class TestGenerateTableFetch {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (6, 'male', 'Mr. NiFi', 1.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 5 AND (type = 'male' OR type IS NULL)"
                 + " AND ID <= 6 ORDER BY ID FETCH NEXT 1 ROWS ONLY", query);
@@ -1372,7 +1336,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testColumnTypeMissing() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testColumnTypeMissing() throws SQLException {
         // Load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -1393,13 +1357,10 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
         runner.setIncomingConnection(true);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE");
-            put("maxValueCol", "id");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE", "maxValueCol", "id"));
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", query);
         runner.clearTransferState();
@@ -1412,22 +1373,19 @@ public class TestGenerateTableFetch {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
 
         // Re-launch FlowFile to se if re-cache column type works
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE");
-            put("maxValueCol", "id");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE", "maxValueCol", "id"));
 
         // It should re-cache column type
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 AND id <= 2 ORDER BY id FETCH NEXT 10000 ROWS ONLY", query);
         runner.clearTransferState();
     }
 
     @Test
-    public void testMultipleColumnTypeMissing() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testMultipleColumnTypeMissing() throws SQLException {
 
         // Load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1450,15 +1408,9 @@ public class TestGenerateTableFetch {
         runner.setIncomingConnection(true);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
 
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE");
-            put("maxValueCol", "id");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE", "maxValueCol", "id"));
 
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE_2");
-            put("maxValueCol", "id");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE_2", "maxValueCol", "id"));
         runner.run(2);
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
 
@@ -1473,10 +1425,7 @@ public class TestGenerateTableFetch {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
 
         // Re-launch FlowFile to se if re-cache column type works
-        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
-            put("tableName", "TEST_QUERY_DB_TABLE");
-            put("maxValueCol", "id");
-        }});
+        runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE", "maxValueCol", "id"));
 
         // It should re-cache column type
         runner.run();
@@ -1486,7 +1435,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testUseColumnValuesForPartitioning() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testUseColumnValuesForPartitioning() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1512,7 +1461,7 @@ public class TestGenerateTableFetch {
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
         // First flow file
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 12 AND ID >= 10 AND ID < 12", query);
         ResultSet resultSet = stmt.executeQuery(query);
@@ -1543,7 +1492,7 @@ public class TestGenerateTableFetch {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 3);
 
         // Verify first flow file's contents
-        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 12 AND ID <= 24 AND ID >= 20 AND ID < 22", query);
         resultSet = stmt.executeQuery(query);
@@ -1572,7 +1521,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testUseColumnValuesForPartitioningNoMaxValueColumn() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testUseColumnValuesForPartitioningNoMaxValueColumn() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1597,7 +1546,7 @@ public class TestGenerateTableFetch {
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
         // First flow file
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE 1=1 AND ID >= 10 AND ID < 12", query);
         ResultSet resultSet = stmt.executeQuery(query);
@@ -1622,7 +1571,7 @@ public class TestGenerateTableFetch {
     }
 
     @Test
-    public void testCustomOrderByColumn() throws SQLException, IOException {
+    public void testCustomOrderByColumn() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -1646,7 +1595,7 @@ public class TestGenerateTableFetch {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE 1=1 ORDER BY SCALE FETCH NEXT 2 ROWS ONLY", query);
         flowFile.assertAttributeEquals(FRAGMENT_INDEX, "0");

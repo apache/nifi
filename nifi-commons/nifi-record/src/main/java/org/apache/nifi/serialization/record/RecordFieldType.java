@@ -225,7 +225,7 @@ public enum RecordFieldType {
     MAP("map", null, new MapDataType(null));
 
 
-    private static final Map<String, RecordFieldType> SIMPLE_NAME_MAP = new HashMap<String, RecordFieldType>();
+    private static final Map<String, RecordFieldType> SIMPLE_NAME_MAP = new HashMap<>();
 
     static {
         for (RecordFieldType value : values()) {

@@ -33,7 +33,7 @@ public class StandardAuthorizerConfigurationContext implements AuthorizerConfigu
 
     public StandardAuthorizerConfigurationContext(String identifier, Map<String, String> properties) {
         this.identifier = identifier;
-        this.properties = Collections.unmodifiableMap(new HashMap<String, String>(properties));
+        this.properties = Collections.unmodifiableMap(new HashMap<>(properties));
     }
 
     @Override

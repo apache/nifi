@@ -95,7 +95,7 @@ public class ChangeVersionProcessor extends AbstractNiFiCommand<ProcessorsResult
     private Set<ProcessorEntity> recursivelyChangeVersionProcessor(FlowClient flowClient, ProcessorClient processorClient, String pgId, String bundleGroup,
             String bundleArtifact, String bundleVersion, String sourceVersion, String qualifiedName) throws NiFiClientException, IOException {
 
-        Set<ProcessorEntity> updatedComponents = new HashSet<ProcessorEntity>();
+        Set<ProcessorEntity> updatedComponents = new HashSet<>();
 
         final ProcessGroupFlowEntity sourcePgEntity = flowClient.getProcessGroup(pgId);
         final ProcessGroupFlowDTO flow = sourcePgEntity.getProcessGroupFlow();

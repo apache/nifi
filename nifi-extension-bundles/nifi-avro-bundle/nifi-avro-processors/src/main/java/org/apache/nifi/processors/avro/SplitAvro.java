@@ -270,7 +270,7 @@ public class SplitAvro extends AbstractProcessor {
                 @Override
                 public void process(InputStream rawIn) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn);
-                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
 
                         final AtomicReference<String> codec = new AtomicReference<>(reader.getMetaString(DataFileConstants.CODEC));
                         if (codec.get() == null) {
@@ -278,7 +278,7 @@ public class SplitAvro extends AbstractProcessor {
                         }
 
                         // while records are left, start a new split by spawning a FlowFile
-                        final AtomicReference<Boolean> hasNextHolder = new AtomicReference<Boolean>(reader.hasNext());
+                        final AtomicReference<Boolean> hasNextHolder = new AtomicReference<>(reader.hasNext());
                         while (hasNextHolder.get()) {
                             FlowFile childFlowFile = session.create(originalFlowFile);
                             childFlowFile = session.write(childFlowFile, new OutputStreamCallback() {
@@ -347,7 +347,7 @@ public class SplitAvro extends AbstractProcessor {
 
         @Override
         public void init(final DataFileStream<GenericRecord> reader, final String codec, final OutputStream out) throws IOException {
-            writer = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>());
+            writer = new DataFileWriter<>(new GenericDatumWriter<>());
 
             if (transferMetadata) {
                 for (String metaKey : reader.getMetaKeys()) {

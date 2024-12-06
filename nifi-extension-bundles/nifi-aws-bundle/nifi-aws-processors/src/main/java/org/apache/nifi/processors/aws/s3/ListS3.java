@@ -695,12 +695,12 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 .stream()
                 .filter(s3VersionSummary -> s3VersionSummary.getLastModified().getTime() >= minTimestampToList
                         && includeObjectInListing(s3VersionSummary, currentTime))
-                .map(s3VersionSummary -> new ListableEntityWrapper<S3VersionSummary>(
-                    s3VersionSummary,
-                    S3VersionSummary::getKey,
-                    summary -> summary.getKey() + "_" + summary.getVersionId(),
-                    summary -> summary.getLastModified().getTime(),
-                    S3VersionSummary::getSize
+                .map(s3VersionSummary -> new ListableEntityWrapper<>(
+                        s3VersionSummary,
+                        S3VersionSummary::getKey,
+                        summary -> summary.getKey() + "_" + summary.getVersionId(),
+                        summary -> summary.getLastModified().getTime(),
+                        S3VersionSummary::getSize
                 ))
                 .collect(Collectors.toList());
         }, null);

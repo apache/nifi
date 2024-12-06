@@ -984,13 +984,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         final long commitNanos = System.nanoTime();
         final List<ProvenanceEventRecord> autoTermEvents = checkpoint.autoTerminatedEvents;
-        final Iterable<ProvenanceEventRecord> iterable = new Iterable<ProvenanceEventRecord>() {
+        final Iterable<ProvenanceEventRecord> iterable = new Iterable<>() {
             final Iterator<ProvenanceEventRecord> recordsToSubmitIterator = recordsToSubmit.iterator();
             final Iterator<ProvenanceEventRecord> autoTermIterator = autoTermEvents == null ? null : autoTermEvents.iterator();
 
             @Override
             public Iterator<ProvenanceEventRecord> iterator() {
-                return new Iterator<ProvenanceEventRecord>() {
+                return new Iterator<>() {
                     @Override
                     public boolean hasNext() {
                         return recordsToSubmitIterator.hasNext() || autoTermIterator != null && autoTermIterator.hasNext();

@@ -134,9 +134,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
 
         runner.clearTransferState();
 
-        id = writeTestFile(fileName, content, BUCKET, new HashMap<String, Object>() {{
-            put("lookupKey", "xyz");
-        }});
+        id = writeTestFile(fileName, content, BUCKET, Map.of("lookupKey", "xyz"));
         assertNotNull(id);
 
         String query = "{ \"metadata\": { \"lookupKey\": \"xyz\" }}";

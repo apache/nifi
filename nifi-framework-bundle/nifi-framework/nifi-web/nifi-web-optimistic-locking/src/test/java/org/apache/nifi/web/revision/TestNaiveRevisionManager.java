@@ -33,7 +33,7 @@ public class TestNaiveRevisionManager {
     private static final NiFiUser USER_1 = new Builder().identity("user-1").build();
 
     private RevisionUpdate<Object> components(final Revision revision) {
-        return new StandardRevisionUpdate<Object>(null, new FlowModification(revision, null));
+        return new StandardRevisionUpdate<>(null, new FlowModification(revision, null));
     }
 
     private RevisionUpdate<Object> components(final Revision revision, final Revision... additionalRevisions) {
@@ -47,9 +47,9 @@ public class TestNaiveRevisionManager {
     private RevisionUpdate<Object> components(final Revision revision, final Set<Revision> additionalRevisions) {
         final Set<RevisionUpdate<Object>> components = new HashSet<>();
         for (final Revision rev : additionalRevisions) {
-            components.add(new StandardRevisionUpdate<Object>(null, new FlowModification(rev, null)));
+            components.add(new StandardRevisionUpdate<>(null, new FlowModification(rev, null)));
         }
-        return new StandardRevisionUpdate<Object>(null, new FlowModification(revision, null), additionalRevisions);
+        return new StandardRevisionUpdate<>(null, new FlowModification(revision, null), additionalRevisions);
     }
 
 }

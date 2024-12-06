@@ -408,7 +408,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
         for (final ControllerServiceNode node : serviceNodeMap.values()) {
             final List<ControllerServiceNode> branch = new ArrayList<>();
-            determineEnablingOrder(serviceNodeMap, node, branch, new HashSet<ControllerServiceNode>());
+            determineEnablingOrder(serviceNodeMap, node, branch, new HashSet<>());
             orderedNodeLists.add(branch);
         }
 

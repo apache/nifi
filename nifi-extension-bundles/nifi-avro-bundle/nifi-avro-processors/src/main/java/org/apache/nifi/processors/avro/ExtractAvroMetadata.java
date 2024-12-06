@@ -172,7 +172,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
                 @Override
                 public void process(InputStream rawIn) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn);
-                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
 
                         final Schema schema = reader.getSchema();
                         if (schema == null) {

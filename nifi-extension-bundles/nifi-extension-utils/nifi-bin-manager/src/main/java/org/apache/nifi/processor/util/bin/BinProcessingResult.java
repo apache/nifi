@@ -38,7 +38,7 @@ public class BinProcessingResult {
 
     public BinProcessingResult(boolean isCommitted) {
         this.setCommitted(isCommitted);
-        this.setAttributes(new HashMap<String, String>());
+        this.setAttributes(new HashMap<>());
     }
 
     public BinProcessingResult(boolean isCommitted, Map<String, String> attributes) {

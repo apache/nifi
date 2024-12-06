@@ -69,11 +69,9 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
         inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, "missing_filename");
 
         Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(singletonList(
-                new HashMap<String, String>() {{
-                    put(GoogleDriveAttributes.ID, "missing");
-                    put(GoogleDriveAttributes.FILENAME, "missing_filename");
-                    put(GoogleDriveAttributes.ERROR_CODE, "404");
-                }}
+                Map.of(GoogleDriveAttributes.ID, "missing",
+                    GoogleDriveAttributes.FILENAME, "missing_filename",
+                    GoogleDriveAttributes.ERROR_CODE, "404")
         ));
 
         testRunner.enqueue("unimportant_data", inputFlowFileAttributes);

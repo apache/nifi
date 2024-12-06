@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -40,10 +39,8 @@ public class PropertyDescriptorDtoMergerTest {
         // WHEN
         PropertyDescriptorDTO clientPropertyDescriptor = new PropertyDescriptorDTO();
 
-        HashMap<NodeIdentifier, PropertyDescriptorDTO> dtoMap = new HashMap<NodeIdentifier, PropertyDescriptorDTO>() {{
-            put(createNodeIdentifier("node1"), new PropertyDescriptorDTO());
-            put(createNodeIdentifier("node2"), new PropertyDescriptorDTO());
-        }};
+        Map<NodeIdentifier, PropertyDescriptorDTO> dtoMap =
+                Map.of(createNodeIdentifier("node1"), new PropertyDescriptorDTO(), createNodeIdentifier("node2"), new PropertyDescriptorDTO());
 
         PropertyDescriptorDtoMerger.merge(clientPropertyDescriptor, dtoMap);
 
@@ -54,12 +51,8 @@ public class PropertyDescriptorDtoMergerTest {
     @Test
     void testMergeWithEmptyAllowableValuesList() {
         testMerge(
-            createPropertyDescriptorDTO(),
-            new HashMap<NodeIdentifier, PropertyDescriptorDTO>() {{
-                put(createNodeIdentifier("node1"), createPropertyDescriptorDTO());
-                put(createNodeIdentifier("node2"), createPropertyDescriptorDTO());
-            }},
-            createPropertyDescriptorDTO()
+            createPropertyDescriptorDTO(), Map.of(createNodeIdentifier("node1"), createPropertyDescriptorDTO(),
+                        createNodeIdentifier("node2"), createPropertyDescriptorDTO()), createPropertyDescriptorDTO()
         );
     }
 
@@ -76,10 +69,8 @@ public class PropertyDescriptorDtoMergerTest {
     void testMergeWithNonOverlappingAllowableValues() {
         testMerge(
             createPropertyDescriptorDTO(v("value1"), v("value2")),
-            new HashMap<NodeIdentifier, PropertyDescriptorDTO>() {{
-                put(createNodeIdentifier("node1"), createPropertyDescriptorDTO(v("value3")));
-                put(createNodeIdentifier("node2"), createPropertyDescriptorDTO(v("value4"), v("value5"), v("value6")));
-            }},
+            Map.of(createNodeIdentifier("node1"), createPropertyDescriptorDTO(v("value3")),
+                createNodeIdentifier("node2"), createPropertyDescriptorDTO(v("value4"), v("value5"), v("value6"))),
             createPropertyDescriptorDTO()
         );
     }
@@ -88,10 +79,8 @@ public class PropertyDescriptorDtoMergerTest {
     void testMergeWithOverlappingAllowableValues() {
         testMerge(
             createPropertyDescriptorDTO(v("value1"), v("value2"), v("value3")),
-            new HashMap<NodeIdentifier, PropertyDescriptorDTO>() {{
-                put(createNodeIdentifier("node1"), createPropertyDescriptorDTO(v("value1"), v("value2"), v("value3")));
-                put(createNodeIdentifier("node2"), createPropertyDescriptorDTO(v("value2"), v("value3", false)));
-            }},
+           Map.of(createNodeIdentifier("node1"), createPropertyDescriptorDTO(v("value1"), v("value2"), v("value3")),
+                createNodeIdentifier("node2"), createPropertyDescriptorDTO(v("value2"), v("value3", false))),
             createPropertyDescriptorDTO(v("value2"), v("value3", false))
         );
     }
@@ -100,10 +89,8 @@ public class PropertyDescriptorDtoMergerTest {
     void testMergeWithIdenticalAllowableValues() {
         testMerge(
             createPropertyDescriptorDTO(v("value1"), v("value2")),
-            new HashMap<NodeIdentifier, PropertyDescriptorDTO>() {{
-                put(createNodeIdentifier("node1"), createPropertyDescriptorDTO(v("value1"), v("value2")));
-                put(createNodeIdentifier("node2"), createPropertyDescriptorDTO(v("value1"), v("value2")));
-            }},
+            Map.of(createNodeIdentifier("node1"), createPropertyDescriptorDTO(v("value1"), v("value2")),
+                createNodeIdentifier("node2"), createPropertyDescriptorDTO(v("value1"), v("value2"))),
             createPropertyDescriptorDTO(v("value1"), v("value2"))
         );
     }

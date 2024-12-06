@@ -1958,8 +1958,8 @@ public final class DtoFactory {
 
        // build the descriptor and property dtos
        dto.setGroupId(processGroupId);
-       dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-       dto.setProperties(new LinkedHashMap<String, String>());
+       dto.setDescriptors(new LinkedHashMap<>());
+       dto.setProperties(new LinkedHashMap<>());
        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
            final PropertyDescriptor descriptor = entry.getKey();
 

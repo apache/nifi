@@ -279,7 +279,7 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
                 filters.addAll(mapper.convertValue(additionalFilters, new TypeReference<List<Map<String, Object>>>() {
                 }));
             } else {
-                filters.add(mapper.convertValue(additionalFilters, new TypeReference<Map<String, Object>>() {
+                filters.add(mapper.convertValue(additionalFilters, new TypeReference<>() {
                 }));
             }
         }

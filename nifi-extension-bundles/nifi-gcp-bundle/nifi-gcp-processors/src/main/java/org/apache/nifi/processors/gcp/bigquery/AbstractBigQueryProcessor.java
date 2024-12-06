@@ -151,7 +151,7 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
 
     @Override
     protected final Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final Collection<ValidationResult> results = new ArrayList<ValidationResult>(super.customValidate(validationContext));
+        final Collection<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
 
         final boolean projectId = validationContext.getProperty(PROJECT_ID).isSet();

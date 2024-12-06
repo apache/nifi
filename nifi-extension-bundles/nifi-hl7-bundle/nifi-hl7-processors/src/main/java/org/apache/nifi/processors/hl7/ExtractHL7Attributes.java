@@ -242,7 +242,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
 
     private static Map<String, Segment> getAllSegments(final Group group) throws HL7Exception {
         final Map<String, Segment> segments = new TreeMap<>();
-        addSegments(group, segments, new HashMap<String, Integer>());
+        addSegments(group, segments, new HashMap<>());
         return Collections.unmodifiableMap(segments);
     }
 

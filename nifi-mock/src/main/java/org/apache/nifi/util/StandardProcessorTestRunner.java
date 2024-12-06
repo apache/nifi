@@ -456,7 +456,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public MockFlowFile enqueue(final Path path) throws IOException {
-        return enqueue(path, new HashMap<String, String>());
+        return enqueue(path, new HashMap<>());
     }
 
     @Override
@@ -472,7 +472,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public MockFlowFile enqueue(final byte[] data) {
-        return enqueue(data, new HashMap<String, String>());
+        return enqueue(data, new HashMap<>());
     }
 
     @Override
@@ -493,7 +493,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public MockFlowFile enqueue(final InputStream data) {
-        return enqueue(data, new HashMap<String, String>());
+        return enqueue(data, new HashMap<>());
     }
 
     @Override
@@ -655,7 +655,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void addControllerService(final String identifier, final ControllerService service) throws InitializationException {
-        addControllerService(identifier, service, new HashMap<String, String>());
+        addControllerService(identifier, service, new HashMap<>());
     }
 
     @Override
