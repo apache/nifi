@@ -2255,6 +2255,17 @@ public class TestRecordPath {
                 assertEquals(Uuid5Util.fromString(input, namespace.toString()), value);
             }
         }
+
+        @Nested
+        class EncryptAndDecrypt {
+            @Test
+            public void replacesInputValueWithEncryptedValue() {
+                final Object encryptedValue = evaluateSingleFieldValue("encrypt('John Doe', 'MyEncrypt!onK3y', 'NIFI_PBKDF2_AES_GCM_256')", record).getValue();
+                assertEquals("John Doe",
+                          evaluateSingleFieldValue("decrypt('" + encryptedValue.toString() + "', 'MyEncrypt!onK3y', 'NIFI_PBKDF2_AES_GCM_256')", record).getValue());
+            }
+        }
+
     }
 
     @Nested

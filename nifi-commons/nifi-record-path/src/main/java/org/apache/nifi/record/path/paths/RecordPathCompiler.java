@@ -41,6 +41,8 @@ import org.apache.nifi.record.path.functions.Base64Encode;
 import org.apache.nifi.record.path.functions.Coalesce;
 import org.apache.nifi.record.path.functions.Concat;
 import org.apache.nifi.record.path.functions.Count;
+import org.apache.nifi.record.path.functions.Decrypt;
+import org.apache.nifi.record.path.functions.Encrypt;
 import org.apache.nifi.record.path.functions.EscapeJson;
 import org.apache.nifi.record.path.functions.FieldName;
 import org.apache.nifi.record.path.functions.FilterFunction;
@@ -455,6 +457,14 @@ public class RecordPathCompiler {
                     case "matchesRegex": {
                         final RecordPathFilter filter = createFilter(tree, null, absolute);
                         return new FilterFunction(functionName, filter, absolute);
+                    }
+                    case "encrypt": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
+                        return new Encrypt(args[0], args[1], args[2], absolute);
+                    }
+                    case "decrypt": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
+                        return new Decrypt(args[0], args[1], args[2], absolute);
                     }
                     default: {
                         throw new RecordPathException("Invalid function call: The '" + functionName + "' function does not exist or can only "
