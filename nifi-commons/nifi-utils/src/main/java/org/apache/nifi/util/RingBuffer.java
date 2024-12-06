@@ -163,7 +163,12 @@ public class RingBuffer<T> {
     }
 
     public List<T> asList() {
-        return getSelectedElements(value -> true);
+        return getSelectedElements(new Filter<T>() {
+            @Override
+            public boolean select(final T value) {
+                return true;
+            }
+        });
     }
 
     public T getOldestElement() {
@@ -268,9 +273,9 @@ public class RingBuffer<T> {
         boolean evaluate(S value);
     }
 
-    public enum IterationDirection {
+    public static enum IterationDirection {
 
         FORWARD,
-        BACKWARD
+        BACKWARD;
     }
 }

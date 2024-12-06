@@ -29,9 +29,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.mockito.stubbing.Answer;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -330,14 +332,17 @@ public class PutDynamoDBRecordTest {
     private void setExceedThroughputAtGivenChunk(final int chunkToFail) {
         final AtomicInteger numberOfCalls = new AtomicInteger(0);
 
-        when(client.batchWriteItem(captor.capture())).then(invocationOnMock -> {
-            final int calls = numberOfCalls.incrementAndGet();
+        when(client.batchWriteItem(captor.capture())).then(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                final int calls = numberOfCalls.incrementAndGet();
 
-            if (calls >= chunkToFail) {
-                throw ProvisionedThroughputExceededException.builder().message("Throughput exceeded")
-                        .awsErrorDetails(AwsErrorDetails.builder().errorCode("error code").errorMessage("error message").build()).build();
-            } else {
-                return mock(BatchWriteItemResponse.class);
+                if (calls >= chunkToFail) {
+                    throw ProvisionedThroughputExceededException.builder().message("Throughput exceeded")
+                            .awsErrorDetails(AwsErrorDetails.builder().errorCode("error code").errorMessage("error message").build()).build();
+                } else {
+                    return mock(BatchWriteItemResponse.class);
+                }
             }
         });
     }

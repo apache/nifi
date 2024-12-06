@@ -379,7 +379,12 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
         }
 
         private void transferRanges(final List<Range> ranges, final Relationship relationship) {
-            ranges.sort(Comparator.comparingLong(Range::getStart));
+            Collections.sort(ranges, new Comparator<Range>() {
+                @Override
+                public int compare(final Range o1, final Range o2) {
+                    return Long.compare(o1.getStart(), o2.getStart());
+                }
+            });
 
             for (int i = 0; i < ranges.size(); i++) {
                 Range range = ranges.get(i);

@@ -180,8 +180,22 @@ public class PutSmbFile extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        this.descriptors = List.of(HOSTNAME, SHARE, DIRECTORY, DOMAIN, USERNAME, PASSWORD, CREATE_DIRS, SHARE_ACCESS, CONFLICT_RESOLUTION, BATCH_SIZE,
-                RENAME_SUFFIX, SMB_DIALECT, USE_ENCRYPTION, ENABLE_DFS, TIMEOUT);
+        this.descriptors = List.of(
+                HOSTNAME,
+                SHARE,
+                DIRECTORY,
+                DOMAIN,
+                USERNAME,
+                PASSWORD,
+                CREATE_DIRS,
+                SHARE_ACCESS,
+                CONFLICT_RESOLUTION,
+                BATCH_SIZE,
+                RENAME_SUFFIX,
+                SMB_DIALECT,
+                USE_ENCRYPTION,
+                ENABLE_DFS,
+                TIMEOUT);
 
         this.relationships = Set.of(REL_SUCCESS, REL_FAILURE);
     }

@@ -32,6 +32,7 @@ import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.provenance.util.DirectoryUtils;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -44,6 +45,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -74,10 +76,13 @@ public class TestWriteAheadStorePartition {
 
         final Map<ProvenanceEventRecord, StorageSummary> reindexedEvents = new ConcurrentHashMap<>();
         final EventIndex eventIndex = Mockito.mock(EventIndex.class);
-        Mockito.doAnswer((Answer<Object>) invocation -> {
-            final Map<ProvenanceEventRecord, StorageSummary> events = invocation.getArgument(0);
-            reindexedEvents.putAll(events);
-            return null;
+        Mockito.doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(final InvocationOnMock invocation) {
+                final Map<ProvenanceEventRecord, StorageSummary> events = invocation.getArgument(0);
+                reindexedEvents.putAll(events);
+                return null;
+            }
         }).when(eventIndex).reindexEvents(Mockito.anyMap());
 
         Mockito.doReturn(18L).when(eventIndex).getMinimumEventIdToReindex("1");
@@ -86,7 +91,7 @@ public class TestWriteAheadStorePartition {
         final List<Long> eventIdsReindexed = reindexedEvents.values().stream()
             .map(StorageSummary::getEventId)
             .sorted()
-            .toList();
+            .collect(Collectors.toList());
 
         assertEquals(82, eventIdsReindexed.size());
         for (int i = 0; i < eventIdsReindexed.size(); i++) {
@@ -121,10 +126,10 @@ public class TestWriteAheadStorePartition {
         partition.close();
 
         final List<File> fileList = Arrays.asList(storageDirectory.listFiles(DirectoryUtils.EVENT_FILE_FILTER));
-        fileList.sort(DirectoryUtils.LARGEST_ID_FIRST);
+        Collections.sort(fileList, DirectoryUtils.LARGEST_ID_FIRST);
 
         // Create new empty prov file with largest id
-        assertTrue(new File(storageDirectory, "1" + fileList.getFirst().getName()).createNewFile());
+        assertTrue(new File(storageDirectory, "1" + fileList.get(0).getName()).createNewFile());
 
         partition = new WriteAheadStorePartition(storageDirectory, partitionName, repoConfig, recordWriterFactory,
                 recordReaderFactory, new LinkedBlockingQueue<>(), new AtomicLong(0L), EventReporter.NO_OP, Mockito.mock(EventFileManager.class));

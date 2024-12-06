@@ -26,6 +26,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -139,7 +140,7 @@ public class FileUserGroupProviderTest {
     }
 
     @AfterEach
-    public void cleanup() {
+    public void cleanup() throws Exception {
         deleteFile(primaryTenants);
         deleteFile(restoreTenants);
     }
@@ -624,7 +625,12 @@ public class FileUserGroupProviderTest {
         final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
         when(nifiProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
 
-        when(nifiProperties.getProperty(anyString())).then((Answer<String>) invocationOnMock -> properties.getProperty((String) invocationOnMock.getArguments()[0]));
+        when(nifiProperties.getProperty(anyString())).then(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return properties.getProperty((String) invocationOnMock.getArguments()[0]);
+            }
+        });
         return nifiProperties;
     }
 

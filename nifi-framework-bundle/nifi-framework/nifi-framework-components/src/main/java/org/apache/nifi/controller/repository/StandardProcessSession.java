@@ -2536,42 +2536,46 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
 
         try {
-            final Iterable<ProvenanceEventRecord> iterable = () -> {
-                final Iterator<ProvenanceEventRecord> expiredEventIterator = expiredReporter.getEvents().iterator();
-
-                return new Iterator<>() {
-                    @Override
-                    public boolean hasNext() {
-                        return expiredEventIterator.hasNext();
-                    }
-
-                    @Override
-                    public ProvenanceEventRecord next() {
-                        final ProvenanceEventRecord event = expiredEventIterator.next();
-                        final ProvenanceEventBuilder enriched = context.createProvenanceEventBuilder().fromEvent(event);
-                        final FlowFileRecord record = recordIdMap.get(event.getFlowFileUuid());
-                        if (record == null) {
-                            return null;
+            final Iterable<ProvenanceEventRecord> iterable = new Iterable<ProvenanceEventRecord>() {
+                @Override
+                public Iterator<ProvenanceEventRecord> iterator() {
+                    final Iterator<ProvenanceEventRecord> expiredEventIterator = expiredReporter.getEvents().iterator();
+                    final Iterator<ProvenanceEventRecord> enrichingIterator = new Iterator<ProvenanceEventRecord>() {
+                        @Override
+                        public boolean hasNext() {
+                            return expiredEventIterator.hasNext();
                         }
 
-                        final ContentClaim claim = record.getContentClaim();
-                        if (claim != null) {
-                            final ResourceClaim resourceClaim = claim.getResourceClaim();
-                            enriched.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                        @Override
+                        public ProvenanceEventRecord next() {
+                            final ProvenanceEventRecord event = expiredEventIterator.next();
+                            final ProvenanceEventBuilder enriched = context.createProvenanceEventBuilder().fromEvent(event);
+                            final FlowFileRecord record = recordIdMap.get(event.getFlowFileUuid());
+                            if (record == null) {
+                                return null;
+                            }
+
+                            final ContentClaim claim = record.getContentClaim();
+                            if (claim != null) {
+                                final ResourceClaim resourceClaim = claim.getResourceClaim();
+                                enriched.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
                                     record.getContentClaimOffset() + claim.getOffset(), record.getSize());
-                            enriched.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                                enriched.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
                                     record.getContentClaimOffset() + claim.getOffset(), record.getSize());
+                            }
+
+                            enriched.setAttributes(record.getAttributes(), Collections.<String, String> emptyMap());
+                            return enriched.build();
                         }
 
-                        enriched.setAttributes(record.getAttributes(), Collections.<String, String>emptyMap());
-                        return enriched.build();
-                    }
+                        @Override
+                        public void remove() {
+                            throw new UnsupportedOperationException();
+                        }
+                    };
 
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException();
-                    }
-                };
+                    return enrichingIterator;
+                }
             };
 
             context.getProvenanceRepository().registerEvents(iterable);

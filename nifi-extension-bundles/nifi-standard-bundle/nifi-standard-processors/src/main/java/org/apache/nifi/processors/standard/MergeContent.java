@@ -1024,87 +1024,90 @@ public class MergeContent extends BinFiles {
             // we don't pass the parents to the #create method because the parents belong to different sessions
             FlowFile bundle = session.create(contents);
             try {
-                bundle = session.write(bundle, rawOut -> {
-                    try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                        for (final FlowFile flowFile : contents) {
-                            bin.getSession().read(flowFile, new InputStreamCallback() {
-                                @Override
-                                public void process(InputStream in) throws IOException {
-                                    boolean canMerge = true;
-                                    try (DataFileStream<GenericRecord> reader = new DataFileStream<>(in,
-                                            new GenericDatumReader<>())) {
-                                        if (schema.get() == null) {
-                                            // this is the first file - set up the writer, and store the
-                                            // Schema & metadata we'll use.
-                                            schema.set(reader.getSchema());
-                                            if (!METADATA_STRATEGY_IGNORE.getValue().equals(metadataStrategy)) {
-                                                for (String key : reader.getMetaKeys()) {
-                                                    if (!DataFileWriter.isReservedMeta(key)) {
-                                                        byte[] metadatum = reader.getMeta(key);
-                                                        metadata.put(key, metadatum);
-                                                        writer.setMeta(key, metadatum);
-                                                    }
-                                                }
-                                            }
-                                            inputCodec.set(reader.getMetaString(DataFileConstants.CODEC));
-                                            if (inputCodec.get() == null) {
-                                                inputCodec.set(DataFileConstants.NULL_CODEC);
-                                            }
-                                            writer.setCodec(CodecFactory.fromString(inputCodec.get()));
-                                            writer.create(schema.get(), out);
-                                        } else {
-                                            // check that we're appending to the same schema
-                                            if (!schema.get().equals(reader.getSchema())) {
-                                                getLogger().debug("Input file {} has different schema - {}, not merging",
-                                                        flowFile.getId(), reader.getSchema().getName());
-                                                canMerge = false;
-                                                unmerged.add(flowFile);
-                                            }
-
-                                            if (METADATA_STRATEGY_DO_NOT_MERGE.getValue().equals(metadataStrategy)
-                                                || METADATA_STRATEGY_ALL_COMMON.getValue().equals(metadataStrategy)) {
-                                                // check that we're appending to the same metadata
-                                                for (String key : reader.getMetaKeys()) {
-                                                    if (!DataFileWriter.isReservedMeta(key)) {
-                                                        byte[] metadatum = reader.getMeta(key);
-                                                        byte[] writersMetadatum = metadata.get(key);
-                                                        if (!Arrays.equals(metadatum, writersMetadatum)) {
-                                                            // Ignore additional metadata if ALL_COMMON is the strategy, otherwise don't merge
-                                                            if (!METADATA_STRATEGY_ALL_COMMON.getValue().equals(metadataStrategy) || writersMetadatum != null) {
-                                                                getLogger().debug("Input file {} has different non-reserved metadata, not merging",
-                                                                    new Object[] {flowFile.getId()});
-                                                                canMerge = false;
-                                                                unmerged.add(flowFile);
-                                                            }
+                bundle = session.write(bundle, new OutputStreamCallback() {
+                    @Override
+                    public void process(final OutputStream rawOut) throws IOException {
+                        try (final OutputStream out = new BufferedOutputStream(rawOut)) {
+                            for (final FlowFile flowFile : contents) {
+                                bin.getSession().read(flowFile, new InputStreamCallback() {
+                                    @Override
+                                    public void process(InputStream in) throws IOException {
+                                        boolean canMerge = true;
+                                        try (DataFileStream<GenericRecord> reader = new DataFileStream<>(in,
+                                            new GenericDatumReader<GenericRecord>())) {
+                                            if (schema.get() == null) {
+                                                // this is the first file - set up the writer, and store the
+                                                // Schema & metadata we'll use.
+                                                schema.set(reader.getSchema());
+                                                if (!METADATA_STRATEGY_IGNORE.getValue().equals(metadataStrategy)) {
+                                                    for (String key : reader.getMetaKeys()) {
+                                                        if (!DataFileWriter.isReservedMeta(key)) {
+                                                            byte[] metadatum = reader.getMeta(key);
+                                                            metadata.put(key, metadatum);
+                                                            writer.setMeta(key, metadatum);
                                                         }
                                                     }
                                                 }
-                                            } // else the metadata in the first FlowFile was either ignored or retained in the if-clause above
+                                                inputCodec.set(reader.getMetaString(DataFileConstants.CODEC));
+                                                if (inputCodec.get() == null) {
+                                                    inputCodec.set(DataFileConstants.NULL_CODEC);
+                                                }
+                                                writer.setCodec(CodecFactory.fromString(inputCodec.get()));
+                                                writer.create(schema.get(), out);
+                                            } else {
+                                                // check that we're appending to the same schema
+                                                if (!schema.get().equals(reader.getSchema())) {
+                                                    getLogger().debug("Input file {} has different schema - {}, not merging",
+                                                        new Object[] {flowFile.getId(), reader.getSchema().getName()});
+                                                    canMerge = false;
+                                                    unmerged.add(flowFile);
+                                                }
 
-                                            // check that we're appending to the same codec
-                                            String thisCodec = reader.getMetaString(DataFileConstants.CODEC);
-                                            if (thisCodec == null) {
-                                                thisCodec = DataFileConstants.NULL_CODEC;
-                                            }
-                                            if (!inputCodec.get().equals(thisCodec)) {
-                                                getLogger().debug("Input file {} has different codec, not merging",
-                                                    new Object[] {flowFile.getId()});
-                                                canMerge = false;
-                                                unmerged.add(flowFile);
-                                            }
-                                        }
+                                                if (METADATA_STRATEGY_DO_NOT_MERGE.getValue().equals(metadataStrategy)
+                                                    || METADATA_STRATEGY_ALL_COMMON.getValue().equals(metadataStrategy)) {
+                                                    // check that we're appending to the same metadata
+                                                    for (String key : reader.getMetaKeys()) {
+                                                        if (!DataFileWriter.isReservedMeta(key)) {
+                                                            byte[] metadatum = reader.getMeta(key);
+                                                            byte[] writersMetadatum = metadata.get(key);
+                                                            if (!Arrays.equals(metadatum, writersMetadatum)) {
+                                                                // Ignore additional metadata if ALL_COMMON is the strategy, otherwise don't merge
+                                                                if (!METADATA_STRATEGY_ALL_COMMON.getValue().equals(metadataStrategy) || writersMetadatum != null) {
+                                                                    getLogger().debug("Input file {} has different non-reserved metadata, not merging",
+                                                                        new Object[] {flowFile.getId()});
+                                                                    canMerge = false;
+                                                                    unmerged.add(flowFile);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                } // else the metadata in the first FlowFile was either ignored or retained in the if-clause above
 
-                                        // write the Avro content from the current FlowFile to the merged OutputStream
-                                        if (canMerge) {
-                                            writer.appendAllFrom(reader, false);
+                                                // check that we're appending to the same codec
+                                                String thisCodec = reader.getMetaString(DataFileConstants.CODEC);
+                                                if (thisCodec == null) {
+                                                    thisCodec = DataFileConstants.NULL_CODEC;
+                                                }
+                                                if (!inputCodec.get().equals(thisCodec)) {
+                                                    getLogger().debug("Input file {} has different codec, not merging",
+                                                        new Object[] {flowFile.getId()});
+                                                    canMerge = false;
+                                                    unmerged.add(flowFile);
+                                                }
+                                            }
+
+                                            // write the Avro content from the current FlowFile to the merged OutputStream
+                                            if (canMerge) {
+                                                writer.appendAllFrom(reader, false);
+                                            }
                                         }
                                     }
-                                }
-                            });
+                                });
+                            }
+                            writer.flush();
+                        } finally {
+                            writer.close();
                         }
-                        writer.flush();
-                    } finally {
-                        writer.close();
                     }
                 });
             } catch (final Exception e) {

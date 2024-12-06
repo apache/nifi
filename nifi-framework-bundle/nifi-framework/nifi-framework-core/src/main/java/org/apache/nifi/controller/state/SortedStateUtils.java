@@ -37,7 +37,12 @@ public class SortedStateUtils {
      */
     public static Comparator<String> getKeyComparator() {
         final Collator collator = Collator.getInstance(Locale.US);
-        return collator::compare;
+        return new Comparator<String>() {
+            @Override
+            public int compare(String s1, String s2) {
+                return collator.compare(s1, s2);
+            }
+        };
     }
 
     /**
@@ -47,6 +52,11 @@ public class SortedStateUtils {
      */
     public static Comparator<StateEntryDTO> getEntryDtoComparator() {
         final Collator collator = Collator.getInstance(Locale.US);
-        return (o1, o2) -> collator.compare(o1.getKey(), o2.getKey());
+        return new Comparator<StateEntryDTO>() {
+            @Override
+            public int compare(StateEntryDTO o1, StateEntryDTO o2) {
+                return collator.compare(o1.getKey(), o2.getKey());
+            }
+        };
     }
 }

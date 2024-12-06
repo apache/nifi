@@ -117,27 +117,30 @@ class JMSConsumer extends JMSWorker {
     }
 
     private void doWithJmsTemplate(String destinationName, boolean durable, boolean shared, String subscriptionName, String messageSelector, MessageReceiver messageReceiver) {
-        this.jmsTemplate.execute((SessionCallback<Void>) session -> {
+        this.jmsTemplate.execute(new SessionCallback<Void>() {
+            @Override
+            public Void doInJms(final Session session) throws JMSException {
 
-            final MessageConsumer messageConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriptionName, messageSelector);
-            try {
-                messageReceiver.consume(session, messageConsumer);
-            } catch (Exception e) {
-                // We need to call recover to ensure that in the event of
-                // abrupt end or exception the current session will stop message
-                // delivery and restart with the oldest unacknowledged message
+                final MessageConsumer messageConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriptionName, messageSelector);
                 try {
-                    session.recover();
-                } catch (Exception e1) {
-                    // likely the session is closed...need to catch this so that the root cause of failure is propagated
-                    processLog.debug("Failed to recover JMS session while handling initial error. The recover error is: ", e1);
+                    messageReceiver.consume(session, messageConsumer);
+                } catch (Exception e) {
+                    // We need to call recover to ensure that in the event of
+                    // abrupt end or exception the current session will stop message
+                    // delivery and restart with the oldest unacknowledged message
+                    try {
+                        session.recover();
+                    } catch (Exception e1) {
+                        // likely the session is closed...need to catch this so that the root cause of failure is propagated
+                        processLog.debug("Failed to recover JMS session while handling initial error. The recover error is: ", e1);
+                    }
+
+                    JmsUtils.closeMessageConsumer(messageConsumer);
+                    throw e;
                 }
 
-                JmsUtils.closeMessageConsumer(messageConsumer);
-                throw e;
+                return null;
             }
-
-            return null;
         }, true);
     }
 

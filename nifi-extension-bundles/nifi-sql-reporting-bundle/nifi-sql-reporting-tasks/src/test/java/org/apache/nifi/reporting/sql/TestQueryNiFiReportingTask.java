@@ -62,6 +62,7 @@ import org.apache.nifi.util.db.JdbcProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
@@ -80,7 +81,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -237,11 +237,11 @@ class TestQueryNiFiReportingTask {
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(4, rows.size());
         // Validate the first row
-        Map<String, Object> row = rows.getFirst();
+        Map<String, Object> row = rows.get(0);
         assertEquals(3, row.size()); // Only projected 2 columns
         Object id = row.get("id");
 
-        assertInstanceOf(String.class, id);
+        assertTrue(id instanceof String);
         assertEquals("nested", id);
         assertEquals(1001, row.get("queuedCount"));
         // Validate the second row
@@ -483,11 +483,11 @@ class TestQueryNiFiReportingTask {
 
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(1, rows.size());
-        Map<String, Object> row = rows.getFirst();
+        Map<String, Object> row = rows.get(0);
         assertEquals(11, row.size());
 
-        assertInstanceOf(Integer.class, row.get(MetricNames.JVM_DAEMON_THREAD_COUNT.replace(".", "_")));
-        assertInstanceOf(Double.class, row.get(MetricNames.JVM_HEAP_USAGE.replace(".", "_")));
+        assertTrue(row.get(MetricNames.JVM_DAEMON_THREAD_COUNT.replace(".", "_")) instanceof Integer);
+        assertTrue(row.get(MetricNames.JVM_HEAP_USAGE.replace(".", "_")) instanceof Double);
     }
 
     @Test
@@ -501,7 +501,7 @@ class TestQueryNiFiReportingTask {
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(4, rows.size());
         // Validate the first row
-        Map<String, Object> row = rows.getFirst();
+        Map<String, Object> row = rows.get(0);
         assertEquals(26, row.size());
         assertEquals(1L, row.get("bytesRead"));
         // Validate the second row
@@ -538,7 +538,7 @@ class TestQueryNiFiReportingTask {
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(1001, rows.size());
         // Validate the first row
-        Map<String, Object> row = rows.getFirst();
+        Map<String, Object> row = rows.get(0);
         assertEquals(24, row.size());
         // Verify the first row contents
         final Long firstEventId = (Long) row.get("eventId");
@@ -549,11 +549,11 @@ class TestQueryNiFiReportingTask {
         assertNull(row.get("previousContentPath"));
 
         Object o = row.get("previousAttributes");
-        assertInstanceOf(Map.class, o);
+        assertTrue(o instanceof Map);
         Map<String, String> previousAttributes = (Map<String, String>) o;
         assertEquals("A", previousAttributes.get("test.value"));
         o = row.get("updatedAttributes");
-        assertInstanceOf(Map.class, o);
+        assertTrue(o instanceof Map);
         Map<String, String> updatedAttributes = (Map<String, String>) o;
         assertEquals("B", updatedAttributes.get("test.value"));
 
@@ -595,7 +595,7 @@ class TestQueryNiFiReportingTask {
         }
 
         // Validate the first row
-        Map<String, Object> row = rows.getFirst();
+        Map<String, Object> row = rows.get(0);
         assertEquals(14, row.size());
         assertNotNull(row.get("bulletinId"));
         assertEquals("controller", row.get("bulletinCategory"));
@@ -625,7 +625,7 @@ class TestQueryNiFiReportingTask {
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(1, rows.size());
         // Validate the first row
-        Map<String, Object> row = rows.getFirst();
+        Map<String, Object> row = rows.get(0);
         assertEquals(22, row.size());
         // Verify the first row contents
         assertEquals(123, row.get("actionId"));
@@ -720,10 +720,13 @@ class TestQueryNiFiReportingTask {
 
         Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(mockProvenanceRepository);
         try {
-            Mockito.when(eventAccess.getProvenanceEvents(anyLong(), anyInt())).thenAnswer((Answer<List<ProvenanceEventRecord>>) invocation -> {
-                final long startEventId = invocation.getArgument(0);
-                final int max = invocation.getArgument(1);
-                return mockProvenanceRepository.getEvents(startEventId, max);
+            Mockito.when(eventAccess.getProvenanceEvents(anyLong(), anyInt())).thenAnswer(new Answer<List<ProvenanceEventRecord>>() {
+                @Override
+                public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) throws Throwable {
+                    final long startEventId = invocation.getArgument(0);
+                    final int max = invocation.getArgument(1);
+                    return mockProvenanceRepository.getEvents(startEventId, max);
+                }
             });
         } catch (final IOException e) {
             // Won't happen

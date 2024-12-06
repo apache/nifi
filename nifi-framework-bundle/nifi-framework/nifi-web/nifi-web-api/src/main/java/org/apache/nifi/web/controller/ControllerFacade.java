@@ -1650,7 +1650,12 @@ public class ControllerFacade implements Authorizable {
         // only include all details if not summarizing
         if (!summarize) {
             // convert the attributes
-            final Comparator<AttributeDTO> attributeComparator = (a1, a2) -> Collator.getInstance(Locale.US).compare(a1.getName(), a2.getName());
+            final Comparator<AttributeDTO> attributeComparator = new Comparator<AttributeDTO>() {
+                @Override
+                public int compare(AttributeDTO a1, AttributeDTO a2) {
+                    return Collator.getInstance(Locale.US).compare(a1.getName(), a2.getName());
+                }
+            };
 
             final SortedSet<AttributeDTO> attributes = new TreeSet<>(attributeComparator);
 

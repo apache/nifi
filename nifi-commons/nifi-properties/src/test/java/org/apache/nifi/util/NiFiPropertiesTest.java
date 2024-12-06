@@ -70,7 +70,7 @@ public class NiFiPropertiesTest {
 
         assertEquals(1, directories.size());
 
-        assertEquals(new File(NiFiProperties.DEFAULT_NAR_LIBRARY_DIR).getPath(), directories.getFirst()
+        assertEquals(new File(NiFiProperties.DEFAULT_NAR_LIBRARY_DIR).getPath(), directories.get(0)
                 .toString());
 
     }
@@ -84,7 +84,7 @@ public class NiFiPropertiesTest {
 
         assertEquals(1, directories.size());
 
-        assertEquals(new File(NiFiProperties.DEFAULT_NAR_LIBRARY_DIR).getPath(), directories.getFirst()
+        assertEquals(new File(NiFiProperties.DEFAULT_NAR_LIBRARY_DIR).getPath(), directories.get(0)
                 .toString());
 
     }
@@ -116,11 +116,11 @@ public class NiFiPropertiesTest {
         properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
         final NiFiProperties test = properties;
-        assertThrows(Throwable.class, test::validate);
+        assertThrows(Throwable.class, () -> test.validate());
     }
 
     private void assertGoodProperties(final NiFiProperties properties) {
-        assertDoesNotThrow(properties::validate);
+        assertDoesNotThrow(() -> properties.validate());
     }
 
     @Test
@@ -150,7 +150,7 @@ public class NiFiPropertiesTest {
     }
 
     private NiFiProperties loadNiFiProperties(final String propsPath, final Map<String, String> additionalProperties) {
-        String realPath;
+        String realPath = null;
         try {
             realPath = NiFiPropertiesTest.class.getResource(propsPath).toURI().getPath();
         } catch (final URISyntaxException ex) {
@@ -224,7 +224,7 @@ public class NiFiPropertiesTest {
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, addressValue);
         NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
-        assertThrows(RuntimeException.class, properties::getClusterNodeProtocolAddress);
+        assertThrows(RuntimeException.class, () -> properties.getClusterNodeProtocolAddress());
     }
 
     @Test
@@ -237,7 +237,7 @@ public class NiFiPropertiesTest {
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, addressValue);
         NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
-        assertThrows(RuntimeException.class, properties::getClusterNodeProtocolAddress);
+        assertThrows(RuntimeException.class, () -> properties.getClusterNodeProtocolAddress());
     }
 
     @Test

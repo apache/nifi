@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -254,18 +255,21 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
     private void printConnectionStatus(final ProcessGroupStatus groupStatus, final StringBuilder builder, final boolean showDeltas, final long divisor) {
         final List<ConnectionStatus> connectionStatuses = new ArrayList<>();
         populateConnectionStatuses(groupStatus, connectionStatuses);
-        connectionStatuses.sort((o1, o2) -> {
-            if (o1 == null && o2 == null) {
-                return 0;
-            }
-            if (o1 == null) {
-                return 1;
-            }
-            if (o2 == null) {
-                return -1;
-            }
+        connectionStatuses.sort(new Comparator<ConnectionStatus>() {
+            @Override
+            public int compare(final ConnectionStatus o1, final ConnectionStatus o2) {
+                if (o1 == null && o2 == null) {
+                    return 0;
+                }
+                if (o1 == null) {
+                    return 1;
+                }
+                if (o2 == null) {
+                    return -1;
+                }
 
-            return -Long.compare(o1.getQueuedBytes(), o2.getQueuedBytes());
+                return -Long.compare(o1.getQueuedBytes(), o2.getQueuedBytes());
+            }
         });
 
         for (final ConnectionStatus connectionStatus : connectionStatuses) {
@@ -355,18 +359,21 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
     private void printProcessorStatus(final ProcessGroupStatus groupStatus, final StringBuilder builder, final boolean showDeltas, final long divisor) {
         final List<ProcessorStatus> processorStatuses = new ArrayList<>();
         populateProcessorStatuses(groupStatus, processorStatuses);
-        Collections.sort(processorStatuses, (o1, o2) -> {
-            if (o1 == null && o2 == null) {
-                return 0;
-            }
-            if (o1 == null) {
-                return 1;
-            }
-            if (o2 == null) {
-                return -1;
-            }
+        Collections.sort(processorStatuses, new Comparator<ProcessorStatus>() {
+            @Override
+            public int compare(final ProcessorStatus o1, final ProcessorStatus o2) {
+                if (o1 == null && o2 == null) {
+                    return 0;
+                }
+                if (o1 == null) {
+                    return 1;
+                }
+                if (o2 == null) {
+                    return -1;
+                }
 
-            return -Long.compare(o1.getProcessingNanos(), o2.getProcessingNanos());
+                return -Long.compare(o1.getProcessingNanos(), o2.getProcessingNanos());
+            }
         });
 
         for (final ProcessorStatus processorStatus : processorStatuses) {

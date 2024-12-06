@@ -22,6 +22,7 @@ import org.apache.commons.configuration2.builder.ConfigurationBuilderEvent;
 import org.apache.commons.configuration2.builder.ReloadingFileBasedConfigurationBuilder;
 import org.apache.commons.configuration2.builder.fluent.FileBasedBuilderParameters;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.event.EventListener;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -48,7 +49,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * This abstract class defines a generic {@link org.apache.nifi.lookup.LookupService} backed by an
+ * This abstract class defines a generic {@link LookupService} backed by an
  * Apache Commons Configuration {@link FileBasedConfiguration}.
  *
  */
@@ -104,11 +105,14 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
         final FileBasedBuilderParameters params = new Parameters().fileBased().setFile(new File(config));
         this.builder = new ReloadingFileBasedConfigurationBuilder<>(resultClass).configure(params);
         builder.addEventListener(ConfigurationBuilderEvent.CONFIGURATION_REQUEST,
-                event -> {
+            new EventListener<ConfigurationBuilderEvent>() {
+                @Override
+                public void onEvent(ConfigurationBuilderEvent event) {
                     if (builder.getReloadingController().checkForReloading(null)) {
                         getLogger().debug("Reloading {}", config);
                     }
-                });
+                }
+            });
 
         try {
             // Try getting configuration to see if there is any issue, for example wrong file format.

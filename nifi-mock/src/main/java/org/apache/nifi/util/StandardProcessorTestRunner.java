@@ -44,6 +44,7 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.registry.EnvironmentVariables;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
+import org.junit.jupiter.api.Assertions;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -75,11 +76,6 @@ import java.util.stream.Collectors;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
 
 public class StandardProcessorTestRunner implements TestRunner {
 
@@ -141,7 +137,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
         } catch (final Exception e) {
-            fail("Could not invoke methods annotated with @OnAdded annotation due to: " + e);
+            Assertions.fail("Could not invoke methods annotated with @OnAdded annotation due to: " + e);
         }
 
         triggerSerially = null != processor.getClass().getAnnotation(TriggerSerially.class);
@@ -215,7 +211,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             try {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, context);
             } catch (final Exception e) {
-                fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e, e);
+                Assertions.fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e, e);
             }
         }
 
@@ -229,7 +225,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             executorService.shutdown();
             try {
                 executorService.awaitTermination(runWait, TimeUnit.MILLISECONDS);
-            } catch (final InterruptedException ignored) {
+            } catch (final InterruptedException e1) {
             }
         }
 
@@ -246,7 +242,7 @@ public class StandardProcessorTestRunner implements TestRunner {
                     unscheduledRun = true;
                     unSchedule();
                 }
-            } catch (final InterruptedException | ExecutionException ignored) {
+            } catch (final InterruptedException | ExecutionException e) {
             }
         }
 
@@ -264,7 +260,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
         } catch (final Exception e) {
-            fail("Could not invoke methods annotated with @OnUnscheduled annotation due to: " + e);
+            Assertions.fail("Could not invoke methods annotated with @OnUnscheduled annotation due to: " + e);
         }
     }
 
@@ -273,7 +269,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, processor, context);
         } catch (final Exception e) {
-            fail("Could not invoke methods annotated with @OnStopped annotation due to: " + e);
+            Assertions.fail("Could not invoke methods annotated with @OnStopped annotation due to: " + e);
         }
     }
 
@@ -282,14 +278,14 @@ public class StandardProcessorTestRunner implements TestRunner {
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnShutdown.class, processor);
         } catch (final Exception e) {
-            fail("Could not invoke methods annotated with @OnShutdown annotation due to: " + e);
+            Assertions.fail("Could not invoke methods annotated with @OnShutdown annotation due to: " + e);
         }
     }
 
     private class RunProcessor implements Callable<Throwable> {
 
         @Override
-        public Throwable call() {
+        public Throwable call() throws Exception {
             invocations.incrementAndGet();
             try {
                 processor.onTrigger(context, sessionFactory);
@@ -328,12 +324,22 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertAllFlowFilesContainAttribute(final String attributeName) {
-        assertAllFlowFiles(f -> assertNotNull(f.getAttribute(attributeName)));
+        assertAllFlowFiles(new FlowFileValidator() {
+            @Override
+            public void assertFlowFile(FlowFile f) {
+                Assertions.assertNotNull(f.getAttribute(attributeName));
+            }
+        });
     }
 
     @Override
     public void assertAllFlowFilesContainAttribute(final Relationship relationship, final String attributeName) {
-        assertAllFlowFiles(relationship, f -> assertNotNull(f.getAttribute(attributeName)));
+        assertAllFlowFiles(relationship, new FlowFileValidator() {
+            @Override
+            public void assertFlowFile(FlowFile f) {
+                Assertions.assertNotNull(f.getAttribute(attributeName));
+            }
+        });
     }
 
     @Override
@@ -391,17 +397,17 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertTransferCount(final Relationship relationship, final int count) {
-        assertEquals(count, getFlowFilesForRelationship(relationship).size());
+        Assertions.assertEquals(count, getFlowFilesForRelationship(relationship).size());
     }
 
     @Override
     public void assertTransferCount(final String relationship, final int count) {
-        assertEquals(count, getFlowFilesForRelationship(relationship).size());
+        Assertions.assertEquals(count, getFlowFilesForRelationship(relationship).size());
     }
 
     @Override
     public void assertPenalizeCount(final int count) {
-        assertEquals(count, getPenalizedFlowFiles().size());
+        Assertions.assertEquals(count, getPenalizedFlowFiles().size());
     }
 
     @Override
@@ -416,7 +422,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertNotValid() {
-        assertFalse(context.isValid(), "Processor appears to be valid but expected it to be invalid");
+        Assertions.assertFalse(context.isValid(), "Processor appears to be valid but expected it to be invalid");
     }
 
     @Override
@@ -426,12 +432,12 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertQueueEmpty() {
-        assertTrue(flowFileQueue.isEmpty());
+        Assertions.assertTrue(flowFileQueue.isEmpty());
     }
 
     @Override
     public void assertQueueNotEmpty() {
-        assertFalse(flowFileQueue.isEmpty());
+        Assertions.assertFalse(flowFileQueue.isEmpty());
     }
 
     @Override
@@ -581,7 +587,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void setThreadCount(final int threadCount) {
         if (threadCount > 1 && triggerSerially) {
-            fail("Cannot set thread-count higher than 1 because the processor is triggered serially");
+            Assertions.fail("Cannot set thread-count higher than 1 because the processor is triggered serially");
         }
 
         this.numThreads = threadCount;
@@ -694,7 +700,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             }
         }
 
-        fail("Expected Controller Service " + service + " to be invalid but it is valid");
+        Assertions.fail("Expected Controller Service " + service + " to be invalid but it is valid");
     }
 
     @Override
@@ -709,7 +715,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
         for (final ValidationResult result : results) {
             if (!result.isValid()) {
-                fail("Expected Controller Service to be valid but it is invalid due to: " + result);
+                Assertions.fail("Expected Controller Service to be valid but it is invalid due to: " + result);
             }
         }
     }
@@ -732,7 +738,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service, configContext);
         } catch (final Exception e) {
             e.printStackTrace();
-            fail("Failed to disable Controller Service " + service + " due to " + e);
+            Assertions.fail("Failed to disable Controller Service " + service + " due to " + e);
         }
 
         configuration.setEnabled(false);
@@ -768,10 +774,10 @@ public class StandardProcessorTestRunner implements TestRunner {
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
         } catch (final InvocationTargetException ite) {
             ite.getCause().printStackTrace();
-            fail("Failed to enable Controller Service " + service + " due to " + ite.getCause());
+            Assertions.fail("Failed to enable Controller Service " + service + " due to " + ite.getCause());
         } catch (final Exception e) {
             e.printStackTrace();
-            fail("Failed to enable Controller Service " + service + " due to " + e);
+            Assertions.fail("Failed to enable Controller Service " + service + " due to " + e);
         }
 
         configuration.setEnabled(true);
@@ -797,7 +803,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             ReflectionUtils.invokeMethodsWithAnnotation(OnRemoved.class, service);
         } catch (final Exception e) {
             e.printStackTrace();
-            fail("Failed to remove Controller Service " + service + " due to " + e);
+            Assertions.fail("Failed to remove Controller Service " + service + " due to " + e);
         }
 
         context.removeControllerService(service);
@@ -1026,18 +1032,18 @@ public class StandardProcessorTestRunner implements TestRunner {
     public void assertAllConditionsMet(final Relationship relationship, Predicate<MockFlowFile> predicate) {
 
         if (predicate == null) {
-            fail("predicate cannot be null");
+            Assertions.fail("predicate cannot be null");
         }
 
         final List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
 
         if (flowFiles.isEmpty()) {
-            fail("Relationship " + relationship.getName() + " does not contain any FlowFile");
+            Assertions.fail("Relationship " + relationship.getName() + " does not contain any FlowFile");
         }
 
         for (MockFlowFile flowFile : flowFiles) {
             if (!predicate.test(flowFile)) {
-                fail("FlowFile " + flowFile + " does not meet all condition");
+                Assertions.fail("FlowFile " + flowFile + " does not meet all condition");
             }
         }
     }

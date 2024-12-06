@@ -51,6 +51,8 @@ import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processor.exception.MissingFlowFileException;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -199,15 +201,18 @@ public class StandardProcessSessionIT {
         when(connectable.getBackoffMechanism()).thenReturn(BackoffMechanism.PENALIZE_FLOWFILE);
         when(connectable.getMaxBackoffPeriod()).thenReturn("1 sec");
 
-        Mockito.doAnswer((Answer<Set<Connection>>) invocation -> {
-            final Object[] arguments = invocation.getArguments();
-            final Relationship relationship = (Relationship) arguments[0];
-            if (relationship == Relationship.SELF) {
-                return Collections.emptySet();
-            } else if (relationship == FAKE_RELATIONSHIP || relationship.equals(FAKE_RELATIONSHIP)) {
-                return null;
-            } else {
-                return new HashSet<>(connList);
+        Mockito.doAnswer(new Answer<Set<Connection>>() {
+            @Override
+            public Set<Connection> answer(final InvocationOnMock invocation) throws Throwable {
+                final Object[] arguments = invocation.getArguments();
+                final Relationship relationship = (Relationship) arguments[0];
+                if (relationship == Relationship.SELF) {
+                    return Collections.emptySet();
+                } else if (relationship == FAKE_RELATIONSHIP || relationship.equals(FAKE_RELATIONSHIP)) {
+                    return null;
+                } else {
+                    return new HashSet<>(connList);
+                }
             }
         }).when(connectable).getConnections(Mockito.any(Relationship.class));
 
@@ -259,24 +264,39 @@ public class StandardProcessSessionIT {
 
         when(connection.getFlowFileQueue()).thenReturn(localFlowFileQueue);
 
-        Mockito.doAnswer((Answer<Object>) invocation -> {
-            localFlowFileQueue.put((FlowFileRecord) invocation.getArguments()[0]);
-            return null;
+        Mockito.doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                localFlowFileQueue.put((FlowFileRecord) invocation.getArguments()[0]);
+                return null;
+            }
         }).when(connection).enqueue(Mockito.any(FlowFileRecord.class));
 
-        Mockito.doAnswer((Answer<Object>) invocation -> {
-            localFlowFileQueue.putAll((Collection<FlowFileRecord>) invocation.getArguments()[0]);
-            return null;
+        Mockito.doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                localFlowFileQueue.putAll((Collection<FlowFileRecord>) invocation.getArguments()[0]);
+                return null;
+            }
         }).when(connection).enqueue(Mockito.any(Collection.class));
 
         final Connectable dest = Mockito.mock(Connectable.class);
         when(connection.getDestination()).thenReturn(dest);
         when(connection.getSource()).thenReturn(dest);
 
-        Mockito.doAnswer((Answer<FlowFile>) invocation -> localFlowFileQueue.poll(invocation.getArgument(0))).when(connection).poll(any(Set.class));
+        Mockito.doAnswer(new Answer<FlowFile>() {
+            @Override
+            public FlowFile answer(InvocationOnMock invocation) throws Throwable {
+                return localFlowFileQueue.poll(invocation.getArgument(0));
+            }
+        }).when(connection).poll(any(Set.class));
 
-        Mockito.doAnswer((Answer<List<FlowFileRecord>>) invocation -> localFlowFileQueue.poll((FlowFileFilter) invocation.getArgument(0),
-                invocation.getArgument(1))).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
+        Mockito.doAnswer(new Answer<List<FlowFileRecord>>() {
+            @Override
+            public List<FlowFileRecord> answer(InvocationOnMock invocation) throws Throwable {
+                return localFlowFileQueue.poll((FlowFileFilter) invocation.getArgument(0), invocation.getArgument(1));
+            }
+        }).when(connection).poll(any(FlowFileFilter.class), any(Set.class));
 
         Mockito.when(connection.getIdentifier()).thenReturn("conn-uuid");
         return connection;
@@ -334,7 +354,7 @@ public class StandardProcessSessionIT {
                 "Expected a FlowFileHandlingException to be thrown because parent was forked and then migrated without children");
 
         assertThrows(FlowFileHandlingException.class,
-                () -> session.migrate(secondSession, Arrays.asList(flowFile, children.getFirst(), children.get(1))),
+                () -> session.migrate(secondSession, Arrays.asList(flowFile, children.get(0), children.get(1))),
                 "Expected a FlowFileHandlingException to be thrown because parent was forked and then migrated without children");
 
         // Should succeed when migrating all FlowFiles.
@@ -387,7 +407,7 @@ public class StandardProcessSessionIT {
         assertEquals(1, eventsByType.get(ProvenanceEventType.DROP).size());
         assertEquals(1, eventsByType.get(ProvenanceEventType.FORK).size());
 
-        final ProvenanceEventRecord fork = eventsByType.get(ProvenanceEventType.FORK).getFirst();
+        final ProvenanceEventRecord fork = eventsByType.get(ProvenanceEventType.FORK).get(0);
         assertEquals(clone.getAttribute(CoreAttributes.UUID.key()), fork.getFlowFileUuid());
         assertEquals(Collections.singletonList(clone.getAttribute(CoreAttributes.UUID.key())), fork.getParentUuids());
 
@@ -536,15 +556,17 @@ public class StandardProcessSessionIT {
         session.adjustCounter("b", 2, true);
         session.commit();
 
-        context.getFlowFileEventRepository().reportTransferEvents(10L).getReportEntries().forEach((k, v) -> v.getCounters().forEach((key, value) -> {
-            if (key.equals("a")) {
-                assertEquals(5L, (long) value);
-            }
+        context.getFlowFileEventRepository().reportTransferEvents(10L).getReportEntries().forEach((k, v) -> {
+            v.getCounters().forEach((key, value) -> {
+                if (key.equals("a")) {
+                    assertEquals(5L, (long) value);
+                }
 
-            if (key.equals("b")) {
-                assertEquals(10L, (long) value);
-            }
-        }));
+                if (key.equals("b")) {
+                    assertEquals(10L, (long) value);
+                }
+            });
+        });
     }
 
     @Test
@@ -956,7 +978,7 @@ public class StandardProcessSessionIT {
     }
 
     @Test
-    public void testAppendToChildThrowsIOExceptionThenRemove() {
+    public void testAppendToChildThrowsIOExceptionThenRemove() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .id(1000L)
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
@@ -984,7 +1006,7 @@ public class StandardProcessSessionIT {
     }
 
     @Test
-    public void testWriteForChildThrowsIOExceptionThenRemove() {
+    public void testWriteForChildThrowsIOExceptionThenRemove() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .id(1000L)
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
@@ -1012,7 +1034,7 @@ public class StandardProcessSessionIT {
     }
 
     @Test
-    public void testModifyContentWithStreamCallbackHasCorrectSize() {
+    public void testModifyContentWithStreamCallbackHasCorrectSize() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .id(1000L)
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
@@ -1031,7 +1053,7 @@ public class StandardProcessSessionIT {
     }
 
     @Test
-    public void testModifyContentWithOutputStreamCallbackHasCorrectSize() {
+    public void testModifyContentWithOutputStreamCallbackHasCorrectSize() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .id(1000L)
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
@@ -1050,7 +1072,7 @@ public class StandardProcessSessionIT {
     }
 
     @Test
-    public void testModifyContentWithAppendHasCorrectSize() {
+    public void testModifyContentWithAppendHasCorrectSize() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .id(1000L)
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
@@ -1085,7 +1107,12 @@ public class StandardProcessSessionIT {
         // Get the FlowFile and write to it. This should leave us with 1 content claim.
         FlowFile flowFile = session.get();
         flowFile = session.putAttribute(flowFile, "filename", "1.txt");
-        flowFile = session.write(flowFile, out -> out.write("Hello".getBytes(StandardCharsets.UTF_8)));
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes(StandardCharsets.UTF_8));
+            }
+        });
         session.transfer(flowFile);
         session.commit();
         assertEquals(1, contentRepo.getExistingClaims().size());
@@ -1152,14 +1179,24 @@ public class StandardProcessSessionIT {
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
         flowFile = session.putAttribute(flowFile, "filename", "1.txt");
-        flowFile = session.write(flowFile, out -> out.write("Hello".getBytes(StandardCharsets.UTF_8)));
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes(StandardCharsets.UTF_8));
+            }
+        });
         session.transfer(flowFile);
         session.commit();
         assertEquals(1, contentRepo.getExistingClaims().size());
 
         flowFile = session.get();
         assertNotNull(flowFile);
-        flowFile = session.write(flowFile, out -> out.write("Hello".getBytes(StandardCharsets.UTF_8)));
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes(StandardCharsets.UTF_8));
+            }
+        });
         session.transfer(flowFile);
         session.commit();
 
@@ -1188,13 +1225,13 @@ public class StandardProcessSessionIT {
     }
 
     private void assertDisabled(final InputStream inputStream) {
-        assertThrows(FlowFileAccessException.class, inputStream::read,
+        assertThrows(FlowFileAccessException.class, () -> inputStream.read(),
                 "Expected InputStream to be disabled; was able to call read()");
         assertThrows(FlowFileAccessException.class, () -> inputStream.read(new byte[0]),
                 "Expected InputStream to be disabled; was able to call read(byte[])");
         assertThrows(FlowFileAccessException.class, () -> inputStream.read(new byte[0], 0, 0),
                 "Expected InputStream to be disabled; was able to call read(byte[], int, int)");
-        assertThrows(FlowFileAccessException.class, inputStream::reset,
+        assertThrows(FlowFileAccessException.class, () -> inputStream.reset(),
                 "Expected InputStream to be disabled; was able to call reset()");
         assertThrows(FlowFileAccessException.class, () -> inputStream.skip(1L),
                 "Expected InputStream to be disabled; was able to call skip(long)");
@@ -1212,7 +1249,12 @@ public class StandardProcessSessionIT {
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
         final AtomicReference<OutputStream> outputStreamHolder = new AtomicReference<>(null);
-        flowFile = session.append(flowFile, outputStreamHolder::set);
+        flowFile = session.append(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(final OutputStream outputStream) throws IOException {
+                outputStreamHolder.set(outputStream);
+            }
+        });
         assertDisabled(outputStreamHolder.get());
     }
 
@@ -1228,7 +1270,12 @@ public class StandardProcessSessionIT {
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
 
-        flowFile = session.append(flowFile, out -> out.write("Hello World".getBytes()));
+        flowFile = session.append(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello World".getBytes());
+            }
+        });
 
         // should be OK
         ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -1273,9 +1320,12 @@ public class StandardProcessSessionIT {
         assertNotNull(flowFile);
         final AtomicReference<InputStream> inputStreamHolder = new AtomicReference<>(null);
         final AtomicReference<OutputStream> outputStreamHolder = new AtomicReference<>(null);
-        flowFile = session.write(flowFile, (input, output) -> {
-            inputStreamHolder.set(input);
-            outputStreamHolder.set(output);
+        flowFile = session.write(flowFile, new StreamCallback() {
+            @Override
+            public void process(final InputStream input, final OutputStream output) throws IOException {
+                inputStreamHolder.set(input);
+                outputStreamHolder.set(output);
+            }
         });
         assertDisabled(inputStreamHolder.get());
         assertDisabled(outputStreamHolder.get());
@@ -1293,12 +1343,17 @@ public class StandardProcessSessionIT {
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
         final AtomicReference<OutputStream> outputStreamHolder = new AtomicReference<>(null);
-        flowFile = session.write(flowFile, outputStreamHolder::set);
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(final OutputStream out) throws IOException {
+                outputStreamHolder.set(out);
+            }
+        });
         assertDisabled(outputStreamHolder.get());
     }
 
     @Test
-    public void testCreateThenRollbackRemovesContent() {
+    public void testCreateThenRollbackRemovesContent() throws IOException {
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
@@ -1306,7 +1361,10 @@ public class StandardProcessSessionIT {
                 .build();
         flowFileQueue.put(flowFileRecord);
 
-        final StreamCallback nop = (in, out) -> {
+        final StreamCallback nop = new StreamCallback() {
+            @Override
+            public void process(InputStream in, OutputStream out) throws IOException {
+            }
         };
 
         session.create();
@@ -1605,20 +1663,35 @@ public class StandardProcessSessionIT {
     }
 
     @Test
-    public void testAppend() {
+    public void testAppend() throws IOException {
         FlowFile ff = session.create();
         ff = session.append(ff, out -> out.write("Hello".getBytes()));
 
         // do not allow the content repo to be read from; this ensures that we are
         // not copying the data each time we call append but instead are actually appending to the output stream
         contentRepo.disableRead = true;
-        ff = session.append(ff, out -> out.write(", ".getBytes()));
+        ff = session.append(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write(", ".getBytes());
+            }
+        });
 
-        ff = session.append(ff, out -> out.write("World".getBytes()));
+        ff = session.append(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("World".getBytes());
+            }
+        });
 
         contentRepo.disableRead = false;
         final byte[] buff = new byte["Hello, World".getBytes().length];
-        session.read(ff, in -> StreamUtils.fillBuffer(in, buff));
+        session.read(ff, new InputStreamCallback() {
+            @Override
+            public void process(final InputStream in) throws IOException {
+                StreamUtils.fillBuffer(in, buff);
+            }
+        });
 
         assertEquals("Hello, World", new String(buff));
     }
@@ -1657,7 +1730,12 @@ public class StandardProcessSessionIT {
     public void testAppendDoesNotDecrementContentClaimIfNotNeeded() {
         FlowFile flowFile = session.create();
 
-        session.append(flowFile, out -> out.write("hello".getBytes()));
+        session.append(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("hello".getBytes());
+            }
+        });
 
         final Set<ContentClaim> existingClaims = contentRepo.getExistingClaims();
         assertEquals(1, existingClaims.size());
@@ -1682,7 +1760,7 @@ public class StandardProcessSessionIT {
             int iterations = 0;
 
             @Override
-            public List<FlowFileRecord> answer(InvocationOnMock invocation) {
+            public List<FlowFileRecord> answer(InvocationOnMock invocation) throws Throwable {
                 if (iterations++ == 0) {
                     final Set<FlowFileRecord> expired = invocation.getArgument(1);
                     expired.add(flowFileRecord);
@@ -1700,7 +1778,7 @@ public class StandardProcessSessionIT {
 
     @Test
     @Disabled
-    public void testManyFilesOpened() {
+    public void testManyFilesOpened() throws IOException {
 
         StandardProcessSession[] standardProcessSessions = new StandardProcessSession[100000];
         for (int i = 0; i < 70000; i++) {
@@ -1709,7 +1787,12 @@ public class StandardProcessSessionIT {
             FlowFile flowFile = standardProcessSessions[i].create();
             final byte[] buff = new byte["Hello".getBytes().length];
 
-            flowFile = standardProcessSessions[i].append(flowFile, out -> out.write("Hello".getBytes()));
+            flowFile = standardProcessSessions[i].append(flowFile, new OutputStreamCallback() {
+                @Override
+                public void process(OutputStream out) throws IOException {
+                    out.write("Hello".getBytes());
+                }
+            });
 
             try {
                 standardProcessSessions[i].read(flowFile, in -> StreamUtils.fillBuffer(in, buff));
@@ -1749,7 +1832,10 @@ public class StandardProcessSessionIT {
         flowFileQueue.put(flowFileRecord);
 
         FlowFile ff1 = session.get();
-        ff1 = session.write(ff1, out -> {
+        ff1 = session.write(ff1, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+            }
         });
         session.transfer(ff1);
         session.commit();
@@ -1783,7 +1869,10 @@ public class StandardProcessSessionIT {
         flowFileQueue.put(flowFileRecord);
 
         FlowFile ff1 = session.get();
-        ff1 = session.write(ff1, out -> {
+        ff1 = session.write(ff1, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+            }
         });
         session.transfer(ff1);
         session.commit();
@@ -1843,7 +1932,12 @@ public class StandardProcessSessionIT {
         assertTrue(flowFileQueue.isActiveQueueEmpty());
         assertTrue(flowFileQueue.isUnacknowledgedFlowFile());
 
-        final FlowFile modified = session.write(originalFlowFile, out -> out.write("Hello".getBytes()));
+        final FlowFile modified = session.write(originalFlowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes());
+            }
+        });
 
         session.transfer(modified);
 
@@ -1874,7 +1968,12 @@ public class StandardProcessSessionIT {
         assertTrue(flowFileQueue.isActiveQueueEmpty());
         assertTrue(flowFileQueue.isUnacknowledgedFlowFile());
 
-        final FlowFile modified = session.write(originalFlowFile, out -> out.write("Hello".getBytes()));
+        final FlowFile modified = session.write(originalFlowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes());
+            }
+        });
 
         session.transfer(modified);
 
@@ -1895,7 +1994,12 @@ public class StandardProcessSessionIT {
         assertTrue(flowFileQueue.isActiveQueueEmpty());
         assertTrue(flowFileQueue.isUnacknowledgedFlowFile());
 
-        final FlowFile modifiedRound2 = session.write(originalRound2, out -> out.write("Hello".getBytes()));
+        final FlowFile modifiedRound2 = session.write(originalRound2, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes());
+            }
+        });
 
         session.transfer(modifiedRound2);
 
@@ -1921,14 +2025,17 @@ public class StandardProcessSessionIT {
         assertFalse(events.isEmpty());
         assertEquals(1, events.size());
 
-        final ProvenanceEventRecord event = events.getFirst();
+        final ProvenanceEventRecord event = events.get(0);
         assertEquals(ProvenanceEventType.CREATE, event.getEventType());
     }
 
     @Test
     public void testContentModifiedNotEmittedForCreate() throws IOException {
         FlowFile newFlowFile = session.create();
-        newFlowFile = session.write(newFlowFile, out -> {
+        newFlowFile = session.write(newFlowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+            }
         });
         session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
         session.commit();
@@ -1937,7 +2044,7 @@ public class StandardProcessSessionIT {
         assertFalse(events.isEmpty());
         assertEquals(1, events.size());
 
-        final ProvenanceEventRecord event = events.getFirst();
+        final ProvenanceEventRecord event = events.get(0);
         assertEquals(ProvenanceEventType.CREATE, event.getEventType());
     }
 
@@ -1961,7 +2068,7 @@ public class StandardProcessSessionIT {
         assertFalse(events.isEmpty());
         assertEquals(1, events.size());
 
-        final ProvenanceEventRecord event = events.getFirst();
+        final ProvenanceEventRecord event = events.get(0);
         assertEquals(ProvenanceEventType.CONTENT_MODIFIED, event.getEventType());
     }
 
@@ -1997,7 +2104,7 @@ public class StandardProcessSessionIT {
         final List<FlowFile> flowFiles = session.get(100);
 
         // FlowFile Queued times should not match yet
-        assertNotEquals(flowFiles.getFirst().getLastQueueDate(), flowFiles.get(99).getLastQueueDate(),
+        assertNotEquals(flowFiles.get(0).getLastQueueDate(), flowFiles.get(99).getLastQueueDate(),
                 "Queued times should not be equal.");
 
         session.transfer(flowFiles, new Relationship.Builder().name("A").build());
@@ -2006,7 +2113,7 @@ public class StandardProcessSessionIT {
         final List<FlowFile> flowFilesUpdated = session.get(100);
 
         // FlowFile Queued times should match
-        assertEquals(flowFilesUpdated.getFirst().getLastQueueDate(), flowFilesUpdated.get(99).getLastQueueDate(),
+        assertEquals(flowFilesUpdated.get(0).getLastQueueDate(), flowFilesUpdated.get(99).getLastQueueDate(),
                 "Queued times should be equal.");
     }
 
@@ -2027,14 +2134,19 @@ public class StandardProcessSessionIT {
         assertFalse(events.isEmpty());
         assertEquals(1, events.size());
 
-        final ProvenanceEventRecord event = events.getFirst();
+        final ProvenanceEventRecord event = events.get(0);
         assertEquals(ProvenanceEventType.ATTRIBUTES_MODIFIED, event.getEventType());
     }
 
     @Test
     public void testReadFromInputStream() throws IOException {
         FlowFile flowFile = session.create();
-        flowFile = session.write(flowFile, out -> out.write("hello, world".getBytes()));
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(final OutputStream out) throws IOException {
+                out.write("hello, world".getBytes());
+            }
+        });
 
         try (InputStream in = session.read(flowFile)) {
             final byte[] buffer = new byte[12];
@@ -2049,7 +2161,12 @@ public class StandardProcessSessionIT {
     @Test
     public void testReadFromInputStreamWithoutClosingThenRemove() throws IOException {
         FlowFile flowFile = session.create();
-        flowFile = session.write(flowFile, out -> out.write("hello, world".getBytes()));
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(final OutputStream out) throws IOException {
+                out.write("hello, world".getBytes());
+            }
+        });
 
         InputStream in = session.read(flowFile);
         final byte[] buffer = new byte[12];
@@ -2277,7 +2394,7 @@ public class StandardProcessSessionIT {
         assertEquals(1, repoUpdates.size());
 
         // Should be 4 transient claims because it was written to 5 times. So 4 transient + 1 actual claim.
-        final RepositoryRecord record = repoUpdates.getFirst();
+        final RepositoryRecord record = repoUpdates.get(0);
         assertEquals(RepositoryRecordType.CREATE, record.getType());
         final List<ContentClaim> transientClaims = record.getTransientClaims();
         assertEquals(4, transientClaims.size());
@@ -3040,7 +3157,7 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public void close() {
+        public void close() throws IOException {
         }
 
         @Override
@@ -3049,7 +3166,7 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public long getMaxFlowFileIdentifier() {
+        public long getMaxFlowFileIdentifier() throws IOException {
             return 0L;
         }
 
@@ -3080,12 +3197,12 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public long getStorageCapacity() {
+        public long getStorageCapacity() throws IOException {
             return 0;
         }
 
         @Override
-        public long getUsableStorageSpace() {
+        public long getUsableStorageSpace() throws IOException {
             return 0;
         }
 
@@ -3100,25 +3217,25 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public long loadFlowFiles(QueueProvider queueProvider) {
+        public long loadFlowFiles(QueueProvider queueProvider) throws IOException {
             return 0;
         }
 
         @Override
-        public Set<String> findQueuesWithFlowFiles(final FlowFileSwapManager flowFileSwapManager) {
+        public Set<String> findQueuesWithFlowFiles(final FlowFileSwapManager flowFileSwapManager) throws IOException {
             return Collections.emptySet();
         }
 
         @Override
-        public void swapFlowFilesIn(String swapLocation, List<FlowFileRecord> flowFileRecords, FlowFileQueue queue) {
+        public void swapFlowFilesIn(String swapLocation, List<FlowFileRecord> flowFileRecords, FlowFileQueue queue) throws IOException {
         }
 
         @Override
-        public void swapFlowFilesOut(List<FlowFileRecord> swappedOut, FlowFileQueue queue, String swapLocation) {
+        public void swapFlowFilesOut(List<FlowFileRecord> swappedOut, FlowFileQueue queue, String swapLocation) throws IOException {
         }
 
         @Override
-        public void initialize(ResourceClaimManager claimManager) {
+        public void initialize(ResourceClaimManager claimManager) throws IOException {
         }
 
         @Override
@@ -3160,7 +3277,7 @@ public class StandardProcessSessionIT {
             claimantCounts.put(contentClaim, new AtomicInteger(1));
             final Path path = getPath(contentClaim);
             final Path parent = path.getParent();
-            if (!Files.exists(parent)) {
+            if (Files.exists(parent) == false) {
                 Files.createDirectories(parent);
             }
             Files.createFile(getPath(contentClaim));
@@ -3174,7 +3291,7 @@ public class StandardProcessSessionIT {
             claimantCounts.put(contentClaim, new AtomicInteger(1));
             final Path path = getPath(contentClaim);
             final Path parent = path.getParent();
-            if (!Files.exists(parent)) {
+            if (Files.exists(parent) == false) {
                 Files.createDirectories(parent);
             }
 
@@ -3208,7 +3325,7 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public long getContainerCapacity(String containerName) {
+        public long getContainerCapacity(String containerName) throws IOException {
             return 0;
         }
 
@@ -3218,7 +3335,7 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public long getContainerUsableSpace(String containerName) {
+        public long getContainerUsableSpace(String containerName) throws IOException {
             return 0;
         }
 
@@ -3254,7 +3371,7 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public ContentClaim clone(ContentClaim original, boolean lossTolerant) {
+        public ContentClaim clone(ContentClaim original, boolean lossTolerant) throws IOException {
             return null;
         }
 
@@ -3287,12 +3404,12 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public long exportTo(ContentClaim claim, Path destination, boolean append) {
+        public long exportTo(ContentClaim claim, Path destination, boolean append) throws IOException {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public long exportTo(ContentClaim claim, Path destination, boolean append, long offset, long length) {
+        public long exportTo(ContentClaim claim, Path destination, boolean append, long offset, long length) throws IOException {
             throw new UnsupportedOperationException();
         }
 
@@ -3304,7 +3421,7 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public long exportTo(ContentClaim claim, OutputStream destination, long offset, long length) {
+        public long exportTo(ContentClaim claim, OutputStream destination, long offset, long length) throws IOException {
             throw new UnsupportedOperationException();
         }
 
@@ -3374,12 +3491,12 @@ public class StandardProcessSessionIT {
         }
 
         @Override
-        public boolean isAccessible(ContentClaim contentClaim) {
+        public boolean isAccessible(ContentClaim contentClaim) throws IOException {
             return true;
         }
 
         @Override
-        public void initialize(ContentRepositoryContext context) {
+        public void initialize(ContentRepositoryContext context) throws IOException {
             this.claimManager = context.getResourceClaimManager();
         }
     }

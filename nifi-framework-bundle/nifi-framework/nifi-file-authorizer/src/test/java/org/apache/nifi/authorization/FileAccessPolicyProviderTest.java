@@ -27,6 +27,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -247,7 +248,12 @@ public class FileAccessPolicyProviderTest {
         });
 
         final AccessPolicyProviderInitializationContext initializationContext = mock(AccessPolicyProviderInitializationContext.class);
-        when(initializationContext.getUserGroupProviderLookup()).thenReturn(identifier -> userGroupProvider);
+        when(initializationContext.getUserGroupProviderLookup()).thenReturn(new UserGroupProviderLookup() {
+            @Override
+            public UserGroupProvider getUserGroupProvider(String identifier) {
+                return userGroupProvider;
+            }
+        });
 
         accessPolicyProvider = new FileAccessPolicyProvider();
         accessPolicyProvider.setNiFiProperties(properties);
@@ -255,7 +261,7 @@ public class FileAccessPolicyProviderTest {
     }
 
     @AfterEach
-    public void cleanup() {
+    public void cleanup() throws Exception {
         deleteFile(primaryAuthorizations);
         deleteFile(primaryTenants);
         deleteFile(restoreAuthorizations);
@@ -641,7 +647,7 @@ public class FileAccessPolicyProviderTest {
             } else if (policy.getIdentifier().equals("policy-2")
                     && policy.getResource().equals("/flow")
                     && policy.getAction() == RequestAction.WRITE
-                    && policy.getGroups().isEmpty()
+                    && policy.getGroups().size() == 0
                     && policy.getUsers().size() == 1
                     && policy.getUsers().contains("user-2")) {
                 foundPolicy2 = true;
@@ -870,7 +876,12 @@ public class FileAccessPolicyProviderTest {
         final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
         when(nifiProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
 
-        when(nifiProperties.getProperty(anyString())).then((Answer<String>) invocationOnMock -> properties.getProperty((String) invocationOnMock.getArguments()[0]));
+        when(nifiProperties.getProperty(anyString())).then(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return properties.getProperty((String) invocationOnMock.getArguments()[0]);
+            }
+        });
         return nifiProperties;
     }
 

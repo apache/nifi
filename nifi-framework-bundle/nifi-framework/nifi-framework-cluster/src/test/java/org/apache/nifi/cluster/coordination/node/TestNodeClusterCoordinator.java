@@ -42,6 +42,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -179,10 +181,13 @@ public class TestNodeClusterCoordinator {
         final ClusterCoordinationProtocolSenderListener senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
         final AtomicReference<ReconnectionRequestMessage> requestRef = new AtomicReference<>();
 
-        when(senderListener.requestReconnection(any(ReconnectionRequestMessage.class))).thenAnswer(invocation -> {
-            final ReconnectionRequestMessage msg = invocation.getArgument(0);
-            requestRef.set(msg);
-            return null;
+        when(senderListener.requestReconnection(any(ReconnectionRequestMessage.class))).thenAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                final ReconnectionRequestMessage msg = invocation.getArgument(0);
+                requestRef.set(msg);
+                return null;
+            }
         });
 
         final EventReporter eventReporter = Mockito.mock(EventReporter.class);

@@ -184,7 +184,12 @@ public class FlowSnippetDTO {
     }
 
     private <T extends ComponentDTO> Set<T> orderedById(Set<T> dtos) {
-        TreeSet<T> components = new TreeSet<>(Comparator.comparing(ComponentDTO::getId));
+        TreeSet<T> components = new TreeSet<>(new Comparator<ComponentDTO>() {
+            @Override
+            public int compare(ComponentDTO c1, ComponentDTO c2) {
+                return c1.getId().compareTo(c2.getId());
+            }
+        });
         components.addAll(dtos);
         return components;
     }
@@ -293,7 +298,12 @@ public class FlowSnippetDTO {
     }
 
     private <T extends RemoteProcessGroupPortDTO> Set<T> orderedRemotePortsById(Set<T> dtos) {
-        TreeSet<T> components = new TreeSet<>(Comparator.comparing((RemoteProcessGroupPortDTO c) -> UUID.fromString(c.getId())));
+        TreeSet<T> components = new TreeSet<>(new Comparator<RemoteProcessGroupPortDTO>() {
+            @Override
+            public int compare(RemoteProcessGroupPortDTO c1, RemoteProcessGroupPortDTO c2) {
+                return UUID.fromString(c1.getId()).compareTo(UUID.fromString(c2.getId()));
+            }
+        });
         components.addAll(dtos);
         return components;
     }

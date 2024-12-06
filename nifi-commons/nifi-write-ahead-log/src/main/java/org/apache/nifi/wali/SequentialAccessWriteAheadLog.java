@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -166,11 +167,14 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         }
 
         final List<File> orderedJournalFiles = Arrays.asList(journalFiles);
-        orderedJournalFiles.sort((o1, o2) -> {
-            final long transactionId1 = getMinTransactionId(o1);
-            final long transactionId2 = getMinTransactionId(o2);
+        Collections.sort(orderedJournalFiles, new Comparator<File>() {
+            @Override
+            public int compare(final File o1, final File o2) {
+                final long transactionId1 = getMinTransactionId(o1);
+                final long transactionId2 = getMinTransactionId(o2);
 
-            return Long.compare(transactionId1, transactionId2);
+                return Long.compare(transactionId1, transactionId2);
+            }
         });
 
         final long snapshotTransactionId = snapshotRecovery.getMaxTransactionId();

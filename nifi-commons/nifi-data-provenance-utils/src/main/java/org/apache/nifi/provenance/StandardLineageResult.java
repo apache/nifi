@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -203,13 +204,16 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
 
         Map<String, LineageNode> lastEventMap = new HashMap<>();    // maps FlowFile UUID to last event for that FlowFile
         final List<ProvenanceEventRecord> sortedRecords = new ArrayList<>(relevantRecords);
-        sortedRecords.sort((o1, o2) -> {
-            // Sort on Event Time, then Event ID.
-            final int eventTimeComparison = Long.compare(o1.getEventTime(), o2.getEventTime());
-            if (eventTimeComparison == 0) {
-                return Long.compare(o1.getEventId(), o2.getEventId());
-            } else {
-                return eventTimeComparison;
+        sortedRecords.sort(new Comparator<ProvenanceEventRecord>() {
+            @Override
+            public int compare(final ProvenanceEventRecord o1, final ProvenanceEventRecord o2) {
+                // Sort on Event Time, then Event ID.
+                final int eventTimeComparison = Long.compare(o1.getEventTime(), o2.getEventTime());
+                if (eventTimeComparison == 0) {
+                    return Long.compare(o1.getEventId(), o2.getEventId());
+                } else {
+                    return eventTimeComparison;
+                }
             }
         });
 
