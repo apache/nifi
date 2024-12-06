@@ -561,7 +561,10 @@ export class EditProcessor extends TabbedDialog {
             id: entity.id,
             uri: entity.uri,
             type: ComponentType.Processor,
-            revision: this.revision,
+            revision: this.client.getRevision({
+                ...this.request.entity,
+                revision: this.revision
+            }),
             errorStrategy: 'snackbar'
         });
     }
@@ -571,7 +574,10 @@ export class EditProcessor extends TabbedDialog {
             id: entity.id,
             uri: entity.uri,
             type: ComponentType.Processor,
-            revision: this.revision,
+            revision: this.client.getRevision({
+                ...this.request.entity,
+                revision: this.revision
+            }),
             errorStrategy: 'snackbar'
         });
     }
@@ -581,7 +587,10 @@ export class EditProcessor extends TabbedDialog {
             id: entity.id,
             uri: entity.uri,
             type: ComponentType.Processor,
-            revision: this.revision,
+            revision: this.client.getRevision({
+                ...this.request.entity,
+                revision: this.revision
+            }),
             errorStrategy: 'snackbar'
         });
     }
@@ -591,7 +600,10 @@ export class EditProcessor extends TabbedDialog {
             id: entity.id,
             uri: entity.uri,
             type: ComponentType.Processor,
-            revision: this.revision,
+            revision: this.client.getRevision({
+                ...this.request.entity,
+                revision: this.revision
+            }),
             errorStrategy: 'snackbar'
         });
     }

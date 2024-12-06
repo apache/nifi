@@ -1576,10 +1576,7 @@ export class FlowEffects {
                             isDefinedAndNotNull(),
                             filter((processorEntity) => {
                                 return (
-                                    processorEntity.revision.clientId === this.client.getClientId() ||
-                                    (runStatusChanged
-                                        ? false
-                                        : processorEntity.revision.clientId === request.entity.revision.clientId)
+                                    runStatusChanged && processorEntity.revision.clientId === this.client.getClientId()
                                 );
                             })
                         )
