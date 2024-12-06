@@ -566,10 +566,10 @@ export class EditProcessor extends TabbedDialog {
         return this.request.entity.permissions.canWrite || this.request.entity.operatePermissions?.canWrite;
     }
 
-    stop(entity: any) {
+    stop() {
         this.stopComponentRequest.next({
-            id: entity.id,
-            uri: entity.uri,
+            id: this.request.entity.id,
+            uri: this.request.entity.uri,
             type: ComponentType.Processor,
             revision: this.client.getRevision({
                 ...this.request.entity,
@@ -579,10 +579,10 @@ export class EditProcessor extends TabbedDialog {
         });
     }
 
-    start(entity: any) {
+    start() {
         this.startComponentRequest.next({
-            id: entity.id,
-            uri: entity.uri,
+            id: this.request.entity.id,
+            uri: this.request.entity.uri,
             type: ComponentType.Processor,
             revision: this.client.getRevision({
                 ...this.request.entity,
@@ -592,10 +592,10 @@ export class EditProcessor extends TabbedDialog {
         });
     }
 
-    disable(entity: any) {
+    disable() {
         this.disableComponentRequest.next({
-            id: entity.id,
-            uri: entity.uri,
+            id: this.request.entity.id,
+            uri: this.request.entity.uri,
             type: ComponentType.Processor,
             revision: this.client.getRevision({
                 ...this.request.entity,
@@ -605,10 +605,10 @@ export class EditProcessor extends TabbedDialog {
         });
     }
 
-    enable(entity: any) {
+    enable() {
         this.enableComponentRequest.next({
-            id: entity.id,
-            uri: entity.uri,
+            id: this.request.entity.id,
+            uri: this.request.entity.uri,
             type: ComponentType.Processor,
             revision: this.client.getRevision({
                 ...this.request.entity,

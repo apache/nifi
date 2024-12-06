@@ -62,22 +62,22 @@
                 }
                 <mat-menu #operateMenu="matMenu" xPosition="before">
                     @if (isStoppable()) {
-                        <button mat-menu-item (click)="stop(request.entity)">
+                        <button mat-menu-item (click)="stop()">
                             <i class="mr-2 fa fa-stop primary-color"></i>Stop
                         </button>
                     }
                     @if (isRunnable()) {
-                        <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="start(request.entity)">
+                        <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="start()">
                             <i class="mr-2 fa fa-play primary-color"></i>Start
                         </button>
                     }
                     @if (isDisableable()) {
-                        <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="disable(request.entity)">
+                        <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="disable()">
                             <i class="mr-2 icon icon-enable-false primary-color"></i>Disable
                         </button>
                     }
                     @if (isEnableable()) {
-                        <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="enable(request.entity)">
+                        <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="enable()">
                             <i class="mr-2 fa fa-flash primary-color"></i>Enable
                         </button>
                     }
