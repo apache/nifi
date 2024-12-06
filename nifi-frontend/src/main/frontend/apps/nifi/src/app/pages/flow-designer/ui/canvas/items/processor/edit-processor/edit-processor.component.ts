@@ -495,6 +495,16 @@ export class EditProcessor extends TabbedDialog {
         return this.status.aggregateSnapshot.runStatus === 'Running';
     }
 
+    isStopping(): boolean {
+        if (!this.canOperate()) {
+            return false;
+        }
+
+        return (
+            this.status.aggregateSnapshot.runStatus === 'Stopped' && this.status.aggregateSnapshot.activeThreadCount > 0
+        );
+    }
+
     isInvalid(): boolean {
         if (!this.canOperate()) {
             return false;
