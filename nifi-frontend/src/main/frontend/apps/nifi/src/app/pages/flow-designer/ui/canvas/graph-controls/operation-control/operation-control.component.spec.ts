@@ -20,6 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { OperationControl } from './operation-control.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../state/flow/flow.reducer';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('OperationControl', () => {
     let component: OperationControl;
@@ -27,7 +28,7 @@ describe('OperationControl', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [OperationControl],
+            imports: [OperationControl, HttpClientTestingModule],
             providers: [
                 provideMockStore({
                     initialState

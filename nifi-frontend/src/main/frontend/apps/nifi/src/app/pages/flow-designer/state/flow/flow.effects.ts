@@ -2253,8 +2253,7 @@ export class FlowEffects {
                                     })
                                 );
                             }),
-                            catchError((e) => {
-                                console.log(e);
+                            catchError(() => {
                                 return of(FlowActions.flowSnackbarError({ error: 'Copy failed' }));
                             })
                         );
