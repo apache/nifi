@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
+import { SelectOption } from '@nifi/shared';
 import { ControllerServiceEntity, ParameterContextReferenceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../shared';
+import { Revision } from '../../../../state/shared';
 
 export const controllerServicesFeatureKey = 'controllerServiceListing';
 
@@ -49,6 +51,30 @@ export interface ConfigureControllerServiceSuccess {
     controllerService: ControllerServiceEntity;
     postUpdateNavigation?: string[];
     postUpdateNavigationBoundary?: string[];
+}
+
+export interface MoveControllerServiceDialogRequest {
+    id: string;
+    controllerService: ControllerServiceEntity;
+}
+
+export interface MoveControllerServiceDialogRequestSuccess {
+    controllerService: ControllerServiceEntity;
+    options: SelectOption[];
+}
+
+export interface MoveControllerServiceRequest {
+    controllerService: ControllerServiceEntity;
+    data: MoveControllerServiceData;
+}
+
+export interface MoveControllerServiceData {
+    parentGroupId: string;
+    revision: Revision;
+}
+
+export interface MoveControllerServiceSuccess {
+    controllerService: ControllerServiceEntity;
 }
 
 export interface DeleteControllerServiceRequest {
