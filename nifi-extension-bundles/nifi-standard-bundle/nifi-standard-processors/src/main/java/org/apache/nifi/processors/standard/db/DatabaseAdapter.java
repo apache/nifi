@@ -186,8 +186,14 @@ public interface DatabaseAdapter {
         return createTableStatement.toString();
     }
 
+    default List<String> getAlterTableStatements(TableSchema tableSchema, List<ColumnDescription> columnsToAdd, boolean quoteTableName, boolean quoteColumnNames) {
+        String tableName = generateTableName(quoteTableName, tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema);
+        // `quoteTableName` is always passed as false, since `tableName` is already quoted by `generateTableName` if needed. We don't want to quote twice.
+        return getAlterTableStatements(tableName, columnsToAdd, false, quoteColumnNames);
+    }
+
     default List<String> getAlterTableStatements(String tableName, List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
-        StringBuilder createTableStatement = new StringBuilder();
+        StringBuilder alterTableStatement = new StringBuilder();
 
         List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
         for (ColumnDescription column : columnsToAdd) {
@@ -200,7 +206,7 @@ public interface DatabaseAdapter {
             columnsAndDatatypes.add(sb.toString());
         }
 
-        createTableStatement.append("ALTER TABLE ")
+        alterTableStatement.append("ALTER TABLE ")
                 .append(quoteTableName ? getTableQuoteString() : "")
                 .append(tableName)
                 .append(quoteTableName ? getTableQuoteString() : "")
@@ -208,7 +214,7 @@ public interface DatabaseAdapter {
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");
 
-        return List.of(createTableStatement.toString());
+        return List.of(alterTableStatement.toString());
     }
 
     /**

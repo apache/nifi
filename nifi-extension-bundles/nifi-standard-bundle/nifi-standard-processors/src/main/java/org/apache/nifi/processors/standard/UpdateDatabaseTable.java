@@ -523,7 +523,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 }
 
                 if (!columnsToAdd.isEmpty()) {
-                    final List<String> alterTableSqlStatements = databaseAdapter.getAlterTableStatements(tableName, columnsToAdd, quoteTableName, quoteColumnNames);
+                    final List<String> alterTableSqlStatements = databaseAdapter.getAlterTableStatements(tableSchema, columnsToAdd, quoteTableName, quoteColumnNames);
 
                     if (alterTableSqlStatements != null && !alterTableSqlStatements.isEmpty()) {
                         for (String alterTableSql : alterTableSqlStatements) {
