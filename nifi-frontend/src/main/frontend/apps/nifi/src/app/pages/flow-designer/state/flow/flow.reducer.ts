@@ -50,6 +50,7 @@ import {
     navigateWithoutTransform,
     pasteSuccess,
     pollChangeVersionSuccess,
+    pollProcessorUntilStoppedSuccess,
     pollRevertChangesSuccess,
     requestRefreshRemoteProcessGroup,
     resetFlowState,
@@ -68,10 +69,12 @@ import {
     setTransitionRequired,
     startComponent,
     startComponentSuccess,
+    startPollingProcessorUntilStopped,
     startProcessGroupSuccess,
     startRemoteProcessGroupPolling,
     stopComponent,
     stopComponentSuccess,
+    stopPollingProcessor,
     stopProcessGroupSuccess,
     stopRemoteProcessGroupPolling,
     stopVersionControl,
@@ -92,6 +95,7 @@ import { produce } from 'immer';
 export const initialState: FlowState = {
     id: 'root',
     changeVersionRequest: null,
+    pollingProcessor: null,
     flow: {
         revision: {
             version: 0
@@ -297,7 +301,7 @@ export const flowReducer = createReducer(
             }
         });
     }),
-    on(loadProcessorSuccess, (state, { response }) => {
+    on(loadProcessorSuccess, pollProcessorUntilStoppedSuccess, (state, { response }) => {
         return produce(state, (draftState) => {
             const proposedProcessor = response.processor;
             const componentIndex: number = draftState.flow.processGroupFlow.flow.processors.findIndex(
@@ -372,6 +376,14 @@ export const flowReducer = createReducer(
         dragging: false,
         saving: false,
         versionSaving: false
+    })),
+    on(startPollingProcessorUntilStopped, (state, { request }) => ({
+        ...state,
+        pollingProcessor: request
+    })),
+    on(stopPollingProcessor, (state) => ({
+        ...state,
+        pollingProcessor: null
     })),
     on(
         createProcessor,

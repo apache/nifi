@@ -17,5 +17,6 @@
 
 export * from './nifi-common.service';
 export * from './storage.service';
+export * from './session-storage.service';
 export * from './theming.service';
 export * from './map-table-helper.service';

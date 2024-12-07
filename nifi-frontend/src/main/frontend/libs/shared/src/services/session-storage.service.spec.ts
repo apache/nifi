@@ -15,20 +15,19 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { TestBed } from '@angular/core/testing';
 
-h2.mdc-dialog__title::before {
-    height: 0;
-}
+import { SessionStorageService } from './session-storage.service';
 
-.processor-edit-form {
-    @include mat.button-density(-1);
+describe('SessionStorageService', () => {
+    let service: SessionStorageService;
 
-    .mat-mdc-form-field {
-        width: 100%;
-    }
-}
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(SessionStorageService);
+    });
 
-#edit-processor-header {
-    line-height: 18px;
-}
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
+});
