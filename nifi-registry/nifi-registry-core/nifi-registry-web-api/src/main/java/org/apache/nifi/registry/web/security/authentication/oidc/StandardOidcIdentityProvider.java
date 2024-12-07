@@ -21,9 +21,11 @@ import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -39,6 +41,7 @@ import org.apache.nifi.registry.web.security.authentication.jwt.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -401,6 +404,10 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         String identityClaim = properties.getOidcClaimIdentifyingUser();
         String identity = claimsSet.getStringClaim(identityClaim);
 
+        // Attempt to extract groups from the configured claim; default is 'groups'
+        String groupsClaim = properties.getOidcClaimGroups();
+        List<String> groups = claimsSet.getStringListClaim(groupsClaim);
+
         // If default identity not available, attempt secondary identity extraction
         if (StringUtils.isBlank(identity)) {
             // Provide clear message to admin that desired claim is missing and present available claims
@@ -424,8 +431,15 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         final long expiresIn = expiration.getTime() - now.getTimeInMillis();
         final String issuer = claimsSet.getIssuer().getValue();
 
+        Set<SimpleGrantedAuthority> authorities = groups != null ? groups.stream().map(
+                SimpleGrantedAuthority::new).collect(
+                Collectors.collectingAndThen(
+                        Collectors.toSet(),
+                        Collections::unmodifiableSet
+                )) : null;
+
         // convert into a nifi jwt for retrieval later
-        return jwtService.generateSignedToken(identity, identity, issuer, issuer, expiresIn);
+        return jwtService.generateSignedToken(identity, identity, issuer, issuer, expiresIn, authorities);
     }
 
     private String retrieveIdentityFromUserInfoEndpoint(OIDCTokens oidcTokens) throws IOException {
