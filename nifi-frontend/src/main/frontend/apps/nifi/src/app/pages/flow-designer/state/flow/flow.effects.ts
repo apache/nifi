@@ -1594,11 +1594,7 @@ export class FlowEffects {
                                 this.store.dispatch(
                                     startPollingProcessorUntilStopped({
                                         request: {
-                                            id: response.id,
-                                            uri: response.uri,
-                                            type: ComponentType.Processor,
-                                            revision: response.revision,
-                                            errorStrategy: 'snackbar'
+                                            id: response.id
                                         }
                                     })
                                 );
