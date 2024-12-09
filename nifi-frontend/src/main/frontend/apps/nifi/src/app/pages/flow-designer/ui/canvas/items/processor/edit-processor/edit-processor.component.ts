@@ -279,7 +279,7 @@ export class EditProcessor extends TabbedDialog {
         this.processRunStateUpdates(request.entity);
     }
 
-    processRunStateUpdates(entity: any) {
+    private processRunStateUpdates(entity: any) {
         this.status = entity.status;
         this.revision = entity.revision;
         this.bulletins = entity.bulletins;
@@ -619,7 +619,7 @@ export class EditProcessor extends TabbedDialog {
     }
 
     private getModifiedProperties(): ModifiedProperties {
-        const propertyControl: AbstractControl | null | undefined = this.editProcessorForm.get('properties');
+        const propertyControl: AbstractControl | null = this.editProcessorForm.get('properties');
         if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
             const values: { [key: string]: string | null } = {};
@@ -630,7 +630,7 @@ export class EditProcessor extends TabbedDialog {
     }
 
     override isDirty(): boolean {
-        return this.editProcessorForm.dirty || false;
+        return this.editProcessorForm.dirty;
     }
 
     verifyClicked(entity: any): void {
