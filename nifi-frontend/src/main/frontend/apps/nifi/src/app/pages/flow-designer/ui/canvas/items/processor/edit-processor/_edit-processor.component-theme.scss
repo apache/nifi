@@ -44,7 +44,7 @@
     $caution: map.get(map.get($config, caution), default);
 
     #edit-processor-header {
-        .controller-bulletins {
+        .bulletins {
             background-color: unset;
 
             .fa {
@@ -52,7 +52,7 @@
             }
         }
 
-        .controller-bulletins.has-bulletins {
+        .bulletins.has-bulletins {
             .fa {
                 color: $primary-contrast;
             }
