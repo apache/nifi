@@ -37,11 +37,12 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable, of } from 'rxjs';
 import {
+    BulletinEntity,
     BulletinsTipInput,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterContextEntity,
-    Property
+    Property, Revision
 } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
 import {
@@ -137,8 +138,8 @@ export class EditProcessor extends TabbedDialog {
     editProcessorForm: FormGroup;
     readonly: boolean = true;
     status: any;
-    revision: any;
-    bulletins: any;
+    revision: Revision;
+    bulletins: BulletinEntity[];
 
     bulletinLevels = [
         {
