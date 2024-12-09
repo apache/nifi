@@ -488,44 +488,24 @@ export class EditProcessor extends TabbedDialog {
     }
 
     isStoppable(): boolean {
-        if (!this.canOperate()) {
-            return false;
-        }
-
         return this.status.aggregateSnapshot.runStatus === 'Running';
     }
 
     isStopping(): boolean {
-        if (!this.canOperate()) {
-            return false;
-        }
-
         return (
             this.status.aggregateSnapshot.runStatus === 'Stopped' && this.status.aggregateSnapshot.activeThreadCount > 0
         );
     }
 
     isInvalid(): boolean {
-        if (!this.canOperate()) {
-            return false;
-        }
-
         return this.status.aggregateSnapshot.runStatus === 'Invalid';
     }
 
     isDisabled(): boolean {
-        if (!this.canOperate()) {
-            return false;
-        }
-
         return this.status.aggregateSnapshot.runStatus === 'Disabled';
     }
 
     isRunnable(): boolean {
-        if (!this.canOperate()) {
-            return false;
-        }
-
         return (
             !(
                 this.status.aggregateSnapshot.runStatus === 'Running' ||
@@ -535,10 +515,6 @@ export class EditProcessor extends TabbedDialog {
     }
 
     isDisableable(): boolean {
-        if (!this.canOperate()) {
-            return false;
-        }
-
         return (
             !(
                 this.status.aggregateSnapshot.runStatus === 'Running' ||
@@ -550,10 +526,6 @@ export class EditProcessor extends TabbedDialog {
     }
 
     isEnableable(): boolean {
-        if (!this.canOperate()) {
-            return false;
-        }
-
         return (
             !(
                 this.status.aggregateSnapshot.runStatus === 'Running' ||
@@ -562,7 +534,7 @@ export class EditProcessor extends TabbedDialog {
         );
     }
 
-    private canOperate(): boolean {
+    canOperate(): boolean {
         return this.request.entity.permissions.canWrite || this.request.entity.operatePermissions?.canWrite;
     }
 

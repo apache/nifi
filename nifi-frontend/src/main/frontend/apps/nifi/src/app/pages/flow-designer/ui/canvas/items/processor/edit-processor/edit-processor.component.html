@@ -312,14 +312,20 @@
             <div class="flex w-full justify-between items-center">
                 <div>
                     @if (isStoppable()) {
-                        <button type="button" mat-stroked-button [matMenuTriggerFor]="operateMenu">
+                        <button type="button"
+                                [disabled]="!canOperate()"
+                                mat-stroked-button
+                                [matMenuTriggerFor]="operateMenu">
                             <div class="flex items-center">
                                 <i class="mr-2 success-color-default fa fa-play"></i>Running<i
                                     class="ml-2 -mt-1 fa fa-sort-desc"></i>
                             </div>
                         </button>
                     } @else if (isRunnable()) {
-                        <button type="button" mat-stroked-button [matMenuTriggerFor]="operateMenu">
+                        <button type="button"
+                                [disabled]="!canOperate()"
+                                mat-stroked-button
+                                [matMenuTriggerFor]="operateMenu">
                             <div class="flex items-center">
                                 <i class="mr-2 error-color-variant fa fa-stop"></i>Stopped<i
                                     class="ml-2 -mt-1 fa fa-sort-desc"></i>
@@ -329,12 +335,12 @@
                         <button
                             type="button"
                             mat-stroked-button
-                            [disabled]="isStopping()"
+                            [disabled]="isStopping() || !canOperate()"
                             [matMenuTriggerFor]="operateMenu">
                             <div class="flex items-center">
-                                @if (isInvalid()) {
+                                @if (isInvalid() && canOperate()) {
                                     <i class="mr-2 fa fa-warning caution-color"></i>
-                                } @else if (isDisabled()) {
+                                } @else if (isDisabled() && canOperate()) {
                                     <i class="mr-2 icon icon-enable-false"></i>
                                 } @else {
                                     <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>
@@ -344,22 +350,22 @@
                         </button>
                     }
                     <mat-menu #operateMenu="matMenu" xPosition="before">
-                        @if (isStoppable()) {
+                        @if (isStoppable() && canOperate()) {
                             <button mat-menu-item (click)="stop()">
                                 <i class="mr-2 fa fa-stop primary-color"></i>Stop
                             </button>
                         }
-                        @if (isRunnable()) {
+                        @if (isRunnable() && canOperate()) {
                             <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="start()">
                                 <i class="mr-2 fa fa-play primary-color"></i>Start
                             </button>
                         }
-                        @if (isDisableable()) {
+                        @if (isDisableable() && canOperate()) {
                             <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="disable()">
                                 <i class="mr-2 icon icon-enable-false primary-color"></i>Disable
                             </button>
                         }
-                        @if (isEnableable()) {
+                        @if (isEnableable() && canOperate()) {
                             <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="enable()">
                                 <i class="mr-2 fa fa-flash primary-color"></i>Enable
                             </button>
