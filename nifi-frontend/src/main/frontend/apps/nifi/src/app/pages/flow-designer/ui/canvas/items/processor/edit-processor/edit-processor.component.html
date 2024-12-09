@@ -331,21 +331,33 @@
                                     class="ml-2 -mt-1 fa fa-sort-desc"></i>
                             </div>
                         </button>
-                    } @else {
+                    } @else if (isDisabled()) {
+                        <button type="button"
+                                [disabled]="!canOperate()"
+                                mat-stroked-button
+                                [matMenuTriggerFor]="operateMenu">
+                            <div class="flex items-center">
+                                <i class="mr-2 icon icon-enable-false primary-color"></i>Disable<i
+                                class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                            </div>
+                        </button>
+                    } @else if (isStopping()) {
+                        <button type="button"
+                                [disabled]="!canOperate()"
+                                mat-stroked-button
+                                [matMenuTriggerFor]="operateMenu">
+                            <div class="flex items-center">
+                                <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>Stopping
+                            </div>
+                        </button>
+                    } @else if (isInvalid()) {
                         <button
                             type="button"
                             mat-stroked-button
-                            [disabled]="isStopping() || !canOperate()"
+                            [disabled]="!canOperate()"
                             [matMenuTriggerFor]="operateMenu">
                             <div class="flex items-center">
-                                @if (isInvalid() && canOperate()) {
-                                    <i class="mr-2 fa fa-warning caution-color"></i>
-                                } @else if (isDisabled() && canOperate()) {
-                                    <i class="mr-2 icon icon-enable-false"></i>
-                                } @else {
-                                    <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>
-                                }
-                                {{ formatRunStatus() }}<i class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                                    <i class="mr-2 fa fa-warning caution-color"></i>Invalid<i class="ml-2 -mt-1 fa fa-sort-desc"></i>
                             </div>
                         </button>
                     }

@@ -344,14 +344,6 @@ export class EditProcessor extends TabbedDialog {
         return this.nifiCommon.formatBundle(this.request.entity.component.bundle);
     }
 
-    formatRunStatus() {
-        if (this.status.runStatus === 'Stopped' && this.status.aggregateSnapshot.activeThreadCount > 0) {
-            return `Stopping (${this.status.aggregateSnapshot.activeThreadCount})`;
-        }
-
-        return `${this.status.runStatus}`;
-    }
-
     concurrentTasksChanged(): void {
         if (this.schedulingStrategy === 'CRON_DRIVEN') {
             this.cronDrivenConcurrentTasks = this.editProcessorForm.get('concurrentTasks')?.value;
