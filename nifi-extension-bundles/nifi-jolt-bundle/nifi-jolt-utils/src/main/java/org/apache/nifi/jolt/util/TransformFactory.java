@@ -36,27 +36,18 @@ import java.util.Map;
 public class TransformFactory {
 
     public static JoltTransform getTransform(final ClassLoader classLoader, final String transformType, final Object specJson) throws Exception {
-        switch (JoltTransformStrategy.get(transformType)) {
-            case DEFAULTR:
-                return new Defaultr(specJson);
-            case SHIFTR:
-                return new Shiftr(specJson);
-            case REMOVR:
-                return new Removr(specJson);
-            case CARDINALITY:
-                return new CardinalityTransform(specJson);
-            case SORTR:
-                return new Sortr();
-            case MODIFIER_DEFAULTR:
-                return new Modifier.Defaultr(specJson);
-            case MODIFIER_OVERWRITER:
-                return new Modifier.Overwritr(specJson);
-            case MODIFIER_DEFINER:
-                return new Modifier.Definr(specJson);
-            case CHAINR:
-                return new Chainr(getChainrJoltTransformations(classLoader, specJson));
-        }
-        return null;
+        return switch (JoltTransformStrategy.get(transformType)) {
+            case DEFAULTR -> new Defaultr(specJson);
+            case SHIFTR -> new Shiftr(specJson);
+            case REMOVR -> new Removr(specJson);
+            case CARDINALITY -> new CardinalityTransform(specJson);
+            case SORTR -> new Sortr();
+            case MODIFIER_DEFAULTR -> new Modifier.Defaultr(specJson);
+            case MODIFIER_OVERWRITER -> new Modifier.Overwritr(specJson);
+            case MODIFIER_DEFINER -> new Modifier.Definr(specJson);
+            case CHAINR -> new Chainr(getChainrJoltTransformations(classLoader, specJson));
+            default -> null;
+        };
     }
 
     public static JoltTransform getCustomTransform(final ClassLoader classLoader, final String customTransformType, final Object specJson) throws Exception {

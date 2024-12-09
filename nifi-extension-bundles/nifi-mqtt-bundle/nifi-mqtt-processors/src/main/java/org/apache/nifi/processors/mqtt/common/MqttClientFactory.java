@@ -39,16 +39,12 @@ public class MqttClientFactory {
     }
 
     public MqttClient create() throws TlsException {
-        switch (clientProperties.getMqttVersion()) {
-            case MQTT_VERSION_3_AUTO:
-            case MQTT_VERSION_3_1:
-            case MQTT_VERSION_3_1_1:
-                return new PahoMqttClientAdapter(brokerUris.next(), clientProperties, logger);
-            case MQTT_VERSION_5_0:
-                return new HiveMqV5ClientAdapter(brokerUris.next(), clientProperties, logger);
-            default:
-                throw new MqttException("Unsupported Mqtt version: " + clientProperties.getMqttVersion());
-        }
+        return switch (clientProperties.getMqttVersion()) {
+            case MQTT_VERSION_3_AUTO, MQTT_VERSION_3_1, MQTT_VERSION_3_1_1 ->
+                    new PahoMqttClientAdapter(brokerUris.next(), clientProperties, logger);
+            case MQTT_VERSION_5_0 -> new HiveMqV5ClientAdapter(brokerUris.next(), clientProperties, logger);
+            default -> throw new MqttException("Unsupported Mqtt version: " + clientProperties.getMqttVersion());
+        };
     }
 
     static class RoundRobinList<T> {

@@ -211,17 +211,12 @@ public class ExceptionHandler<C> {
                         Object inputs = null;
                         if (g != null) {
                             final List<FlowFile> flowFiles = g.getFlowFiles();
-                            switch (flowFiles.size()) {
-                                case 0:
-                                    inputs = "[]";
-                                    break;
-                                case 1:
-                                    inputs = flowFiles.get(0);
-                                    break;
-                                default:
-                                    inputs = String.format("%d FlowFiles including %s", flowFiles.size(), flowFiles.get(0));
-                                    break;
-                            }
+                            inputs = switch (flowFiles.size()) {
+                                case 0 -> "[]";
+                                case 1 -> flowFiles.getFirst();
+                                default ->
+                                        String.format("%d FlowFiles including %s", flowFiles.size(), flowFiles.get(0));
+                            };
                         }
                         throw new ProcessException(String.format("Failed to process %s due to %s", inputs, e), e);
                     }

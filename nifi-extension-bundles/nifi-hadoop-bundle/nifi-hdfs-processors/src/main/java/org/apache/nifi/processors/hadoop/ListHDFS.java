@@ -313,18 +313,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
         final FilterMode filterMode = FilterMode.forName(context.getProperty(FILE_FILTER_MODE).getValue());
         final boolean recursive = context.getProperty(RECURSE_SUBDIRS).asBoolean();
 
-        switch (filterMode) {
-            case FILTER_MODE_FILES_ONLY:
-                return path -> fileFilterRegexPattern.matcher(path.getName()).matches();
-            case FILTER_MODE_FULL_PATH:
-                return path -> fileFilterRegexPattern.matcher(path.toString()).matches()
-                        || fileFilterRegexPattern.matcher(Path.getPathWithoutSchemeAndAuthority(path).toString()).matches();
+        return switch (filterMode) {
+            case FILTER_MODE_FILES_ONLY -> path -> fileFilterRegexPattern.matcher(path.getName()).matches();
+            case FILTER_MODE_FULL_PATH -> path -> fileFilterRegexPattern.matcher(path.toString()).matches()
+                    || fileFilterRegexPattern.matcher(Path.getPathWithoutSchemeAndAuthority(path).toString()).matches();
             // FILTER_DIRECTORIES_AND_FILES
-            default:
-                return path -> Stream.of(Path.getPathWithoutSchemeAndAuthority(path).toString().split("/"))
-                        .skip(getPathSegmentsToSkip(recursive))
-                        .allMatch(v -> fileFilterRegexPattern.matcher(v).matches());
-        }
+            default -> path -> Stream.of(Path.getPathWithoutSchemeAndAuthority(path).toString().split("/"))
+                    .skip(getPathSegmentsToSkip(recursive))
+                    .allMatch(v -> fileFilterRegexPattern.matcher(v).matches());
+        };
     }
 
     private int getPathSegmentsToSkip(final boolean recursive) {
