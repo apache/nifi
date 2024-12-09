@@ -2523,7 +2523,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         try {
             final Iterable<ProvenanceEventRecord> iterable = () -> {
                 final Iterator<ProvenanceEventRecord> expiredEventIterator = expiredReporter.getEvents().iterator();
-                final Iterator<ProvenanceEventRecord> enrichingIterator = new Iterator<ProvenanceEventRecord>() {
+                final Iterator<ProvenanceEventRecord> enrichingIterator = new Iterator<>() {
                     @Override
                     public boolean hasNext() {
                         return expiredEventIterator.hasNext();
@@ -2542,12 +2542,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                         if (claim != null) {
                             final ResourceClaim resourceClaim = claim.getResourceClaim();
                             enriched.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
-                                record.getContentClaimOffset() + claim.getOffset(), record.getSize());
+                                    record.getContentClaimOffset() + claim.getOffset(), record.getSize());
                             enriched.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
-                                record.getContentClaimOffset() + claim.getOffset(), record.getSize());
+                                    record.getContentClaimOffset() + claim.getOffset(), record.getSize());
                         }
 
-                        enriched.setAttributes(record.getAttributes(), Collections.<String, String> emptyMap());
+                        enriched.setAttributes(record.getAttributes(), Collections.<String, String>emptyMap());
                         return enriched.build();
                     }
 

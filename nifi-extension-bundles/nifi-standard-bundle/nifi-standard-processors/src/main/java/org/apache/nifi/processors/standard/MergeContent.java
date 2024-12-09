@@ -1013,7 +1013,7 @@ public class MergeContent extends BinFiles {
                             bin.getSession().read(flowFile, in -> {
                                 boolean canMerge = true;
                                 try (DataFileStream<GenericRecord> reader = new DataFileStream<>(in,
-                                    new GenericDatumReader<GenericRecord>())) {
+                                        new GenericDatumReader<>())) {
                                     if (schema.get() == null) {
                                         // this is the first file - set up the writer, and store the
                                         // Schema & metadata we'll use.
