@@ -42,7 +42,8 @@ import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
     ParameterContextEntity,
-    Property, Revision
+    Property,
+    Revision
 } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
 import {
@@ -61,7 +62,6 @@ import {
     RelationshipConfiguration,
     RelationshipSettings
 } from './relationship-settings/relationship-settings.component';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { CanvasUtils } from '../../../../../service/canvas-utils.service';
 import { ConvertToParameterResponse } from '../../../../../service/parameter-helper.service';
@@ -138,8 +138,8 @@ export class EditProcessor extends TabbedDialog {
     editProcessorForm: FormGroup;
     readonly: boolean = true;
     status: any;
-    revision: Revision;
-    bulletins: BulletinEntity[];
+    revision!: Revision;
+    bulletins!: BulletinEntity[];
 
     bulletinLevels = [
         {
