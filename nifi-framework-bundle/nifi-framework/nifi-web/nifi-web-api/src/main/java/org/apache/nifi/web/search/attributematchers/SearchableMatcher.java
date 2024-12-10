@@ -45,10 +45,9 @@ public class SearchableMatcher implements AttributeMatcher<ProcessorNode> {
 
             // search the processor using the appropriate thread context classloader
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), component.getClass(), component.getIdentifier())) {
-                searchable.search(context).stream().forEach(searchResult -> matches.add(searchResult.getLabel() + AttributeMatcher.SEPARATOR + searchResult.getMatch()));
+                searchable.search(context).stream().forEach(searchResult -> matches.add(searchResult.getLabel() + SEPARATOR + searchResult.getMatch()));
             } catch (final Throwable t) {
                 LOGGER.error("Error happened during searchable matching: {}", t.getMessage());
-                t.printStackTrace();
             }
         }
     }

@@ -24,14 +24,12 @@ import java.util.List;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 
 public class GhostReportingTask implements ReportingTask {
 
     private String id;
     private String canonicalClassName;
-    private ComponentLog logger;
 
     public void setIdentifier(final String id) {
         this.id = id;
@@ -86,7 +84,7 @@ public class GhostReportingTask implements ReportingTask {
 
     @Override
     public void initialize(ReportingInitializationContext config) throws InitializationException {
-        this.logger = config.getLogger();
+
     }
 
     @Override

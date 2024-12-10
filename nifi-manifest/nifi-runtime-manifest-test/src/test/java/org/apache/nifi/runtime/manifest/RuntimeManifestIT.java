@@ -47,9 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class TestRuntimeManifest {
-
-    private static final String REPORTING_TASK_DEFAULT_SCHEDULE_TIME = "60 sec";
+class RuntimeManifestIT {
 
     @Test
     void testRuntimeManifest() throws IOException {

@@ -36,7 +36,7 @@ public interface MetricDescriptor<T> {
         DURATION,
         DATA_SIZE,
         FRACTION
-    };
+    }
 
     int getMetricIdentifier();
 

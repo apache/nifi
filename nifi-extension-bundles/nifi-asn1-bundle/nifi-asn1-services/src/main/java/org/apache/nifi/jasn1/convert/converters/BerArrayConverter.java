@@ -27,7 +27,6 @@ import org.apache.nifi.serialization.record.type.ArrayDataType;
 import java.lang.reflect.Field;
 import java.util.List;
 
-import static org.apache.nifi.jasn1.JASN1Utils.getSeqOfElementType;
 import static org.apache.nifi.jasn1.JASN1Utils.invokeGetter;
 import static org.apache.nifi.jasn1.JASN1Utils.toGetterMethod;
 
@@ -59,7 +58,7 @@ public class BerArrayConverter implements JASN1TypeAndValueConverter {
             // Use the generic type of seqOf field to determine the getter method name.
             final Field seqOfField = value.getClass().getDeclaredField("seqOf");
 
-            final Class seqOf = getSeqOfElementType(seqOfField);
+            final Class seqOf = JASN1Utils.getSeqOfElementType(seqOfField);
             final String getterMethod = toGetterMethod(seqOf.getSimpleName());
 
             final DataType elementType = ((ArrayDataType) dataType).getElementType();

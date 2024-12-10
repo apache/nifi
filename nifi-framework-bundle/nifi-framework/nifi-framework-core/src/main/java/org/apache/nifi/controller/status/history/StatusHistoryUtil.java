@@ -43,7 +43,7 @@ public class StatusHistoryUtil {
 
         final Set<String> metricNames = new HashSet<>();
         for (final StatusSnapshot snapshot : statusHistory.getStatusSnapshots()) {
-            final StatusSnapshotDTO snapshotDto = StatusHistoryUtil.createStatusSnapshotDto(snapshot);
+            final StatusSnapshotDTO snapshotDto = createStatusSnapshotDto(snapshot);
             snapshotDtos.add(snapshotDto);
             metricNames.addAll(snapshotDto.getStatusMetrics().keySet());
             metricDescriptors.addAll(snapshot.getMetricDescriptors());
@@ -63,7 +63,7 @@ public class StatusHistoryUtil {
         final StatusHistoryDTO dto = new StatusHistoryDTO();
         dto.setGenerated(new Date());
         dto.setComponentDetails(componentDetails);
-        dto.setFieldDescriptors(StatusHistoryUtil.createFieldDescriptorDtos(metricDescriptors));
+        dto.setFieldDescriptors(createFieldDescriptorDtos(metricDescriptors));
         dto.setAggregateSnapshots(snapshotDtos);
         return dto;
     }

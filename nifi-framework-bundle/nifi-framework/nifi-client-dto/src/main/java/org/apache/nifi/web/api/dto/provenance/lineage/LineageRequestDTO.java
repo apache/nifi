@@ -35,8 +35,8 @@ public class LineageRequestDTO {
     public enum LineageRequestType {
         PARENTS,
         CHILDREN,
-        FLOWFILE;
-    };
+        FLOWFILE
+    }
 
     private Long eventId;
     private LineageRequestType lineageRequestType;

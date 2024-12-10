@@ -158,7 +158,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
                 session.exportTo(flowFile, baos);
                 final PutRecordsRequestEntry.Builder recordBuilder = PutRecordsRequestEntry.builder().data(SdkBytes.fromByteArray(baos.toByteArray()));
 
-                final String partitionKey = context.getProperty(PutKinesisStream.KINESIS_PARTITION_KEY)
+                final String partitionKey = context.getProperty(KINESIS_PARTITION_KEY)
                         .evaluateAttributeExpressions(flowFile).getValue();
 
                 recordBuilder.partitionKey(StringUtils.isBlank(partitionKey) ? Integer.toString(randomPartitionKeyGenerator.nextInt()) : partitionKey);

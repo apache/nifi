@@ -88,6 +88,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
     @SuppressWarnings("unused")
     private final BulletinRepository bulletinRepository;
     private final EventReporter eventReporter;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final ProcessScheduler scheduler;
     private final Set<Relationship> relationships;
 
@@ -126,7 +127,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
             }
         };
 
-        relationships = direction == TransferDirection.RECEIVE ? Collections.singleton(AbstractPort.PORT_RELATIONSHIP) : Collections.emptySet();
+        relationships = direction == TransferDirection.RECEIVE ? Collections.singleton(PORT_RELATIONSHIP) : Collections.emptySet();
     }
 
     @Override

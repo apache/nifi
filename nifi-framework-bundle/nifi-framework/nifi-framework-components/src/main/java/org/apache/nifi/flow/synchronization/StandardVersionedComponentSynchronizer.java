@@ -3781,14 +3781,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     reportingTask.disable();
                     break;
                 case ENABLED:
-                    if (reportingTask.getScheduledState() == org.apache.nifi.controller.ScheduledState.DISABLED) {
+                    if (reportingTask.getScheduledState() == ScheduledState.DISABLED) {
                         reportingTask.enable();
                     } else if (reportingTask.isRunning()) {
                         reportingTask.stop();
                     }
                     break;
                 case RUNNING:
-                    if (reportingTask.getScheduledState() == org.apache.nifi.controller.ScheduledState.DISABLED) {
+                    if (reportingTask.getScheduledState() == ScheduledState.DISABLED) {
                         reportingTask.enable();
                     }
                     if (!reportingTask.isRunning()) {

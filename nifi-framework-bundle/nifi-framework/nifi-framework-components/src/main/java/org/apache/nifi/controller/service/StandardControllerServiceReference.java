@@ -84,11 +84,7 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
 
     @Override
     public <T> List<T> findRecursiveReferences(final Class<T> componentType) {
-        return findRecursiveReferences(referenced, componentType);
-    }
-
-    private <T> List<T> findRecursiveReferences(final ControllerServiceNode referencedNode, final Class<T> componentType) {
-        return findRecursiveReferences(referencedNode, componentType, new HashSet<>());
+        return findRecursiveReferences(referenced, componentType, new HashSet<>());
     }
 
     private <T> List<T> findRecursiveReferences(final ControllerServiceNode referencedNode, final Class<T> componentType, final Set<ControllerServiceNode> servicesVisited) {

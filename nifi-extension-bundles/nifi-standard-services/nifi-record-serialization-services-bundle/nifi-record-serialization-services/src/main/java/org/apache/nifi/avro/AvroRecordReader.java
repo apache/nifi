@@ -42,9 +42,7 @@ public abstract class AvroRecordReader implements RecordReader {
             final RecordSchema schema = getSchema();
             final Map<String, Object> values = AvroTypeUtil.convertAvroRecordToMap(record, schema);
             return new MapRecord(schema, values);
-        } catch (IOException e) {
-            throw e;
-        } catch (MalformedRecordException e) {
+        } catch (IOException | MalformedRecordException e) {
             throw e;
         } catch (Exception e) {
             throw new MalformedRecordException("Error while getting next record", e);

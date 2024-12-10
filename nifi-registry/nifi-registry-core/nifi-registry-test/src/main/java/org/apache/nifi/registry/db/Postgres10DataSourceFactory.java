@@ -24,15 +24,13 @@ import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
 
 import jakarta.annotation.PostConstruct;
-import javax.script.ScriptException;
 import javax.sql.DataSource;
-import java.sql.SQLException;
 
 @Configuration
 @Profile("postgres-10")
 public class Postgres10DataSourceFactory extends TestDataSourceFactory {
 
-    private static final PostgreSQLContainer POSTGRESQL_CONTAINER = new PostgreSQLContainer("postgres:10");
+    private static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = new PostgreSQLContainer<>("postgres:10");
 
     static {
         POSTGRESQL_CONTAINER.start();
@@ -48,7 +46,7 @@ public class Postgres10DataSourceFactory extends TestDataSourceFactory {
     }
 
     @PostConstruct
-    public void initDatabase() throws SQLException, ScriptException {
+    public void initDatabase() {
         DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(POSTGRESQL_CONTAINER, "");
         databaseDelegate.execute("DROP DATABASE test; CREATE DATABASE test;", "", 0, false, true);
     }

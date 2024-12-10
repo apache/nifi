@@ -122,8 +122,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * ProcessorNode provides thread-safe access to a FlowFileProcessor as it exists
  * within a controlled flow. This node keeps track of the processor, its
@@ -530,7 +528,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
-        final long yieldNanos = FormatUtils.getTimeDuration(requireNonNull(yieldPeriod), TimeUnit.NANOSECONDS);
+        final long yieldNanos = FormatUtils.getTimeDuration(Objects.requireNonNull(yieldPeriod), TimeUnit.NANOSECONDS);
         if (yieldNanos < 0) {
             throw new IllegalArgumentException("Yield duration of " + this + " cannot be set to a negative value: " + yieldNanos + " nanos");
         }
@@ -587,7 +585,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
 
-        final long penalizationMillis = FormatUtils.getTimeDuration(requireNonNull(penalizationPeriod), TimeUnit.MILLISECONDS);
+        final long penalizationMillis = FormatUtils.getTimeDuration(Objects.requireNonNull(penalizationPeriod), TimeUnit.MILLISECONDS);
         if (penalizationMillis < 0) {
             throw new IllegalArgumentException("Penalization duration of " + this + " cannot be set to a negative value: " + penalizationMillis + " millis");
         }
@@ -725,7 +723,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void updateConnection(final Connection connection) throws IllegalStateException {
         try {
-            if (requireNonNull(connection).getSource().equals(this)) {
+            if (Objects.requireNonNull(connection).getSource().equals(this)) {
                 // update any relationships
                 //
                 // first check if any relations were removed.
@@ -794,7 +792,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public void removeConnection(final Connection connection) {
         boolean connectionRemoved = false;
 
-        if (requireNonNull(connection).getSource().equals(this)) {
+        if (Objects.requireNonNull(connection).getSource().equals(this)) {
             for (final Relationship relationship : connection.getRelationships()) {
                 final Set<Connection> connectionsForRelationship = getConnections(relationship);
                 if ((connectionsForRelationship == null || connectionsForRelationship.size() <= 1) && isRunning()) {
@@ -1167,7 +1165,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     break;
                     case TIMER_DRIVEN: {
                         try {
-                            final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(evaluatedSchedulingPeriod),
+                            final long schedulingNanos = FormatUtils.getTimeDuration(Objects.requireNonNull(evaluatedSchedulingPeriod),
                                     TimeUnit.NANOSECONDS);
 
                             if (schedulingNanos < 0) {

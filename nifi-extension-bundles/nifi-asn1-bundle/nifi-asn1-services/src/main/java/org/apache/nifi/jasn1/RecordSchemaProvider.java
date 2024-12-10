@@ -25,8 +25,6 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -36,8 +34,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class RecordSchemaProvider {
-
-    private static final Logger LOG = LoggerFactory.getLogger(RecordSchemaProvider.class);
 
     private final LoadingCache<Class, RecordSchema> schemaCache = Caffeine.newBuilder()
         .maximumSize(100)

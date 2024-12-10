@@ -21,7 +21,6 @@ import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.io.CompressionInputStream;
 import org.apache.nifi.remote.io.CompressionOutputStream;
-import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.Response;
 import org.apache.nifi.remote.protocol.ResponseCode;
@@ -193,7 +192,6 @@ public abstract class AbstractTransaction implements Transaction {
                             + "; Transaction can only be confirmed when state is " + TransactionState.DATA_EXCHANGED);
                 }
 
-                final CommunicationsSession commsSession = peer.getCommunicationsSession();
                 if (direction == TransferDirection.RECEIVE) {
                     if (dataAvailable) {
                         throw new IllegalStateException("Cannot complete transaction because the sender has already sent more data than client has consumed.");

@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -505,7 +506,7 @@ public class AvroTypeUtil {
         for (final Field field : avroSchema.getFields()) {
             final String fieldName = field.name();
             final Schema fieldSchema = field.schema();
-            final DataType dataType = AvroTypeUtil.determineDataType(fieldSchema, knownRecords);
+            final DataType dataType = determineDataType(fieldSchema, knownRecords);
             final boolean nullable = isNullable(fieldSchema);
             addFieldToList(recordFields, field, fieldName, fieldSchema, dataType, nullable);
         }
@@ -694,7 +695,7 @@ public class AvroTypeUtil {
     }
 
     private static Long getLongFromTimestamp(final Object rawValue, final Schema fieldSchema, final String fieldName) {
-        final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
+        final String format = determineDataType(fieldSchema).getFormat();
         final FieldConverter<Object, Timestamp> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(Timestamp.class);
         final Timestamp timestamp = converter.convertField(rawValue, Optional.ofNullable(format), fieldName);
         return timestamp.getTime();
@@ -715,12 +716,12 @@ public class AvroTypeUtil {
 
 
                 if (LOGICAL_TYPE_DATE.equals(logicalType.getName())) {
-                    final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
+                    final String format = determineDataType(fieldSchema).getFormat();
                     final FieldConverter<Object, LocalDate> fieldConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
                     final LocalDate localDate = fieldConverter.convertField(rawValue, Optional.ofNullable(format), fieldName);
                     return (int) localDate.toEpochDay();
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalType.getName())) {
-                    final String format = AvroTypeUtil.determineDataType(fieldSchema).getFormat();
+                    final String format = determineDataType(fieldSchema).getFormat();
                     return getLogicalTimeMillis(rawValue, format, fieldName);
                 }
 
@@ -794,7 +795,7 @@ public class AvroTypeUtil {
 
                         return new GenericData.Fixed(fieldSchema, rawBytes);
                     } else {
-                        return AvroTypeUtil.convertByteArray((Object[]) rawValue);
+                        return convertByteArray((Object[]) rawValue);
                     }
                 }
                 try {
@@ -997,7 +998,7 @@ public class AvroTypeUtil {
             }
 
             foundNonNull = true;
-            final DataType desiredDataType = AvroTypeUtil.determineDataType(subSchema);
+            final DataType desiredDataType = determineDataType(subSchema);
             try {
                 final Object convertedValue = conversion.apply(subSchema);
 
@@ -1078,7 +1079,7 @@ public class AvroTypeUtil {
                     return java.sql.Date.valueOf(LocalDate.ofEpochDay((int) value));
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalName)) {
                     // time-millis logical name means that the value is number of milliseconds since midnight.
-                    return new java.sql.Time((int) value);
+                    return new Time((int) value);
                 }
 
                 break;
@@ -1091,11 +1092,11 @@ public class AvroTypeUtil {
 
                 final String logicalName = logicalType.getName();
                 if (LOGICAL_TYPE_TIME_MICROS.equals(logicalName)) {
-                    return new java.sql.Time(TimeUnit.MICROSECONDS.toMillis((long) value));
+                    return new Time(TimeUnit.MICROSECONDS.toMillis((long) value));
                 } else if (LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalName)) {
-                    return new java.sql.Timestamp((long) value);
+                    return new Timestamp((long) value);
                 } else if (LOGICAL_TYPE_TIMESTAMP_MICROS.equals(logicalName)) {
-                    return new java.sql.Timestamp(TimeUnit.MICROSECONDS.toMillis((long) value));
+                    return new Timestamp(TimeUnit.MICROSECONDS.toMillis((long) value));
                 }
                 break;
             }
@@ -1115,7 +1116,7 @@ public class AvroTypeUtil {
                     final Object fieldValue = normalizeValue(avroFieldValue, field.schema(), fieldName + "/" + field.name());
                     values.put(field.name(), fieldValue);
                 }
-                final RecordSchema childSchema = AvroTypeUtil.createSchema(recordSchema, false);
+                final RecordSchema childSchema = createSchema(recordSchema, false);
                 return new MapRecord(childSchema, values);
             case BYTES:
                 final ByteBuffer bb = (ByteBuffer) value;
@@ -1123,7 +1124,7 @@ public class AvroTypeUtil {
                 if (logicalType != null && LOGICAL_TYPE_DECIMAL.equals(logicalType.getName())) {
                     return new Conversions.DecimalConversion().fromBytes(bb, avroSchema, logicalType);
                 }
-                return AvroTypeUtil.convertByteArray(bb.array());
+                return convertByteArray(bb.array());
             case FIXED:
                 final GenericFixed fixed = (GenericFixed) value;
                 final LogicalType fixedLogicalType = avroSchema.getLogicalType();
@@ -1131,7 +1132,7 @@ public class AvroTypeUtil {
                     final ByteBuffer fixedByteBuffer = ByteBuffer.wrap(fixed.bytes());
                     return new Conversions.DecimalConversion().fromBytes(fixedByteBuffer, avroSchema, fixedLogicalType);
                 }
-                return AvroTypeUtil.convertByteArray(fixed.bytes());
+                return convertByteArray(fixed.bytes());
             case ENUM:
                 return value.toString();
             case NULL:

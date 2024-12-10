@@ -50,7 +50,7 @@
                 <executions>
                     <execution>
                         <id>unpack-nifi-ui</id>
-                        <phase>generate-resources</phase>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>unpack-dependencies</goal>
                         </goals>

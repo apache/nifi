@@ -1756,7 +1756,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private void formatNanos(final long nanos, final StringBuilder sb) {
         final long seconds = nanos > 1000000000L ? nanos / 1000000000L : 0L;
         long millis = nanos > 1000000L ? nanos / 1000000L : 0L;
-        ;
+
         final long nanosLeft = nanos % 1000000L;
 
         if (seconds > 0) {

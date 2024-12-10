@@ -70,7 +70,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>generate-test-resources</phase>
+                        <phase>pre-integration-test</phase>
                         <configuration>
                             <archiverConfig>
                                 <defaultDirectoryMode>0775</defaultDirectoryMode>
@@ -94,14 +94,21 @@
                     <execution>
                         <id>extract-nar-provider-nars</id>
                         <goals>
-                            <goal>unpack-dependencies</goal>
+                            <goal>unpack</goal>
                         </goals>
-                        <phase>generate-test-resources</phase>
+                        <phase>pre-integration-test</phase>
                         <configuration>
-                            <includeArtifactIds>nifi-nar-provider-assembly</includeArtifactIds>
-                            <excludeTransitive>true</excludeTransitive>
                             <outputDirectory>${project.build.directory}</outputDirectory>
                             <silent>true</silent>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.apache.nifi</groupId>
+                                    <artifactId>nifi-nar-provider-assembly</artifactId>
+                                    <version>${project.version}</version>
+                                    <classifier>assembly</classifier>
+                                    <type>zip</type>
+                                </artifactItem>
+                            </artifactItems>
                         </configuration>
                     </execution>
                 </executions>
@@ -225,6 +232,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-cert-builder</artifactId>
+            <version>2.1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-per-process-group-logging</artifactId>
             <version>2.1.0-SNAPSHOT</version>
             <scope>compile</scope>
@@ -277,6 +290,7 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-bootstrap</artifactId>
             <version>2.1.0-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -353,10 +367,7 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nar-provider-assembly</artifactId>
             <version>2.1.0-SNAPSHOT</version>
-            <classifier>assembly</classifier>
-            <type>zip</type>
         </dependency>
-
 
         <!-- Python dependencies not already provided for Lib -->
         <dependency>

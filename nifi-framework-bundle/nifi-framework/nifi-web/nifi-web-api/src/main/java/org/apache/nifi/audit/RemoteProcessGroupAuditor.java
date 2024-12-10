@@ -66,7 +66,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
     private static final Function<RemoteProcessGroupDTO, Boolean> IS_TRANSPORT_PROTOCOL_SET = dto -> dto.getTransportProtocol() != null;
 
     private static final List<ConfigurationRecorder<RemoteProcessGroup, RemoteProcessGroupDTO>> CONFIG_RECORDERS = Arrays.asList(
-            new ConfigurationRecorder<RemoteProcessGroup, RemoteProcessGroupDTO>("Communications Timeout",
+            new ConfigurationRecorder<>("Communications Timeout",
                     dto -> dto.getCommunicationsTimeout() != null, RemoteProcessGroup::getCommunicationsTimeout),
             new ConfigurationRecorder<>("Yield Duration",
                     dto -> dto.getYieldDuration() != null, RemoteProcessGroup::getYieldDuration),

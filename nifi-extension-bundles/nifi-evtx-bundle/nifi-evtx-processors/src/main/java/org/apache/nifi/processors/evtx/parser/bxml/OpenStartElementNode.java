@@ -29,7 +29,9 @@ import java.io.IOException;
  * Open tag in the template xml
  */
 public class OpenStartElementNode extends BxmlNodeWithToken {
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final int unknown;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final UnsignedInteger size;
     private final int stringOffset;
     private final String tagName;

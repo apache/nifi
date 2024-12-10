@@ -47,7 +47,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
     private static final String PARAMETER_PROVIDER_BULLETIN_STORE_KEY = "PARAMETER_PROVIDER";
 
     private final ConcurrentMap<String, ConcurrentMap<String, RingBuffer<Bulletin>>> bulletinStoreMap = new ConcurrentHashMap<>();
-    private volatile BulletinProcessingStrategy processingStrategy = new DefaultBulletinProcessingStrategy();
+    private final BulletinProcessingStrategy processingStrategy = new DefaultBulletinProcessingStrategy();
     private final AtomicLong maxId = new AtomicLong(-1L);
 
     @Override

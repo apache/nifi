@@ -528,7 +528,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
 
     @Override
     public String toString() {
-        return "EndpointConnectionPool[Cluster URL=" + siteInfoProvider.getClusterUrls() + "]";
+        return "EndpointConnectionPool[Cluster URL=" + siteInfoProvider.getClusterUrls() + " LocalAddress=" + localAddress + "]";
     }
 
     private class IdEnrichedRemoteDestination implements RemoteDestination {

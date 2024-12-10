@@ -196,8 +196,6 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
     private volatile ProcessSession processSession;
 
-    private volatile boolean shouldSetDeleteFlag;
-
     protected volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
     protected volatile AccessToken oauth2AccessDetails;
 
@@ -313,7 +311,6 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             this.processSession = processSession;
             this.messageReceiver = this.buildMessageReceiver(context);
 
-            this.shouldSetDeleteFlag = context.getProperty(SHOULD_DELETE_MESSAGES).asBoolean();
             int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
 
             this.messageReceiver.setMaxFetchSize(fetchSize);

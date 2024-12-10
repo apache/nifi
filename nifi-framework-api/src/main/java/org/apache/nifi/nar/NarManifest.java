@@ -172,7 +172,7 @@ public class NarManifest {
 
         final Attributes attributes = manifest.getMainAttributes();
 
-        return NarManifest.builder()
+        return builder()
                 .group(attributes.getValue(NarManifestEntry.NAR_GROUP.getEntryName()))
                 .id(attributes.getValue(NarManifestEntry.NAR_ID.getEntryName()))
                 .version(attributes.getValue(NarManifestEntry.NAR_VERSION.getEntryName()))

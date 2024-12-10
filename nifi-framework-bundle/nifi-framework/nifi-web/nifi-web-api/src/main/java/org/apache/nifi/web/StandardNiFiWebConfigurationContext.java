@@ -89,6 +89,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     private ClusterCoordinator clusterCoordinator;
     private RequestReplicator requestReplicator;
     private ControllerServiceProvider controllerServiceProvider;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private ReportingTaskProvider reportingTaskProvider;
     private AuditService auditService;
     private Authorizer authorizer;
@@ -365,7 +366,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
 
                 // replicate request
                 NodeResponse nodeResponse;
@@ -548,7 +549,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
 
                 // replicate request
                 NodeResponse nodeResponse;
@@ -693,7 +694,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
 
                 // replicate request
                 NodeResponse nodeResponse;
@@ -839,7 +840,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
 
                 // replicate request
                 NodeResponse nodeResponse;
@@ -984,7 +985,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
 
                 // set the request parameters
-                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
+                final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
 
                 // replicate request
                 NodeResponse nodeResponse;

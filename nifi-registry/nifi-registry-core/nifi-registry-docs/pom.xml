@@ -40,7 +40,7 @@
                 <executions>
                     <execution>
                         <id>copy-asciidoc</id>
-                        <phase>generate-resources</phase>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -62,7 +62,7 @@
                 <executions>
                     <execution>
                         <id>output-html</id>
-                        <phase>prepare-package</phase>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>process-asciidoc</goal>
                         </goals>
@@ -171,7 +171,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>package</phase>
+                        <phase>process-resources</phase>
                         <configuration>
                             <descriptors>
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>

@@ -282,7 +282,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>package</phase>
+                        <phase>compile</phase>
                         <configuration>
                             <descriptors>
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>

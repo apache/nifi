@@ -42,7 +42,6 @@ public class WriteParquetResult extends AbstractRecordSetWriter {
 
     private final Schema schema;
     private final ParquetWriter<GenericRecord> parquetWriter;
-    private final ComponentLog componentLogger;
     private SchemaAccessWriter accessWriter;
     private RecordSchema recordSchema;
 
@@ -50,7 +49,6 @@ public class WriteParquetResult extends AbstractRecordSetWriter {
                               final ParquetConfig parquetConfig, final ComponentLog componentLogger) throws IOException {
         super(out);
         this.schema = avroSchema;
-        this.componentLogger = componentLogger;
         this.accessWriter = accessWriter;
         this.recordSchema = recordSchema;
 

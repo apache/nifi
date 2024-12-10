@@ -27,6 +27,7 @@ import java.util.List;
 
 public class ProcessingInstructionDataNode extends BxmlNodeWithToken {
     private final int stringLength;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final int tagLength;
     private final String data;
 

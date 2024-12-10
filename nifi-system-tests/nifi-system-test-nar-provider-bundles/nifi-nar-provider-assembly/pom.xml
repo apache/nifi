@@ -60,7 +60,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>generate-resources</phase>
+                        <phase>pre-integration-test</phase>
                         <configuration>
                             <archiverConfig>
                                 <defaultDirectoryMode>0775</defaultDirectoryMode>

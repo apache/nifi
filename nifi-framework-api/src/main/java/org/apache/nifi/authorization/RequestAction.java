@@ -23,7 +23,7 @@ public enum RequestAction {
     READ("read"),
     WRITE("write");
 
-    private String value;
+    private final String value;
 
     RequestAction(String value) {
         this.value = value;
@@ -35,12 +35,12 @@ public enum RequestAction {
     }
 
     public static RequestAction valueOfValue(final String action) {
-        if (RequestAction.READ.toString().equals(action)) {
-            return RequestAction.READ;
-        } else if (RequestAction.WRITE.toString().equals(action)) {
-            return RequestAction.WRITE;
+        if (READ.toString().equals(action)) {
+            return READ;
+        } else if (WRITE.toString().equals(action)) {
+            return WRITE;
         } else {
-            throw new IllegalArgumentException("Action must be one of [" + READ.toString() + ", " + WRITE.toString() + "]");
+            throw new IllegalArgumentException("Action must be one of [" + READ + ", " + WRITE + "]");
         }
     }
 }

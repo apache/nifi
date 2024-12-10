@@ -107,7 +107,7 @@ public class RecordPathCompiler {
         RecordPathSegment parent = root;
         for (int i = 0; i < pathTree.getChildCount(); i++) {
             final Tree child = pathTree.getChild(i);
-            parent = RecordPathCompiler.buildPath(child, parent, absolute);
+            parent = buildPath(child, parent, absolute);
         }
 
         // If the given path tree is an operator, create a Filter Function that will be responsible for returning true/false based on the provided operation

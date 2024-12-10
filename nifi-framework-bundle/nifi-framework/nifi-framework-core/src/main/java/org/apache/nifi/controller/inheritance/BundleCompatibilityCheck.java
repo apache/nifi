@@ -29,14 +29,11 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.nar.ExtensionManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 
 import java.util.Set;
 
 public class BundleCompatibilityCheck implements FlowInheritabilityCheck {
-    private static final Logger logger = LoggerFactory.getLogger(BundleCompatibilityCheck.class);
 
     @Override
     public FlowInheritability checkInheritability(final DataFlow existingFlow, final DataFlow proposedFlow, final FlowController flowController) {

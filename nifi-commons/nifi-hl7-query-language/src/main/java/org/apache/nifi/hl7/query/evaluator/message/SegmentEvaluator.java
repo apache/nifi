@@ -40,7 +40,7 @@ public class SegmentEvaluator implements Evaluator<List> {
             return Collections.emptyList();
         }
 
-        final HL7Message message = (HL7Message) objectMap.get(Evaluator.MESSAGE_KEY);
+        final HL7Message message = (HL7Message) objectMap.get(MESSAGE_KEY);
         final List<HL7Segment> segments = message.getSegments(segmentType);
         return (segments == null) ? Collections.<HL7Segment>emptyList() : segments;
     }

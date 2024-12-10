@@ -32,7 +32,7 @@ public enum SensitiveProperty {
     NIFI_MINIFI_SECURITY_TRUSTSTORE_PASSWORD("nifi.minifi.security.truststorePasswd"),
     NIFI_MINIFI_SENSITIVE_PROPS_KEY("nifi.minifi.sensitive.props.key");
 
-    public static final Set<String> SENSITIVE_PROPERTIES = Arrays.stream(SensitiveProperty.values()).map(SensitiveProperty::getKey)
+    public static final Set<String> SENSITIVE_PROPERTIES = Arrays.stream(values()).map(SensitiveProperty::getKey)
         .collect(collectingAndThen(toSet(), Collections::unmodifiableSet));
 
     private final String key;

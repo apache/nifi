@@ -70,6 +70,7 @@ public final class StandardConnection implements Connection {
     private final AtomicInteger labelIndex = new AtomicInteger(1);
     private final AtomicLong zIndex = new AtomicLong(DEFAULT_Z_INDEX);
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final ProcessScheduler scheduler;
     private final int hashCode;
 
@@ -383,6 +384,7 @@ public final class StandardConnection implements Connection {
         private Connectable destination;
         private Collection<Relationship> relationships;
         private FlowFileQueueFactory flowFileQueueFactory;
+        @SuppressWarnings("PMD.UnusedPrivateField")
         private boolean clustered = false;
 
         public Builder(final ProcessScheduler scheduler) {

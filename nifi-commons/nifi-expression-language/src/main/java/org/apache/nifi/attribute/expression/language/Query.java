@@ -66,7 +66,7 @@ public class Query {
     }
 
     public static ResultType getResultType(final String value) throws AttributeExpressionLanguageParsingException {
-        return Query.compile(value).getResultType();
+        return compile(value).getResultType();
     }
 
     public static List<ResultType> extractResultTypes(final String value) throws AttributeExpressionLanguageParsingException {
@@ -183,7 +183,7 @@ public class Query {
 
             final Range range = ranges.get(0);
             final String expression = value.substring(range.getStart(), range.getEnd() + 1);
-            Query.compile(expression);
+            compile(expression);
 
             if (range.getStart() > 0 || range.getEnd() < value.length() - 1) {
                 throw new AttributeExpressionLanguageParsingException("Found characters outside of Expression");
@@ -191,7 +191,7 @@ public class Query {
         } else {
             for (final Range range : extractExpressionRanges(value)) {
                 final String expression = value.substring(range.getStart(), range.getEnd() + 1);
-                Query.compile(expression);
+                compile(expression);
             }
         }
     }
@@ -231,7 +231,7 @@ public class Query {
 
     static String evaluateExpressions(final String rawValue, Map<String, String> expressionMap, final AttributeValueDecorator decorator, final Map<String, String> stateVariables,
                                       final ParameterLookup parameterLookup) throws ProcessException {
-        return Query.prepare(rawValue).evaluateExpressions(new StandardEvaluationContext(expressionMap, stateVariables, parameterLookup), decorator);
+        return prepare(rawValue).evaluateExpressions(new StandardEvaluationContext(expressionMap, stateVariables, parameterLookup), decorator);
     }
 
     static String evaluateExpressions(final String rawValue, final Map<String, String> valueLookup, final ParameterLookup parameterLookup) throws ProcessException {
@@ -240,7 +240,7 @@ public class Query {
 
     static String evaluateExpressions(final String rawValue, final Map<String, String> valueLookup, final AttributeValueDecorator decorator, final ParameterLookup parameterLookup)
             throws ProcessException {
-        return Query.prepare(rawValue).evaluateExpressions(new StandardEvaluationContext(valueLookup, Collections.emptyMap(), parameterLookup), decorator);
+        return prepare(rawValue).evaluateExpressions(new StandardEvaluationContext(valueLookup, Collections.emptyMap(), parameterLookup), decorator);
     }
 
 
