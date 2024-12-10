@@ -13,23 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unstructured.partition.text import partition_text
-from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
+import requests
+from nifiapi.flowfilesource import FlowFileSource, FlowFileSourceResult
 
-class UnstructuredProcessor(FlowFileTransform):
+class CreateHttpRequest(FlowFileSource):
     class Java:
-        implements = ['org.apache.nifi.python.processor.FlowFileTransform']
+        implements = ['org.apache.nifi.python.processor.FlowFileSource']
 
     class ProcessorDetails:
-        description = "This processor depends on both google-cloud-vision and unstructured"
+        description = "Test processor which creates an http request"
         version = '0.0.1-SNAPSHOT'
-        tags = ['cloud', 'vision', 'unstructured']
-        dependencies = ['unstructured==0.16.5']
+        tags = ['test', 'http', 'requests']
+        dependencies = ['requests==2.32.3']
 
     def __init__(self, jvm):
         pass
 
-    def transform(self, context, flow_file):
-        partitioned_json = partition_text(text="sample text")
-        partitioned_text = partitioned_json[0].to_dict()['text']
-        return FlowFileTransformResult('success', contents=partitioned_text)
+    def create(self, context):
+        req = requests.Request('GET', 'https://wikipedia.org')
+        return FlowFileSourceResult('success', contents=str(req))

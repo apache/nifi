@@ -13,22 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pymilvus import DataType, FieldSchema
-from nifiapi.flowfiletransform import FlowFileTransform, FlowFileTransformResult
+from google.protobuf.runtime_version import OSS_MAJOR, OSS_MINOR, OSS_PATCH
+from nifiapi.flowfilesource import FlowFileSource, FlowFileSourceResult
 
-class MilvusProcessor(FlowFileTransform):
+class ProtobufVersion(FlowFileSource):
     class Java:
-        implements = ['org.apache.nifi.python.processor.FlowFileTransform']
+        implements = ['org.apache.nifi.python.processor.FlowFileSource']
 
     class ProcessorDetails:
-        description = "This processor depends on both google-cloud-vision and pymilvus"
+        description = "Test processor which outputs the version of the protobuf library"
         version = '0.0.1-SNAPSHOT'
-        tags = ['cloud', 'vision', 'milvus']
-        dependencies = ['pymilvus==2.4.4']
+        tags = ['test', 'protobuf', 'version']
+        dependencies = ['protobuf==5.29.1']
 
     def __init__(self, jvm):
         pass
 
-    def transform(self, context, flow_file):
-        num_cows_field = FieldSchema(name="number of cows", dtype=DataType.INT64)
-        return FlowFileTransformResult('success', contents=num_cows_field.name)
+    def create(self, context):
+        version = f"{OSS_MAJOR}.{OSS_MINOR}.{OSS_PATCH}"
+        return FlowFileSourceResult('success', contents=version)
