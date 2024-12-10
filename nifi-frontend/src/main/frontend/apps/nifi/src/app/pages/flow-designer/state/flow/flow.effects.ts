@@ -1568,6 +1568,26 @@ export class FlowEffects {
                                 })
                             );
                         });
+                    const startPollingIfNecessary = (processorEntity: any): boolean => {
+                        if (
+                            (processorEntity.status.aggregateSnapshot.runStatus === 'Stopped' &&
+                                processorEntity.status.aggregateSnapshot.activeThreadCount > 0) ||
+                            processorEntity.status.aggregateSnapshot.runStatus === 'Validating'
+                        ) {
+                            this.store.dispatch(
+                                startPollingProcessorUntilStopped({
+                                    request: {
+                                        id: processorEntity.id
+                                    }
+                                })
+                            );
+                            return true;
+                        }
+
+                        return false;
+                    };
+
+                    const pollingStarted = startPollingIfNecessary(request.entity);
 
                     this.store
                         .select(selectProcessor(processorId))
@@ -1576,28 +1596,18 @@ export class FlowEffects {
                             isDefinedAndNotNull(),
                             filter((processorEntity) => {
                                 return (
-                                    runStatusChanged && processorEntity.revision.clientId === this.client.getClientId()
+                                    (runStatusChanged || pollingStarted) &&
+                                    processorEntity.revision.clientId === this.client.getClientId()
                                 );
-                            })
+                            }),
+                            concatLatestFrom(() => this.store.select(selectPollingProcessor))
                         )
-                        .subscribe((response) => {
-                            editDialogReference.componentInstance.processorUpdates = response;
+                        .subscribe(([processorEntity, pollingProcessor]) => {
+                            editDialogReference.componentInstance.processorUpdates = processorEntity;
 
-                            if (
-                                (editDialogReference.componentInstance.status.aggregateSnapshot.runStatus ===
-                                    'Stopped' &&
-                                    editDialogReference.componentInstance.status.aggregateSnapshot.activeThreadCount >
-                                        0) ||
-                                editDialogReference.componentInstance.status.aggregateSnapshot.runStatus ===
-                                    'Validating'
-                            ) {
-                                this.store.dispatch(
-                                    startPollingProcessorUntilStopped({
-                                        request: {
-                                            id: response.id
-                                        }
-                                    })
-                                );
+                            // if we're already polling we do not want to start polling again
+                            if (!pollingProcessor) {
+                                startPollingIfNecessary(processorEntity);
                             }
                         });
 

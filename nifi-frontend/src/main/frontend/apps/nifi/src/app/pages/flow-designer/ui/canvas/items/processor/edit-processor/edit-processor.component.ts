@@ -489,6 +489,10 @@ export class EditProcessor extends TabbedDialog {
         );
     }
 
+    isValidating(): boolean {
+        return this.status.aggregateSnapshot.runStatus === 'Validating';
+    }
+
     isInvalid(): boolean {
         return this.status.aggregateSnapshot.runStatus === 'Invalid';
     }
