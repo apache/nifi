@@ -47,7 +47,7 @@ import {
 } from './parameter-providers.selectors';
 import { selectParameterProviderTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { CreateParameterProvider } from '../../ui/parameter-providers/create-parameter-provider/create-parameter-provider.component';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { YesNoDialog } from '@nifi/shared';
 import { EditParameterProvider } from '../../ui/parameter-providers/edit-parameter-provider/edit-parameter-provider.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { EditParameterProviderRequest, ParameterProviderEntity, UpdateParameterProviderRequest } from './index';

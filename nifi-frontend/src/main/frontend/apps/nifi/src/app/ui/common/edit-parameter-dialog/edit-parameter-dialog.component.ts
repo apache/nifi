@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { EditParameterRequest, EditParameterResponse, Parameter } from '../../../state/shared';
+import { EditParameterRequest, EditParameterResponse } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
 import {
     AbstractControl,
@@ -37,7 +37,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
 import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
-import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog } from '@nifi/shared';
+import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog, Parameter } from '@nifi/shared';
 
 @Component({
     selector: 'edit-parameter-dialog',

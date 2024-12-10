@@ -17,21 +17,21 @@
 
 import { Component, EventEmitter, Input, OnDestroy, Output, Renderer2, ViewContainerRef } from '@angular/core';
 import { PropertyItem } from '../../property-table.component';
-import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
+import { CdkDrag } from '@angular/cdk/drag-drop';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective, Resizable } from '@nifi/shared';
+import { NifiTooltipDirective, Resizable, Parameter } from '@nifi/shared';
 import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hint-tip.component';
-import { Parameter, ParameterConfig, PropertyHintTipInput } from '../../../../../state/shared';
+import { ParameterConfig, PropertyHintTipInput } from '../../../../../state/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
-import { NfEl } from './modes/nfel';
-import { NfPr } from './modes/nfpr';
 import { Editor } from 'codemirror';
+import { NfEl } from "./modes/nfel";
+import { NfPr } from "./modes/nfpr";
 
 @Component({
     selector: 'nf-editor',
@@ -39,7 +39,6 @@ import { Editor } from 'codemirror';
     templateUrl: './nf-editor.component.html',
     imports: [
         CdkDrag,
-        CdkDragHandle,
         ReactiveFormsModule,
         MatDialogModule,
         MatInputModule,
