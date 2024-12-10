@@ -15,8 +15,19 @@
  * limitations under the License.
  */
 
-export * from './nifi-common.service';
-export * from './storage.service';
-export * from './session-storage.service';
-export * from './theming.service';
-export * from './map-table-helper.service';
+import { TestBed } from '@angular/core/testing';
+
+import { SessionStorageService } from './session-storage.service';
+
+describe('SessionStorageService', () => {
+    let service: SessionStorageService;
+
+    beforeEach(() => {
+        TestBed.configureTestingModule({});
+        service = TestBed.inject(SessionStorageService);
+    });
+
+    it('should be created', () => {
+        expect(service).toBeTruthy();
+    });
+});

@@ -45,6 +45,8 @@ import {
     CreateConnectionDialogRequest,
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
+    DisableComponentRequest,
+    EnableComponentRequest,
     GroupComponentsDialogRequest,
     ImportFromRegistryDialogRequest,
     LoadProcessGroupResponse,
@@ -56,6 +58,8 @@ import {
     SaveVersionRequest,
     SelectedComponent,
     Snippet,
+    StartComponentRequest,
+    StopComponentRequest,
     StopVersionControlRequest,
     StopVersionControlResponse,
     UpdateComponentFailure,
@@ -80,6 +84,7 @@ import {
     selectParentProcessGroupId,
     selectProcessGroup,
     selectProcessor,
+    selectPollingProcessor,
     selectRefreshRpgDetails,
     selectRemoteProcessGroup,
     selectSaving,
@@ -160,6 +165,13 @@ import { selectDocumentVisibilityState } from '../../../../state/document-visibi
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DocumentVisibility } from '../../../../state/document-visibility';
 import { ErrorContextKey } from '../../../../state/error';
+import {
+    disableComponent,
+    enableComponent,
+    startComponent,
+    startPollingProcessorUntilStopped,
+    stopComponent
+} from './flow.actions';
 import { CopyPasteService } from '../../service/copy-paste.service';
 import { selectCopiedContent } from '../../../../state/copy/copy.selectors';
 import { CopyRequestContext, CopyResponseContext } from '../../../../state/copy';
@@ -1428,6 +1440,7 @@ export class FlowEffects {
                 }),
                 tap(([request, parameterContext, processGroupId]) => {
                     const processorId: string = request.entity.id;
+                    let runStatusChanged: boolean = false;
 
                     const editDialogReference = this.dialog.open(EditProcessor, {
                         ...XL_DIALOG,
@@ -1555,6 +1568,116 @@ export class FlowEffects {
                                 })
                             );
                         });
+                    const startPollingIfNecessary = (processorEntity: any): boolean => {
+                        if (
+                            (processorEntity.status.aggregateSnapshot.runStatus === 'Stopped' &&
+                                processorEntity.status.aggregateSnapshot.activeThreadCount > 0) ||
+                            processorEntity.status.aggregateSnapshot.runStatus === 'Validating'
+                        ) {
+                            this.store.dispatch(
+                                startPollingProcessorUntilStopped({
+                                    request: {
+                                        id: processorEntity.id
+                                    }
+                                })
+                            );
+                            return true;
+                        }
+
+                        return false;
+                    };
+
+                    const pollingStarted = startPollingIfNecessary(request.entity);
+
+                    this.store
+                        .select(selectProcessor(processorId))
+                        .pipe(
+                            takeUntil(editDialogReference.afterClosed()),
+                            isDefinedAndNotNull(),
+                            filter((processorEntity) => {
+                                return (
+                                    (runStatusChanged || pollingStarted) &&
+                                    processorEntity.revision.clientId === this.client.getClientId()
+                                );
+                            }),
+                            concatLatestFrom(() => this.store.select(selectPollingProcessor))
+                        )
+                        .subscribe(([processorEntity, pollingProcessor]) => {
+                            editDialogReference.componentInstance.processorUpdates = processorEntity;
+
+                            // if we're already polling we do not want to start polling again
+                            if (!pollingProcessor) {
+                                startPollingIfNecessary(processorEntity);
+                            }
+                        });
+
+                    editDialogReference.componentInstance.stopComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((stopComponentRequest: StopComponentRequest) => {
+                            runStatusChanged = true;
+                            this.store.dispatch(
+                                stopComponent({
+                                    request: {
+                                        id: stopComponentRequest.id,
+                                        uri: stopComponentRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: stopComponentRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.disableComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((disableComponentsRequest: DisableComponentRequest) => {
+                            runStatusChanged = true;
+                            this.store.dispatch(
+                                disableComponent({
+                                    request: {
+                                        id: disableComponentsRequest.id,
+                                        uri: disableComponentsRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: disableComponentsRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.enableComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((enableComponentsRequest: EnableComponentRequest) => {
+                            runStatusChanged = true;
+                            this.store.dispatch(
+                                enableComponent({
+                                    request: {
+                                        id: enableComponentsRequest.id,
+                                        uri: enableComponentsRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: enableComponentsRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.startComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((startComponentRequest: StartComponentRequest) => {
+                            runStatusChanged = true;
+                            this.store.dispatch(
+                                startComponent({
+                                    request: {
+                                        id: startComponentRequest.id,
+                                        uri: startComponentRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: startComponentRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
 
                     editDialogReference.afterClosed().subscribe((response) => {
                         this.store.dispatch(resetPropertyVerificationState());
@@ -1576,6 +1699,57 @@ export class FlowEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    startPollingProcessorUntilStopped = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startPollingProcessorUntilStopped),
+            switchMap(() =>
+                interval(2000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(FlowActions.stopPollingProcessor)))
+                )
+            ),
+            switchMap(() => of(FlowActions.pollProcessorUntilStopped()))
+        )
+    );
+
+    pollProcessorUntilStopped$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pollProcessorUntilStopped),
+            concatLatestFrom(() => [this.store.select(selectPollingProcessor).pipe(isDefinedAndNotNull())]),
+            switchMap(([, pollingProcessor]) => {
+                return from(
+                    this.flowService.getProcessor(pollingProcessor.id).pipe(
+                        map((response) =>
+                            FlowActions.pollProcessorUntilStoppedSuccess({
+                                response: {
+                                    id: pollingProcessor.id,
+                                    processor: response
+                                }
+                            })
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(FlowActions.stopPollingProcessor());
+                            return of(this.snackBarOrFullScreenError(errorResponse));
+                        })
+                    )
+                );
+            })
+        )
+    );
+
+    pollProcessorUntilStoppedSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pollProcessorUntilStoppedSuccess),
+            map((action) => action.response),
+            filter((response) => {
+                return (
+                    response.processor.status.runStatus === 'Stopped' &&
+                    response.processor.status.aggregateSnapshot.activeThreadCount === 0
+                );
+            }),
+            switchMap(() => of(FlowActions.stopPollingProcessor()))
+        )
     );
 
     openEditConnectionDialog$ = createEffect(

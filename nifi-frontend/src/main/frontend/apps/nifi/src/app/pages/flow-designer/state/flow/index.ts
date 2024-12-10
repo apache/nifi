@@ -659,6 +659,7 @@ export interface FlowState {
     flowAnalysisOpen: boolean;
     versionSaving: boolean;
     changeVersionRequest: FlowUpdateRequestEntity | null;
+    pollingProcessor: StartPollingProcessorUntilStoppedRequest | null;
     status: 'pending' | 'loading' | 'success' | 'complete';
 }
 
@@ -790,6 +791,10 @@ export interface StopComponentRequest {
     type: ComponentType;
     revision: Revision;
     errorStrategy: 'snackbar' | 'banner';
+}
+
+export interface StartPollingProcessorUntilStoppedRequest {
+    id: string;
 }
 
 export interface StopProcessGroupRequest {
