@@ -54,7 +54,7 @@
                         <div>
                             <mat-form-field>
                                 <mat-label>Name</mat-label>
-                                <input matInput formControlName="name" type="text" [readonly]="readonly" />
+                                <input matInput formControlName="name" type="text" [readonly]="readonly"/>
                             </mat-form-field>
                         </div>
                         <div class="flex flex-col mb-5">
@@ -90,7 +90,7 @@
                                         matInput
                                         formControlName="penaltyDuration"
                                         type="text"
-                                        [readonly]="readonly" />
+                                        [readonly]="readonly"/>
                                 </mat-form-field>
                             </div>
                             <div class="w-full">
@@ -103,7 +103,7 @@
                                             [tooltipComponentType]="TextTip"
                                             tooltipInputData="When a processor yields, it will not be scheduled again until this amount of time elapses."></i>
                                     </mat-label>
-                                    <input matInput formControlName="yieldDuration" type="text" [readonly]="readonly" />
+                                    <input matInput formControlName="yieldDuration" type="text" [readonly]="readonly"/>
                                 </mat-form-field>
                             </div>
                         </div>
@@ -180,7 +180,7 @@
                                         name="concurrentTasks"
                                         type="number"
                                         min="1"
-                                        [readonly]="readonly" />
+                                        [readonly]="readonly"/>
                                 </mat-form-field>
                             </div>
                             <div class="w-1/2">
@@ -198,7 +198,7 @@
                                         formControlName="schedulingPeriod"
                                         (change)="schedulingPeriodChanged()"
                                         type="text"
-                                        [readonly]="readonly" />
+                                        [readonly]="readonly"/>
                                 </mat-form-field>
                             </div>
                         </div>
@@ -307,7 +307,7 @@
             </mat-dialog-content>
         </mat-tab>
     </mat-tab-group>
-    @if ({ value: (saving$ | async)! }; as saving) {
+    @if ({value: (saving$ | async)!}; as saving) {
         <mat-dialog-actions align="start">
             <div class="flex w-full justify-between items-center">
                 <div>
@@ -318,7 +318,7 @@
                                 [matMenuTriggerFor]="operateMenu">
                             <div class="flex items-center">
                                 <i class="mr-2 success-color-default fa fa-play"></i>Running<i
-                                    class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                                class="ml-2 -mt-1 fa fa-sort-desc"></i>
                             </div>
                         </button>
                     } @else if (isRunnable()) {
@@ -328,7 +328,7 @@
                                 [matMenuTriggerFor]="operateMenu">
                             <div class="flex items-center">
                                 <i class="mr-2 error-color-variant fa fa-stop"></i>Stopped<i
-                                    class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                                class="ml-2 -mt-1 fa fa-sort-desc"></i>
                             </div>
                         </button>
                     } @else if (isDisabled()) {
@@ -357,7 +357,8 @@
                             [disabled]="!canOperate()"
                             [matMenuTriggerFor]="operateMenu">
                             <div class="flex items-center">
-                                    <i class="mr-2 fa fa-warning caution-color"></i>Invalid<i class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                                <i class="mr-2 fa fa-warning caution-color"></i>Invalid<i
+                                class="ml-2 -mt-1 fa fa-sort-desc"></i>
                             </div>
                         </button>
                     }
