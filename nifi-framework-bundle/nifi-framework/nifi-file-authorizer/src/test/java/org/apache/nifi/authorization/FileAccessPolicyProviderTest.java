@@ -27,7 +27,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -144,8 +143,6 @@ public class FileAccessPolicyProviderTest {
     private File restoreAuthorizations;
     private File restoreTenants;
     private File flow;
-    private File flowNoPorts;
-    private File flowWithDns;
 
     private AuthorizerConfigurationContext configurationContext;
 
@@ -170,10 +167,10 @@ public class FileAccessPolicyProviderTest {
         flow = new File("src/test/resources/flow.json.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flow.getParentFile());
 
-        flowNoPorts = new File("src/test/resources/flow-no-ports.json.gz");
+        File flowNoPorts = new File("src/test/resources/flow-no-ports.json.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flowNoPorts.getParentFile());
 
-        flowWithDns = new File("src/test/resources/flow-with-dns.json.gz");
+        File flowWithDns = new File("src/test/resources/flow-with-dns.json.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flowWithDns.getParentFile());
 
         properties = mock(NiFiProperties.class);
@@ -248,12 +245,7 @@ public class FileAccessPolicyProviderTest {
         });
 
         final AccessPolicyProviderInitializationContext initializationContext = mock(AccessPolicyProviderInitializationContext.class);
-        when(initializationContext.getUserGroupProviderLookup()).thenReturn(new UserGroupProviderLookup() {
-            @Override
-            public UserGroupProvider getUserGroupProvider(String identifier) {
-                return userGroupProvider;
-            }
-        });
+        when(initializationContext.getUserGroupProviderLookup()).thenReturn(identifier -> userGroupProvider);
 
         accessPolicyProvider = new FileAccessPolicyProvider();
         accessPolicyProvider.setNiFiProperties(properties);
@@ -261,7 +253,7 @@ public class FileAccessPolicyProviderTest {
     }
 
     @AfterEach
-    public void cleanup() throws Exception {
+    public void cleanup() {
         deleteFile(primaryAuthorizations);
         deleteFile(primaryTenants);
         deleteFile(restoreAuthorizations);
@@ -647,7 +639,7 @@ public class FileAccessPolicyProviderTest {
             } else if (policy.getIdentifier().equals("policy-2")
                     && policy.getResource().equals("/flow")
                     && policy.getAction() == RequestAction.WRITE
-                    && policy.getGroups().size() == 0
+                    && policy.getGroups().isEmpty()
                     && policy.getUsers().size() == 1
                     && policy.getUsers().contains("user-2")) {
                 foundPolicy2 = true;
@@ -865,23 +857,18 @@ public class FileAccessPolicyProviderTest {
         }
     }
 
-    private static boolean deleteFile(final File file) {
+    private static void deleteFile(final File file) {
         if (file.isDirectory()) {
             FileUtils.deleteFilesInDir(file, null, null, true, true);
         }
-        return FileUtils.deleteFile(file, null, 10);
+        FileUtils.deleteFile(file, null, 10);
     }
 
     private NiFiProperties getNiFiProperties(final Properties properties) {
         final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
         when(nifiProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
 
-        when(nifiProperties.getProperty(anyString())).then(new Answer<String>() {
-            @Override
-            public String answer(InvocationOnMock invocationOnMock) throws Throwable {
-                return properties.getProperty((String) invocationOnMock.getArguments()[0]);
-            }
-        });
+        when(nifiProperties.getProperty(anyString())).then((Answer<String>) invocationOnMock -> properties.getProperty((String) invocationOnMock.getArguments()[0]));
         return nifiProperties;
     }
 

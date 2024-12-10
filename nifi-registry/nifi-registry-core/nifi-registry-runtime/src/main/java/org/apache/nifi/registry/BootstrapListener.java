@@ -39,7 +39,6 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -173,37 +172,34 @@ public class BootstrapListener {
                     logger.debug("Received connection from Bootstrap");
                     socket.setSoTimeout(5000);
 
-                    executor.submit(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                final BootstrapRequest request = readRequest(socket.getInputStream());
-                                final BootstrapRequest.RequestType requestType = request.getRequestType();
+                    executor.submit(() -> {
+                        try {
+                            final BootstrapRequest request = readRequest(socket.getInputStream());
+                            final BootstrapRequest.RequestType requestType = request.getRequestType();
 
-                                switch (requestType) {
-                                    case PING:
-                                        logger.debug("Received PING request from Bootstrap; responding");
-                                        echoPing(socket.getOutputStream());
-                                        logger.debug("Responded to PING request from Bootstrap");
-                                        break;
-                                    case SHUTDOWN:
-                                        logger.info("Received SHUTDOWN request from Bootstrap");
-                                        echoShutdown(socket.getOutputStream());
-                                        nifi.shutdownHook();
-                                        return;
-                                    case DUMP:
-                                        logger.info("Received DUMP request from Bootstrap");
-                                        writeDump(socket.getOutputStream());
-                                        break;
-                                }
-                            } catch (final Throwable t) {
-                                logger.error("Failed to process request from Bootstrap", t);
-                            } finally {
-                                try {
-                                    socket.close();
-                                } catch (final IOException ioe) {
-                                    logger.warn("Failed to close socket to Bootstrap", ioe);
-                                }
+                            switch (requestType) {
+                                case PING:
+                                    logger.debug("Received PING request from Bootstrap; responding");
+                                    echoPing(socket.getOutputStream());
+                                    logger.debug("Responded to PING request from Bootstrap");
+                                    break;
+                                case SHUTDOWN:
+                                    logger.info("Received SHUTDOWN request from Bootstrap");
+                                    echoShutdown(socket.getOutputStream());
+                                    nifi.shutdownHook();
+                                    return;
+                                case DUMP:
+                                    logger.info("Received DUMP request from Bootstrap");
+                                    writeDump(socket.getOutputStream());
+                                    break;
+                            }
+                        } catch (final Throwable t) {
+                            logger.error("Failed to process request from Bootstrap", t);
+                        } finally {
+                            try {
+                                socket.close();
+                            } catch (final IOException ioe) {
+                                logger.warn("Failed to close socket to Bootstrap", ioe);
                             }
                         }
                     });
@@ -226,12 +222,7 @@ public class BootstrapListener {
         for (final ThreadInfo info : infos) {
             sortedInfos.add(info);
         }
-        Collections.sort(sortedInfos, new Comparator<ThreadInfo>() {
-            @Override
-            public int compare(ThreadInfo o1, ThreadInfo o2) {
-                return o1.getThreadName().toLowerCase().compareTo(o2.getThreadName().toLowerCase());
-            }
-        });
+        sortedInfos.sort(Comparator.comparing(o -> o.getThreadName().toLowerCase()));
 
         final StringBuilder sb = new StringBuilder();
         for (final ThreadInfo info : sortedInfos) {
@@ -368,11 +359,11 @@ public class BootstrapListener {
 
     private static class BootstrapRequest {
 
-        public static enum RequestType {
+        public enum RequestType {
 
             SHUTDOWN,
             DUMP,
-            PING;
+            PING
         }
 
         private final RequestType requestType;

@@ -29,11 +29,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.mockito.stubbing.Answer;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -46,7 +44,6 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
 import java.io.FileInputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -144,7 +141,7 @@ public class PutDynamoDBRecordTest {
         final List<BatchWriteItemRequest> results = captor.getAllValues();
         Assertions.assertEquals(2, results.size());
 
-        final BatchWriteItemRequest result1 = results.get(0);
+        final BatchWriteItemRequest result1 = results.getFirst();
         assertTrue(result1.hasRequestItems());
         assertNotNull(result1.requestItems().get(TABLE_NAME));
         assertItemsConvertedProperly(result1.requestItems().get(TABLE_NAME), 25);
@@ -155,7 +152,7 @@ public class PutDynamoDBRecordTest {
         assertItemsConvertedProperly(result2.requestItems().get(TABLE_NAME), 4);
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).getFirst();
         Assertions.assertEquals("2", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
@@ -168,7 +165,7 @@ public class PutDynamoDBRecordTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_UNPROCESSED, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_UNPROCESSED).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_UNPROCESSED).getFirst();
         Assertions.assertEquals("1", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
@@ -183,7 +180,7 @@ public class PutDynamoDBRecordTest {
         Assertions.assertEquals(4, captor.getValue().requestItems().get(TABLE_NAME).size());
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).getFirst();
         Assertions.assertEquals("2", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
@@ -196,7 +193,7 @@ public class PutDynamoDBRecordTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_FAILURE, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_FAILURE).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_FAILURE).getFirst();
         Assertions.assertEquals("0", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
@@ -212,7 +209,7 @@ public class PutDynamoDBRecordTest {
         final BatchWriteItemRequest result = captor.getValue();
         Assertions.assertEquals(1, result.requestItems().get(TABLE_NAME).size());
 
-        final Map<String, AttributeValue> item = result.requestItems().get(TABLE_NAME).iterator().next().putRequest().item();
+        final Map<String, AttributeValue> item = result.requestItems().get(TABLE_NAME).getFirst().putRequest().item();
         Assertions.assertEquals(4, item.size());
         Assertions.assertEquals(string("P0"), item.get("partition"));
         assertTrue(item.containsKey("generated"));
@@ -317,7 +314,7 @@ public class PutDynamoDBRecordTest {
     private void setInsertionError() {
         final BatchWriteItemResponse outcome = mock(BatchWriteItemResponse.class);
         final Map<String, List<WriteRequest>> unprocessedItems = new HashMap<>();
-        final List<WriteRequest> writeResults = Arrays.asList(mock(WriteRequest.class));
+        final List<WriteRequest> writeResults = Collections.singletonList(mock(WriteRequest.class));
         unprocessedItems.put("test", writeResults);
         when(outcome.unprocessedItems()).thenReturn(unprocessedItems);
         when(outcome.hasUnprocessedItems()).thenReturn(true);
@@ -332,17 +329,14 @@ public class PutDynamoDBRecordTest {
     private void setExceedThroughputAtGivenChunk(final int chunkToFail) {
         final AtomicInteger numberOfCalls = new AtomicInteger(0);
 
-        when(client.batchWriteItem(captor.capture())).then(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
-                final int calls = numberOfCalls.incrementAndGet();
+        when(client.batchWriteItem(captor.capture())).then(invocationOnMock -> {
+            final int calls = numberOfCalls.incrementAndGet();
 
-                if (calls >= chunkToFail) {
-                    throw ProvisionedThroughputExceededException.builder().message("Throughput exceeded")
-                            .awsErrorDetails(AwsErrorDetails.builder().errorCode("error code").errorMessage("error message").build()).build();
-                } else {
-                    return mock(BatchWriteItemResponse.class);
-                }
+            if (calls >= chunkToFail) {
+                throw ProvisionedThroughputExceededException.builder().message("Throughput exceeded")
+                        .awsErrorDetails(AwsErrorDetails.builder().errorCode("error code").errorMessage("error message").build()).build();
+            } else {
+                return mock(BatchWriteItemResponse.class);
             }
         });
     }

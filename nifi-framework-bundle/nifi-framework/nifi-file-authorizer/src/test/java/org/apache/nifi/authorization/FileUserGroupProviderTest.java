@@ -25,9 +25,6 @@ import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -35,7 +32,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,7 +39,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -90,7 +85,6 @@ public class FileUserGroupProviderTest {
             "  </users>" +
             "</tenants>";
 
-    private NiFiProperties properties;
     private FileUserGroupProvider userGroupProvider;
     private File primaryTenants;
     private File restoreTenants;
@@ -107,8 +101,8 @@ public class FileUserGroupProviderTest {
         restoreTenants = new File("target/restore/users.xml");
         FileUtils.ensureDirectoryExistAndCanAccess(restoreTenants.getParentFile());
 
-        properties = mock(NiFiProperties.class);
-        when(properties.getRestoreDirectory()).thenReturn(restoreTenants.getParentFile());
+        NiFiProperties properties1 = mock(NiFiProperties.class);
+        when(properties1.getRestoreDirectory()).thenReturn(restoreTenants.getParentFile());
 
         configurationContext = mock(AuthorizerConfigurationContext.class);
         when(configurationContext.getProperty(eq(FileUserGroupProvider.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null, ParameterLookup.EMPTY));
@@ -135,12 +129,12 @@ public class FileUserGroupProviderTest {
         });
 
         userGroupProvider = new FileUserGroupProvider();
-        userGroupProvider.setNiFiProperties(properties);
+        userGroupProvider.setNiFiProperties(properties1);
         userGroupProvider.initialize(null);
     }
 
     @AfterEach
-    public void cleanup() throws Exception {
+    public void cleanup() {
         deleteFile(primaryTenants);
         deleteFile(restoreTenants);
     }
@@ -614,24 +608,11 @@ public class FileUserGroupProviderTest {
         }
     }
 
-    private static boolean deleteFile(final File file) {
+    private static void deleteFile(final File file) {
         if (file.isDirectory()) {
             FileUtils.deleteFilesInDir(file, null, null, true, true);
         }
-        return FileUtils.deleteFile(file, null, 10);
-    }
-
-    private NiFiProperties getNiFiProperties(final Properties properties) {
-        final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
-        when(nifiProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
-
-        when(nifiProperties.getProperty(anyString())).then(new Answer<String>() {
-            @Override
-            public String answer(InvocationOnMock invocationOnMock) throws Throwable {
-                return properties.getProperty((String) invocationOnMock.getArguments()[0]);
-            }
-        });
-        return nifiProperties;
+        FileUtils.deleteFile(file, null, 10);
     }
 
 }

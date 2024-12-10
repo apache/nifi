@@ -38,7 +38,6 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.Filter;
-import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.apache.nifi.util.RingBuffer.IterationDirection;
 import org.apache.nifi.web.ResourceNotFoundException;
 
@@ -171,16 +170,13 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords, final NiFiUser user) throws IOException {
-        return ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
-            @Override
-            public boolean select(final ProvenanceEventRecord value) {
-                if (!isAuthorized(value, user)) {
-                    return false;
-                }
-
-                return value.getEventId() >= firstRecordId;
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords, final NiFiUser user) {
+        return ringBuffer.getSelectedElements(value -> {
+            if (!isAuthorized(value, user)) {
+                return false;
             }
+
+            return value.getEventId() >= firstRecordId;
         }, maxRecords);
     }
 
@@ -190,26 +186,16 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         return (newest == null) ? null : newest.getEventId();
     }
 
-    public ProvenanceEventRecord getEvent(final String identifier) throws IOException {
-        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
-            @Override
-            public boolean select(final ProvenanceEventRecord event) {
-                return identifier.equals(event.getFlowFileUuid());
-            }
-        }, 1);
-        return records.isEmpty() ? null : records.get(0);
+    public ProvenanceEventRecord getEvent(final String identifier) {
+        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(event -> identifier.equals(event.getFlowFileUuid()), 1);
+        return records.isEmpty() ? null : records.getFirst();
     }
 
     @Override
     public ProvenanceEventRecord getEvent(final long id) {
-        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
-            @Override
-            public boolean select(final ProvenanceEventRecord event) {
-                return event.getEventId() == id;
-            }
-        }, 1);
+        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(event -> event.getEventId() == id, 1);
 
-        return records.isEmpty() ? null : records.get(0);
+        return records.isEmpty() ? null : records.getFirst();
     }
 
     @Override
@@ -282,127 +268,45 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     private Filter<ProvenanceEventRecord> createFilter(final Query query, final NiFiUser user) {
-        return new Filter<ProvenanceEventRecord>() {
-            @Override
-            public boolean select(final ProvenanceEventRecord event) {
-                if (!isAuthorized(event, user)) {
+        return event -> {
+            if (!isAuthorized(event, user)) {
+                return false;
+            }
+
+            if (query.getStartDate() != null && query.getStartDate().getTime() > event.getEventTime()) {
+                return false;
+            }
+
+            if (query.getEndDate() != null && query.getEndDate().getTime() < event.getEventTime()) {
+                return false;
+            }
+
+            if (query.getMaxFileSize() != null) {
+                final long maxFileSize = DataUnit.parseDataSize(query.getMaxFileSize(), DataUnit.B).longValue();
+                if (event.getFileSize() > maxFileSize) {
                     return false;
                 }
+            }
 
-                if (query.getStartDate() != null && query.getStartDate().getTime() > event.getEventTime()) {
+            if (query.getMinFileSize() != null) {
+                final long minFileSize = DataUnit.parseDataSize(query.getMinFileSize(), DataUnit.B).longValue();
+                if (event.getFileSize() < minFileSize) {
                     return false;
                 }
+            }
 
-                if (query.getEndDate() != null && query.getEndDate().getTime() < event.getEventTime()) {
-                    return false;
-                }
+            for (final SearchTerm searchTerm : query.getSearchTerms()) {
+                final SearchableField searchableField = searchTerm.getSearchableField();
+                final String searchValue = searchTerm.getValue();
+                final boolean excludeSearchValue = searchTerm.isInverted().booleanValue();
 
-                if (query.getMaxFileSize() != null) {
-                    final long maxFileSize = DataUnit.parseDataSize(query.getMaxFileSize(), DataUnit.B).longValue();
-                    if (event.getFileSize() > maxFileSize) {
-                        return false;
-                    }
-                }
+                if (searchableField.isAttribute()) {
+                    final String attributeName = searchableField.getIdentifier();
 
-                if (query.getMinFileSize() != null) {
-                    final long minFileSize = DataUnit.parseDataSize(query.getMinFileSize(), DataUnit.B).longValue();
-                    if (event.getFileSize() < minFileSize) {
-                        return false;
-                    }
-                }
+                    final String eventAttributeValue = event.getAttributes().get(attributeName);
 
-                for (final SearchTerm searchTerm : query.getSearchTerms()) {
-                    final SearchableField searchableField = searchTerm.getSearchableField();
-                    final String searchValue = searchTerm.getValue();
-                    final boolean excludeSearchValue = searchTerm.isInverted().booleanValue();
-
-                    if (searchableField.isAttribute()) {
-                        final String attributeName = searchableField.getIdentifier();
-
-                        final String eventAttributeValue = event.getAttributes().get(attributeName);
-
-                        if (searchValue.contains("?") || searchValue.contains("*")) {
-                            if (eventAttributeValue == null || eventAttributeValue.isEmpty()) {
-                                if (!excludeSearchValue) {
-                                    return false;
-                                } else {
-                                    continue;
-                                }
-                            }
-
-                            final String regex = searchValue.replace("?", ".").replace("*", ".*");
-                            final Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-                            final boolean patternMatches = pattern.matcher(eventAttributeValue).matches();
-                            if ((!patternMatches && !excludeSearchValue)
-                                    || (patternMatches && excludeSearchValue)) {
-                                return false;
-                            }
-                        } else if (!searchValue.equalsIgnoreCase(eventAttributeValue) && !excludeSearchValue
-                                || searchValue.equalsIgnoreCase(eventAttributeValue) && excludeSearchValue) {
-                            return false;
-                        }
-                    } else {
-                        // if FlowFileUUID, search parent & child UUID's also.
-                        if (searchableField.equals(SearchableFields.FlowFileUUID)) {
-                            if (searchValue.contains("?") || searchValue.contains("*")) {
-                                final String regex = searchValue.replace("?", ".").replace("*", ".*");
-                                final Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-                                final boolean patternMatches = pattern.matcher(event.getFlowFileUuid()).matches();
-
-                                if (!excludeSearchValue) {
-                                    if (patternMatches) {
-                                        continue;
-                                    }
-
-                                    boolean found = false;
-                                    for (final String uuid : event.getParentUuids()) {
-                                        if (pattern.matcher(uuid).matches()) {
-                                            found = true;
-                                            break;
-                                        }
-                                    }
-
-                                    for (final String uuid : event.getChildUuids()) {
-                                        if (pattern.matcher(uuid).matches()) {
-                                            found = true;
-                                            break;
-                                        }
-                                    }
-
-                                    if (found) {
-                                        continue;
-                                    }
-                                } else {
-                                    if (patternMatches) {
-                                        return false;
-                                    }
-
-                                    for (final String uuid : event.getParentUuids()) {
-                                        if (pattern.matcher(uuid).matches()) {
-                                            return false;
-                                        }
-                                    }
-
-                                    for (final String uuid : event.getChildUuids()) {
-                                        if (pattern.matcher(uuid).matches()) {
-                                            return false;
-                                        }
-                                    }
-                                    continue;
-                                }
-                            } else if (!excludeSearchValue
-                                    && (event.getFlowFileUuid().equals(searchValue) || event.getParentUuids().contains(searchValue) || event.getChildUuids().contains(searchValue))) {
-                                continue;
-                            } else if (excludeSearchValue
-                                    && (!event.getFlowFileUuid().equals(searchValue) && !event.getParentUuids().contains(searchValue) && !event.getChildUuids().contains(searchValue))) {
-                                continue;
-                            }
-
-                            return false;
-                        }
-
-                        final Object fieldValue = getFieldValue(event, searchableField);
-                        if (fieldValue == null) {
+                    if (searchValue.contains("?") || searchValue.contains("*")) {
+                        if (eventAttributeValue == null || eventAttributeValue.isEmpty()) {
                             if (!excludeSearchValue) {
                                 return false;
                             } else {
@@ -410,24 +314,103 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
                             }
                         }
 
+                        final String regex = searchValue.replace("?", ".").replace("*", ".*");
+                        final Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+                        final boolean patternMatches = pattern.matcher(eventAttributeValue).matches();
+                        if ((!patternMatches && !excludeSearchValue)
+                                || (patternMatches && excludeSearchValue)) {
+                            return false;
+                        }
+                    } else if (!searchValue.equalsIgnoreCase(eventAttributeValue) && !excludeSearchValue
+                            || searchValue.equalsIgnoreCase(eventAttributeValue) && excludeSearchValue) {
+                        return false;
+                    }
+                } else {
+                    // if FlowFileUUID, search parent & child UUID's also.
+                    if (searchableField.equals(SearchableFields.FlowFileUUID)) {
                         if (searchValue.contains("?") || searchValue.contains("*")) {
                             final String regex = searchValue.replace("?", ".").replace("*", ".*");
                             final Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-                            final boolean patternMatches = pattern.matcher(String.valueOf(fieldValue)).matches();
+                            final boolean patternMatches = pattern.matcher(event.getFlowFileUuid()).matches();
 
-                            if (!patternMatches && !excludeSearchValue
-                                    || patternMatches && excludeSearchValue) {
-                                return false;
+                            if (!excludeSearchValue) {
+                                if (patternMatches) {
+                                    continue;
+                                }
+
+                                boolean found = false;
+                                for (final String uuid : event.getParentUuids()) {
+                                    if (pattern.matcher(uuid).matches()) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+
+                                for (final String uuid : event.getChildUuids()) {
+                                    if (pattern.matcher(uuid).matches()) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+
+                                if (found) {
+                                    continue;
+                                }
+                            } else {
+                                if (patternMatches) {
+                                    return false;
+                                }
+
+                                for (final String uuid : event.getParentUuids()) {
+                                    if (pattern.matcher(uuid).matches()) {
+                                        return false;
+                                    }
+                                }
+
+                                for (final String uuid : event.getChildUuids()) {
+                                    if (pattern.matcher(uuid).matches()) {
+                                        return false;
+                                    }
+                                }
+                                continue;
                             }
-                        } else if (!searchValue.equalsIgnoreCase(String.valueOf(fieldValue)) && !excludeSearchValue
-                                || searchValue.equalsIgnoreCase(String.valueOf(fieldValue)) && excludeSearchValue) {
+                        } else if (!excludeSearchValue
+                                && (event.getFlowFileUuid().equals(searchValue) || event.getParentUuids().contains(searchValue) || event.getChildUuids().contains(searchValue))) {
+                            continue;
+                        } else if (excludeSearchValue
+                                && (!event.getFlowFileUuid().equals(searchValue) && !event.getParentUuids().contains(searchValue) && !event.getChildUuids().contains(searchValue))) {
+                            continue;
+                        }
+
+                        return false;
+                    }
+
+                    final Object fieldValue = getFieldValue(event, searchableField);
+                    if (fieldValue == null) {
+                        if (!excludeSearchValue) {
                             return false;
+                        } else {
+                            continue;
                         }
                     }
-                }
 
-                return true;
+                    if (searchValue.contains("?") || searchValue.contains("*")) {
+                        final String regex = searchValue.replace("?", ".").replace("*", ".*");
+                        final Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+                        final boolean patternMatches = pattern.matcher(String.valueOf(fieldValue)).matches();
+
+                        if (!patternMatches && !excludeSearchValue
+                                || patternMatches && excludeSearchValue) {
+                            return false;
+                        }
+                    } else if (!searchValue.equalsIgnoreCase(String.valueOf(fieldValue)) && !excludeSearchValue
+                            || searchValue.equalsIgnoreCase(String.valueOf(fieldValue)) && excludeSearchValue) {
+                        return false;
+                    }
+                }
             }
+
+            return true;
         };
     }
 
@@ -670,31 +653,28 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, 1, userId);
         lineageSubmissionMap.put(result.getLineageIdentifier(), result);
 
-        final Filter<ProvenanceEventRecord> filter = new Filter<ProvenanceEventRecord>() {
-            @Override
-            public boolean select(final ProvenanceEventRecord event) {
-                if (!isAuthorized(event, user)) {
-                    return false;
-                }
-
-                if (flowFileUuids.contains(event.getFlowFileUuid())) {
-                    return true;
-                }
-
-                for (final String parentId : event.getParentUuids()) {
-                    if (flowFileUuids.contains(parentId)) {
-                        return true;
-                    }
-                }
-
-                for (final String childId : event.getChildUuids()) {
-                    if (flowFileUuids.contains(childId)) {
-                        return true;
-                    }
-                }
-
+        final Filter<ProvenanceEventRecord> filter = event -> {
+            if (!isAuthorized(event, user)) {
                 return false;
             }
+
+            if (flowFileUuids.contains(event.getFlowFileUuid())) {
+                return true;
+            }
+
+            for (final String parentId : event.getParentUuids()) {
+                if (flowFileUuids.contains(parentId)) {
+                    return true;
+                }
+            }
+
+            for (final String childId : event.getChildUuids()) {
+                if (flowFileUuids.contains(childId)) {
+                    return true;
+                }
+            }
+
+            return false;
         };
 
         queryExecService.submit(new ComputeLineageRunnable(ringBuffer, filter, result));
@@ -721,18 +701,14 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
             // Retrieve the most recent results and count the total number of matches
             final AtomicInteger matchingCount = new AtomicInteger(0);
             final List<ProvenanceEventRecord> matchingRecords = new ArrayList<>(maxRecords);
-            ringBuffer.forEach(new ForEachEvaluator<ProvenanceEventRecord>() {
-                @Override
-                public boolean evaluate(final ProvenanceEventRecord record) {
-                    if (filter.select(record)) {
-                        if (matchingCount.incrementAndGet() <= maxRecords) {
-                            matchingRecords.add(record);
-                        }
+            ringBuffer.forEach(record -> {
+                if (filter.select(record)) {
+                    if (matchingCount.incrementAndGet() <= maxRecords) {
+                        matchingRecords.add(record);
                     }
-
-                    return true;
                 }
 
+                return true;
             }, IterationDirection.BACKWARD);
 
             submission.getResult().update(matchingRecords, matchingCount.get());

@@ -24,13 +24,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -66,12 +64,7 @@ public class IndexConfiguration {
 
         for (final File storageDirectory : repoConfig.getStorageDirectories().values()) {
             final List<File> indexDirectories = new ArrayList<>();
-            final File[] matching = storageDirectory.listFiles(new FileFilter() {
-                @Override
-                public boolean accept(final File pathname) {
-                    return pathname.isDirectory() && indexNamePattern.matcher(pathname.getName()).matches();
-                }
-            });
+            final File[] matching = storageDirectory.listFiles(pathname -> pathname.isDirectory() && indexNamePattern.matcher(pathname.getName()).matches());
 
             if (matching != null) {
                 indexDirectories.addAll(Arrays.asList(matching));
@@ -220,13 +213,10 @@ public class IndexConfiguration {
         try {
             // Sort directories so that we return the newest index first
             final List<File> sortedIndexDirectories = getIndexDirectories();
-            Collections.sort(sortedIndexDirectories, new Comparator<File>() {
-                @Override
-                public int compare(final File o1, final File o2) {
-                    final long epochTimestamp1 = getIndexStartTime(o1);
-                    final long epochTimestamp2 = getIndexStartTime(o2);
-                    return Long.compare(epochTimestamp2, epochTimestamp1);
-                }
+            sortedIndexDirectories.sort((o1, o2) -> {
+                final long epochTimestamp1 = getIndexStartTime(o1);
+                final long epochTimestamp2 = getIndexStartTime(o2);
+                return Long.compare(epochTimestamp2, epochTimestamp1);
             });
 
             for (final File indexDir : sortedIndexDirectories) {
@@ -273,13 +263,10 @@ public class IndexConfiguration {
             }
 
             final List<File> sortedIndexDirectories = new ArrayList<>(indices);
-            Collections.sort(sortedIndexDirectories, new Comparator<File>() {
-                @Override
-                public int compare(final File o1, final File o2) {
-                    final long epochTimestamp1 = getIndexStartTime(o1);
-                    final long epochTimestamp2 = getIndexStartTime(o2);
-                    return Long.compare(epochTimestamp1, epochTimestamp2);
-                }
+            sortedIndexDirectories.sort((o1, o2) -> {
+                final long epochTimestamp1 = getIndexStartTime(o1);
+                final long epochTimestamp2 = getIndexStartTime(o2);
+                return Long.compare(epochTimestamp1, epochTimestamp2);
             });
 
             final Long firstEntryTime = getFirstEntryTime(provenanceLogFile);

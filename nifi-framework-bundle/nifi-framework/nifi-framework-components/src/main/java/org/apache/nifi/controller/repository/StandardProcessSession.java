@@ -1907,35 +1907,25 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             return Collections.emptyList();
         }
 
-        return get(new ConnectionPoller() {
-            @Override
-            public List<FlowFileRecord> poll(final Connection connection, final Set<FlowFileRecord> expiredRecords) {
-                return connection.poll(new FlowFileFilter() {
-                    int polled = 0;
+        return get((connection, expiredRecords) -> connection.poll(new FlowFileFilter() {
+            int polled = 0;
 
-                    @Override
-                    public FlowFileFilterResult filter(final FlowFile flowFile) {
-                        if (++polled < maxResults) {
-                            return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
-                        } else {
-                            return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
-                        }
-                    }
-                }, expiredRecords);
+            @Override
+            public FlowFileFilterResult filter(final FlowFile flowFile) {
+                if (++polled < maxResults) {
+                    return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+                } else {
+                    return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
+                }
             }
-        }, false);
+        }, expiredRecords), false);
     }
 
     @Override
     public List<FlowFile> get(final FlowFileFilter filter) {
         verifyTaskActive();
 
-        return get(new ConnectionPoller() {
-            @Override
-            public List<FlowFileRecord> poll(final Connection connection, final Set<FlowFileRecord> expiredRecords) {
-                return connection.poll(filter, expiredRecords);
-            }
-        }, true);
+        return get((connection, expiredRecords) -> connection.poll(filter, expiredRecords), true);
     }
 
 
@@ -2494,12 +2484,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     public void expireFlowFiles() {
         final Set<FlowFileRecord> expired = new HashSet<>();
-        final FlowFileFilter filter = new FlowFileFilter() {
-            @Override
-            public FlowFileFilterResult filter(final FlowFile flowFile) {
-                return FlowFileFilterResult.REJECT_AND_CONTINUE;
-            }
-        };
+        final FlowFileFilter filter = flowFile -> FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE;
 
         for (final Connection conn : context.getConnectable().getIncomingConnections()) {
             do {
@@ -2536,46 +2521,43 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
 
         try {
-            final Iterable<ProvenanceEventRecord> iterable = new Iterable<ProvenanceEventRecord>() {
-                @Override
-                public Iterator<ProvenanceEventRecord> iterator() {
-                    final Iterator<ProvenanceEventRecord> expiredEventIterator = expiredReporter.getEvents().iterator();
-                    final Iterator<ProvenanceEventRecord> enrichingIterator = new Iterator<ProvenanceEventRecord>() {
-                        @Override
-                        public boolean hasNext() {
-                            return expiredEventIterator.hasNext();
+            final Iterable<ProvenanceEventRecord> iterable = () -> {
+                final Iterator<ProvenanceEventRecord> expiredEventIterator = expiredReporter.getEvents().iterator();
+                final Iterator<ProvenanceEventRecord> enrichingIterator = new Iterator<>() {
+                    @Override
+                    public boolean hasNext() {
+                        return expiredEventIterator.hasNext();
+                    }
+
+                    @Override
+                    public ProvenanceEventRecord next() {
+                        final ProvenanceEventRecord event = expiredEventIterator.next();
+                        final ProvenanceEventBuilder enriched = context.createProvenanceEventBuilder().fromEvent(event);
+                        final FlowFileRecord record = recordIdMap.get(event.getFlowFileUuid());
+                        if (record == null) {
+                            return null;
                         }
 
-                        @Override
-                        public ProvenanceEventRecord next() {
-                            final ProvenanceEventRecord event = expiredEventIterator.next();
-                            final ProvenanceEventBuilder enriched = context.createProvenanceEventBuilder().fromEvent(event);
-                            final FlowFileRecord record = recordIdMap.get(event.getFlowFileUuid());
-                            if (record == null) {
-                                return null;
-                            }
-
-                            final ContentClaim claim = record.getContentClaim();
-                            if (claim != null) {
-                                final ResourceClaim resourceClaim = claim.getResourceClaim();
-                                enriched.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                        final ContentClaim claim = record.getContentClaim();
+                        if (claim != null) {
+                            final ResourceClaim resourceClaim = claim.getResourceClaim();
+                            enriched.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
                                     record.getContentClaimOffset() + claim.getOffset(), record.getSize());
-                                enriched.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                            enriched.setPreviousContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
                                     record.getContentClaimOffset() + claim.getOffset(), record.getSize());
-                            }
-
-                            enriched.setAttributes(record.getAttributes(), Collections.<String, String> emptyMap());
-                            return enriched.build();
                         }
 
-                        @Override
-                        public void remove() {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
+                        enriched.setAttributes(record.getAttributes(), Collections.<String, String>emptyMap());
+                        return enriched.build();
+                    }
 
-                    return enrichingIterator;
-                }
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+
+                return enrichingIterator;
             };
 
             context.getProvenanceRepository().registerEvents(iterable);

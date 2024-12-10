@@ -225,7 +225,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             executorService.shutdown();
             try {
                 executorService.awaitTermination(runWait, TimeUnit.MILLISECONDS);
-            } catch (final InterruptedException e1) {
+            } catch (final InterruptedException ignored) {
             }
         }
 
@@ -242,7 +242,7 @@ public class StandardProcessorTestRunner implements TestRunner {
                     unscheduledRun = true;
                     unSchedule();
                 }
-            } catch (final InterruptedException | ExecutionException e) {
+            } catch (final InterruptedException | ExecutionException ignored) {
             }
         }
 
@@ -324,22 +324,12 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertAllFlowFilesContainAttribute(final String attributeName) {
-        assertAllFlowFiles(new FlowFileValidator() {
-            @Override
-            public void assertFlowFile(FlowFile f) {
-                Assertions.assertNotNull(f.getAttribute(attributeName));
-            }
-        });
+        assertAllFlowFiles(f -> Assertions.assertNotNull(f.getAttribute(attributeName)));
     }
 
     @Override
     public void assertAllFlowFilesContainAttribute(final Relationship relationship, final String attributeName) {
-        assertAllFlowFiles(relationship, new FlowFileValidator() {
-            @Override
-            public void assertFlowFile(FlowFile f) {
-                Assertions.assertNotNull(f.getAttribute(attributeName));
-            }
-        });
+        assertAllFlowFiles(relationship, f -> Assertions.assertNotNull(f.getAttribute(attributeName)));
     }
 
     @Override

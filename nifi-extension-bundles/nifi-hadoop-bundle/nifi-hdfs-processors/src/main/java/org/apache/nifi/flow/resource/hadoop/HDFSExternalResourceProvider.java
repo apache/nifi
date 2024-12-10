@@ -262,12 +262,7 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
 
     private FileSystem getFileSystemAsUser(final Configuration config, final UserGroupInformation ugi) throws IOException {
         try {
-            return ugi.doAs(new PrivilegedExceptionAction<FileSystem>() {
-                @Override
-                public FileSystem run() throws Exception {
-                    return FileSystem.get(config);
-                }
-            });
+            return ugi.doAs((PrivilegedExceptionAction<FileSystem>) () -> FileSystem.get(config));
         } catch (final InterruptedException e) {
             throw new IOException("Unable to create file system: " + e.getMessage(), e);
         }
