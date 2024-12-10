@@ -347,7 +347,9 @@
                     } @else if (isStopping()) {
                         <button type="button" [disabled]="true" mat-stroked-button [matMenuTriggerFor]="operateMenu">
                             <div class="flex items-center">
-                                <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>Stopping
+                                <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>Stopping ({{
+                                    status.aggregateSnapshot.activeThreadCount
+                                }})
                             </div>
                         </button>
                     } @else if (isInvalid()) {
