@@ -278,8 +278,8 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         return retVal;
     }
 
-    private List convertArrays(Object[] input) {
-        List retVal = new ArrayList();
+    private List<Object> convertArrays(Object[] input) {
+        List<Object> retVal = new ArrayList<>();
         for (Object o : input) {
             if (o != null && o.getClass().isArray()) {
                 retVal.add(convertArrays((Object[]) o));

@@ -34,7 +34,7 @@ enum StorageStatusType {
     }
 
     static StorageStatusType getById(final int id) {
-        final Optional<StorageStatusType> result = Arrays.stream(StorageStatusType.values()).filter(storageStatusType -> storageStatusType.getId() == id).findFirst();
+        final Optional<StorageStatusType> result = Arrays.stream(values()).filter(storageStatusType -> storageStatusType.getId() == id).findFirst();
 
         if (result.isEmpty()) {
             throw new IllegalArgumentException("Unknown storage type id " + id);

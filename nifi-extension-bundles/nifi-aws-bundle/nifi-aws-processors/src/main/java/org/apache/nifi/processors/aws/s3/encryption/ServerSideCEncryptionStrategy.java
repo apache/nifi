@@ -70,7 +70,7 @@ public class ServerSideCEncryptionStrategy implements S3EncryptionStrategy {
         byte[] keyMaterial;
 
         try {
-            if (!org.apache.commons.codec.binary.Base64.isBase64(keyValue)) {
+            if (!Base64.isBase64(keyValue)) {
                 throw new Exception();
             }
             keyMaterial = Base64.decodeBase64(keyValue);

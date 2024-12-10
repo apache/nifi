@@ -149,7 +149,7 @@ public class NarProperties {
         final String installedValue = properties.getProperty(NarProperty.INSTALLED.getKey());
         final Instant installed = Instant.parse(installedValue);
 
-        return NarProperties.builder()
+        return builder()
                 .sourceType(properties.getProperty(NarProperty.SOURCE_TYPE.getKey()))
                 .sourceId(properties.getProperty(NarProperty.SOURCE_ID.getKey()))
                 .narGroup(properties.getProperty(NarProperty.NAR_GROUP.getKey()))

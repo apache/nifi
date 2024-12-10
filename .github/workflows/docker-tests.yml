@@ -61,6 +61,7 @@ env:
     install
   MAVEN_BUILD_PROJECTS: >-
     -pl nifi-assembly
+    -pl nifi-registry/nifi-registry-extensions/nifi-registry-aws/nifi-registry-aws-assembly
     -pl nifi-registry/nifi-registry-assembly
     -pl nifi-toolkit/nifi-toolkit-assembly
     -pl minifi/minifi-assembly
@@ -70,6 +71,7 @@ env:
     clean
   MAVEN_CLEAN_PROJECTS: >-
     -pl -nifi-assembly
+    -pl -nifi-registry/nifi-registry-extensions/nifi-registry-aws/nifi-registry-aws-assembly
     -pl -nifi-registry/nifi-registry-assembly
     -pl -nifi-toolkit/nifi-toolkit-assembly
     -pl -nifi-toolkit/nifi-toolkit-cli

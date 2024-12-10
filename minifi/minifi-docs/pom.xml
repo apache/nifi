@@ -30,7 +30,7 @@
                 <executions>
                     <execution>
                         <id>copy-markdown</id>
-                        <phase>generate-resources</phase>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -57,7 +57,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>package</phase>
+                        <phase>process-resources</phase>
                         <configuration>
                             <descriptors>
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>

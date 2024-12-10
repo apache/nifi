@@ -61,9 +61,9 @@ public class BaseSchemaWithId extends BaseSchema implements WritableSchema {
     public List<String> getValidationIssues() {
         List<String> validationIssues = super.getValidationIssues();
         if (StringUtil.isNullOrEmpty(id)) {
-            validationIssues.add(getIssueText(CommonPropertyKeys.ID_KEY, getWrapperName(), IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED));
+            validationIssues.add(getIssueText(ID_KEY, getWrapperName(), IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED));
         } else if (!isValidId(id)) {
-            validationIssues.add(getIssueText(CommonPropertyKeys.ID_KEY, getWrapperName(), "Id value of " + id + " is not a valid UUID"));
+            validationIssues.add(getIssueText(ID_KEY, getWrapperName(), "Id value of " + id + " is not a valid UUID"));
         }
         return validationIssues;
     }

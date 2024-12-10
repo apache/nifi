@@ -50,7 +50,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(EmbeddedDatabaseManager.class);
 
     private final String id = UUID.randomUUID().toString();
-    private final AtomicReference<EmbeddedDatabaseManagerStatus> state = new AtomicReference(EmbeddedDatabaseManagerStatus.UNINITIALIZED);
+    private final AtomicReference<EmbeddedDatabaseManagerStatus> state = new AtomicReference<>(EmbeddedDatabaseManagerStatus.UNINITIALIZED);
     private final ReadWriteLock databaseStructureLock = new ReentrantReadWriteLock();
     private final EmbeddedDatabaseManagerContext context;
     private final AtomicReference<CairoEngine> engine = new AtomicReference<>();

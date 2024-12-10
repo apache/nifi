@@ -235,19 +235,19 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     private Map<String, String> buildAttributes(final BasicProperties properties, final Envelope envelope, String headersFormat, String headerAttributePrefix, boolean removeCurlyBraces,
         String valueSeparatorForHeaders) {
         final Map<String, String> attributes = new HashMap<>();
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_APPID_ATTRIBUTE, properties.getAppId());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_CONTENT_ENCODING_ATTRIBUTE, properties.getContentEncoding());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_CONTENT_TYPE_ATTRIBUTE, properties.getContentType());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_DELIVERY_MODE_ATTRIBUTE, properties.getDeliveryMode());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_PRIORITY_ATTRIBUTE, properties.getPriority());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_CORRELATION_ID_ATTRIBUTE, properties.getCorrelationId());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_REPLY_TO_ATTRIBUTE, properties.getReplyTo());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_EXPIRATION_ATTRIBUTE, properties.getExpiration());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_MESSAGE_ID_ATTRIBUTE, properties.getMessageId());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_TIMESTAMP_ATTRIBUTE, properties.getTimestamp() == null ? null : properties.getTimestamp().getTime());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_CONTENT_TYPE_ATTRIBUTE, properties.getType());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_USER_ID_ATTRIBUTE, properties.getUserId());
-        addAttribute(attributes, AbstractAMQPProcessor.AMQP_CLUSTER_ID_ATTRIBUTE, properties.getClusterId());
+        addAttribute(attributes, AMQP_APPID_ATTRIBUTE, properties.getAppId());
+        addAttribute(attributes, AMQP_CONTENT_ENCODING_ATTRIBUTE, properties.getContentEncoding());
+        addAttribute(attributes, AMQP_CONTENT_TYPE_ATTRIBUTE, properties.getContentType());
+        addAttribute(attributes, AMQP_DELIVERY_MODE_ATTRIBUTE, properties.getDeliveryMode());
+        addAttribute(attributes, AMQP_PRIORITY_ATTRIBUTE, properties.getPriority());
+        addAttribute(attributes, AMQP_CORRELATION_ID_ATTRIBUTE, properties.getCorrelationId());
+        addAttribute(attributes, AMQP_REPLY_TO_ATTRIBUTE, properties.getReplyTo());
+        addAttribute(attributes, AMQP_EXPIRATION_ATTRIBUTE, properties.getExpiration());
+        addAttribute(attributes, AMQP_MESSAGE_ID_ATTRIBUTE, properties.getMessageId());
+        addAttribute(attributes, AMQP_TIMESTAMP_ATTRIBUTE, properties.getTimestamp() == null ? null : properties.getTimestamp().getTime());
+        addAttribute(attributes, AMQP_CONTENT_TYPE_ATTRIBUTE, properties.getType());
+        addAttribute(attributes, AMQP_USER_ID_ATTRIBUTE, properties.getUserId());
+        addAttribute(attributes, AMQP_CLUSTER_ID_ATTRIBUTE, properties.getClusterId());
         addAttribute(attributes, AMQP_ROUTING_KEY_ATTRIBUTE, envelope.getRoutingKey());
         addAttribute(attributes, AMQP_EXCHANGE_ATTRIBUTE, envelope.getExchange());
         Map<String, Object> headers = properties.getHeaders();
@@ -255,7 +255,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             if (OutputHeaderFormat.ATTRIBUTES.getValue().equals(headersFormat)) {
                 headers.forEach((key, value) -> addAttribute(attributes, String.format("%s.%s", headerAttributePrefix, key), value));
             } else {
-                addAttribute(attributes, AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE,
+                addAttribute(attributes, AMQP_HEADERS_ATTRIBUTE,
                     buildHeaders(properties.getHeaders(), headersFormat, removeCurlyBraces,
                         valueSeparatorForHeaders));
             }
@@ -281,7 +281,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             return null;
         }
         String headerString = null;
-        if ( OutputHeaderFormat.COMMA_SEPARATED_STRING.getValue().equals(headerFormat)) {
+        if (OutputHeaderFormat.COMMA_SEPARATED_STRING.getValue().equals(headerFormat)) {
             headerString = convertMapToString(headers, valueSeparatorForHeaders);
 
             if (!removeCurlyBraces) {

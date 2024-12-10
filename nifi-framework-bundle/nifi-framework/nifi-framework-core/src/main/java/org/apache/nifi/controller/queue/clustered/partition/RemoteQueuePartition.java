@@ -73,6 +73,7 @@ public class RemoteQueuePartition implements QueuePartition {
 
     private final FlowFileRepository flowFileRepo;
     private final ProvenanceEventRepository provRepo;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final ContentRepository contentRepo;
     private final AsyncLoadBalanceClientRegistry clientRegistry;
 

@@ -97,7 +97,7 @@ language governing permissions and limitations under the License. -->
                 <executions>
                     <execution>
                         <id>unpack-nifi-jolt-transform-json-ui</id>
-                        <phase>generate-resources</phase>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>unpack-dependencies</goal>
                         </goals>

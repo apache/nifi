@@ -30,7 +30,9 @@ import java.util.List;
  * Node denoting the beginning of a stream (generally present before the TemplateInstanceNode)
  */
 public class StreamStartNode extends BxmlNodeWithToken {
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final int unknown;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final int unknown2;
 
     public StreamStartNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {

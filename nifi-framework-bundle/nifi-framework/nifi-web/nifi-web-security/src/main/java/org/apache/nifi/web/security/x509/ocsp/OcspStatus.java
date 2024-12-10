@@ -33,18 +33,16 @@ public class OcspStatus {
     }
 
     public enum VerificationStatus {
-
         Unknown,
         Verified,
         Unverified
-    };
+    }
 
     public enum ValidationStatus {
-
         Unknown,
         Good,
         Revoked
-    };
+    }
 
     private ResponseStatus responseStatus;
     private VerificationStatus verificationStatus;

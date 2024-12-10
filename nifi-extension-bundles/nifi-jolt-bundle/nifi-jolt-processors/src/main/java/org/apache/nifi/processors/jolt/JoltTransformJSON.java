@@ -89,7 +89,7 @@ public class JoltTransformJSON extends AbstractJoltTransform {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES;
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
     private volatile ClassLoader customClassLoader;
     private volatile JsonUtil jsonUtil;
 

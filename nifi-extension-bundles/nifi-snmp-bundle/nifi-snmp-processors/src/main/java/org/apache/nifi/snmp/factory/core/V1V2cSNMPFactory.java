@@ -26,8 +26,8 @@ import java.util.Optional;
 public class V1V2cSNMPFactory extends SNMPManagerFactory implements SNMPContext {
 
     @Override
-    public Target createTargetInstance(final SNMPConfiguration configuration) {
-        final Target communityTarget = new CommunityTarget();
+    public Target<?> createTargetInstance(final SNMPConfiguration configuration) {
+        final Target<?> communityTarget = new CommunityTarget<>();
         setupTargetBasicProperties(communityTarget, configuration);
         final String community = configuration.getCommunityString();
 

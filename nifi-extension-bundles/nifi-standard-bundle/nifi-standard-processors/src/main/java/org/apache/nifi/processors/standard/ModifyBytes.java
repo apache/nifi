@@ -127,7 +127,7 @@ public class ModifyBytes extends AbstractProcessor {
             ff = session.write(ff, new StreamCallback() {
                 @Override
                 public void process(final InputStream in, final OutputStream out) throws IOException {
-                    in.skip(startOffset);
+                    in.skipNBytes(startOffset);
                     StreamUtils.copy(in, out, newFileSize);
                 }
             });

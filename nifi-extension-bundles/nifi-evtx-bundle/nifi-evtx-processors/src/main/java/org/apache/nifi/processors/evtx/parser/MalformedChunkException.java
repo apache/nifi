@@ -22,6 +22,7 @@ package org.apache.nifi.processors.evtx.parser;
  * Chunks are independent within the file so we should be able to safely continue processing the remaining chunks.
  */
 public class MalformedChunkException extends Exception {
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final long offset;
     private final int chunkNum;
     private byte[] badChunk;

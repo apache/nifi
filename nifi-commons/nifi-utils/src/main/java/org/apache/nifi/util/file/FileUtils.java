@@ -98,7 +98,7 @@ public class FileUtils {
      * @return true if given file no longer exists
      */
     public static boolean deleteFile(final File file, final Logger logger) {
-        return FileUtils.deleteFile(file, logger, 1);
+        return deleteFile(file, logger, 1);
     }
 
     /**
@@ -120,7 +120,7 @@ public class FileUtils {
                 for (int i = 0; i < effectiveAttempts && !isGone; i++) {
                     isGone = file.delete() || !file.exists();
                     if (!isGone && (effectiveAttempts - i) > 1) {
-                        FileUtils.sleepQuietly(MILLIS_BETWEEN_ATTEMPTS);
+                        sleepQuietly(MILLIS_BETWEEN_ATTEMPTS);
                     }
                 }
                 if (!isGone && logger != null) {
@@ -142,7 +142,7 @@ public class FileUtils {
      * @param logger can be null
      */
     public static void deleteFile(final List<File> files, final Logger logger) {
-        FileUtils.deleteFile(files, logger, 1);
+        deleteFile(files, logger, 1);
     }
 
     /**
@@ -163,7 +163,7 @@ public class FileUtils {
                 for (int i = 0; i < effectiveAttempts && !isGone; i++) {
                     isGone = file.delete() || !file.exists();
                     if (!isGone && (effectiveAttempts - i) > 1) {
-                        FileUtils.sleepQuietly(MILLIS_BETWEEN_ATTEMPTS);
+                        sleepQuietly(MILLIS_BETWEEN_ATTEMPTS);
                     }
                 }
                 if (!isGone && logger != null) {
@@ -186,7 +186,7 @@ public class FileUtils {
      * @param logger the logger to use
      */
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger) {
-        FileUtils.deleteFilesInDir(directory, filter, logger, false);
+        deleteFilesInDir(directory, filter, logger, false);
     }
 
     /**
@@ -198,7 +198,7 @@ public class FileUtils {
      * @param recurse indicates whether to recurse subdirectories
      */
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse) {
-        FileUtils.deleteFilesInDir(directory, filter, logger, recurse, false);
+        deleteFilesInDir(directory, filter, logger, recurse, false);
     }
 
     /**
@@ -217,12 +217,12 @@ public class FileUtils {
             for (File ingestFile : ingestFiles) {
                 boolean process = (filter == null) ? true : filter.accept(directory, ingestFile.getName());
                 if (ingestFile.isFile() && process) {
-                    FileUtils.deleteFile(ingestFile, logger, 3);
+                    deleteFile(ingestFile, logger, 3);
                 }
                 if (ingestFile.isDirectory() && recurse) {
-                    FileUtils.deleteFilesInDir(ingestFile, filter, logger, recurse, deleteEmptyDirectories);
+                    deleteFilesInDir(ingestFile, filter, logger, recurse, deleteEmptyDirectories);
                     if (deleteEmptyDirectories && ingestFile.list().length == 0) {
-                        FileUtils.deleteFile(ingestFile, logger, 3);
+                        deleteFile(ingestFile, logger, 3);
                     }
                 }
             }
@@ -238,16 +238,16 @@ public class FileUtils {
      */
     public static void deleteFiles(final Collection<File> files, final boolean recurse) throws IOException {
         for (final File file : files) {
-            FileUtils.deleteFile(file, recurse);
+            deleteFile(file, recurse);
         }
     }
 
     public static void deleteFile(final File file, final boolean recurse) throws IOException {
         if (file.isDirectory() && recurse) {
-            FileUtils.deleteFiles(Arrays.asList(file.listFiles()), recurse);
+            deleteFiles(Arrays.asList(file.listFiles()), recurse);
         }
         //now delete the file itself regardless of whether it is plain file or a directory
-        if (!FileUtils.deleteFile(file, null, 5)) {
+        if (!deleteFile(file, null, 5)) {
             Files.delete(file.toPath());
         }
     }
@@ -286,12 +286,12 @@ public class FileUtils {
             fos.flush();
             fos.close();
             // Try to delete the file a few times
-            if (!FileUtils.deleteFile(file, null, 5)) {
+            if (!deleteFile(file, null, 5)) {
                 throw new IOException("Failed to delete file after shredding");
             }
 
         } finally {
-            FileUtils.closeQuietly(fos);
+            closeQuietly(fos);
         }
     }
 
@@ -324,8 +324,8 @@ public class FileUtils {
             fos.flush();
             fileSize = bytes.length;
         } finally {
-            FileUtils.releaseQuietly(outLock);
-            FileUtils.closeQuietly(fos);
+            releaseQuietly(outLock);
+            closeQuietly(fos);
         }
         return fileSize;
     }
@@ -383,23 +383,23 @@ public class FileUtils {
                     fileSize = in.size();
                 } while (bytesWritten < fileSize);
                 out.force(false);
-                FileUtils.closeQuietly(fos);
-                FileUtils.closeQuietly(fis);
+                closeQuietly(fos);
+                closeQuietly(fis);
                 fos = null;
                 fis = null;
-                if (move && !FileUtils.deleteFile(source, null, 5)) {
+                if (move && !deleteFile(source, null, 5)) {
                     if (logger == null) {
-                        FileUtils.deleteFile(destination, null, 5);
+                        deleteFile(destination, null, 5);
                         throw new IOException("Could not remove file " + source.getAbsolutePath());
                     } else {
                         logger.warn("Configured to delete source file when renaming/move not successful.  However, unable to delete file at: {}", source.getAbsolutePath());
                     }
                 }
             } finally {
-                FileUtils.releaseQuietly(inLock);
-                FileUtils.releaseQuietly(outLock);
-                FileUtils.closeQuietly(fos);
-                FileUtils.closeQuietly(fis);
+                releaseQuietly(inLock);
+                releaseQuietly(outLock);
+                closeQuietly(fos);
+                closeQuietly(fis);
             }
         }
         return fileSize;
@@ -419,7 +419,7 @@ public class FileUtils {
      * @throws SecurityException if a security manager denies the needed file operations
      */
     public static long copyFile(final File source, final File destination, final boolean lockInputFile, final boolean lockOutputFile, final Logger logger) throws FileNotFoundException, IOException {
-        return FileUtils.copyFile(source, destination, lockInputFile, lockOutputFile, false, logger);
+        return copyFile(source, destination, lockInputFile, lockOutputFile, false, logger);
     }
 
     public static long copyFile(final File source, final OutputStream stream, final boolean closeOutputStream, final boolean lockInputFile) throws FileNotFoundException, IOException {
@@ -446,10 +446,10 @@ public class FileUtils {
             stream.flush();
             fileSize = in.size();
         } finally {
-            FileUtils.releaseQuietly(inLock);
-            FileUtils.closeQuietly(fis);
+            releaseQuietly(inLock);
+            closeQuietly(fis);
             if (closeOutputStream) {
-                FileUtils.closeQuietly(stream);
+                closeQuietly(stream);
             }
         }
         return fileSize;
@@ -474,7 +474,7 @@ public class FileUtils {
      * @throws IOException if rename isn't successful
      */
     public static void renameFile(final File source, final File destination, final int maxAttempts) throws IOException {
-        FileUtils.renameFile(source, destination, maxAttempts, false);
+        renameFile(source, destination, maxAttempts, false);
     }
 
     /**
@@ -494,7 +494,7 @@ public class FileUtils {
         for (int i = 0; i < attempts; i++) {
             renamed = source.renameTo(destination);
             if (!renamed) {
-                FileUtils.deleteFile(destination, null, 5);
+                deleteFile(destination, null, 5);
             } else {
                 break; //rename has succeeded
             }

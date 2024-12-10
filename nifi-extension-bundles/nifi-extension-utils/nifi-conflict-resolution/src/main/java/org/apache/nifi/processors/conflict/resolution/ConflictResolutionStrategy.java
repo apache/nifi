@@ -28,7 +28,7 @@ public enum ConflictResolutionStrategy implements DescribedValue {
     private static final Map<String, ConflictResolutionStrategy> ENUM_MAP = new HashMap<>();
 
     static {
-        for (ConflictResolutionStrategy strategy : ConflictResolutionStrategy.values()) {
+        for (ConflictResolutionStrategy strategy : values()) {
             ENUM_MAP.put(strategy.getValue(), strategy);
         }
     }

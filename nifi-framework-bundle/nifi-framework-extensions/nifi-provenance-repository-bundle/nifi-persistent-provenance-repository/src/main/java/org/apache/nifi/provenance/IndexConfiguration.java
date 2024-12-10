@@ -39,9 +39,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- *
- */
 public class IndexConfiguration {
 
     private final RepositoryConfiguration repoConfig;

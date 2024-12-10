@@ -648,7 +648,7 @@ public class MapRecord implements Record {
 
         Object mapObject = values.get(recordField.getFieldName());
         if (mapObject == null) {
-            mapObject = new LinkedHashMap<String, Object>();
+            mapObject = new LinkedHashMap<>();
         }
         if (!(mapObject instanceof Map)) {
             return;

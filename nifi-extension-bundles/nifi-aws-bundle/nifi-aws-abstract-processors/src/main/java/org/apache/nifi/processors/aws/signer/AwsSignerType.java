@@ -34,7 +34,7 @@ public enum AwsSignerType implements DescribedValue {
     private static final Map<String, AwsSignerType> LOOKUP_MAP = new HashMap<>();
 
     static {
-        for (AwsSignerType signerType : AwsSignerType.values()) {
+        for (AwsSignerType signerType : values()) {
             LOOKUP_MAP.put(signerType.getValue(), signerType);
         }
     }

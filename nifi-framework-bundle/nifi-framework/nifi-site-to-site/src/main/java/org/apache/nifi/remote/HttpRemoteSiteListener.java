@@ -41,7 +41,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpRemoteSiteListener.class);
     private final int transactionTtlSec;
-    private static HttpRemoteSiteListener instance;
+    private static volatile HttpRemoteSiteListener instance;
 
     private final Map<String, TransactionWrapper> transactions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService taskExecutor;

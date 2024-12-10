@@ -29,7 +29,7 @@ language governing permissions and limitations under the License. -->
                         <goals>
                             <goal>unpack-dependencies</goal>
                         </goals>
-                        <phase>generate-resources</phase>
+                        <phase>prepare-package</phase>
                         <configuration>
                             <includeTypes>nar</includeTypes>
                             <includes>**/docs/**</includes>
@@ -1127,27 +1127,6 @@ language governing permissions and limitations under the License. -->
                                         <format>dir</format>
                                     </formats>
                                 </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>skip-nifi-bin-assembly</id>
-            <activation>
-                <property>
-                    <name>skip-nifi-bin-assembly</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>make shared resource</id>
-                                <phase>none</phase>
                             </execution>
                         </executions>
                     </plugin>

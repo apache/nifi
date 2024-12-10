@@ -255,19 +255,19 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     private BasicProperties extractAmqpPropertiesFromFlowFile(final FlowFile flowFile, final InputHeaderSource selectedHeaderSource, final Character separator, final Pattern pattern) {
         final AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
 
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_CONTENT_TYPE_ATTRIBUTE, builder::contentType);
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_CONTENT_ENCODING_ATTRIBUTE, builder::contentEncoding);
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_DELIVERY_MODE_ATTRIBUTE, mode -> builder.deliveryMode(Integer.parseInt(mode)));
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_PRIORITY_ATTRIBUTE, pri -> builder.priority(Integer.parseInt(pri)));
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_CORRELATION_ID_ATTRIBUTE, builder::correlationId);
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_REPLY_TO_ATTRIBUTE, builder::replyTo);
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_EXPIRATION_ATTRIBUTE, builder::expiration);
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_MESSAGE_ID_ATTRIBUTE, builder::messageId);
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_TIMESTAMP_ATTRIBUTE, ts -> builder.timestamp(new Date(Long.parseLong(ts))));
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_TYPE_ATTRIBUTE, builder::type);
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_USER_ID_ATTRIBUTE, builder::userId);
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_APPID_ATTRIBUTE, builder::appId);
-        readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_CLUSTER_ID_ATTRIBUTE, builder::clusterId);
+        readAmqpAttribute(flowFile, AMQP_CONTENT_TYPE_ATTRIBUTE, builder::contentType);
+        readAmqpAttribute(flowFile, AMQP_CONTENT_ENCODING_ATTRIBUTE, builder::contentEncoding);
+        readAmqpAttribute(flowFile, AMQP_DELIVERY_MODE_ATTRIBUTE, mode -> builder.deliveryMode(Integer.parseInt(mode)));
+        readAmqpAttribute(flowFile, AMQP_PRIORITY_ATTRIBUTE, pri -> builder.priority(Integer.parseInt(pri)));
+        readAmqpAttribute(flowFile, AMQP_CORRELATION_ID_ATTRIBUTE, builder::correlationId);
+        readAmqpAttribute(flowFile, AMQP_REPLY_TO_ATTRIBUTE, builder::replyTo);
+        readAmqpAttribute(flowFile, AMQP_EXPIRATION_ATTRIBUTE, builder::expiration);
+        readAmqpAttribute(flowFile, AMQP_MESSAGE_ID_ATTRIBUTE, builder::messageId);
+        readAmqpAttribute(flowFile, AMQP_TIMESTAMP_ATTRIBUTE, ts -> builder.timestamp(new Date(Long.parseLong(ts))));
+        readAmqpAttribute(flowFile, AMQP_TYPE_ATTRIBUTE, builder::type);
+        readAmqpAttribute(flowFile, AMQP_USER_ID_ATTRIBUTE, builder::userId);
+        readAmqpAttribute(flowFile, AMQP_APPID_ATTRIBUTE, builder::appId);
+        readAmqpAttribute(flowFile, AMQP_CLUSTER_ID_ATTRIBUTE, builder::clusterId);
 
         Map<String, Object> headers = prepareAMQPHeaders(flowFile, selectedHeaderSource, separator, pattern);
         builder.headers(headers);
@@ -286,7 +286,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         if (InputHeaderSource.FLOWFILE_ATTRIBUTES.equals(selectedHeaderSource)) {
                 headers.putAll(getMatchedAttributes(flowFile.getAttributes(), pattern));
         } else if (InputHeaderSource.AMQP_HEADERS_ATTRIBUTE.equals(selectedHeaderSource)) {
-            readAmqpAttribute(flowFile, AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, value -> headers.putAll(validateAMQPHeaderProperty(value, headerSeparator)));
+            readAmqpAttribute(flowFile, AMQP_HEADERS_ATTRIBUTE, value -> headers.putAll(validateAMQPHeaderProperty(value, headerSeparator)));
         }
         return headers;
     }

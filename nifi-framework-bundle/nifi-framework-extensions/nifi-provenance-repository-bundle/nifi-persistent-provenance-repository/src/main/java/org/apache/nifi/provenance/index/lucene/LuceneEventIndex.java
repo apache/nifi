@@ -280,7 +280,7 @@ public class LuceneEventIndex implements EventIndex {
 
     @Override
     public long getMinimumEventIdToReindex(final String partitionName) {
-        return Math.max(0, getMaxEventId(partitionName) - EventIndexTask.MAX_DOCUMENTS_PER_THREAD * LuceneEventIndex.MAX_INDEX_THREADS);
+        return Math.max(0, getMaxEventId(partitionName) - EventIndexTask.MAX_DOCUMENTS_PER_THREAD * MAX_INDEX_THREADS);
     }
 
     protected IndexDirectoryManager getDirectoryManager() {

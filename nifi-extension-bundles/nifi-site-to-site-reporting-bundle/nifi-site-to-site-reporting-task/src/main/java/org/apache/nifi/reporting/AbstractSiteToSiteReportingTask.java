@@ -264,10 +264,8 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
 
             try {
                 return convertJsonNodeToRecord(nextNode, getSchema(), null, coerceTypes, dropUnknownFields);
-            } catch (final MalformedRecordException mre) {
-                throw mre;
-            } catch (final IOException ioe) {
-                throw ioe;
+            } catch (final MalformedRecordException | IOException e) {
+                throw e;
             } catch (final Exception e) {
                 throw new MalformedRecordException("Failed to convert data into a Record object with the given schema", e);
             }

@@ -73,9 +73,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StandardProcessorTestRunner implements TestRunner {
 
@@ -387,17 +388,17 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertTransferCount(final Relationship relationship, final int count) {
-        Assertions.assertEquals(count, getFlowFilesForRelationship(relationship).size());
+        assertEquals(count, getFlowFilesForRelationship(relationship).size());
     }
 
     @Override
     public void assertTransferCount(final String relationship, final int count) {
-        Assertions.assertEquals(count, getFlowFilesForRelationship(relationship).size());
+        assertEquals(count, getFlowFilesForRelationship(relationship).size());
     }
 
     @Override
     public void assertPenalizeCount(final int count) {
-        Assertions.assertEquals(count, getPenalizedFlowFiles().size());
+        assertEquals(count, getPenalizedFlowFiles().size());
     }
 
     @Override
@@ -412,7 +413,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertNotValid() {
-        Assertions.assertFalse(context.isValid(), "Processor appears to be valid but expected it to be invalid");
+        assertFalse(context.isValid(), "Processor appears to be valid but expected it to be invalid");
     }
 
     @Override
@@ -422,12 +423,12 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertQueueEmpty() {
-        Assertions.assertTrue(flowFileQueue.isEmpty());
+        assertTrue(flowFileQueue.isEmpty());
     }
 
     @Override
     public void assertQueueNotEmpty() {
-        Assertions.assertFalse(flowFileQueue.isEmpty());
+        assertFalse(flowFileQueue.isEmpty());
     }
 
     @Override
@@ -654,7 +655,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         controllerServiceLoggers.put(identifier, mockComponentLog);
         final MockStateManager serviceStateManager = new MockStateManager(service);
         final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(
-                requireNonNull(service), requireNonNull(identifier), mockComponentLog, serviceStateManager, kerberosContext);
+                Objects.requireNonNull(service), Objects.requireNonNull(identifier), mockComponentLog, serviceStateManager, kerberosContext);
         controllerServiceStateManagers.put(identifier, serviceStateManager);
         initContext.addControllerServices(context);
         service.initialize(initContext);

@@ -1066,7 +1066,7 @@ public class PutS3Object extends AbstractS3Processor {
                     } else {
                         first = false;
                     }
-                    buf.append(java.lang.String.format("%d/%s", tag.getPartNumber(), tag.getETag()));
+                    buf.append(String.format("%d/%s", tag.getPartNumber(), tag.getETag()));
                 }
             }
             buf.append(SEPARATOR)

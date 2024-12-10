@@ -75,7 +75,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
             }
 
             // set the request parameters
-            final MultivaluedMap<String, String> parameters = new MultivaluedHashMap();
+            final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
             parameters.add(CLIENT_ID_PARAM, request.getClientId());
 
             // set the headers

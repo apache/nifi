@@ -174,7 +174,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         try {
             MongoCollection<Document> collection = getCollection(context, flowFile);
             List<Bson> aggQuery = buildAggregationQuery(query);
-            AggregateIterable<Document> it = collection.aggregate(aggQuery).allowDiskUse(allowDiskUse);;
+            AggregateIterable<Document> it = collection.aggregate(aggQuery).allowDiskUse(allowDiskUse);
             it.batchSize(batchSize != null ? batchSize : 1);
 
             iter = it.iterator();

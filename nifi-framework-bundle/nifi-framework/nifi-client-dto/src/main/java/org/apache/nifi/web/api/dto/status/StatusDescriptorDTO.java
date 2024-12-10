@@ -31,7 +31,7 @@ public class StatusDescriptorDTO {
         COUNT,
         DURATION,
         DATA_SIZE
-    };
+    }
 
     private String field;
     private String label;

@@ -87,7 +87,7 @@ abstract public class AbstractGetGcpVisionAnnotateOperationStatus extends Abstra
             return;
         }
         try {
-            String operationKey = context.getProperty(OPERATION_KEY).evaluateAttributeExpressions(flowFile).getValue();;
+            String operationKey = context.getProperty(OPERATION_KEY).evaluateAttributeExpressions(flowFile).getValue();
             Operation operation = getVisionClient().getOperationsClient().getOperation(operationKey);
             getLogger().info("{}", operation);
             if (operation.getDone() && !operation.hasError()) {

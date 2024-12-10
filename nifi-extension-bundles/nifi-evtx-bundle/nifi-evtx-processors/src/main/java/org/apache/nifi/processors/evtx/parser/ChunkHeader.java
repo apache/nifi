@@ -49,12 +49,10 @@ public class ChunkHeader extends Block {
     private final Map<Integer, NameStringNode> nameStrings;
     private final Map<Integer, TemplateNode> templateNodes;
     private final int chunkNumber;
-    private final ComponentLog log;
     private UnsignedLong recordNumber;
 
     public ChunkHeader(BinaryReader binaryReader, ComponentLog log, long headerOffset, int chunkNumber) throws IOException {
         super(binaryReader, headerOffset);
-        this.log = log;
         this.chunkNumber = chunkNumber;
         CRC32 crc32 = new CRC32();
         crc32.update(binaryReader.peekBytes(120));

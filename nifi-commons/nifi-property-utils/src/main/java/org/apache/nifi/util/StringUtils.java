@@ -506,7 +506,7 @@ public class StringUtils {
         }
         List<String> elements = Arrays.asList(input.trim().toLowerCase().split("\\s"));
         return elements.stream()
-                .filter(word -> !StringUtils.isBlank(word))
+                .filter(word -> !isBlank(word))
                 .map(word -> Character.toTitleCase(word.charAt(0)) + word.substring(1))
                 .collect(Collectors.joining(" "));
     }

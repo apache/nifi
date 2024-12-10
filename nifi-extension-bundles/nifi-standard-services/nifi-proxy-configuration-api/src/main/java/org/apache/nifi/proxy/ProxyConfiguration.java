@@ -51,7 +51,7 @@ public class ProxyConfiguration {
         }
 
         return new PropertyDescriptor.Builder()
-                .fromPropertyDescriptor(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE)
+                .fromPropertyDescriptor(PROXY_CONFIGURATION_SERVICE)
                 .description(description.toString())
                 .build();
     }
