@@ -292,15 +292,15 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
             throw new IllegalArgumentException("Event and event type must not be null.");
         }
 
-        switch (event.getEventType()) {
-            case CREATE: return ((Event.CreateEvent) event).getPath();
-            case CLOSE: return ((Event.CloseEvent) event).getPath();
-            case APPEND: return ((Event.AppendEvent) event).getPath();
-            case RENAME: return ((Event.RenameEvent) event).getSrcPath();
-            case METADATA: return ((Event.MetadataUpdateEvent) event).getPath();
-            case UNLINK: return ((Event.UnlinkEvent) event).getPath();
-            default: throw new IllegalArgumentException("Unsupported event type.");
-        }
+        return switch (event.getEventType()) {
+            case CREATE -> ((Event.CreateEvent) event).getPath();
+            case CLOSE -> ((Event.CloseEvent) event).getPath();
+            case APPEND -> ((Event.AppendEvent) event).getPath();
+            case RENAME -> ((Event.RenameEvent) event).getSrcPath();
+            case METADATA -> ((Event.MetadataUpdateEvent) event).getPath();
+            case UNLINK -> ((Event.UnlinkEvent) event).getPath();
+            default -> throw new IllegalArgumentException("Unsupported event type.");
+        };
     }
 
     private static class NotificationConfig {

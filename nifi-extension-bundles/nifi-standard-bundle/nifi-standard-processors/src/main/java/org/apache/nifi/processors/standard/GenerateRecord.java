@@ -382,28 +382,18 @@ public class GenerateRecord extends AbstractProcessor {
 
     private String generateRandomString() {
         final int categoryChoice = faker.number().numberBetween(0, 10);
-        switch (categoryChoice) {
-            case 0:
-                return faker.name().fullName();
-            case 1:
-                return faker.lorem().word();
-            case 2:
-                return faker.shakespeare().romeoAndJulietQuote();
-            case 3:
-                return faker.educator().university();
-            case 4:
-                return faker.zelda().game();
-            case 5:
-                return faker.company().name();
-            case 6:
-                return faker.chuckNorris().fact();
-            case 7:
-                return faker.book().title();
-            case 8:
-                return faker.dog().breed();
-            default:
-                return faker.animal().name();
-        }
+        return switch (categoryChoice) {
+            case 0 -> faker.name().fullName();
+            case 1 -> faker.lorem().word();
+            case 2 -> faker.shakespeare().romeoAndJulietQuote();
+            case 3 -> faker.educator().university();
+            case 4 -> faker.zelda().game();
+            case 5 -> faker.company().name();
+            case 6 -> faker.chuckNorris().fact();
+            case 7 -> faker.book().title();
+            case 8 -> faker.dog().breed();
+            default -> faker.animal().name();
+        };
     }
 
     protected RecordSchema generateRecordSchema(final Map<String, String> fields, final boolean nullable) {

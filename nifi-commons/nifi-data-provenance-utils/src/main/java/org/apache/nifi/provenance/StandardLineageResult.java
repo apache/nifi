@@ -233,18 +233,10 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
                 // SPAWN Event's UUID is not necessarily what we want, since a SPAWN Event's UUID pertains to
                 // only one of (potentially) many UUIDs associated with the event. Otherwise, we know that
                 // the UUID of this record is appropriate, so we just use it.
-                final String edgeUuid;
-
-                switch (record.getEventType()) {
-                    case JOIN:
-                    case CLONE:
-                    case REPLAY:
-                        edgeUuid = lastNode.getFlowFileUuid();
-                        break;
-                    default:
-                        edgeUuid = record.getFlowFileUuid();
-                        break;
-                }
+                final String edgeUuid = switch (record.getEventType()) {
+                    case JOIN, CLONE, REPLAY -> lastNode.getFlowFileUuid();
+                    default -> record.getFlowFileUuid();
+                };
 
                 edges.add(new EdgeNode(edgeUuid, lastNode, lineageNode));
             }

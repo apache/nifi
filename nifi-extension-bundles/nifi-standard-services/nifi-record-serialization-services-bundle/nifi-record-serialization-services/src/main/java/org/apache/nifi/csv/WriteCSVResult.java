@@ -69,16 +69,13 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
 
     private String getFormat(final RecordField field) {
         final DataType dataType = field.getDataType();
-        switch (dataType.getFieldType()) {
-            case DATE:
-                return dateFormat;
-            case TIME:
-                return timeFormat;
-            case TIMESTAMP:
-                return timestampFormat;
-        }
+        return switch (dataType.getFieldType()) {
+            case DATE -> dateFormat;
+            case TIME -> timeFormat;
+            case TIMESTAMP -> timestampFormat;
+            default -> dataType.getFormat();
+        };
 
-        return dataType.getFormat();
     }
 
     @Override

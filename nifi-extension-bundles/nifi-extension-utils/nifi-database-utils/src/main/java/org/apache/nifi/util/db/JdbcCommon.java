@@ -912,24 +912,24 @@ public class JdbcCommon {
     }
 
     public static DateTimeFormatter getDateTimeFormatter(String pattern) {
-        switch (pattern) {
-            case "BASIC_ISO_DATE": return DateTimeFormatter.BASIC_ISO_DATE;
-            case "ISO_LOCAL_DATE": return DateTimeFormatter.ISO_LOCAL_DATE;
-            case "ISO_OFFSET_DATE": return DateTimeFormatter.ISO_OFFSET_DATE;
-            case "ISO_DATE": return DateTimeFormatter.ISO_DATE;
-            case "ISO_LOCAL_TIME": return DateTimeFormatter.ISO_LOCAL_TIME;
-            case "ISO_OFFSET_TIME": return DateTimeFormatter.ISO_OFFSET_TIME;
-            case "ISO_TIME": return DateTimeFormatter.ISO_TIME;
-            case "ISO_LOCAL_DATE_TIME": return DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-            case "ISO_OFFSET_DATE_TIME": return DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-            case "ISO_ZONED_DATE_TIME": return DateTimeFormatter.ISO_ZONED_DATE_TIME;
-            case "ISO_DATE_TIME": return DateTimeFormatter.ISO_DATE_TIME;
-            case "ISO_ORDINAL_DATE": return DateTimeFormatter.ISO_ORDINAL_DATE;
-            case "ISO_WEEK_DATE": return DateTimeFormatter.ISO_WEEK_DATE;
-            case "ISO_INSTANT": return DateTimeFormatter.ISO_INSTANT;
-            case "RFC_1123_DATE_TIME": return DateTimeFormatter.RFC_1123_DATE_TIME;
-            default: return DateTimeFormatter.ofPattern(pattern);
-        }
+        return switch (pattern) {
+            case "BASIC_ISO_DATE" -> DateTimeFormatter.BASIC_ISO_DATE;
+            case "ISO_LOCAL_DATE" -> DateTimeFormatter.ISO_LOCAL_DATE;
+            case "ISO_OFFSET_DATE" -> DateTimeFormatter.ISO_OFFSET_DATE;
+            case "ISO_DATE" -> DateTimeFormatter.ISO_DATE;
+            case "ISO_LOCAL_TIME" -> DateTimeFormatter.ISO_LOCAL_TIME;
+            case "ISO_OFFSET_TIME" -> DateTimeFormatter.ISO_OFFSET_TIME;
+            case "ISO_TIME" -> DateTimeFormatter.ISO_TIME;
+            case "ISO_LOCAL_DATE_TIME" -> DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+            case "ISO_OFFSET_DATE_TIME" -> DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+            case "ISO_ZONED_DATE_TIME" -> DateTimeFormatter.ISO_ZONED_DATE_TIME;
+            case "ISO_DATE_TIME" -> DateTimeFormatter.ISO_DATE_TIME;
+            case "ISO_ORDINAL_DATE" -> DateTimeFormatter.ISO_ORDINAL_DATE;
+            case "ISO_WEEK_DATE" -> DateTimeFormatter.ISO_WEEK_DATE;
+            case "ISO_INSTANT" -> DateTimeFormatter.ISO_INSTANT;
+            case "RFC_1123_DATE_TIME" -> DateTimeFormatter.RFC_1123_DATE_TIME;
+            default -> DateTimeFormatter.ofPattern(pattern);
+        };
     }
 
     /**

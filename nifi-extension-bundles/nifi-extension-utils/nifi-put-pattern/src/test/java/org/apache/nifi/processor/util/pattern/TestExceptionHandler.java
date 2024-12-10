@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -139,22 +140,20 @@ public class TestExceptionHandler {
 
     static <C> ExceptionHandler.OnError<C, Integer> createInputErrorHandler() {
         return (c, i, r, e) -> {
-            switch (r.destination()) {
-                case ProcessException:
-                    throw new ProcessException(String.format("Execution failed due to %s", e), e);
-                default:
-                    logger.warn(String.format("Routing to %s: %d caused %s", r, i, e));
+            if (Objects.requireNonNull(r.destination()) == ErrorTypes.Destination.ProcessException) {
+                throw new ProcessException(String.format("Execution failed due to %s", e), e);
+            } else {
+                logger.warn(String.format("Routing to %s: %d caused %s", r, i, e));
             }
         };
     }
 
     static <C> ExceptionHandler.OnError<C, Integer[]> createArrayInputErrorHandler() {
         return (c, i, r, e) -> {
-            switch (r.destination()) {
-                case ProcessException:
-                    throw new ProcessException(String.format("Execution failed due to %s", e), e);
-                default:
-                    logger.warn(String.format("Routing to %s: %d, %d caused %s", r, i[0], i[1], e));
+            if (Objects.requireNonNull(r.destination()) == ErrorTypes.Destination.ProcessException) {
+                throw new ProcessException(String.format("Execution failed due to %s", e), e);
+            } else {
+                logger.warn(String.format("Routing to %s: %d, %d caused %s", r, i[0], i[1], e));
             }
         };
     }

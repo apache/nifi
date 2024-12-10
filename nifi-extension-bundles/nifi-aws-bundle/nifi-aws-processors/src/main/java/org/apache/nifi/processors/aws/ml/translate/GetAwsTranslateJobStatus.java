@@ -61,30 +61,28 @@ public class GetAwsTranslateJobStatus extends AbstractAwsMachineLearningJobStatu
             flowFile = writeToFlowFile(session, flowFile, job);
             final Relationship transferRelationship;
             String failureReason = null;
-            switch (status) {
-                case IN_PROGRESS:
-                case SUBMITTED:
-                case STOP_REQUESTED:
+            transferRelationship = switch (status) {
+                case IN_PROGRESS, SUBMITTED, STOP_REQUESTED -> {
                     flowFile = session.penalize(flowFile);
-                    transferRelationship = REL_RUNNING;
-                    break;
-                case COMPLETED:
+                    yield REL_RUNNING;
+                }
+                case COMPLETED -> {
                     flowFile = session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION, job.textTranslationJobProperties().outputDataConfig().s3Uri());
-                    transferRelationship = REL_SUCCESS;
-                    break;
-                case FAILED:
-                case COMPLETED_WITH_ERROR:
+                    yield REL_SUCCESS;
+                }
+                case FAILED, COMPLETED_WITH_ERROR -> {
                     failureReason = job.textTranslationJobProperties().message();
-                    transferRelationship = REL_FAILURE;
-                    break;
-                case STOPPED:
+                    yield REL_FAILURE;
+                }
+                case STOPPED -> {
                     failureReason = String.format("Job [%s] is stopped", job.textTranslationJobProperties().jobId());
-                    transferRelationship = REL_FAILURE;
-                    break;
-                default:
+                    yield REL_FAILURE;
+                }
+                default -> {
                     failureReason = "Unknown Job Status";
-                    transferRelationship = REL_FAILURE;
-            }
+                    yield REL_FAILURE;
+                }
+            };
             if (failureReason != null) {
                 flowFile = session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
             }
