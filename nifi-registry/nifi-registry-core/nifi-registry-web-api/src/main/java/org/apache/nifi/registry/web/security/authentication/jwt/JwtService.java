@@ -63,7 +63,7 @@ public class JwtService {
         this.keyService = keyService;
     }
 
-    public String getUserIdentityFromToken(final String base64EncodedToken) throws JwtException {
+    public Jws<Claims> parseAndValidateToken(final String base64EncodedToken) throws JwtException {
         // The library representations of the JWT should be kept internal to this service.
         try {
             final Jws<Claims> jws = parseTokenFromBase64EncodedString(base64EncodedToken);
@@ -81,28 +81,22 @@ public class JwtService {
             if (StringUtils.isEmpty(jws.getPayload().getIssuer())) {
                 throw new JwtException("No issuer available in token");
             }
-            return jws.getPayload().getSubject();
+
+            return jws;
         } catch (JwtException e) {
             throw new JwtException("There was an error validating the JWT", e);
         }
     }
 
-    public Set<String> getUserGroupsFromToken(final String base64EncodedToken) throws JwtException {
-        // The library representations of the JWT should be kept internal to this service.
-        try {
-            final Jws<Claims> jws = parseTokenFromBase64EncodedString(base64EncodedToken);
+    public String getUserIdentityFromToken(final Jws<Claims> jws) throws JwtException {
+        return jws.getPayload().getSubject();
+    }
 
-            if (jws == null) {
-                throw new JwtException("Unable to parse token");
-            }
+    public Set<String> getUserGroupsFromToken(final Jws<Claims> jws) throws JwtException {
+        @SuppressWarnings("unchecked")
+        ArrayList<String> groupsString = jws.getPayload().get(GROUPS_CLAIM, ArrayList.class);
 
-            @SuppressWarnings("unchecked")
-            ArrayList<String> groupsString = jws.getPayload().get(GROUPS_CLAIM, ArrayList.class);
-
-            return new HashSet<>(groupsString);
-        } catch (JwtException e) {
-            throw new JwtException("There was an error validating the JWT", e);
-        }
+        return new HashSet<>(groupsString);
     }
 
     private Jws<Claims> parseTokenFromBase64EncodedString(final String base64EncodedToken) throws JwtException {
