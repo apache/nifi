@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService
 org.apache.nifi.processors.gcp.storage.GCSFileResourceService
+org.apache.nifi.processors.gcp.pubsub.sink.GcpPubSubRecordSink
