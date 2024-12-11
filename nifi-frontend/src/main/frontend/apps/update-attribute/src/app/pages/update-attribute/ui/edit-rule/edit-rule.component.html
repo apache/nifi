@@ -38,8 +38,18 @@
                 </mat-form-field>
             </div>
         </div>
-        <condition-table formControlName="conditions" [isNew]="!id"></condition-table>
-        <action-table formControlName="actions" [isNew]="!id"></action-table>
+        <div class="flex flex-col gap-y-1">
+            <condition-table formControlName="conditions" [isNew]="!id"></condition-table>
+            @if (conditionControl.invalid) {
+                <div class="ml-4 error-color text-sm">{{ getConditionErrorMessage() }}</div>
+            }
+        </div>
+        <div class="flex flex-col gap-y-1">
+            <action-table formControlName="actions" [isNew]="!id"></action-table>
+            @if (actionControl.invalid) {
+                <div class="ml-4 error-color text-sm">{{ getActionErrorMessage() }}</div>
+            }
+        </div>
         <div class="flex justify-end gap-x-2">
             @if (isEditable) {
                 <button type="button" (click)="cancelClicked()" mat-button>Cancel</button>

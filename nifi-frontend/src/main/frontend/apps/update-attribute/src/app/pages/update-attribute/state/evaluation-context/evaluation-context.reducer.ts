@@ -19,7 +19,9 @@ import { EvaluationContextState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
     loadEvaluationContext,
+    loadEvaluationContextFailure,
     loadEvaluationContextSuccess,
+    resetEvaluationContextFailure,
     resetEvaluationContextState,
     saveEvaluationContext,
     saveEvaluationContextFailure,
@@ -50,6 +52,11 @@ export const evaluationContextReducer = createReducer(
             flowFilePolicy: evaluationContextEntity.flowFilePolicy
         }
     })),
+    on(loadEvaluationContextFailure, (state, { error }) => ({
+        ...state,
+        error,
+        loading: false
+    })),
     on(saveEvaluationContext, (state) => ({
         ...state,
         saving: true
@@ -62,8 +69,13 @@ export const evaluationContextReducer = createReducer(
             flowFilePolicy: evaluationContextEntity.flowFilePolicy
         }
     })),
-    on(saveEvaluationContextFailure, (state) => ({
+    on(saveEvaluationContextFailure, (state, { error }) => ({
         ...state,
+        error,
         saving: false
+    })),
+    on(resetEvaluationContextFailure, (state) => ({
+        ...state,
+        error: null
     }))
 );

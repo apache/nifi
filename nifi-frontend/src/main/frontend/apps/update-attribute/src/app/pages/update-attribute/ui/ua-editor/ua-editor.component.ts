@@ -17,7 +17,7 @@
 
 import { Component, EventEmitter, Input, OnDestroy, Output, Renderer2, ViewContainerRef } from '@angular/core';
 import { CdkDrag } from '@angular/cdk/drag-drop';
-import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,7 +26,8 @@ import { Resizable } from '@nifi/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { Editor } from 'codemirror';
-import { NfEl } from "./modes/nfel";
+import { NfEl } from './modes/nfel';
+import { PropertyHint } from '@nifi/shared';
 
 @Component({
     selector: 'ua-editor',
@@ -41,7 +42,8 @@ import { NfEl } from "./modes/nfel";
         MatCheckboxModule,
         A11yModule,
         CodemirrorModule,
-        Resizable
+        Resizable,
+        PropertyHint
     ],
     styleUrls: ['./ua-editor.component.scss']
 })
@@ -50,12 +52,23 @@ export class UaEditor implements OnDestroy {
         this.uaEditorForm.get('value')?.setValue(value);
     }
     @Input() supportsEl: boolean = false;
+    @Input() set required(required: boolean) {
+        this.isRequired = required;
+
+        if (this.isRequired) {
+            this.uaEditorForm.get('value')?.setValidators([Validators.required]);
+        } else {
+            this.uaEditorForm.get('value')?.clearValidators();
+        }
+    }
 
     @Input() width!: number;
     @Input() readonly: boolean = false;
 
-    @Output() ok: EventEmitter<string | null> = new EventEmitter<string | null>();
+    @Output() ok: EventEmitter<string> = new EventEmitter<string>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
+
+    isRequired: boolean = true;
 
     uaEditorForm: FormGroup;
     editor!: Editor;
@@ -69,6 +82,10 @@ export class UaEditor implements OnDestroy {
         this.uaEditorForm = this.formBuilder.group({
             value: new FormControl('')
         });
+
+        if (this.isRequired) {
+            this.uaEditorForm.get('value')?.setValidators([Validators.required]);
+        }
 
         this.nfel.setViewContainerRef(this.viewContainerRef, this.renderer);
         this.nfel.configureAutocomplete();

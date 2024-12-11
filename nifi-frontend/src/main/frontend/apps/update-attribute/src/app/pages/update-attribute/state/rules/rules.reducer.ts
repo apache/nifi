@@ -67,23 +67,8 @@ export const rulesReducer = createReducer(
         newRule: {
             name: rule ? `Copy of ${rule.name}` : '',
             comments: rule ? rule.comments : '',
-            conditions: rule
-                ? rule.conditions
-                : [
-                      {
-                          id: uuidv4(),
-                          expression: ''
-                      }
-                  ],
-            actions: rule
-                ? rule.actions
-                : [
-                      {
-                          id: uuidv4(),
-                          attribute: '',
-                          value: ''
-                      }
-                  ]
+            conditions: rule ? rule.conditions : [],
+            actions: rule ? rule.actions : []
         }
     })),
     on(resetNewRule, (state) => ({

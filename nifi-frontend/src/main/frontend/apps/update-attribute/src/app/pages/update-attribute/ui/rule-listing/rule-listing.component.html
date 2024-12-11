@@ -18,7 +18,7 @@
   -->
 @if (rulesList.length === 0 && !newRule) {
     <div class="h-full flex justify-center items-center gap-x-4">
-        @if (editable) {
+        @if (isEditable) {
             <div>No rules configured for this Processor. Get started by defining your first.</div>
             <button mat-flat-button (click)="populateNewRule()">Create Rule</button>
         } @else {
@@ -31,10 +31,11 @@
             <div class="flex flex-col gap-y-1">
                 <div class="flex gap-x-1 items-center">
                     <div>Use original FlowFile for matching rules</div>
-                    <mat-slide-toggle
-                        [disabled]="!editable"
-                        [checked]="flowFilePolicy === 'USE_ORIGINAL'"
-                        (change)="updateFlowFilePolicy($event)"></mat-slide-toggle>
+                    <form [formGroup]="flowFilePolicyForm">
+                        <mat-slide-toggle
+                            formControlName="useOriginalFlowFilePolicy"
+                            (change)="flowFilePolicyToggled($event)"></mat-slide-toggle>
+                    </form>
                 </div>
                 <div class="text-sm">If disabled rules will be executed using a clone of the original FlowFile</div>
             </div>
@@ -61,7 +62,7 @@
                     <button
                         mat-icon-button
                         class="primary-icon-button"
-                        [disabled]="!editable || allowRuleReordering"
+                        [disabled]="!isEditable || allowRuleReordering"
                         (click)="populateNewRule()">
                         <i class="fa fa-plus"></i>
                     </button>
@@ -74,9 +75,8 @@
             @if (allowRuleReordering) {
                 <mat-accordion
                     [multi]="true"
-                    [hideToggle]="true"
                     cdkDropList
-                    [cdkDropListDisabled]="!editable"
+                    [cdkDropListDisabled]="!isEditable"
                     [cdkDropListData]="rulesList"
                     (cdkDropListDropped)="reorderRules($event)">
                     @for (rule of filteredRulesList; track rule.id) {
@@ -102,7 +102,7 @@
                     }
                 </mat-accordion>
             } @else {
-                <mat-accordion [multi]="true" [hideToggle]="true">
+                <mat-accordion [multi]="true">
                     @for (rule of filteredRulesList; track rule.id) {
                         <mat-expansion-panel #expansionPanel (opened)="panelOpened(rule)" (closed)="panelClosed(rule)">
                             <mat-expansion-panel-header [collapsedHeight]="'42px'" [expandedHeight]="'42px'">
@@ -113,7 +113,7 @@
                                     <div>
                                         {{ rule.comments }}
                                     </div>
-                                    @if (editable) {
+                                    @if (isEditable) {
                                         <button
                                             mat-icon-button
                                             type="button"
@@ -142,7 +142,7 @@
                                 [comments]="rule.comments"
                                 [conditions]="rule.conditions"
                                 [actions]="rule.actions"
-                                [editable]="editable"
+                                [editable]="isEditable"
                                 [ruleUpdate]="(getRuleUpdates(rule.id) | async)!"
                                 (editRule)="editRule($event)"
                                 (cancel)="expansionPanel.close()"></edit-rule>
@@ -162,7 +162,7 @@
                                 [comments]="newRule.comments"
                                 [conditions]="newRule.conditions"
                                 [actions]="newRule.actions"
-                                [editable]="editable"
+                                [editable]="isEditable"
                                 (afterInit)="newRuleExpanded()"
                                 (addRule)="createRule($event)"
                                 (cancel)="cancelNewRule()"></edit-rule>

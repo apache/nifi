@@ -17,9 +17,14 @@
 
 import { createSelector } from '@ngrx/store';
 import { selectUpdateAttributeState, UpdateAttributeState } from '../index';
-import { evaluationContextFeatureKey } from './index';
+import { evaluationContextFeatureKey, EvaluationContextState } from './index';
 
 export const selectEvaluationContextState = createSelector(
     selectUpdateAttributeState,
     (state: UpdateAttributeState) => state[evaluationContextFeatureKey]
+);
+
+export const selectEvaluationContextError = createSelector(
+    selectEvaluationContextState,
+    (state: EvaluationContextState) => state.error
 );

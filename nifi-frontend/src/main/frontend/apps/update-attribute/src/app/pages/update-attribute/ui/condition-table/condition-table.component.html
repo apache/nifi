@@ -16,96 +16,101 @@
   -->
 
 <div class="condition-table flex flex-col h-full gap-y-2">
-    <div class="flex justify-end items-center">
+    <div class="flex justify-between items-center">
+        <div>Conditions</div>
         @if (!isDisabled) {
             <button mat-icon-button class="primary-icon-button" type="button" (click)="newConditionClicked()">
                 <i class="fa fa-plus"></i>
             </button>
         }
     </div>
-    <div class="border">
-        <table mat-table [dataSource]="dataSource">
-            <!-- Expression Column -->
-            <ng-container matColumnDef="expression">
-                <th mat-header-cell *matHeaderCellDef>Expression</th>
-                <td mat-cell *matCellDef="let item">
-                    <div
-                        [id]="formatId(item)"
-                        class="pointer min-h-[21px]"
-                        cdkOverlayOrigin
-                        #trigger="cdkOverlayOrigin"
-                        (click)="openEditor(trigger, item, $event)">
-                        <ng-container
-                            *ngTemplateOutlet="
-                                isEmptyString(item.condition.expression) ? blank : nonBlank;
-                                context: { $implicit: item.condition.expression }
-                            "></ng-container>
-                        <ng-template #blank>
-                            <div class="empty neutral-color">Empty string set</div>
-                        </ng-template>
-                        <ng-template #nonBlank let-expression>
-                            <div class="flex justify-between items-center">
-                                <div class="whitespace-nowrap overflow-hidden text-ellipsis" [title]="expression">
-                                    {{ expression }}
+    @if (hasConditions()) {
+        <div class="border">
+            <table mat-table [dataSource]="dataSource">
+                <!-- Expression Column -->
+                <ng-container matColumnDef="expression">
+                    <th mat-header-cell *matHeaderCellDef>Expression</th>
+                    <td mat-cell *matCellDef="let item">
+                        <div
+                            [id]="formatId(item)"
+                            class="pointer min-h-[21px]"
+                            cdkOverlayOrigin
+                            #trigger="cdkOverlayOrigin"
+                            (click)="openEditor(trigger, item, $event)">
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    isEmptyString(item.condition.expression) ? blank : nonBlank;
+                                    context: { $implicit: item.condition.expression }
+                                "></ng-container>
+                            <ng-template #blank>
+                                <div class="empty neutral-color">Empty string set</div>
+                            </ng-template>
+                            <ng-template #nonBlank let-expression>
+                                <div class="flex justify-between items-center">
+                                    <div class="whitespace-nowrap overflow-hidden text-ellipsis" [title]="expression">
+                                        {{ expression }}
+                                    </div>
+                                    @if (hasExtraWhitespace(expression)) {
+                                        <div
+                                            class="fa fa-info-circle primary-color"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional."></div>
+                                    }
                                 </div>
-                                @if (hasExtraWhitespace(expression)) {
-                                    <div
-                                        class="fa fa-info-circle primary-color"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        tooltipInputData="The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional."></div>
-                                }
-                            </div>
-                        </ng-template>
-                    </div>
-                </td>
-            </ng-container>
+                            </ng-template>
+                        </div>
+                    </td>
+                </ng-container>
 
-            <!-- Actions Column -->
-            <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef></th>
-                <td mat-cell *matCellDef="let item">
-                    <div class="flex items-center justify-end">
-                        <button
-                            mat-icon-button
-                            type="button"
-                            [matMenuTriggerFor]="actionMenu"
-                            class="h-16 w-16 flex items-center justify-center icon global-menu">
-                            <i class="fa fa-ellipsis-v"></i>
-                        </button>
-                        <mat-menu #actionMenu="matMenu" xPosition="before">
-                            <button mat-menu-item (click)="deleteCondition(item)">
-                                <i class="fa fa-trash primary-color mr-2"></i>
-                                Delete
+                <!-- Actions Column -->
+                <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef></th>
+                    <td mat-cell *matCellDef="let item">
+                        <div class="flex items-center justify-end">
+                            <button
+                                mat-icon-button
+                                type="button"
+                                [matMenuTriggerFor]="actionMenu"
+                                class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                <i class="fa fa-ellipsis-v"></i>
                             </button>
-                        </mat-menu>
-                    </div>
-                </td>
-            </ng-container>
+                            <mat-menu #actionMenu="matMenu" xPosition="before">
+                                <button mat-menu-item (click)="deleteCondition(item)">
+                                    <i class="fa fa-trash primary-color mr-2"></i>
+                                    Delete
+                                </button>
+                            </mat-menu>
+                        </div>
+                    </td>
+                </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-            <tr
-                mat-row
-                *matRowDef="let row; let even = even; columns: displayedColumns"
-                (click)="selectCondition(row)"
-                [class.selected]="isSelected(row)"
-                [class.even]="even"></tr>
-        </table>
-        <ng-template
-            cdkConnectedOverlay
-            [cdkConnectedOverlayOrigin]="editorTrigger"
-            [cdkConnectedOverlayPositions]="editorPositions"
-            [cdkConnectedOverlayHasBackdrop]="true"
-            [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
-            [cdkConnectedOverlayOpen]="editorOpen"
-            (detach)="closeEditor()">
-            <ua-editor
-                [supportsEl]="true"
-                [value]="editorItem.condition.expression"
-                [width]="editorWidth"
-                [readonly]="isDisabled"
-                (ok)="saveConditionValue(editorItem, $event)"
-                (cancel)="closeEditor()"></ua-editor>
-        </ng-template>
-    </div>
+                <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                <tr
+                    mat-row
+                    *matRowDef="let row; let even = even; columns: displayedColumns"
+                    (click)="selectCondition(row)"
+                    [class.selected]="isSelected(row)"
+                    [class.even]="even"></tr>
+            </table>
+            <ng-template
+                cdkConnectedOverlay
+                [cdkConnectedOverlayOrigin]="editorTrigger"
+                [cdkConnectedOverlayPositions]="editorPositions"
+                [cdkConnectedOverlayPush]="true"
+                [cdkConnectedOverlayHasBackdrop]="true"
+                [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
+                [cdkConnectedOverlayOpen]="editorOpen"
+                (detach)="closeEditor()">
+                <ua-editor
+                    [supportsEl]="true"
+                    [required]="true"
+                    [value]="editorItem.condition.expression"
+                    [width]="editorWidth"
+                    [readonly]="isDisabled"
+                    (ok)="saveConditionValue(editorItem, $event)"
+                    (cancel)="closeEditor()"></ua-editor>
+            </ng-template>
+        </div>
+    }
 </div>

@@ -29,7 +29,7 @@ export const loadEvaluationContextSuccess = createAction(
     props<{ evaluationContextEntity: EvaluationContextEntity }>()
 );
 
-export const laodEvaluationContextFailure = createAction(
+export const loadEvaluationContextFailure = createAction(
     `${EVALUATION_CONTEXT_PREFIX} Load Evaluation Context Failure`,
     props<{ error: string }>()
 );
@@ -47,4 +47,8 @@ export const saveEvaluationContextSuccess = createAction(
 export const saveEvaluationContextFailure = createAction(
     `${EVALUATION_CONTEXT_PREFIX} Save Evaluation Context Failure`,
     props<{ error: string }>()
+);
+
+export const resetEvaluationContextFailure = createAction(
+    `${EVALUATION_CONTEXT_PREFIX} Reset Evaluation Context Failure`
 );

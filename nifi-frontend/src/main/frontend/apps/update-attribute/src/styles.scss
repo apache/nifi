@@ -24,6 +24,7 @@
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
 @use 'app/pages/update-attribute/feature/update-attribute.component-theme' as update-attribute;
 @use 'app/pages/update-attribute/ui/ua-editor/ua-editor.component-theme' as ua-editor;
+@use 'libs/shared/src/components/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
 
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
@@ -55,6 +56,7 @@ html {
     @include codemirror-theme.generate-codemirror-theme($m3-light-theme, $m3-light-theme-config);
     @include update-attribute.generate-theme($m3-light-theme, $m3-light-theme-config);
     @include ua-editor.generate-theme();
+    @include property-hint-tip.generate-theme($m3-light-theme, $m3-light-theme-config);
 
     .dark-theme {
         @include mat.all-component-colors($m3-dark-theme);
@@ -63,5 +65,6 @@ html {
         @include codemirror-theme.generate-codemirror-theme($m3-dark-theme, $m3-dark-theme-config);
         @include update-attribute.generate-theme($m3-dark-theme, $m3-dark-theme-config);
         @include ua-editor.generate-theme();
+        @include property-hint-tip.generate-theme($m3-dark-theme, $m3-dark-theme-config);
     }
 }

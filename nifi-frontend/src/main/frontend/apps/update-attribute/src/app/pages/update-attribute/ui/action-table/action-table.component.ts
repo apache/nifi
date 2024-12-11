@@ -43,14 +43,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatMenu, MatMenuItem, MatMenuModule } from '@angular/material/menu';
 import { Action } from '../../state/rules';
 import { v4 as uuidv4 } from 'uuid';
-import { UaEditor } from "../ua-editor/ua-editor.component";
+import { UaEditor } from '../ua-editor/ua-editor.component';
 
 export interface ActionItem {
     id: string;
     triggerEdit: boolean;
-    deleted: boolean;
-    dirty: boolean;
-    added: boolean;
     action: Action;
 }
 
@@ -107,7 +104,7 @@ export class ActionTable implements AfterViewInit, ControlValueAccessor {
     editorItem!: ActionItem;
     editorWidth = 0;
     editorOffsetX = 8;
-    editorOffsetY = 66;
+    editorOffsetY = 0;
 
     private originPos: OriginConnectionPosition = {
         originX: 'center',
@@ -125,8 +122,6 @@ export class ActionTable implements AfterViewInit, ControlValueAccessor {
     ) {}
 
     ngAfterViewInit(): void {
-        this.initFilter();
-
         this.valueTriggers.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             const item: ActionItem | undefined = this.dataSource.data.find((item) => item.triggerEdit);
 
@@ -152,15 +147,6 @@ export class ActionTable implements AfterViewInit, ControlValueAccessor {
         });
     }
 
-    initFilter(): void {
-        this.dataSource.filterPredicate = (data: ActionItem) => this.isVisible(data);
-        this.dataSource.filter = ' ';
-    }
-
-    isVisible(item: ActionItem): boolean {
-        return !item.deleted;
-    }
-
     registerOnChange(onChange: (actions: Action[]) => void): void {
         this.onChange = onChange;
     }
@@ -179,9 +165,6 @@ export class ActionTable implements AfterViewInit, ControlValueAccessor {
             const item: ActionItem = {
                 id: action.id,
                 triggerEdit: false,
-                deleted: false,
-                added: false,
-                dirty: this.isNew,
                 action: {
                     ...action
                 }
@@ -195,7 +178,6 @@ export class ActionTable implements AfterViewInit, ControlValueAccessor {
 
     private setActionItems(actionItems: ActionItem[]): void {
         this.dataSource = new MatTableDataSource<ActionItem>(actionItems);
-        this.initFilter();
     }
 
     newActionClicked(): void {
@@ -205,9 +187,6 @@ export class ActionTable implements AfterViewInit, ControlValueAccessor {
         const item: ActionItem = {
             id,
             triggerEdit: true,
-            deleted: false,
-            added: true,
-            dirty: true,
             action: {
                 id,
                 attribute: '',
@@ -290,21 +269,23 @@ export class ActionTable implements AfterViewInit, ControlValueAccessor {
     }
 
     deleteAction(item: ActionItem): void {
-        if (!item.deleted) {
-            item.deleted = true;
-            item.dirty = true;
-
+        const index = this.dataSource.data.indexOf(item);
+        if (index > -1) {
+            this.dataSource.data.splice(index, 1);
             this.handleChanged();
         }
     }
 
-    saveActionAttribute(item: ActionItem, attribute: string | null): void {
-        if (attribute && item.action.attribute !== attribute) {
+    hasActions(): boolean {
+        return this.dataSource.data.length > 0;
+    }
+
+    saveActionAttribute(item: ActionItem, attribute: string): void {
+        if (item.action.attribute !== attribute) {
             item.action = {
                 ...item.action,
                 attribute
             };
-            item.dirty = true;
 
             this.handleChanged();
         }
@@ -312,13 +293,12 @@ export class ActionTable implements AfterViewInit, ControlValueAccessor {
         this.closeAttributeEditor();
     }
 
-    saveActionValue(item: ActionItem, value: string | null): void {
-        if (value && item.action.value !== value) {
+    saveActionValue(item: ActionItem, value: string): void {
+        if (item.action.value !== value) {
             item.action = {
                 ...item.action,
                 value
             };
-            item.dirty = true;
 
             this.handleChanged();
         }
@@ -343,12 +323,7 @@ export class ActionTable implements AfterViewInit, ControlValueAccessor {
 
     private serializeActions(): Action[] {
         const actions: ActionItem[] = this.dataSource.data;
-
-        // only include dirty items
-        return actions
-            .filter((item) => item.dirty)
-            .filter((item) => !(item.added && item.deleted))
-            .map((item) => item.action);
+        return actions.map((item) => item.action);
     }
 
     closeAttributeEditor(): void {

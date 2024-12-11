@@ -73,7 +73,7 @@ export const parameterProviderAdvancedUiParamsResolver: ResolveFn<AdvancedUiPara
                 id: entity.id,
                 clientId: revision.clientId,
                 revision: revision.version,
-                editable: true,
+                editable: entity.permissions.canWrite,
                 disconnectedNodeAcknowledged: clusterConnectionService.isDisconnectionAcknowledged()
             } as AdvancedUiParams;
         }),

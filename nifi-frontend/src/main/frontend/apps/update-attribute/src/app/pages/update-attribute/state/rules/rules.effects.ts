@@ -115,6 +115,17 @@ export class RulesEffects {
         )
     );
 
+    editRuleSuccess$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(RulesActions.editRuleSuccess),
+                tap(() => {
+                    this.snackBar.open('Rule successfully saved', 'Ok', { duration: 30000 });
+                })
+            ),
+        { dispatch: false }
+    );
+
     promptRuleDeletion$ = createEffect(
         () =>
             this.actions$.pipe(

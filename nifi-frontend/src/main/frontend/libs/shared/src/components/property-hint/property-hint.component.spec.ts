@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,14 +15,25 @@
  * limitations under the License.
  */
 
-@use '@angular/material' as mat;
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-.ua-editor {
-    @include mat.button-density(-1);
+import { PropertyHint } from './property-hint.component';
 
-    min-height: 240px;
-    min-width: 245px;
-    max-height: 100vh;
-    max-width: 100vw;
-    cursor: move;
-}
+describe('PropertyHint', () => {
+    let component: PropertyHint;
+    let fixture: ComponentFixture<PropertyHint>;
+
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            imports: [PropertyHint]
+        }).compileComponents();
+
+        fixture = TestBed.createComponent(PropertyHint);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+    });
+
+    it('should create', () => {
+        expect(component).toBeTruthy();
+    });
+});

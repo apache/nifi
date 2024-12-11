@@ -18,7 +18,10 @@
 <div class="tooltip">
     <div class="flex flex-col gap-y-3">
         <ng-container *ngTemplateOutlet="data?.supportsEl ? elSupported : elNotSupported"></ng-container>
-        <ng-container *ngTemplateOutlet="data?.supportsParameters ? paramSupported : paramNotSupported"></ng-container>
+        @if (data?.showParameters) {
+            <ng-container
+                *ngTemplateOutlet="data?.supportsParameters ? paramSupported : paramNotSupported"></ng-container>
+        }
         <ng-template #elSupported>
             <div class="flex items-baseline gap-x-3">
                 <div class="fa fa-check"></div>

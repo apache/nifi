@@ -252,12 +252,6 @@ export interface PropertyTipInput {
     propertyHistory?: PropertyHistory;
 }
 
-export interface PropertyHintTipInput {
-    supportsEl: boolean;
-    supportsParameters: boolean;
-    hasParameterContext: boolean;
-}
-
 export interface RestrictionsTipInput {
     usageRestriction: string;
     explicitRestrictions: ExplicitRestriction[];

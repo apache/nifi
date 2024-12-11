@@ -91,6 +91,13 @@ export interface MapTableEntryData {
     entryTypeLabel?: string;
 }
 
+export interface PropertyHintTipInput {
+    supportsEl: boolean;
+    showParameters: boolean;
+    supportsParameters: boolean;
+    hasParameterContext: boolean;
+}
+
 export interface ElFunction {
     name: string;
     description: string;

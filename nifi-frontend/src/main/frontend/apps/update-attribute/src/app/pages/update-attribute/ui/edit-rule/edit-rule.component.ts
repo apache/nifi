@@ -103,17 +103,23 @@ export class EditRule implements AfterViewInit {
 
     currentName: string | null = null;
     nameControl: FormControl;
+    conditionControl: FormControl;
+    actionControl: FormControl;
 
     private ruleSaved: boolean = false;
 
     constructor(private formBuilder: FormBuilder) {
         this.nameControl = new FormControl('', Validators.required);
+        this.conditionControl = new FormControl({ value: [], disabled: !this.isEditable }, [
+            this.conditionsValidator()
+        ]);
+        this.actionControl = new FormControl({ value: [], disabled: !this.isEditable }, [this.actionsValidator()]);
 
         this.editRuleForm = this.formBuilder.group({
             name: this.nameControl,
             comments: new FormControl(''),
-            conditions: new FormControl({ value: [], disabled: !this.isEditable }),
-            actions: new FormControl({ value: [], disabled: !this.isEditable })
+            conditions: this.conditionControl,
+            actions: this.actionControl
         });
     }
 
@@ -150,6 +156,62 @@ export class EditRule implements AfterViewInit {
         }
 
         return this.nameControl.hasError('existingRuleName') ? 'A rule with this name already exists.' : '';
+    }
+
+    private conditionsValidator(): ValidatorFn {
+        return (control: AbstractControl): ValidationErrors | null => {
+            const conditions: Condition[] = control.value;
+
+            if (conditions.length === 0) {
+                return {
+                    conditionsRequired: true
+                };
+            }
+
+            if (conditions.some((condition) => condition.expression === '')) {
+                return {
+                    emptyCondition: true
+                };
+            }
+
+            return null;
+        };
+    }
+
+    getConditionErrorMessage(): string {
+        if (this.conditionControl.hasError('conditionsRequired')) {
+            return 'No Conditions defined for this Rule. Create one using the Add button.';
+        }
+
+        return this.conditionControl.hasError('emptyCondition') ? 'All Conditions must have an expression.' : '';
+    }
+
+    private actionsValidator(): ValidatorFn {
+        return (control: AbstractControl): ValidationErrors | null => {
+            const actions: Action[] = control.value;
+
+            if (actions.length === 0) {
+                return {
+                    actionsRequired: true
+                };
+            }
+
+            if (actions.some((action) => action.attribute === '')) {
+                return {
+                    emptyAttribute: true
+                };
+            }
+
+            return null;
+        };
+    }
+
+    getActionErrorMessage(): string {
+        if (this.actionControl.hasError('actionsRequired')) {
+            return 'No Actions defined for this Rule. Create one using the Add button.';
+        }
+
+        return this.actionControl.hasError('emptyAttribute') ? 'All Actions must have an attribute.' : '';
     }
 
     cancelClicked(): void {

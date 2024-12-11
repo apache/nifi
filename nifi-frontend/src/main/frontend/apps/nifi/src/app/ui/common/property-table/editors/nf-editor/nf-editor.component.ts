@@ -23,15 +23,13 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective, Resizable, Parameter } from '@nifi/shared';
-import { PropertyHintTip } from '../../../tooltips/property-hint-tip/property-hint-tip.component';
-import { ParameterConfig, PropertyHintTipInput } from '../../../../../state/shared';
+import { Resizable, Parameter, PropertyHint } from '@nifi/shared';
+import { ParameterConfig } from '../../../../../state/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { Editor } from 'codemirror';
-import { NfEl } from "./modes/nfel";
-import { NfPr } from "./modes/nfpr";
+import { NfEl } from './modes/nfel';
+import { NfPr } from './modes/nfpr';
 
 @Component({
     selector: 'nf-editor',
@@ -44,11 +42,10 @@ import { NfPr } from "./modes/nfpr";
         MatInputModule,
         MatButtonModule,
         MatCheckboxModule,
-        NgTemplateOutlet,
-        NifiTooltipDirective,
         A11yModule,
         CodemirrorModule,
-        Resizable
+        Resizable,
+        PropertyHint
     ],
     styleUrls: ['./nf-editor.component.scss']
 })
@@ -90,8 +87,6 @@ export class NfEditor implements OnDestroy {
 
     @Output() ok: EventEmitter<string | null> = new EventEmitter<string | null>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
-
-    protected readonly PropertyHintTip = PropertyHintTip;
 
     itemSet = false;
     getParametersSet = false;
@@ -194,14 +189,6 @@ export class NfEditor implements OnDestroy {
                     }
                 }
             }
-        };
-    }
-
-    getPropertyHintTipData(): PropertyHintTipInput {
-        return {
-            supportsEl: this.supportsEl,
-            supportsParameters: this.supportsParameters,
-            hasParameterContext: this.parameters !== null
         };
     }
 

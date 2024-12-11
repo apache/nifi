@@ -43,14 +43,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatMenu, MatMenuItem, MatMenuModule } from '@angular/material/menu';
 import { Condition } from '../../state/rules';
 import { v4 as uuidv4 } from 'uuid';
-import { UaEditor } from "../ua-editor/ua-editor.component";
+import { UaEditor } from '../ua-editor/ua-editor.component';
 
 export interface ConditionItem {
     id: string;
     triggerEdit: boolean;
-    deleted: boolean;
-    dirty: boolean;
-    added: boolean;
     condition: Condition;
 }
 
@@ -103,7 +100,7 @@ export class ConditionTable implements AfterViewInit, ControlValueAccessor {
     editorItem!: ConditionItem;
     editorWidth = 0;
     editorOffsetX = 8;
-    editorOffsetY = 66;
+    editorOffsetY = 0;
 
     private originPos: OriginConnectionPosition = {
         originX: 'center',
@@ -121,8 +118,6 @@ export class ConditionTable implements AfterViewInit, ControlValueAccessor {
     ) {}
 
     ngAfterViewInit(): void {
-        this.initFilter();
-
         this.valueTriggers.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             const item: ConditionItem | undefined = this.dataSource.data.find((item) => item.triggerEdit);
 
@@ -148,15 +143,6 @@ export class ConditionTable implements AfterViewInit, ControlValueAccessor {
         });
     }
 
-    initFilter(): void {
-        this.dataSource.filterPredicate = (data: ConditionItem) => this.isVisible(data);
-        this.dataSource.filter = ' ';
-    }
-
-    isVisible(item: ConditionItem): boolean {
-        return !item.deleted;
-    }
-
     registerOnChange(onChange: (conditions: Condition[]) => void): void {
         this.onChange = onChange;
     }
@@ -175,9 +161,6 @@ export class ConditionTable implements AfterViewInit, ControlValueAccessor {
             const item: ConditionItem = {
                 id: condition.id,
                 triggerEdit: false,
-                deleted: false,
-                added: false,
-                dirty: this.isNew,
                 condition: {
                     ...condition
                 }
@@ -191,7 +174,6 @@ export class ConditionTable implements AfterViewInit, ControlValueAccessor {
 
     private setConditionItems(conditionItems: ConditionItem[]): void {
         this.dataSource = new MatTableDataSource<ConditionItem>(conditionItems);
-        this.initFilter();
     }
 
     newConditionClicked(): void {
@@ -201,9 +183,6 @@ export class ConditionTable implements AfterViewInit, ControlValueAccessor {
         const item: ConditionItem = {
             id,
             triggerEdit: true,
-            deleted: false,
-            added: true,
-            dirty: true,
             condition: {
                 id,
                 expression: ''
@@ -256,12 +235,15 @@ export class ConditionTable implements AfterViewInit, ControlValueAccessor {
     }
 
     deleteCondition(item: ConditionItem): void {
-        if (!item.deleted) {
-            item.deleted = true;
-            item.dirty = true;
-
+        const index = this.dataSource.data.indexOf(item);
+        if (index > -1) {
+            this.dataSource.data.splice(index, 1);
             this.handleChanged();
         }
+    }
+
+    hasConditions(): boolean {
+        return this.dataSource.data.length > 0;
     }
 
     saveConditionValue(item: ConditionItem, expression: string | null): void {
@@ -270,7 +252,6 @@ export class ConditionTable implements AfterViewInit, ControlValueAccessor {
                 ...item.condition,
                 expression
             };
-            item.dirty = true;
 
             this.handleChanged();
         }
@@ -295,12 +276,7 @@ export class ConditionTable implements AfterViewInit, ControlValueAccessor {
 
     private serializeConditions(): Condition[] {
         const conditions: ConditionItem[] = this.dataSource.data;
-
-        // only include dirty items
-        return conditions
-            .filter((item) => item.dirty)
-            .filter((item) => !(item.added && item.deleted))
-            .map((item) => item.condition);
+        return conditions.map((item) => item.condition);
     }
 
     closeEditor(): void {

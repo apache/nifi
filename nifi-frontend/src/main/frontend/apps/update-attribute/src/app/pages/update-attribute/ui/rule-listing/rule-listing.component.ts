@@ -41,9 +41,10 @@ import {
     resetNewRule
 } from '../../state/rules/rules.actions';
 import { EditRule } from '../edit-rule/edit-rule.component';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, isDefinedAndNotNull } from '@nifi/shared';
 import { MatMenu, MatMenuItem, MatMenuModule } from '@angular/material/menu';
 import { selectRule } from '../../state/rules/rules.selectors';
+import { selectEvaluationContextError } from '../../state/evaluation-context/evaluation-context.selectors';
 
 @Component({
     selector: 'rule-listing',
@@ -71,22 +72,37 @@ export class RuleListing {
     @Input() set evaluationContext(evaluationContext: EvaluationContext) {
         this.ruleOrder = evaluationContext.ruleOrder;
         this.flowFilePolicy = evaluationContext.flowFilePolicy;
+        this.updateFlowFilePolicy();
     }
 
     @Input() set rules(rules: Rule[]) {
+        this.originalRulesList = [...rules];
         this.rulesList = [...rules];
         this.filterRules();
     }
     @Input() newRule?: NewRule;
-    @Input() editable!: boolean;
+    @Input() set editable(editable: boolean) {
+        this.isEditable = editable;
+
+        if (editable) {
+            this.flowFilePolicyForm.get('useOriginalFlowFilePolicy')?.enable();
+        } else {
+            this.flowFilePolicyForm.get('useOriginalFlowFilePolicy')?.disable();
+        }
+    }
+
+    isEditable: boolean = false;
 
     ruleOrder: string[] = [];
-    flowFilePolicy: string = 'USE_ORIGINAL';
     allowRuleReordering: boolean = false;
+    originalRulesList: Rule[] = [];
     rulesList: Rule[] = [];
 
     filteredRulesList: Rule[] = [];
     searchForm: FormGroup;
+
+    flowFilePolicyForm: FormGroup;
+    flowFilePolicy: string = 'USE_ORIGINAL';
 
     scrollToNewRule: boolean = false;
 
@@ -98,11 +114,22 @@ export class RuleListing {
         private ruleListing: ElementRef
     ) {
         this.searchForm = this.formBuilder.group({ searchRules: '' });
+        this.flowFilePolicyForm = this.formBuilder.group({ useOriginalFlowFilePolicy: true });
 
         this.searchForm
             .get('searchRules')
             ?.valueChanges.pipe(takeUntilDestroyed(), debounceTime(500))
             .subscribe(() => {
+                this.filterRules();
+            });
+
+        this.store
+            .select(selectEvaluationContextError)
+            .pipe(isDefinedAndNotNull(), takeUntilDestroyed())
+            .subscribe(() => {
+                this.updateFlowFilePolicy();
+
+                this.rulesList = [...this.originalRulesList];
                 this.filterRules();
             });
 
@@ -155,8 +182,12 @@ export class RuleListing {
         );
     }
 
+    private updateFlowFilePolicy(): void {
+        this.flowFilePolicyForm.get('useOriginalFlowFilePolicy')?.setValue(this.flowFilePolicy === 'USE_ORIGINAL');
+    }
+
     reorderDisabled(): boolean {
-        return this.filterApplied() || this.areAnyExpanded() || this.newRule !== undefined || !this.editable;
+        return this.filterApplied() || this.areAnyExpanded() || this.newRule !== undefined || !this.isEditable;
     }
 
     areAnyExpanded(): boolean {
@@ -188,7 +219,7 @@ export class RuleListing {
         this.store.dispatch(promptRuleDeletion({ rule }));
     }
 
-    updateFlowFilePolicy(event: MatSlideToggleChange): void {
+    flowFilePolicyToggled(event: MatSlideToggleChange): void {
         this.store.dispatch(
             saveEvaluationContext({
                 evaluationContext: {
@@ -255,6 +286,8 @@ export class RuleListing {
                     }
                 })
             );
+
+            this.filterRules();
         }
     }
 

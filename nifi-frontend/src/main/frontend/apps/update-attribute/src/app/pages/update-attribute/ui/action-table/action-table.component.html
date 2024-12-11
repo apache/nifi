@@ -16,135 +16,145 @@
   -->
 
 <div class="action-table flex flex-col h-full gap-y-2">
-    <div class="flex justify-end items-center">
+    <div class="flex justify-between items-center">
+        <div>Actions</div>
         @if (!isDisabled) {
             <button mat-icon-button class="primary-icon-button" type="button" (click)="newActionClicked()">
                 <i class="fa fa-plus"></i>
             </button>
         }
     </div>
-    <div class="border">
-        <table mat-table [dataSource]="dataSource">
-            <!-- attribute Column -->
-            <ng-container matColumnDef="attribute">
-                <th mat-header-cell *matHeaderCellDef>Attribute</th>
-                <td mat-cell *matCellDef="let item">
-                    <div
-                        [id]="formatId(item)"
-                        class="pointer min-h-[21px]"
-                        cdkOverlayOrigin
-                        #trigger="cdkOverlayOrigin"
-                        (click)="openAttributeEditor(trigger, item, $event)">
-                        <ng-container
-                            *ngTemplateOutlet="
-                                renderValue;
-                                context: { $implicit: item.action.attribute }
-                            "></ng-container>
-                    </div>
-                </td>
-            </ng-container>
-
-            <!-- value Column -->
-            <ng-container matColumnDef="value">
-                <th mat-header-cell *matHeaderCellDef>Value</th>
-                <td mat-cell *matCellDef="let item">
-                    <div
-                        [id]="formatId(item)"
-                        class="pointer min-h-[21px]"
-                        cdkOverlayOrigin
-                        #trigger="cdkOverlayOrigin"
-                        (click)="openValueEditor(trigger, item, $event)">
-                        <ng-container
-                            *ngTemplateOutlet="renderValue; context: { $implicit: item.action.value }"></ng-container>
-                    </div>
-                </td>
-            </ng-container>
-
-            <!-- Actions Column -->
-            <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef></th>
-                <td mat-cell *matCellDef="let item">
-                    <div class="flex items-center justify-end">
-                        <button
-                            mat-icon-button
-                            type="button"
-                            [matMenuTriggerFor]="actionMenu"
-                            class="h-16 w-16 flex items-center justify-center icon global-menu">
-                            <i class="fa fa-ellipsis-v"></i>
-                        </button>
-                        <mat-menu #actionMenu="matMenu" xPosition="before">
-                            <button mat-menu-item (click)="deleteAction(item)">
-                                <i class="fa fa-trash primary-color mr-2"></i>
-                                Delete
-                            </button>
-                        </mat-menu>
-                    </div>
-                </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-            <tr
-                mat-row
-                *matRowDef="let row; let even = even; columns: displayedColumns"
-                (click)="selectAction(row)"
-                [class.selected]="isSelected(row)"
-                [class.even]="even"></tr>
-        </table>
-        <ng-template #renderValue let-value>
-            <ng-container
-                *ngTemplateOutlet="
-                    isEmptyString(value) ? blank : nonBlank;
-                    context: { $implicit: value }
-                "></ng-container>
-            <ng-template #blank>
-                <div class="empty neutral-color">Empty string set</div>
-            </ng-template>
-            <ng-template #nonBlank let-expression>
-                <div class="flex justify-between items-center">
-                    <div class="whitespace-nowrap overflow-hidden text-ellipsis" [title]="expression">
-                        {{ expression }}
-                    </div>
-                    @if (hasExtraWhitespace(expression)) {
+    @if (hasActions()) {
+        <div class="border">
+            <table mat-table [dataSource]="dataSource">
+                <!-- attribute Column -->
+                <ng-container matColumnDef="attribute">
+                    <th mat-header-cell *matHeaderCellDef>Attribute</th>
+                    <td mat-cell *matCellDef="let item">
                         <div
-                            class="fa fa-info-circle primary-color"
-                            nifiTooltip
-                            [tooltipComponentType]="TextTip"
-                            tooltipInputData="The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional."></div>
-                    }
-                </div>
+                            [id]="formatId(item)"
+                            class="pointer min-h-[21px]"
+                            cdkOverlayOrigin
+                            #trigger="cdkOverlayOrigin"
+                            (click)="openAttributeEditor(trigger, item, $event)">
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderValue;
+                                    context: { $implicit: item.action.attribute }
+                                "></ng-container>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- value Column -->
+                <ng-container matColumnDef="value">
+                    <th mat-header-cell *matHeaderCellDef>Value</th>
+                    <td mat-cell *matCellDef="let item">
+                        <div
+                            [id]="formatId(item)"
+                            class="pointer min-h-[21px]"
+                            cdkOverlayOrigin
+                            #trigger="cdkOverlayOrigin"
+                            (click)="openValueEditor(trigger, item, $event)">
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    renderValue;
+                                    context: { $implicit: item.action.value }
+                                "></ng-container>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Actions Column -->
+                <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef></th>
+                    <td mat-cell *matCellDef="let item">
+                        <div class="flex items-center justify-end">
+                            <button
+                                mat-icon-button
+                                type="button"
+                                [matMenuTriggerFor]="actionMenu"
+                                class="h-16 w-16 flex items-center justify-center icon global-menu">
+                                <i class="fa fa-ellipsis-v"></i>
+                            </button>
+                            <mat-menu #actionMenu="matMenu" xPosition="before">
+                                <button mat-menu-item (click)="deleteAction(item)">
+                                    <i class="fa fa-trash primary-color mr-2"></i>
+                                    Delete
+                                </button>
+                            </mat-menu>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                <tr
+                    mat-row
+                    *matRowDef="let row; let even = even; columns: displayedColumns"
+                    (click)="selectAction(row)"
+                    [class.selected]="isSelected(row)"
+                    [class.even]="even"></tr>
+            </table>
+            <ng-template #renderValue let-value>
+                <ng-container
+                    *ngTemplateOutlet="
+                        isEmptyString(value) ? blank : nonBlank;
+                        context: { $implicit: value }
+                    "></ng-container>
+                <ng-template #blank>
+                    <div class="empty neutral-color">Empty string set</div>
+                </ng-template>
+                <ng-template #nonBlank let-expression>
+                    <div class="flex justify-between items-center">
+                        <div class="whitespace-nowrap overflow-hidden text-ellipsis" [title]="expression">
+                            {{ expression }}
+                        </div>
+                        @if (hasExtraWhitespace(expression)) {
+                            <div
+                                class="fa fa-info-circle primary-color"
+                                nifiTooltip
+                                [tooltipComponentType]="TextTip"
+                                tooltipInputData="The specified value contains leading and/or trailing whitespace character(s). This could produce unexpected results if it was not intentional."></div>
+                        }
+                    </div>
+                </ng-template>
             </ng-template>
-        </ng-template>
-        <ng-template
-            cdkConnectedOverlay
-            [cdkConnectedOverlayOrigin]="attributeEditorTrigger"
-            [cdkConnectedOverlayPositions]="editorPositions"
-            [cdkConnectedOverlayHasBackdrop]="true"
-            [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
-            [cdkConnectedOverlayOpen]="attributeEditorOpen"
-            (detach)="closeAttributeEditor()">
-            <ua-editor
-                [supportsEl]="false"
-                [value]="editorItem.action.attribute"
-                [width]="editorWidth"
-                [readonly]="isDisabled"
-                (ok)="saveActionAttribute(editorItem, $event)"
-                (cancel)="closeAttributeEditor()"></ua-editor>
-        </ng-template>
-        <ng-template
-            cdkConnectedOverlay
-            [cdkConnectedOverlayOrigin]="valueEditorTrigger"
-            [cdkConnectedOverlayPositions]="editorPositions"
-            [cdkConnectedOverlayHasBackdrop]="true"
-            [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
-            [cdkConnectedOverlayOpen]="valueEditorOpen"
-            (detach)="closeValueEditor()">
-            <ua-editor
-                [supportsEl]="true"
-                [value]="editorItem.action.value"
-                [width]="editorWidth"
-                [readonly]="isDisabled"
-                (ok)="saveActionValue(editorItem, $event)"
-                (cancel)="closeValueEditor()"></ua-editor>
-        </ng-template>
-    </div>
+            <ng-template
+                cdkConnectedOverlay
+                [cdkConnectedOverlayOrigin]="attributeEditorTrigger"
+                [cdkConnectedOverlayPositions]="editorPositions"
+                [cdkConnectedOverlayPush]="true"
+                [cdkConnectedOverlayHasBackdrop]="true"
+                [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
+                [cdkConnectedOverlayOpen]="attributeEditorOpen"
+                (detach)="closeAttributeEditor()">
+                <ua-editor
+                    [supportsEl]="false"
+                    [required]="true"
+                    [value]="editorItem.action.attribute"
+                    [width]="editorWidth"
+                    [readonly]="isDisabled"
+                    (ok)="saveActionAttribute(editorItem, $event)"
+                    (cancel)="closeAttributeEditor()"></ua-editor>
+            </ng-template>
+            <ng-template
+                cdkConnectedOverlay
+                [cdkConnectedOverlayOrigin]="valueEditorTrigger"
+                [cdkConnectedOverlayPositions]="editorPositions"
+                [cdkConnectedOverlayPush]="true"
+                [cdkConnectedOverlayHasBackdrop]="true"
+                [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
+                [cdkConnectedOverlayOpen]="valueEditorOpen"
+                (detach)="closeValueEditor()">
+                <ua-editor
+                    [supportsEl]="true"
+                    [required]="false"
+                    [value]="editorItem.action.value"
+                    [width]="editorWidth"
+                    [readonly]="isDisabled"
+                    (ok)="saveActionValue(editorItem, $event)"
+                    (cancel)="closeValueEditor()"></ua-editor>
+            </ng-template>
+        </div>
+    }
 </div>

@@ -19,7 +19,7 @@
     <div class="p-5 flex-1 flex flex-col">
         <h3 class="primary-color">Update Attribute</h3>
         @if (rulesState(); as rulesState) {
-            @if (rulesState.error) {
+            @if (rulesState.error && rulesState.rules === null) {
                 <div class="flex flex-1 justify-center items-center">
                     <i class="fa fa-warning caution-color mr-2"></i>{{ rulesState.error }}
                 </div>
@@ -29,7 +29,7 @@
                 </div>
             } @else if (rulesState.rules) {
                 @if (evaluationContextState(); as evaluationContextState) {
-                    @if (evaluationContextState.error) {
+                    @if (evaluationContextState.error && evaluationContextState.evaluationContext === null) {
                         <div class="flex flex-1 justify-center items-center">
                             <i class="fa fa-warning caution-color mr-2"></i>{{ evaluationContextState.error }}
                         </div>

@@ -28,6 +28,7 @@ import { selectAdvancedUiParameters } from '../advanced-ui-parameters/advanced-u
 import { EvaluationContextEntity } from './index';
 import { updateRevision } from '../advanced-ui-parameters/advanced-ui-parameters.actions';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { resetEvaluationContextFailure } from './evaluation-context.actions';
 
 @Injectable()
 export class EvaluationContextEffects {
@@ -52,7 +53,7 @@ export class EvaluationContextEffects {
                     catchError((errorResponse: HttpErrorResponse) => {
                         const error = this.updateAttributeService.getErrorString(errorResponse);
                         return of(
-                            EvaluationContextActions.laodEvaluationContextFailure({
+                            EvaluationContextActions.loadEvaluationContextFailure({
                                 error
                             })
                         );
@@ -91,6 +92,9 @@ export class EvaluationContextEffects {
         this.actions$.pipe(
             ofType(EvaluationContextActions.saveEvaluationContextSuccess),
             map((action) => action.evaluationContextEntity),
+            tap(() => {
+                this.snackBar.open('Evaluation criteria successfully saved', 'Ok', { duration: 30000 });
+            }),
             switchMap((evaluationContextEntity) =>
                 of(
                     updateRevision({
@@ -101,15 +105,14 @@ export class EvaluationContextEffects {
         )
     );
 
-    saveEvaluationContextFailure$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(EvaluationContextActions.saveEvaluationContextFailure),
-                map((action) => action.error),
-                tap((error) => {
-                    this.snackBar.open(error, 'Dismiss', { duration: 30000 });
-                })
-            ),
-        { dispatch: false }
+    saveEvaluationContextFailure$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(EvaluationContextActions.saveEvaluationContextFailure),
+            map((action) => action.error),
+            tap((error) => {
+                this.snackBar.open(error, 'Dismiss', { duration: 30000 });
+            }),
+            switchMap(() => of(resetEvaluationContextFailure()))
+        )
     );
 }
