@@ -34,11 +34,17 @@ import org.apache.nifi.registry.security.key.Key;
 import org.apache.nifi.registry.security.key.KeyService;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class JwtService {
@@ -48,6 +54,7 @@ public class JwtService {
     private static final MacAlgorithm SIGNATURE_ALGORITHM = Jwts.SIG.HS256;
     private static final String KEY_ID_CLAIM = "kid";
     private static final String USERNAME_CLAIM = "preferred_username";
+    private static final String GROUPS_CLAIM = "groups";
 
     private final KeyService keyService;
 
@@ -76,9 +83,25 @@ public class JwtService {
             }
             return jws.getPayload().getSubject();
         } catch (JwtException e) {
-            final String errorMessage = "There was an error validating the JWT";
-            logger.error(errorMessage, e);
-            throw e;
+            throw new JwtException("There was an error validating the JWT", e);
+        }
+    }
+
+    public Set<String> getUserGroupsFromToken(final String base64EncodedToken) throws JwtException {
+        // The library representations of the JWT should be kept internal to this service.
+        try {
+            final Jws<Claims> jws = parseTokenFromBase64EncodedString(base64EncodedToken);
+
+            if (jws == null) {
+                throw new JwtException("Unable to parse token");
+            }
+
+            @SuppressWarnings("unchecked")
+            ArrayList<String> groupsString = jws.getPayload().get(GROUPS_CLAIM, ArrayList.class);
+
+            return new HashSet<>(groupsString);
+        } catch (JwtException e) {
+            throw new JwtException("There was an error validating the JWT", e);
         }
     }
 
@@ -125,10 +148,15 @@ public class JwtService {
                 authenticationResponse.getUsername(),
                 authenticationResponse.getIssuer(),
                 authenticationResponse.getIssuer(),
-                authenticationResponse.getExpiration());
+                authenticationResponse.getExpiration(),
+                null);
     }
 
     public String generateSignedToken(String identity, String preferredUsername, String issuer, String audience, long expirationMillis) throws JwtException {
+        return this.generateSignedToken(identity, preferredUsername, issuer, audience, expirationMillis, null);
+    }
+
+    public String generateSignedToken(String identity, String preferredUsername, String issuer, String audience, long expirationMillis, Collection<? extends GrantedAuthority> authorities) throws JwtException {
 
         if (identity == null || StringUtils.isEmpty(identity)) {
             String errorMessage = "Cannot generate a JWT for a token with an empty identity";
@@ -155,6 +183,7 @@ public class JwtService {
                     .audience().add(audience).and()
                     .claim(USERNAME_CLAIM, preferredUsername)
                     .claim(KEY_ID_CLAIM, key.getId())
+                    .claim(GROUPS_CLAIM, authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet()))
                     .issuedAt(now.getTime())
                     .expiration(expiration.getTime())
                     .signWith(Keys.hmacShaKeyFor(keyBytes), SIGNATURE_ALGORITHM).compact();
