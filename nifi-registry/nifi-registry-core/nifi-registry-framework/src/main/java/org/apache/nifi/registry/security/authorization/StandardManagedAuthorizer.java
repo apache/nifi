@@ -40,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class StandardManagedAuthorizer implements ManagedAuthorizer {
 
@@ -98,7 +99,7 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
         final UserAndGroups userAndGroups = userGroupProvider.getUserAndGroups(request.getIdentity());
 
         // combine groups from incoming request with groups from UserAndGroups because the request may contain groups from
-        // an external identity provider and the membership may not be maintained with in any of the UserGroupProviders
+        // an external identity provider and the membership may not be maintained within any of the UserGroupProviders
         final Set<Group> userGroups = new HashSet<>();
         userGroups.addAll(userAndGroups.getGroups() == null ? Collections.emptySet() : userAndGroups.getGroups());
         userGroups.addAll(getGroups(request.getGroups()));
@@ -115,16 +116,9 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
             return Collections.emptySet();
         }
 
-        final Set<Group> groups = new HashSet<>();
-
-        for (final String requestGroupName : groupNames) {
-            final Group requestGroup = userGroupProvider.getGroupByName(requestGroupName);
-            if (requestGroup != null) {
-                groups.add(requestGroup);
-            }
-        }
-
-        return groups;
+        return userGroupProvider.getGroups().stream()
+                .filter(group -> groupNames.contains(group.getName()))
+                .collect(Collectors.toSet());
     }
 
     /**
