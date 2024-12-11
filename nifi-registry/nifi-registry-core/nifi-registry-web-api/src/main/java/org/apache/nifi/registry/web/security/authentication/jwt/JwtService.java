@@ -83,9 +83,7 @@ public class JwtService {
             }
             return jws.getPayload().getSubject();
         } catch (JwtException e) {
-            final String errorMessage = "There was an error validating the JWT";
-            logger.error(errorMessage, e);
-            throw e;
+            throw new JwtException("There was an error validating the JWT", e);
         }
     }
 
@@ -103,9 +101,7 @@ public class JwtService {
 
             return new HashSet<>(groupsString);
         } catch (JwtException e) {
-            final String errorMessage = "There was an error validating the JWT";
-            logger.error(errorMessage, e);
-            throw e;
+            throw new JwtException("There was an error validating the JWT", e);
         }
     }
 
