@@ -156,7 +156,13 @@ public class JwtService {
         return this.generateSignedToken(identity, preferredUsername, issuer, audience, expirationMillis, null);
     }
 
-    public String generateSignedToken(String identity, String preferredUsername, String issuer, String audience, long expirationMillis, Collection<? extends GrantedAuthority> authorities) throws JwtException {
+    public String generateSignedToken(
+            String identity,
+            String preferredUsername,
+            String issuer,
+            String audience,
+            long expirationMillis,
+            Collection<? extends GrantedAuthority> authorities) throws JwtException {
 
         if (identity == null || StringUtils.isEmpty(identity)) {
             String errorMessage = "Cannot generate a JWT for a token with an empty identity";
