@@ -614,6 +614,16 @@ public class PythonControllerInteractionIT {
     }
 
     @Test
+    public void testMultipleProcessorsInAPackage() {
+        // This processor is in a package with another processor, which has additional dependency requirements
+        final TestRunner runner = createProcessor("CreateHttpRequest");
+        waitForValid(runner);
+        runner.run();
+
+        runner.assertTransferCount("success", 1);
+    }
+
+    @Test
     public void testStateManagerSetState() {
         final TestRunner runner = createStateManagerTesterProcessor("setState");
 
