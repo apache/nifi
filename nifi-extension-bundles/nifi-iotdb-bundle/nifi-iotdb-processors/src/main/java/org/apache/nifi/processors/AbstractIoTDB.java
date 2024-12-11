@@ -334,22 +334,15 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
     }
 
     protected Object convertType(Object value, TSDataType type) {
-        switch (type) {
-            case TEXT:
-                return new Binary(String.valueOf(value), StandardCharsets.UTF_8);
-            case INT32:
-                return Integer.parseInt(value.toString());
-            case INT64:
-                return Long.parseLong(value.toString());
-            case FLOAT:
-                return Float.parseFloat(value.toString());
-            case DOUBLE:
-                return Double.parseDouble(value.toString());
-            case BOOLEAN:
-                return Boolean.parseBoolean(value.toString());
-            default:
-                return null;
-        }
+        return switch (type) {
+            case TEXT -> new Binary(String.valueOf(value), StandardCharsets.UTF_8);
+            case INT32 -> Integer.parseInt(value.toString());
+            case INT64 -> Long.parseLong(value.toString());
+            case FLOAT -> Float.parseFloat(value.toString());
+            case DOUBLE -> Double.parseDouble(value.toString());
+            case BOOLEAN -> Boolean.parseBoolean(value.toString());
+            default -> null;
+        };
     }
 
     protected DatabaseSchema convertSchema(final String timeField, final RecordSchema recordSchema) {

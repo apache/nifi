@@ -46,7 +46,7 @@ public class MockBulletinRepository implements BulletinRepository {
     @Override
     public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
         // TODO: Implement
-        return new ArrayList<Bulletin>();
+        return new ArrayList<>();
     }
 
     @Override

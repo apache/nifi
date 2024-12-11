@@ -684,3 +684,8 @@ export interface OpenChangeComponentVersionDialogRequest {
     fetchRequest: FetchComponentVersionsRequest;
     componentVersions: DocumentedType[];
 }
+
+export interface ExternalControllerServiceReference {
+    identifier: string;
+    name: string;
+}

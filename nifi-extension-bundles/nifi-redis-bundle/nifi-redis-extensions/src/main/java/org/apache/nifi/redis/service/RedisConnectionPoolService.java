@@ -29,7 +29,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.RedisType;
 import org.apache.nifi.redis.util.RedisUtils;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 
@@ -61,8 +61,8 @@ RedisConnectionPoolService extends AbstractControllerService implements RedisCon
     public void onEnabled(final ConfigurationContext context) {
         this.context = context;
         if (context.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).isSet()) {
-            final SSLContextService sslContextService = context.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            this.sslContext = sslContextService.createContext();
+            final SSLContextProvider sslContextProvider = context.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+            this.sslContext = sslContextProvider.createContext();
         }
 
         final String redisMode = context.getProperty(RedisUtils.REDIS_MODE).getValue();

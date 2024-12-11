@@ -58,7 +58,7 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
@@ -124,7 +124,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
                 + "connections.")
         .required(false)
-        .identifiesControllerService(SSLContextService.class)
+        .identifiesControllerService(SSLContextProvider.class)
         .build();
 
     public static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
@@ -280,10 +280,10 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
 
         // Apply the TLS configuration if present
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslService != null) {
-            final SSLContext sslContext = sslService.createContext();
-            final X509TrustManager trustManager = sslService.createTrustManager();
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider != null) {
+            final SSLContext sslContext = sslContextProvider.createContext();
+            final X509TrustManager trustManager = sslContextProvider.createTrustManager();
             builder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
 

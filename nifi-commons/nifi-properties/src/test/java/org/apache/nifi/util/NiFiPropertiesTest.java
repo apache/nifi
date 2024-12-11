@@ -243,17 +243,14 @@ public class NiFiPropertiesTest {
     @Test
     public void testShouldHaveReasonableMaxContentLengthValues() {
         // Arrange with default values:
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
-        }});
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<>());
 
         // Assert defaults match expectations:
         assertNull(properties.getWebMaxContentSize());
 
         // Re-arrange with specific values:
         final String size = "size value";
-        properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
-            put(NiFiProperties.WEB_MAX_CONTENT_SIZE, size);
-        }});
+        properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(NiFiProperties.WEB_MAX_CONTENT_SIZE, size));
 
         // Assert specific values are used:
         assertEquals(properties.getWebMaxContentSize(),  size);
@@ -261,15 +258,14 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testIsZooKeeperTlsConfigurationPresent() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
-            put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "password");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "JKS");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, "password");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "JKS");
-        }});
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+            NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true",
+            NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks",
+            NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "password",
+            NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "JKS",
+            NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks",
+            NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, "password",
+            NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "JKS"));
 
         assertTrue(properties.isZooKeeperClientSecure());
         assertTrue(properties.isZooKeeperTlsConfigurationPresent());
@@ -277,13 +273,12 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testSomeZooKeeperTlsConfigurationIsMissing() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
-            put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "password");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "JKS");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "JKS");
-        }});
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+            NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true",
+            NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "password",
+            NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "JKS",
+            NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks",
+            NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "JKS"));
 
         assertTrue(properties.isZooKeeperClientSecure());
         assertFalse(properties.isZooKeeperTlsConfigurationPresent());
@@ -291,15 +286,14 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testZooKeeperTlsPasswordsBlank() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
-            put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "JKS");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, "");
-            put(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "JKS");
-        }});
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+            NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true",
+            NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks",
+            NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "",
+            NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "JKS",
+            NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks",
+            NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, "",
+            NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, "JKS"));
 
         assertTrue(properties.isZooKeeperClientSecure());
         assertTrue(properties.isZooKeeperTlsConfigurationPresent());
@@ -307,46 +301,42 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testKeystorePasswordIsMissing() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
-            put(NiFiProperties.SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks");
-            put(NiFiProperties.SECURITY_KEYSTORE_TYPE, "JKS");
-            put(NiFiProperties.SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks");
-            put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, "");
-            put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, "JKS");
-        }});
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+            NiFiProperties.SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks",
+            NiFiProperties.SECURITY_KEYSTORE_TYPE, "JKS",
+            NiFiProperties.SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks",
+            NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, "",
+            NiFiProperties.SECURITY_TRUSTSTORE_TYPE, "JKS"));
 
         assertFalse(properties.isTlsConfigurationPresent());
     }
 
     @Test
     public void testTlsConfigurationIsPresentWithEmptyPasswords() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
-            put(NiFiProperties.SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks");
-            put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, "");
-            put(NiFiProperties.SECURITY_KEYSTORE_TYPE, "JKS");
-            put(NiFiProperties.SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks");
-            put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, "");
-            put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, "JKS");
-        }});
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+            NiFiProperties.SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks",
+            NiFiProperties.SECURITY_KEYSTORE_PASSWD, "",
+            NiFiProperties.SECURITY_KEYSTORE_TYPE, "JKS",
+            NiFiProperties.SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks",
+            NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, "",
+            NiFiProperties.SECURITY_TRUSTSTORE_TYPE, "JKS"));
 
         assertTrue(properties.isTlsConfigurationPresent());
     }
 
     @Test
     public void testTlsConfigurationIsNotPresentWithPropertiesMissing() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
-            put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, "password");
-            put(NiFiProperties.SECURITY_KEYSTORE_TYPE, "JKS");
-            put(NiFiProperties.SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks");
-        }});
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+            NiFiProperties.SECURITY_KEYSTORE_PASSWD, "password",
+            NiFiProperties.SECURITY_KEYSTORE_TYPE, "JKS",
+            NiFiProperties.SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks"));
 
         assertFalse(properties.isTlsConfigurationPresent());
     }
 
     @Test
     public void testTlsConfigurationIsNotPresentWithNoProperties() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
-        }});
+        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<>());
 
         assertFalse(properties.isTlsConfigurationPresent());
     }

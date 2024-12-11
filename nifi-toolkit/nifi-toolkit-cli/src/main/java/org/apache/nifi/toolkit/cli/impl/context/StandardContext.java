@@ -20,7 +20,7 @@ import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.Session;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
 
 import java.io.PrintStream;
 import java.util.Objects;
@@ -68,7 +68,6 @@ public class StandardContext implements Context {
     public boolean isInteractive() {
         return isInteractive;
     }
-
 
     public static class Builder {
         private ClientFactory<NiFiClient> niFiClientFactory;

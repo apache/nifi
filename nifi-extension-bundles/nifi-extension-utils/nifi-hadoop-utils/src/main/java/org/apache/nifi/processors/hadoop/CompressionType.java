@@ -52,21 +52,20 @@ public enum CompressionType {
 
     @Override
     public String toString() {
-        switch (this) {
-            case NONE: return "NONE";
-            case DEFAULT: return DefaultCodec.class.getName();
-            case BZIP: return BZip2Codec.class.getName();
-            case GZIP: return GzipCodec.class.getName();
-            case LZ4: return Lz4Codec.class.getName();
-            case LZO: return "com.hadoop.compression.lzo.LzoCodec";
-            case SNAPPY: return SnappyCodec.class.getName();
-            case AUTOMATIC: return "Automatically Detected";
-        }
-        return null;
+        return switch (this) {
+            case NONE -> "NONE";
+            case DEFAULT -> DefaultCodec.class.getName();
+            case BZIP -> BZip2Codec.class.getName();
+            case GZIP -> GzipCodec.class.getName();
+            case LZ4 -> Lz4Codec.class.getName();
+            case LZO -> "com.hadoop.compression.lzo.LzoCodec";
+            case SNAPPY -> SnappyCodec.class.getName();
+            case AUTOMATIC -> "Automatically Detected";
+        };
     }
 
     public static AllowableValue[] allowableValues() {
-        List<AllowableValue> values = new ArrayList<AllowableValue>();
+        List<AllowableValue> values = new ArrayList<>();
         for (CompressionType type : CompressionType.values()) {
             values.add(new AllowableValue(type.name(), type.name(), type.getDescription()));
         }

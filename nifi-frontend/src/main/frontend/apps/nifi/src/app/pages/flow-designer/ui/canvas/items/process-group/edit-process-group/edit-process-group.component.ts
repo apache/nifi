@@ -31,10 +31,8 @@ import { ParameterContextEntity } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { NifiTooltipDirective, TextTip } from '@nifi/shared';
-import { ControllerServiceTable } from '../../../../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
@@ -56,8 +54,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
         NifiSpinnerDirective,
         NifiTooltipDirective,
         FormsModule,
-        ControllerServiceTable,
-        ErrorBanner,
         ContextErrorBanner
     ],
     styleUrls: ['./edit-process-group.component.scss']
@@ -70,6 +66,12 @@ export class EditProcessGroup extends TabbedDialog {
                     text: parameterContext.component.name,
                     value: parameterContext.id,
                     description: parameterContext.component.description
+                });
+            } else {
+                this.parameterContextsOptions.push({
+                    text: parameterContext.id,
+                    value: parameterContext.id,
+                    disabled: this.request.entity.component.parameterContext.id !== parameterContext.id
                 });
             }
         });

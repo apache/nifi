@@ -56,6 +56,7 @@ import { LoginConfigurationEffects } from './state/login-configuration/login-con
 import { BannerTextEffects } from './state/banner-text/banner-text.effects';
 import { MAT_TOOLTIP_DEFAULT_OPTIONS, MatTooltipDefaultOptions } from '@angular/material/tooltip';
 import { CLIPBOARD_OPTIONS, provideMarkdown } from 'ngx-markdown';
+import { CopyEffects } from './state/copy/copy.effects';
 
 const entry = localStorage.getItem('disable-animations');
 let disableAnimations: string = entry !== null ? JSON.parse(entry).item : '';
@@ -97,7 +98,8 @@ export const customTooltipDefaults: MatTooltipDefaultOptions = {
             ComponentStateEffects,
             DocumentationEffects,
             ClusterSummaryEffects,
-            PropertyVerificationEffects
+            PropertyVerificationEffects,
+            CopyEffects
         ),
         StoreDevtoolsModule.instrument({
             maxAge: 25,

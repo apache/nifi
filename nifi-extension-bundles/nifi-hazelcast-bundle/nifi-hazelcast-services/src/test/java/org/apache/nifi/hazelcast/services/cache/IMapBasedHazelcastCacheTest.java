@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,6 +49,20 @@ public class IMapBasedHazelcastCacheTest {
     @BeforeEach
     public void setUp() {
         testSubject = new IMapBasedHazelcastCache(storage, TTL);
+    }
+
+    @Test
+    void testKeySet() {
+        // given
+        final Set<String> keys = Set.of(KEY, KEY_2);
+        Mockito.when(storage.keySet()).thenReturn(keys);
+
+        // when
+        final Set<String> result = testSubject.keySet();
+
+        // then
+        Mockito.verify(storage).keySet();
+        assertEquals(keys, result);
     }
 
     @Test

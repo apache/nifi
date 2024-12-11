@@ -104,16 +104,14 @@ public class Unpackage {
     }
 
     public static FlowFileUnpackager createUnpackager(final String version) {
-        switch (version) {
-            case "1":
-                return new FlowFileUnpackagerV1();
-            case "2":
-                return new FlowFileUnpackagerV2();
-            case "3":
-                return new FlowFileUnpackagerV3();
-            default:
+        return switch (version) {
+            case "1" -> new FlowFileUnpackagerV1();
+            case "2" -> new FlowFileUnpackagerV2();
+            case "3" -> new FlowFileUnpackagerV3();
+            default -> {
                 System.out.println("ERROR: Invalid version: " + version + "; must be 1, 2, or 3");
-                return null;
-        }
+                yield null;
+            }
+        };
     }
 }

@@ -29,8 +29,6 @@ import org.apache.nifi.web.api.entity.ProvenanceEntity;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -141,33 +139,30 @@ public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
         // grab only the first X number of them. We do a sort based on time, such that the newest are included.
         // If 2 events have the same timestamp, we do a secondary sort based on Cluster Node Identifier. If those are
         // equal, we perform a tertiary sort based on the the event id
-        Collections.sort(allResults, new Comparator<ProvenanceEventDTO>() {
-            @Override
-            public int compare(final ProvenanceEventDTO o1, final ProvenanceEventDTO o2) {
-                final int eventTimeComparison = o1.getEventTime().compareTo(o2.getEventTime());
-                if (eventTimeComparison != 0) {
-                    return -eventTimeComparison;
-                }
-
-                final String nodeId1 = o1.getClusterNodeId();
-                final String nodeId2 = o2.getClusterNodeId();
-                final int nodeIdComparison;
-                if (nodeId1 == null && nodeId2 == null) {
-                    nodeIdComparison = 0;
-                } else if (nodeId1 == null) {
-                    nodeIdComparison = 1;
-                } else if (nodeId2 == null) {
-                    nodeIdComparison = -1;
-                } else {
-                    nodeIdComparison = -nodeId1.compareTo(nodeId2);
-                }
-
-                if (nodeIdComparison != 0) {
-                    return nodeIdComparison;
-                }
-
-                return -Long.compare(o1.getEventId(), o2.getEventId());
+        allResults.sort((o1, o2) -> {
+            final int eventTimeComparison = o1.getEventTime().compareTo(o2.getEventTime());
+            if (eventTimeComparison != 0) {
+                return -eventTimeComparison;
             }
+
+            final String nodeId1 = o1.getClusterNodeId();
+            final String nodeId2 = o2.getClusterNodeId();
+            final int nodeIdComparison;
+            if (nodeId1 == null && nodeId2 == null) {
+                nodeIdComparison = 0;
+            } else if (nodeId1 == null) {
+                nodeIdComparison = 1;
+            } else if (nodeId2 == null) {
+                nodeIdComparison = -1;
+            } else {
+                nodeIdComparison = -nodeId1.compareTo(nodeId2);
+            }
+
+            if (nodeIdComparison != 0) {
+                return nodeIdComparison;
+            }
+
+            return -Long.compare(o1.getEventId(), o2.getEventId());
         });
 
         final int maxResults = request.getMaxResults().intValue();

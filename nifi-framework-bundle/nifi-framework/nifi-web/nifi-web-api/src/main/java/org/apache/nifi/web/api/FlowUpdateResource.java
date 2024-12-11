@@ -17,6 +17,8 @@
 package org.apache.nifi.web.api;
 
 import org.apache.nifi.authorization.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeParameterProviders;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -193,10 +195,10 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
         // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
-        serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, user);
+        final Set<String> unresolvedControllerServices = serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, user);
 
         // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
-        serviceFacade.resolveParameterProviders(flowSnapshot, user);
+        final Set<String> unresolvedParameterProviders = serviceFacade.resolveParameterProviders(flowSnapshot, user);
 
         // Step 1: Determine which components will be affected by updating the flow
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByFlowUpdate(groupId, flowSnapshot);
@@ -211,7 +213,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 serviceFacade,
                 requestWrapper,
                 requestRevision,
-                lookup -> authorizeFlowUpdate(lookup, user, groupId, flowSnapshot),
+                lookup -> authorizeFlowUpdate(lookup, user, groupId, flowSnapshot, unresolvedControllerServices, unresolvedParameterProviders),
                 () -> {
                     // Step 3: Verify that all components in the snapshot exist on all nodes
                     // Step 4: Verify that Process Group can be updated. Only versioned flows care about the verifyNotDirty flag
@@ -230,13 +232,14 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
      * @param flowSnapshot the new flow contents to examine for restricted components
      */
     protected void authorizeFlowUpdate(final AuthorizableLookup lookup, final NiFiUser user, final String groupId,
-                                       final RegisteredFlowSnapshot flowSnapshot) {
+                                       final RegisteredFlowSnapshot flowSnapshot, final Set<String> unresolvedControllerServices,
+                                       final Set<String> unresolvedParameterProviders) {
         // Step 2: Verify READ and WRITE permissions for user, for every component.
         final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
         authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true,
-                false, true, true);
+                false, true, false, true);
         authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.WRITE, true,
-                false, true, false);
+                false, true, false, false);
 
         final VersionedProcessGroup groupContents = flowSnapshot.getFlowContents();
         final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(groupContents, serviceFacade);
@@ -251,6 +254,12 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                     context -> AuthorizeParameterReference.authorizeParameterContextAddition(context, serviceFacade, authorizer, lookup, user)
             );
         }
+
+        // authorize parameter providers
+        AuthorizeParameterProviders.authorizeUnresolvedParameterProviders(unresolvedParameterProviders, authorizer, lookup, user);
+
+        // authorizer controller services
+        AuthorizeControllerServiceReference.authorizeUnresolvedControllerServiceReferences(groupId, unresolvedControllerServices, authorizer, lookup, user);
     }
 
     /**

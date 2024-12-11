@@ -88,18 +88,13 @@ public class TestJdbcCommonConvertToAvro {
             this.signed = signed;
         }
         private String humanReadableType() {
-            switch (sqlType) {
-                case TINYINT:
-                    return "TINYINT";
-                case INTEGER:
-                    return "INTEGER";
-                case SMALLINT:
-                    return "SMALLINT";
-                case BIGINT:
-                    return "BIGINT";
-                default:
-                    return "UNKNOWN - ADD TO LIST";
-            }
+            return switch (sqlType) {
+                case TINYINT -> "TINYINT";
+                case INTEGER -> "INTEGER";
+                case SMALLINT -> "SMALLINT";
+                case BIGINT -> "BIGINT";
+                default -> "UNKNOWN - ADD TO LIST";
+            };
         }
         private String humanReadableSigned() {
             if (signed) return "SIGNED";

@@ -27,7 +27,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.proxy.ProxyContext;
@@ -37,6 +37,8 @@ import org.apache.nifi.web.client.ssl.TlsContext;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import java.net.Proxy;
@@ -45,6 +47,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
 
@@ -93,7 +96,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             .displayName("SSL Context Service")
             .description("SSL Context Service overrides system default TLS settings for HTTPS communication")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Arrays.asList(
@@ -104,8 +107,6 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             SSL_CONTEXT_SERVICE,
             PROXY_CONFIGURATION_SERVICE
     );
-
-    private static final KeyManagerProvider keyManagerProvider = new StandardKeyManagerProvider();
 
     private StandardWebClientService webClientService;
 
@@ -128,8 +129,8 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
 
         final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
         if (sslContextServiceProperty.isSet()) {
-            final SSLContextService sslContextService = sslContextServiceProperty.asControllerService(SSLContextService.class);
-            final TlsContext tlsContext = getTlsContext(sslContextService);
+            final SSLContextProvider sslContextProvider = sslContextServiceProperty.asControllerService(SSLContextProvider.class);
+            final TlsContext tlsContext = getTlsContext(sslContextProvider);
             standardWebClientService.setTlsContext(tlsContext);
         }
 
@@ -169,14 +170,15 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
         return Duration.ofMillis(millis);
     }
 
-    private TlsContext getTlsContext(final SSLContextService sslContextService) {
-        final X509TrustManager trustManager = sslContextService.createTrustManager();
-        final Optional<X509KeyManager> keyManager = keyManagerProvider.getKeyManager(sslContextService);
+    private TlsContext getTlsContext(final SSLContextProvider sslContextProvider) {
+        final X509TrustManager trustManager = sslContextProvider.createTrustManager();
+        final Optional<X509ExtendedKeyManager> keyManager = sslContextProvider.createKeyManager();
+        final SSLContext sslContext = sslContextProvider.createContext();
 
         return new TlsContext() {
             @Override
             public String getProtocol() {
-                return sslContextService.getSslAlgorithm();
+                return sslContext.getProtocol();
             }
 
             @Override
@@ -186,7 +188,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
 
             @Override
             public Optional<X509KeyManager> getKeyManager() {
-                return keyManager;
+                return keyManager.map(Function.identity());
             }
         };
     }

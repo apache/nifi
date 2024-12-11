@@ -39,7 +39,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.syslog.parsers.SyslogParser;
 import org.apache.nifi.util.StopWatch;
 
@@ -145,7 +145,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, syslog " +
                     "messages will be sent over a secure connection.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .dependsOn(PROTOCOL, TCP_VALUE)
             .build();
 
@@ -203,12 +203,12 @@ public class PutSyslog extends AbstractSyslogProcessor {
         final Collection<ValidationResult> results = new ArrayList<>();
 
         final String protocol = context.getProperty(PROTOCOL).getValue();
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
 
-        if (UDP_VALUE.getValue().equals(protocol) && sslContextService != null) {
+        if (UDP_VALUE.getValue().equals(protocol) && sslContextServiceProperty.isSet()) {
             results.add(new ValidationResult.Builder()
                     .explanation("SSL can not be used with UDP")
-                    .valid(false).subject("SSL Context").build());
+                    .valid(false).subject(SSL_CONTEXT_SERVICE.getDisplayName()).build());
         }
 
         return results;
@@ -279,8 +279,8 @@ public class PutSyslog extends AbstractSyslogProcessor {
 
         final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
         if (sslContextServiceProperty.isSet()) {
-            final SSLContextService sslContextService = sslContextServiceProperty.asControllerService(SSLContextService.class);
-            final SSLContext sslContext = sslContextService.createContext();
+            final SSLContextProvider sslContextProvider = sslContextServiceProperty.asControllerService(SSLContextProvider.class);
+            final SSLContext sslContext = sslContextProvider.createContext();
             factory.setSslContext(sslContext);
         }
 

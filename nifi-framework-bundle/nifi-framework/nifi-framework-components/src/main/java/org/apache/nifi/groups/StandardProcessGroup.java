@@ -3813,6 +3813,30 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public ComponentAdditions addVersionedComponents(final VersionedComponentAdditions additions, final String componentIdSeed) {
+        final ComponentIdGenerator idGenerator = (proposedId, instanceId, destinationGroupId) -> generateUuid(proposedId, destinationGroupId, componentIdSeed);
+
+        final FlowSynchronizationOptions synchronizationOptions = new FlowSynchronizationOptions.Builder()
+                .componentIdGenerator(idGenerator)
+                .componentComparisonIdLookup(VersionedComponent::getIdentifier)
+                .componentScheduler(ComponentScheduler.NOP_SCHEDULER)
+                .propertyDecryptor(value -> null)
+                .build();
+
+        writeLock.lock();
+        try {
+            final VersionedFlowSynchronizationContext groupSynchronizationContext = createGroupSynchronizationContext(
+                    synchronizationOptions.getComponentIdGenerator(), synchronizationOptions.getComponentScheduler(), FlowMappingOptions.DEFAULT_OPTIONS);
+            final StandardVersionedComponentSynchronizer synchronizer = new StandardVersionedComponentSynchronizer(groupSynchronizationContext);
+
+            synchronizer.verifyCanAddVersionedComponents(this, additions);
+            return synchronizer.addVersionedComponentsToProcessGroup(this, additions, synchronizationOptions);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
     public void updateFlow(final VersionedExternalFlow proposedSnapshot, final String componentIdSeed, final boolean verifyNotDirty, final boolean updateSettings,
                            final boolean updateDescendantVersionedFlows) {
 

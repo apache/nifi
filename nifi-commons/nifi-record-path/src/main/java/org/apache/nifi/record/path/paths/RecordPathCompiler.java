@@ -111,18 +111,14 @@ public class RecordPathCompiler {
         }
 
         // If the given path tree is an operator, create a Filter Function that will be responsible for returning true/false based on the provided operation
-        switch (pathTree.getType()) {
-            case EQUAL:
-            case NOT_EQUAL:
-            case LESS_THAN:
-            case LESS_THAN_EQUAL:
-            case GREATER_THAN:
-            case GREATER_THAN_EQUAL:
+        return switch (pathTree.getType()) {
+            case EQUAL, NOT_EQUAL, LESS_THAN, LESS_THAN_EQUAL, GREATER_THAN, GREATER_THAN_EQUAL -> {
                 final RecordPathFilter filter = createFilter(pathTree, null, absolute);
-                return new FilterFunction(pathTree.getText(), filter, absolute);
-        }
+                yield new FilterFunction(pathTree.getText(), filter, absolute);
+            }
+            default -> parent;
+        };
 
-        return parent;
     }
 
     public static RecordPathSegment buildPath(final Tree tree, final RecordPathSegment parent, final boolean absolute) {
@@ -479,24 +475,19 @@ public class RecordPathCompiler {
     }
 
     private static RecordPathFilter createFilter(final Tree operatorTree, final RecordPathSegment parent, final boolean absolute) {
-        switch (operatorTree.getType()) {
-            case EQUAL:
-                return createBinaryOperationFilter(operatorTree, parent, EqualsFilter::new, absolute);
-            case NOT_EQUAL:
-                return createBinaryOperationFilter(operatorTree, parent, NotEqualsFilter::new, absolute);
-            case LESS_THAN:
-                return createBinaryOperationFilter(operatorTree, parent, LessThanFilter::new, absolute);
-            case LESS_THAN_EQUAL:
-                return createBinaryOperationFilter(operatorTree, parent, LessThanOrEqualFilter::new, absolute);
-            case GREATER_THAN:
-                return createBinaryOperationFilter(operatorTree, parent, GreaterThanFilter::new, absolute);
-            case GREATER_THAN_EQUAL:
-                return createBinaryOperationFilter(operatorTree, parent, GreaterThanOrEqualFilter::new, absolute);
-            case FUNCTION:
-                return createFunctionFilter(operatorTree, absolute);
-            default:
-                throw new RecordPathException("Expected an Expression of form <value> <operator> <value> to follow '[' Token but found " + operatorTree);
-        }
+        return switch (operatorTree.getType()) {
+            case EQUAL -> createBinaryOperationFilter(operatorTree, parent, EqualsFilter::new, absolute);
+            case NOT_EQUAL -> createBinaryOperationFilter(operatorTree, parent, NotEqualsFilter::new, absolute);
+            case LESS_THAN -> createBinaryOperationFilter(operatorTree, parent, LessThanFilter::new, absolute);
+            case LESS_THAN_EQUAL ->
+                    createBinaryOperationFilter(operatorTree, parent, LessThanOrEqualFilter::new, absolute);
+            case GREATER_THAN -> createBinaryOperationFilter(operatorTree, parent, GreaterThanFilter::new, absolute);
+            case GREATER_THAN_EQUAL ->
+                    createBinaryOperationFilter(operatorTree, parent, GreaterThanOrEqualFilter::new, absolute);
+            case FUNCTION -> createFunctionFilter(operatorTree, absolute);
+            default ->
+                    throw new RecordPathException("Expected an Expression of form <value> <operator> <value> to follow '[' Token but found " + operatorTree);
+        };
     }
 
     private static RecordPathFilter createBinaryOperationFilter(final Tree operatorTree, final RecordPathSegment parent,

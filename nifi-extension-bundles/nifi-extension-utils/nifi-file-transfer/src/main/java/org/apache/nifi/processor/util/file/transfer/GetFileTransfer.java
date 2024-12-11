@@ -72,7 +72,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
     private final AtomicLong lastPollTime = new AtomicLong(-1L);
     private final Lock listingLock = new ReentrantLock();
     private final AtomicReference<BlockingQueue<FileInfo>> fileQueueRef = new AtomicReference<>();
-    private final Set<FileInfo> processing = Collections.synchronizedSet(new HashSet<FileInfo>());
+    private final Set<FileInfo> processing = Collections.synchronizedSet(new HashSet<>());
 
     // Used when transferring filenames from the File Queue to the processing queue; multiple threads can do this
     // simultaneously using the sharableTransferLock; however, in order to check if either has a given file, the
@@ -288,7 +288,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
         BlockingQueue<FileInfo> queue = fileQueueRef.get();
         if (queue == null) {
             final boolean useNaturalOrdering = context.getProperty(FileTransfer.USE_NATURAL_ORDERING).asBoolean();
-            queue = useNaturalOrdering ? new PriorityBlockingQueue<FileInfo>(25000) : new LinkedBlockingQueue<FileInfo>(25000);
+            queue = useNaturalOrdering ? new PriorityBlockingQueue<>(25000) : new LinkedBlockingQueue<>(25000);
             fileQueueRef.set(queue);
         }
 

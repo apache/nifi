@@ -23,7 +23,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.server.set.StandardSetCacheServer;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 @Tags({"distributed", "set", "distinct", "cache", "server"})
 @CapabilityDescription("Provides a set (collection of unique values) cache that can be accessed over a socket. "
@@ -34,12 +34,12 @@ public class SetCacheServer extends AbstractCacheServer {
     protected CacheServer createCacheServer(final ConfigurationContext context) {
         final int port = context.getProperty(PORT).asInteger();
         final String persistencePath = context.getProperty(PERSISTENCE_PATH).getValue();
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         final int maxSize = context.getProperty(MAX_CACHE_ENTRIES).asInteger();
         final String evictionPolicyName = context.getProperty(EVICTION_POLICY).getValue();
         final int maxReadSize = context.getProperty(MAX_READ_SIZE).asDataSize(DataUnit.B).intValue();
 
-        final SSLContext sslContext = sslContextService == null ? null : sslContextService.createContext();
+        final SSLContext sslContext = sslContextProvider == null ? null : sslContextProvider.createContext();
 
         final EvictionPolicy evictionPolicy;
         switch (evictionPolicyName) {

@@ -39,26 +39,28 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.core.client.builder.SdkClientBuilder;
 import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
 import software.amazon.awssdk.core.retry.RetryPolicy;
-import software.amazon.awssdk.http.FileStoreTlsKeyManagersProvider;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
 import software.amazon.awssdk.http.TlsTrustManagersProvider;
 import software.amazon.awssdk.regions.Region;
 
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509TrustManager;
 import java.net.Proxy;
 import java.net.URI;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -118,7 +120,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
             .name("SSL Context Service")
             .description("Specifies an optional SSL Context Service that, if provided, will be used to create connections")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     public static final PropertyDescriptor ENDPOINT_OVERRIDE = new PropertyDescriptor.Builder()
@@ -283,17 +285,22 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
         httpClientConfigurer.configureBasicSettings(Duration.ofMillis(communicationsTimeout), context.getMaxConcurrentTasks());
 
         if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
-            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            if (sslContextService != null) {
-                TlsTrustManagersProvider trustManagersProvider = null;
-                TlsKeyManagersProvider keyManagersProvider = null;
-                if (sslContextService.isTrustStoreConfigured()) {
-                    trustManagersProvider = () -> new TrustManager[]{sslContextService.createTrustManager()};
+            final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+            if (sslContextProvider != null) {
+                final X509TrustManager trustManager = sslContextProvider.createTrustManager();
+                final TrustManager[] trustManagers = new TrustManager[]{trustManager};
+                final TlsTrustManagersProvider trustManagersProvider = () -> trustManagers;
+
+                final TlsKeyManagersProvider keyManagersProvider;
+                final Optional<X509ExtendedKeyManager> keyManagerFound = sslContextProvider.createKeyManager();
+                if (keyManagerFound.isPresent()) {
+                    final X509ExtendedKeyManager keyManager = keyManagerFound.get();
+                    final KeyManager[] keyManagers = new KeyManager[]{keyManager};
+                    keyManagersProvider = () -> keyManagers;
+                } else {
+                    keyManagersProvider = null;
                 }
-                if (sslContextService.isKeyStoreConfigured()) {
-                    keyManagersProvider = FileStoreTlsKeyManagersProvider
-                            .create(Path.of(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
-                }
+
                 httpClientConfigurer.configureTls(trustManagersProvider, keyManagersProvider);
             }
         }

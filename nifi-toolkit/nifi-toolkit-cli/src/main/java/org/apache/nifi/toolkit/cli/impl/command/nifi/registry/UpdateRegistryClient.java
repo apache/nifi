@@ -20,12 +20,12 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.client.ControllerClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 
 import java.io.IOException;
@@ -42,14 +42,13 @@ public class UpdateRegistryClient extends AbstractNiFiCommand<VoidResult> {
 
     @Override
     public String getDescription() {
-        return "Updates the given registry client with a new name, url, or description.";
+        return "Updates the given registry client with a new name or description.";
     }
 
     @Override
     public void doInitialize(final Context context) {
         addOption(CommandOption.REGISTRY_CLIENT_ID.createOption());
         addOption(CommandOption.REGISTRY_CLIENT_NAME.createOption());
-        addOption(CommandOption.REGISTRY_CLIENT_URL.createOption());
         addOption(CommandOption.REGISTRY_CLIENT_DESC.createOption());
     }
 
@@ -67,11 +66,10 @@ public class UpdateRegistryClient extends AbstractNiFiCommand<VoidResult> {
         }
 
         final String name = getArg(properties, CommandOption.REGISTRY_CLIENT_NAME);
-        final String url = getArg(properties, CommandOption.REGISTRY_CLIENT_URL);
         final String desc = getArg(properties, CommandOption.REGISTRY_CLIENT_DESC);
 
-        if (StringUtils.isBlank(name) && StringUtils.isBlank(url) && StringUtils.isBlank(desc)) {
-            throw new CommandException("Name, url, and desc were all blank, nothing to update");
+        if (StringUtils.isBlank(name) && StringUtils.isBlank(desc)) {
+            throw new CommandException("Name and description were all blank, nothing to update");
         }
 
         if (StringUtils.isNotBlank(name)) {

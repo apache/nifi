@@ -24,8 +24,8 @@ import org.opensaml.saml.saml2.core.Assertion;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider;
-import org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider.ResponseToken;
+import org.springframework.security.saml2.provider.service.authentication.OpenSaml5AuthenticationProvider;
+import org.springframework.security.saml2.provider.service.authentication.OpenSaml5AuthenticationProvider.ResponseToken;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticatedPrincipal;
 import org.springframework.security.saml2.provider.service.authentication.Saml2Authentication;
 
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  * Converter from SAML 2 Response Token to SAML 2 Authentication for Spring Security
  */
 public class ResponseAuthenticationConverter implements Converter<ResponseToken, Saml2Authentication> {
-    private static final Converter<ResponseToken, Saml2Authentication> defaultConverter = OpenSaml4AuthenticationProvider.createDefaultResponseAuthenticationConverter();
+    private static final Converter<ResponseToken, Saml2Authentication> defaultConverter = OpenSaml5AuthenticationProvider.createDefaultResponseAuthenticationConverter();
 
     private final String groupAttributeName;
 
@@ -91,11 +91,9 @@ public class ResponseAuthenticationConverter implements Converter<ResponseToken,
     private String getAttributeValue(final XMLObject xmlObject) {
         final String attributeValue;
 
-        if (xmlObject instanceof XSAny) {
-            final XSAny any = (XSAny) xmlObject;
+        if (xmlObject instanceof XSAny any) {
             attributeValue = any.getTextContent();
-        } else if (xmlObject instanceof XSString) {
-            final XSString string = (XSString) xmlObject;
+        } else if (xmlObject instanceof XSString string) {
             attributeValue = string.getValue();
         } else {
             attributeValue = null;

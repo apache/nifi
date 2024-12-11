@@ -23,9 +23,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -203,12 +203,8 @@ public class CalculateParquetOffsets extends AbstractProcessor {
             results.add(
                     session.putAllAttributes(
                             outputFlowFile,
-                            new HashMap<String, String>() {
-                                {
-                                    put(ParquetAttribute.RECORD_OFFSET, Long.toString(recordOffset + addedOffset));
-                                    put(ParquetAttribute.RECORD_COUNT, Long.toString(Math.min(partitionSize, recordCount - addedOffset)));
-                                }
-                            }
+                            Map.of(ParquetAttribute.RECORD_OFFSET, Long.toString(recordOffset + addedOffset),
+                                    ParquetAttribute.RECORD_COUNT, Long.toString(Math.min(partitionSize, recordCount - addedOffset)))
                     )
             );
         }

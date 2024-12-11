@@ -19,8 +19,8 @@ package org.apache.nifi.tests.system.nar;
 
 import org.apache.nifi.nar.NarState;
 import org.apache.nifi.tests.system.ExceptionalBooleanSupplier;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.NarSummaryDTO;
 import org.apache.nifi.web.api.entity.NarSummariesEntity;
 import org.apache.nifi.web.api.entity.NarSummaryEntity;

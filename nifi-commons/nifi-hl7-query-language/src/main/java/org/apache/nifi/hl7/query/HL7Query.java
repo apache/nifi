@@ -304,7 +304,7 @@ public class HL7Query {
             if (value instanceof List) {
                 possibleValues = (List<Object>) value;
             } else if (value instanceof Collection) {
-                possibleValues = new ArrayList<Object>((Collection<Object>) value);
+                possibleValues = new ArrayList<>((Collection<Object>) value);
             } else {
                 possibleValues = new ArrayList<>(1);
                 possibleValues.add(value);

@@ -815,7 +815,7 @@ public class ExpressionCompiler {
                     toStringEvaluator(argEvaluators.get(0), "first argument to contains")), "contains");
             }
             case IN: {
-                List<Evaluator<String>> list = new ArrayList<Evaluator<String>>();
+                List<Evaluator<String>> list = new ArrayList<>();
                 for (int i = 0; i < argEvaluators.size(); i++) {
                     list.add(toStringEvaluator(argEvaluators.get(i), i + "th argument to in"));
                 }

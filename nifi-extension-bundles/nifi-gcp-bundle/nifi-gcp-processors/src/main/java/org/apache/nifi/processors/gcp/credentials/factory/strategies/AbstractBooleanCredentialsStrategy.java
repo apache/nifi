@@ -54,7 +54,7 @@ public abstract class AbstractBooleanCredentialsStrategy extends AbstractCredent
         Boolean useStrategy = validationContext.getProperty(strategyProperty).asBoolean();
         if (!thisIsSelectedStrategy && (useStrategy == null ? false : useStrategy)) {
             String failureFormat = "property %1$s cannot be used with %2$s";
-            Collection<ValidationResult> validationFailureResults = new ArrayList<ValidationResult>();
+            Collection<ValidationResult> validationFailureResults = new ArrayList<>();
             String message = String.format(failureFormat, strategyProperty.getDisplayName(),
                     primaryStrategy.getName());
             validationFailureResults.add(new ValidationResult.Builder()

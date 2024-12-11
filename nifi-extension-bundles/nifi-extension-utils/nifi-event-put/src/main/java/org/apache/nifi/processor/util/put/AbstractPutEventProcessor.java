@@ -32,7 +32,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -155,7 +155,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .name("SSL Context Service")
             .description("Specifies the SSL Context Service to enable TLS socket communication")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -265,8 +265,8 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
 
         final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
         if (sslContextServiceProperty.isSet()) {
-            final SSLContextService sslContextService = sslContextServiceProperty.asControllerService(SSLContextService.class);
-            final SSLContext sslContext = sslContextService.createContext();
+            final SSLContextProvider sslContextProvider = sslContextServiceProperty.asControllerService(SSLContextProvider.class);
+            final SSLContext sslContext = sslContextProvider.createContext();
             factory.setSslContext(sslContext);
         }
 
@@ -379,12 +379,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
         }
 
         private void transferRanges(final List<Range> ranges, final Relationship relationship) {
-            Collections.sort(ranges, new Comparator<Range>() {
-                @Override
-                public int compare(final Range o1, final Range o2) {
-                    return Long.compare(o1.getStart(), o2.getStart());
-                }
-            });
+            ranges.sort(Comparator.comparingLong(Range::getStart));
 
             for (int i = 0; i < ranges.size(); i++) {
                 Range range = ranges.get(i);

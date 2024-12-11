@@ -23,9 +23,9 @@ import org.apache.nifi.bootstrap.command.process.StandardProcessBuilderProvider;
 import org.apache.nifi.bootstrap.configuration.ConfigurationProvider;
 import org.apache.nifi.bootstrap.configuration.StandardConfigurationProvider;
 import org.apache.nifi.registry.security.util.KeystoreType;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientConfig;
+import org.apache.nifi.toolkit.client.impl.JerseyNiFiClient;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -295,7 +295,6 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             }
         }
 
-
         private void cleanup() throws IOException {
             if (instanceDirectory.exists()) {
                 FileUtils.deleteFile(instanceDirectory, true);
@@ -387,20 +386,20 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             final String truststoreType = nifiProperties.getProperty("nifi.security.truststoreType");
 
             final NiFiClientConfig clientConfig = new NiFiClientConfig.Builder()
-                .baseUrl("http://localhost:" + webPort)
-                .connectTimeout(30000)
-                .readTimeout(30000)
-                .keystoreFilename(getAbsolutePath(nifiProperties.getProperty("nifi.security.keystore")))
-                .keystorePassword(nifiProperties.getProperty("nifi.security.keystorePasswd"))
-                .keystoreType(keystoreType == null ? null : KeystoreType.valueOf(keystoreType))
-                .truststoreFilename(getAbsolutePath(nifiProperties.getProperty("nifi.security.truststore")))
-                .truststorePassword(nifiProperties.getProperty("nifi.security.truststorePasswd"))
-                .truststoreType(truststoreType == null ? null : KeystoreType.valueOf(truststoreType))
-                .build();
+                    .baseUrl("http://localhost:" + webPort)
+                    .connectTimeout(30000)
+                    .readTimeout(30000)
+                    .keystoreFilename(getAbsolutePath(nifiProperties.getProperty("nifi.security.keystore")))
+                    .keystorePassword(nifiProperties.getProperty("nifi.security.keystorePasswd"))
+                    .keystoreType(keystoreType == null ? null : KeystoreType.valueOf(keystoreType))
+                    .truststoreFilename(getAbsolutePath(nifiProperties.getProperty("nifi.security.truststore")))
+                    .truststorePassword(nifiProperties.getProperty("nifi.security.truststorePasswd"))
+                    .truststoreType(truststoreType == null ? null : KeystoreType.valueOf(truststoreType))
+                    .build();
 
             return new JerseyNiFiClient.Builder()
-                .config(clientConfig)
-                .build();
+                    .config(clientConfig)
+                    .build();
         }
 
         private String getAbsolutePath(final String filename) {

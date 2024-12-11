@@ -466,14 +466,11 @@ public class GeohashRecord extends AbstractProcessor {
         double realLongValue = Double.parseDouble(longitudeVal.toString());
         GeoHash gh = GeoHash.withCharacterPrecision(realLatValue, realLongValue, level);
 
-        switch (format) {
-            case BINARY:
-                return gh.toBinaryString();
-            case LONG:
-                return gh.longValue();
-            default:
-                return gh.toBase32();
-        }
+        return switch (format) {
+            case BINARY -> gh.toBinaryString();
+            case LONG -> gh.longValue();
+            default -> gh.toBase32();
+        };
     }
 
     private WGS84Point getDecodedPointFromGeohash(RecordPath geohashPath, Record record, GeohashFormat format) {
@@ -491,19 +488,14 @@ public class GeohashRecord extends AbstractProcessor {
         }
 
         String geohashString = geohashVal.toString();
-        GeoHash decodedHash;
-
-        switch (format) {
-            case BINARY:
-                decodedHash = GeoHash.fromBinaryString(geohashString);
-                break;
-            case LONG:
+        GeoHash decodedHash = switch (format) {
+            case BINARY -> GeoHash.fromBinaryString(geohashString);
+            case LONG -> {
                 String binaryString = Long.toBinaryString(Long.parseLong(geohashString));
-                decodedHash = GeoHash.fromBinaryString(binaryString);
-                break;
-            default:
-                decodedHash = GeoHash.fromGeohashString(geohashString);
-        }
+                yield GeoHash.fromBinaryString(binaryString);
+            }
+            default -> GeoHash.fromGeohashString(geohashString);
+        };
 
         return decodedHash.getBoundingBoxCenter();
     }

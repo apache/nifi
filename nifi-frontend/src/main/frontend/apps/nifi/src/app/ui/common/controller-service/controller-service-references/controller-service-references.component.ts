@@ -49,6 +49,7 @@ import { MatDialogModule } from '@angular/material/dialog';
     styleUrls: ['./controller-service-references.component.scss']
 })
 export class ControllerServiceReferences {
+    @Input() disabledLinks: boolean = false;
     @Input() serviceReferences!: ControllerServiceReferencingComponentEntity[];
     @Input() goToReferencingComponent!: (component: ControllerServiceReferencingComponent) => void;
 

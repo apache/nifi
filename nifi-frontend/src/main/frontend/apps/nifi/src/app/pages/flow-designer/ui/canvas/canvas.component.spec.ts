@@ -33,6 +33,7 @@ import { canvasFeatureKey } from '../../state';
 import { flowFeatureKey } from '../../state/flow';
 import { FlowAnalysisDrawerComponent } from './header/flow-analysis-drawer/flow-analysis-drawer.component';
 import { CanvasActionsService } from '../../service/canvas-actions.service';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('Canvas', () => {
     let component: Canvas;
@@ -60,7 +61,7 @@ describe('Canvas', () => {
                 MatSidenavModule,
                 NoopAnimationsModule,
                 MatSidenavModule,
-                NoopAnimationsModule,
+                HttpClientTestingModule,
                 MockComponent(GraphControls),
                 MockComponent(HeaderComponent),
                 MockComponent(FooterComponent),

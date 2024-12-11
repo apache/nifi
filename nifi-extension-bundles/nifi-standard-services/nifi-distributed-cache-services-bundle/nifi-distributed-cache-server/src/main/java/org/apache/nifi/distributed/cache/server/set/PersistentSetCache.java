@@ -170,7 +170,7 @@ public class PersistentSetCache implements SetCache {
 
         @Override
         public SetRecord deserializeRecord(DataInputStream in, int version) throws IOException {
-            return deserializeEdit(in, new HashMap<Object, SetRecord>(), version);
+            return deserializeEdit(in, new HashMap<>(), version);
         }
 
         @Override

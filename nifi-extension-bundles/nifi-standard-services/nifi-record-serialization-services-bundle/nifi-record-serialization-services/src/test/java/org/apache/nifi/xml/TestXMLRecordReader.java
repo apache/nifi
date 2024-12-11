@@ -41,6 +41,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -364,7 +365,7 @@ public class TestXMLRecordReader {
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, true);
-        assertEquals(null, first.getAsString("ID"));
+        assertNull(first.getAsString("ID"));
 
         Record second = reader.nextRecord(false, false);
         assertEquals("P2", second.getAsString("ID"));
@@ -373,7 +374,7 @@ public class TestXMLRecordReader {
         assertEquals("P3", third.getAsString("ID"));
 
         Record fourth = reader.nextRecord(false, true);
-        assertEquals(null, fourth.getAsString("ID"));
+        assertNull(fourth.getAsString("ID"));
     }
 
     @Test
@@ -463,9 +464,9 @@ public class TestXMLRecordReader {
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, true);
-        assertTrue(first.getValue("NAME") instanceof Record);
+        assertInstanceOf(Record.class, first.getValue("NAME"));
         Record first_nested1 = (Record) first.getValue("NAME");
-        assertTrue(first.getValue("AGE") instanceof Record);
+        assertInstanceOf(Record.class, first.getValue("AGE"));
         Record first_nested2 = (Record) first.getValue("AGE");
         assertEquals("name1", first_nested1.getValue("ID"));
         assertEquals("Cleve Butler", first_nested1.getValue("CONTENT"));
@@ -473,9 +474,9 @@ public class TestXMLRecordReader {
         assertEquals(42, first_nested2.getValue("CONTENT"));
 
         Record second = reader.nextRecord(true, true);
-        assertTrue(second.getValue("NAME") instanceof Record);
+        assertInstanceOf(Record.class, second.getValue("NAME"));
         Record second_nested1 = (Record) second.getValue("NAME");
-        assertTrue(second.getValue("AGE") instanceof Record);
+        assertInstanceOf(Record.class, second.getValue("AGE"));
         Record second_nested2 = (Record) second.getValue("AGE");
         assertEquals("name2", second_nested1.getValue("ID"));
         assertEquals("Ainslie Fletcher", second_nested1.getValue("CONTENT"));
@@ -490,9 +491,9 @@ public class TestXMLRecordReader {
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
-        assertTrue(first.getValue("NAME") instanceof Record);
+        assertInstanceOf(Record.class, first.getValue("NAME"));
         Record first_nested1 = (Record) first.getValue("NAME");
-        assertTrue(first.getValue("AGE") instanceof Record);
+        assertInstanceOf(Record.class, first.getValue("AGE"));
         Record first_nested2 = (Record) first.getValue("AGE");
         assertEquals("name1", first_nested1.getValue("ID"));
         assertEquals("Cleve Butler", first_nested1.getValue("CONTENT"));
@@ -501,9 +502,9 @@ public class TestXMLRecordReader {
         assertEquals("USA", first.getValue("COUNTRY"));
 
         Record second = reader.nextRecord(false, false);
-        assertTrue(second.getValue("NAME") instanceof Record);
+        assertInstanceOf(Record.class, second.getValue("NAME"));
         Record second_nested1 = (Record) second.getValue("NAME");
-        assertTrue(second.getValue("AGE") instanceof Record);
+        assertInstanceOf(Record.class, second.getValue("AGE"));
         Record second_nested2 = (Record) second.getValue("AGE");
         assertEquals("name2", second_nested1.getValue("ID"));
         assertEquals("Ainslie Fletcher", second_nested1.getValue("CONTENT"));
@@ -569,7 +570,7 @@ public class TestXMLRecordReader {
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record record = reader.nextRecord();
-        assertTrue(record.getValue("AGE") instanceof String);
+        assertInstanceOf(String.class, record.getValue("AGE"));
         assertEquals("42", record.getValue("AGE"));
     }
 
@@ -582,7 +583,7 @@ public class TestXMLRecordReader {
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record record = reader.nextRecord();
-        assertTrue(record.getValue("ADDRESS") instanceof Record);
+        assertInstanceOf(Record.class, record.getValue("ADDRESS"));
 
         Record nested = (Record) record.getValue("ADDRESS");
         assertEquals("292 West Street", nested.getValue("STREET"));
@@ -980,7 +981,7 @@ public class TestXMLRecordReader {
 
         Record valuesFourthRecord = reader.nextRecord();
         assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord.getValues(), 0, valuesFourthRecord.getValues().length - 1));
-        assertEquals(null, valuesFourthRecord.getValue("CHILD"));
+        assertNull(valuesFourthRecord.getValue("CHILD"));
     }
 
     @Test
@@ -1015,7 +1016,7 @@ public class TestXMLRecordReader {
 
         Record fourth = reader.nextRecord(false, false);
         assertArrayEquals(new Object[] {"Elenora Scrivens", "16", "USA"}, Arrays.copyOfRange(fourth.getValues(), 0, fourth.getValues().length - 1));
-        assertEquals(null, fourth.getValue("CHILD"));
+        assertNull(fourth.getValue("CHILD"));
     }
 
     @Test
@@ -1053,7 +1054,7 @@ public class TestXMLRecordReader {
         Object[] valuesFourthRecord = fourthRecord.getValues();
         assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
 
-        assertEquals(null, fourthRecord.getValue("CHILDREN"));
+        assertNull(fourthRecord.getValue("CHILDREN"));
     }
 
     @Test
@@ -1279,15 +1280,15 @@ public class TestXMLRecordReader {
         Record first = records.get(0);
         Record second = records.get(1);
 
-        assertTrue(first.getValue("NAME") instanceof String);
+        assertInstanceOf(String.class, first.getValue("NAME"));
         assertEquals("Cleve Butler", first.getValue("NAME"));
-        assertTrue(first.getValue("AGE") instanceof Integer);
+        assertInstanceOf(Integer.class, first.getValue("AGE"));
         assertEquals(42, first.getValue("AGE"));
         assertEquals(2, first.toMap().size());
 
-        assertTrue(second.getValue("NAME") instanceof String);
+        assertInstanceOf(String.class, second.getValue("NAME"));
         assertEquals("Ainslie Fletcher", second.getValue("NAME"));
-        assertTrue(second.getValue("AGE") instanceof  Integer);
+        assertInstanceOf(Integer.class, second.getValue("AGE"));
         assertEquals(33, second.getValue("AGE"));
         assertEquals(2, second.toMap().size());
     }
@@ -1303,15 +1304,15 @@ public class TestXMLRecordReader {
         Record first = records.get(0);
         Record second = records.get(1);
 
-        assertTrue(first.getValue("NAME") instanceof String);
+        assertInstanceOf(String.class, first.getValue("NAME"));
         assertEquals("Cleve Butler", first.getValue("NAME"));
-        assertTrue(first.getValue("AGE") instanceof String);
+        assertInstanceOf(String.class, first.getValue("AGE"));
         assertEquals("42", first.getValue("AGE"));
         assertEquals(2, first.toMap().size());
 
-        assertTrue(second.getValue("NAME") instanceof String);
+        assertInstanceOf(String.class, second.getValue("NAME"));
         assertEquals("Ainslie Fletcher", second.getValue("NAME"));
-        assertTrue(second.getValue("AGE") instanceof  String);
+        assertInstanceOf(String.class, second.getValue("AGE"));
         assertEquals("33", second.getValue("AGE"));
         assertEquals(2, second.toMap().size());
     }
@@ -1327,19 +1328,19 @@ public class TestXMLRecordReader {
         Record first = records.get(0);
         Record second = records.get(1);
 
-        assertTrue(first.getValue("NAME") instanceof String);
+        assertInstanceOf(String.class, first.getValue("NAME"));
         assertEquals("Cleve Butler", first.getValue("NAME"));
-        assertTrue(first.getValue("AGE") instanceof Integer);
+        assertInstanceOf(Integer.class, first.getValue("AGE"));
         assertEquals(42, first.getValue("AGE"));
-        assertTrue(first.getValue("COUNTRY") instanceof String);
+        assertInstanceOf(String.class, first.getValue("COUNTRY"));
         assertEquals("USA", first.getValue("COUNTRY"));
         assertEquals(3, first.toMap().size());
 
-        assertTrue(second.getValue("NAME") instanceof String);
+        assertInstanceOf(String.class, second.getValue("NAME"));
         assertEquals("Ainslie Fletcher", second.getValue("NAME"));
-        assertTrue(second.getValue("AGE") instanceof  Integer);
+        assertInstanceOf(Integer.class, second.getValue("AGE"));
         assertEquals(33, second.getValue("AGE"));
-        assertTrue(second.getValue("COUNTRY") instanceof  String);
+        assertInstanceOf(String.class, second.getValue("COUNTRY"));
         assertEquals("UK", second.getValue("COUNTRY"));
         assertEquals(3, second.toMap().size());
     }
@@ -1355,19 +1356,19 @@ public class TestXMLRecordReader {
         Record first = records.get(0);
         Record second = records.get(1);
 
-        assertTrue(first.getValue("NAME") instanceof String);
+        assertInstanceOf(String.class, first.getValue("NAME"));
         assertEquals("Cleve Butler", first.getValue("NAME"));
-        assertTrue(first.getValue("AGE") instanceof String);
+        assertInstanceOf(String.class, first.getValue("AGE"));
         assertEquals("42", first.getValue("AGE"));
-        assertTrue(first.getValue("COUNTRY") instanceof String);
+        assertInstanceOf(String.class, first.getValue("COUNTRY"));
         assertEquals("USA", first.getValue("COUNTRY"));
         assertEquals(3, first.toMap().size());
 
-        assertTrue(second.getValue("NAME") instanceof String);
+        assertInstanceOf(String.class, second.getValue("NAME"));
         assertEquals("Ainslie Fletcher", second.getValue("NAME"));
-        assertTrue(second.getValue("AGE") instanceof  String);
+        assertInstanceOf(String.class, second.getValue("AGE"));
         assertEquals("33", second.getValue("AGE"));
-        assertTrue(second.getValue("COUNTRY") instanceof  String);
+        assertInstanceOf(String.class, second.getValue("COUNTRY"));
         assertEquals("UK", second.getValue("COUNTRY"));
         assertEquals(3, second.toMap().size());
     }
@@ -1478,7 +1479,7 @@ public class TestXMLRecordReader {
     private RecordSchema getSchemaWithNestedArray() {
         final List<RecordField> fields = getSimpleRecordFields();
         final DataType arrayType = RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
-        final List<RecordField> nestedArrayField = new ArrayList<RecordField>() {{ add(new RecordField("CHILD", arrayType)); }};
+        final List<RecordField> nestedArrayField = List.of(new RecordField("CHILD", arrayType));
 
         final DataType recordType = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(nestedArrayField));
         fields.add(new RecordField("CHILDREN", recordType));
@@ -1520,11 +1521,10 @@ public class TestXMLRecordReader {
         final DataType grandchild_arr1 = RecordFieldType.ARRAY.getArrayDataType(grandchild);
 
         final DataType grandchildren = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(
-                new ArrayList<RecordField>() {{ add(new RecordField("CHILD", grandchild_arr1)); }}));
+                List.of(new RecordField("CHILD", grandchild_arr1))));
         final DataType grandchild_arr = RecordFieldType.ARRAY.getArrayDataType(grandchildren);
 
-        return new SimpleRecordSchema(
-                new ArrayList<RecordField>() {{ add(new RecordField("CHILDREN", grandchild_arr)); }});
+        return new SimpleRecordSchema(List.of(new RecordField("CHILDREN", grandchild_arr)));
     }
 
     private RecordSchema getSchemaForComplexData2() {
@@ -1532,26 +1532,23 @@ public class TestXMLRecordReader {
         final DataType grandchild_arr = RecordFieldType.ARRAY.getArrayDataType(grandchild);
 
         final DataType grandchildren = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(
-                new ArrayList<RecordField>() {{ add(new RecordField("CHILD", grandchild_arr)); }}));
+                List.of(new RecordField("CHILD", grandchild_arr))));
         final DataType grandchildren_arr = RecordFieldType.ARRAY.getArrayDataType(grandchildren);
 
-        final DataType parent = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(
-                new ArrayList<RecordField>() {{
-                    add(new RecordField("CHILDREN", grandchildren_arr));
-                    addAll(getSimpleFieldsForComplexData());
-                }}));
+        final List<RecordField> parentRecordFields = new ArrayList<>();
+        parentRecordFields.add(new RecordField("CHILDREN", grandchildren_arr));
+        parentRecordFields.addAll(getSimpleFieldsForComplexData());
+        final DataType parent = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(parentRecordFields));
         final DataType parent_arr = RecordFieldType.ARRAY.getArrayDataType(parent);
 
         final DataType parents = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(
-                new ArrayList<RecordField>() {{
-                    add(new RecordField("CHILD", parent_arr));
-                }}));
+                List.of(new RecordField("CHILD", parent_arr))));
         final DataType parents_arr = RecordFieldType.ARRAY.getArrayDataType(parents);
 
-        final List<RecordField> fields = new ArrayList<RecordField>() {{
-            add(new RecordField("CHILDREN", parents_arr));
-            addAll(getSimpleFieldsForComplexData());
-        }};
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("CHILDREN", parents_arr));
+        fields.addAll(getSimpleFieldsForComplexData());
+
         return new SimpleRecordSchema(fields);
     }
 

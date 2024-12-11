@@ -19,7 +19,7 @@ package org.apache.nifi.tests.system.verification;
 
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
 import org.junit.jupiter.api.Test;

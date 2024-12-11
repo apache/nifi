@@ -110,7 +110,8 @@ public abstract class JacksonSerializer<T> implements VersionedSerializer<T> {
         logger.debug("headerObjectStr={}", headerObjectStr);
 
         try {
-            final TypeReference<HashMap<String, String>> typeRef = new TypeReference<HashMap<String, String>>() { };
+            final TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {
+            };
             final HashMap<String, String> header = objectMapper.readValue(headerObjectStr, typeRef);
             if (!header.containsKey(DATA_MODEL_VERSION)) {
                 throw new SerializationException("Missing " + DATA_MODEL_VERSION);

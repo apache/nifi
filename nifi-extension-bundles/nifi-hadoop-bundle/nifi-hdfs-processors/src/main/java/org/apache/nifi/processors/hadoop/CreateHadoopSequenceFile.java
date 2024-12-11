@@ -141,20 +141,12 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
                 }
             }
         }
-        final SequenceFileWriter sequenceFileWriter;
-        switch (packagingFormat) {
-            case TAR_FORMAT:
-                sequenceFileWriter = new TarUnpackerSequenceFileWriter();
-                break;
-            case ZIP_FORMAT:
-                sequenceFileWriter = new ZipUnpackerSequenceFileWriter();
-                break;
-            case FLOWFILE_STREAM_FORMAT_V3:
-                sequenceFileWriter = new FlowFileStreamUnpackerSequenceFileWriter();
-                break;
-            default:
-                sequenceFileWriter = new SequenceFileWriterImpl();
-        }
+        final SequenceFileWriter sequenceFileWriter = switch (packagingFormat) {
+            case TAR_FORMAT -> new TarUnpackerSequenceFileWriter();
+            case ZIP_FORMAT -> new ZipUnpackerSequenceFileWriter();
+            case FLOWFILE_STREAM_FORMAT_V3 -> new FlowFileStreamUnpackerSequenceFileWriter();
+            default -> new SequenceFileWriterImpl();
+        };
 
         final Configuration configuration = getConfiguration();
         if (configuration == null) {

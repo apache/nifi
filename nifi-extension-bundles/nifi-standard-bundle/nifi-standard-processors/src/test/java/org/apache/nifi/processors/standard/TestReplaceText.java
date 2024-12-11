@@ -20,6 +20,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
@@ -925,19 +926,20 @@ public class TestReplaceText {
 
 
     @Test
-    public void testZeroByteContentFileLineByLine() throws IOException {
+    public void testZeroByteContentFileLineByLine(@TempDir Path tempDir) throws IOException {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "odo");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "ood");
 
-        final File zeroByteFile = File.createTempFile("zeroByte", ".txt");
-        runner.enqueue(translateNewLines(zeroByteFile.getPath()));
+        final Path zeroByteFile = tempDir.resolve("zeroByte.txt");
+        Files.createFile(zeroByteFile);
+        runner.enqueue(translateNewLines(zeroByteFile));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals(translateNewLines(zeroByteFile.getPath()));
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
+        out.assertContentEquals(translateNewLines(zeroByteFile));
     }
 
 

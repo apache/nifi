@@ -43,7 +43,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 
 /**
@@ -127,7 +127,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .displayName("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
     public static final PropertyDescriptor USE_CERT_AUTHENTICATION = new PropertyDescriptor.Builder()
             .name("cert-authentication")
@@ -314,11 +314,11 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         }
 
         // handles TLS/SSL aspects
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         final Boolean useCertAuthentication = context.getProperty(USE_CERT_AUTHENTICATION).asBoolean();
 
-        if (sslService != null) {
-            final SSLContext sslContext = sslService.createContext();
+        if (sslContextProvider != null) {
+            final SSLContext sslContext = sslContextProvider.createContext();
             cf.useSslProtocol(sslContext);
 
             if (useCertAuthentication) {

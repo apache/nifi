@@ -21,7 +21,6 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
-import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -116,7 +115,7 @@ public class TestExecuteSQL {
     }
 
     @Test
-    public void testIncomingConnectionWithNoFlowFile() throws InitializationException {
+    public void testIncomingConnectionWithNoFlowFile() {
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, "SELECT * FROM persons");
         runner.run();
@@ -125,7 +124,7 @@ public class TestExecuteSQL {
     }
 
     @Test
-    public void testIncomingConnectionWithNoFlowFileAndNoQuery() throws InitializationException {
+    public void testIncomingConnectionWithNoFlowFileAndNoQuery() {
         runner.setIncomingConnection(true);
         runner.run();
         runner.assertTransferCount(ExecuteSQL.REL_SUCCESS, 0);
@@ -133,55 +132,52 @@ public class TestExecuteSQL {
     }
 
     @Test
-    public void testNoIncomingConnectionAndNoQuery() throws InitializationException {
+    public void testNoIncomingConnectionAndNoQuery() {
         runner.setIncomingConnection(false);
-        assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     @Test
-    public void testNoIncomingConnection() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testNoIncomingConnection() throws SQLException, IOException {
         runner.setIncomingConnection(false);
         invokeOnTrigger(null, QUERY_WITHOUT_EL, false, null, true);
     }
 
     @Test
-    public void testNoTimeLimit() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    public void testNoTimeLimit() throws SQLException, IOException {
         invokeOnTrigger(null, QUERY_WITH_EL, true, null, true);
     }
 
     @Test
-    public void testSelectQueryInFlowFile() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    public void testSelectQueryInFlowFile() throws SQLException, IOException {
         invokeOnTrigger(null, QUERY_WITHOUT_EL, true, null, false);
     }
 
     @Test
-    public void testSelectQueryInFlowFileWithParameters() throws InitializationException, ClassNotFoundException, SQLException, IOException {
-        Map<String, String> sqlParams = new HashMap<String, String>() {{
-            put("sql.args.1.type", "4");
-            put("sql.args.1.value", "20");
-            put("sql.args.2.type", "4");
-            put("sql.args.2.value", "5");
-        }};
+    public void testSelectQueryInFlowFileWithParameters() throws SQLException, IOException {
+        Map<String, String> sqlParams = new HashMap<>();
+        sqlParams.put("sql.args.1.type", "4");
+        sqlParams.put("sql.args.1.value", "20");
+        sqlParams.put("sql.args.2.type", "4");
+        sqlParams.put("sql.args.2.value", "5");
 
         invokeOnTrigger(null, QUERY_WITHOUT_EL_WITH_PARAMS, true, sqlParams, false);
     }
 
     @Test
-    public void testQueryTimeout() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    public void testQueryTimeout() throws SQLException, IOException {
         // Does to seem to have any effect when using embedded Derby
         invokeOnTrigger(1, QUERY_WITH_EL, true, null, true); // 1 second max time
     }
 
     @Test
-    public void testAutoCommitFalse() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    public void testAutoCommitFalse() throws SQLException, IOException {
         runner.setProperty(ExecuteSQL.AUTO_COMMIT, "false");
         invokeOnTrigger(null, QUERY_WITHOUT_EL, true, null, false);
     }
 
     @Test
-    public void testAutoCommitTrue() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    public void testAutoCommitTrue() throws SQLException, IOException {
         runner.setProperty(ExecuteSQL.AUTO_COMMIT, "true");
         invokeOnTrigger(null, QUERY_WITHOUT_EL, true, null, false);
     }
@@ -198,7 +194,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -211,12 +207,12 @@ public class TestExecuteSQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0).assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "2");
-        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0).assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
+        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst().assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "2");
+        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst().assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
     }
 
     @Test
-    public void testCompression() throws SQLException, CompressorException, IOException {
+    public void testCompression() throws SQLException, IOException {
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
@@ -227,7 +223,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -242,9 +238,9 @@ public class TestExecuteSQL {
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
 
-        try (DataFileStream<GenericRecord> dfs = new DataFileStream<>(new ByteArrayInputStream(flowFile.toByteArray()), new GenericDatumReader<GenericRecord>())) {
+        try (DataFileStream<GenericRecord> dfs = new DataFileStream<>(new ByteArrayInputStream(flowFile.toByteArray()), new GenericDatumReader<>())) {
             assertEquals(AvroUtil.CodecType.BZIP2.name().toLowerCase(), dfs.getMetaString(DataFileConstants.CODEC).toLowerCase());
         }
     }
@@ -261,7 +257,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -280,7 +276,7 @@ public class TestExecuteSQL {
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeNotExists(FragmentAttributes.FRAGMENT_COUNT.key());
@@ -306,7 +302,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -332,7 +328,7 @@ public class TestExecuteSQL {
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeNotExists(FragmentAttributes.FRAGMENT_COUNT.key());
@@ -362,7 +358,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -383,7 +379,7 @@ public class TestExecuteSQL {
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_COUNT.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
@@ -408,7 +404,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -418,7 +414,7 @@ public class TestExecuteSQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0).assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "0");
+        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst().assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "0");
     }
 
     @Test
@@ -433,7 +429,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -444,7 +440,7 @@ public class TestExecuteSQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "0");
         final InputStream in = new ByteArrayInputStream(firstFlowFile.toByteArray());
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
@@ -476,7 +472,7 @@ public class TestExecuteSQL {
         try {
             stmt.execute("drop table host1");
             stmt.execute("drop table host2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table host1 (id integer not null, host varchar(45))");
@@ -489,7 +485,7 @@ public class TestExecuteSQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0).assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "1");
+        runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst().assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "1");
     }
 
     @Test
@@ -504,7 +500,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NO_ROWS");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NO_ROWS (id integer)");
@@ -547,15 +543,15 @@ public class TestExecuteSQL {
         runner.assertTransferCount(ExecuteSQL.REL_SUCCESS, 0);
 
         // Assert exception message has been put to flow file attribute
-        MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_FAILURE).get(0);
+        MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_FAILURE).getFirst();
         assertEquals("java.sql.SQLException: test execute statement failed", failedFlowFile.getAttribute(ExecuteSQL.RESULT_ERROR_MESSAGE));
     }
 
     public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final Map<String, String> attrs, final boolean setQueryProperty)
-        throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        throws SQLException, IOException {
 
         if (queryTimeout != null) {
-            runner.setProperty(ExecuteSQL.QUERY_TIMEOUT, queryTimeout.toString() + " secs");
+            runner.setProperty(ExecuteSQL.QUERY_TIMEOUT, queryTimeout + " secs");
         }
 
         // remove previous test database, if any
@@ -599,13 +595,13 @@ public class TestExecuteSQL {
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, ExecuteSQL.RESULT_ROW_COUNT);
 
         final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS);
-        final long executionTime = Long.parseLong(flowfiles.get(0).getAttribute(ExecuteSQL.RESULT_QUERY_EXECUTION_TIME));
-        final long fetchTime = Long.parseLong(flowfiles.get(0).getAttribute(ExecuteSQL.RESULT_QUERY_FETCH_TIME));
-        final long durationTime = Long.parseLong(flowfiles.get(0).getAttribute(ExecuteSQL.RESULT_QUERY_DURATION));
+        final long executionTime = Long.parseLong(flowfiles.getFirst().getAttribute(ExecuteSQL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(flowfiles.getFirst().getAttribute(ExecuteSQL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(flowfiles.getFirst().getAttribute(ExecuteSQL.RESULT_QUERY_DURATION));
 
         assertEquals(durationTime, fetchTime + executionTime);
 
-        final InputStream in = new ByteArrayInputStream(flowfiles.get(0).toByteArray());
+        final InputStream in = new ByteArrayInputStream(flowfiles.getFirst().toByteArray());
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
         try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
             GenericRecord record = null;
@@ -635,7 +631,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -648,7 +644,7 @@ public class TestExecuteSQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "1");
 
         final InputStream in = new ByteArrayInputStream(firstFlowFile.toByteArray());
@@ -680,7 +676,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -694,7 +690,7 @@ public class TestExecuteSQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "1");
 
         final InputStream in = new ByteArrayInputStream(firstFlowFile.toByteArray());
@@ -726,7 +722,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -753,7 +749,7 @@ public class TestExecuteSQL {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -767,7 +763,7 @@ public class TestExecuteSQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_FAILURE, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_FAILURE).get(0);
+        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_FAILURE).getFirst();
         firstFlowFile.assertContentEquals("test");
     }
 

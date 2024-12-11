@@ -657,7 +657,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.hasParameterContext(selection);
                 },
-                clazz: 'fa',
+                clazz: 'fa fa-list-alt primary-color',
                 text: 'Parameters',
                 action: (selection: d3.Selection<any, any, any, any>) => {
                     let id;

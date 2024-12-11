@@ -20,12 +20,12 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.TenantsClient;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 
@@ -66,17 +66,19 @@ public class UpdateUserGroup extends AbstractNiFiCommand<VoidResult> {
         final String groupId = getArg(properties, CommandOption.UG_ID);
 
         if ((StringUtils.isBlank(group) && StringUtils.isBlank(groupId))
-            || (StringUtils.isNotBlank(group) && StringUtils.isNotBlank(groupId))) {
+                || (StringUtils.isNotBlank(group) && StringUtils.isNotBlank(groupId))) {
             throw new CommandException("Specify either \"" + CommandOption.UG_NAME.getLongName()
-                + "\" or \"" + CommandOption.UG_ID.getLongName() + "\" (not both)");
+                    + "\" or \"" + CommandOption.UG_ID.getLongName() + "\" (not both)");
         }
 
         UserGroupEntity existingGroup;
 
         if (StringUtils.isNotBlank(group)) {
-            final Optional<UserGroupEntity> existingGroupEntity = tenantsClient.getUserGroups().getUserGroups().stream()
-                .filter(userGroupEntity -> group.equals(userGroupEntity.getComponent().getIdentity()))
-                .findAny();
+            final Optional<UserGroupEntity> existingGroupEntity = tenantsClient.getUserGroups()
+                    .getUserGroups()
+                    .stream()
+                    .filter(userGroupEntity -> group.equals(userGroupEntity.getComponent().getIdentity()))
+                    .findAny();
 
             if (!existingGroupEntity.isPresent()) {
                 throw new CommandException("User group does not exist for identity \"" + group + "\"");
@@ -94,7 +96,7 @@ public class UpdateUserGroup extends AbstractNiFiCommand<VoidResult> {
 
         if (StringUtils.isNotBlank(users)) {
             tenantEntities.addAll(
-                generateTenantEntities(users, client.getTenantsClient().getUsers()));
+                    generateTenantEntities(users, client.getTenantsClient().getUsers()));
         }
 
         if (StringUtils.isNotBlank(userIds)) {

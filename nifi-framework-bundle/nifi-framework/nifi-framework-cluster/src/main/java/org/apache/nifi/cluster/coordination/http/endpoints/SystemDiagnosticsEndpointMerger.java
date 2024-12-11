@@ -49,7 +49,7 @@ public class SystemDiagnosticsEndpointMerger extends AbstractNodeStatusEndpoint<
     @Override
     protected void mergeResponses(SystemDiagnosticsDTO clientDto, Map<NodeIdentifier, SystemDiagnosticsDTO> dtoMap, NodeIdentifier selectedNodeId) {
         final SystemDiagnosticsDTO mergedSystemDiagnostics = clientDto;
-        mergedSystemDiagnostics.setNodeSnapshots(new ArrayList<NodeSystemDiagnosticsSnapshotDTO>());
+        mergedSystemDiagnostics.setNodeSnapshots(new ArrayList<>());
 
         final NodeSystemDiagnosticsSnapshotDTO selectedNodeSnapshot = new NodeSystemDiagnosticsSnapshotDTO();
         selectedNodeSnapshot.setSnapshot(clientDto.getAggregateSnapshot().clone());

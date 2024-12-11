@@ -206,11 +206,20 @@ public abstract class ApplicationResource {
     }
 
     protected String generateUuid() {
+        return generateUuid(null);
+    }
+
+    protected String generateUuid(final String currentId) {
         final Optional<String> seed = getIdGenerationSeed();
         UUID uuid;
         if (seed.isPresent()) {
             try {
-                UUID seedId = UUID.fromString(seed.get());
+                final UUID seedId;
+                if (currentId == null) {
+                    seedId = UUID.fromString(seed.get());
+                } else {
+                    seedId = UUID.nameUUIDFromBytes((currentId + seed.get()).getBytes(StandardCharsets.UTF_8));
+                }
                 uuid = new UUID(seedId.getMostSignificantBits(), seed.get().hashCode());
             } catch (Exception e) {
                 logger.warn("Provided 'seed' does not represent UUID. Will not be able to extract most significant bits for ID generation.");
@@ -426,18 +435,24 @@ public abstract class ApplicationResource {
      * @param authorizeReferencedServices whether to authorize referenced services
      * @param authorizeControllerServices whether to authorize controller services
      * @param authorizeTransitiveServices whether to authorize transitive services
-     * @param authorizeParameterReferences whether to authorize parameter references
+     * @param authorizeParameterReferences whether to authorize parameter context that contained referenced parameter if applicable
+     * @param authorizeParameterContext whether to authorize the bound parameter context if applicable
      */
     protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
                                          final boolean authorizeReferencedServices,
                                          final boolean authorizeControllerServices, final boolean authorizeTransitiveServices,
-                                         final boolean authorizeParameterReferences) {
+                                         final boolean authorizeParameterReferences, final boolean authorizeParameterContext) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, user);
 
         // authorize the process group
         authorize.accept(processGroupAuthorizable.getAuthorizable());
+
+        // authorize the parameter context for the specified process group
+        if (authorizeParameterContext) {
+            processGroupAuthorizable.getParameterContextAuthorizable().ifPresent(authorize);
+        }
 
         // authorize the contents of the group - these methods return all encapsulated components (recursive)
         processGroupAuthorizable.getEncapsulatedProcessors().forEach(processorAuthorizable -> {
@@ -459,7 +474,15 @@ public abstract class ApplicationResource {
         processGroupAuthorizable.getEncapsulatedOutputPorts().forEach(authorize);
         processGroupAuthorizable.getEncapsulatedFunnels().forEach(authorize);
         processGroupAuthorizable.getEncapsulatedLabels().forEach(authorize);
-        processGroupAuthorizable.getEncapsulatedProcessGroups().stream().map(group -> group.getAuthorizable()).forEach(authorize);
+        processGroupAuthorizable.getEncapsulatedProcessGroups().forEach(pga -> {
+            final Authorizable authorizable = pga.getAuthorizable();
+
+            authorize.accept(authorizable);
+
+            if (authorizeParameterContext) {
+                pga.getParameterContextAuthorizable().ifPresent(authorize);
+            }
+        });
         processGroupAuthorizable.getEncapsulatedRemoteProcessGroups().forEach(authorize);
 
         // authorize controller services if necessary
@@ -488,7 +511,8 @@ public abstract class ApplicationResource {
      * @param action action
      */
     protected void authorizeSnippet(final SnippetAuthorizable snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
-                                    final boolean authorizeReferencedServices, final boolean authorizeTransitiveServices, final boolean authorizeParameterReferences) {
+                                    final boolean authorizeReferencedServices, final boolean authorizeTransitiveServices, final boolean authorizeParameterReferences,
+                                    final boolean authorizeParameterContext) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, user);
@@ -498,7 +522,7 @@ public abstract class ApplicationResource {
             // note - we are not authorizing controller services as they are not considered when using this snippet. however,
             // referenced services are considered so those are explicitly authorized when authorizing a processor
             authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices,
-                    false, authorizeTransitiveServices, authorizeParameterReferences);
+                    false, authorizeTransitiveServices, authorizeParameterReferences, authorizeParameterContext);
         });
         snippet.getSelectedRemoteProcessGroups().forEach(authorize);
         snippet.getSelectedProcessors().forEach(processorAuthorizable -> {
@@ -1055,7 +1079,7 @@ public abstract class ApplicationResource {
         }
     }
 
-    @Autowired
+    @Autowired(required = false)
     public void setRequestReplicator(final RequestReplicator requestReplicator) {
         this.requestReplicator = requestReplicator;
     }
@@ -1071,7 +1095,7 @@ public abstract class ApplicationResource {
         this.properties = properties;
     }
 
-    @Autowired
+    @Autowired(required = false)
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
     }

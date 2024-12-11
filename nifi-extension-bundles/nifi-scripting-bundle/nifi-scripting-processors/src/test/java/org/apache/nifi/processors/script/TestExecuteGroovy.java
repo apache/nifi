@@ -23,8 +23,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -149,10 +149,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
         runner.setProperty("myProp", "${myAttr}");
 
         runner.assertValid();
-        runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8),
-                new HashMap<String, String>(1) {{
-                    put("myAttr", "testValue");
-                }});
+        runner.enqueue(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8), Map.of("myAttr", "testValue"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);

@@ -47,11 +47,13 @@ public enum CommandOption {
     FLOW_NAME("fn", "flowName", "A flow name", true),
     FLOW_DESC("fd", "flowDesc", "A flow description", true),
     FLOW_VERSION("fv", "flowVersion", "A version of a flow", true),
+    FLOW_BRANCH("fb", "flowBranch", "A branch for the flow", true),
 
     FLOW_VERSION_1("fv1", "flowVersion1", "A version of a flow", true),
     FLOW_VERSION_2("fv2", "flowVersion2", "A version of a flow", true),
 
-    // Registry - Source options for when there are two registries involved and one is a source
+    // Registry - Source options for when there are two registries involved and one
+    // is a source
     SRC_PROPS("sp", "sourceProps", "A properties file to load for the source", true, true),
     SRC_FLOW_ID("sf", "sourceFlowIdentifier", "A flow identifier from the source registry", true),
     SRC_FLOW_VERSION("sfv", "sourceFlowVersion", "A version of a flow from the source registry", true),
@@ -98,6 +100,9 @@ public enum CommandOption {
     DESTINATION_PG("destPg", "destination-pg", "The ID of the destination process group", true),
     SOURCE_OUTPUT_PORT("sourceOutput", "source-output-port", "The name of the output port in the source process group", true),
     DESTINATION_INPUT_PORT("destInput", "destination-input-port", "The name of the input port in the destination process group", true),
+
+    // NiFi - Processors
+    PROC_ID("procid", "processorId", "The id of a processor", true),
 
     // NiFi - Controller Services
     CS_ID("cs", "controllerServiceId", "The id of a controller service", true),
@@ -186,6 +191,7 @@ public enum CommandOption {
     KERBEROS_PASSWORD("krbPw", "kerberosPassword", "The password for a kerberos principal", true),
 
     // Miscellaneous
+    FILTER("filter", "filter", "Indicates a filter that should be used to perform the action", true),
     FORCE("force", "force", "Indicates to force the operation", false),
     OUTPUT_TYPE("ot", "outputType", "The type of output to produce (json or simple)", true),
     VERBOSE("verbose", "verbose", "Indicates that verbose output should be provided", false),

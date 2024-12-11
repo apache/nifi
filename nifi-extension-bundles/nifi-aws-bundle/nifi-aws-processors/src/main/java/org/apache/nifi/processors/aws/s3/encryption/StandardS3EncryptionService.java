@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -73,14 +72,13 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     private static final AllowableValue CSE_KMS = new AllowableValue(STRATEGY_NAME_CSE_KMS, "Client-side KMS", "Use client-side, KMS key to perform encryption.");
     private static final AllowableValue CSE_C = new AllowableValue(STRATEGY_NAME_CSE_C, "Client-side Customer Key", "Use client-side, customer-supplied key to perform encryption.");
 
-    public static final Map<String, AllowableValue> ENCRYPTION_STRATEGY_ALLOWABLE_VALUES = new HashMap<String, AllowableValue>() {{
-        put(STRATEGY_NAME_NONE, NONE);
-        put(STRATEGY_NAME_SSE_S3, SSE_S3);
-        put(STRATEGY_NAME_SSE_KMS, SSE_KMS);
-        put(STRATEGY_NAME_SSE_C, SSE_C);
-        put(STRATEGY_NAME_CSE_KMS, CSE_KMS);
-        put(STRATEGY_NAME_CSE_C, CSE_C);
-    }};
+    public static final Map<String, AllowableValue> ENCRYPTION_STRATEGY_ALLOWABLE_VALUES =
+            Map.of(STRATEGY_NAME_NONE, NONE,
+                    STRATEGY_NAME_SSE_S3, SSE_S3,
+                    STRATEGY_NAME_SSE_KMS, SSE_KMS,
+                    STRATEGY_NAME_SSE_C, SSE_C,
+                    STRATEGY_NAME_CSE_KMS, CSE_KMS,
+                    STRATEGY_NAME_CSE_C, CSE_C);
 
     public static final PropertyDescriptor ENCRYPTION_STRATEGY = new PropertyDescriptor.Builder()
             .name("encryption-strategy")

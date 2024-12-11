@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventException;
@@ -47,7 +48,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
-import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
 
@@ -78,9 +78,9 @@ public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
         final Collection<ValidationResult> results = new ArrayList<>();
 
         final String protocol = context.getProperty(PROTOCOL).getValue();
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
 
-        if (UDP_VALUE.getValue().equals(protocol) && sslContextService != null) {
+        if (UDP_VALUE.getValue().equals(protocol) && sslContextServiceProperty.isSet()) {
             results.add(new ValidationResult.Builder()
                     .explanation("SSL can not be used with UDP")
                     .valid(false).subject("SSL Context").build());

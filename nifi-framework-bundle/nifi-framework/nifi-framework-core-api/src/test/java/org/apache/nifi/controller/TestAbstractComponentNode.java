@@ -307,6 +307,37 @@ public class TestAbstractComponentNode {
     }
 
     @Test
+    public void testSetPropertiesPropertyModified() {
+        final String propertyValueModified = PROPERTY_VALUE + "-modified";
+        final List<PropertyModification> propertyModifications = new ArrayList<>();
+        final AbstractComponentNode node = new LocalComponentNode() {
+            @Override
+            protected void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+                propertyModifications.add(new PropertyModification(descriptor, oldValue, newValue));
+                super.onPropertyModified(descriptor, oldValue, newValue);
+            }
+        };
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(PROPERTY_NAME, PROPERTY_VALUE);
+        node.setProperties(properties);
+
+        assertEquals(1, propertyModifications.size());
+        PropertyModification mod = propertyModifications.get(0);
+        assertNull(mod.getPreviousValue());
+        assertEquals(PROPERTY_VALUE, mod.getUpdatedValue());
+        propertyModifications.clear();
+
+        properties.put(PROPERTY_NAME, propertyValueModified);
+        node.setProperties(properties);
+
+        assertEquals(1, propertyModifications.size());
+        mod = propertyModifications.get(0);
+        assertEquals(PROPERTY_VALUE, mod.getPreviousValue());
+        assertEquals(propertyValueModified, mod.getUpdatedValue());
+    }
+
+    @Test
     public void testSetPropertiesSensitiveDynamicPropertyNames() {
         final AbstractComponentNode node = new LocalComponentNode();
 

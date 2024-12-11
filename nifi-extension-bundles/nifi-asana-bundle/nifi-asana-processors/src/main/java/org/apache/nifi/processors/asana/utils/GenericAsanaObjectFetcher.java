@@ -108,7 +108,7 @@ public abstract class GenericAsanaObjectFetcher<T extends Resource> extends Abst
                 });
 
         return new FilterIterator<>(
-                new Iterator<AsanaObject>() {
+                new Iterator<>() {
                     Iterator<AsanaObject> it = currentObjects.iterator();
                     Set<String> unseenIds = new HashSet<>(lastFingerprints.keySet()); // copy all previously seen ids.
 

@@ -84,45 +84,20 @@ public class SalesforceToRecordSchemaConverter {
 
     private RecordField convertSObjectFieldToRecordField(SObjectField field) {
         String soapType = field.getSoapType();
-        DataType dataType;
-        switch (soapType.substring(soapType.indexOf(':') + 1)) {
-            case "ID":
-            case "string":
-            case "json":
-            case "base64Binary":
-            case "anyType":
-                dataType = RecordFieldType.STRING.getDataType();
-                break;
-            case "int":
-                dataType = RecordFieldType.INT.getDataType();
-                break;
-            case "long":
-                dataType = RecordFieldType.LONG.getDataType();
-                break;
-            case "double":
-                dataType = RecordFieldType.DOUBLE.getDataType();
-                break;
-            case "boolean":
-                dataType = RecordFieldType.BOOLEAN.getDataType();
-                break;
-            case "date":
-                dataType = RecordFieldType.DATE.getDataType(dateFormat);
-                break;
-            case "dateTime":
-                dataType = RecordFieldType.TIMESTAMP.getDataType(dateTimeFormat);
-                break;
-            case "time":
-                dataType = RecordFieldType.TIME.getDataType(timeFormat);
-                break;
-            case "address":
-                dataType = RecordFieldType.RECORD.getRecordDataType(createAddressSchema());
-                break;
-            case "location":
-                dataType = RecordFieldType.RECORD.getRecordDataType(createLocationSchema());
-                break;
-            default:
-                throw new IllegalArgumentException(String.format("Could not convert field '%s' of soap type '%s'.", field.getName(), soapType));
-        }
+        DataType dataType = switch (soapType.substring(soapType.indexOf(':') + 1)) {
+            case "ID", "string", "json", "base64Binary", "anyType" -> RecordFieldType.STRING.getDataType();
+            case "int" -> RecordFieldType.INT.getDataType();
+            case "long" -> RecordFieldType.LONG.getDataType();
+            case "double" -> RecordFieldType.DOUBLE.getDataType();
+            case "boolean" -> RecordFieldType.BOOLEAN.getDataType();
+            case "date" -> RecordFieldType.DATE.getDataType(dateFormat);
+            case "dateTime" -> RecordFieldType.TIMESTAMP.getDataType(dateTimeFormat);
+            case "time" -> RecordFieldType.TIME.getDataType(timeFormat);
+            case "address" -> RecordFieldType.RECORD.getRecordDataType(createAddressSchema());
+            case "location" -> RecordFieldType.RECORD.getRecordDataType(createLocationSchema());
+            default ->
+                    throw new IllegalArgumentException(String.format("Could not convert field '%s' of soap type '%s'.", field.getName(), soapType));
+        };
         return new RecordField(field.getName(), dataType, field.getDefaultValue(), field.isNillable());
     }
 

@@ -25,7 +25,7 @@ import java.util.Objects;
  * Converter for customized User Identity using SAML Attribute Value
  */
 public class AttributeNameIdentityConverter implements Converter<Saml2AuthenticatedPrincipal, String> {
-    private String attributeName;
+    private final String attributeName;
 
     public AttributeNameIdentityConverter(final String attributeName) {
         this.attributeName = Objects.requireNonNull(attributeName, "Attribute Name required");

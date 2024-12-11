@@ -23,7 +23,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.configuration.AuthenticationConfiguration;
 import org.apache.nifi.web.configuration.WebApplicationConfiguration;
 import org.apache.nifi.web.security.configuration.WebSecurityConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -71,14 +70,12 @@ public class NiFiWebApiConfiguration {
      * @param properties NiFi Properties
      * @return Audit Service implementation using Persistent Entity Store
      */
-    @Autowired
     @Bean
     public AuditService auditService(final NiFiProperties properties) {
         final File databaseDirectory = properties.getDatabaseRepositoryPath().toFile();
         return new EntityStoreAuditService(databaseDirectory);
     }
 
-    @Autowired
     @Bean
     public AuthenticationConfiguration authenticationConfiguration(final NiFiProperties properties) {
         final URI loginUri;

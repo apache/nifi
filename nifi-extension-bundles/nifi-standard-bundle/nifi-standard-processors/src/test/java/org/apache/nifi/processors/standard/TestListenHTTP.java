@@ -32,13 +32,11 @@ import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -54,6 +52,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 
@@ -118,6 +118,7 @@ public class TestListenHTTP {
     private static SSLContext keyStoreSslContext;
     private static SSLContext trustStoreSslContext;
     private static X509TrustManager trustManager;
+    private static X509TrustManager defaultTrustManager;
 
     private ListenHTTP proc;
     private TestRunner runner;
@@ -130,7 +131,6 @@ public class TestListenHTTP {
                 .addPrivateKeyEntry(new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new Certificate[]{certificate}))
                 .build();
         final char[] protectionParameter = new char[]{};
-
         trustManager = new StandardTrustManagerBuilder().trustStore(keyStore).build();
         serverKeyStoreNoTrustStoreSslContext = new StandardSslContextBuilder()
                 .keyStore(keyStore)
@@ -145,6 +145,11 @@ public class TestListenHTTP {
         trustStoreSslContext = new StandardSslContextBuilder()
                 .trustStore(keyStore)
                 .build();
+
+        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init((KeyStore) null);
+        final TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+        defaultTrustManager = (X509TrustManager) trustManagers[0];
     }
 
     @BeforeEach
@@ -624,24 +629,22 @@ public class TestListenHTTP {
     }
 
     private void configureProcessorSslContextService(final ListenHTTP.ClientAuthentication clientAuthentication) throws InitializationException {
-        final RestrictedSSLContextService sslContextService = mock(RestrictedSSLContextService.class);
-        when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_IDENTIFIER);
-
-        final TlsConfiguration tlsConfiguration = mock(TlsConfiguration.class);
-        when(tlsConfiguration.getEnabledProtocols()).thenReturn(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
-        when(sslContextService.createTlsConfiguration()).thenReturn(tlsConfiguration);
+        final SSLContextProvider sslContextProvider = mock(SSLContextProvider.class);
+        when(sslContextProvider.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_IDENTIFIER);
 
         if (ListenHTTP.ClientAuthentication.REQUIRED.equals(clientAuthentication)) {
-            when(sslContextService.createContext()).thenReturn(keyStoreSslContext);
+            when(sslContextProvider.createContext()).thenReturn(keyStoreSslContext);
+            when(sslContextProvider.createTrustManager()).thenReturn(trustManager);
         } else {
-            when(sslContextService.createContext()).thenReturn(serverKeyStoreNoTrustStoreSslContext);
+            when(sslContextProvider.createContext()).thenReturn(serverKeyStoreNoTrustStoreSslContext);
+            when(sslContextProvider.createTrustManager()).thenReturn(defaultTrustManager);
         }
-        runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
+        runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextProvider);
 
         runner.setProperty(ListenHTTP.CLIENT_AUTHENTICATION, clientAuthentication.name());
         runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
 
-        runner.enableControllerService(sslContextService);
+        runner.enableControllerService(sslContextProvider);
     }
 
     @Test
@@ -650,8 +653,8 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_OK));
         runner.setProperty(ListenHTTP.MULTIPART_READ_BUFFER_SIZE, "10 b");
 
-        final SSLContextService sslContextService = runner.getControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, SSLContextService.class);
-        final boolean isSecure = (sslContextService != null);
+        final SSLContextProvider sslContextProvider = runner.getControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, SSLContextProvider.class);
+        final boolean isSecure = (sslContextProvider != null);
         final int port = startWebServer();
 
         final File file1 = createTextFile("Hello", "World");

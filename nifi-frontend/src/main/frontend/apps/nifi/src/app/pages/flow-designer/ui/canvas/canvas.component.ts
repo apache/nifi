@@ -25,6 +25,7 @@ import {
     editComponent,
     editCurrentProcessGroup,
     loadProcessGroup,
+    paste,
     resetFlowState,
     selectComponents,
     setSkipTransform,
@@ -70,6 +71,8 @@ import { ComponentType, isDefinedAndNotNull, selectUrl, Storage } from '@nifi/sh
 import { CanvasUtils } from '../../service/canvas-utils.service';
 import { CanvasActionsService } from '../../service/canvas-actions.service';
 import { MatDialog } from '@angular/material/dialog';
+import { CopyResponseEntity } from '../../../../state/copy';
+import { snackBarError } from '../../../../state/error/error.actions';
 
 @Component({
     selector: 'fd-canvas',
@@ -629,7 +632,7 @@ export class Canvas implements OnInit, OnDestroy {
         this.canvasView.destroy();
     }
 
-    private processKeyboardEvents(event: KeyboardEvent): boolean {
+    private processKeyboardEvents(event: KeyboardEvent | ClipboardEvent): boolean {
         const source = event.target as any;
         let searchFieldIsEventSource = false;
         if (source) {
@@ -696,17 +699,26 @@ export class Canvas implements OnInit, OnDestroy {
         }
     }
 
-    @HostListener('window:keydown.control.v', ['$event'])
-    handleKeyDownCtrlV(event: KeyboardEvent) {
-        if (this.executeAction('paste', event)) {
-            event.preventDefault();
+    @HostListener('window:paste', ['$event'])
+    handlePasteEvent(event: ClipboardEvent) {
+        if (!this.processKeyboardEvents(event) || !this.canvasUtils.isPastable()) {
+            // don't attempt to paste flow content
+            return;
         }
-    }
 
-    @HostListener('window:keydown.meta.v', ['$event'])
-    handleKeyDownMetaV(event: KeyboardEvent) {
-        if (this.executeAction('paste', event)) {
-            event.preventDefault();
+        const textToPaste = event.clipboardData?.getData('text/plain');
+        if (textToPaste) {
+            const copyResponse: CopyResponseEntity | null = this.toCopyResponseEntity(textToPaste);
+            if (copyResponse) {
+                this.store.dispatch(
+                    paste({
+                        request: copyResponse
+                    })
+                );
+                event.preventDefault();
+            } else {
+                this.store.dispatch(snackBarError({ error: 'Cannot paste: incompatible format' }));
+            }
         }
     }
 
@@ -721,6 +733,37 @@ export class Canvas implements OnInit, OnDestroy {
     handleKeyDownMetaA(event: KeyboardEvent) {
         if (this.executeAction('selectAll', event)) {
             event.preventDefault();
+        }
+    }
+
+    private toCopyResponseEntity(json: string): CopyResponseEntity | null {
+        try {
+            const copyResponse: CopyResponseEntity = JSON.parse(json);
+            const supportedKeys: string[] = [
+                'processGroups',
+                'remoteProcessGroups',
+                'processors',
+                'inputPorts',
+                'outputPorts',
+                'connections',
+                'labels',
+                'funnels'
+            ];
+
+            // ensure at least one of the copyable component types has something to paste
+            const hasCopiedContent = Object.entries(copyResponse).some((entry) => {
+                return supportedKeys.includes(entry[0]) && Array.isArray(entry[1]) && entry[1].length > 0;
+            });
+
+            if (hasCopiedContent) {
+                return copyResponse;
+            }
+
+            // attempting to paste something other than CopyResponseEntity
+            return null;
+        } catch (e) {
+            // attempting to paste something other than CopyResponseEntity
+            return null;
         }
     }
 }

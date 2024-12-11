@@ -15,19 +15,37 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>
-    <div class="flex justify-between items-baseline">
-        <div>
-            {{ readonly ? 'Processor Details' : 'Edit Processor' }}
+<h2 id="edit-processor-header" mat-dialog-title>
+    <div class="flex justify-between items-center">
+        <div class="flex items-baseline">
+            <div class="mr-2">
+                {{ readonly ? 'Processor Details' : 'Edit Processor' }}
+            </div>
+            |
+            <div class="ml-2 text-base">
+                {{ formatType() }}
+            </div>
         </div>
-        <div class="text-base">
-            {{ formatType(request.entity) }}
+        <div class="flex">
+            @if (hasBulletins()) {
+                <div class="w-[48px]">
+                    <div
+                        nifiTooltip
+                        [delayClose]="true"
+                        [tooltipComponentType]="BulletinsTip"
+                        [tooltipInputData]="getBulletinsTipData()"
+                        [position]="getBulletinTooltipPosition()"
+                        [ngClass]="getMostSevereBulletinLevel()"
+                        class="absolute top-0 right-0 text-3xl h-14 w-14 bulletins has-bulletins flex justify-center items-center">
+                        <i class="fa fa-sticky-note-o"></i>
+                    </div>
+                </div>
+            }
         </div>
     </div>
 </h2>
 <form class="processor-edit-form" [formGroup]="editProcessorForm">
     <context-error-banner [context]="ErrorContextKey.PROCESSOR"></context-error-banner>
-    <!-- TODO - Stop & Configure -->
     <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
         <mat-tab label="Settings">
             <mat-dialog-content>
@@ -48,13 +66,13 @@
                         <div class="flex flex-col mb-5">
                             <div>Type</div>
                             <div class="tertiary-color font-medium">
-                                {{ formatType(request.entity) }}
+                                {{ formatType() }}
                             </div>
                         </div>
                         <div class="flex flex-col mb-6">
                             <div>Bundle</div>
                             <div class="tertiary-color font-medium">
-                                {{ formatBundle(request.entity) }}
+                                {{ formatBundle() }}
                             </div>
                         </div>
                         <div class="flex gap-x-4">
@@ -290,19 +308,106 @@
         </mat-tab>
     </mat-tab-group>
     @if ({ value: (saving$ | async)! }; as saving) {
-        <mat-dialog-actions align="end">
-            @if (readonly) {
-                <button mat-flat-button mat-dialog-close>Close</button>
-            } @else {
-                <button mat-button mat-dialog-close>Cancel</button>
-                <button
-                    [disabled]="!editProcessorForm.dirty || editProcessorForm.invalid || saving.value"
-                    type="button"
-                    (click)="submitForm()"
-                    mat-flat-button>
-                    <span *nifiSpinner="saving.value">Apply</span>
-                </button>
-            }
+        <mat-dialog-actions align="start">
+            <div class="flex w-full justify-between items-center">
+                <div>
+                    @if (isStoppable()) {
+                        <button
+                            type="button"
+                            [disabled]="!canOperate()"
+                            mat-stroked-button
+                            [matMenuTriggerFor]="operateMenu">
+                            <div class="flex items-center">
+                                <i class="mr-2 success-color-default fa fa-play"></i>Running<i
+                                    class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                            </div>
+                        </button>
+                    } @else if (isRunnable()) {
+                        <button
+                            type="button"
+                            [disabled]="!canOperate()"
+                            mat-stroked-button
+                            [matMenuTriggerFor]="operateMenu">
+                            <div class="flex items-center">
+                                <i class="mr-2 error-color-variant fa fa-stop"></i>Stopped<i
+                                    class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                            </div>
+                        </button>
+                    } @else if (isDisabled()) {
+                        <button
+                            type="button"
+                            [disabled]="!canOperate()"
+                            mat-stroked-button
+                            [matMenuTriggerFor]="operateMenu">
+                            <div class="flex items-center">
+                                <i class="mr-2 icon icon-enable-false primary-color"></i>Disable<i
+                                    class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                            </div>
+                        </button>
+                    } @else if (isStopping()) {
+                        <button type="button" [disabled]="true" mat-stroked-button [matMenuTriggerFor]="operateMenu">
+                            <div class="flex items-center">
+                                <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>Stopping ({{
+                                    status.aggregateSnapshot.activeThreadCount
+                                }})
+                            </div>
+                        </button>
+                    } @else if (isValidating()) {
+                        <button type="button" [disabled]="true" mat-stroked-button [matMenuTriggerFor]="operateMenu">
+                            <div class="flex items-center">
+                                <i class="mr-2 fa fa-circle-o-notch fa-spin primary-color"></i>Validating
+                            </div>
+                        </button>
+                    } @else if (isInvalid()) {
+                        <button
+                            type="button"
+                            mat-stroked-button
+                            [disabled]="!canOperate()"
+                            [matMenuTriggerFor]="operateMenu">
+                            <div class="flex items-center">
+                                <i class="mr-2 fa fa-warning caution-color"></i>Invalid<i
+                                    class="ml-2 -mt-1 fa fa-sort-desc"></i>
+                            </div>
+                        </button>
+                    }
+                    <mat-menu #operateMenu="matMenu" xPosition="before">
+                        @if (isStoppable() && canOperate()) {
+                            <button mat-menu-item (click)="stop()">
+                                <i class="mr-2 fa fa-stop primary-color"></i>Stop
+                            </button>
+                        }
+                        @if (isRunnable() && canOperate()) {
+                            <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="start()">
+                                <i class="mr-2 fa fa-play primary-color"></i>Start
+                            </button>
+                        }
+                        @if (isDisableable() && canOperate()) {
+                            <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="disable()">
+                                <i class="mr-2 icon icon-enable-false primary-color"></i>Disable
+                            </button>
+                        }
+                        @if (isEnableable() && canOperate()) {
+                            <button mat-menu-item [disabled]="editProcessorForm.dirty" (click)="enable()">
+                                <i class="mr-2 fa fa-flash primary-color"></i>Enable
+                            </button>
+                        }
+                    </mat-menu>
+                </div>
+                <div>
+                    @if (readonly) {
+                        <button mat-flat-button mat-dialog-close>Close</button>
+                    } @else {
+                        <button mat-button mat-dialog-close>Cancel</button>
+                        <button
+                            [disabled]="!editProcessorForm.dirty || editProcessorForm.invalid || saving.value"
+                            type="button"
+                            (click)="submitForm()"
+                            mat-flat-button>
+                            <span *nifiSpinner="saving.value">Apply</span>
+                        </button>
+                    }
+                </div>
+            </div>
         </mat-dialog-actions>
     }
 </form>

@@ -18,7 +18,7 @@
 import { Injectable } from '@angular/core';
 import { CanvasUtils } from './canvas-utils.service';
 import {
-    copy,
+    copySuccess,
     deleteComponents,
     disableComponents,
     disableCurrentProcessGroup,
@@ -30,7 +30,6 @@ import {
     navigateToEditCurrentProcessGroup,
     navigateToManageComponentPolicies,
     openChangeColorDialog,
-    paste,
     reloadFlow,
     selectComponents,
     startComponents,
@@ -40,12 +39,10 @@ import {
 } from '../state/flow/flow.actions';
 import {
     ChangeColorRequest,
-    CopyComponentRequest,
     DeleteComponentRequest,
     DisableComponentRequest,
     EnableComponentRequest,
     MoveComponentRequest,
-    PasteRequest,
     SelectedComponent,
     StartComponentRequest,
     StopComponentRequest
@@ -57,6 +54,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { CanvasView } from './canvas-view.service';
 import { ComponentType } from 'libs/shared/src';
 import { Client } from '../../../service/client.service';
+import { CopyRequestContext, CopyRequestEntity, CopyResponseEntity } from '../../../state/copy';
+import { CopyPasteService } from './copy-paste.service';
+import { firstValueFrom } from 'rxjs';
+import { selectCurrentProcessGroupId } from '../state/flow/flow.selectors';
+import { snackBarError } from '../../../state/error/error.actions';
 
 export type CanvasConditionFunction = (selection: d3.Selection<any, any, any, any>) => boolean;
 export type CanvasActionFunction = (selection: d3.Selection<any, any, any, any>, extraArgs?: any) => void;
@@ -139,45 +141,95 @@ export class CanvasActionsService {
                 return this.canvasUtils.isCopyable(selection);
             },
             action: (selection: d3.Selection<any, any, any, any>) => {
-                const origin = this.canvasUtils.getOrigin(selection);
-                const dimensions = this.canvasView.getSelectionBoundingClientRect(selection);
-
-                const components: CopyComponentRequest[] = [];
+                const copyRequestEntity: CopyRequestEntity = {};
                 selection.each((d) => {
-                    components.push({
-                        id: d.id,
-                        type: d.type,
-                        uri: d.uri,
-                        entity: d
-                    });
+                    switch (d.type) {
+                        case ComponentType.Processor:
+                            if (!copyRequestEntity.processors) {
+                                copyRequestEntity.processors = [];
+                            }
+                            copyRequestEntity.processors.push(d.id);
+                            break;
+                        case ComponentType.ProcessGroup:
+                            if (!copyRequestEntity.processGroups) {
+                                copyRequestEntity.processGroups = [];
+                            }
+                            copyRequestEntity.processGroups.push(d.id);
+                            break;
+                        case ComponentType.Connection:
+                            if (!copyRequestEntity.connections) {
+                                copyRequestEntity.connections = [];
+                            }
+                            copyRequestEntity.connections.push(d.id);
+                            break;
+                        case ComponentType.RemoteProcessGroup:
+                            if (!copyRequestEntity.remoteProcessGroups) {
+                                copyRequestEntity.remoteProcessGroups = [];
+                            }
+                            copyRequestEntity.remoteProcessGroups.push(d.id);
+                            break;
+                        case ComponentType.InputPort:
+                            if (!copyRequestEntity.inputPorts) {
+                                copyRequestEntity.inputPorts = [];
+                            }
+                            copyRequestEntity.inputPorts.push(d.id);
+                            break;
+                        case ComponentType.OutputPort:
+                            if (!copyRequestEntity.outputPorts) {
+                                copyRequestEntity.outputPorts = [];
+                            }
+                            copyRequestEntity.outputPorts.push(d.id);
+                            break;
+                        case ComponentType.Label:
+                            if (!copyRequestEntity.labels) {
+                                copyRequestEntity.labels = [];
+                            }
+                            copyRequestEntity.labels.push(d.id);
+                            break;
+                        case ComponentType.Funnel:
+                            if (!copyRequestEntity.funnels) {
+                                copyRequestEntity.funnels = [];
+                            }
+                            copyRequestEntity.funnels.push(d.id);
+                            break;
+                    }
                 });
 
-                this.store.dispatch(
-                    copy({
-                        request: {
-                            components,
-                            origin,
-                            dimensions
+                const copyRequestContext: CopyRequestContext = {
+                    copyRequestEntity,
+                    processGroupId: this.currentProcessGroupId()
+                };
+                let copyResponse: CopyResponseEntity | null = null;
+
+                // Safari in particular is strict in enforcing that any writing to the clipboard needs to be triggered directly by a user action.
+                // As such, firing a simple async rxjs action to initiate the copy sequence fails this check.
+                // However, below is the workaround to construct a ClipboardItem from an async call.
+                const clipboardItem = new ClipboardItem({
+                    'text/plain': firstValueFrom(this.copyService.copy(copyRequestContext)).then((response) => {
+                        copyResponse = response;
+                        return new Blob([JSON.stringify(response, null, 2)], { type: 'text/plain' });
+                    })
+                });
+                navigator.clipboard
+                    .write([clipboardItem])
+                    .then(() => {
+                        if (copyResponse) {
+                            this.store.dispatch(
+                                copySuccess({
+                                    response: {
+                                        copyResponse,
+                                        processGroupId: copyRequestContext.processGroupId,
+                                        pasteCount: 0
+                                    }
+                                })
+                            );
+                        } else {
+                            this.store.dispatch(snackBarError({ error: 'Copy failed' }));
                         }
                     })
-                );
-            }
-        },
-        paste: {
-            id: 'paste',
-            condition: () => {
-                return this.canvasUtils.isPastable();
-            },
-            action: (selection, extraArgs) => {
-                const pasteRequest: PasteRequest = {};
-                if (extraArgs?.pasteLocation) {
-                    pasteRequest.pasteLocation = extraArgs.pasteLocation;
-                }
-                this.store.dispatch(
-                    paste({
-                        request: pasteRequest
-                    })
-                );
+                    .catch(() => {
+                        this.store.dispatch(snackBarError({ error: 'Copy failed' }));
+                    });
             }
         },
         selectAll: {
@@ -479,12 +531,15 @@ export class CanvasActionsService {
         }
     };
 
+    currentProcessGroupId = this.store.selectSignal(selectCurrentProcessGroupId);
+
     constructor(
         private store: Store<CanvasState>,
         private canvasUtils: CanvasUtils,
         private canvasView: CanvasView,
         private dialog: MatDialog,
-        private client: Client
+        private client: Client,
+        private copyService: CopyPasteService
     ) {}
 
     private select(selection: d3.Selection<any, any, any, any>) {

@@ -20,16 +20,17 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.ChangeVersionResult;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.ProcessGroupsResult;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.ProcessGroupsVersionChangeResult;
-import org.apache.nifi.toolkit.cli.impl.result.nifi.ChangeVersionResult;
+import org.apache.nifi.toolkit.client.FlowClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -78,7 +79,7 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
         }
 
         final PGList doPGList = new PGList();
-        final List<ProcessGroupDTO> pgList = new ArrayList<ProcessGroupDTO>();
+        final List<ProcessGroupDTO> pgList = new ArrayList<>();
         recursivePGList(pgList, doPGList, client, properties, parentPgId);
 
         final PGChangeVersion doPGChangeVersion = new PGChangeVersion();
@@ -90,13 +91,14 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
         final boolean forceOperation = properties.containsKey(CommandOption.FORCE.getLongName());
 
         final List<ProcessGroupDTO> processGroups = new ArrayList<>();
-        final Map<String, ChangeVersionResult> changeVersionResults = new HashMap<String, ChangeVersionResult>();
+        final Map<String, ChangeVersionResult> changeVersionResults = new HashMap<>();
 
         for (final ProcessGroupDTO pgDTO : pgList) {
             final VersionControlInformationEntity entity = client.getVersionsClient().getVersionControlInfo(pgDTO.getId());
 
             if (entity.getVersionControlInformation() == null || !entity.getVersionControlInformation().getFlowId().equals(flowId)) {
-                continue; // the process group is not version controlled or does not match the provided Flow ID
+                continue; // the process group is not version controlled or does not match the provided
+                          // Flow ID
             }
 
             if (newVersion == null) {

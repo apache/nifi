@@ -43,7 +43,6 @@ import org.junit.jupiter.api.Test;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -63,9 +62,8 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
         SequenceOfIntegerWrapper berValue = new SequenceOfIntegerWrapper();
         berValue.setValue(value);
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("value", new BigInteger[]{BigInteger.valueOf(1234), BigInteger.valueOf(567)});
-        }};
+        Map<String, Object> expectedValues =
+                Map.of("value", new BigInteger[]{BigInteger.valueOf(1234), BigInteger.valueOf(567)});
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BIGINT.getDataType())))
@@ -85,13 +83,12 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
         basicTypes.setUtf8Str(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
         basicTypes.setBitStr(new BerBitString(new boolean[] {true, false, true, true}));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("b", true);
-            put("i", BigInteger.valueOf(789));
-            put("octStr", "0102030405");
-            put("utf8Str", "Some UTF-8 String. こんにちは世界。");
-            put("bitStr", "1011");
-        }};
+        Map<String, Object> expectedValues =
+                Map.of("b", true,
+                        "i", BigInteger.valueOf(789),
+                        "octStr", "0102030405",
+                        "utf8Str", "Some UTF-8 String. こんにちは世界。",
+                        "bitStr", "1011");
 
         RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("b", RecordFieldType.BOOLEAN.getDataType()),
@@ -189,57 +186,37 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
             return expectedSchema;
         };
 
-        Function<Record, Map<String, Object>> expectedValuesProvider = __ -> new HashMap<String, Object>() {{
-            put(
+        Function<Record, Map<String, Object>> expectedValuesProvider = __ -> Map.of(
                     "child",
-                    new MapRecord(expectedChildSchema, new HashMap<String, Object>() {{
-                        put("b", true);
-                        put("i", BigInteger.valueOf(789));
-                        put("octStr", "0102030405");
-                    }})
-            );
-            put(
+                    new MapRecord(expectedChildSchema, Map.of("b", true,
+                        "i", BigInteger.valueOf(789),
+                        "octStr", "0102030405")),
                     "children",
                     new MapRecord[]{
-                            new MapRecord(expectedChildSchema, new HashMap<String, Object>() {{
-                                put("b", true);
-                                put("i", BigInteger.valueOf(0));
-                                put("octStr", "000000");
-                            }}),
-                            new MapRecord(expectedChildSchema, new HashMap<String, Object>() {{
-                                put("b", false);
-                                put("i", BigInteger.valueOf(1));
-                                put("octStr", "010101");
-                            }}),
-                            new MapRecord(expectedChildSchema, new HashMap<String, Object>() {{
-                                put("b", true);
-                                put("i", BigInteger.valueOf(2));
-                                put("octStr", "020202");
-                            }})
-                    }
-            );
-            put(
+                            new MapRecord(expectedChildSchema, Map.of("b", true,
+                                "i", BigInteger.valueOf(0),
+                                "octStr", "000000")),
+                            new MapRecord(expectedChildSchema, Map.of("b", false,
+                                "i", BigInteger.valueOf(1),
+                                "octStr", "010101")),
+                            new MapRecord(expectedChildSchema, Map.of("b", true,
+                                    "i", BigInteger.valueOf(2),
+                                "octStr", "020202"))
+                    },
                     "unordered",
                     new MapRecord[]{
-                            new MapRecord(expectedChildSchema, new HashMap<String, Object>() {{
-                                put("b", true);
-                                put("i", BigInteger.valueOf(0));
-                                put("octStr", "000000");
-                            }}),
-                            new MapRecord(expectedChildSchema, new HashMap<String, Object>() {{
-                                put("b", false);
-                                put("i", BigInteger.valueOf(1));
-                                put("octStr", "010101");
-                            }})
-                    }
-            );
-            put(
+                            new MapRecord(expectedChildSchema, Map.of("b", true,
+                                "i", BigInteger.valueOf(0),
+                                "octStr", "000000")),
+                            new MapRecord(expectedChildSchema, Map.of("b", false,
+                                "i", BigInteger.valueOf(1),
+                                "octStr", "010101"))
+                    },
                     "numbers",
                     new BigInteger[]{
                             BigInteger.valueOf(0), BigInteger.valueOf(1), BigInteger.valueOf(2), BigInteger.valueOf(3),
                     }
             );
-        }};
 
         testReadRecord(dataFile, composite, expectedValuesProvider, expectedSchemaProvider);
     }
@@ -288,24 +265,16 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
         expectedSchema.setSchemaName("Recursive");
         expectedSchema.setSchemaNamespace("org.apache.nifi.jasn1.example");
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("name", "name");
-            put("children", new MapRecord[]{
-                    new MapRecord(expectedSchema, new HashMap<String, Object>() {{
-                        put("name", "childName1");
-                        put("children", new MapRecord[]{
-                                new MapRecord(expectedSchema, new HashMap<String, Object>() {{
-                                    put("name", "grandChildName11");
-                                    put("children", new MapRecord[0]);
-                                }})
-                        });
-                    }}),
-                    new MapRecord(expectedSchema, new HashMap<String, Object>() {{
-                        put("name", "childName2");
-                        put("children", new MapRecord[0]);
-                    }}),
+        Map<String, Object> expectedValues = Map.of("name", "name",
+            "children", new MapRecord[]{
+                    new MapRecord(expectedSchema, Map.of("name", "childName1",
+                        "children", new MapRecord[]{
+                                new MapRecord(expectedSchema, Map.of("name", "grandChildName11",
+                                        "children", new MapRecord[0]))
+                        })),
+                    new MapRecord(expectedSchema, Map.of("name", "childName2",
+                            "children", new MapRecord[0])),
             });
-        }};
 
         testReadRecord(dataFile, recursive, expectedValues, expectedSchema);
     }
@@ -323,10 +292,8 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
             new RecordField("str", RecordFieldType.STRING.getDataType())
         ));
 
-        Map<String, Object> expectedValues = new HashMap<String, Object>() {{
-            put("i", BigInteger.valueOf(53286L));
-            put("str", "Some UTF-8 String. こんにちは世界。");
-        }};
+        Map<String, Object> expectedValues = Map.of("i", BigInteger.valueOf(53286L),
+                "str", "Some UTF-8 String. こんにちは世界。");
 
         testReadRecord(dataFile, berValue, expectedValues, expectedSchema);
     }

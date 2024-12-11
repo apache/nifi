@@ -213,7 +213,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         yieldExpiration = new AtomicLong(0L);
         concurrentTaskCount = new AtomicInteger(1);
         position = new AtomicReference<>(new Position(0D, 0D));
-        style = new AtomicReference<>(Collections.unmodifiableMap(new HashMap<String, String>()));
+        style = new AtomicReference<>(Map.of());
         this.processGroup = new AtomicReference<>();
         processScheduler = scheduler;
         penalizationPeriod = new AtomicReference<>(DEFAULT_PENALIZATION_PERIOD);

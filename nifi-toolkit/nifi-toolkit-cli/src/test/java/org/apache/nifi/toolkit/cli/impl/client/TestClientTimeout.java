@@ -16,24 +16,24 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client;
 
+import jakarta.ws.rs.client.Client;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.api.Result;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandProcessor;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.context.StandardContext;
 import org.apache.nifi.toolkit.cli.impl.session.InMemorySession;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.impl.JerseyNiFiClient;
 import org.glassfish.jersey.client.ClientProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import jakarta.ws.rs.client.Client;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
@@ -77,7 +77,7 @@ public class TestClientTimeout {
 
     @Test
     public void testNiFiClientTimeoutSettings() {
-        testClientTimeoutSettings(new AbstractNiFiCommand<Result>("test", Result.class) {
+        testClientTimeoutSettings(new AbstractNiFiCommand<>("test", Result.class) {
             @Override
             public Result doExecute(NiFiClient client, Properties properties) {
                 return null;

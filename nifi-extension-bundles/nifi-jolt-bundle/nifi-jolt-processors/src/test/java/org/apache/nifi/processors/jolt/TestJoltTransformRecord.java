@@ -363,34 +363,14 @@ public class TestJoltTransformRecord {
         RecordField xRecord = new RecordField("x", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(xSchema)));
         parser.addSchemaField(xRecord);
 
-        final Record record1 = new MapRecord(xSchema, new HashMap<String, Object>() {{
-            put("a", 1);
-            put("b", 2);
-            put("c", 3);
-        }});
-        final Record record2 = new MapRecord(xSchema, new HashMap<String, Object>() {{
-            put("a", 11);
-            put("b", 21);
-            put("c", 31);
-        }});
-        final Record record3 = new MapRecord(xSchema, new HashMap<String, Object>() {{
-            put("a", 21);
-            put("b", 2);
-            put("c", 3);
-        }});
+        final Record record1 = new MapRecord(xSchema, Map.of("a", 1, "b", 2, "c", 3));
+        final Record record2 = new MapRecord(xSchema, Map.of("a", 11, "b", 21, "c", 31));
+        final Record record3 = new MapRecord(xSchema, Map.of("a", 21, "b", 2, "c", 3));
         final Object[] recordArray1 = new Object[]{record1, record2, record3};
         parser.addRecord((Object) recordArray1);
 
-        final Record record4 = new MapRecord(xSchema, new HashMap<String, Object>() {{
-            put("a", 100);
-            put("b", 200);
-            put("c", 300);
-        }});
-        final Record record5 = new MapRecord(xSchema, new HashMap<String, Object>() {{
-            put("a", 101);
-            put("b", 201);
-            put("c", 301);
-        }});
+        final Record record4 = new MapRecord(xSchema, Map.of("a", 100, "b", 200, "c", 300));
+        final Record record5 = new MapRecord(xSchema, Map.of("a", 101, "b", 201, "c", 301));
         final Object[] recordArray2 = new Object[]{record4, record5};
         parser.addRecord((Object) recordArray2);
 
@@ -759,22 +739,12 @@ public class TestJoltTransformRecord {
             for (int i = 0; i < numRecords; i++) {
                 final int index = i;
 
-                final Record primaryRecord = new MapRecord(primarySchema, new HashMap<String, Object>() {{
-                    put("value", (10 * index) + 3);
-                }});
-                final Record seriesRecord = new MapRecord(seriesSchema, new HashMap<String, Object>() {{
-                    put("value", new Integer[]{(10 * index) + 5, (10 * index) + 4});
-                }});
-                final Record qualityRecord = new MapRecord(qualitySchema, new HashMap<String, Object>() {{
-                    put("value", 3);
-                }});
+                final Record primaryRecord = new MapRecord(primarySchema, Map.of("value", (10 * index) + 3));
+                final Record seriesRecord = new MapRecord(seriesSchema, Map.of("value", new Integer[]{(10 * index) + 5, (10 * index) + 4}));
+                final Record qualityRecord = new MapRecord(qualitySchema, Map.of("value", 3));
 
-
-                Record ratingRecord = new MapRecord(ratingSchema, new HashMap<String, Object>() {{
-                    put("primary", primaryRecord);
-                    put("series", seriesRecord);
-                    put("quality", qualityRecord);
-                }});
+                Record ratingRecord = new MapRecord(ratingSchema, Map.of("primary", primaryRecord,
+                        "series", seriesRecord, "quality", qualityRecord));
 
                 parser.addRecord(ratingRecord);
             }

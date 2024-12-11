@@ -66,13 +66,18 @@
                                 } @else {
                                     <div [ngClass]="getNonServiceStateIcon(reference.component)"></div>
                                 }
-                                <a [routerLink]="getRouteForReference(reference.component)">{{
-                                    reference.component.name
-                                }}</a>
+                                @if (!disabledLinks) {
+                                    <a [routerLink]="getRouteForReference(reference.component)">{{
+                                        reference.component.name
+                                    }}</a>
+                                } @else {
+                                    <div>{{ reference.component.name }}</div>
+                                }
                                 @if (hasBulletins(reference)) {
                                     <div
                                         class="pointer fa fa-sticky-note-o primary-color"
                                         nifiTooltip
+                                        [delayClose]="true"
                                         [tooltipComponentType]="BulletinsTip"
                                         [tooltipInputData]="getBulletinsTipData(reference)"></div>
                                 }
@@ -102,13 +107,18 @@
                                     } @else {
                                         <div [ngClass]="getServiceStateIcon(service.component)"></div>
                                     }
-                                    <a [routerLink]="getRouteForReference(service.component)">
-                                        {{ service.component.name }}
-                                    </a>
+                                    @if (!disabledLinks) {
+                                        <a [routerLink]="getRouteForReference(service.component)">
+                                            {{ service.component.name }}
+                                        </a>
+                                    } @else {
+                                        <div>{{ service.component.name }}</div>
+                                    }
                                     @if (hasBulletins(service)) {
                                         <div
                                             class="pointer fa fa-sticky-note-o primary-color"
                                             nifiTooltip
+                                            [delayClose]="true"
                                             [tooltipComponentType]="BulletinsTip"
                                             [tooltipInputData]="getBulletinsTipData(service)"></div>
                                     }

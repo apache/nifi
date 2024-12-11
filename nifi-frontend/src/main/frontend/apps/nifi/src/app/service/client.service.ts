@@ -17,12 +17,24 @@
 
 import { Injectable } from '@angular/core';
 import { v4 as uuidv4 } from 'uuid';
+import { SessionStorageService } from '@nifi/shared';
 
 @Injectable({
     providedIn: 'root'
 })
 export class Client {
-    private clientId: string = uuidv4();
+    private clientId: string;
+
+    constructor(private sessionStorage: SessionStorageService) {
+        let clientId = this.sessionStorage.getItem<string>('clientId');
+
+        if (clientId === null) {
+            clientId = uuidv4();
+            this.sessionStorage.setItem('clientId', clientId);
+        }
+
+        this.clientId = clientId;
+    }
 
     public getClientId(): string {
         return this.clientId;

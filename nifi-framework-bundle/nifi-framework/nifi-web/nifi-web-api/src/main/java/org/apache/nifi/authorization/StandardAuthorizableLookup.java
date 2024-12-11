@@ -28,6 +28,7 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizableFactory;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
+import org.apache.nifi.authorization.resource.VersionedComponentAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -76,7 +77,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Component
@@ -295,6 +298,11 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
+    public ProcessGroupAuthorizable getRootProcessGroup() {
+        return getProcessGroup(controllerFacade.getRootGroupId());
+    }
+
+    @Override
     public ProcessGroupAuthorizable getProcessGroup(final String id) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(id);
         return new StandardProcessGroupAuthorizable(processGroup, controllerFacade.getExtensionManager());
@@ -313,6 +321,39 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     @Override
     public Authorizable getFunnel(final String id) {
         return funnelDAO.getFunnel(id);
+    }
+
+    @Override
+    public Set<ComponentAuthorizable> getControllerServices(final String groupId, final Predicate<org.apache.nifi.authorization.resource.VersionedComponentAuthorizable> filter) {
+        return controllerServiceDAO.getControllerServices(groupId, true, false).stream()
+                .filter(cs -> filter.test(new VersionedComponentAuthorizable() {
+                        @Override
+                        public Optional<String> getVersionedComponentId() {
+                            return cs.getVersionedComponentId();
+                        }
+
+                        @Override
+                        public String getIdentifier() {
+                            return cs.getIdentifier();
+                        }
+
+                        @Override
+                        public String getProcessGroupIdentifier() {
+                            return cs.getProcessGroupIdentifier();
+                        }
+
+                        @Override
+                        public Authorizable getParentAuthorizable() {
+                            return cs.getParentAuthorizable();
+                        }
+
+                        @Override
+                        public Resource getResource() {
+                            return cs.getResource();
+                        }
+                    })
+                )
+                .map(controllerServiceNode -> new ControllerServiceComponentAuthorizable(controllerServiceNode, controllerFacade.getExtensionManager())).collect(Collectors.toSet());
     }
 
     @Override
@@ -389,6 +430,13 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     public ComponentAuthorizable getFlowAnalysisRule(final String id) {
         final FlowAnalysisRuleNode flowAnalysisRuleNode = flowAnalysisRuleDAO.getFlowAnalysisRule(id);
         return new FlowAnalysisRuleComponentAuthorizable(flowAnalysisRuleNode, controllerFacade.getExtensionManager());
+    }
+
+    @Override
+    public Set<ComponentAuthorizable> getParameterProviders(final Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> filter) {
+        return parameterProviderDAO.getParameterProviders().stream()
+                .filter(filter)
+                .map(parameterProviderNode -> new ParameterProviderComponentAuthorizable(parameterProviderNode, controllerFacade.getExtensionManager())).collect(Collectors.toSet());
     }
 
     @Override
@@ -1211,6 +1259,11 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Optional<Authorizable> getParameterContextAuthorizable() {
+            return Optional.ofNullable(processGroup.getParameterContext());
+        }
+
+        @Override
         public ProcessGroup getProcessGroup() {
             return processGroup;
         }
@@ -1219,6 +1272,13 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         public Set<ComponentAuthorizable> getEncapsulatedProcessors() {
             return processGroup.findAllProcessors().stream().map(
                     processorNode -> new ProcessorComponentAuthorizable(processorNode, extensionManager)).collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<ComponentAuthorizable> getEncapsulatedProcessors(Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> processorFilter) {
+            return processGroup.findAllProcessors().stream()
+                    .filter(processorFilter)
+                    .map(processorNode -> new ProcessorComponentAuthorizable(processorNode, extensionManager)).collect(Collectors.toSet());
         }
 
         @Override
@@ -1262,6 +1322,13 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         public Set<ComponentAuthorizable> getEncapsulatedControllerServices() {
             return processGroup.findAllControllerServices().stream().map(
                     controllerServiceNode -> new ControllerServiceComponentAuthorizable(controllerServiceNode, extensionManager)).collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<ComponentAuthorizable> getEncapsulatedControllerServices(Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> serviceFilter) {
+            return processGroup.findAllControllerServices().stream()
+                    .filter(serviceFilter)
+                    .map(controllerServiceNode -> new ControllerServiceComponentAuthorizable(controllerServiceNode, extensionManager)).collect(Collectors.toSet());
         }
     }
 

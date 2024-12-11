@@ -26,11 +26,11 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
+import org.apache.nifi.toolkit.client.ConnectionClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.ProcessorClient;
+import org.apache.nifi.toolkit.client.VersionsClient;
 import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
@@ -57,7 +57,6 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
@@ -75,14 +74,14 @@ import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
-import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
+import org.apache.nifi.web.api.entity.CopyRequestEntity;
+import org.apache.nifi.web.api.entity.CopyResponseEntity;
 import org.apache.nifi.web.api.entity.CountersEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRuleRunStatusEntity;
 import org.apache.nifi.web.api.entity.FlowAnalysisRulesEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
-import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
@@ -99,6 +98,8 @@ import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
 import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
+import org.apache.nifi.web.api.entity.PasteRequestEntity;
+import org.apache.nifi.web.api.entity.PasteResponseEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
@@ -110,7 +111,6 @@ import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
-import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
@@ -2173,22 +2173,16 @@ public class NiFiClientUtil {
             .orElse(null);
     }
 
-    public FlowEntity copyAndPaste(final ProcessGroupEntity pgEntity, final String destinationGroupId) throws NiFiClientException, IOException {
-        final SnippetDTO snippetDto = new SnippetDTO();
-        snippetDto.setProcessGroups(Collections.singletonMap(pgEntity.getId(), pgEntity.getRevision()));
-        snippetDto.setParentGroupId(pgEntity.getComponent().getParentGroupId());
+    public FlowDTO copyAndPaste(final String sourceGroupId, final CopyRequestEntity copyRequestEntity, final RevisionDTO revisionDTO,
+                                final String destinationGroupId) throws NiFiClientException, IOException {
+        final CopyResponseEntity copyResponseEntity = nifiClient.getProcessGroupClient().copy(sourceGroupId, copyRequestEntity);
 
-        final SnippetEntity snippetEntity = new SnippetEntity();
-        snippetEntity.setSnippet(snippetDto);
+        final PasteRequestEntity pasteRequestEntity = new PasteRequestEntity();
+        pasteRequestEntity.setCopyResponse(copyResponseEntity);
+        pasteRequestEntity.setRevision(revisionDTO);
 
-        final SnippetEntity createdSnippetEntity = nifiClient.getSnippetClient().createSnippet(snippetEntity);
-
-        final CopySnippetRequestEntity requestEntity = new CopySnippetRequestEntity();
-        requestEntity.setOriginX(0D);
-        requestEntity.setOriginY(0D);
-        requestEntity.setSnippetId(createdSnippetEntity.getSnippet().getId());
-
-        return nifiClient.getProcessGroupClient().copySnippet(destinationGroupId, requestEntity);
+        final PasteResponseEntity pasteResponseEntity = nifiClient.getProcessGroupClient().paste(destinationGroupId, pasteRequestEntity);
+        return pasteResponseEntity.getFlow();
     }
 
     public ConnectionEntity setFifoPrioritizer(final ConnectionEntity connectionEntity) throws NiFiClientException, IOException {

@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.util.db;
 
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -64,17 +62,14 @@ public class TestJdbcTypesH2 {
 
     String dbPath;
 
+    @TempDir
+    private Path tempDir;
+
     @BeforeEach
     public void beforeEach() throws IOException {
-        dbPath = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
-                .resolve("db")
+        dbPath = tempDir.resolve("db")
                 .toFile()
                 .getAbsolutePath();
-    }
-
-    @AfterEach
-    public void afterEach() throws IOException {
-        FileUtils.deleteFile(new File(dbPath), true);
     }
 
     @Test

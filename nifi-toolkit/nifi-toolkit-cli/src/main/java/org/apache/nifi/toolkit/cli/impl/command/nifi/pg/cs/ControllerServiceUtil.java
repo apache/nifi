@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.nifi.pg.cs;
 
-import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.client.FlowClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 
@@ -50,20 +50,20 @@ public class ControllerServiceUtil {
         for (final ControllerServiceEntity serviceEntity : pgCs) {
             final String state = serviceEntity.getComponent().getState();
             switch (state) {
-                case ControllerServiceStates.STATE_ENABLED:
-                    states.incrementEnabled();
-                    break;
-                case ControllerServiceStates.STATE_ENABLING:
-                    states.incrementEnabling();
-                    break;
-                case ControllerServiceStates.STATE_DISABLED:
-                    states.incrementDisabled();
-                    break;
-                case ControllerServiceStates.STATE_DISABLING:
-                    states.incrementDisabling();
-                    break;
-                default:
-                    throw new NiFiClientException("Unexpected controller service state: " + state);
+            case ControllerServiceStates.STATE_ENABLED:
+                states.incrementEnabled();
+                break;
+            case ControllerServiceStates.STATE_ENABLING:
+                states.incrementEnabling();
+                break;
+            case ControllerServiceStates.STATE_DISABLED:
+                states.incrementDisabled();
+                break;
+            case ControllerServiceStates.STATE_DISABLING:
+                states.incrementDisabling();
+                break;
+            default:
+                throw new NiFiClientException("Unexpected controller service state: " + state);
             }
         }
 

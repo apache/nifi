@@ -49,7 +49,6 @@ import org.bson.types.ObjectId;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -161,9 +160,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
         try {
             final Map<String, String> attributes = getAttributes(context, input, query, mongoCollection);
             try (OutputStream out = session.write(output)) {
-                Map<String, String> attrs = inputPtr != null ? inputPtr.getAttributes() : new HashMap<String, String>() {{
-                    put("schema.name", schemaName);
-                }};
+                Map<String, String> attrs = inputPtr != null ? inputPtr.getAttributes() : Map.of("schema.name", schemaName);
                 RecordSchema schema = writerFactory.getSchema(attrs, null);
                 RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, attrs);
                 long count = 0L;

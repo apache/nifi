@@ -16,39 +16,19 @@
  */
 package org.apache.nifi.ssl;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.X509TrustManager;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.security.util.TlsConfiguration;
 
 /**
- * Definition for SSLContextService.
- *
+ * Controller Service extension of SSLContextProvider with additional methods for retrieving configuration property values
  */
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs"})
 @CapabilityDescription("Provides the ability to configure keystore and/or truststore properties once and reuse "
         + "that configuration throughout the application")
-public interface SSLContextService extends ControllerService {
+public interface SSLContextService extends SSLContextProvider {
 
     TlsConfiguration createTlsConfiguration();
-
-    /**
-     * Create and initialize {@link SSLContext} using configured properties. This method is preferred over deprecated
-     * create methods due to not requiring a client authentication policy.
-     *
-     * @return {@link SSLContext} initialized using configured properties
-     */
-    SSLContext createContext();
-
-    /**
-     * Create X.509 Trust Manager using configured properties
-     *
-     * @return {@link X509TrustManager} initialized using configured properties
-     */
-    X509TrustManager createTrustManager();
 
     String getTrustStoreFile();
 

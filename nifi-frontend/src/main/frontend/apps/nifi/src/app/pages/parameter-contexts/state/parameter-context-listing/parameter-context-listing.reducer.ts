@@ -82,6 +82,10 @@ export const parameterContextListingReducer = createReducer(
             updateRequestEntity: response.requestEntity
         })
     ),
+    on(deleteParameterContextUpdateRequestSuccess, (state) => ({
+        ...state,
+        saving: false
+    })),
     on(editParameterContextComplete, (state) => {
         return produce(state, (draftState) => {
             const updateRequestEntity: ParameterContextUpdateRequestEntity | null = draftState.updateRequestEntity;

@@ -81,8 +81,7 @@ import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.security.util.TlsException;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import javax.annotation.Nullable;
@@ -218,7 +217,7 @@ public class InvokeHTTP extends AbstractProcessor {
             .name("SSL Context Service")
             .description("SSL Context Service provides trusted certificates and client certificates for TLS communication.")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     public static final PropertyDescriptor SOCKET_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
@@ -455,10 +454,20 @@ public class InvokeHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED = new PropertyDescriptor.Builder()
             .name("Response Header Request Attributes Enabled")
-            .description("Enable adding HTTP response headers as attributes to FlowFiles transferred to the Original relationship.")
+            .description("Enable adding HTTP response headers as attributes to FlowFiles transferred to the Original, Retry or No Retry relationships.")
             .required(false)
             .defaultValue(Boolean.FALSE.toString())
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX = new PropertyDescriptor.Builder()
+            .name("Response Header Request Attributes Prefix")
+            .description("Prefix to HTTP response headers when included as attributes to FlowFiles transferred to the Original, Retry or No Retry relationships.  "
+                + "It is recommended to end with a separator character like '.' or '-'.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED, Boolean.TRUE.toString())
             .build();
 
     public static final PropertyDescriptor RESPONSE_REDIRECTS_ENABLED = new PropertyDescriptor.Builder()
@@ -508,6 +517,7 @@ public class InvokeHTTP extends AbstractProcessor {
             RESPONSE_GENERATION_REQUIRED,
             RESPONSE_FLOW_FILE_NAMING_STRATEGY,
             RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED,
+            RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX,
             RESPONSE_REDIRECTS_ENABLED
     );
 
@@ -725,7 +735,7 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void setUpClient(final ProcessContext context) throws TlsException, IOException {
+    public void setUpClient(final ProcessContext context) throws IOException {
         okHttpClientAtomicReference.set(null);
 
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
@@ -763,11 +773,11 @@ public class InvokeHTTP extends AbstractProcessor {
                 )
         );
 
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslService != null) {
-            final SSLContext sslContext = sslService.createContext();
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        if (sslContextProvider != null) {
+            final SSLContext sslContext = sslContextProvider.createContext();
             final SSLSocketFactory socketFactory = sslContext.getSocketFactory();
-            final X509TrustManager trustManager = sslService.createTrustManager();;
+            final X509TrustManager trustManager = sslContextProvider.createTrustManager();
             okHttpClientBuilder.sslSocketFactory(socketFactory, trustManager);
         }
 
@@ -878,13 +888,6 @@ public class InvokeHTTP extends AbstractProcessor {
                     requestFlowFile = session.putAllAttributes(requestFlowFile, statusAttributes);
                 }
 
-                // If the property to add the response headers to the request flowfile is true then add them
-                if (context.getProperty(RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED).asBoolean() && requestFlowFile != null) {
-                    // write the response headers as attributes
-                    // this will overwrite any existing flowfile attributes
-                    requestFlowFile = session.putAllAttributes(requestFlowFile, convertAttributesFromHeaders(responseHttp));
-                }
-
                 boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
                 boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(RESPONSE_GENERATION_REQUIRED).asBoolean();
                 ResponseBody responseBody = responseHttp.body();
@@ -918,7 +921,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
                         // write the response headers as attributes
                         // this will overwrite any existing flowfile attributes
-                        responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(responseHttp));
+                        responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(responseHttp, ""));
 
                         // update FlowFile's filename attribute with an extracted value from the remote URL
                         if (FlowFileNamingStrategy.URL_PATH.equals(getFlowFileNamingStrategy(context)) && HttpMethod.GET.name().equals(httpRequest.method())) {
@@ -985,6 +988,16 @@ public class InvokeHTTP extends AbstractProcessor {
                     } else if (responseBodyStream != null) {
                         responseBodyStream.close();
                     }
+                }
+
+                // This needs to be done after the response flowFile has been created from the request flowFile
+                // as the added attribute headers may have a prefix added that doesn't make sense for the response flowFile.
+                if (context.getProperty(RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED).asBoolean() && requestFlowFile != null) {
+                    final String prefix = context.getProperty(RESPONSE_HEADER_REQUEST_ATTRIBUTES_PREFIX).evaluateAttributeExpressions(requestFlowFile).getValue();
+
+                    // write the response headers as attributes
+                    // this will overwrite any existing flowfile attributes
+                    requestFlowFile = session.putAllAttributes(requestFlowFile, convertAttributesFromHeaders(responseHttp, prefix));
                 }
 
                 route(requestFlowFile, responseFlowFile, session, context, statusCode);
@@ -1255,10 +1268,12 @@ public class InvokeHTTP extends AbstractProcessor {
 
     /**
      * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
+     * Prefix is passed in to allow differentiation for these new attributes.
      */
-    private Map<String, String> convertAttributesFromHeaders(final Response responseHttp) {
+    private Map<String, String> convertAttributesFromHeaders(final Response responseHttp, final String prefix) {
         // create a new hashmap to store the values from the connection
         final Map<String, String> attributes = new HashMap<>();
+        final String trimmedPrefix = trimToEmpty(prefix);
         final Headers headers = responseHttp.headers();
         headers.names().forEach((key) -> {
             final List<String> values = headers.values(key);
@@ -1266,7 +1281,7 @@ public class InvokeHTTP extends AbstractProcessor {
             if (!values.isEmpty()) {
                 // create a comma separated string from the values, this is stored in the map
                 final String value = StringUtils.join(values, MULTIPLE_HEADER_DELIMITER);
-                attributes.put(key, value);
+                attributes.put(trimmedPrefix + key, value);
             }
         });
 

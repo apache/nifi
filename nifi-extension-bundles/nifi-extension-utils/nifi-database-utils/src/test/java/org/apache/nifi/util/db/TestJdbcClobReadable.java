@@ -25,13 +25,13 @@ import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -46,10 +46,12 @@ public class TestJdbcClobReadable {
 
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
 
+    @TempDir
+    private static File tempDir;
+
     @BeforeAll
     public static void setDerbyLog() {
-        final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
-        derbyLog.deleteOnExit();
+        final File derbyLog = new File(tempDir, "derby.log");
         System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
     }
 
@@ -101,9 +103,8 @@ public class TestJdbcClobReadable {
     private File folder;
 
     private void validateClob(String someClob) throws SQLException, ClassNotFoundException, IOException {
-        folder = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
-                .resolve("db")
-                .toFile();
+        File topLevelTempDir = new File(tempDir, String.valueOf(System.currentTimeMillis()));
+        folder = new File(topLevelTempDir, "db");
         final Connection con = createConnection(folder.getAbsolutePath());
         final Statement st = con.createStatement();
 

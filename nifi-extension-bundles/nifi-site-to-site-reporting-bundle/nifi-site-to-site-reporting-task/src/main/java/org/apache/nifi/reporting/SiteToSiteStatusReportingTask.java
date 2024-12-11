@@ -122,7 +122,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         componentNameFilter = Pattern.compile(context.getProperty(COMPONENT_NAME_FILTER_REGEX).evaluateAttributeExpressions().getValue());
 
         // initialize the map
-        processGroupIDToPath = new HashMap<String, String>();
+        processGroupIDToPath = new HashMap<>();
 
         final ProcessGroupStatus procGroupStatus = context.getEventAccess().getControllerStatus();
         final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();

@@ -62,6 +62,6 @@ public final class RequestMappingBuilder<T> {
             throw new IllegalArgumentException("There must be at least one declared field");
         }
 
-        return new SimpleRequestMapping<T>(factory, fieldMappings);
+        return new SimpleRequestMapping<>(factory, fieldMappings);
     }
 }

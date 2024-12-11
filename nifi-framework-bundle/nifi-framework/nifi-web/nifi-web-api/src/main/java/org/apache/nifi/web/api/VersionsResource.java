@@ -172,7 +172,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
             final ProcessGroupAuthorizable groupAuthorizable = lookup.getProcessGroup(groupId);
             // ensure access to process groups (nested), encapsulated controller services and referenced parameter contexts
             authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true,
-                    false, false, true);
+                    false, false, false, true);
         });
 
         // get the versioned flow
@@ -594,7 +594,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // require read to this group and all descendants
-                    authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, true);
+                    authorizeProcessGroup(groupAuthorizable, authorizer, lookup, RequestAction.READ, true, false, true, false, true);
                 },
                 () -> {
                     final VersionedFlowDTO versionedFlow = requestEntity.getVersionedFlow();
@@ -1179,10 +1179,10 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
         // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
-        serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, NiFiUserUtils.getNiFiUser());
+        final Set<String> unresolvedControllerServices = serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, NiFiUserUtils.getNiFiUser());
 
         // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
-        serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser());
+        final Set<String> unresolvedParameterProviders = serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser());
 
         // Step 1: Determine which components will be affected by updating the version
         final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByFlowUpdate(groupId, flowSnapshot);
@@ -1197,7 +1197,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 serviceFacade,
                 requestWrapper,
                 requestRevision,
-                lookup -> authorizeFlowUpdate(lookup, user, groupId, flowSnapshot),
+                lookup -> authorizeFlowUpdate(lookup, user, groupId, flowSnapshot, unresolvedControllerServices, unresolvedParameterProviders),
                 () -> {
                     // Step 3: Verify that all components in the snapshot exist on all nodes
                     // Step 4: Verify that Process Group is already under version control. If not, must start Version Control instead of updating flow

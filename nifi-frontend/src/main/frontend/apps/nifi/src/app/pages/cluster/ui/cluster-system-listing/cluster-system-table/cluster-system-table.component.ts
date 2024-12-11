@@ -52,6 +52,10 @@ export class ClusterSystemTable extends ClusterTable<NodeSnapshot> {
         return `${item.address}:${item.apiPort}`;
     }
 
+    formatFloat(value: number): string {
+        return this.nifiCommon.formatFloat(value);
+    }
+
     override filterPredicate(item: NodeSnapshot, filter: string): boolean {
         const { filterTerm, filterColumn } = JSON.parse(filter);
         if (filterTerm === '') {

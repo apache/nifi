@@ -20,21 +20,18 @@ package org.apache.nifi.tests.system.registry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.tests.system.NiFiClientUtil;
 import org.apache.nifi.tests.system.NiFiSystemIT;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
-import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
@@ -56,9 +53,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RegistryClientIT extends NiFiSystemIT {
-    private static final String TEST_FLOWS_BUCKET = "test-flows";
+    public static final String TEST_FLOWS_BUCKET = "test-flows";
 
-    private static final String FIRST_FLOW_ID = "first-flow";
+    public static final String FIRST_FLOW_ID = "first-flow";
 
     /**
      * Test a scenario where we have Parent Process Group with a child process group. The child group is under Version Control.
@@ -370,99 +367,6 @@ public class RegistryClientIT extends NiFiSystemIT {
 
         versionedFlowState = getClientUtil().getVersionedFlowState(group.getId(), "root");
         assertEquals("UP_TO_DATE", versionedFlowState);
-    }
-
-
-    @Test
-    public void testCopyPasteProcessGroupDoesNotDuplicateVersionedComponentId() throws NiFiClientException, IOException {
-        // Create a top-level PG and version it with nothing in it.
-        final FlowRegistryClientEntity clientEntity = registerClient();
-        final ProcessGroupEntity outerGroup = getClientUtil().createProcessGroup("Outer", "root");
-        getClientUtil().startVersionControl(outerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
-
-        // Create a lower level PG and add a Processor.
-        // Commit as Version 2 of the group.
-        final ProcessGroupEntity inner1 = getClientUtil().createProcessGroup("Inner 1", outerGroup.getId());
-        ProcessorEntity terminate1 = getClientUtil().createProcessor("TerminateFlowFile", inner1.getId());
-        VersionControlInformationEntity vciEntity = getClientUtil().startVersionControl(outerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
-        assertEquals("2", vciEntity.getVersionControlInformation().getVersion());
-
-        // Get an up-to-date copy of terminate1 because it should now have a non-null versioned component id
-        terminate1 = getNifiClient().getProcessorClient().getProcessor(terminate1.getId());
-        assertNotNull(terminate1.getComponent().getVersionedComponentId());
-
-        // Copy and paste the inner Process Group
-        final FlowEntity flowEntity = getClientUtil().copyAndPaste(inner1, outerGroup.getId());
-        final ProcessGroupEntity inner2Entity = flowEntity.getFlow().getProcessGroups().iterator().next();
-
-        final ProcessGroupFlowEntity inner2FlowEntity = getNifiClient().getFlowClient().getProcessGroup(inner2Entity.getId());
-        final Set<ProcessorEntity> inner2FlowProcessors = inner2FlowEntity.getProcessGroupFlow().getFlow().getProcessors();
-        assertEquals(1, inner2FlowProcessors.size());
-
-        ProcessorEntity terminate2 = inner2FlowProcessors.iterator().next();
-        assertEquals(terminate1.getComponent().getName(), terminate2.getComponent().getName());
-        assertEquals(terminate1.getComponent().getType(), terminate2.getComponent().getType());
-        assertNotEquals(terminate1.getComponent().getId(), terminate2.getComponent().getId());
-        assertNotEquals(terminate1.getComponent().getVersionedComponentId(), terminate2.getComponent().getVersionedComponentId());
-
-        // First Control again with the newly created components
-        vciEntity = getClientUtil().startVersionControl(outerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
-        assertEquals("3", vciEntity.getVersionControlInformation().getVersion());
-
-        // Get new version of terminate2 processor and terminate1 processor. Ensure that both have version control ID's but that they are different.
-        terminate1 = getNifiClient().getProcessorClient().getProcessor(terminate1.getId());
-        terminate2 = getNifiClient().getProcessorClient().getProcessor(terminate2.getId());
-
-        assertNotNull(terminate1.getComponent().getVersionedComponentId());
-        assertNotNull(terminate2.getComponent().getVersionedComponentId());
-        assertNotEquals(terminate1.getComponent().getVersionedComponentId(), terminate2.getComponent().getVersionedComponentId());
-    }
-
-    @Test
-    public void testCopyPasteProcessGroupUnderVersionControlMaintainsVersionedComponentId() throws NiFiClientException, IOException, InterruptedException {
-        // Create a top-level PG and version it with nothing in it.
-        final FlowRegistryClientEntity clientEntity = registerClient();
-        final ProcessGroupEntity topLevel1 = getClientUtil().createProcessGroup("Top Level 1", "root");
-
-        // Create a lower level PG and add a Processor.
-        // Commit as Version 2 of the group.
-        final ProcessGroupEntity innerGroup = getClientUtil().createProcessGroup("Inner 1", topLevel1.getId());
-        ProcessorEntity terminate1 = getClientUtil().createProcessor("TerminateFlowFile", innerGroup.getId());
-        VersionControlInformationEntity vciEntity = getClientUtil().startVersionControl(innerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
-        assertEquals("1", vciEntity.getVersionControlInformation().getVersion());
-
-        // Now that the inner group is under version control, copy it and paste it to a new PG.
-        // This should result in the pasted Process Group having a processor with the same Versioned Component ID, because the Processors
-        // have different Versioned groups, so they can have duplicate Versioned Component IDs.
-        final ProcessGroupEntity topLevel2 = getClientUtil().createProcessGroup("Top Level 2", "root");
-        final FlowEntity flowEntity = getClientUtil().copyAndPaste(innerGroup, topLevel2.getId());
-        final String pastedGroupId = flowEntity.getFlow().getProcessGroups().iterator().next().getId();
-        final ProcessGroupFlowEntity pastedGroupFlowEntity = getNifiClient().getFlowClient().getProcessGroup(pastedGroupId);
-        final ProcessorEntity terminate2 = pastedGroupFlowEntity.getProcessGroupFlow().getFlow().getProcessors().iterator().next();
-
-        // Get an up-to-date copy of terminate1 because it should now have a non-null versioned component id
-        terminate1 = getNifiClient().getProcessorClient().getProcessor(terminate1.getId());
-        assertNotNull(terminate1.getComponent().getVersionedComponentId());
-
-        // Both the pasted Process Group and the original should have the same Version Control Information.
-        final VersionControlInformationDTO originalGroupVci = getNifiClient().getProcessGroupClient().getProcessGroup(innerGroup.getId()).getComponent().getVersionControlInformation();
-        final VersionControlInformationDTO pastedGroupVci = getNifiClient().getProcessGroupClient().getProcessGroup(pastedGroupId).getComponent().getVersionControlInformation();
-        assertNotNull(originalGroupVci);
-        assertNotNull(pastedGroupVci);
-        assertEquals(originalGroupVci.getBucketId(), pastedGroupVci.getBucketId());
-        assertEquals(originalGroupVci.getFlowId(), pastedGroupVci.getFlowId());
-        assertEquals(originalGroupVci.getVersion(), pastedGroupVci.getVersion());
-
-        // Wait for the Version Control Information to show a state of UP_TO_DATE. We have to wait for this because it initially is set to SYNC_FAILURE and a background task
-        // is kicked off to determine the state.
-        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(innerGroup.getId())) );
-        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(pastedGroupId)) );
-
-        // The two processors should have the same Versioned Component ID
-        assertEquals(terminate1.getComponent().getName(), terminate2.getComponent().getName());
-        assertEquals(terminate1.getComponent().getType(), terminate2.getComponent().getType());
-        assertNotEquals(terminate1.getComponent().getId(), terminate2.getComponent().getId());
-        assertEquals(terminate1.getComponent().getVersionedComponentId(), terminate2.getComponent().getVersionedComponentId());
     }
 
 }

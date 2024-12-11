@@ -20,7 +20,6 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -32,21 +31,18 @@ public final class BulletinMerger {
 
     private BulletinMerger() { }
 
-    public static Comparator<BulletinEntity> BULLETIN_COMPARATOR = new Comparator<BulletinEntity>() {
-        @Override
-        public int compare(BulletinEntity o1, BulletinEntity o2) {
-            if (o1 == null && o2 == null) {
-                return 0;
-            }
-            if (o1 == null) {
-                return 1;
-            }
-            if (o2 == null) {
-                return -1;
-            }
-
-            return -Long.compare(o1.getId(), o2.getId());
+    public static Comparator<BulletinEntity> BULLETIN_COMPARATOR = (o1, o2) -> {
+        if (o1 == null && o2 == null) {
+            return 0;
         }
+        if (o1 == null) {
+            return 1;
+        }
+        if (o2 == null) {
+            return -1;
+        }
+
+        return -Long.compare(o1.getId(), o2.getId());
     };
 
     /**
@@ -112,14 +108,7 @@ public final class BulletinMerger {
                 .forEach(entities::add);
 
         // ensure the bulletins are sorted by time
-        Collections.sort(entities, (BulletinEntity o1, BulletinEntity o2) -> {
-            final int timeComparison = o1.getTimestamp().compareTo(o2.getTimestamp());
-            if (timeComparison != 0) {
-                return timeComparison;
-            }
-
-            return o1.getNodeAddress().compareTo(o2.getNodeAddress());
-        });
+        entities.sort(Comparator.comparing(BulletinEntity::getTimestamp).thenComparing(BulletinEntity::getNodeAddress));
 
         return entities;
     }

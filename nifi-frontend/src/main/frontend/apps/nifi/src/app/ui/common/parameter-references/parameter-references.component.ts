@@ -50,6 +50,7 @@ import { BulletinsTip } from '../tooltips/bulletins-tip/bulletins-tip.component'
     styleUrls: ['./parameter-references.component.scss']
 })
 export class ParameterReferences {
+    @Input() disabledLinks: boolean = false;
     @Input() set parameterReferences(parameterReferences: AffectedComponentEntity[] | undefined) {
         // reset existing state
         this.processGroups = [];

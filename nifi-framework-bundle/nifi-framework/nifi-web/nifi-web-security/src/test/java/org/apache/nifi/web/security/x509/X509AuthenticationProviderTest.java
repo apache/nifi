@@ -52,12 +52,12 @@ import static org.mockito.Mockito.when;
 public class X509AuthenticationProviderTest {
 
     private static final String INVALID_CERTIFICATE = "invalid-certificate";
-    private static final String IDENTITY_1 = "identity-1";
+    private static final String IDENTITY_1 = "CN=identity-1";
     private static final String ANONYMOUS = "";
 
-    private static final String UNTRUSTED_PROXY = "untrusted-proxy";
-    private static final String PROXY_1 = "proxy-1";
-    private static final String PROXY_2 = "proxy-2";
+    private static final String UNTRUSTED_PROXY = "CN=untrusted-proxy";
+    private static final String PROXY_1 = "CN=proxy-1";
+    private static final String PROXY_2 = "CN=proxy-2";
 
 
     private X509AuthenticationProvider x509AuthenticationProvider;
@@ -67,8 +67,6 @@ public class X509AuthenticationProviderTest {
 
     @BeforeEach
     public void setup() {
-
-        System.clearProperty(NiFiProperties.PROPERTIES_FILE_PATH);
         extractor = new SubjectDnX509PrincipalExtractor();
 
         certificateIdentityProvider = mock(X509IdentityProvider.class);
@@ -134,7 +132,7 @@ public class X509AuthenticationProviderTest {
     @Test
     public void testAnonymousWithOneProxy() {
         // override the setting to enable anonymous authentication
-        final Map<String, String> additionalProperties = new HashMap<String, String>() {{
+        final Map<String, String> additionalProperties = new HashMap<>() {{
             put(NiFiProperties.SECURITY_ANONYMOUS_AUTHENTICATION, Boolean.TRUE.toString());
         }};
         final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, additionalProperties);
@@ -275,12 +273,7 @@ public class X509AuthenticationProviderTest {
 
     private X509Certificate getX509Certificate(final String identity) {
         final X509Certificate certificate = mock(X509Certificate.class);
-        when(certificate.getSubjectX500Principal()).then(invocation -> {
-            final X500Principal principal = mock(X500Principal.class);
-            when(principal.getName(any())).thenReturn(identity);
-            return principal;
-        });
+        when(certificate.getSubjectX500Principal()).then(invocation -> new X500Principal(identity));
         return certificate;
     }
-
 }

@@ -49,7 +49,7 @@ public class CountersEndpointMerger extends AbstractNodeStatusEndpoint<CountersE
     @Override
     protected void mergeResponses(CountersDTO clientDto, Map<NodeIdentifier, CountersDTO> dtoMap, NodeIdentifier selectedNodeId) {
         final CountersDTO mergedCounters = clientDto;
-        mergedCounters.setNodeSnapshots(new ArrayList<NodeCountersSnapshotDTO>());
+        mergedCounters.setNodeSnapshots(new ArrayList<>());
 
         final NodeCountersSnapshotDTO selectedNodeSnapshot = new NodeCountersSnapshotDTO();
         selectedNodeSnapshot.setSnapshot(clientDto.getAggregateSnapshot().clone());

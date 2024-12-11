@@ -40,11 +40,6 @@
         neutral,
         map.get(map.get($config, neutral), lighter)
     );
-    $material-theme-neutral-palette-default: mat.get-theme-color(
-        $material-theme,
-        neutral,
-        map.get(map.get($config, neutral), default)
-    );
 
     $material-theme-primary-palette-default: mat.get-theme-color(
         $material-theme,

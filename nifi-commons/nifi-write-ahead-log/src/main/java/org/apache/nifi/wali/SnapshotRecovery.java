@@ -32,8 +32,8 @@ public interface SnapshotRecovery<T> {
     File getRecoveryFile();
 
 
-    public static <T> SnapshotRecovery<T> emptyRecovery() {
-        return new SnapshotRecovery<T>() {
+    static <T> SnapshotRecovery<T> emptyRecovery() {
+        return new SnapshotRecovery<>() {
             @Override
             public long getMaxTransactionId() {
                 return -1L;

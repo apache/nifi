@@ -174,7 +174,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
 
             // if we don't have a batch for this key then create a new one
             if (batch == null) {
-                batch = new FlowFileEventBatch(session.create(), new ArrayList<E>());
+                batch = new FlowFileEventBatch(session.create(), new ArrayList<>());
                 batches.put(batchKey, batch);
             }
 

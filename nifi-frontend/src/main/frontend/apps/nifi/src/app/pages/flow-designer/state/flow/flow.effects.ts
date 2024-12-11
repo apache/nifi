@@ -22,6 +22,7 @@ import { concatLatestFrom } from '@ngrx/operators';
 import * as FlowActions from './flow.actions';
 import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
 import * as ErrorActions from '../../../../state/error/error.actions';
+import * as CopyActions from '../../../../state/copy/copy.actions';
 import {
     asyncScheduler,
     catchError,
@@ -41,18 +42,24 @@ import {
     throttleTime
 } from 'rxjs';
 import {
-    CopyComponentRequest,
     CreateConnectionDialogRequest,
     CreateProcessGroupDialogRequest,
     DeleteComponentResponse,
+    DisableComponentRequest,
+    EnableComponentRequest,
     GroupComponentsDialogRequest,
     ImportFromRegistryDialogRequest,
     LoadProcessGroupResponse,
     MoveComponentRequest,
+    PasteRequest,
+    PasteRequestContext,
+    PasteRequestEntity,
     SaveVersionDialogRequest,
     SaveVersionRequest,
     SelectedComponent,
     Snippet,
+    StartComponentRequest,
+    StopComponentRequest,
     StopVersionControlRequest,
     StopVersionControlResponse,
     UpdateComponentFailure,
@@ -67,9 +74,9 @@ import { Action, Store } from '@ngrx/store';
 import {
     selectAnySelectedComponentIds,
     selectChangeVersionRequest,
-    selectCopiedSnippet,
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
+    selectCurrentProcessGroupRevision,
     selectFlowLoadingStatus,
     selectInputPort,
     selectMaxZIndex,
@@ -77,6 +84,7 @@ import {
     selectParentProcessGroupId,
     selectProcessGroup,
     selectProcessor,
+    selectPollingProcessor,
     selectRefreshRpgDetails,
     selectRemoteProcessGroup,
     selectSaving,
@@ -136,7 +144,6 @@ import { ClusterConnectionService } from '../../../../service/cluster-connection
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { SnippetService } from '../../service/snippet.service';
-import { selectTransform } from '../transform/transform.selectors';
 import { EditLabel } from '../../ui/canvas/items/label/edit-label/edit-label.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
@@ -158,6 +165,16 @@ import { selectDocumentVisibilityState } from '../../../../state/document-visibi
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DocumentVisibility } from '../../../../state/document-visibility';
 import { ErrorContextKey } from '../../../../state/error';
+import {
+    disableComponent,
+    enableComponent,
+    startComponent,
+    startPollingProcessorUntilStopped,
+    stopComponent
+} from './flow.actions';
+import { CopyPasteService } from '../../service/copy-paste.service';
+import { selectCopiedContent } from '../../../../state/copy/copy.selectors';
+import { CopyRequestContext, CopyResponseContext } from '../../../../state/copy';
 
 @Injectable()
 export class FlowEffects {
@@ -183,7 +200,8 @@ export class FlowEffects {
         private propertyTableHelperService: PropertyTableHelperService,
         private parameterHelperService: ParameterHelperService,
         private extensionTypesService: ExtensionTypesService,
-        private errorHelper: ErrorHelper
+        private errorHelper: ErrorHelper,
+        private copyPasteService: CopyPasteService
     ) {
         this.store
             .select(selectDocumentVisibilityState)
@@ -1422,6 +1440,7 @@ export class FlowEffects {
                 }),
                 tap(([request, parameterContext, processGroupId]) => {
                     const processorId: string = request.entity.id;
+                    let runStatusChanged: boolean = false;
 
                     const editDialogReference = this.dialog.open(EditProcessor, {
                         ...XL_DIALOG,
@@ -1549,6 +1568,116 @@ export class FlowEffects {
                                 })
                             );
                         });
+                    const startPollingIfNecessary = (processorEntity: any): boolean => {
+                        if (
+                            (processorEntity.status.aggregateSnapshot.runStatus === 'Stopped' &&
+                                processorEntity.status.aggregateSnapshot.activeThreadCount > 0) ||
+                            processorEntity.status.aggregateSnapshot.runStatus === 'Validating'
+                        ) {
+                            this.store.dispatch(
+                                startPollingProcessorUntilStopped({
+                                    request: {
+                                        id: processorEntity.id
+                                    }
+                                })
+                            );
+                            return true;
+                        }
+
+                        return false;
+                    };
+
+                    const pollingStarted = startPollingIfNecessary(request.entity);
+
+                    this.store
+                        .select(selectProcessor(processorId))
+                        .pipe(
+                            takeUntil(editDialogReference.afterClosed()),
+                            isDefinedAndNotNull(),
+                            filter((processorEntity) => {
+                                return (
+                                    (runStatusChanged || pollingStarted) &&
+                                    processorEntity.revision.clientId === this.client.getClientId()
+                                );
+                            }),
+                            concatLatestFrom(() => this.store.select(selectPollingProcessor))
+                        )
+                        .subscribe(([processorEntity, pollingProcessor]) => {
+                            editDialogReference.componentInstance.processorUpdates = processorEntity;
+
+                            // if we're already polling we do not want to start polling again
+                            if (!pollingProcessor) {
+                                startPollingIfNecessary(processorEntity);
+                            }
+                        });
+
+                    editDialogReference.componentInstance.stopComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((stopComponentRequest: StopComponentRequest) => {
+                            runStatusChanged = true;
+                            this.store.dispatch(
+                                stopComponent({
+                                    request: {
+                                        id: stopComponentRequest.id,
+                                        uri: stopComponentRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: stopComponentRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.disableComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((disableComponentsRequest: DisableComponentRequest) => {
+                            runStatusChanged = true;
+                            this.store.dispatch(
+                                disableComponent({
+                                    request: {
+                                        id: disableComponentsRequest.id,
+                                        uri: disableComponentsRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: disableComponentsRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.enableComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((enableComponentsRequest: EnableComponentRequest) => {
+                            runStatusChanged = true;
+                            this.store.dispatch(
+                                enableComponent({
+                                    request: {
+                                        id: enableComponentsRequest.id,
+                                        uri: enableComponentsRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: enableComponentsRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
+
+                    editDialogReference.componentInstance.startComponentRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((startComponentRequest: StartComponentRequest) => {
+                            runStatusChanged = true;
+                            this.store.dispatch(
+                                startComponent({
+                                    request: {
+                                        id: startComponentRequest.id,
+                                        uri: startComponentRequest.uri,
+                                        type: ComponentType.Processor,
+                                        revision: startComponentRequest.revision,
+                                        errorStrategy: 'snackbar'
+                                    }
+                                })
+                            );
+                        });
 
                     editDialogReference.afterClosed().subscribe((response) => {
                         this.store.dispatch(resetPropertyVerificationState());
@@ -1570,6 +1699,57 @@ export class FlowEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    startPollingProcessorUntilStopped = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.startPollingProcessorUntilStopped),
+            switchMap(() =>
+                interval(2000, asyncScheduler).pipe(
+                    takeUntil(this.actions$.pipe(ofType(FlowActions.stopPollingProcessor)))
+                )
+            ),
+            switchMap(() => of(FlowActions.pollProcessorUntilStopped()))
+        )
+    );
+
+    pollProcessorUntilStopped$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pollProcessorUntilStopped),
+            concatLatestFrom(() => [this.store.select(selectPollingProcessor).pipe(isDefinedAndNotNull())]),
+            switchMap(([, pollingProcessor]) => {
+                return from(
+                    this.flowService.getProcessor(pollingProcessor.id).pipe(
+                        map((response) =>
+                            FlowActions.pollProcessorUntilStoppedSuccess({
+                                response: {
+                                    id: pollingProcessor.id,
+                                    processor: response
+                                }
+                            })
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) => {
+                            this.store.dispatch(FlowActions.stopPollingProcessor());
+                            return of(this.snackBarOrFullScreenError(errorResponse));
+                        })
+                    )
+                );
+            })
+        )
+    );
+
+    pollProcessorUntilStoppedSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.pollProcessorUntilStoppedSuccess),
+            map((action) => action.response),
+            filter((response) => {
+                return (
+                    response.processor.status.runStatus === 'Stopped' &&
+                    response.processor.status.aggregateSnapshot.activeThreadCount === 0
+                );
+            }),
+            switchMap(() => of(FlowActions.stopPollingProcessor()))
+        )
     );
 
     openEditConnectionDialog$ = createEffect(
@@ -2225,15 +2405,47 @@ export class FlowEffects {
             map((action) => action.request),
             concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
             switchMap(([request, processGroupId]) => {
-                const components: CopyComponentRequest[] = request.components;
-                const snippet = this.snippetService.marshalSnippet(components, processGroupId);
+                const copyRequest: CopyRequestContext = {
+                    ...request,
+                    processGroupId
+                };
+                return from(this.copyPasteService.copy(copyRequest)).pipe(
+                    switchMap((response) => {
+                        const copyBlob = new Blob([JSON.stringify(response, null, 2)], { type: 'text/plain' });
+                        const clipboardItem: ClipboardItem = new ClipboardItem({
+                            'text/plain': copyBlob
+                        });
+                        return from(navigator.clipboard.write([clipboardItem])).pipe(
+                            switchMap(() => {
+                                return of(
+                                    FlowActions.copySuccess({
+                                        response: {
+                                            copyResponse: response,
+                                            processGroupId,
+                                            pasteCount: 0
+                                        } as CopyResponseContext
+                                    })
+                                );
+                            }),
+                            catchError(() => {
+                                return of(FlowActions.flowSnackbarError({ error: 'Copy failed' }));
+                            })
+                        );
+                    }),
+                    catchError((errorResponse: HttpErrorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
+                );
+            })
+        )
+    );
+
+    copySuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.copySuccess),
+            map((action) => action.response),
+            switchMap((response) => {
                 return of(
-                    FlowActions.copySuccess({
-                        copiedSnippet: {
-                            snippet,
-                            dimensions: request.dimensions,
-                            origin: request.origin
-                        }
+                    CopyActions.setCopiedContent({
+                        content: response
                     })
                 );
             })
@@ -2245,43 +2457,55 @@ export class FlowEffects {
             ofType(FlowActions.paste),
             map((action) => action.request),
             concatLatestFrom(() => [
-                this.store.select(selectCopiedSnippet).pipe(isDefinedAndNotNull()),
                 this.store.select(selectCurrentProcessGroupId),
-                this.store.select(selectTransform)
+                this.store.select(selectCurrentProcessGroupRevision),
+                this.store.select(selectCopiedContent)
             ]),
-            switchMap(([request, copiedSnippet, processGroupId, transform]) =>
-                from(this.snippetService.createSnippet(copiedSnippet.snippet)).pipe(
-                    switchMap((response) => {
-                        let pasteLocation = request.pasteLocation;
-                        const snippetOrigin = copiedSnippet.origin;
-                        const dimensions = copiedSnippet.dimensions;
+            switchMap(([request, processGroupId, revision, copiedContent]) => {
+                let pasteRequest: PasteRequest | null = null;
 
-                        if (!pasteLocation) {
-                            // if the copied snippet is from a different group or the original items are not in the viewport, center the pasted snippet
-                            if (
-                                copiedSnippet.snippet.parentGroupId != processGroupId ||
-                                !this.canvasView.isBoundingBoxInViewport(dimensions, false)
-                            ) {
-                                const center = this.canvasView.getCenterForBoundingBox(dimensions);
-                                pasteLocation = {
-                                    x: center[0] - transform.translate.x / transform.scale,
-                                    y: center[1] - transform.translate.y / transform.scale
-                                };
-                            } else {
-                                pasteLocation = {
-                                    x: snippetOrigin.x + 25,
-                                    y: snippetOrigin.y + 25
-                                };
-                            }
+                // Determine if the paste should be positioned based off of previously copied items or centered.
+                //   * The current process group is the same as the content that was last copied
+                //   * And, the last copied content is the same as the content being pasted
+                //   * And, the original content is still in the canvas view
+                if (copiedContent && processGroupId === copiedContent.processGroupId) {
+                    if (copiedContent.copyResponse.id === request.id) {
+                        const isInView = this.copyPasteService.isCopiedContentInView(copiedContent.copyResponse);
+                        if (isInView) {
+                            pasteRequest = this.copyPasteService.toOffsetPasteRequest(
+                                request,
+                                copiedContent.pasteCount
+                            );
                         }
+                    }
+                }
 
-                        return from(
-                            this.snippetService.copySnippet(response.snippet.id, pasteLocation, processGroupId)
-                        ).pipe(map((response) => FlowActions.pasteSuccess({ response })));
+                // If no paste request was created before, create one that is centered in the current canvas view
+                if (!pasteRequest) {
+                    pasteRequest = this.copyPasteService.toCenteredPasteRequest(request);
+                }
+
+                const payload: PasteRequestEntity = {
+                    copyResponse: pasteRequest.copyResponse,
+                    revision
+                };
+                const pasteRequestContext: PasteRequestContext = {
+                    pasteRequest: payload,
+                    processGroupId,
+                    pasteStrategy: pasteRequest.strategy
+                };
+                return from(this.copyPasteService.paste(pasteRequestContext)).pipe(
+                    map((response) => {
+                        return FlowActions.pasteSuccess({
+                            response: {
+                                ...response,
+                                pasteRequest
+                            }
+                        });
                     }),
                     catchError((errorResponse: HttpErrorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
-                )
-            )
+                );
+            })
         )
     );
 
@@ -2289,7 +2513,8 @@ export class FlowEffects {
         this.actions$.pipe(
             ofType(FlowActions.pasteSuccess),
             map((action) => action.response),
-            switchMap((response) => {
+            concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
+            switchMap(([response, currentProcessGroupId]) => {
                 this.canvasView.updateCanvasVisibility();
                 this.birdseyeView.refresh();
 
@@ -2356,6 +2581,19 @@ export class FlowEffects {
                             id: connection.id,
                             componentType: ComponentType.Connection
                         };
+                    })
+                );
+
+                if (response.pasteRequest.fitToScreen && response.pasteRequest.bbox) {
+                    this.canvasView.centerBoundingBox(response.pasteRequest.bbox);
+                }
+                this.store.dispatch(
+                    CopyActions.contentPasted({
+                        pasted: {
+                            copyId: response.pasteRequest.copyResponse.id,
+                            processGroupId: currentProcessGroupId,
+                            strategy: response.pasteRequest.strategy
+                        }
                     })
                 );
 

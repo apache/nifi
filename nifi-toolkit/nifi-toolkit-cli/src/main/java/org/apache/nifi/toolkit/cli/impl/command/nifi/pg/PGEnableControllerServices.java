@@ -19,15 +19,15 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.pg;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.cs.ControllerServiceStateCounts;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.cs.ControllerServiceStates;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.cs.ControllerServiceUtil;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
+import org.apache.nifi.toolkit.client.FlowClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
@@ -73,8 +73,10 @@ public class PGEnableControllerServices extends AbstractNiFiCommand<VoidResult> 
         int prevNumEnabled = -1;
         int enablingIterations = 1;
 
-        // request to enable services until the number of enabled services is no longer changing, which means either all
-        // services have been enabled, or the rest of the services are invalid and can't be enabled
+        // request to enable services until the number of enabled services is no longer
+        // changing, which means either all
+        // services have been enabled, or the rest of the services are invalid and can't
+        // be enabled
         while (count < MAX_ATTEMPTS) {
 
             // retrieve the current states of the services in the given pg
@@ -105,10 +107,12 @@ public class PGEnableControllerServices extends AbstractNiFiCommand<VoidResult> 
                 }
             }
 
-            // reset the enabling iteration count since we got past the above block without breaking
+            // reset the enabling iteration count since we got past the above block without
+            // breaking
             enablingIterations = 1;
 
-            // if no services are enabling and the number of enabled services equals the number of enabled services from
+            // if no services are enabling and the number of enabled services equals the
+            // number of enabled services from
             // last iteration, then we know there are no more that we can enable so break
             if (states.getEnabled() == prevNumEnabled && states.getEnabling() == 0) {
                 if (shouldPrint(properties)) {
@@ -129,12 +133,14 @@ public class PGEnableControllerServices extends AbstractNiFiCommand<VoidResult> 
                         println();
                     }
 
-                    // just break here to proceed with normal completion (i.e. will have a zero status code)
+                    // just break here to proceed with normal completion (i.e. will have a zero
+                    // status code)
                     break;
                 }
             }
 
-            // if we didn't break then store the number that were enabled to compare with next time
+            // if we didn't break then store the number that were enabled to compare with
+            // next time
             prevNumEnabled = states.getEnabled();
 
             if (shouldPrint(properties)) {

@@ -30,15 +30,20 @@ export const selectChangeVersionRequest = createSelector(
     (state: FlowState) => state.changeVersionRequest
 );
 
+export const selectPollingProcessor = createSelector(selectFlowState, (state: FlowState) => state.pollingProcessor);
+
 export const selectSaving = createSelector(selectFlowState, (state: FlowState) => state.saving);
 
 export const selectVersionSaving = createSelector(selectFlowState, (state: FlowState) => state.versionSaving);
 
 export const selectCurrentProcessGroupId = createSelector(selectFlowState, (state: FlowState) => state.id);
 
-export const selectRefreshRpgDetails = createSelector(selectFlowState, (state: FlowState) => state.refreshRpgDetails);
+export const selectCurrentProcessGroupRevision = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.revision
+);
 
-export const selectCopiedSnippet = createSelector(selectFlowState, (state: FlowState) => state.copiedSnippet);
+export const selectRefreshRpgDetails = createSelector(selectFlowState, (state: FlowState) => state.refreshRpgDetails);
 
 export const selectCurrentParameterContext = createSelector(
     selectFlowState,

@@ -38,8 +38,6 @@ import org.springframework.web.client.RestOperations;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Objects;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,15 +52,11 @@ public class StandardOidcIdTokenDecoderFactory implements JwtDecoderFactory<Clie
 
     private static final JwsAlgorithm DEFAULT_JWS_ALGORITHM = SignatureAlgorithm.RS256;
 
-    private static final Map<JwsAlgorithm, String> SECRET_KEY_ALGORITHMS;
-
-    static {
-        final Map<JwsAlgorithm, String> mappings = new HashMap<>();
-        mappings.put(MacAlgorithm.HS256, "HmacSHA256");
-        mappings.put(MacAlgorithm.HS384, "HmacSHA384");
-        mappings.put(MacAlgorithm.HS512, "HmacSHA512");
-        SECRET_KEY_ALGORITHMS = Collections.unmodifiableMap(mappings);
-    }
+    private static final Map<JwsAlgorithm, String> SECRET_KEY_ALGORITHMS = Map.of(
+            MacAlgorithm.HS256, "HmacSHA256",
+            MacAlgorithm.HS384, "HmacSHA384",
+            MacAlgorithm.HS512, "HmacSHA512"
+    );
 
     private static final ClaimTypeConverter DEFAULT_CLAIM_TYPE_CONVERTER = new ClaimTypeConverter(
             OidcIdTokenDecoderFactory.createDefaultClaimTypeConverters()

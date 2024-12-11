@@ -1,0 +1,81 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@use 'sass:map';
+@use '@angular/material' as mat;
+
+@mixin generate-theme($material-theme, $config) {
+    $is-material-dark: if(mat.get-theme-type($material-theme) == dark, true, false);
+    $material-theme-secondary-palette-default: mat.get-theme-color(
+        $material-theme,
+        secondary,
+        map.get(map.get($config, secondary), default)
+    );
+    $material-theme-error-palette-default: mat.get-theme-color(
+        $material-theme,
+        error,
+        map.get(map.get($config, error), default)
+    );
+
+    $material-theme-primary-palette-default: mat.get-theme-color(
+        $material-theme,
+        primary,
+        map.get(map.get($config, primary), default)
+    );
+
+    $primary-contrast: map.get(map.get($config, primary), contrast);
+    $caution-contrast: map.get(map.get($config, caution), contrast);
+    $error-contrast: map.get(map.get($config, error), contrast);
+    $success: map.get(map.get($config, success), default);
+    $caution: map.get(map.get($config, caution), default);
+
+    #edit-processor-header {
+        .bulletins {
+            background-color: unset;
+
+            .fa {
+                color: $material-theme-primary-palette-default;
+            }
+        }
+
+        .bulletins.has-bulletins {
+            .fa {
+                color: $primary-contrast;
+            }
+
+            &.error {
+                .fa {
+                    color: $error-contrast;
+                }
+
+                background-color: $material-theme-error-palette-default;
+            }
+            &.warning {
+                .fa {
+                    color: $caution-contrast;
+                }
+
+                background-color: $caution;
+            }
+            &.info,
+            &.debug,
+            &.trace {
+                background-color: $success;
+            }
+        }
+    }
+}

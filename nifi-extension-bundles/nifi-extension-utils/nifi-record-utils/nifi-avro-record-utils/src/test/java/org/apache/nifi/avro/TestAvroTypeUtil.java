@@ -791,9 +791,7 @@ public class TestAvroTypeUtil {
         Map<String, Object> obj = new HashMap<>();
         List<Map<String, Object>> list = new ArrayList<>();
         for (int x = 0; x < 10; x++) {
-            list.add(new HashMap<String, Object>() {{
-                put("Message", UUID.randomUUID().toString());
-            }});
+            list.add(Map.of("Message", UUID.randomUUID().toString()));
         }
         obj.put("List", list);
 
@@ -863,15 +861,8 @@ public class TestAvroTypeUtil {
     @Test
     public void testConvertAvroMap() {
         // GIVEN
-        Map<?, ?> expected = new HashMap<String, Object>() {{
-            put(
-                    "nullableMapField",
-                    new HashMap<String, Object>() {{
-                        put("key1", "value1");
-                        put("key2", "value2");
-                    }}
-            );
-        }};
+        Map<?, ?> expected = Map.of(
+                    "nullableMapField", Map.of("key1", "value1", "key2", "value2"));
 
         Schema nullableMapFieldAvroSchema = Schema.createUnion(
                 Schema.create(Type.NULL),
@@ -886,11 +877,7 @@ public class TestAvroTypeUtil {
                 )
         );
 
-        Map<?, ?> value = new HashMap<Utf8, Object>() {{
-            put(new Utf8("key1"), "value1");
-            put(new Utf8("key2"), "value2");
-        }};
-
+        Map<?, ?> value = Map.of(new Utf8("key1"), "value1", new Utf8("key2"), "value2");
         Record avroRecord = new GenericRecordBuilder(avroRecordSchema)
                 .set("nullableMapField", value)
                 .build();

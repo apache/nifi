@@ -200,13 +200,10 @@ public class ListedEntityTracker<T extends ListableEntity> {
 
     private static final String CACHE_KEY_PREFIX = "ListedEntities";
     private String getCacheKey() {
-        switch (scope) {
-            case LOCAL:
-                return format("%s::%s::%s", CACHE_KEY_PREFIX, componentId, nodeId);
-            case CLUSTER:
-                return format("%s::%s", CACHE_KEY_PREFIX, componentId);
-        }
-        throw new IllegalArgumentException("Unknown scope: " + scope);
+        return switch (scope) {
+            case LOCAL -> format("%s::%s::%s", CACHE_KEY_PREFIX, componentId, nodeId);
+            case CLUSTER -> format("%s::%s", CACHE_KEY_PREFIX, componentId);
+        };
     }
 
     private void persistListedEntities(Map<String, ListedEntity> listedEntities) throws IOException {

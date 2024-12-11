@@ -20,35 +20,35 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.AccessClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.CountersClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.InputPortClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.OutputPortClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamProviderClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.SnippetClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.SystemDiagnosticsClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.BasicAuthRequestConfig;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.BearerTokenRequestConfig;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.OIDCClientCredentialsRequestConfig;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.request.ProxiedEntityRequestConfig;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
+import org.apache.nifi.toolkit.client.AccessClient;
+import org.apache.nifi.toolkit.client.ConnectionClient;
+import org.apache.nifi.toolkit.client.ControllerClient;
+import org.apache.nifi.toolkit.client.ControllerServicesClient;
+import org.apache.nifi.toolkit.client.CountersClient;
+import org.apache.nifi.toolkit.client.FlowClient;
+import org.apache.nifi.toolkit.client.InputPortClient;
+import org.apache.nifi.toolkit.client.NiFiClient;
+import org.apache.nifi.toolkit.client.NiFiClientConfig;
+import org.apache.nifi.toolkit.client.OutputPortClient;
+import org.apache.nifi.toolkit.client.ParamContextClient;
+import org.apache.nifi.toolkit.client.ParamProviderClient;
+import org.apache.nifi.toolkit.client.PoliciesClient;
+import org.apache.nifi.toolkit.client.ProcessGroupClient;
+import org.apache.nifi.toolkit.client.ProcessorClient;
+import org.apache.nifi.toolkit.client.ProvenanceClient;
+import org.apache.nifi.toolkit.client.RemoteProcessGroupClient;
+import org.apache.nifi.toolkit.client.ReportingTasksClient;
+import org.apache.nifi.toolkit.client.RequestConfig;
+import org.apache.nifi.toolkit.client.SnippetClient;
+import org.apache.nifi.toolkit.client.SystemDiagnosticsClient;
+import org.apache.nifi.toolkit.client.TenantsClient;
+import org.apache.nifi.toolkit.client.VersionsClient;
+import org.apache.nifi.toolkit.client.impl.JerseyNiFiClient;
+import org.apache.nifi.toolkit.client.impl.request.BasicAuthRequestConfig;
+import org.apache.nifi.toolkit.client.impl.request.BearerTokenRequestConfig;
+import org.apache.nifi.toolkit.client.impl.request.OIDCClientCredentialsRequestConfig;
+import org.apache.nifi.toolkit.client.impl.request.ProxiedEntityRequestConfig;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -94,8 +94,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
 
         if (secureUrl && (StringUtils.isBlank(truststore)
                 || StringUtils.isBlank(truststoreType)
-                || StringUtils.isBlank(truststorePasswd))
-                ) {
+                || StringUtils.isBlank(truststorePasswd))) {
             throw new MissingOptionException(CommandOption.TRUSTSTORE.getLongName() + ", " + CommandOption.TRUSTSTORE_TYPE.getLongName()
                     + ", and " + CommandOption.TRUSTSTORE_PASSWORD.getLongName() + " are required when using an https url");
         }
@@ -183,7 +182,8 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
 
         final NiFiClient client = new JerseyNiFiClient.Builder().config(clientConfigBuilder.build()).build();
 
-        // return a wrapped client based which arguments were provided, otherwise return the regular client
+        // return a wrapped client based which arguments were provided, otherwise return
+        // the regular client
 
         if (!StringUtils.isBlank(proxiedEntity)) {
             final RequestConfig proxiedEntityConfig = new ProxiedEntityRequestConfig(proxiedEntity);
@@ -203,8 +203,9 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
     }
 
     /**
-     * Wraps a NiFiClient and ensures that all methods to obtain a more specific client will
-     * call the RequestConfig variation so that callers don't have to pass in the config on every call.
+     * Wraps a NiFiClient and ensures that all methods to obtain a more specific
+     * client will call the RequestConfig variation so that callers don't have to
+     * pass in the config on every call.
      */
     private static class NiFiClientWithRequestConfig implements NiFiClient {
 

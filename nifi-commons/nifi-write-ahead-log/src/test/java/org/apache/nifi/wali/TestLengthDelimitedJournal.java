@@ -224,7 +224,7 @@ public class TestLengthDelimitedJournal {
             final Collection<DummyRecord> records = Collections.singleton(thirdRecord);
             for (int i = 0; i < 10; i++) {
                 assertThrows(IOException.class, () -> journal.update(records, lookup));
-                assertThrows(IOException.class, () -> journal.fsync());
+                assertThrows(IOException.class, journal::fsync);
             }
         }
     }
@@ -251,7 +251,7 @@ public class TestLengthDelimitedJournal {
             final Collection<DummyRecord> records = Collections.singleton(thirdRecord);
             for (int i = 0; i < 10; i++) {
                 assertThrows(IOException.class, () -> journal.update(records, lookup));
-                assertThrows(IOException.class, () -> journal.fsync());
+                assertThrows(IOException.class, journal::fsync);
             }
         }
     }
@@ -289,7 +289,7 @@ public class TestLengthDelimitedJournal {
 
     @Test
     public void testMultipleThreadsCreatingOverflowDirectory() throws IOException, InterruptedException {
-        final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<DummyRecord>(journalFile, serdeFactory, streamPool, 3820L, 100) {
+        final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, streamPool, 3820L, 100) {
             @Override
             protected void createOverflowDirectory(final Path path) throws IOException {
                 // Create the overflow directory.
@@ -475,7 +475,7 @@ public class TestLengthDelimitedJournal {
         };
 
 
-        final Supplier<ByteArrayDataOutputStream> badosSupplier = new Supplier<ByteArrayDataOutputStream>() {
+        final Supplier<ByteArrayDataOutputStream> badosSupplier = new Supplier<>() {
             private final AtomicInteger count = new AtomicInteger(0);
 
             @Override
@@ -497,15 +497,15 @@ public class TestLengthDelimitedJournal {
 
         final Thread[] threads = new Thread[2];
 
-        final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<DummyRecord>(journalFile, serdeFactory, corruptingStreamPool, 0L) {
+        final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, corruptingStreamPool, 0L) {
             private final AtomicInteger count = new AtomicInteger(0);
 
             @Override
-            protected void poison(final Throwable t)  {
+            protected void poison(final Throwable t) {
                 if (count.getAndIncrement() == 0) { // it is only important that we sleep the first time. If we sleep every time, it just slows the test down.
                     try {
                         Thread.sleep(3000L);
-                    } catch (InterruptedException e) {
+                    } catch (InterruptedException ignore) {
                     }
                 }
 
@@ -524,7 +524,7 @@ public class TestLengthDelimitedJournal {
             final Thread t1 = new Thread(() -> {
                 try {
                     journal.update(Collections.singleton(firstRecord), key -> null);
-                } catch (final IOException ioe) {
+                } catch (final IOException ignore) {
                 }
             });
 
@@ -532,7 +532,7 @@ public class TestLengthDelimitedJournal {
             final Thread t2 = new Thread(() -> {
                 try {
                     journal.update(Collections.singleton(secondRecord), key -> firstRecord);
-                } catch (final IOException ioe) {
+                } catch (final IOException ignore) {
                 }
             });
 

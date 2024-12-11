@@ -22,8 +22,6 @@ import {
     ChangeVersionDialogRequest,
     ComponentEntity,
     ConfirmStopVersionControlRequest,
-    CopiedSnippet,
-    CopyRequest,
     CreateComponentRequest,
     CreateComponentResponse,
     CreateConnection,
@@ -77,8 +75,7 @@ import {
     OpenGroupComponentsDialogRequest,
     OpenLocalChangesDialogRequest,
     OpenSaveVersionDialogRequest,
-    PasteRequest,
-    PasteResponse,
+    PasteResponseContext,
     RefreshRemoteProcessGroupRequest,
     ReplayLastProvenanceEventRequest,
     RpgManageRemotePortsRequest,
@@ -90,6 +87,7 @@ import {
     StartComponentRequest,
     StartComponentResponse,
     StartComponentsRequest,
+    StartPollingProcessorUntilStoppedRequest,
     StartProcessGroupRequest,
     StartProcessGroupResponse,
     StopComponentRequest,
@@ -114,6 +112,7 @@ import {
 import { StatusHistoryRequest } from '../../../../state/status-history';
 import { FetchComponentVersionsRequest } from '../../../../state/shared';
 import { ErrorContext } from '../../../../state/error';
+import { CopyRequest, CopyResponseContext, CopyResponseEntity } from '../../../../state/copy';
 
 const CANVAS_PREFIX = '[Canvas]';
 
@@ -502,11 +501,11 @@ export const moveComponents = createAction(
 
 export const copy = createAction(`${CANVAS_PREFIX} Copy`, props<{ request: CopyRequest }>());
 
-export const copySuccess = createAction(`${CANVAS_PREFIX} Copy Success`, props<{ copiedSnippet: CopiedSnippet }>());
+export const copySuccess = createAction(`${CANVAS_PREFIX} Copy Success`, props<{ response: CopyResponseContext }>());
 
-export const paste = createAction(`${CANVAS_PREFIX} Paste`, props<{ request: PasteRequest }>());
+export const paste = createAction(`${CANVAS_PREFIX} Paste`, props<{ request: CopyResponseEntity }>());
 
-export const pasteSuccess = createAction(`${CANVAS_PREFIX} Paste Success`, props<{ response: PasteResponse }>());
+export const pasteSuccess = createAction(`${CANVAS_PREFIX} Paste Success`, props<{ response: PasteResponseContext }>());
 
 /*
     Delete Component Actions
@@ -777,6 +776,20 @@ export const pollChangeVersionSuccess = createAction(
 );
 
 export const stopPollingChangeVersion = createAction(`${CANVAS_PREFIX} Stop Polling Change Version`);
+
+export const startPollingProcessorUntilStopped = createAction(
+    `${CANVAS_PREFIX} Start Polling Processor Until Stopped`,
+    props<{ request: StartPollingProcessorUntilStoppedRequest }>()
+);
+
+export const pollProcessorUntilStopped = createAction(`${CANVAS_PREFIX} Poll Processor Until Stopped`);
+
+export const pollProcessorUntilStoppedSuccess = createAction(
+    `${CANVAS_PREFIX} Poll Processor Until Stopped Success`,
+    props<{ response: LoadProcessorSuccess }>()
+);
+
+export const stopPollingProcessor = createAction(`${CANVAS_PREFIX} Stop Polling Processor`);
 
 export const openSaveVersionDialog = createAction(
     `${CANVAS_PREFIX} Open Save Flow Version Dialog`,

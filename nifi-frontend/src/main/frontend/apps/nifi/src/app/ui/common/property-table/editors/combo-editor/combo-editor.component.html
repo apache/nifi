@@ -31,7 +31,7 @@
                             <ng-container *ngIf="allowableValue.description; else noDescription">
                                 <mat-option
                                     [value]="allowableValue.id"
-                                    [disabled]="readonly"
+                                    [disabled]="readonly || allowableValue.disabled"
                                     (mousedown)="preventDrag($event)"
                                     nifiTooltip
                                     [tooltipComponentType]="TextTip"
@@ -48,7 +48,7 @@
                             <ng-template #noDescription>
                                 <mat-option
                                     [value]="allowableValue.id"
-                                    [disabled]="readonly"
+                                    [disabled]="readonly || allowableValue.disabled"
                                     (mousedown)="preventDrag($event)">
                                     <span
                                         class="option-text"

@@ -20,7 +20,9 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
@@ -148,6 +150,16 @@ public interface ProcessGroupDAO {
      */
     ProcessGroup updateProcessGroupFlow(String groupId, VersionedExternalFlow proposedSnapshot, VersionControlInformationDTO versionControlInformation, String componentIdSeed,
                                         boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
+
+    /**
+     * Adds versioned components to a Process Group
+     *
+     * @param groupId the ID of the process group
+     * @param additions the additions to add to this Process Group
+     * @param componentIdSeed the seed value to use for generating ID's for new components
+     * @return the component additions
+     */
+    ComponentAdditions addVersionedComponents(String groupId, VersionedComponentAdditions additions, String componentIdSeed);
 
     /**
      * Applies the given Version Control Information to the Process Group

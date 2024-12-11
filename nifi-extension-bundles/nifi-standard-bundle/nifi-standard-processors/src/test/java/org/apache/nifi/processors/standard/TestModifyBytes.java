@@ -23,9 +23,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -59,8 +60,8 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        out.assertContentEquals("".getBytes("UTF-8"));
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
+        out.assertContentEquals("".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -73,7 +74,7 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
         out.assertContentEquals(testFile);
     }
 
@@ -87,7 +88,7 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
         out.assertContentEquals(noHeaderFile);
     }
 
@@ -97,13 +98,11 @@ public class TestModifyBytes {
         runner.setProperty(ModifyBytes.START_OFFSET, "${numBytes}"); //REMOVE - '<<<HEADER>>>'
         runner.setProperty(ModifyBytes.END_OFFSET, "0 MB");
 
-        runner.enqueue(testFilePath, new HashMap<String, String>() {{
-            put("numBytes", "12 B");
-        }});
+        runner.enqueue(testFilePath, Map.of("numBytes", "12 B"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
         out.assertContentEquals(noHeaderFile);
     }
 
@@ -117,8 +116,8 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        out.assertContentEquals("<<<FOOTER>>>".getBytes("UTF-8"));
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
+        out.assertContentEquals("<<<FOOTER>>>".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -131,8 +130,8 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        out.assertContentEquals("<<<HEADER>>>".getBytes("UTF-8"));
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
+        out.assertContentEquals("<<<HEADER>>>".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -141,14 +140,12 @@ public class TestModifyBytes {
         runner.setProperty(ModifyBytes.START_OFFSET, "0 B");
         runner.setProperty(ModifyBytes.END_OFFSET, "${numBytes}");
 
-        runner.enqueue(testFilePath, new HashMap<String, String>() {{
-            put("numBytes", "181 B");
-        }});
+        runner.enqueue(testFilePath, Map.of("numBytes", "181 B"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        out.assertContentEquals("<<<HEADER>>>".getBytes("UTF-8"));
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
+        out.assertContentEquals("<<<HEADER>>>".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -161,7 +158,7 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
         out.assertContentEquals(noFooterFile);
     }
 
@@ -175,7 +172,7 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
         out.assertContentEquals(noFooterNoHeaderFile);
     }
 
@@ -189,8 +186,8 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        out.assertContentEquals("".getBytes("UTF-8"));
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
+        out.assertContentEquals("".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -203,8 +200,8 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
-        out.assertContentEquals("Dew".getBytes("UTF-8"));
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
+        out.assertContentEquals("Dew".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -218,7 +215,7 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
         assertEquals(0L, out.getSize());
     }
 
@@ -233,7 +230,7 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
         assertEquals(0L, out.getSize());
     }
 
@@ -248,12 +245,12 @@ public class TestModifyBytes {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).getFirst();
         assertEquals(testFile.length() - 20, out.getSize());
     }
 
     @Test
-    public void testCheckAllowableValues() throws IOException {
+    public void testCheckAllowableValues() {
         final TestRunner runner = TestRunners.newTestRunner(new ModifyBytes());
         runner.setProperty(ModifyBytes.REMOVE_ALL, "maybe");
         runner.assertNotValid();

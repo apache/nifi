@@ -28,8 +28,7 @@ import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -53,7 +52,7 @@ import java.util.List;
 public class TestListenTCP {
     private static final String CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE = "client.certificate.subject.dn";
     private static final String CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE = "client.certificate.issuer.dn";
-    private static final String SSL_CONTEXT_IDENTIFIER = SSLContextService.class.getName();
+    private static final String SSL_CONTEXT_IDENTIFIER = SSLContextProvider.class.getName();
 
     private static final String LOCALHOST = "localhost";
     private static final Duration SENDER_TIMEOUT = Duration.ofSeconds(10);
@@ -202,11 +201,11 @@ public class TestListenTCP {
     }
 
     private void enableSslContextService(final SSLContext sslContext) throws InitializationException {
-        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
-        Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
-        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
-        runner.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextService);
-        runner.enableControllerService(sslContextService);
+        final SSLContextProvider sslContextProvider = Mockito.mock(SSLContextProvider.class);
+        Mockito.when(sslContextProvider.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
+        Mockito.when(sslContextProvider.createContext()).thenReturn(sslContext);
+        runner.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextProvider);
+        runner.enableControllerService(sslContextProvider);
         runner.setProperty(ListenTCP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_IDENTIFIER);
     }
 

@@ -163,12 +163,7 @@ public class RingBuffer<T> {
     }
 
     public List<T> asList() {
-        return getSelectedElements(new Filter<T>() {
-            @Override
-            public boolean select(final T value) {
-                return true;
-            }
-        });
+        return getSelectedElements(value -> true);
     }
 
     public T getOldestElement() {
@@ -252,7 +247,7 @@ public class RingBuffer<T> {
         }
     }
 
-    public static interface Filter<S> {
+    public interface Filter<S> {
 
         boolean select(S value);
     }
@@ -262,7 +257,7 @@ public class RingBuffer<T> {
      *
      * @param <S> the type to evaluate
      */
-    public static interface ForEachEvaluator<S> {
+    public interface ForEachEvaluator<S> {
 
         /**
          * Evaluates the given element and returns {@code true} if the next element should be evaluated, {@code false} otherwise
@@ -273,9 +268,9 @@ public class RingBuffer<T> {
         boolean evaluate(S value);
     }
 
-    public static enum IterationDirection {
+    public enum IterationDirection {
 
         FORWARD,
-        BACKWARD;
+        BACKWARD
     }
 }

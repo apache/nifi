@@ -31,10 +31,12 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.groups.ComponentAdditions;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
@@ -508,6 +510,17 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         group.disconnectVersionControl(true);
         group.onComponentModified();
         return group;
+    }
+
+    @Override
+    public ComponentAdditions addVersionedComponents(final String groupId, final VersionedComponentAdditions additions, final String componentIdSeed) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+        final ComponentAdditions componentAdditions = group.addVersionedComponents(additions, componentIdSeed);
+        group.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
+
+        group.onComponentModified();
+
+        return componentAdditions;
     }
 
     @Override

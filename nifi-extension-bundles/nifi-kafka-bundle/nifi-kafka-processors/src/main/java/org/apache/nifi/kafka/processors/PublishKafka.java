@@ -259,7 +259,6 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .dependsOn(PUBLISH_STRATEGY, PublishStrategy.USE_WRAPPER)
             .build();
 
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
@@ -526,18 +525,17 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
 
         final int maxMessageSize = context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).intValue();
 
-        if (readerFactory != null && writerFactory != null) {
-            final RecordSetWriterFactory keyWriterFactory = context.getProperty(RECORD_KEY_WRITER).asControllerService(RecordSetWriterFactory.class);
-            final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty(PUBLISH_STRATEGY).getValue());
-            final RecordMetadataStrategy metadataStrategy = RecordMetadataStrategy.valueOf(context.getProperty(RECORD_METADATA_STRATEGY).getValue());
-
-            final String kafkaKeyAttribute = context.getProperty(KAFKA_KEY).getValue();
-            final String keyAttributeEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
-            final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
-            final KeyFactory keyFactory = ((PublishStrategy.USE_VALUE == publishStrategy) && (messageKeyField != null))
+        final RecordSetWriterFactory keyWriterFactory = context.getProperty(RECORD_KEY_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty(PUBLISH_STRATEGY).getValue());
+        final String kafkaKeyAttribute = context.getProperty(KAFKA_KEY).getValue();
+        final String keyAttributeEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
+        final String messageKeyField = context.getProperty(MESSAGE_KEY_FIELD).evaluateAttributeExpressions(flowFile).getValue();
+        final KeyFactory keyFactory = ((PublishStrategy.USE_VALUE == publishStrategy) && (messageKeyField != null))
                 ? new MessageKeyFactory(flowFile, messageKeyField, keyWriterFactory, getLogger())
                 : new AttributeKeyFactory(kafkaKeyAttribute, keyAttributeEncoding);
 
+        if (readerFactory != null && writerFactory != null) {
+            final RecordMetadataStrategy metadataStrategy = RecordMetadataStrategy.valueOf(context.getProperty(RECORD_METADATA_STRATEGY).getValue());
             if (publishStrategy == PublishStrategy.USE_WRAPPER) {
                 return new RecordWrapperStreamKafkaRecordConverter(flowFile, metadataStrategy, readerFactory, writerFactory, keyWriterFactory, maxMessageSize, getLogger());
             } else {
@@ -551,7 +549,7 @@ public class PublishKafka extends AbstractProcessor implements KafkaPublishCompo
             return new DelimitedStreamKafkaRecordConverter(demarcator.getBytes(StandardCharsets.UTF_8), maxMessageSize, headersFactory);
         }
 
-        return new FlowFileStreamKafkaRecordConverter(maxMessageSize, headersFactory);
+        return new FlowFileStreamKafkaRecordConverter(maxMessageSize, headersFactory, keyFactory);
     }
 
 

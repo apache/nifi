@@ -36,27 +36,28 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.http.FileStoreTlsKeyManagersProvider;
 import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.http.TlsKeyManagersProvider;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.glue.GlueClient;
 import software.amazon.awssdk.services.glue.GlueClientBuilder;
 
+import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.URI;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -129,7 +130,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
             .displayName("SSL Context Service")
             .description("Specifies an optional SSL Context Service that, if provided, will be used to create connections")
             .required(false)
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
@@ -218,16 +219,17 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
         builder.socketTimeout(Duration.ofMillis(communicationsTimeout));
 
         if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
-            final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            if (sslContextService != null) {
-                if (sslContextService.isTrustStoreConfigured()) {
-                    final TrustManager[] trustManagers = new TrustManager[]{sslContextService.createTrustManager()};
-                    builder.tlsTrustManagersProvider(() -> trustManagers);
-                }
-                if (sslContextService.isKeyStoreConfigured()) {
-                    final TlsKeyManagersProvider keyManagersProvider = FileStoreTlsKeyManagersProvider
-                            .create(Paths.get(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
-                    builder.tlsKeyManagersProvider(keyManagersProvider);
+            final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+            if (sslContextProvider != null) {
+                final X509TrustManager trustManager = sslContextProvider.createTrustManager();
+                final TrustManager[] trustManagers = new TrustManager[]{trustManager};
+                builder.tlsTrustManagersProvider(() -> trustManagers);
+
+                final Optional<X509ExtendedKeyManager> keyManagerFound = sslContextProvider.createKeyManager();
+                if (keyManagerFound.isPresent()) {
+                    final X509ExtendedKeyManager keyManager = keyManagerFound.get();
+                    final KeyManager[] keyManagers = new KeyManager[]{keyManager};
+                    builder.tlsKeyManagersProvider(() -> keyManagers);
                 }
             }
         }

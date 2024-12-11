@@ -41,7 +41,7 @@ public class UsmJsonParser {
     }
 
     static List<UsmUser> parse(final String json) throws JsonProcessingException {
-        return MAPPER.readValue(json, new TypeReference<List<UsmUser>>() {
+        return MAPPER.readValue(json, new TypeReference<>() {
         });
     }
 }

@@ -105,6 +105,7 @@
                         <div class="relative h-full border">
                             <div class="absolute inset-0 overflow-y-auto p-1">
                                 <controller-service-references
+                                    [disabledLinks]="(saving$ | async)!"
                                     [serviceReferences]="request.controllerService.component.referencingComponents"
                                     [goToReferencingComponent]="
                                         goToReferencingComponent

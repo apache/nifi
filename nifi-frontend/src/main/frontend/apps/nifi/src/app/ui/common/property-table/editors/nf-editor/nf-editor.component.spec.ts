@@ -62,6 +62,7 @@ describe('NfEditor', () => {
             deleted: false,
             added: false,
             dirty: false,
+            savedValue: value,
             type: 'required'
         };
 
@@ -99,6 +100,7 @@ describe('NfEditor', () => {
             deleted: false,
             added: false,
             dirty: false,
+            savedValue: value,
             type: 'required'
         };
 

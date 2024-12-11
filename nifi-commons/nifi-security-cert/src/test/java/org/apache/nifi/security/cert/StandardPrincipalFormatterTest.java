@@ -36,6 +36,12 @@ class StandardPrincipalFormatterTest {
 
     private static final X500Principal SUBJECT_PRINCIPAL = new X500Principal(SUBJECT_CANONICAL);
 
+    private static final String SUBJECT_LDAP_ELEMENTS = "UID=Subject,DC=Apache,DC=NiFi";
+
+    private static final String SUBJECT_LDAP_FORMATTED = "UID=Subject, DC=Apache, DC=NiFi";
+
+    private static final X500Principal SUBJECT_LDAP_PRINCIPAL = new X500Principal(SUBJECT_LDAP_ELEMENTS);
+
     private static final String ISSUER_CANONICAL = "CN=Certificate Authority,O=Organization,C=US";
 
     private static final String ISSUER_FORMATTED = "CN=Certificate Authority, O=Organization, C=US";
@@ -52,6 +58,15 @@ class StandardPrincipalFormatterTest {
         final String subject = StandardPrincipalFormatter.getInstance().getSubject(certificate);
 
         assertEquals(SUBJECT_FORMATTED, subject);
+    }
+
+    @Test
+    void testGetSubjectLdapElements() {
+        when(certificate.getSubjectX500Principal()).thenReturn(SUBJECT_LDAP_PRINCIPAL);
+
+        final String subject = StandardPrincipalFormatter.getInstance().getSubject(certificate);
+
+        assertEquals(SUBJECT_LDAP_FORMATTED, subject);
     }
 
     @Test

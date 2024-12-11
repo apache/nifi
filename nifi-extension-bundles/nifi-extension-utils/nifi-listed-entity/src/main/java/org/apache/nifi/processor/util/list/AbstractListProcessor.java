@@ -471,7 +471,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         final TreeMap<Long, List<T>> orderedEntries = new TreeMap<>();
         for (final T entity : entityList) {
-            List<T> entitiesForTimestamp = orderedEntries.computeIfAbsent(entity.getTimestamp(), k -> new ArrayList<T>());
+            List<T> entitiesForTimestamp = orderedEntries.computeIfAbsent(entity.getTimestamp(), k -> new ArrayList<>());
             entitiesForTimestamp.add(entity);
         }
 
@@ -678,11 +678,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             final boolean newEntry = minTimestampToListMillis == null || entityTimestampMillis >= minTimestampToListMillis && entityTimestampMillis >= lastProcessedLatestEntryTimestampMillis;
 
             if (newEntry) {
-                List<T> entitiesForTimestamp = orderedEntries.get(entity.getTimestamp());
-                if (entitiesForTimestamp == null) {
-                    entitiesForTimestamp = new ArrayList<T>();
-                    orderedEntries.put(entity.getTimestamp(), entitiesForTimestamp);
-                }
+                List<T> entitiesForTimestamp = orderedEntries.computeIfAbsent(entity.getTimestamp(), k -> new ArrayList<>());
                 entitiesForTimestamp.add(entity);
             }
         }

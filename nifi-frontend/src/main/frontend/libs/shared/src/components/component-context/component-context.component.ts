@@ -18,11 +18,12 @@
 import { Component, Input } from '@angular/core';
 import { ComponentTypeNamePipe } from '../../pipes/component-type-name.pipe';
 import { ComponentType } from '../../index';
+import { CopyDirective } from '../../directives/index';
 
 @Component({
     selector: 'component-context',
     standalone: true,
-    imports: [ComponentTypeNamePipe],
+    imports: [ComponentTypeNamePipe, CopyDirective],
     templateUrl: './component-context.component.html',
     styleUrl: './component-context.component.scss'
 })

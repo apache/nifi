@@ -35,7 +35,7 @@ public class DefaultAvroSqlWriter implements SqlWriter {
 
     private final AvroConversionOptions options;
 
-    private final Map<String, String> attributesToAdd = new HashMap<String, String>() {{
+    private final Map<String, String> attributesToAdd = new HashMap<>() {{
         put(CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
     }};
 

@@ -25,9 +25,9 @@ import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
+import org.apache.nifi.toolkit.client.FlowClient;
+import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.toolkit.client.ReportingTasksClient;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
@@ -68,19 +68,18 @@ public class JoinClusterWithDifferentFlowIT extends NiFiSystemIT {
         final Map<String, String> propertyOverrides = Collections.singletonMap("nifi.cluster.flow.serialization.format", "JSON");
 
         return new SpawnedClusterNiFiInstanceFactory(
-            new InstanceConfiguration.Builder()
-                .bootstrapConfig("src/test/resources/conf/clustered/node1/bootstrap.conf")
-                .instanceDirectory("target/node1")
-                .overrideNifiProperties(propertyOverrides)
-                .flowJson(new File("src/test/resources/flows/mismatched-flows/flow1.json.gz"))
-                .build(),
-            new InstanceConfiguration.Builder()
-                .bootstrapConfig("src/test/resources/conf/clustered/node2/bootstrap.conf")
-                .instanceDirectory("target/node2")
-                .flowJson(new File("src/test/resources/flows/mismatched-flows/flow1.json.gz"))
-                .overrideNifiProperties(propertyOverrides)
-                .build()
-        );
+                new InstanceConfiguration.Builder()
+                        .bootstrapConfig("src/test/resources/conf/clustered/node1/bootstrap.conf")
+                        .instanceDirectory("target/node1")
+                        .overrideNifiProperties(propertyOverrides)
+                        .flowJson(new File("src/test/resources/flows/mismatched-flows/flow1.json.gz"))
+                        .build(),
+                new InstanceConfiguration.Builder()
+                        .bootstrapConfig("src/test/resources/conf/clustered/node2/bootstrap.conf")
+                        .instanceDirectory("target/node2")
+                        .flowJson(new File("src/test/resources/flows/mismatched-flows/flow1.json.gz"))
+                        .overrideNifiProperties(propertyOverrides)
+                        .build());
     }
 
     @Test
@@ -91,11 +90,16 @@ public class JoinClusterWithDifferentFlowIT extends NiFiSystemIT {
             return "ENABLED".equals(rootService.getState());
         });
 
-        // Once we've started up, we want to have node 2 startup with a different flow. We cannot simply startup both nodes at the same time with
-        // different flows because then either flow could be elected the "correct flow" and as a result, we don't know which node to look at to ensure
+        // Once we've started up, we want to have node 2 startup with a different flow.
+        // We cannot simply startup both nodes at the same time with
+        // different flows because then either flow could be elected the "correct flow"
+        // and as a result, we don't know which node to look at to ensure
         // that the proper flow resolution occurred.
-        // To avoid that situation, we let both nodes startup with flow 1. Then we shutdown node 2, delete its flow, replace it with flow2.xml.gz from our mismatched-flows
-        // directory, and restart, which will ensure that Node 1 will be elected primary and hold the "correct" copy of the flow.
+        // To avoid that situation, we let both nodes startup with flow 1. Then we
+        // shutdown node 2, delete its flow, replace it with flow2.xml.gz from our
+        // mismatched-flows
+        // directory, and restart, which will ensure that Node 1 will be elected primary
+        // and hold the "correct" copy of the flow.
         final NiFiInstance node2 = getNiFiInstance().getNodeInstance(2);
         node2.stop();
 
@@ -180,7 +184,8 @@ public class JoinClusterWithDifferentFlowIT extends NiFiSystemIT {
         assertEquals("65b8f293-016e-1000-7b8f-6c6752fa921b", affectedComponent.getId());
         assertEquals(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR, affectedComponent.getReferenceType());
 
-        // The original Controller Service, whose UUID ended with 00 should be removed and a new one inherited.
+        // The original Controller Service, whose UUID ended with 00 should be removed
+        // and a new one inherited.
         final ControllerServicesEntity controllerLevelServices = getNifiClient().getFlowClient(DO_NOT_REPLICATE).getControllerServices();
         assertEquals(1, controllerLevelServices.getControllerServices().size());
 
@@ -197,8 +202,8 @@ public class JoinClusterWithDifferentFlowIT extends NiFiSystemIT {
 
     private String readFlow(final File file) throws IOException {
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             final InputStream fis = new FileInputStream(file);
-             final InputStream gzipIn = new GZIPInputStream(fis)) {
+                final InputStream fis = new FileInputStream(file);
+                final InputStream gzipIn = new GZIPInputStream(fis)) {
 
             final byte[] buffer = new byte[4096];
             int len;

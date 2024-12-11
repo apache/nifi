@@ -20,7 +20,7 @@ package org.apache.nifi.tests.system.controllerservice;
 import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.junit.jupiter.params.ParameterizedTest;

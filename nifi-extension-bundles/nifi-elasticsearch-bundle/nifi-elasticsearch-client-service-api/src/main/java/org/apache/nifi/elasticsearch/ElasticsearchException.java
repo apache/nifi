@@ -17,7 +17,6 @@
 
 package org.apache.nifi.elasticsearch;
 
-import java.util.HashSet;
 import java.util.Set;
 
 public class ElasticsearchException extends RuntimeException {
@@ -25,12 +24,8 @@ public class ElasticsearchException extends RuntimeException {
      * These are names of common Elasticsearch exceptions where it is safe to assume
      * that it's OK to retry the operation instead of just sending it to an error relationship.
      */
-    public static final Set<String> ELASTIC_ERROR_NAMES = new HashSet<String>() {{
-        add("NoNodeAvailableException");
-        add("ElasticsearchTimeoutException");
-        add("ReceiveTimeoutTransportException");
-        add("NodeClosedException");
-    }};
+    public static final Set<String> ELASTIC_ERROR_NAMES = Set.of("NoNodeAvailableException",
+        "ElasticsearchTimeoutException", "ReceiveTimeoutTransportException", "NodeClosedException");
 
     protected boolean elastic;
 

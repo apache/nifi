@@ -28,8 +28,7 @@ import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
-import org.apache.nifi.security.util.TlsPlatform;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -68,7 +67,7 @@ import static org.mockito.Mockito.when;
 class StandardWebClientServiceProviderTest {
     private static final String SERVICE_ID = StandardWebClientServiceProvider.class.getSimpleName();
 
-    private static final String SSL_CONTEXT_SERVICE_ID = SSLContextService.class.getSimpleName();
+    private static final String SSL_CONTEXT_SERVICE_ID = SSLContextProvider.class.getSimpleName();
 
     private static final String PROXY_SERVICE_ID = ProxyConfigurationService.class.getSimpleName();
 
@@ -101,7 +100,7 @@ class StandardWebClientServiceProviderTest {
     static X509TrustManager trustManager;
 
     @Mock
-    SSLContextService sslContextService;
+    SSLContextProvider sslContextProvider;
 
     @Mock
     ProxyConfigurationService proxyConfigurationService;
@@ -179,12 +178,12 @@ class StandardWebClientServiceProviderTest {
 
     @Test
     void testGetWebServiceClientSslContextServiceConfiguredGetUri() throws InitializationException, InterruptedException {
-        when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
-        when(sslContextService.getSslAlgorithm()).thenReturn(TlsPlatform.getLatestProtocol());
-        when(sslContextService.createTrustManager()).thenReturn(trustManager);
+        when(sslContextProvider.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+        when(sslContextProvider.createTrustManager()).thenReturn(trustManager);
+        when(sslContextProvider.createContext()).thenReturn(sslContext);
 
-        runner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextService);
-        runner.enableControllerService(sslContextService);
+        runner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextProvider);
+        runner.enableControllerService(sslContextProvider);
 
         runner.setProperty(provider, StandardWebClientServiceProvider.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
         runner.enableControllerService(provider);
