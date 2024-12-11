@@ -34,7 +34,6 @@ import org.apache.nifi.registry.security.key.Key;
 import org.apache.nifi.registry.security.key.KeyService;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -44,7 +43,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 public class JwtService {
@@ -150,14 +148,7 @@ public class JwtService {
         return this.generateSignedToken(identity, preferredUsername, issuer, audience, expirationMillis, null);
     }
 
-    public String generateSignedToken(
-            String identity,
-            String preferredUsername,
-            String issuer,
-            String audience,
-            long expirationMillis,
-            Collection<? extends GrantedAuthority> authorities) throws JwtException {
-
+    public String generateSignedToken(String identity, String preferredUsername, String issuer, String audience, long expirationMillis, Collection<String> groups) throws JwtException {
         if (identity == null || StringUtils.isEmpty(identity)) {
             String errorMessage = "Cannot generate a JWT for a token with an empty identity";
             errorMessage = issuer != null ? errorMessage + " issued by " + issuer + "." : ".";
@@ -183,7 +174,7 @@ public class JwtService {
                     .audience().add(audience).and()
                     .claim(USERNAME_CLAIM, preferredUsername)
                     .claim(KEY_ID_CLAIM, key.getId())
-                    .claim(GROUPS_CLAIM, authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet()))
+                    .claim(GROUPS_CLAIM, groups)
                     .issuedAt(now.getTime())
                     .expiration(expiration.getTime())
                     .signWith(Keys.hmacShaKeyFor(keyBytes), SIGNATURE_ALGORITHM).compact();
