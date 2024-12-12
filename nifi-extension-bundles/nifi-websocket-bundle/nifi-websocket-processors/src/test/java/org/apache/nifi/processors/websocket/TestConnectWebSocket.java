@@ -201,7 +201,7 @@ class TestConnectWebSocket extends TestListenWebSocket {
 
         runner.stop();
     }
-    
+
     @Test
     void testDynamicUrlsParsedFromFlowFileAndAbleToConnectAndDisconnect() throws InitializationException {
         // Start websocket server
