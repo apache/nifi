@@ -33,7 +33,6 @@ import {
     saveRuleFailure
 } from './rules.actions';
 import { produce } from 'immer';
-import { v4 as uuidv4 } from 'uuid';
 
 export const initialState: RulesState = {
     loading: false,

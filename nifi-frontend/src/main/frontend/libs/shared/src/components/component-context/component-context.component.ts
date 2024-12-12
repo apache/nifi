@@ -17,8 +17,8 @@
 
 import { Component, Input } from '@angular/core';
 import { ComponentTypeNamePipe } from '../../pipes/component-type-name.pipe';
-import { ComponentType } from '../../index';
-import { CopyDirective } from '../../directives/index';
+import { ComponentType } from '../..';
+import { CopyDirective } from '../../directives/copy/copy.directive';
 
 @Component({
     selector: 'component-context',

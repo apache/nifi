@@ -79,20 +79,18 @@ The preceding examples illustrate how to make changes to every FlowFile that goe
 UpdateAttribute processor may also be used to make conditional changes.
 
 To change attributes based on some condition, use the Advanced User Interface (UI) in the processor by clicking the *
-*Advanced** button in the lower right corner.
+*Advanced** menu item in the Canvas context menu.
 
-Clicking the Advanced button displays the Advanced UI. In the Advanced UI, Conditions and their associated Actions are
+Clicking the Advanced menu item displays the Advanced UI. In the Advanced UI, Conditions and their associated Actions are
 entered as "Rules". Each rule basically says, "If these conditions are met, then do this action." One or more conditions
 may be used in a given rule, and they all must be met in order for the designated action(s) to be taken.
 
 **Adding Rules**
 
-To add rules and their associated conditions and actions, click on the buttons with the plus symbol located to the right
-of the "Rules", "Conditions", and "Actions" labels.
-
-Upon adding a rule with its condition(s) and action(s), it is important to save it by clicking the **Save** button in
-the lower right corner. If you do not do so and attempt to add or navigate to another rule, an error message will
-appear, asking you if you want to save your changes.
+To add the first rule, click on the "Create Rule" button in center of the screen. The Edit Rule form will display where
+the name, comments, conditions, and actions for the rule can be entered. Once the rule is defined, click the **Add** 
+button. Additional rules can be added by clicking the button with the plus symbol located to the top right of the 
+Rule listing.
 
 **Example Rules**
 
@@ -116,9 +114,9 @@ Taken together, this rule says:
 **Adding another Rule**
 
 Continuing with this example, we can add another rule to check for files that are larger than one gigabyte. When we add
-this second rule, we can use the previous rule as a template, so to speak, by taking advantage of the "Copy from
-existing rule" option in the New Rule window. Simply start typing the name of an existing rule, and it will show up in a
-dropdown menu below the entry field.
+this second rule, we can use the previous rule as a template, so to speak, by taking advantage of the "Clone Rule" option 
+in the menu for the Rule that you wan to clone. This will open with new Rule form with the exisitng Rules criteria
+pre-populated.
 
 In this example, the CheckForGiantFiles rule has these conditions:
 
@@ -159,8 +157,8 @@ The delete attributes function does not produce a Provenance Event if the **alte
 **FlowFile Policy**
 
 Another setting in the Advanced UI is the FlowFile Policy. It is located in the upper-left corner of the UI, and it
-defines the processor's behavior when multiple rules match. It may be changed using the dropdown menu. By default, the
-FlowFile Policy is set to "use clone".
+defines the processor's behavior when multiple rules match. It may be changed using the slide toggle. By default, the
+FlowFile Policy is set to use a clone of the original FlowFile for each matching rule.
 
 If the FlowFile policy is set to "use clone", and multiple rules match, then a copy of the incoming FlowFile is created,
 such that the number of outgoing FlowFiles is equal to the number of rules that match. In other words, if two rules (A
@@ -172,7 +170,8 @@ If the FlowFile policy is set to "use original", then all matching rules are app
 there is only one outgoing FlowFile with all the attribute changes applied. In this case, the order of the rules matters
 and the action for each rule that matches will be applied in that order. If multiple rules contain actions that update
 the same attribute, the action from the last matching rule will take precedence. Notably, you can drag and drop the
-rules into a certain order within the Rules list.
+rules into a certain order within the Rules list once the FlowFile Policy is set to "use original" and the user has
+toggled the "Reorder rules" control. While in this reordering mode, other Rule modifications are not allowed.
 
 **Filtering Rules**
 
@@ -182,7 +181,7 @@ in the name, condition, or action.
 
 **Closing the Advanced UI**
 
-Once all changes have been saved in the Advanced UI, the UI can be closed using the X in the top right corner.
+Once all changes have been saved in the Advanced UI, you can navigate back to the Canvas using the navigation at the top.
 
 **Stateful Usage**
 

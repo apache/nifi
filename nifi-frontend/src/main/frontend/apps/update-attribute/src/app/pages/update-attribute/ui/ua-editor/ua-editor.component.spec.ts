@@ -19,6 +19,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { UaEditor } from './ua-editor.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { MockComponent } from 'ng-mocks';
+import { PropertyHint } from '@nifi/shared';
 
 import 'codemirror/addon/hint/show-hint';
 
@@ -28,7 +30,7 @@ describe('UaEditor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [UaEditor, HttpClientTestingModule]
+            imports: [UaEditor, HttpClientTestingModule, MockComponent(PropertyHint)]
         });
         fixture = TestBed.createComponent(UaEditor);
         component = fixture.componentInstance;

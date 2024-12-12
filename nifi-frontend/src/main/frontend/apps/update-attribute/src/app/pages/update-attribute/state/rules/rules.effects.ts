@@ -30,6 +30,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { updateRevision } from '../advanced-ui-parameters/advanced-ui-parameters.actions';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { loadEvaluationContext } from '../evaluation-context/evaluation-context.actions';
 
 @Injectable()
 export class RulesEffects {
@@ -90,6 +91,24 @@ export class RulesEffects {
         )
     );
 
+    createRuleSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(RulesActions.createRuleSuccess),
+            map((action) => action.entity),
+            tap(() => {
+                this.snackBar.open('Rule successfully added', 'Ok', { duration: 30000 });
+                this.store.dispatch(loadEvaluationContext());
+            }),
+            switchMap((entity) =>
+                of(
+                    updateRevision({
+                        revision: entity.revision
+                    })
+                )
+            )
+        )
+    );
+
     editRule$ = createEffect(() =>
         this.actions$.pipe(
             ofType(RulesActions.editRule),
@@ -115,15 +134,21 @@ export class RulesEffects {
         )
     );
 
-    editRuleSuccess$ = createEffect(
-        () =>
-            this.actions$.pipe(
-                ofType(RulesActions.editRuleSuccess),
-                tap(() => {
-                    this.snackBar.open('Rule successfully saved', 'Ok', { duration: 30000 });
-                })
-            ),
-        { dispatch: false }
+    editRuleSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(RulesActions.editRuleSuccess),
+            map((action) => action.entity),
+            tap(() => {
+                this.snackBar.open('Rule successfully saved', 'Ok', { duration: 30000 });
+            }),
+            switchMap((entity) =>
+                of(
+                    updateRevision({
+                        revision: entity.revision
+                    })
+                )
+            )
+        )
     );
 
     promptRuleDeletion$ = createEffect(
@@ -184,6 +209,10 @@ export class RulesEffects {
         this.actions$.pipe(
             ofType(RulesActions.deleteRuleSuccess),
             map((action) => action.response),
+            tap(() => {
+                this.snackBar.open('Rule successfully deleted', 'Ok', { duration: 30000 });
+                this.store.dispatch(loadEvaluationContext());
+            }),
             switchMap((response) =>
                 of(
                     updateRevision({
