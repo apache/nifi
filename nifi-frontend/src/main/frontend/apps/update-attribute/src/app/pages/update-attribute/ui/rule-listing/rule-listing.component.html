@@ -81,12 +81,19 @@
                     (cdkDropListDropped)="reorderRules($event)">
                     @for (rule of filteredRulesList; track rule.id) {
                         <mat-expansion-panel cdkDrag (opened)="panelOpened(rule)" (closed)="panelClosed(rule)">
-                            <mat-expansion-panel-header [collapsedHeight]="'42px'" [expandedHeight]="'42px'">
-                                <mat-panel-title class="items-center">
-                                    <span class="grip -mt-0.5 mr-5 cursor-grab"></span>
-                                    {{ rule.name }}
+                            <mat-expansion-panel-header
+                                class="reorder-header"
+                                [collapsedHeight]="'42px'"
+                                [expandedHeight]="'42px'">
+                                <mat-panel-title>
+                                    <div class="flex justify-between items-center">
+                                        <span class="grip -mt-0.5 mr-5 cursor-grab"></span>
+                                        <div class="flex-1 truncate">
+                                            {{ rule.name }}
+                                        </div>
+                                    </div>
                                 </mat-panel-title>
-                                <mat-panel-description class="flex justify-between items-center">
+                                <mat-panel-description>
                                     {{ rule.comments }}
                                 </mat-panel-description>
                             </mat-expansion-panel-header>
@@ -105,34 +112,39 @@
                 <mat-accordion [multi]="true">
                     @for (rule of filteredRulesList; track rule.id) {
                         <mat-expansion-panel #expansionPanel (opened)="panelOpened(rule)" (closed)="panelClosed(rule)">
-                            <mat-expansion-panel-header [collapsedHeight]="'42px'" [expandedHeight]="'42px'">
-                                <mat-panel-title class="items-center">
+                            <mat-expansion-panel-header
+                                class="editable-header"
+                                [collapsedHeight]="'42px'"
+                                [expandedHeight]="'42px'">
+                                <mat-panel-title>
                                     {{ rule.name }}
                                 </mat-panel-title>
-                                <mat-panel-description class="flex justify-between items-center">
-                                    <div>
-                                        {{ rule.comments }}
+                                <mat-panel-description>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex-1 truncate">
+                                            {{ rule.comments }}
+                                        </div>
+                                        @if (isEditable) {
+                                            <button
+                                                mat-icon-button
+                                                type="button"
+                                                [matMenuTriggerFor]="actionMenu"
+                                                (click)="$event.stopPropagation()"
+                                                class="flex items-center justify-center icon global-menu">
+                                                <i class="fa fa-ellipsis-v"></i>
+                                            </button>
+                                            <mat-menu #actionMenu="matMenu" xPosition="before">
+                                                <button mat-menu-item title="Clone Rule" (click)="cloneRule(rule)">
+                                                    <i class="fa fa-clone primary-color mr-2"></i>
+                                                    Clone
+                                                </button>
+                                                <button mat-menu-item title="Delete" (click)="deleteRule(rule)">
+                                                    <i class="fa fa-trash primary-color mr-2"></i>
+                                                    Delete
+                                                </button>
+                                            </mat-menu>
+                                        }
                                     </div>
-                                    @if (isEditable) {
-                                        <button
-                                            mat-icon-button
-                                            type="button"
-                                            [matMenuTriggerFor]="actionMenu"
-                                            (click)="$event.stopPropagation()"
-                                            class="flex items-center justify-center icon global-menu">
-                                            <i class="fa fa-ellipsis-v"></i>
-                                        </button>
-                                        <mat-menu #actionMenu="matMenu" xPosition="before">
-                                            <button mat-menu-item title="Clone Rule" (click)="cloneRule(rule)">
-                                                <i class="fa fa-clone primary-color mr-2"></i>
-                                                Clone
-                                            </button>
-                                            <button mat-menu-item title="Delete" (click)="deleteRule(rule)">
-                                                <i class="fa fa-trash primary-color mr-2"></i>
-                                                Delete
-                                            </button>
-                                        </mat-menu>
-                                    }
                                 </mat-panel-description>
                             </mat-expansion-panel-header>
                             <edit-rule

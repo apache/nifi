@@ -25,4 +25,32 @@
     .cdk-drag-disabled {
         font-style: normal;
     }
+
+    .reorder-header {
+        mat-panel-title {
+            overflow: hidden;
+            display: block;
+        }
+
+        mat-panel-description {
+            @apply truncate;
+            display: block;
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+    }
+
+    .editable-header {
+        mat-panel-title {
+            @apply truncate;
+            display: block;
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+
+        mat-panel-description {
+            overflow: hidden;
+            display: block;
+        }
+    }
 }
