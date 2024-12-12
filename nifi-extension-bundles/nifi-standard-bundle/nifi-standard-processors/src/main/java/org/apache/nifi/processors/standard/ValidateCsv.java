@@ -100,7 +100,6 @@ public class ValidateCsv extends AbstractProcessor {
 
     private static final String ROUTE_WHOLE_FLOW_FILE = "FlowFile validation";
     private static final String ROUTE_LINES_INDIVIDUALLY = "Line by line validation";
-    private static final String ROUTE_BY_ATTRIBUTE = "Attribute validation";
 
     public static final AllowableValue VALIDATE_WHOLE_FLOWFILE = new AllowableValue(ROUTE_WHOLE_FLOW_FILE, ROUTE_WHOLE_FLOW_FILE,
             "As soon as an error is found in the CSV file, the validation will stop and the whole flow file will be routed to the 'invalid'"
@@ -112,15 +111,12 @@ public class ValidateCsv extends AbstractProcessor {
                     + "the incorrect lines. Take care if choosing this option while using Unique cell processors in schema definition:"
                     + "the first occurrence will be considered valid and the next ones as invalid.");
 
-    public static final AllowableValue VALIDATE_ATTRIBUTE_AS_CSV = new AllowableValue(ROUTE_BY_ATTRIBUTE, ROUTE_BY_ATTRIBUTE,
-            "Validation will be done on the specified attribute of the FlowFile. The attribute will be treated as CSV text. ");
-
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .name("validate-csv-schema")
             .displayName("Schema")
             .description("The schema to be used for validation. Is expected a comma-delimited string representing the cell "
                     + "processors to apply. The following cell processors are allowed in the schema definition: "
-                    + ALLOWED_OPERATORS + ". Note: cell processors cannot be nested except with Optional.")
+                    + ALLOWED_OPERATORS + ". Note: cell processors cannot be nested except with Optional. Schema is required if Header is false.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -200,6 +196,7 @@ public class ValidateCsv extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
             SCHEMA,
+            CSV_SOURCE_ATTRIBUTE,
             HEADER,
             DELIMITER_CHARACTER,
             QUOTE_CHARACTER,
