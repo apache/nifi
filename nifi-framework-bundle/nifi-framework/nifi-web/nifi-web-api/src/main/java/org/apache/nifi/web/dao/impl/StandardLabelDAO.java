@@ -101,7 +101,7 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
             label.setPosition(new Position(labelDTO.getPosition().getX(), labelDTO.getPosition().getY()));
         }
         if (labelDTO.getStyle() != null) {
-            final Map<String, String> updatedStyles = new HashMap<String, String>(label.getStyle());
+            final Map<String, String> updatedStyles = new HashMap<>(label.getStyle());
             updatedStyles.putAll(labelDTO.getStyle());
             label.setStyle(updatedStyles);
         }
