@@ -27,6 +27,7 @@ import {
     FormControl,
     FormGroup,
     FormsModule,
+    PristineChangeEvent,
     ReactiveFormsModule,
     ValidationErrors,
     ValidatorFn,
@@ -38,6 +39,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { Action, Condition, NewRule, Rule } from '../../state/rules';
 import { ConditionTable } from '../condition-table/condition-table.component';
 import { ActionTable } from '../action-table/action-table.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'edit-rule',
@@ -67,12 +69,15 @@ export class EditRule implements AfterViewInit {
         this.nameControl.setValidators([Validators.required, this.existingRuleValidator(existingRuleNames)]);
     }
     @Input() set comments(comments: string) {
+        this.currentComments = comments;
         this.editRuleForm.get('comments')?.setValue(comments);
     }
     @Input() set conditions(conditions: Condition[]) {
+        this.currentConditions = conditions;
         this.editRuleForm.get('conditions')?.setValue(conditions);
     }
     @Input() set actions(actions: Action[]) {
+        this.currentActions = actions;
         this.editRuleForm.get('actions')?.setValue(actions);
     }
     @Input() set editable(editable: boolean) {
@@ -96,12 +101,17 @@ export class EditRule implements AfterViewInit {
     @Output() afterInit: EventEmitter<void> = new EventEmitter<void>();
     @Output() addRule: EventEmitter<NewRule> = new EventEmitter<NewRule>();
     @Output() editRule: EventEmitter<Rule> = new EventEmitter<Rule>();
+    @Output() dirty: EventEmitter<boolean> = new EventEmitter<boolean>();
     @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
 
     editRuleForm: FormGroup;
     isEditable: boolean = true;
 
     currentName: string | null = null;
+    currentComments: string | null = null;
+    currentConditions: Condition[] | null = null;
+    currentActions: Action[] | null = null;
+
     nameControl: FormControl;
     conditionControl: FormControl;
     actionControl: FormControl;
@@ -120,6 +130,12 @@ export class EditRule implements AfterViewInit {
             comments: new FormControl(''),
             conditions: this.conditionControl,
             actions: this.actionControl
+        });
+
+        this.editRuleForm.events.pipe(takeUntilDestroyed()).subscribe((event) => {
+            if (event instanceof PristineChangeEvent) {
+                this.dirty.next(!event.pristine);
+            }
         });
     }
 
@@ -215,6 +231,14 @@ export class EditRule implements AfterViewInit {
     }
 
     cancelClicked(): void {
+        this.editRuleForm.reset({
+            name: this.currentName,
+            comments: this.currentComments,
+            conditions: this.currentConditions,
+            actions: this.currentActions
+        });
+
+        this.dirty.next(false);
         this.cancel.next();
     }
 

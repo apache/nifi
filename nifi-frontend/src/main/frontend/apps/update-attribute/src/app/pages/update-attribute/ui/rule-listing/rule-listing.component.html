@@ -30,14 +30,20 @@
         @if (rulesList.length > 0 || !newRule) {
             <div class="flex flex-col gap-y-1">
                 <div class="flex gap-x-2 items-center">
-                    <div>Use original FlowFile for matching rules</div>
+                    <div class="flex gap-x-1 items-center">
+                        <div>Use original FlowFile for matching rules</div>
+                        <i
+                            class="fa fa-info-circle primary-color"
+                            nifiTooltip
+                            [tooltipComponentType]="TextTip"
+                            tooltipInputData="If disabled rules will be executed using a clone of the original FlowFile"></i>
+                    </div>
                     <form [formGroup]="flowFilePolicyForm">
                         <mat-slide-toggle
                             formControlName="useOriginalFlowFilePolicy"
                             (change)="flowFilePolicyToggled($event)"></mat-slide-toggle>
                     </form>
                 </div>
-                <div class="text-sm">If disabled rules will be executed using a clone of the original FlowFile</div>
             </div>
         }
         <div class="flex justify-between items-center">
@@ -115,7 +121,11 @@
             } @else {
                 <mat-accordion [multi]="true">
                     @for (rule of filteredRulesList; track rule.id) {
-                        <mat-expansion-panel (opened)="panelOpened(rule)" (closed)="panelClosed(rule)">
+                        <mat-expansion-panel
+                            #expansionPanel
+                            (opened)="panelOpened(rule)"
+                            (closed)="panelClosed(rule)"
+                            [disabled]="isDirty(rule.id)">
                             <mat-expansion-panel-header
                                 class="editable-header"
                                 [collapsedHeight]="'42px'"
@@ -161,7 +171,9 @@
                                 [actions]="rule.actions"
                                 [editable]="isEditable"
                                 [ruleUpdate]="(getRuleUpdates(rule.id) | async)!"
-                                (editRule)="editRule($event)"></edit-rule>
+                                (editRule)="editRule($event)"
+                                (dirty)="setDirty(rule.id, $event)"
+                                (cancel)="expansionPanel.close()"></edit-rule>
                         </mat-expansion-panel>
                     }
                     @if (newRule) {

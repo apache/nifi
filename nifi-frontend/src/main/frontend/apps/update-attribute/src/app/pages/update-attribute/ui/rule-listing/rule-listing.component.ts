@@ -41,7 +41,7 @@ import {
     resetNewRule
 } from '../../state/rules/rules.actions';
 import { EditRule } from '../edit-rule/edit-rule.component';
-import { ComponentType, isDefinedAndNotNull } from '@nifi/shared';
+import { isDefinedAndNotNull, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { MatMenu, MatMenuItem, MatMenuModule } from '@angular/material/menu';
 import { selectRule } from '../../state/rules/rules.selectors';
 import { selectEvaluationContextError } from '../../state/evaluation-context/evaluation-context.selectors';
@@ -63,7 +63,8 @@ import { selectEvaluationContextError } from '../../state/evaluation-context/eva
         CdkDrag,
         EditRule,
         MatMenu,
-        MatMenuItem
+        MatMenuItem,
+        NifiTooltipDirective,
     ],
     templateUrl: './rule-listing.component.html',
     styleUrl: './rule-listing.component.scss'
@@ -97,6 +98,7 @@ export class RuleListing {
     allowRuleReordering: boolean = false;
     originalRulesList: Rule[] = [];
     rulesList: Rule[] = [];
+    dirtyRules: Set<string> = new Set<string>();
 
     filteredRulesList: Rule[] = [];
     searchForm: FormGroup;
@@ -274,6 +276,18 @@ export class RuleListing {
         );
     }
 
+    setDirty(id: string, dirty: boolean): void {
+        if (dirty) {
+            this.dirtyRules.add(id);
+        } else {
+            this.dirtyRules.delete(id);
+        }
+    }
+
+    isDirty(id: string): boolean {
+        return this.dirtyRules.has(id);
+    }
+
     reorderRules(event: CdkDragDrop<Rule[]>): void {
         if (event.previousIndex !== event.currentIndex) {
             moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
@@ -291,5 +305,5 @@ export class RuleListing {
         }
     }
 
-    protected readonly ComponentType = ComponentType;
+    protected readonly TextTip = TextTip;
 }

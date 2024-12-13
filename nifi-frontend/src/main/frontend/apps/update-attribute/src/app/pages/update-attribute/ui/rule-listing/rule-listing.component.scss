@@ -26,6 +26,8 @@
         mat-panel-title {
             overflow: hidden;
             display: block;
+            margin-top: auto;
+            margin-bottom: auto;
         }
 
         mat-panel-description {
@@ -47,6 +49,8 @@
         mat-panel-description {
             overflow: hidden;
             display: block;
+            margin-top: auto;
+            margin-bottom: auto;
         }
     }
 }

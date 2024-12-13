@@ -52,6 +52,7 @@
         </div>
         <div class="flex justify-end gap-x-2">
             @if (isEditable) {
+                <button type="button" (click)="cancelClicked()" mat-button>Cancel</button>
                 @if (id) {
                     <button
                         [disabled]="!editRuleForm.dirty || editRuleForm.invalid || saving"
@@ -61,7 +62,6 @@
                         Sav{{ saving ? 'ing' : 'e' }}
                     </button>
                 } @else {
-                    <button type="button" (click)="cancelClicked()" mat-button>Cancel</button>
                     <button
                         [disabled]="editRuleForm.invalid || saving"
                         type="button"
