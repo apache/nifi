@@ -22,12 +22,11 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { Resizable } from '@nifi/shared';
+import { Resizable, PropertyHint } from '@nifi/shared';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { Editor } from 'codemirror';
 import { NfEl } from './modes/nfel';
-import { PropertyHint } from '@nifi/shared';
 
 @Component({
     selector: 'ua-editor',

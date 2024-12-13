@@ -18,8 +18,8 @@
 import { Component, Input } from '@angular/core';
 import { PropertyHintTip } from '../tooltips/property-hint-tip/property-hint-tip.component';
 import { NgTemplateOutlet } from '@angular/common';
-import { NifiTooltipDirective } from '../../directives';
-import { PropertyHintTipInput } from '../..';
+import { NifiTooltipDirective } from '../../directives/nifi-tooltip.directive';
+import { PropertyHintTipInput } from '../../types';
 
 @Component({
     selector: 'property-hint',

@@ -16,7 +16,8 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { NiFiCommon, Parameter, ParameterTipInput } from '../../..';
+import { NiFiCommon } from '../../../services/nifi-common.service';
+import { Parameter, ParameterTipInput } from '../../../types';
 
 @Component({
     selector: 'parameter-tip',

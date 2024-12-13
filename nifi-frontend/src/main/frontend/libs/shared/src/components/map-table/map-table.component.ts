@@ -53,8 +53,10 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { TextEditor } from './editors/text-editor/text-editor.component';
-import { NifiTooltipDirective } from '../../directives';
-import { MapTableEntry, MapTableItem, NiFiCommon, TextTip } from '../../index';
+import { NifiTooltipDirective } from '../../directives/nifi-tooltip.directive';
+import { NiFiCommon } from '../../services/nifi-common.service';
+import { TextTip } from '../tooltips/text-tip/text-tip.component';
+import { MapTableEntry, MapTableItem } from '../../types';
 
 @Component({
     selector: 'map-table',

@@ -16,7 +16,7 @@
  */
 
 import { Pipe, PipeTransform } from '@angular/core';
-import { ComponentType } from '../index';
+import { ComponentType } from '../types';
 
 @Pipe({
     name: 'componentTypeName',

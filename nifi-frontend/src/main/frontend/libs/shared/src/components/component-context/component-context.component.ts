@@ -17,7 +17,7 @@
 
 import { Component, Input } from '@angular/core';
 import { ComponentTypeNamePipe } from '../../pipes/component-type-name.pipe';
-import { ComponentType } from '../..';
+import { ComponentType } from '../../types';
 import { CopyDirective } from '../../directives/copy/copy.directive';
 
 @Component({

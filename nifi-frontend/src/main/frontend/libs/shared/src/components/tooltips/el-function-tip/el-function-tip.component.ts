@@ -16,7 +16,8 @@
  */
 
 import { Component, Input } from '@angular/core';
-import { ElFunction, ElFunctionTipInput, NiFiCommon } from '../../..';
+import { NiFiCommon } from '../../../services/nifi-common.service';
+import { ElFunction, ElFunctionTipInput } from '../../../types';
 
 @Component({
     selector: 'el-function-tip',

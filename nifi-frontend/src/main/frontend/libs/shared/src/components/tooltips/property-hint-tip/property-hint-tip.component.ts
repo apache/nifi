@@ -17,7 +17,7 @@
 
 import { Component, Input } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { PropertyHintTipInput } from '../../..';
+import { PropertyHintTipInput } from '../../../types';
 
 @Component({
     selector: 'property-hint-tip',

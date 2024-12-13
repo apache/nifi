@@ -86,11 +86,7 @@
                     [cdkDropListData]="rulesList"
                     (cdkDropListDropped)="reorderRules($event)">
                     @for (rule of filteredRulesList; track rule.id) {
-                        <mat-expansion-panel
-                            cdkDrag
-                            cdkDragPreviewContainer="parent"
-                            (opened)="panelOpened(rule)"
-                            (closed)="panelClosed(rule)">
+                        <mat-expansion-panel cdkDrag cdkDragPreviewContainer="parent">
                             <mat-expansion-panel-header
                                 class="reorder-header"
                                 [collapsedHeight]="'42px'"
@@ -123,8 +119,8 @@
                     @for (rule of filteredRulesList; track rule.id) {
                         <mat-expansion-panel
                             #expansionPanel
-                            (opened)="panelOpened(rule)"
-                            (closed)="panelClosed(rule)"
+                            (opened)="panelOpened()"
+                            (closed)="panelClosed()"
                             [disabled]="isDirty(rule.id)">
                             <mat-expansion-panel-header
                                 class="editable-header"

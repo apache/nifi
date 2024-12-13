@@ -64,7 +64,7 @@ import { selectEvaluationContextError } from '../../state/evaluation-context/eva
         EditRule,
         MatMenu,
         MatMenuItem,
-        NifiTooltipDirective,
+        NifiTooltipDirective
     ],
     templateUrl: './rule-listing.component.html',
     styleUrl: './rule-listing.component.scss'
@@ -108,7 +108,7 @@ export class RuleListing {
 
     scrollToNewRule: boolean = false;
 
-    private openedRules: Set<string> = new Set<string>();
+    private openRuleCount: number = 0;
 
     constructor(
         private store: Store<UpdateAttributeState>,
@@ -198,7 +198,7 @@ export class RuleListing {
             return false;
         }
 
-        return this.openedRules.size > 0;
+        return this.openRuleCount > 0;
     }
 
     filterApplied(): boolean {
@@ -236,16 +236,12 @@ export class RuleListing {
         this.allowRuleReordering = event.checked;
     }
 
-    panelOpened(rule: Rule): () => void {
-        return () => {
-            this.openedRules.add(rule.id);
-        };
+    panelOpened(): void {
+        this.openRuleCount++;
     }
 
-    panelClosed(rule: Rule): () => void {
-        return () => {
-            this.openedRules.delete(rule.id);
-        };
+    panelClosed(): void {
+        this.openRuleCount--;
     }
 
     getExistingRuleNames(): string[] {
