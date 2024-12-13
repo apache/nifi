@@ -4076,6 +4076,15 @@ NiFi can be configured to automatically execute the diagnostics command in the e
 
 In the case of a lengthy diagnostic, NiFi may terminate before the command execution ends. In this case, the `graceful.shutdown.seconds` property should be set to a higher value in the `bootstrap.conf` configuration file.
 
+=== Automatic heap dump on Out of Memory Errors
+
+It is possible to set properties in `bootstrap.conf` to configure NiFi to generate a heap dump when an Out of Memory (OOM) error occurs. This can be helpful to analyze for memory leaks. An example of properties to be added to `bootstrap.conf` follows:
+
+    java.arg.heapDumpPath=-XX:HeapDumpPath=./work
+    java.arg.heapDumpOnOutOfMemory=-XX:+HeapDumpOnOutOfMemoryError
+
+These property values (as set in the example) will cause a heap dump to be generated into the `./work` directory. The location of the heap dump is configurable by changing the location of the `-XX:HeapDumpPath=` argument.
+
 [[jmx_metrics]]
 == JMX Metrics
 
