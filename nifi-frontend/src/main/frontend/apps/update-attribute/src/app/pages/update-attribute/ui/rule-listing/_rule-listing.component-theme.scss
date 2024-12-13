@@ -18,12 +18,20 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-@mixin generate-theme($material-theme, $supplemental-theme) {
-    .update-attribute {
-        @include mat.button-density(-1);
+@mixin generate-theme($material-theme, $config) {
+    $alternate-surface: map.get($config, alternate-surface);
 
-        .mat-mdc-form-field {
-            width: 100%;
+    .rule-listing {
+        .cdk-drop-list-dragging {
+            background-color: unset !important;
+        }
+
+        .cdk-drop-list {
+            background: unset;
+        }
+
+        .cdk-drag {
+            background: $alternate-surface;
         }
     }
 }

@@ -28,10 +28,8 @@ import {
 } from '../../../state/system-diagnostics/system-diagnostics.selectors';
 import { MatButtonModule } from '@angular/material/button';
 import { reloadSystemDiagnostics } from '../../../state/system-diagnostics/system-diagnostics.actions';
-import { NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import { isDefinedAndNotNull, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { ErrorBanner } from '../error-banner/error-banner.component';
 import { TabbedDialog } from '../tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../state/error';
 import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
@@ -46,7 +44,6 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
         MatButtonModule,
         NifiTooltipDirective,
         MatProgressBarModule,
-        ErrorBanner,
         ContextErrorBanner
     ],
     templateUrl: './system-diagnostics-dialog.component.html',

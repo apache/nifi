@@ -47,7 +47,7 @@
                             </ng-template>
                             <ng-template #nonBlank let-expression>
                                 <div class="flex justify-between items-center">
-                                    <div class="whitespace-nowrap overflow-hidden text-ellipsis" [title]="expression">
+                                    <div class="truncate" [title]="expression">
                                         {{ expression }}
                                     </div>
                                     @if (hasExtraWhitespace(expression)) {
@@ -70,6 +70,7 @@
                         <div class="flex items-center justify-end">
                             <button
                                 mat-icon-button
+                                [disabled]="isDisabled"
                                 type="button"
                                 [matMenuTriggerFor]="actionMenu"
                                 class="h-16 w-16 flex items-center justify-center icon global-menu">

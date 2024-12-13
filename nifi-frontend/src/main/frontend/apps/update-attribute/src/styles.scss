@@ -22,7 +22,7 @@
 @use 'libs/shared/src/assets/styles/app' as app;
 @use 'libs/shared/src/assets/styles/codemirror-theme' as codemirror-theme;
 @use 'libs/shared/src/assets/styles/listing-table' as listing-table;
-@use 'app/pages/update-attribute/feature/update-attribute.component-theme' as update-attribute;
+@use 'app/pages/update-attribute/ui/rule-listing/rule-listing.component-theme' as rule-listing;
 @use 'app/pages/update-attribute/ui/ua-editor/ua-editor.component-theme' as ua-editor;
 @use 'libs/shared/src/components/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
 
@@ -54,7 +54,7 @@ html {
     @include app.generate-material-theme($m3-light-theme, $m3-light-theme-config);
     @include listing-table.generate-theme($m3-light-theme, $m3-light-theme-config);
     @include codemirror-theme.generate-codemirror-theme($m3-light-theme, $m3-light-theme-config);
-    @include update-attribute.generate-theme($m3-light-theme, $m3-light-theme-config);
+    @include rule-listing.generate-theme($m3-light-theme, $m3-light-theme-config);
     @include ua-editor.generate-theme();
     @include property-hint-tip.generate-theme($m3-light-theme, $m3-light-theme-config);
 
@@ -63,7 +63,7 @@ html {
         @include app.generate-material-theme($m3-dark-theme, $m3-dark-theme-config);
         @include listing-table.generate-theme($m3-dark-theme, $m3-dark-theme-config);
         @include codemirror-theme.generate-codemirror-theme($m3-dark-theme, $m3-dark-theme-config);
-        @include update-attribute.generate-theme($m3-dark-theme, $m3-dark-theme-config);
+        @include rule-listing.generate-theme($m3-dark-theme, $m3-dark-theme-config);
         @include ua-editor.generate-theme();
         @include property-hint-tip.generate-theme($m3-dark-theme, $m3-dark-theme-config);
     }

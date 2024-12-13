@@ -27,7 +27,7 @@ import { Client } from '../../../../service/client.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MoveComponentRequest, UpdateComponentRequest } from '../../state/flow';
 import { Position } from '../../state/shared';
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable({

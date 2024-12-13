@@ -17,6 +17,16 @@
  * under the License.
  */
 
+@use '@angular/material' as mat;
+
 :host {
     width: 100%;
+}
+
+.edit-rule {
+    @include mat.button-density(-1);
+
+    .mat-mdc-form-field {
+        width: 100%;
+    }
 }

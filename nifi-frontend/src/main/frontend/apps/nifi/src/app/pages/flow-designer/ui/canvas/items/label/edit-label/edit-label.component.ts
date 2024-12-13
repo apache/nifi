@@ -23,7 +23,6 @@ import { Store } from '@ngrx/store';
 import { updateComponent } from '../../../../../state/flow/flow.actions';
 import { Client } from '../../../../../../../service/client.service';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
-import { SelectOption } from 'libs/shared/src';
 import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -34,7 +33,7 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
-import { NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
+import { NifiTooltipDirective, CloseOnEscapeDialog, SelectOption } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 

@@ -27,7 +27,7 @@ import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModu
 import { Observable, of } from 'rxjs';
 import { Client } from '../../../../../service/client.service';
 import { InlineServiceCreationRequest, InlineServiceCreationResponse, Property } from '../../../../../state/shared';
-import { CopyDirective, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { CopyDirective, NiFiCommon, NifiTooltipDirective, TextTip, SelectOption } from '@nifi/shared';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import {
@@ -45,7 +45,6 @@ import {
 } from '../../../../../state/property-verification';
 import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
-import { SelectOption } from 'libs/shared/src';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 

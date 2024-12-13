@@ -54,7 +54,16 @@ import {
 } from '../../../../../state/flow';
 import { PropertyTable } from '../../../../../../../ui/common/property-table/property-table.component';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective, NiFiCommon, TextTip, CopyDirective, Revision, BulletinEntity } from '@nifi/shared';
+import {
+    ComponentType,
+    SelectOption,
+    NifiTooltipDirective,
+    NiFiCommon,
+    TextTip,
+    CopyDirective,
+    Revision,
+    BulletinEntity
+} from '@nifi/shared';
 import { RunDurationSlider } from './run-duration-slider/run-duration-slider.component';
 import {
     RelationshipConfiguration,
@@ -70,7 +79,6 @@ import {
     VerifyPropertiesRequestContext
 } from '../../../../../../../state/property-verification';
 import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
-import { ComponentType, SelectOption } from 'libs/shared/src';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 import { BulletinsTip } from '../../../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';

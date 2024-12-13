@@ -24,12 +24,11 @@ import * as CounterListingActions from './counter-listing.actions';
 import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
 import { CountersService } from '../../service/counters.service';
 import { MatDialog } from '@angular/material/dialog';
-import { YesNoDialog } from '@nifi/shared';
+import { SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { selectStatus } from './counter-listing.selectors';
-import { SMALL_DIALOG } from 'libs/shared/src';
 
 @Injectable()
 export class CounterListingEffects {

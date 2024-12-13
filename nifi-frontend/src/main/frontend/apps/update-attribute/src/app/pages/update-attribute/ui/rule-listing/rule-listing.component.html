@@ -29,7 +29,7 @@
     <div class="rule-listing flex flex-col gap-y-4">
         @if (rulesList.length > 0 || !newRule) {
             <div class="flex flex-col gap-y-1">
-                <div class="flex gap-x-1 items-center">
+                <div class="flex gap-x-2 items-center">
                     <div>Use original FlowFile for matching rules</div>
                     <form [formGroup]="flowFilePolicyForm">
                         <mat-slide-toggle
@@ -40,7 +40,7 @@
                 <div class="text-sm">If disabled rules will be executed using a clone of the original FlowFile</div>
             </div>
         }
-        <div class="h-10 flex justify-between items-center">
+        <div class="flex justify-between items-center">
             <form [formGroup]="searchForm">
                 @if (!newRule) {
                     <mat-form-field subscriptSizing="dynamic">
@@ -51,7 +51,7 @@
             </form>
             <div class="flex gap-x-1">
                 @if (flowFilePolicy === 'USE_ORIGINAL' && !reorderDisabled()) {
-                    <div class="flex gap-x-1 items-center">
+                    <div class="flex gap-x-2 items-center">
                         <div>Reorder rules</div>
                         <mat-slide-toggle
                             [checked]="allowRuleReordering"
@@ -80,7 +80,11 @@
                     [cdkDropListData]="rulesList"
                     (cdkDropListDropped)="reorderRules($event)">
                     @for (rule of filteredRulesList; track rule.id) {
-                        <mat-expansion-panel cdkDrag (opened)="panelOpened(rule)" (closed)="panelClosed(rule)">
+                        <mat-expansion-panel
+                            cdkDrag
+                            cdkDragPreviewContainer="parent"
+                            (opened)="panelOpened(rule)"
+                            (closed)="panelClosed(rule)">
                             <mat-expansion-panel-header
                                 class="reorder-header"
                                 [collapsedHeight]="'42px'"
@@ -111,7 +115,7 @@
             } @else {
                 <mat-accordion [multi]="true">
                     @for (rule of filteredRulesList; track rule.id) {
-                        <mat-expansion-panel #expansionPanel (opened)="panelOpened(rule)" (closed)="panelClosed(rule)">
+                        <mat-expansion-panel (opened)="panelOpened(rule)" (closed)="panelClosed(rule)">
                             <mat-expansion-panel-header
                                 class="editable-header"
                                 [collapsedHeight]="'42px'"
@@ -130,6 +134,7 @@
                                                 type="button"
                                                 [matMenuTriggerFor]="actionMenu"
                                                 (click)="$event.stopPropagation()"
+                                                (keydown)="$event.stopPropagation()"
                                                 class="flex items-center justify-center icon global-menu">
                                                 <i class="fa fa-ellipsis-v"></i>
                                             </button>
@@ -156,8 +161,7 @@
                                 [actions]="rule.actions"
                                 [editable]="isEditable"
                                 [ruleUpdate]="(getRuleUpdates(rule.id) | async)!"
-                                (editRule)="editRule($event)"
-                                (cancel)="expansionPanel.close()"></edit-rule>
+                                (editRule)="editRule($event)"></edit-rule>
                         </mat-expansion-panel>
                     }
                     @if (newRule) {

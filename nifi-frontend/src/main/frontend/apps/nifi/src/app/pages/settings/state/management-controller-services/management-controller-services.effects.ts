@@ -28,7 +28,6 @@ import { NiFiState } from '../../../../state';
 import { selectControllerServiceTypes } from '../../../../state/extension-types/extension-types.selectors';
 import { CreateControllerService } from '../../../../ui/common/controller-service/create-controller-service/create-controller-service.component';
 import { Client } from '../../../../service/client.service';
-import { YesNoDialog } from '@nifi/shared';
 import { EditControllerService } from '../../../../ui/common/controller-service/edit-controller-service/edit-controller-service.component';
 import {
     ControllerServiceReferencingComponent,
@@ -43,7 +42,7 @@ import { DisableControllerService } from '../../../../ui/common/controller-servi
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { ComponentType, LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG } from 'libs/shared/src';
+import { ComponentType, LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import {

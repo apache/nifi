@@ -50,9 +50,8 @@ import {
     UploadProcessGroupRequest,
     VersionControlInformationEntity
 } from '../state/flow';
-import { ComponentType } from 'libs/shared/src';
 import { Client } from '../../../service/client.service';
-import { NiFiCommon } from '@nifi/shared';
+import { ComponentType, NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 import { PropertyDescriptorRetriever } from '../../../state/shared';
 

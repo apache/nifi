@@ -34,7 +34,7 @@ import {
     Permissions,
     Revision,
     SelectOption
-} from 'libs/shared/src';
+} from '@nifi/shared';
 import { CopyResponseEntity, PasteRequestStrategy } from '../../../../state/copy';
 
 export const flowFeatureKey = 'flowState';

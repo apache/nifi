@@ -16,7 +16,7 @@
  */
 
 import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity } from '../shared';
-import { SelectOption } from 'libs/shared/src';
+import { SelectOption } from '@nifi/shared';
 
 export const controllerServiceStateFeatureKey = 'enableControllerService';
 

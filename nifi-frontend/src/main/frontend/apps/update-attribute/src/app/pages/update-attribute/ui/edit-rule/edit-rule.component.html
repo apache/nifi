@@ -18,7 +18,7 @@
   -->
 
 <form [formGroup]="editRuleForm">
-    <div class="mt-2 flex flex-col gap-y-4">
+    <div class="edit-rule mt-2 flex flex-col gap-y-4">
         <div class="flex">
             <div class="w-1/2">
                 <mat-form-field>
@@ -52,7 +52,6 @@
         </div>
         <div class="flex justify-end gap-x-2">
             @if (isEditable) {
-                <button type="button" (click)="cancelClicked()" mat-button>Cancel</button>
                 @if (id) {
                     <button
                         [disabled]="!editRuleForm.dirty || editRuleForm.invalid || saving"
@@ -62,6 +61,7 @@
                         Sav{{ saving ? 'ing' : 'e' }}
                     </button>
                 } @else {
+                    <button type="button" (click)="cancelClicked()" mat-button>Cancel</button>
                     <button
                         [disabled]="editRuleForm.invalid || saving"
                         type="button"
@@ -70,8 +70,6 @@
                         Add{{ saving ? 'ing' : '' }}
                     </button>
                 }
-            } @else {
-                <button type="button" (click)="cancelClicked()" mat-button>Close</button>
             }
         </div>
     </div>
