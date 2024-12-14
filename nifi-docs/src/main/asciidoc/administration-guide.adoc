@@ -569,7 +569,8 @@ OpenID Connect integration supports the following settings in _nifi.properties_.
 [options="header"]
 |==================================================================================================================================================
 | Property Name                                             | Description
-|`nifi.security.user.oidc.discovery.url`                    | The link:http://openid.net/specs/openid-connect-discovery-1_0.html[Discovery Configuration URL^] for the OpenID Connect Provider
+|`nifi.security.user.oidc.discovery.url`                    | The link:http://openid.net/specs/openid-connect-discovery-1_0.html[Discovery Configuration URL^]
+                                                              for the OpenID Connect Provider. Supports URLs with `https` or `file` schemes.
 |`nifi.security.user.oidc.connect.timeout`                  | Socket Connect timeout when communicating with the OpenID Connect Provider. The default value is `5 secs`
 |`nifi.security.user.oidc.read.timeout`                     | Socket Read timeout when communicating with the OpenID Connect Provider. The default value is `5 secs`
 |`nifi.security.user.oidc.client.id`                        | The Client ID for NiFi registered with the OpenID Connect Provider

@@ -24,6 +24,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.oidc.OidcConfigurationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -31,7 +32,10 @@ import org.springframework.security.oauth2.core.AuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.web.client.RestClient;
 
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -71,6 +75,10 @@ class StandardClientRegistrationProviderTest {
 
     private static final String INVALID_CONFIGURATION = "{}";
 
+    private static final String OPENID_CONFIGURATION_PREFIX = "openid-configuration";
+
+    private static final String OPENID_CONFIGURATION_EXTENSION = ".json";
+
     @Mock
     RestClient restClient;
 
@@ -82,7 +90,7 @@ class StandardClientRegistrationProviderTest {
 
     @Test
     void testGetClientRegistration() {
-        final NiFiProperties properties = getProperties();
+        final NiFiProperties properties = getProperties(DISCOVERY_URL);
         final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restClient);
 
         final OIDCProviderMetadata providerMetadata = getProviderMetadata();
@@ -95,6 +103,63 @@ class StandardClientRegistrationProviderTest {
 
         final ClientRegistration clientRegistration = provider.getClientRegistration();
 
+        assertClientRegistrationFound(clientRegistration);
+    }
+
+    @Test
+    void testGetClientRegistrationFileUri(@TempDir final Path tempDir) throws IOException {
+        final OIDCProviderMetadata providerMetadata = getProviderMetadata();
+        final String serializedMetadata = providerMetadata.toString();
+
+        final Path configurationPath = Files.createTempFile(tempDir, OPENID_CONFIGURATION_PREFIX, OPENID_CONFIGURATION_EXTENSION);
+        Files.writeString(configurationPath, serializedMetadata);
+        final String discoveryUrl = configurationPath.toUri().toString();
+
+        final NiFiProperties properties = getProperties(discoveryUrl);
+        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restClient);
+
+        final ClientRegistration clientRegistration = provider.getClientRegistration();
+
+        assertClientRegistrationFound(clientRegistration);
+    }
+
+    @Test
+    void testGetClientRegistrationFileUriFailed(@TempDir final Path tempDir) {
+        final Path configurationPath = tempDir.resolve(OPENID_CONFIGURATION_PREFIX);
+        final String discoveryUrl = configurationPath.toUri().toString();
+
+        final NiFiProperties properties = getProperties(discoveryUrl);
+        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restClient);
+
+        assertThrows(OidcConfigurationException.class, provider::getClientRegistration);
+    }
+
+    @Test
+    void testGetClientRegistrationRetrievalFailed() {
+        final NiFiProperties properties = getProperties(DISCOVERY_URL);
+        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restClient);
+
+        doReturn(requestHeadersUriSpec).when(restClient).get();
+        doReturn(requestHeadersUriSpec).when(requestHeadersUriSpec).uri(eq(DISCOVERY_URL));
+        doThrow(new RuntimeException()).when(requestHeadersUriSpec).retrieve();
+
+        assertThrows(OidcConfigurationException.class, provider::getClientRegistration);
+    }
+
+    @Test
+    void testGetClientRegistrationParsingFailed() {
+        final NiFiProperties properties = getProperties(DISCOVERY_URL);
+        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restClient);
+
+        doReturn(requestHeadersUriSpec).when(restClient).get();
+        doReturn(requestHeadersUriSpec).when(requestHeadersUriSpec).uri(eq(DISCOVERY_URL));
+        doReturn(responseSpec).when(requestHeadersUriSpec).retrieve();
+        when(responseSpec.body(eq(String.class))).thenReturn(INVALID_CONFIGURATION);
+
+        assertThrows(OidcConfigurationException.class, provider::getClientRegistration);
+    }
+
+    private void assertClientRegistrationFound(final ClientRegistration clientRegistration) {
         assertNotNull(clientRegistration);
         assertEquals(CLIENT_ID, clientRegistration.getClientId());
         assertEquals(CLIENT_SECRET, clientRegistration.getClientSecret());
@@ -114,34 +179,9 @@ class StandardClientRegistrationProviderTest {
         assertEquals(EXPECTED_SCOPES, scopes);
     }
 
-    @Test
-    void testGetClientRegistrationRetrievalFailed() {
-        final NiFiProperties properties = getProperties();
-        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restClient);
-
-        doReturn(requestHeadersUriSpec).when(restClient).get();
-        doReturn(requestHeadersUriSpec).when(requestHeadersUriSpec).uri(eq(DISCOVERY_URL));
-        doThrow(new RuntimeException()).when(requestHeadersUriSpec).retrieve();
-
-        assertThrows(OidcConfigurationException.class, provider::getClientRegistration);
-    }
-
-    @Test
-    void testGetClientRegistrationParsingFailed() {
-        final NiFiProperties properties = getProperties();
-        final StandardClientRegistrationProvider provider = new StandardClientRegistrationProvider(properties, restClient);
-
-        doReturn(requestHeadersUriSpec).when(restClient).get();
-        doReturn(requestHeadersUriSpec).when(requestHeadersUriSpec).uri(eq(DISCOVERY_URL));
-        doReturn(responseSpec).when(requestHeadersUriSpec).retrieve();
-        when(responseSpec.body(eq(String.class))).thenReturn(INVALID_CONFIGURATION);
-
-        assertThrows(OidcConfigurationException.class, provider::getClientRegistration);
-    }
-
-    private NiFiProperties getProperties() {
+    private NiFiProperties getProperties(final String discoveryUrl) {
         final Properties properties = new Properties();
-        properties.put(NiFiProperties.SECURITY_USER_OIDC_DISCOVERY_URL, DISCOVERY_URL);
+        properties.put(NiFiProperties.SECURITY_USER_OIDC_DISCOVERY_URL, discoveryUrl);
         properties.put(NiFiProperties.SECURITY_USER_OIDC_CLIENT_ID, CLIENT_ID);
         properties.put(NiFiProperties.SECURITY_USER_OIDC_CLIENT_SECRET, CLIENT_SECRET);
         properties.put(NiFiProperties.SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, USER_NAME_ATTRIBUTE_NAME);
