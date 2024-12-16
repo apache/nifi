@@ -42,8 +42,14 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import * as d3 from 'd3';
-import { CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective, Resizable, TextTip } from '@nifi/shared';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import {
+    isDefinedAndNotNull,
+    CloseOnEscapeDialog,
+    NiFiCommon,
+    NifiTooltipDirective,
+    Resizable,
+    TextTip
+} from '@nifi/shared';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
 import { StatusHistoryChart } from './status-history-chart/status-history-chart.component';

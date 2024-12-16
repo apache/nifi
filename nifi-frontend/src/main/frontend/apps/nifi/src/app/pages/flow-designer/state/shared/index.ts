@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Permissions } from '../../../../state/shared';
+import { Permissions } from '@nifi/shared';
 import { VersionControlInformation } from '../flow';
 
 export interface Dimension {

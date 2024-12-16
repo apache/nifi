@@ -27,7 +27,6 @@ import {
     OriginConnectionPosition,
     OverlayConnectionPosition
 } from '@angular/cdk/overlay';
-import { ComponentType } from 'libs/shared/src';
 import { SearchMatchTipInput } from '../../../../../../state/shared';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -38,7 +37,7 @@ import { Store } from '@ngrx/store';
 import * as FlowActions from '../../../../state/flow/flow.actions';
 import { centerSelectedComponents, setAllowTransition } from '../../../../state/flow/flow.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NifiTooltipDirective, selectCurrentRoute } from '@nifi/shared';
+import { ComponentType, NifiTooltipDirective, selectCurrentRoute } from '@nifi/shared';
 import { SearchMatchTip } from '../../../../../../ui/common/tooltips/search-match-tip/search-match-tip.component';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../../../service/error-helper.service';

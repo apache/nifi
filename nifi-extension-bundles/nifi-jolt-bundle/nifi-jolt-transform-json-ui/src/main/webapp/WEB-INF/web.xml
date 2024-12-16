@@ -35,7 +35,7 @@
         <url-pattern>/api/*</url-pattern>
     </servlet-mapping>
 
-    <!-- login filter -->
+    <!-- fragment filter -->
     <filter>
         <filter-name>FragmentFilter</filter-name>
         <filter-class>org.apache.nifi.web.servlet.filter.QueryStringToFragmentFilter</filter-class>

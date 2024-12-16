@@ -156,6 +156,32 @@
                             </resources>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>copy-built-update-attribute-app</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/${project.build.finalName}/update-attribute</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${frontend.working.dir}/dist/update-attribute/browser</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${frontend.working.dir}/dist/update-attribute</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>3rdpartylicenses.txt</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
                     <!--
                         Copy the staged applications into the bundle. Each application requires its own configuration.
                     -->
@@ -208,6 +234,25 @@
                             <resources>
                                 <resource>
                                     <directory>${project.build.directory}/${project.build.finalName}/standard-content-viewer</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>bundle-built-update-attribute-app</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/update-attribute</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/${project.build.finalName}/update-attribute</directory>
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>**/*</include>

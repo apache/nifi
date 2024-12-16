@@ -32,9 +32,8 @@ import {
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { Dimension } from '../../state/shared';
-import { ComponentType } from 'libs/shared/src';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
-import { NiFiCommon, TextTip } from '@nifi/shared';
+import { ComponentType, NiFiCommon, TextTip } from '@nifi/shared';
 
 @Injectable({
     providedIn: 'root'

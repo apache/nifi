@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-import { AccessPolicySummary, Permissions, Revision, TenantEntity } from '../../../../state/shared';
+import { AccessPolicySummary, TenantEntity } from '../../../../state/shared';
+import { Revision, Permissions } from '@nifi/shared';
 
 export enum PolicyStatus {
     Found = 'Found',

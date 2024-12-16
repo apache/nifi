@@ -29,7 +29,7 @@ import { NiFiState } from '../../../../state';
 import { initialClusterState } from '../../state/cluster-listing/cluster-listing.reducer';
 import { ClusterNodeRepositoryStorageUsage } from '../../../../state/system-diagnostics';
 import { map } from 'rxjs';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import { isDefinedAndNotNull } from '@nifi/shared';
 import { AsyncPipe } from '@angular/common';
 import {
     clearFlowFileStorageNodeSelection,

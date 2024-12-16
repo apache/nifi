@@ -30,14 +30,13 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { NiFiCommon, NifiTooltipDirective, Parameter, TextTip } from '@nifi/shared';
 import { NgTemplateOutlet } from '@angular/common';
 import {
     AllowableValueEntity,
     ComponentHistory,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
-    Parameter,
     ParameterConfig,
     ParameterContextEntity,
     Property,

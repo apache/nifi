@@ -28,12 +28,11 @@ import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spin
 import { selectSaving } from '../../../state/manage-remote-ports/manage-remote-ports.selectors';
 import { EditRemotePortDialogRequest } from '../../../state/flow';
 import { Client } from '../../../../../service/client.service';
-import { ComponentType } from 'libs/shared/src';
 import { PortSummary } from '../../../state/manage-remote-ports';
 import { configureRemotePort } from '../../../state/manage-remote-ports/manage-remote-ports.actions';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { NifiTooltipDirective, TextTip } from '@nifi/shared';
-import { CloseOnEscapeDialog } from '@nifi/shared';
+import { ComponentType, CloseOnEscapeDialog } from '@nifi/shared';
 import { CanvasState } from '../../../state';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';

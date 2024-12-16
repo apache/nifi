@@ -29,10 +29,9 @@ import {
 } from '../../../state/provenance-event-listing';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
-import { SelectOption } from 'libs/shared/src';
 import { MatOption } from '@angular/material/autocomplete';
 import { MatSelect } from '@angular/material/select';
-import { CloseOnEscapeDialog } from '@nifi/shared';
+import { CloseOnEscapeDialog, SelectOption } from '@nifi/shared';
 
 @Component({
     selector: 'provenance-search-dialog',

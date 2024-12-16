@@ -70,7 +70,7 @@ export const controllerServiceAdvancedUiParamsResolver: ResolveFn<AdvancedUiPara
         map((entity) => {
             const revision = client.getRevision(entity);
 
-            const editable = entity.status.runStatus === 'DISABLED';
+            const editable = entity.status.runStatus === 'DISABLED' && entity.permissions.canWrite;
 
             return {
                 url: entity.component.customUiUrl,

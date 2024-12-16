@@ -89,7 +89,7 @@
                 },
                 "development": {
                     "buildTarget": "standard-content-viewer:build:development",
-                    "servePath": "/nifi-standard-content-viewer-2.0.0-SNAPSHOT/"
+                    "servePath": "/nifi-standard-content-viewer-2.1.0-SNAPSHOT/"
                 }
             },
             "defaultConfiguration": "development"
