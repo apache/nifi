@@ -99,7 +99,7 @@ public class TestGeoEnrichIP {
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.get(0);
+        FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip.geo.lookup.micros"));
         assertEquals("Minneapolis", finishedFound.getAttribute("ip.geo.city"));
         assertEquals("44.98", finishedFound.getAttribute("ip.geo.latitude"));
@@ -135,7 +135,7 @@ public class TestGeoEnrichIP {
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.get(0);
+        FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip.geo.lookup.micros"));
         assertEquals("Minneapolis", finishedFound.getAttribute("ip.geo.city"));
         assertNull(finishedFound.getAttribute("ip.geo.latitude"));
@@ -172,7 +172,7 @@ public class TestGeoEnrichIP {
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.get(0);
+        FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip0.geo.lookup.micros"));
         assertEquals("Minneapolis", finishedFound.getAttribute("ip0.geo.city"));
         assertNull(finishedFound.getAttribute("ip0.geo.latitude"));

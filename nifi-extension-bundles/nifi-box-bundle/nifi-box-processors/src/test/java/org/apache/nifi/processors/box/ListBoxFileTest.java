@@ -62,7 +62,7 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ListBoxFile.REL_SUCCESS);
-        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(ListBoxFile.REL_SUCCESS).get(0);
+        final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(ListBoxFile.REL_SUCCESS).getFirst();
 
         ff0.assertAttributeEquals(ID, TEST_FILE_ID);
         ff0.assertAttributeEquals(CoreAttributes.FILENAME.key(), TEST_FILENAME);

@@ -31,8 +31,6 @@ import static org.apache.nifi.processors.workday.GetWorkdayReport.WEB_CLIENT_SER
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -46,7 +44,6 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -154,7 +151,7 @@ class GetWorkdayReportTest {
         runner.assertAllFlowFilesTransferred(FAILURE);
         runner.assertPenalizeCount(1);
 
-        MockFlowFile flowFile = getFlowFile(FAILURE);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetWorkdayReport.FAILURE).getFirst();
         flowFile.assertAttributeEquals(GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS, URISyntaxException.class.getSimpleName());
         flowFile.assertAttributeExists(GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE);
     }
@@ -195,7 +192,7 @@ class GetWorkdayReportTest {
         runner.assertTransferCount(SUCCESS, 0);
         runner.assertTransferCount(FAILURE, 1);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FAILURE).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FAILURE).getFirst();
         flowFile.assertAttributeEquals("getworkdayreport.status.code", "500");
     }
 
@@ -234,7 +231,7 @@ class GetWorkdayReportTest {
         runner.assertTransferCount(SUCCESS, 1);
         runner.assertTransferCount(FAILURE, 0);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).iterator().next();
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).getFirst();
         flowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
         flowFile.assertAttributeNotExists(RECORD_COUNT);
@@ -260,8 +257,8 @@ class GetWorkdayReportTest {
         runner.assertTransferCount(SUCCESS, 1);
         runner.assertTransferCount(FAILURE, 0);
 
-        MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(ORIGINAL).iterator().next();
-        MockFlowFile responseFlowFile = runner.getFlowFilesForRelationship(SUCCESS).iterator().next();
+        MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(ORIGINAL).getFirst();
+        MockFlowFile responseFlowFile = runner.getFlowFilesForRelationship(SUCCESS).getFirst();
         originalFlowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         originalFlowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
         responseFlowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
@@ -291,7 +288,7 @@ class GetWorkdayReportTest {
         runner.assertTransferCount(SUCCESS, 1);
         runner.assertTransferCount(FAILURE, 0);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).iterator().next();
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).getFirst();
         flowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
 
@@ -321,30 +318,6 @@ class GetWorkdayReportTest {
 
     private String getMockWebServerUrl() {
         return mockWebServer.url("workdayReport").newBuilder().host(LOCALHOST).build().toString();
-    }
-
-    private MockFlowFile getFlowFile(Relationship relationship) {
-        return runner.getFlowFilesForRelationship(relationship).iterator().next();
-    }
-
-    private void withMockRecordReaderFactory() throws InitializationException {
-        String serviceIdentifier = RecordReaderFactory.class.getName();
-        RecordReaderFactory recordReaderFactory = mock(RecordReaderFactory.class);
-        when(recordReaderFactory.getIdentifier()).thenReturn(serviceIdentifier);
-
-        runner.addControllerService(serviceIdentifier, recordReaderFactory);
-        runner.enableControllerService(recordReaderFactory);
-        runner.setProperty(RECORD_READER_FACTORY, serviceIdentifier);
-    }
-
-    private void withMockRecordSetWriterFactory() throws InitializationException {
-        String serviceIdentifier = RecordSetWriterFactory.class.getName();
-        RecordSetWriterFactory recordSetWriterFactory = mock(RecordSetWriterFactory.class);
-        when(recordSetWriterFactory.getIdentifier()).thenReturn(serviceIdentifier);
-
-        runner.addControllerService(serviceIdentifier, recordSetWriterFactory);
-        runner.enableControllerService(recordSetWriterFactory);
-        runner.setProperty(RECORD_WRITER_FACTORY, serviceIdentifier);
     }
 
     private void withWebClientService() throws InitializationException {

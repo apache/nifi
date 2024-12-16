@@ -106,7 +106,7 @@ public class VerifyContentPGPTest {
         runner.run();
 
         assertFailureErrorLogged();
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(VerifyContentPGP.FAILURE).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(VerifyContentPGP.FAILURE).getFirst();
         flowFile.assertContentEquals(DATA);
     }
 
@@ -121,7 +121,7 @@ public class VerifyContentPGPTest {
         runner.run();
 
         assertFailureErrorLogged();
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(VerifyContentPGP.FAILURE).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(VerifyContentPGP.FAILURE).getFirst();
         flowFile.assertContentEquals(signed);
         assertFlowFileAttributesFound(flowFile);
     }
@@ -158,7 +158,7 @@ public class VerifyContentPGPTest {
 
     private MockFlowFile assertSuccess() throws PGPException {
         runner.assertAllFlowFilesTransferred(VerifyContentPGP.SUCCESS);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(VerifyContentPGP.SUCCESS).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(VerifyContentPGP.SUCCESS).getFirst();
         assertFlowFileAttributesFound(flowFile);
         return flowFile;
     }

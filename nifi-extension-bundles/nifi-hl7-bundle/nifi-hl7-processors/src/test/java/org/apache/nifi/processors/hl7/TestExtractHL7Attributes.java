@@ -40,7 +40,7 @@ public class TestExtractHL7Attributes {
         runner.run();
         runner.assertAllFlowFilesTransferred(ExtractHL7Attributes.REL_SUCCESS, 1);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExtractHL7Attributes.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExtractHL7Attributes.REL_SUCCESS).getFirst();
 
         final SortedMap<String, String> actualAttributes = new TreeMap<>(flowFile.getAttributes());
         final SortedMap<String, Integer> actualSegments = new TreeMap<>();
@@ -50,7 +50,7 @@ public class TestExtractHL7Attributes {
         for (final Map.Entry<String, String> entry : actualAttributes.entrySet()) {
             final String key = entry.getKey();
             if (!(key.equals("filename") || key.equals("path") || key.equals("uuid"))) {
-                final String segment = key.replaceAll("^([^\\.]+)\\.\\d+", "$1");
+                final String segment = key.replaceAll("^([^.]+)\\.\\d+", "$1");
                 actualSegments.put(segment, actualSegments.getOrDefault(segment, 0) + 1);
             }
         }
@@ -58,7 +58,7 @@ public class TestExtractHL7Attributes {
         // Get map of expected segment counts
         for (final Map.Entry<String, String> entry : expectedAttributes.entrySet()) {
             final String key = entry.getKey();
-            final String segment = key.replaceAll("^([^\\.]+)\\.\\d+", "$1");
+            final String segment = key.replaceAll("^([^.]+)\\.\\d+", "$1");
             expectedSegments.put(segment, expectedSegments.getOrDefault(segment, 0) + 1);
         }
 
@@ -85,12 +85,14 @@ public class TestExtractHL7Attributes {
 
     @Test
     public void testExtract() {
-        final String message = "MSH|^~\\&|XXXXXXXX||HealthProvider||||ORU^R01|Q1111111111111111111|P|2.3|\r\n" +
-            "PID|||12345^^^XYZ^MR||SMITH^JOHN||19700100|M||||||||||111111111111|123456789|\r\n" +
-            "PD1||||1234567890^LAST^FIRST^M^^^^^NPI|\r\n" +
-            "ORC|NW|987654321^EPC|123456789^EPC||||||20161003000000|||SMITH\r\n" +
-            "OBR|1|341856649^HNAM_ORDERID|000000000000000000|648088^Basic Metabolic Panel|||20150101000000|||||||||1620^Johnson^Corey^A||||||20150101000000|||F|||||||||||20150101000000|\r\n" +
-            "OBX|1|NM|GLU^Glucose Lvl|59|mg/dL|65-99^65^99|L|||F|||20150102000000|\r\n";
+        final String message = """
+                MSH|^~\\&|XXXXXXXX||HealthProvider||||ORU^R01|Q1111111111111111111|P|2.3|\r
+                PID|||12345^^^XYZ^MR||SMITH^JOHN||19700100|M||||||||||111111111111|123456789|\r
+                PD1||||1234567890^LAST^FIRST^M^^^^^NPI|\r
+                ORC|NW|987654321^EPC|123456789^EPC||||||20161003000000|||SMITH\r
+                OBR|1|341856649^HNAM_ORDERID|000000000000000000|648088^Basic Metabolic Panel|||20150101000000|||||||||1620^Johnson^Corey^A||||||20150101000000|||F|||||||||||20150101000000|\r
+                OBX|1|NM|GLU^Glucose Lvl|59|mg/dL|65-99^65^99|L|||F|||20150102000000|\r
+                """;
 
         final SortedMap<String, String> expectedAttributes = new TreeMap<>();
 
@@ -143,12 +145,14 @@ public class TestExtractHL7Attributes {
 
     @Test
     public void testExtractWithSegmentNames() {
-        final String message = "MSH|^~\\&|XXXXXXXX||HealthProvider||||ORU^R01|Q1111111111111111111|P|2.3|\r\n" +
-            "PID|||12345^^^XYZ^MR||SMITH^JOHN||19700100|M||||||||||111111111111|123456789|\r\n" +
-            "PD1||||1234567890^LAST^FIRST^M^^^^^NPI|\r\n" +
-            "ORC|NW|987654321^EPC|123456789^EPC||||||20161003000000|||SMITH\r\n" +
-            "OBR|1|341856649^HNAM_ORDERID|000000000000000000|648088^Basic Metabolic Panel|||20150101000000|||||||||1620^Johnson^Corey^A||||||20150101000000|||F|||||||||||20150101000000|\r\n" +
-            "OBX|1|NM|GLU^Glucose Lvl|59|mg/dL|65-99^65^99|L|||F|||20150102000000|\r\n";
+        final String message = """
+                MSH|^~\\&|XXXXXXXX||HealthProvider||||ORU^R01|Q1111111111111111111|P|2.3|\r
+                PID|||12345^^^XYZ^MR||SMITH^JOHN||19700100|M||||||||||111111111111|123456789|\r
+                PD1||||1234567890^LAST^FIRST^M^^^^^NPI|\r
+                ORC|NW|987654321^EPC|123456789^EPC||||||20161003000000|||SMITH\r
+                OBR|1|341856649^HNAM_ORDERID|000000000000000000|648088^Basic Metabolic Panel|||20150101000000|||||||||1620^Johnson^Corey^A||||||20150101000000|||F|||||||||||20150101000000|\r
+                OBX|1|NM|GLU^Glucose Lvl|59|mg/dL|65-99^65^99|L|||F|||20150102000000|\r
+                """;
 
         final SortedMap<String, String> expectedAttributes = new TreeMap<>();
 
@@ -201,12 +205,14 @@ public class TestExtractHL7Attributes {
 
     @Test
     public void testExtractWithSegmentNamesAndFields() {
-        final String message = "MSH|^~\\&|XXXXXXXX||HealthProvider||||ORU^R01|Q1111111111111111111|P|2.3|\r\n" +
-            "PID|||12345^^^XYZ^MR||SMITH^JOHN||19700100|M||||||||||111111111111|123456789|\r\n" +
-            "PD1||||1234567890^LAST^FIRST^M^^^^^NPI|\r\n" +
-            "ORC|NW|987654321^EPC|123456789^EPC||||||20161003000000|||SMITH\r\n" +
-            "OBR|1|341856649^HNAM_ORDERID|000000000000000000|648088^Basic Metabolic Panel|||20150101000000|||||||||1620^Johnson^Corey^A||||||20150101000000|||F|||||||||||20150101000000|\r\n" +
-            "OBX|1|NM|GLU^Glucose Lvl|59|mg/dL|65-99^65^99|L|||F|||20150102000000|\r\n";
+        final String message = """
+                MSH|^~\\&|XXXXXXXX||HealthProvider||||ORU^R01|Q1111111111111111111|P|2.3|\r
+                PID|||12345^^^XYZ^MR||SMITH^JOHN||19700100|M||||||||||111111111111|123456789|\r
+                PD1||||1234567890^LAST^FIRST^M^^^^^NPI|\r
+                ORC|NW|987654321^EPC|123456789^EPC||||||20161003000000|||SMITH\r
+                OBR|1|341856649^HNAM_ORDERID|000000000000000000|648088^Basic Metabolic Panel|||20150101000000|||||||||1620^Johnson^Corey^A||||||20150101000000|||F|||||||||||20150101000000|\r
+                OBX|1|NM|GLU^Glucose Lvl|59|mg/dL|65-99^65^99|L|||F|||20150102000000|\r
+                """;
 
         final SortedMap<String, String> expectedAttributes = new TreeMap<>();
 
@@ -277,8 +283,10 @@ public class TestExtractHL7Attributes {
 
     @Test
     public void testExtractWithRepeatableField() {
-        final String message = "MSH|^~\\&|XXXXXXXX||HealthProvider||||SIU^S12|Q1111111111111111111|P|2.5.1|\r\n" +
-                "AIP|1||123456^SMITH^JOHN^A^^^^^NPI^^^^NPI~123457^SMITH^JOHN^A^^^^^OD^^^^OD~123458^SMITH^JOHN^A^^^^^MD^^^^MD|100^M.D.||20231010133000|0|MIN|45|MIN\r\n";
+        final String message = """
+                MSH|^~\\&|XXXXXXXX||HealthProvider||||SIU^S12|Q1111111111111111111|P|2.5.1|\r
+                AIP|1||123456^SMITH^JOHN^A^^^^^NPI^^^^NPI~123457^SMITH^JOHN^A^^^^^OD^^^^OD~123458^SMITH^JOHN^A^^^^^MD^^^^MD|100^M.D.||20231010133000|0|MIN|45|MIN\r
+                """;
 
         final SortedMap<String, String> expectedAttributes = new TreeMap<>();
 

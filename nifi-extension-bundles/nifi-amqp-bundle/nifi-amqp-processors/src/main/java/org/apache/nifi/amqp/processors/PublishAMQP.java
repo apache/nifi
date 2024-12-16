@@ -39,8 +39,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 @Tags({ "amqp", "rabbit", "put", "message", "send", "publish" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -133,21 +132,21 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .description("All FlowFiles that cannot be routed to the AMQP destination are routed to this relationship")
             .build();
 
-    private final static List<PropertyDescriptor> propertyDescriptors;
+    private final static List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            Stream.of(
+                    EXCHANGE,
+                    ROUTING_KEY,
+                    HEADERS_SOURCE,
+                    HEADERS_PATTERN,
+                    HEADER_SEPARATOR
+            ),
+            getCommonPropertyDescriptors().stream()
+    ).toList();
 
-    private final static Set<Relationship> relationships;
-
-    static {
-        List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(EXCHANGE);
-        properties.add(ROUTING_KEY);
-        properties.add(HEADERS_SOURCE);
-        properties.add(HEADERS_PATTERN);
-        properties.add(HEADER_SEPARATOR);
-        properties.addAll(getCommonPropertyDescriptors());
-        propertyDescriptors = Collections.unmodifiableList(properties);
-        relationships = Set.of(REL_SUCCESS, REL_FAILURE);
-    }
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     /**
      * Will construct AMQP message by extracting its body from the incoming {@link FlowFile}. AMQP Properties will be extracted from the
@@ -204,12 +203,12 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

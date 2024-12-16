@@ -51,12 +51,9 @@ import org.springframework.data.redis.connection.RedisConnection;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.redis.util.RedisUtils.REDIS_CONNECTION_POOL;
@@ -126,26 +123,22 @@ public class PutRedisHashRecord extends AbstractProcessor {
             .description("FlowFiles containing Records with processing errors will be routed to this relationship")
             .build();
 
-    static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
+    static final List<PropertyDescriptor> PROPERTIES = List.of(
+            RECORD_READER_FACTORY,
+            REDIS_CONNECTION_POOL,
+            HASH_VALUE_RECORD_PATH,
+            DATA_RECORD_PATH,
+            CHARSET
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
-
-    static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(RECORD_READER_FACTORY);
-        props.add(REDIS_CONNECTION_POOL);
-        props.add(HASH_VALUE_RECORD_PATH);
-        props.add(DATA_RECORD_PATH);
-        props.add(CHARSET);
-        PROPERTY_DESCRIPTORS = Collections.unmodifiableList(props);
-    }
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTY_DESCRIPTORS;
+        return PROPERTIES;
     }
 
     @Override
@@ -190,7 +183,7 @@ public class PutRedisHashRecord extends AbstractProcessor {
 
             while ((record = reader.nextRecord()) != null) {
                 final RecordPathResult recordPathResult = hashValueRecordPath.evaluate(record);
-                final List<FieldValue> resultList = recordPathResult.getSelectedFields().distinct().collect(Collectors.toList());
+                final List<FieldValue> resultList = recordPathResult.getSelectedFields().distinct().toList();
                 if (resultList.isEmpty()) {
                     throw new ProcessException(String.format("No results found for Record [%d] Hash Value Record Path: %s", count, hashValueRecordPath.getPath()));
                 }
@@ -199,7 +192,7 @@ public class PutRedisHashRecord extends AbstractProcessor {
                     throw new ProcessException(String.format("Multiple results [%d] found for Record [%d] Hash Value Record Path: %s", resultList.size(), count, hashValueRecordPath.getPath()));
                 }
 
-                final FieldValue hashValueFieldValue = resultList.get(0);
+                final FieldValue hashValueFieldValue = resultList.getFirst();
                 final Object hashValueObject = hashValueFieldValue.getValue();
                 if (hashValueObject == null) {
                     throw new ProcessException(String.format("Null value found for Record [%d] Hash Value Record Path: %s", count, hashValueRecordPath.getPath()));
@@ -238,7 +231,7 @@ public class PutRedisHashRecord extends AbstractProcessor {
         }
 
         final RecordPathResult result = dataRecordPath.evaluate(outerRecord);
-        final List<FieldValue> fieldValues = result.getSelectedFields().collect(Collectors.toList());
+        final List<FieldValue> fieldValues = result.getSelectedFields().toList();
         if (fieldValues.isEmpty()) {
             throw new ProcessException("RecordPath " + dataRecordPath.getPath() + " evaluated against Record yielded no results.");
         }

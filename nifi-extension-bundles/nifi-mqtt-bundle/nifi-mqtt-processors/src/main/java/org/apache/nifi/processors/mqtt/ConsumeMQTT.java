@@ -64,11 +64,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -209,7 +206,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             .autoTerminateDefault(true) // to make sure flow are still valid after upgrades
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             PROP_BROKER_URI,
             PROP_MQTT_VERSION,
             PROP_USERNAME,
@@ -232,12 +229,12 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             PROP_LAST_WILL_RETAIN,
             PROP_LAST_WILL_QOS,
             PROP_MAX_QUEUE_SIZE
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_MESSAGE,
             REL_PARSE_FAILURE
-    )));
+    );
 
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {

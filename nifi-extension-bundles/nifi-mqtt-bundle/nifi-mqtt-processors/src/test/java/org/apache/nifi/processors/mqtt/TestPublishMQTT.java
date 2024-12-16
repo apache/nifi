@@ -222,7 +222,7 @@ public class TestPublishMQTT {
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
-        final MockFlowFile successfulFlowFile = flowFiles.get(0);
+        final MockFlowFile successfulFlowFile = flowFiles.getFirst();
         final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
         assertFalse(successfulFlowFile.getAttributes().containsKey(publishFailedIndexAttributeName), "Failed attribute should not be present on the FlowFile");
     }
@@ -256,7 +256,7 @@ public class TestPublishMQTT {
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, flowFiles.size());
 
-        final MockFlowFile failedFlowFile = flowFiles.get(0);
+        final MockFlowFile failedFlowFile = flowFiles.getFirst();
         final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
         assertEquals("1", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
     }
@@ -293,7 +293,7 @@ public class TestPublishMQTT {
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, flowFiles.size());
 
-        final MockFlowFile failedFlowFile = flowFiles.get(0);
+        final MockFlowFile failedFlowFile = flowFiles.getFirst();
         assertEquals("2", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
     }
 
@@ -328,7 +328,7 @@ public class TestPublishMQTT {
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
-        final MockFlowFile successfulFlowFile = flowFiles.get(0);
+        final MockFlowFile successfulFlowFile = flowFiles.getFirst();
         assertNull(successfulFlowFile.getAttribute(publishFailedIndexAttributeName),
                 publishFailedIndexAttributeName + " is expected to be removed after all remaining records have been published successfully.");
     }
@@ -362,7 +362,7 @@ public class TestPublishMQTT {
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
-        final MockFlowFile successfulFlowFile = flowFiles.get(0);
+        final MockFlowFile successfulFlowFile = flowFiles.getFirst();
         final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
         assertFalse(successfulFlowFile.getAttributes().containsKey(publishFailedIndexAttributeName), "Failed attribute should not be present on the FlowFile");
     }
@@ -391,13 +391,13 @@ public class TestPublishMQTT {
         assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE, 1));
 
         verify(mqttTestClient, Mockito.times(2)).publish(any(), any());
-        verifyPublishedMessage(testInput.get(0).getBytes(), 2, false);
+        verifyPublishedMessage(testInput.getFirst().getBytes(), 2, false);
         verifyNoMorePublished();
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, flowFiles.size());
 
-        final MockFlowFile failedFlowFile = flowFiles.get(0);
+        final MockFlowFile failedFlowFile = flowFiles.getFirst();
         final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
         assertEquals("1", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
     }
@@ -435,7 +435,7 @@ public class TestPublishMQTT {
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, flowFiles.size());
 
-        final MockFlowFile failedFlowFile = flowFiles.get(0);
+        final MockFlowFile failedFlowFile = flowFiles.getFirst();
         assertEquals("2", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
     }
 
@@ -471,7 +471,7 @@ public class TestPublishMQTT {
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
-        final MockFlowFile successfulFlowFile = flowFiles.get(0);
+        final MockFlowFile successfulFlowFile = flowFiles.getFirst();
         assertNull(successfulFlowFile.getAttribute(publishFailedIndexAttributeName),
                 publishFailedIndexAttributeName + " is expected to be removed after all remaining records have been published successfully.");
     }
@@ -495,7 +495,7 @@ public class TestPublishMQTT {
         assertNotNull(provenanceEvents);
         assertEquals(1, provenanceEvents.size());
 
-        final ProvenanceEventRecord event = provenanceEvents.get(0);
+        final ProvenanceEventRecord event = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.SEND, event.getEventType());
 
         return event;

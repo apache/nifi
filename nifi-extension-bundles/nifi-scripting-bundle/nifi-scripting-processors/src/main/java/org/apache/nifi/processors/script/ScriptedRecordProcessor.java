@@ -43,7 +43,6 @@ import javax.script.SimpleBindings;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -81,7 +80,7 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
             .required(true)
             .build();
 
-    protected static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
+    protected static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             RECORD_READER,
             RECORD_WRITER,
             LANGUAGE,

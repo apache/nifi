@@ -19,7 +19,6 @@ package org.apache.nifi.processors.hl7;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -94,6 +93,15 @@ public class RouteHL7 extends AbstractProcessor {
             .description("The original FlowFile that comes into this processor will be routed to this relationship, unless it is routed to 'failure'")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            CHARACTER_SET
+    );
+
+    private static final Set<Relationship> BASIC_RELATIONSHIPS = Set.of(
+            REL_FAILURE,
+            REL_ORIGINAL
+    );
+
     private volatile Map<Relationship, HL7Query> queries = new HashMap<>();
 
     @Override
@@ -109,9 +117,7 @@ public class RouteHL7 extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(CHARACTER_SET);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -136,8 +142,7 @@ public class RouteHL7 extends AbstractProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         final Set<Relationship> relationships = new HashSet<>(queries.keySet());
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_ORIGINAL);
+        relationships.addAll(BASIC_RELATIONSHIPS);
         return relationships;
     }
 
@@ -205,7 +210,7 @@ public class RouteHL7 extends AbstractProcessor {
                 final List<Class<?>> returnTypes = hl7Query.getReturnTypes();
                 if (returnTypes.size() != 1) {
                     error = "RouteHL7 requires that the HL7 Query return exactly 1 element of type MESSAGE";
-                } else if (!HL7Message.class.isAssignableFrom(returnTypes.get(0))) {
+                } else if (!HL7Message.class.isAssignableFrom(returnTypes.getFirst())) {
                     error = "RouteHL7 requires that the HL7 Query return exactly 1 element of type MESSAGE";
                 }
             } catch (final HL7QueryParsingException e) {

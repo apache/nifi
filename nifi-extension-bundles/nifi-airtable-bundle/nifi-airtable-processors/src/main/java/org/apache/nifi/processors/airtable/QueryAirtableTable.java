@@ -27,7 +27,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -195,7 +194,7 @@ public class QueryAirtableTable extends AbstractProcessor {
             .description("For FlowFiles created as a result of a successful query.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             API_URL,
             PAT,
             BASE_ID,
@@ -206,9 +205,11 @@ public class QueryAirtableTable extends AbstractProcessor {
             WEB_CLIENT_SERVICE_PROVIDER,
             QUERY_PAGE_SIZE,
             MAX_RECORDS_PER_FLOWFILE
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     private static final String LAST_QUERY_TIME_WINDOW_END = "last_query_time_window_end";
 

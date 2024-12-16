@@ -56,7 +56,7 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
         testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_SUCCESS);
-        final MockFlowFile ff0 = flowFiles.get(0);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         assertFlowFileAttributes(ff0);
     }
 
@@ -96,7 +96,7 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_SUCCESS);
-        final MockFlowFile ff0 = flowFiles.get(0);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertAttributeEquals(GoogleDriveAttributes.SIZE, "9");
     }
 

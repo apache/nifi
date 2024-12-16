@@ -21,8 +21,7 @@ import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PR
 
 import com.google.api.gax.longrunning.OperationFuture;
 import com.google.cloud.vision.v1.AsyncBatchAnnotateFilesRequest;
-import java.util.Arrays;
-import java.util.Collections;
+
 import java.util.List;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -69,8 +68,13 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
                     "}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            JSON_PAYLOAD, GCP_CREDENTIALS_PROVIDER_SERVICE, OUTPUT_BUCKET, FEATURE_TYPE));
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            JSON_PAYLOAD,
+            GCP_CREDENTIALS_PROVIDER_SERVICE,
+            OUTPUT_BUCKET,
+            FEATURE_TYPE
+    );
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {

@@ -50,9 +50,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -94,18 +91,18 @@ public class PutSalesforceObject extends AbstractProcessor {
             .description("For FlowFiles created as a result of an execution error.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             SALESFORCE_INSTANCE_URL,
             API_VERSION,
             READ_TIMEOUT,
             TOKEN_PROVIDER,
             RECORD_READER_FACTORY
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
+    );
 
     private volatile SalesforceRestClient salesforceRestClient;
     private volatile int maxRecordCount;

@@ -31,10 +31,10 @@ import org.apache.nifi.websocket.WebSocketClientService;
 import org.apache.nifi.websocket.WebSocketService;
 import org.apache.nifi.websocket.WebSocketSessionInfo;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_CS_ID;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_ENDPOINT_ID;
@@ -79,29 +79,24 @@ public class ConnectWebSocket extends AbstractWebSocketGatewayProcessor {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> descriptors;
-    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            PROP_WEBSOCKET_CLIENT_SERVICE,
+            PROP_WEBSOCKET_CLIENT_ID
+    );
 
-    static {
-        final List<PropertyDescriptor> innerDescriptorsList = new ArrayList<>();
-        innerDescriptorsList.add(PROP_WEBSOCKET_CLIENT_SERVICE);
-        innerDescriptorsList.add(PROP_WEBSOCKET_CLIENT_ID);
-        descriptors = Collections.unmodifiableList(innerDescriptorsList);
-
-        final Set<Relationship> innerRelationshipsSet = getAbstractRelationships();
-        innerRelationshipsSet.add(REL_SUCCESS);
-        innerRelationshipsSet.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(innerRelationshipsSet);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Stream.concat(
+            getAbstractRelationships().stream(),
+            Stream.of(REL_SUCCESS, REL_FAILURE)
+            ).collect(Collectors.toUnmodifiableSet());
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return DESCRIPTORS;
     }
 
     @Override

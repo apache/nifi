@@ -56,12 +56,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
@@ -209,12 +207,24 @@ public class GeohashRecord extends AbstractProcessor {
             .description("The original input flowfile will be sent to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> RECORD_PATH_PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            LATITUDE_RECORD_PATH, LONGITUDE_RECORD_PATH, GEOHASH_RECORD_PATH
-    ));
+    private static final List<PropertyDescriptor> RECORD_PATH_PROPERTIES = List.of(
+            LATITUDE_RECORD_PATH,
+            LONGITUDE_RECORD_PATH,
+            GEOHASH_RECORD_PATH
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_ORIGINAL, REL_FAILURE)));
-    private static final Set<Relationship> SPLIT_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_MATCHED, REL_NOT_MATCHED, REL_ORIGINAL, REL_FAILURE)));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_ORIGINAL,
+            REL_FAILURE
+    );
+
+    private static final Set<Relationship> SPLIT_RELATIONSHIPS = Set.of(
+            REL_MATCHED,
+            REL_NOT_MATCHED,
+            REL_ORIGINAL,
+            REL_FAILURE
+    );
 
     private RoutingStrategyExecutor routingStrategyExecutor;
     private static boolean isSplit;
@@ -449,7 +459,7 @@ public class GeohashRecord extends AbstractProcessor {
         Optional<FieldValue> latitudeField = latitudeResult.getSelectedFields().findFirst();
         Optional<FieldValue> longitudeField = longitudeResult.getSelectedFields().findFirst();
 
-        if (!latitudeField.isPresent() || !longitudeField.isPresent()) {
+        if (latitudeField.isEmpty() || longitudeField.isEmpty()) {
             return null;
         }
 
@@ -477,7 +487,7 @@ public class GeohashRecord extends AbstractProcessor {
         RecordPathResult geohashResult = geohashPath.evaluate(record);
         Optional<FieldValue> geohashField = geohashResult.getSelectedFields().findFirst();
 
-        if (!geohashField.isPresent()) {
+        if (geohashField.isEmpty()) {
             return null;
         }
 
@@ -508,13 +518,13 @@ public class GeohashRecord extends AbstractProcessor {
         RecordPathResult result = path.evaluate(record);
 
         final Optional<FieldValue> fieldValueOption = result.getSelectedFields().findFirst();
-        if (!fieldValueOption.isPresent()) {
+        if (fieldValueOption.isEmpty()) {
             return false;
         }
 
         final FieldValue fieldValue = fieldValueOption.get();
 
-        if (!fieldValue.getParent().isPresent() || fieldValue.getParent().get().getValue() == null) {
+        if (fieldValue.getParent().isEmpty() || fieldValue.getParent().get().getValue() == null) {
             return false;
         }
 

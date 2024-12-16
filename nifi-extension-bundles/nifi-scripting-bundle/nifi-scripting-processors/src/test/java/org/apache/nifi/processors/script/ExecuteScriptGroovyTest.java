@@ -47,7 +47,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS).getFirst();
         flowFile.assertAttributeExists("time-updated");
         flowFile.assertAttributeExists("thread");
         assertTrue(SINGLE_POOL_THREAD_PATTERN.matcher(flowFile.getAttribute("thread")).find());
@@ -95,7 +95,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS).getFirst();
         flowFile.assertAttributeExists("greeting");
         flowFile.assertAttributeEquals("greeting", "hello");
         runner.clearTransferState();
@@ -105,7 +105,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS).getFirst();
         flowFile.assertAttributeExists("greeting");
         flowFile.assertAttributeEquals("greeting", "good-bye");
     }

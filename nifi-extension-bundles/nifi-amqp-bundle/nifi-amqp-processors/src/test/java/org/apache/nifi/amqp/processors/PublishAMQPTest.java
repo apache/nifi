@@ -72,7 +72,7 @@ public class PublishAMQPTest {
 
         runner.run();
 
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).getFirst();
         assertNotNull(successFF);
 
         final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
@@ -119,7 +119,7 @@ public class PublishAMQPTest {
 
         runner.run();
 
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).getFirst();
         assertNotNull(successFF);
 
         final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
@@ -161,7 +161,7 @@ public class PublishAMQPTest {
 
         runner.run();
 
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).getFirst();
         assertNotNull(successFF);
 
         final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();
@@ -187,7 +187,7 @@ public class PublishAMQPTest {
         runner.run();
 
         assertTrue(runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).isEmpty());
-        assertNotNull(runner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).get(0));
+        assertNotNull(runner.getFlowFilesForRelationship(PublishAMQP.REL_FAILURE).getFirst());
     }
 
     @Test
@@ -220,7 +220,7 @@ public class PublishAMQPTest {
 
         runner.run();
 
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).get(0);
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishAMQP.REL_SUCCESS).getFirst();
         assertNotNull(successFF);
 
         final Channel channel = ((LocalPublishAMQP) pubProc).getConnection().createChannel();

@@ -52,7 +52,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class StartGcpVisionAnnotateFilesOperationTest {
     private TestRunner runner = null;
-    private StartGcpVisionAnnotateFilesOperation processor;
     private static final Path FlowFileContent = Paths.get("src/test/resources/vision/annotate-image.json");
     @Mock
     private ImageAnnotatorClient vision;
@@ -72,7 +71,7 @@ public class StartGcpVisionAnnotateFilesOperationTest {
     @BeforeEach
     public void setUp() throws InitializationException {
         gcpCredentialsService = new GCPCredentialsControllerService();
-        processor = new StartGcpVisionAnnotateFilesOperation() {
+        StartGcpVisionAnnotateFilesOperation processor = new StartGcpVisionAnnotateFilesOperation() {
             @Override
             protected ImageAnnotatorClient getVisionClient() {
                 return mockVisionClient;

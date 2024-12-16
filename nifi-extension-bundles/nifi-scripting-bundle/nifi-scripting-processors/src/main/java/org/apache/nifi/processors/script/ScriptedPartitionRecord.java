@@ -51,7 +51,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -95,13 +94,11 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
                     + "the unchanged FlowFile will be routed to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = new HashSet<>();
-
-    static {
-        RELATIONSHIPS.add(RELATIONSHIP_ORIGINAL);
-        RELATIONSHIPS.add(RELATIONSHIP_SUCCESS);
-        RELATIONSHIPS.add(RELATIONSHIP_FAILURE);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            RELATIONSHIP_ORIGINAL,
+            RELATIONSHIP_SUCCESS,
+            RELATIONSHIP_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -121,7 +118,7 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
         }
 
         final ScriptRunner scriptRunner = pollScriptRunner();
-        boolean success = false;
+        boolean success;
 
         try {
             final ScriptEvaluator evaluator;

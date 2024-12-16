@@ -84,7 +84,7 @@ public class TestISPEnrichIP {
         testRunner.setProperty(ISPEnrichIP.GEO_DATABASE_FILE, "./");
         testRunner.setProperty(ISPEnrichIP.IP_ADDRESS_ATTRIBUTE, "ip");
 
-        final IspResponse ispResponse = getIspResponse("1.2.3.4");
+        final IspResponse ispResponse = getIspResponse();
 
         when(databaseReader.isp(InetAddress.getByName("1.2.3.4"))).thenReturn(ispResponse);
 
@@ -101,7 +101,7 @@ public class TestISPEnrichIP {
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.get(0);
+        FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip.isp.lookup.micros"));
         assertEquals("Apache NiFi - Test ISP", finishedFound.getAttribute("ip.isp.name"));
         assertEquals("Apache NiFi - Test Organization", finishedFound.getAttribute("ip.isp.organization"));
@@ -132,7 +132,7 @@ public class TestISPEnrichIP {
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.get(0);
+        FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip.isp.lookup.micros"));
         assertNotNull(finishedFound.getAttribute("ip.isp.lookup.micros"));
         assertEquals("Apache NiFi - Test ISP", finishedFound.getAttribute("ip.isp.name"));
@@ -146,7 +146,7 @@ public class TestISPEnrichIP {
         testRunner.setProperty(ISPEnrichIP.GEO_DATABASE_FILE, "./");
         testRunner.setProperty(ISPEnrichIP.IP_ADDRESS_ATTRIBUTE, "${ip.fields:substringBefore(',')}");
 
-        final IspResponse ispResponse = getIspResponse("1.2.3.4");
+        final IspResponse ispResponse = getIspResponse();
         when(databaseReader.isp(InetAddress.getByName("1.2.3.4"))).thenReturn(ispResponse);
 
         final Map<String, String> attributes = new HashMap<>();
@@ -163,7 +163,7 @@ public class TestISPEnrichIP {
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.get(0);
+        FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip0.isp.lookup.micros"));
         assertEquals("Apache NiFi - Test ISP", finishedFound.getAttribute("ip0.isp.name"));
         assertEquals("Apache NiFi - Test Organization", finishedFound.getAttribute("ip0.isp.organization"));
@@ -263,16 +263,8 @@ public class TestISPEnrichIP {
         verifyNoMoreInteractions(databaseReader);
     }
 
-    private IspResponse getIspResponse(final String ipAddress) throws Exception {
-        String maxMindIspResponse = "{\n" +
-            "         \"isp\" : \"Apache NiFi - Test ISP\",\n" +
-            "         \"organization\" : \"Apache NiFi - Test Organization\",\n" +
-            "         \"autonomous_system_number\" : 1337,\n" +
-            "         \"autonomous_system_organization\" : \"Apache NiFi - Test Chocolate\", \n" +
-            "         \"ip_address\" : \"" + ipAddress + "\"\n" +
-            "      }\n";
-
-        maxMindIspResponse = JSON.std
+    private IspResponse getIspResponse() throws Exception {
+        String maxMindIspResponse = JSON.std
                 .composeString()
                 .startObject()
                 .put("autonomous_system_number", 1337)

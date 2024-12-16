@@ -33,8 +33,6 @@ import org.apache.nifi.websocket.WebSocketService;
 import org.apache.nifi.websocket.WebSocketSessionInfo;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -85,27 +83,21 @@ public class ListenWebSocket extends AbstractWebSocketGatewayProcessor {
             })
             .build();
 
-    private static final List<PropertyDescriptor> descriptors;
-    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            PROP_WEBSOCKET_SERVER_SERVICE,
+            PROP_SERVER_URL_PATH
+    );
 
-    static {
-        final List<PropertyDescriptor> innerDescriptorsList = new ArrayList<>();
-        innerDescriptorsList.add(PROP_WEBSOCKET_SERVER_SERVICE);
-        innerDescriptorsList.add(PROP_SERVER_URL_PATH);
-        descriptors = Collections.unmodifiableList(innerDescriptorsList);
-
-        final Set<Relationship> innerRelationshipsSet = getAbstractRelationships();
-        relationships = Collections.unmodifiableSet(innerRelationshipsSet);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = getAbstractRelationships();
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return DESCRIPTORS;
     }
 
     @Override

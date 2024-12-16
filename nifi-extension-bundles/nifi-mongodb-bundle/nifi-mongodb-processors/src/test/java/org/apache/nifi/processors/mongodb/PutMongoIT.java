@@ -401,14 +401,14 @@ public class PutMongoIT extends MongoWriteTestBase {
     public void testInsertOne() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
-        Document doc = DOCUMENTS.get(0);
+        Document doc = DOCUMENTS.getFirst();
         byte[] bytes = documentToByteArray(doc);
 
         runner.enqueue(bytes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
         out.assertContentEquals(bytes);
 
         // verify 1 doc inserted into the collection
@@ -440,7 +440,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
         // pre-insert one document
-        collection.insertOne(DOCUMENTS.get(0));
+        collection.insertOne(DOCUMENTS.getFirst());
 
         for (Document doc : DOCUMENTS) {
             runner.enqueue(documentToByteArray(doc));
@@ -449,8 +449,8 @@ public class PutMongoIT extends MongoWriteTestBase {
 
         // first doc failed, other 2 succeeded
         runner.assertTransferCount(PutMongo.REL_FAILURE, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_FAILURE).get(0);
-        out.assertContentEquals(documentToByteArray(DOCUMENTS.get(0)));
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_FAILURE).getFirst();
+        out.assertContentEquals(documentToByteArray(DOCUMENTS.getFirst()));
 
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 2);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS);
@@ -470,7 +470,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     public void testUpdateDoesNotInsert() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
-        Document doc = DOCUMENTS.get(0);
+        Document doc = DOCUMENTS.getFirst();
         byte[] bytes = documentToByteArray(doc);
 
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
@@ -478,7 +478,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
         out.assertContentEquals(bytes);
         out.assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
         out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(0));
@@ -496,7 +496,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     public void testUpsert() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
-        Document doc = DOCUMENTS.get(0);
+        Document doc = DOCUMENTS.getFirst();
         byte[] bytes = documentToByteArray(doc);
 
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
@@ -505,7 +505,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
         out.assertContentEquals(bytes);
 
         out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPSERT_ID, doc.getString("_id"));
@@ -529,7 +529,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
         out.assertContentEquals(bytes);
 
         out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPSERT_ID, oidDocument.getObjectId("_id").toString());
@@ -545,7 +545,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     public void testUpdate() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
-        Document doc = DOCUMENTS.get(0);
+        Document doc = DOCUMENTS.getFirst();
 
         // pre-insert document
         collection.insertOne(doc);
@@ -562,7 +562,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).getFirst();
         out.assertContentEquals(bytes);
         out.assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
         out.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(1));

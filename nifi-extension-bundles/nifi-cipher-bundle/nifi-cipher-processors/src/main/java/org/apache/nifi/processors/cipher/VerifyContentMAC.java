@@ -28,12 +28,9 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -135,16 +132,20 @@ public class VerifyContentMAC extends AbstractProcessor {
     protected static final String MAC_CALCULATED_ATTRIBUTE = "mac.calculated";
     protected static final String MAC_ALGORITHM_ATTRIBUTE = "mac.algorithm";
     protected static final String MAC_ENCODING_ATTRIBUTE = "mac.encoding";
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(
-            Arrays.asList(
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
                     MAC_ALGORITHM,
                     MAC_ENCODING,
                     MAC,
                     SECRET_KEY_ENCODING,
                     SECRET_KEY
-            )
     );
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(SUCCESS, FAILURE)));
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            SUCCESS,
+            FAILURE
+    );
+
     private static final int BUFFER_SIZE = 512000;
 
     private SecretKeySpec secretKeySpec;
