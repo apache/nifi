@@ -189,7 +189,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .addValidator(new MustNotContainDirectorySeparatorsValidator())
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Stream.of(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             SMB_CLIENT_PROVIDER_SERVICE,
             SMB_LISTING_STRATEGY,
             DIRECTORY,
@@ -203,7 +203,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             ListedEntityTracker.TRACKING_STATE_CACHE,
             ListedEntityTracker.TRACKING_TIME_WINDOW,
             ListedEntityTracker.INITIAL_LISTING_TARGET
-    ).toList();
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

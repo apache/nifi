@@ -193,7 +193,9 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
             INCLUDE_MESSAGE_BLOCKS,
             INCLUDE_NULL_FIELDS);
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     private RateLimit rateLimit;
     private final Queue<ConsumeChannel> channels = new LinkedBlockingQueue<>();

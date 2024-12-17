@@ -149,7 +149,9 @@ public class ListenSlack extends AbstractProcessor {
             RESOLVE_USER_DETAILS
     );
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     private final TransferQueue<EventWrapper> eventTransferQueue = new LinkedTransferQueue<>();
     private volatile SocketModeApp socketModeApp;

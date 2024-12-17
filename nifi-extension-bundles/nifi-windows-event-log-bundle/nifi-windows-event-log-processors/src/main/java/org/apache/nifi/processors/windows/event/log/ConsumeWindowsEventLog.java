@@ -135,7 +135,10 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
             .description("Relationship for successfully consumed events.")
             .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
+
     public static final String APPLICATION_XML = "application/xml";
     public static final String UNABLE_TO_SUBSCRIBE = "Unable to subscribe with provided parameters, received the following error code: ";
     public static final String PROCESSOR_ALREADY_SUBSCRIBED = "Processor already subscribed to Event Log, expected cleanup to unsubscribe.";

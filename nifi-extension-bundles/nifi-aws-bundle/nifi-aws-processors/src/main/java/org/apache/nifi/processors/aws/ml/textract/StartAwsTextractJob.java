@@ -38,9 +38,7 @@ import software.amazon.awssdk.services.textract.model.StartExpenseAnalysisRespon
 import software.amazon.awssdk.services.textract.model.TextractRequest;
 import software.amazon.awssdk.services.textract.model.TextractResponse;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.aws.ml.textract.TextractType.DOCUMENT_ANALYSIS;
@@ -65,8 +63,10 @@ public class StartAwsTextractJob extends AbstractAwsMachineLearningJobStarter<
             .allowableValues(TextractType.TEXTRACT_TYPES)
             .defaultValue(DOCUMENT_ANALYSIS.getType())
             .build();
-    private static final List<PropertyDescriptor> TEXTRACT_PROPERTIES =
-        Collections.unmodifiableList(Stream.concat(PROPERTIES.stream(), Stream.of(TEXTRACT_TYPE)).collect(Collectors.toList()));
+    private static final List<PropertyDescriptor> TEXTRACT_PROPERTIES = Stream.concat(
+            PROPERTIES.stream(),
+            Stream.of(TEXTRACT_TYPE)
+    ).toList();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {

@@ -69,7 +69,11 @@ import static org.mockito.Mockito.when;
 public class ParseEvtxTest {
     public static final String USER_DATA = "UserData";
     public static final String EVENT_DATA = "EventData";
-    public static final Set<String> DATA_TAGS = Set.of(EVENT_DATA, USER_DATA);
+    public static final Set<String> DATA_TAGS = Set.of(
+            EVENT_DATA,
+            USER_DATA
+    );
+
     public static final int EXPECTED_SUCCESSFUL_EVENT_COUNT = 1053;
 
     @Mock

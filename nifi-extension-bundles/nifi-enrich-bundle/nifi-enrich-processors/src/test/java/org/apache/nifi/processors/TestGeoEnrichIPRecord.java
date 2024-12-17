@@ -46,7 +46,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.GeoEnrichTestUtils.getFullCityResponse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -154,7 +153,7 @@ public class TestGeoEnrichIPRecord {
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            return Stream.of(
+            return List.of(
                     READER,
                     WRITER,
                     IP_RECORD_PATH,
@@ -165,7 +164,8 @@ public class TestGeoEnrichIPRecord {
                     GEO_COUNTRY,
                     GEO_COUNTRY_ISO,
                     GEO_POSTAL_CODE,
-                    LOG_LEVEL).toList();
+                    LOG_LEVEL
+            );
         }
         @Override
         @OnScheduled

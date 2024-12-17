@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /**
  * Sends data to an SNMP manager which, upon each invocation of
@@ -88,7 +87,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
             .description("All FlowFiles that cannot received from the SNMP agent are routed to this relationship")
             .build();
 
-    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.of(
+    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SNMP_MANAGER_HOST,
             SNMP_MANAGER_PORT,
             BasicProperties.SNMP_VERSION,
@@ -106,7 +105,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
             V1TrapProperties.GENERIC_TRAP_TYPE,
             V1TrapProperties.SPECIFIC_TRAP_TYPE,
             V2TrapProperties.TRAP_OID_VALUE
-    ).toList();
+    );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,

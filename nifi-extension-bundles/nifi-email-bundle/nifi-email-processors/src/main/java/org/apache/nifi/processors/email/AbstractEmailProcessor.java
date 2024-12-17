@@ -178,7 +178,9 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             CONNECTION_TIMEOUT
     );
 
-    final static Set<Relationship> SHARED_RELATIONSHIPS = Set.of(REL_SUCCESS);
+    final static Set<Relationship> SHARED_RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 

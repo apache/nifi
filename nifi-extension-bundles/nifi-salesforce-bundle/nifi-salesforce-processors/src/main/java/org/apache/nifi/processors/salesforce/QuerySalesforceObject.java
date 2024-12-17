@@ -95,7 +95,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_VERSION;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.READ_TIMEOUT;
@@ -307,7 +306,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         salesforceRestService = new SalesforceRestClient(salesforceConfiguration);
     }
 
-    private static final List<PropertyDescriptor> PROPERTIES = Stream.of(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             SALESFORCE_INSTANCE_URL,
             API_VERSION,
             QUERY_TYPE,
@@ -323,7 +322,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             READ_TIMEOUT,
             CREATE_ZERO_RECORD_FILES,
             TOKEN_PROVIDER
-    ).toList();
+    );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,

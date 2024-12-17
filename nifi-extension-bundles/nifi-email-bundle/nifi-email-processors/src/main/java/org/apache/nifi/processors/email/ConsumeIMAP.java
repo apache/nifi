@@ -53,7 +53,10 @@ public class ConsumeIMAP extends AbstractEmailProcessor<ImapMailReceiver> {
 
     static final List<PropertyDescriptor> DESCRIPTORS = Stream.concat(
             SHARED_DESCRIPTORS.stream(),
-            Stream.of(SHOULD_MARK_READ, USE_SSL)
+            Stream.of(
+                    SHOULD_MARK_READ,
+                    USE_SSL
+            )
     ).toList();
 
     @Override

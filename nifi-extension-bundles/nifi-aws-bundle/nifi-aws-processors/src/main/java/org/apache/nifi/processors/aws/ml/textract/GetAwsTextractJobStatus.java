@@ -40,9 +40,7 @@ import software.amazon.awssdk.services.textract.model.ProvisionedThroughputExcee
 import software.amazon.awssdk.services.textract.model.TextractResponse;
 import software.amazon.awssdk.services.textract.model.ThrottlingException;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob.TEXTRACT_TYPE_ATTRIBUTE;
@@ -74,8 +72,10 @@ public class GetAwsTextractJobStatus extends AbstractAwsMachineLearningJobStatus
             .defaultValue(String.format("${%s}", TEXTRACT_TYPE_ATTRIBUTE))
             .addValidator(TEXTRACT_TYPE_VALIDATOR)
             .build();
-    private static final List<PropertyDescriptor> TEXTRACT_PROPERTIES =
-            Collections.unmodifiableList(Stream.concat(PROPERTIES.stream(), Stream.of(TEXTRACT_TYPE)).collect(Collectors.toList()));
+    private static final List<PropertyDescriptor> TEXTRACT_PROPERTIES = Stream.concat(
+            PROPERTIES.stream(),
+            Stream.of(TEXTRACT_TYPE)
+    ).toList();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {

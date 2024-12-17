@@ -66,8 +66,10 @@ import java.util.stream.Collectors;
 @Tags({"amazon", "aws", "cloudwatch", "metrics", "put", "publish"})
 public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClient, CloudWatchClientBuilder> {
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     public static final Set<String> units = Arrays.stream(StandardUnit.values())
             .map(StandardUnit::toString).collect(Collectors.toSet());
@@ -188,7 +190,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
             .addValidator(DOUBLE_VALIDATOR)
             .build();
 
-    public static final List<PropertyDescriptor> properties = List.of(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
         NAMESPACE,
         METRIC_NAME,
         REGION,
@@ -214,7 +216,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -242,7 +244,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

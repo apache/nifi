@@ -132,7 +132,10 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
             .description("If the Processor is unable to process a given FlowFile, it will be routed to this Relationship.")
             .build();
 
-    public static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+    public static final Set<Relationship> COMMON_RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
 
     // Member variables
@@ -143,7 +146,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return COMMON_RELATIONSHIPS;
     }
 
     @OnScheduled

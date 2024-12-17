@@ -97,7 +97,7 @@ public class RouteHL7 extends AbstractProcessor {
             CHARACTER_SET
     );
 
-    private static final Set<Relationship> BASIC_RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_FAILURE,
             REL_ORIGINAL
     );
@@ -142,7 +142,7 @@ public class RouteHL7 extends AbstractProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         final Set<Relationship> relationships = new HashSet<>(queries.keySet());
-        relationships.addAll(BASIC_RELATIONSHIPS);
+        relationships.addAll(RELATIONSHIPS);
         return relationships;
     }
 

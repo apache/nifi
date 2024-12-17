@@ -177,7 +177,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .description("Successfully created FlowFile from SQL query result set.")
             .build();
 
-    protected static Set<Relationship> relationships = Set.of(REL_SUCCESS);
+    protected static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     private static final AllowableValue SSL_MODE_DISABLED = new AllowableValue(SSLMode.DISABLED.toString(),
             SSLMode.DISABLED.toString(),
@@ -449,7 +451,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     SSL_MODE_VERIFY_IDENTITY)
             .build();
 
-    private static final List<PropertyDescriptor> propDescriptors = List.of(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             HOSTS,
             DRIVER_NAME,
             DRIVER_LOCATION,
@@ -508,12 +510,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propDescriptors;
+        return PROPERTIES;
     }
 
     @Override

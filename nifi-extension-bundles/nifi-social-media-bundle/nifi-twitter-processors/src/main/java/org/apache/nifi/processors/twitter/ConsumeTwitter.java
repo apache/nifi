@@ -49,7 +49,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 @PrimaryNodeOnly
 @SupportsBatching
@@ -248,7 +247,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .description("FlowFiles containing an array of one or more Tweets")
             .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Stream.of(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
         ENDPOINT,
         BASE_PATH,
         BEARER_TOKEN,
@@ -266,7 +265,7 @@ public class ConsumeTwitter extends AbstractProcessor {
         POLL_FIELDS,
         PLACE_FIELDS,
         EXPANSIONS
-    ).toList();
+    );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 

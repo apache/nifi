@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /**
  * Performs an SNMP Get operation based on processor or incoming FlowFile attributes.
@@ -118,7 +117,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
             .description("All FlowFiles that cannot received from the SNMP agent are routed to this relationship.")
             .build();
 
-    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.of(
+    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             AGENT_HOST,
             AGENT_PORT,
             BasicProperties.SNMP_VERSION,
@@ -134,7 +133,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
             OID,
             TEXTUAL_OID,
             SNMP_STRATEGY
-    ).toList();
+    );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,

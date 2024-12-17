@@ -86,7 +86,7 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .dependsOn(METADATA_TARGET, TARGET_ATTRIBUTES)
             .build();
 
-    private static final List<PropertyDescriptor> properties = List.of(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             METADATA_TARGET,
             ATTRIBUTE_INCLUDE_PATTERN,
             BUCKET_WITH_DEFAULT_VALUE,
@@ -116,7 +116,11 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
             .description("No object was found in the bucket the supplied key")
             .build();
 
-    private static final Set<Relationship> relationships = Set.of(REL_FOUND, REL_NOT_FOUND,  REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_FOUND,
+            REL_NOT_FOUND,
+            REL_FAILURE
+    );
 
     private static final String ATTRIBUTE_FORMAT = "s3.%s";
 
@@ -124,12 +128,12 @@ public class GetS3ObjectMetadata extends AbstractS3Processor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

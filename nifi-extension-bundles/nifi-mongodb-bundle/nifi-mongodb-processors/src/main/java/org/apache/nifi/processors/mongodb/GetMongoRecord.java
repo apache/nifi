@@ -50,7 +50,6 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 
 @CapabilityDescription("A record-based version of GetMongo that uses the Record writers to write the MongoDB result set.")
 @Tags({"mongo", "mongodb", "get", "fetch", "record", "json"})
@@ -77,7 +76,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
         .required(true)
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Stream.of(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             CLIENT_SERVICE,
             WRITER_FACTORY,
             DATABASE_NAME,
@@ -89,7 +88,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
             SORT,
             LIMIT,
             BATCH_SIZE
-    ).toList();
+    );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,

@@ -60,7 +60,6 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
 
@@ -127,7 +126,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             .description("FlowFiles that failed to send to the destination are transferred to this relationship.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Stream.of(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             PROP_BROKER_URI,
             PROP_MQTT_VERSION,
             PROP_USERNAME,
@@ -148,7 +147,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             PROP_LAST_WILL_TOPIC,
             PROP_LAST_WILL_RETAIN,
             PROP_LAST_WILL_QOS
-    ).toList();
+    );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
