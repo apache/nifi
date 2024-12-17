@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -176,8 +177,14 @@ public class TestValidateCsv {
         runner.setProperty(ValidateCsv.HEADER, "true");
 
         runner.enqueue("bigdecimal,bool,char,integer,long\r\n10.0001,true,c,1,92147483647");
+        runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(ValidateCsv.REL_VALID, 1);
+
+        runner.clearTransferState();
+        runner.enqueue(new byte[0]);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ValidateCsv.REL_INVALID, 1);
     }
 
     @Test
@@ -191,6 +198,71 @@ public class TestValidateCsv {
         runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_WHOLE_FLOWFILE.getValue());
         final Map<String, String> attributeMap = new HashMap<>();
         attributeMap.put("CSV_ATTRIBUTE", "bigdecimal,bool,char,integer,long\r\n10.0001,true,c,1,92147483647");
+
+        runner.enqueue("FlowFile Random Data", attributeMap);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ValidateCsv.REL_VALID, 1);
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).getFirst().assertContentEquals("FlowFile Random Data");
+    }
+
+    @Test
+    public void testValidateOnAttributeDoesNotExist() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "true");
+        runner.setProperty(ValidateCsv.CSV_SOURCE_ATTRIBUTE, "CSV_ATTRIBUTE");
+        runner.setProperty(ValidateCsv.SCHEMA, "ParseInt(),ParseInt(),ParseInt()");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_WHOLE_FLOWFILE.getValue());
+        final Map<String, String> attributeMap = new HashMap<>();
+        attributeMap.put("CSV_ATTRIBUTE_BAD", "bigdecimal,bool,char,integer,long\r\n10.0001,true,c,1,92147483647");
+
+        runner.enqueue("FlowFile Random Data", attributeMap);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ValidateCsv.REL_VALID, 1);
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).getFirst().assertContentEquals("FlowFile Random Data");
+
+        runner.clearTransferState();
+        attributeMap.clear();
+        attributeMap.put("CSV_ATTRIBUTE", "");
+        runner.enqueue("FlowFile Random Data", attributeMap);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ValidateCsv.REL_VALID, 1);
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).getFirst().assertContentEquals("FlowFile Random Data");
+    }
+
+    @Test
+    public void testValidateOnAttributeDoesNotExistNoSchema() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "true");
+        runner.setProperty(ValidateCsv.CSV_SOURCE_ATTRIBUTE, "CSV_ATTRIBUTE");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_WHOLE_FLOWFILE.getValue());
+        final Map<String, String> attributeMap = new HashMap<>();
+        attributeMap.put("CSV_ATTRIBUTE_BAD", "bigdecimal,bool,char,integer,long\r\n10.0001,true,c,1,92147483647");
+
+        runner.enqueue("FlowFile Random Data", attributeMap);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ValidateCsv.REL_INVALID, 1);
+        MockFlowFile flowfile = runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).getFirst();
+        flowfile.assertAttributeEquals("validation.error.message",
+                "No schema or CSV header could be identified.");
+        flowfile.assertContentEquals("FlowFile Random Data");
+    }
+
+    @Test
+    public void testValidateEmptyFile() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "true");
+        runner.setProperty(ValidateCsv.SCHEMA, "ParseInt(),ParseInt(),ParseInt()");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_WHOLE_FLOWFILE.getValue());
+        final Map<String, String> attributeMap = new HashMap<>();
 
         runner.enqueue(new byte[0], attributeMap);
         runner.run();

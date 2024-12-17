@@ -74,6 +74,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -81,7 +82,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"csv", "schema", "validation"})
-@CapabilityDescription("Validates the contents of FlowFiles against a user-specified CSV schema. " +
+@CapabilityDescription("Validates the contents of FlowFiles or a FlowFile attribute value against a user-specified CSV schema. " +
         "Take a look at the additional documentation of this processor for some schema examples.")
 @WritesAttributes({
     @WritesAttribute(attribute = "count.valid.lines", description = "If line by line validation, number of valid lines extracted from the source data"),
@@ -96,7 +97,6 @@ public class ValidateCsv extends AbstractProcessor {
             "Optional", "DMinMax", "Equals", "ForbidSubStr", "LMinMax", "NotNull", "Null", "RequireHashCode", "RequireSubStr",
             "Strlen", "StrMinMax", "StrNotNullOrEmpty", "StrRegEx", "Unique", "UniqueHashCode", "IsIncludedIn"
     );
-
 
     private static final String ROUTE_WHOLE_FLOW_FILE = "FlowFile validation";
     private static final String ROUTE_LINES_INDIVIDUALLY = "Line by line validation";
@@ -211,9 +211,9 @@ public class ValidateCsv extends AbstractProcessor {
             .build();
     public static final Relationship REL_INVALID = new Relationship.Builder()
             .name("invalid")
-            .description("FlowFiles that are not valid according to the specified schema are routed to this relationship")
+            .description("FlowFiles that are not valid according to the specified schema,"
+                    + " or no schema or CSV header can be identified, are routed to this relationship")
             .build();
-
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_VALID,
@@ -246,7 +246,7 @@ public class ValidateCsv extends AbstractProcessor {
             if (schema != null) {
                 this.parseSchema(schema);
             } else if (!headerProp.asBoolean()) {
-                throw(new Exception("Schema cannot be empty if header is false."));
+                throw(new Exception("Schema cannot be empty if Header property is false."));
             }
         } catch (Exception e) {
             final List<ValidationResult> problems = new ArrayList<>(1);
@@ -480,8 +480,8 @@ public class ValidateCsv extends AbstractProcessor {
         FlowFile invalidFF = null;
         FlowFile validFF = null;
         String validationError = null;
-        final AtomicReference<Boolean> isFirstLineValid = new AtomicReference<Boolean>(true);
-        final AtomicReference<Boolean> isFirstLineInvalid = new AtomicReference<Boolean>(true);
+        final AtomicReference<Boolean> isFirstLineValid = new AtomicReference<>(true);
+        final AtomicReference<Boolean> isFirstLineInvalid = new AtomicReference<>(true);
 
         if (!isWholeFFValidation) {
             invalidFF = session.create(flowFile);
@@ -490,12 +490,13 @@ public class ValidateCsv extends AbstractProcessor {
 
         InputStream stream;
         if (context.getProperty(CSV_SOURCE_ATTRIBUTE).isSet()) {
-            stream = new ByteArrayInputStream(flowFile.getAttribute(context.getProperty(CSV_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue()).getBytes(StandardCharsets.UTF_8));
+            String csvAttribute = flowFile.getAttribute(context.getProperty(CSV_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue());
+            stream = new ByteArrayInputStream(Objects.requireNonNullElse(csvAttribute, "").getBytes(StandardCharsets.UTF_8));
         } else {
             stream = session.read(flowFile);
         }
 
-        try (final NifiCsvListReader listReader = new NifiCsvListReader(new InputStreamReader(stream), csvPref)) {
+        stream: try (final NifiCsvListReader listReader = new NifiCsvListReader(new InputStreamReader(stream), csvPref)) {
 
             // handling of header
             if (header) {
@@ -504,9 +505,15 @@ public class ValidateCsv extends AbstractProcessor {
                 List<String> headers = listReader.read();
 
                 if (schema == null) {
-                    String newSchema = "Optional(StrNotNullOrEmpty()),".repeat(headers.size());
-                    schema = newSchema.substring(0, newSchema.length() - 1);
-                    cellProcs = this.parseSchema(schema);
+                    if (headers != null && !headers.isEmpty()) {
+                        String newSchema = "Optional(StrNotNullOrEmpty()),".repeat(headers.size());
+                        schema = newSchema.substring(0, newSchema.length() - 1);
+                        cellProcs = this.parseSchema(schema);
+                    } else {
+                        validationError = "No schema or CSV header could be identified.";
+                        valid = false;
+                        break stream;
+                    }
                 }
 
                 if (!isWholeFFValidation) {
