@@ -1002,7 +1002,7 @@
                     <linkXRef>false</linkXRef>
                     <targetJdk>${maven.compiler.release}</targetJdk>
                     <rulesets>
-                        <ruleset>pmd-ruleset.xml</ruleset>
+                        <ruleset>${maven.multiModuleProjectDirectory}/pmd-ruleset.xml</ruleset>
                     </rulesets>
                 </configuration>
             </plugin>
