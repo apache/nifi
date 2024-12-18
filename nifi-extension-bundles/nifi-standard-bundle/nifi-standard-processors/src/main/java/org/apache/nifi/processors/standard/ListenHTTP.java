@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.Servlet;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -47,6 +45,8 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.filters.HttpOptionsMethodFilter;
+import org.apache.nifi.processors.standard.filters.HttpTraceMethodFilter;
 import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
 import org.apache.nifi.processors.standard.servlets.ContentAcknowledgmentServlet;
 import org.apache.nifi.processors.standard.servlets.HealthCheckServlet;
@@ -74,6 +74,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -479,7 +480,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             }
         }
 
-        contextHandler.addServlet(Default405Servlet.class, "/");
+        contextHandler.addFilter(HttpTraceMethodFilter.class, "/*", EnumSet.allOf(DispatcherType.class));
+        contextHandler.addFilter(HttpOptionsMethodFilter.class, "/*", EnumSet.allOf(DispatcherType.class));
 
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_PROCESSOR, this);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_LOGGER, getLogger());
@@ -675,20 +677,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         public String getClientIP() {
             return clientIP;
-        }
-    }
-
-    public static class Default405Servlet extends HttpServlet {
-        public Default405Servlet() {
-        }
-
-        protected void doTrace(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-            resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method Not Allowed");
-
-        }
-
-        protected void doOptions(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
-            resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method Not Allowed");
         }
     }
 }
