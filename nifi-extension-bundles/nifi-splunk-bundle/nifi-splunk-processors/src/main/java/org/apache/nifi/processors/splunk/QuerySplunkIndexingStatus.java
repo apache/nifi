@@ -39,15 +39,14 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -89,12 +88,12 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
                     "FlowFiles are timing out or unknown by the Splunk server will transferred to \"undetermined\" relationship.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             RELATIONSHIP_ACKNOWLEDGED,
             RELATIONSHIP_UNACKNOWLEDGED,
             RELATIONSHIP_UNDETERMINED,
             RELATIONSHIP_FAILURE
-    )));
+    );
 
     static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
             .name("ttl")
@@ -118,17 +117,20 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            SplunkAPICall.PROPERTIES.stream(),
+            Stream.of(
+                    TTL,
+                    MAX_QUERY_SIZE
+            )
+    ).toList();
+
     private volatile Integer maxQuerySize;
     private volatile Integer ttl;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> result = new ArrayList<>();
-        final List<PropertyDescriptor> common = super.getSupportedPropertyDescriptors();
-        result.addAll(common);
-        result.add(TTL);
-        result.add(MAX_QUERY_SIZE);
-        return result;
+        return PROPERTIES;
     }
 
     @Override

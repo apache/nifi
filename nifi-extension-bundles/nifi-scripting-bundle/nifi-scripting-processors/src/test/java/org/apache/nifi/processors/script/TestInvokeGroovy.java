@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestInvokeGroovy extends BaseScriptTest {
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         super.setupInvokeScriptProcessor();
     }
 
@@ -67,7 +67,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
 
         runner.assertAllFlowFilesTransferred("test", 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship("test");
-        result.get(0).assertAttributeEquals("from-content", "test content");
+        result.getFirst().assertAttributeEquals("from-content", "test content");
     }
 
     /**
@@ -92,7 +92,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
 
         List<PropertyDescriptor> descriptors = processor.getSupportedPropertyDescriptors();
         assertNotNull(descriptors);
-        assertTrue(descriptors.size() > 0);
+        assertFalse(descriptors.isEmpty());
         boolean found = false;
         for (PropertyDescriptor descriptor : descriptors) {
             if (descriptor.getName().equals("test-attribute")) {
@@ -124,7 +124,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
 
         Set<Relationship> relationships = processor.getRelationships();
         assertNotNull(relationships);
-        assertTrue(relationships.size() > 0);
+        assertFalse(relationships.isEmpty());
         boolean found = false;
         for (Relationship relationship : relationships) {
             if (relationship.getName().equals("test")) {
@@ -202,7 +202,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship("success");
         assertEquals(1, result.size());
         final String expectedOutput = new String(Hex.encodeHex(MessageDigestUtils.getDigest("testbla bla".getBytes())));
-        final MockFlowFile outputFlowFile = result.get(0);
+        final MockFlowFile outputFlowFile = result.getFirst();
         outputFlowFile.assertContentEquals(expectedOutput);
         outputFlowFile.assertAttributeEquals("outAttr", expectedOutput);
     }
@@ -237,7 +237,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.assertAllFlowFilesTransferred("success", 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship("success");
         assertEquals(1, result.size());
-        MockFlowFile ff = result.get(0);
+        MockFlowFile ff = result.getFirst();
         ff.assertContentEquals("48\n47\n14\n");
     }
 

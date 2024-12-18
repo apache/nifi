@@ -65,10 +65,7 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -151,39 +148,31 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid JSON), it will be routed to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> descriptors;
-    private static final Set<Relationship> relationships;
-    private static final ObjectMapper jsonObjectMapper = new ObjectMapper();
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            JSLT_TRANSFORM,
+            TRANSFORMATION_STRATEGY,
+            PRETTY_PRINT,
+            TRANSFORM_CACHE_SIZE,
+            RESULT_FILTER
+    );
 
-    static {
-        descriptors = Collections.unmodifiableList(
-                Arrays.asList(
-                        JSLT_TRANSFORM,
-                        TRANSFORMATION_STRATEGY,
-                        PRETTY_PRINT,
-                        TRANSFORM_CACHE_SIZE,
-                        RESULT_FILTER
-                )
-        );
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
-        relationships = Collections.unmodifiableSet(new LinkedHashSet<>(
-                Arrays.asList(
-                        REL_SUCCESS,
-                        REL_FAILURE
-                )
-        ));
-    }
+    private static final ObjectMapper JSON_OBJECT_MAPPER = new ObjectMapper();
 
     private Cache<String, Expression> transformCache;
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override
@@ -262,7 +251,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
                 JsonNode firstJsonNode;
                 if (EACH_OBJECT.equals(transformationStrategy)) {
                     jsonParser = jsonFactory.createParser(inputStream);
-                    jsonParser.setCodec(jsonObjectMapper);
+                    jsonParser.setCodec(JSON_OBJECT_MAPPER);
 
                     JsonToken token = jsonParser.nextToken();
                     if (token == JsonToken.START_ARRAY) {
@@ -279,7 +268,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
                     jsonParser = null; // This will not be used when applying the transform to the entire FlowFile
                 }
 
-                final ObjectWriter writer = prettyPrint ? jsonObjectMapper.writerWithDefaultPrettyPrinter() : jsonObjectMapper.writer();
+                final ObjectWriter writer = prettyPrint ? JSON_OBJECT_MAPPER.writerWithDefaultPrettyPrinter() : JSON_OBJECT_MAPPER.writer();
                 final JsonGenerator jsonGenerator = writer.createGenerator(outputStream);
 
                 Object outputObject;
@@ -337,7 +326,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
 
     private JsonNode readJson(final InputStream in) throws IOException {
         try {
-            return jsonObjectMapper.readTree(in);
+            return JSON_OBJECT_MAPPER.readTree(in);
         } catch (final JsonParseException e) {
             throw new IOException("Could not parse data as JSON", e);
         }

@@ -19,7 +19,6 @@ package org.apache.nifi.processors.box;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
-import static java.util.Arrays.asList;
 import static org.apache.nifi.processor.util.StandardValidators.createRegexMatchingValidator;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
@@ -46,7 +45,6 @@ import com.box.sdk.BoxItem;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -162,7 +160,7 @@ public class PutBoxFile extends AbstractProcessor {
             .required(false)
             .build();
 
-    public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(asList(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
             BoxClientService.BOX_CLIENT_SERVICE,
             FOLDER_ID,
             SUBFOLDER_NAME,
@@ -170,7 +168,7 @@ public class PutBoxFile extends AbstractProcessor {
             FILE_NAME,
             CONFLICT_RESOLUTION,
             CHUNKED_UPLOAD_THRESHOLD
-    ));
+    );
 
     public static final Relationship REL_SUCCESS =
             new Relationship.Builder()
@@ -184,10 +182,10 @@ public class PutBoxFile extends AbstractProcessor {
                     .description("Files that could not be written to Box for some reason are transferred to this relationship.")
                     .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(asList(
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
+    );
 
     private static final int CONFLICT_RESPONSE_CODE = 409;
     private static final int NOT_FOUND_RESPONSE_CODE = 404;
@@ -361,7 +359,7 @@ public class PutBoxFile extends AbstractProcessor {
         try {
             Optional<BoxFolder> createdFolder = getFolderByName(folderName, parentFolder);
 
-            for (int i = 0; i < NUMBER_OF_RETRIES && !createdFolder.isPresent(); i++) {
+            for (int i = 0; i < NUMBER_OF_RETRIES && createdFolder.isEmpty(); i++) {
                 getLogger().debug("Subfolder [{}] under [{}] has not been created yet, waiting {} ms",
                         folderName, parentFolder.getID(), WAIT_TIME_MS);
                 Thread.sleep(WAIT_TIME_MS);

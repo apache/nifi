@@ -56,7 +56,7 @@ class TrapSNMPIT {
 
         Thread.sleep(50);
 
-        final MockFlowFile successFF = listenTrapTestRunner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS).get(0);
+        final MockFlowFile successFF = listenTrapTestRunner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS).getFirst();
 
         assertNotNull(successFF);
         assertEquals("Success", successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "errorStatusText"));
@@ -97,7 +97,7 @@ class TrapSNMPIT {
             }
         }
 
-        final MockFlowFile successFF = successFlowFiles.get(0);
+        final MockFlowFile successFF = successFlowFiles.getFirst();
 
         assertNotNull(successFF);
         assertEquals("Success", successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "errorStatusText"));

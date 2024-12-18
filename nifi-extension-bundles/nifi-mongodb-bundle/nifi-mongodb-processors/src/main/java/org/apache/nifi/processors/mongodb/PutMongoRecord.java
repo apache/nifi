@@ -52,11 +52,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Tags({"mongodb", "insert", "update", "upsert", "record", "put"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -137,31 +137,31 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         .defaultValue(UpdateMethod.UPDATE_ONE)
         .build();
 
-    private final static Set<Relationship> relationships;
-    private final static List<PropertyDescriptor> propertyDescriptors;
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(descriptors);
-        _propertyDescriptors.add(RECORD_READER_FACTORY);
-        _propertyDescriptors.add(INSERT_COUNT);
-        _propertyDescriptors.add(ORDERED);
-        _propertyDescriptors.add(BYPASS_VALIDATION);
-        _propertyDescriptors.add(UPDATE_KEY_FIELDS);
-        _propertyDescriptors.add(UPDATE_MODE);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
-
-        relationships = Set.of(REL_SUCCESS, REL_FAILURE);
-    }
+    private final static List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            AbstractMongoProcessor.DESCRIPTORS.stream(),
+            Stream.of(
+                    RECORD_READER_FACTORY,
+                    INSERT_COUNT,
+                    ORDERED,
+                    BYPASS_VALIDATION,
+                    UPDATE_KEY_FIELDS,
+                    UPDATE_MODE
+            )
+    ).toList();
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     @Override

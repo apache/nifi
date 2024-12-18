@@ -31,8 +31,6 @@ import com.box.sdk.BoxFolder;
 import com.box.sdk.BoxItem;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -130,7 +128,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
         .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
         BoxClientService.BOX_CLIENT_SERVICE,
         FOLDER_ID,
         RECURSIVE_SEARCH,
@@ -140,7 +138,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
         TRACKING_TIME_WINDOW,
         INITIAL_LISTING_TARGET,
         RECORD_WRITER
-    ));
+    );
 
     private volatile BoxAPIConnection boxAPIConnection;
 
@@ -233,8 +231,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
             "content_modified_at",
             "path_collection"
         )) {
-            if (itemInfo instanceof BoxFile.Info) {
-                BoxFile.Info info = (BoxFile.Info) itemInfo;
+            if (itemInfo instanceof BoxFile.Info info) {
 
                 long createdAt = itemInfo.getCreatedAt().getTime();
 
@@ -249,8 +246,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
                         .build();
                     listing.add(boxFileInfo);
                 }
-            } else if (recursive && itemInfo instanceof BoxFolder.Info) {
-                BoxFolder.Info info = (BoxFolder.Info) itemInfo;
+            } else if (recursive && itemInfo instanceof BoxFolder.Info info) {
                 listFolder(listing, info.getID(), recursive, createdAtMax);
             }
         }

@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @SideEffectFree
 @SupportsBatching
@@ -105,17 +106,19 @@ public class JoltTransformRecord extends AbstractJoltTransform {
             .description("The original FlowFile that was transformed. If the FlowFile fails processing, nothing will be sent to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES;
-    private static final Set<Relationship> RELATIONSHIPS;
+    private static final List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            AbstractJoltTransform.PROPERTIES.stream(),
+            Stream.of(
+                    RECORD_READER,
+                    RECORD_WRITER
+            )
+    ).toList();
 
-    static {
-        final List<PropertyDescriptor> tmp = new ArrayList<>(AbstractJoltTransform.PROPERTIES);
-        tmp.add(RECORD_READER);
-        tmp.add(RECORD_WRITER);
-        PROPERTIES = Collections.unmodifiableList(tmp);
-
-        RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_ORIGINAL);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_ORIGINAL
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -179,7 +182,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
                     throw new ProcessException("Error transforming the first record");
                 }
 
-                final Record transformedFirstRecord = transformedFirstRecords.get(0);
+                final Record transformedFirstRecord = transformedFirstRecords.getFirst();
                 if (transformedFirstRecord == null) {
                     throw new ProcessException("Error transforming the first record");
                 }

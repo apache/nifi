@@ -159,7 +159,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             .description("Any FlowFile that is successfully received from the event hub will be transferred to this Relationship.")
             .build();
 
-    private final static List<PropertyDescriptor> propertyDescriptors = List.of(
+    private final static List<PropertyDescriptor> PROPERTIES = List.of(
             NAMESPACE,
             EVENT_HUB_NAME,
             SERVICE_BUS_ENDPOINT,
@@ -173,7 +173,10 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             RECEIVER_FETCH_TIMEOUT,
             PROXY_CONFIGURATION_SERVICE
     );
-    private final static Set<Relationship> relationships = Set.of(REL_SUCCESS);
+
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     private final Map<String, EventPosition> partitionEventPositions = new ConcurrentHashMap<>();
 
@@ -191,12 +194,12 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     @Override

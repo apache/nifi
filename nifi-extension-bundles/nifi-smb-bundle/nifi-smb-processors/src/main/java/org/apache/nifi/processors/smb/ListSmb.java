@@ -20,7 +20,6 @@ import static java.time.ZoneOffset.UTC;
 import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.nifi.components.state.Scope.CLUSTER;
@@ -190,7 +189,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .addValidator(new MustNotContainDirectorySeparatorsValidator())
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = unmodifiableList(asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             SMB_CLIENT_PROVIDER_SERVICE,
             SMB_LISTING_STRATEGY,
             DIRECTORY,
@@ -204,7 +203,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             ListedEntityTracker.TRACKING_STATE_CACHE,
             ListedEntityTracker.TRACKING_TIME_WINDOW,
             ListedEntityTracker.INITIAL_LISTING_TARGET
-    ));
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

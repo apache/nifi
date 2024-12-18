@@ -29,9 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestExecuteClojure extends BaseScriptTest {
 
-    public final String TEST_CSV_DATA = "gender,title,first,last\n"
-            + "female,miss,marlene,shaw\n"
-            + "male,mr,todd,graham";
+    public final String TEST_CSV_DATA = """
+            gender,title,first,last
+            female,miss,marlene,shaw
+            male,mr,todd,graham""";
 
     @BeforeEach
     public void setup() throws Exception {
@@ -41,10 +42,9 @@ public class TestExecuteClojure extends BaseScriptTest {
     /**
      * Tests a script file that has provides the body of an onTrigger() function.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptFile() throws Exception {
+    public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptFile() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Clojure");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "clojure/test_onTrigger.clj");
@@ -56,16 +56,15 @@ public class TestExecuteClojure extends BaseScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS);
-        result.get(0).assertAttributeEquals("from-content", "test content");
+        result.getFirst().assertAttributeEquals("from-content", "test content");
     }
 
     /**
      * Tests a script file that has provides the body of an onTrigger() function.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testNoIncomingFlowFile() throws Exception {
+    public void testNoIncomingFlowFile() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Clojure");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "clojure/test_onTrigger.clj");
@@ -81,10 +80,9 @@ public class TestExecuteClojure extends BaseScriptTest {
     /**
      * Tests a script file that creates and transfers a new flow file.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testCreateNewFlowFileWithScriptFile() throws Exception {
+    public void testCreateNewFlowFileWithScriptFile() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Clojure");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "clojure/test_onTrigger_newFlowFile.clj");
@@ -98,17 +96,16 @@ public class TestExecuteClojure extends BaseScriptTest {
         assertEquals(1, runner.getRemovedCount());
         runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS);
-        result.get(0).assertAttributeEquals("selected.columns", "title,first");
-        result.get(0).assertAttributeEquals("filename", "split_cols.txt");
+        result.getFirst().assertAttributeEquals("selected.columns", "title,first");
+        result.getFirst().assertAttributeEquals("filename", "split_cols.txt");
     }
 
     /**
      * Tests a script file that uses dynamic properties defined on the processor.
      *
-     * @throws Exception Any error encountered while testing
      */
     @Test
-    public void testDynamicProperties() throws Exception {
+    public void testDynamicProperties() {
         runner.setValidateExpressionUsage(true);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Clojure");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "clojure/test_dynamicProperties.clj");
@@ -120,6 +117,6 @@ public class TestExecuteClojure extends BaseScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS);
-        result.get(0).assertAttributeEquals("from-content", "testValue");
+        result.getFirst().assertAttributeEquals("from-content", "testValue");
     }
 }

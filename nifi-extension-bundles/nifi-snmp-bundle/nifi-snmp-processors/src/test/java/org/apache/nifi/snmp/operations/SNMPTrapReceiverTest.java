@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -70,7 +71,7 @@ class SNMPTrapReceiverTest {
 
         snmpTrapReceiver.processPdu(mockEvent);
 
-        final LogMessage logMessage = mockComponentLog.getErrorMessages().get(0);
+        final LogMessage logMessage = mockComponentLog.getErrorMessages().getFirst();
 
         assertEquals(String.format("%s Request timed out or parameters are incorrect.", MOCK_COMPONENT_ID), logMessage.getMsg());
     }
@@ -83,7 +84,7 @@ class SNMPTrapReceiverTest {
         when(mockEvent.getPDU()).thenReturn(mockPdu);
         snmpTrapReceiver.processPdu(mockEvent);
 
-        final LogMessage logMessage = mockComponentLog.getErrorMessages().get(0);
+        final LogMessage logMessage = mockComponentLog.getErrorMessages().getFirst();
 
         assertEquals(String.format("%s Request timed out or parameters are incorrect.", MOCK_COMPONENT_ID), logMessage.getMsg());
     }
@@ -110,7 +111,7 @@ class SNMPTrapReceiverTest {
         snmpTrapReceiver.processPdu(mockEvent);
 
         final List<MockFlowFile> flowFiles = mockProcessSession.getFlowFilesForRelationship(ListenTrapSNMP.REL_SUCCESS);
-        final FlowFile flowFile = flowFiles.get(0);
+        final FlowFile flowFile = flowFiles.getFirst();
 
         assertEquals("1.3.6.1.2.1.1.1.0", flowFile.getAttribute("snmp$enterprise"));
         assertEquals(String.valueOf(4), flowFile.getAttribute("snmp$specificTrapType"));
@@ -140,7 +141,7 @@ class SNMPTrapReceiverTest {
         snmpTrapReceiver.processPdu(mockEvent);
 
         final List<MockFlowFile> flowFiles = mockProcessSession.getFlowFilesForRelationship(ListenTrapSNMP.REL_SUCCESS);
-        final FlowFile flowFile = flowFiles.get(0);
+        final FlowFile flowFile = flowFiles.getFirst();
 
         assertEquals(String.valueOf(123), flowFile.getAttribute("snmp$errorIndex"));
         assertEquals("test error status text", flowFile.getAttribute("snmp$errorStatusText"));
@@ -168,9 +169,9 @@ class SNMPTrapReceiverTest {
         final List<MockFlowFile> flowFiles = mockProcessSession.getFlowFilesForRelationship(ListenTrapSNMP.REL_FAILURE);
 
         assertFalse(flowFiles.isEmpty());
-        final FlowFile flowFile = flowFiles.get(0);
+        final FlowFile flowFile = flowFiles.getFirst();
 
         assertEquals(String.valueOf(PDU.badValue), flowFile.getAttribute("snmp$errorStatus"));
-        assertEquals(null, flowFile.getAttribute("snmp$peerAddress"));
+        assertNull(flowFile.getAttribute("snmp$peerAddress"));
     }
 }

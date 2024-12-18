@@ -26,11 +26,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -164,15 +162,20 @@ public class GetWorkdayReport extends AbstractProcessor {
         .description("Response FlowFiles transferred when receiving HTTP responses with a status code between 200 and 299.")
         .build();
 
-    protected static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(ORIGINAL, SUCCESS, FAILURE)));
-    protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-        REPORT_URL,
-        WORKDAY_USERNAME,
-        WORKDAY_PASSWORD,
-        WEB_CLIENT_SERVICE,
-        RECORD_READER_FACTORY,
-        RECORD_WRITER_FACTORY
-    ));
+    protected static final Set<Relationship> RELATIONSHIPS = Set.of(
+            ORIGINAL,
+            SUCCESS,
+            FAILURE
+    );
+
+    protected static final List<PropertyDescriptor> PROPERTIES = List.of(
+            REPORT_URL,
+            WORKDAY_USERNAME,
+            WORKDAY_PASSWORD,
+            WEB_CLIENT_SERVICE,
+            RECORD_READER_FACTORY,
+            RECORD_WRITER_FACTORY
+    );
 
     private final AtomicReference<WebClientService> webClientReference = new AtomicReference<>();
     private final AtomicReference<RecordReaderFactory> recordReaderFactoryReference = new AtomicReference<>();

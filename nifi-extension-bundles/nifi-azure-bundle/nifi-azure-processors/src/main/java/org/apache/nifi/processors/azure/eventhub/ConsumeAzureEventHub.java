@@ -303,9 +303,17 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                     " the contents of the message will be routed to this Relationship as its own individual FlowFile.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
-    private static final Set<Relationship> RECORD_RELATIONSHIPS = Set.of(REL_SUCCESS, REL_PARSE_FAILURE);
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(NAMESPACE,
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
+
+    private static final Set<Relationship> RECORD_RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_PARSE_FAILURE
+    );
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            NAMESPACE,
             EVENT_HUB_NAME,
             SERVICE_BUS_ENDPOINT,
             TRANSPORT_TYPE,

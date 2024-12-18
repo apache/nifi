@@ -48,15 +48,14 @@ import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
@@ -70,7 +69,11 @@ import static org.mockito.Mockito.when;
 public class ParseEvtxTest {
     public static final String USER_DATA = "UserData";
     public static final String EVENT_DATA = "EventData";
-    public static final Set DATA_TAGS = new HashSet<>(Arrays.asList(EVENT_DATA, USER_DATA));
+    public static final Set<String> DATA_TAGS = Set.of(
+            EVENT_DATA,
+            USER_DATA
+    );
+
     public static final int EXPECTED_SUCCESSFUL_EVENT_COUNT = 1053;
 
     @Mock
@@ -349,7 +352,7 @@ public class ParseEvtxTest {
 
         List<MockFlowFile> originalFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_ORIGINAL);
         assertEquals(1, originalFlowFiles.size());
-        MockFlowFile originalFlowFile = originalFlowFiles.get(0);
+        MockFlowFile originalFlowFile = originalFlowFiles.getFirst();
         originalFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), name);
         originalFlowFile.assertContentEquals(this.getClass().getClassLoader().getResourceAsStream("application-logs.evtx"));
 
@@ -382,7 +385,7 @@ public class ParseEvtxTest {
 
         List<MockFlowFile> originalFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_ORIGINAL);
         assertEquals(1, originalFlowFiles.size());
-        MockFlowFile originalFlowFile = originalFlowFiles.get(0);
+        MockFlowFile originalFlowFile = originalFlowFiles.getFirst();
         originalFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), name);
         originalFlowFile.assertContentEquals(this.getClass().getClassLoader().getResourceAsStream("application-logs.evtx"));
 
@@ -415,7 +418,7 @@ public class ParseEvtxTest {
 
         List<MockFlowFile> originalFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_ORIGINAL);
         assertEquals(1, originalFlowFiles.size());
-        MockFlowFile originalFlowFile = originalFlowFiles.get(0);
+        MockFlowFile originalFlowFile = originalFlowFiles.getFirst();
         originalFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), name);
         originalFlowFile.assertContentEquals(this.getClass().getClassLoader().getResourceAsStream("application-logs.evtx"));
 
@@ -469,7 +472,7 @@ public class ParseEvtxTest {
     }
 
     private int validateFlowFiles(List<MockFlowFile> successFlowFiles) {
-        assertTrue(successFlowFiles.size() > 0);
+        assertFalse(successFlowFiles.isEmpty());
         int totalSize = 0;
         for (MockFlowFile successFlowFile : successFlowFiles) {
             // Verify valid XML output
@@ -503,7 +506,7 @@ public class ParseEvtxTest {
                 Node eventDataNode = eventChildNodes.item(1);
                 String eventDataNodeNodeName = eventDataNode.getNodeName();
                 assertTrue(DATA_TAGS.contains(eventDataNodeNodeName));
-                assertTrue(userId.length() == 0 || userId.startsWith("S-"));
+                assertTrue(userId.isEmpty() || userId.startsWith("S-"));
             }
         }
         return totalSize;

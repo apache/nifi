@@ -42,7 +42,6 @@ import org.apache.nifi.websocket.WebSocketSessionInfo;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -96,13 +95,15 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             .autoTerminateDefault(true)
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_CONNECTED,
+            REL_DISCONNECTED,
+            REL_MESSAGE_TEXT,
+            REL_MESSAGE_BINARY
+    );
+
     static Set<Relationship> getAbstractRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_CONNECTED);
-        relationships.add(REL_DISCONNECTED);
-        relationships.add(REL_MESSAGE_TEXT);
-        relationships.add(REL_MESSAGE_BINARY);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -148,10 +149,9 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     // @OnScheduled can not report error messages well on bulletin since it's an async method.
     // So, let's do it in onTrigger().
     public void onWebSocketServiceReady(final WebSocketService webSocketService, final ProcessContext context) throws IOException {
-        if (webSocketService instanceof WebSocketClientService) {
+        if (webSocketService instanceof WebSocketClientService webSocketClientService) {
             // If it's a ws client, then connect to the remote here.
             // Otherwise, ws server is already started at WebSocketServerService
-            WebSocketClientService webSocketClientService = (WebSocketClientService) webSocketService;
             if (context.hasIncomingConnection()) {
                 final ProcessSession session = processSessionFactory.createSession();
                 final FlowFile flowFile = session.get();

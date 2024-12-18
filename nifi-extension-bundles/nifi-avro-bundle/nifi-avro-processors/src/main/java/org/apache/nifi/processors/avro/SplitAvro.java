@@ -28,9 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,7 +62,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
@@ -150,41 +147,32 @@ public class SplitAvro extends AbstractProcessor {
 
     // Metadata keys that are not transferred to split files when output strategy is datafile
     // Avro will write this key/values pairs on its own
-    static final Set<String> RESERVED_METADATA;
-    static {
-        Set<String> reservedMetadata = new HashSet<>();
-        reservedMetadata.add("avro.schema");
-        reservedMetadata.add("avro.codec");
-        RESERVED_METADATA = Collections.unmodifiableSet(reservedMetadata);
-    }
+    static final Set<String> RESERVED_METADATA = Set.of(
+            "avro.schema",
+            "avro.codec"
+    );
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            SPLIT_STRATEGY,
+            OUTPUT_SIZE,
+            OUTPUT_STRATEGY,
+            TRANSFER_METADATA
+    );
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(SPLIT_STRATEGY);
-        properties.add(OUTPUT_SIZE);
-        properties.add(OUTPUT_STRATEGY);
-        properties.add(TRANSFER_METADATA);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_ORIGINAL);
-        relationships.add(REL_SPLIT);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_SPLIT,
+            REL_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -378,7 +366,7 @@ public class SplitAvro extends AbstractProcessor {
         private DatumWriter<GenericRecord> writer;
 
         @Override
-        public void init(final DataFileStream<GenericRecord> reader, final String codec, final OutputStream out) throws IOException {
+        public void init(final DataFileStream<GenericRecord> reader, final String codec, final OutputStream out) {
             writer = new GenericDatumWriter<>(reader.getSchema());
             encoder = EncoderFactory.get().binaryEncoder(out, null);
         }
@@ -394,7 +382,7 @@ public class SplitAvro extends AbstractProcessor {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
             // nothing to do
         }
     }

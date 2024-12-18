@@ -132,7 +132,7 @@ public class TestPutWebSocket {
 
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
         assertEquals(1, failedFlowFiles.size());
-        final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
+        final MockFlowFile failedFlowFile = failedFlowFiles.getFirst();
         assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
@@ -168,7 +168,7 @@ public class TestPutWebSocket {
 
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
         assertEquals(1, failedFlowFiles.size());
-        final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
+        final MockFlowFile failedFlowFile = failedFlowFiles.getFirst();
         assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
@@ -210,7 +210,7 @@ public class TestPutWebSocket {
 
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
         assertEquals(1, failedFlowFiles.size());
-        final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
+        final MockFlowFile failedFlowFile = failedFlowFiles.getFirst();
         assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();

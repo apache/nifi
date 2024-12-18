@@ -207,7 +207,7 @@ public class TestJSLTTransformJSON {
         runner.run();
         runner.assertTransferCount(JSLTTransformJSON.REL_SUCCESS, 1);
         runner.assertTransferCount(JSLTTransformJSON.REL_FAILURE, 0);
-        return runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).iterator().next();
+        return runner.getFlowFilesForRelationship(JSLTTransformJSON.REL_SUCCESS).getFirst();
     }
 
     private String getResource(final String fileName) {

@@ -38,8 +38,6 @@ import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderResult;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -145,7 +143,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
             .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             CREDENTIAL_SERVICE,
             FOLDER,
             RECURSIVE_SEARCH,
@@ -156,7 +154,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
             INITIAL_LISTING_TARGET,
             RECORD_WRITER,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP_AUTH)
-    ));
+    );
 
     private volatile DbxClientV2 dropboxApiClient;
 

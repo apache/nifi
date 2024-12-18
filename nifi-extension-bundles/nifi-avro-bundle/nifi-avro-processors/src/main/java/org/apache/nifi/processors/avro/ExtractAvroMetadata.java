@@ -20,8 +20,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -117,33 +115,30 @@ public class ExtractAvroMetadata extends AbstractProcessor {
     static final String SCHEMA_FINGERPRINT_ATTR = "schema.fingerprint";
     static final String ITEM_COUNT_ATTR = "item.count";
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            FINGERPRINT_ALGORITHM,
+            METADATA_KEYS,
+            COUNT_ITEMS
+    );
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     protected void init(ProcessorInitializationContext context) {
         super.init(context);
-
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(FINGERPRINT_ALGORITHM);
-        properties.add(METADATA_KEYS);
-        properties.add(COUNT_ITEMS);
-        this.properties = Collections.unmodifiableList(properties);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

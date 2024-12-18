@@ -291,7 +291,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         .build();
 
 
-    public static final List<PropertyDescriptor> properties = List.of(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
         BUCKET_WITHOUT_DEFAULT_VALUE,
         REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -318,7 +318,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         LIST_TYPE,
         REQUESTER_PAYS);
 
-    public static final Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     private static final Set<PropertyDescriptor> TRACKING_RESET_PROPERTIES = Set.of(
             BUCKET_WITHOUT_DEFAULT_VALUE,
@@ -426,12 +428,12 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     private Set<String> extractKeys(final StateMap stateMap) {

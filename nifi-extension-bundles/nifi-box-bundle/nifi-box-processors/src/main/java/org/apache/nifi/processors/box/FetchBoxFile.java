@@ -53,9 +53,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -97,15 +94,15 @@ public class FetchBoxFile extends AbstractProcessor {
                     .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
                     .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
+    );
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             BoxClientService.BOX_CLIENT_SERVICE,
             FILE_ID
-    ));
+    );
 
     private volatile BoxAPIConnection boxAPIConnection;
 

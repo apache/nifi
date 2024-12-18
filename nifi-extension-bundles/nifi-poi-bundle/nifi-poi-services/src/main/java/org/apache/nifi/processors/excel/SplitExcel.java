@@ -109,8 +109,17 @@ public class SplitExcel extends AbstractProcessor {
             .description("The individual Excel 'segments' of the original Excel FlowFile will be routed to this relationship.")
             .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(PROTECTION_TYPE, PASSWORD);
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_ORIGINAL, REL_FAILURE, REL_SPLIT);
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            PROTECTION_TYPE,
+            PASSWORD
+    );
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_FAILURE,
+            REL_SPLIT
+    );
+
     private static final CellCopyPolicy CELL_COPY_POLICY = new CellCopyPolicy.Builder()
             .cellFormula(false) // NOTE: setting to false allows for copying the evaluated formula value.
             .cellStyle(false) // NOTE: setting to false avoids exceeding the maximum number of cell styles (64000) in a .xlsx Workbook.

@@ -78,13 +78,13 @@ abstract class TestScriptedRouterProcessor {
     protected void thenIncomingFlowFileIsRoutedToOriginal() {
         testRunner.assertTransferCount(getOriginalRelationship(), 1);
         testRunner.assertTransferCount(getFailedRelationship(), 0);
-        assertEquals(incomingFlowFileContent, testRunner.getFlowFilesForRelationship(getOriginalRelationship()).get(0).getContent());
+        assertEquals(incomingFlowFileContent, testRunner.getFlowFilesForRelationship(getOriginalRelationship()).getFirst().getContent());
     }
 
     protected void thenIncomingFlowFileIsRoutedToFailed() {
         testRunner.assertTransferCount(getOriginalRelationship(), 0);
         testRunner.assertTransferCount(getFailedRelationship(), 1);
-        assertEquals(incomingFlowFileContent, testRunner.getFlowFilesForRelationship(getFailedRelationship()).get(0).getContent());
+        assertEquals(incomingFlowFileContent, testRunner.getFlowFilesForRelationship(getFailedRelationship()).getFirst().getContent());
     }
 
     /**

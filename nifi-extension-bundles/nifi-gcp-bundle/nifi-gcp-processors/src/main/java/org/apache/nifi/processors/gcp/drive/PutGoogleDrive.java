@@ -63,9 +63,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -75,7 +73,6 @@ import java.util.concurrent.TimeUnit;
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
 import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
@@ -161,7 +158,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .required(false)
             .build();
 
-    public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(asList(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
             GCP_CREDENTIALS_PROVIDER_SERVICE,
             FOLDER_ID,
             FILE_NAME,
@@ -169,7 +166,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             CHUNKED_UPLOAD_THRESHOLD,
             CHUNKED_UPLOAD_SIZE,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS)
-    ));
+    );
 
     public static final Relationship REL_SUCCESS =
             new Relationship.Builder()
@@ -183,10 +180,10 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
                     .description("Files that could not be written to Google Drive for some reason are transferred to this relationship.")
                     .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(asList(
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
+    );
 
     public static final String MULTIPART_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true";
 

@@ -36,9 +36,6 @@ import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.snmp4j.Target;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -77,7 +74,7 @@ public class SetSNMP extends AbstractSNMPProcessor {
             .description("All FlowFiles that failed during the SNMP Set care routed to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             AGENT_HOST,
             AGENT_PORT,
             BasicProperties.SNMP_VERSION,
@@ -90,12 +87,12 @@ public class SetSNMP extends AbstractSNMPProcessor {
             V3SecurityProperties.SNMP_PRIVACY_PASSWORD,
             BasicProperties.SNMP_RETRIES,
             BasicProperties.SNMP_TIMEOUT
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
+    );
 
     private volatile SetSNMPHandler snmpHandler;
 

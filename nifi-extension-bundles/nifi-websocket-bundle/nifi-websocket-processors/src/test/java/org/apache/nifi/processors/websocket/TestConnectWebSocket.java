@@ -111,9 +111,7 @@ class TestConnectWebSocket extends TestListenWebSocket {
 
         List<MockFlowFile> textFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_TEXT);
         assertEquals(2, textFlowFiles.size());
-        textFlowFiles.forEach(ff -> {
-            assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.TEXT);
-        });
+        textFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.TEXT));
 
         List<MockFlowFile> binaryFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_BINARY);
         assertEquals(3, binaryFlowFiles.size());

@@ -61,7 +61,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,7 +182,7 @@ public class GetHubSpot extends AbstractProcessor {
     private volatile WebClientServiceProvider webClientServiceProvider;
     private volatile boolean isObjectTypeModified;
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             OBJECT_TYPE,
             ACCESS_TOKEN,
             RESULT_LIMIT,
@@ -191,13 +190,15 @@ public class GetHubSpot extends AbstractProcessor {
             INCREMENTAL_DELAY,
             INCREMENTAL_INITIAL_START_TIME,
             WEB_CLIENT_SERVICE_PROVIDER
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTY_DESCRIPTORS;
+        return PROPERTIES;
     }
 
     @Override

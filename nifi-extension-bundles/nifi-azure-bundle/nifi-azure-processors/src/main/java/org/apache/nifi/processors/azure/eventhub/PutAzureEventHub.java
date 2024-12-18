@@ -119,7 +119,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
             .description("Any FlowFile that could not be sent to the event hub will be transferred to this Relationship.")
             .build();
 
-    private final static List<PropertyDescriptor> propertyDescriptors = List.of(
+    private final static List<PropertyDescriptor> PROPERTIES = List.of(
             NAMESPACE,
             EVENT_HUB_NAME,
             SERVICE_BUS_ENDPOINT,
@@ -131,18 +131,22 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
             MAX_BATCH_SIZE,
             PROXY_CONFIGURATION_SERVICE
     );
-    private final static Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private EventHubProducerClient eventHubProducerClient;
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     @OnScheduled

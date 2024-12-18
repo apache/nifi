@@ -26,7 +26,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN;
@@ -49,7 +48,7 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
  */
 public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
 
-    public final List<PropertyDescriptor> properties = Arrays.asList(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
             USE_DEFAULT_CREDENTIALS,
             PROFILE_NAME,
             USE_ANONYMOUS_CREDENTIALS,
@@ -67,7 +66,7 @@ public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<Am
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
