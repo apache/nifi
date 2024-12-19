@@ -45,8 +45,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.filters.HttpOptionsMethodFilter;
-import org.apache.nifi.processors.standard.filters.HttpTraceMethodFilter;
+import org.apache.nifi.processors.standard.filters.HttpMethodFilter;
 import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
 import org.apache.nifi.processors.standard.servlets.ContentAcknowledgmentServlet;
 import org.apache.nifi.processors.standard.servlets.HealthCheckServlet;
@@ -480,8 +479,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             }
         }
 
-        contextHandler.addFilter(HttpTraceMethodFilter.class, "/*", EnumSet.allOf(DispatcherType.class));
-        contextHandler.addFilter(HttpOptionsMethodFilter.class, "/*", EnumSet.allOf(DispatcherType.class));
+        contextHandler.addFilter(HttpMethodFilter.class, "/*", EnumSet.allOf(DispatcherType.class));
 
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_PROCESSOR, this);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_LOGGER, getLogger());

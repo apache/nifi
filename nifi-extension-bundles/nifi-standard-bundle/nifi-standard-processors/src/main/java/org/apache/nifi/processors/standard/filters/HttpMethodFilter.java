@@ -26,7 +26,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
-public class HttpOptionsMethodFilter implements Filter {
+public class HttpMethodFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
@@ -34,7 +34,7 @@ public class HttpOptionsMethodFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
 
-        if (request.getMethod().equals("OPTIONS")) {
+        if (request.getMethod().equals("OPTIONS") || request.getMethod().equals("TRACE")) {
             response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method Not Allowed");
         } else {
             filterChain.doFilter(servletRequest, servletResponse);
