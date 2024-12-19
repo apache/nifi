@@ -90,11 +90,15 @@
                         </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <ignoredUnusedDeclaredDependencies combine.children="append">
-                        <ignoredUnusedDeclaredDependency>org.apache.nifi:nifi-assembly</ignoredUnusedDeclaredDependency>
-                    </ignoredUnusedDeclaredDependencies>
-                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-assembly</artifactId>
+                        <version>${project.version}</version>
+                        <classifier>manifests</classifier>
+                        <type>zip</type>
+                    </dependency>
+                </dependencies>
             </plugin>
             <!-- Execute the runtime manifest generator -->
             <plugin>
