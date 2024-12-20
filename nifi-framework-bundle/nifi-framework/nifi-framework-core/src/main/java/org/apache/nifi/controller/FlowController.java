@@ -254,6 +254,7 @@ import javax.management.NotificationEmitter;
 import javax.net.ssl.SSLContext;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.nifi.util.NiFiProperties.PYTHON_DEPENDENCY_INSTALL_SEQUENTIAL;
 
 public class FlowController implements ReportingTaskProvider, FlowAnalysisRuleProvider, Authorizable, NodeTypeProvider {
     private static final String STANDARD_PYTHON_BRIDGE_IMPLEMENTATION_CLASS = "org.apache.nifi.py4j.StandardPythonBridge";
@@ -875,6 +876,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         int maxProcesses = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES, 20);
         int maxProcessesPerType = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, 2);
+        boolean isdependencyInstallSequential = Boolean.parseBoolean(nifiProperties.getProperty(PYTHON_DEPENDENCY_INSTALL_SEQUENTIAL, "false"));
 
         final boolean enableControllerDebug = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_ENABLED, "false"));
         final int debugPort = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_PORT, 5678);
@@ -909,6 +911,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             .commsTimeout(commsTimeout == null ? null : Duration.ofMillis(FormatUtils.getTimeDuration(commsTimeout, TimeUnit.MILLISECONDS)))
             .maxPythonProcesses(maxProcesses)
             .maxPythonProcessesPerType(maxProcessesPerType)
+            .dependencyInstallSequential(isdependencyInstallSequential)
             .enableControllerDebug(enableControllerDebug)
             .debugPort(debugPort)
             .debugHost(debugHost)
