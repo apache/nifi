@@ -31,7 +31,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -125,12 +124,7 @@ public class TestStandardProcessorTestRunner {
         runner.assertTransferCount(AddAttributeProcessor.REL_SUCCESS, 3);
         runner.assertTransferCount(AddAttributeProcessor.REL_FAILURE, 2);
         runner.assertAllFlowFilesContainAttribute(AddAttributeProcessor.REL_SUCCESS, AddAttributeProcessor.KEY);
-        runner.assertAllFlowFiles(AddAttributeProcessor.REL_SUCCESS, new FlowFileValidator() {
-            @Override
-            public void assertFlowFile(FlowFile f) {
-                assertEquals("value", f.getAttribute(AddAttributeProcessor.KEY));
-            }
-        });
+        runner.assertAllFlowFiles(AddAttributeProcessor.REL_SUCCESS, f -> assertEquals("value", f.getAttribute(AddAttributeProcessor.KEY)));
     }
 
     @Test
@@ -139,9 +133,7 @@ public class TestStandardProcessorTestRunner {
         final TestRunner runner = TestRunners.newTestRunner(proc);
 
         runner.run(5, true);
-        assertThrows(AssertionError.class, () -> {
-            runner.assertAllFlowFiles(f -> assertEquals("value", f.getAttribute(AddAttributeProcessor.KEY)));
-        });
+        assertThrows(AssertionError.class, () -> runner.assertAllFlowFiles(f -> assertEquals("value", f.getAttribute(AddAttributeProcessor.KEY))));
     }
 
     @Test
@@ -339,7 +331,7 @@ public class TestStandardProcessorTestRunner {
         private boolean opmCalled = false;
 
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            return Arrays.asList(namePropertyDescriptor);
+            return List.of(namePropertyDescriptor);
         }
 
         public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
@@ -363,7 +355,7 @@ public class TestStandardProcessorTestRunner {
                 .build();
 
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            return Arrays.asList(namePropertyDescriptor);
+            return List.of(namePropertyDescriptor);
         }
     }
 
@@ -376,7 +368,7 @@ public class TestStandardProcessorTestRunner {
         logger.error("expected test error", t);
 
         final List<LogMessage>  log = logger.getErrorMessages();
-        final LogMessage msg = log.get(0);
+        final LogMessage msg = log.getFirst();
 
         assertTrue(msg.getMsg().contains("expected test error"));
         assertNotNull(msg.getThrowable());

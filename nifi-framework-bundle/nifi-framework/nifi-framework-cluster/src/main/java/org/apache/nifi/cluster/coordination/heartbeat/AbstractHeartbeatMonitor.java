@@ -77,15 +77,12 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             logger.error("Failed to start Heartbeat Monitor", e);
         }
 
-        this.future = flowEngine.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    monitorHeartbeats();
-                } catch (final Exception e) {
-                    clusterCoordinator.reportEvent(null, Severity.ERROR, "Failed to process heartbeats from nodes due to " + e.toString());
-                    logger.error("Failed to process heartbeats", e);
-                }
+        this.future = flowEngine.scheduleWithFixedDelay(() -> {
+            try {
+                monitorHeartbeats();
+            } catch (final Exception e) {
+                clusterCoordinator.reportEvent(null, Severity.ERROR, "Failed to process heartbeats from nodes due to " + e);
+                logger.error("Failed to process heartbeats", e);
             }
         }, heartbeatIntervalMillis, heartbeatIntervalMillis, TimeUnit.MILLISECONDS);
     }

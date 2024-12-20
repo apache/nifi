@@ -67,20 +67,12 @@ public class ReOrderFlowFiles extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final PropertyValue selectionValue = context.getProperty(FIRST_SELECTION_CRITERIA);
 
-        final List<FlowFile> matching = session.get(new FlowFileFilter() {
-            @Override
-            public FlowFileFilterResult filter(final FlowFile flowFile) {
-                final boolean selected = selectionValue.evaluateAttributeExpressions(flowFile).asBoolean();
-                return selected ? FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilterResult.REJECT_AND_CONTINUE;
-            }
+        final List<FlowFile> matching = session.get(flowFile -> {
+            final boolean selected = selectionValue.evaluateAttributeExpressions(flowFile).asBoolean();
+            return selected ? FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE;
         });
 
-        final List<FlowFile> unmatched = session.get(new FlowFileFilter() {
-            @Override
-            public FlowFileFilterResult filter(final FlowFile flowFile) {
-                return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
-            }
-        });
+        final List<FlowFile> unmatched = session.get(flowFile -> FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE);
 
         session.transfer(matching, REL_SUCCESS);
         session.transfer(unmatched, REL_SUCCESS);

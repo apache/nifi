@@ -36,8 +36,6 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.supercsv.cellprocessor.Optional;
 import org.supercsv.cellprocessor.ParseBigDecimal;
@@ -68,9 +66,7 @@ import org.supercsv.prefs.CsvPreference;
 import org.supercsv.util.CsvContext;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -468,91 +464,68 @@ public class ValidateCsv extends AbstractProcessor {
             validFF.set(session.create(flowFile));
         }
 
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                try (final NifiCsvListReader listReader = new NifiCsvListReader(new InputStreamReader(in), csvPref)) {
+        session.read(flowFile, in -> {
+            try (final NifiCsvListReader listReader = new NifiCsvListReader(new InputStreamReader(in), csvPref)) {
 
-                    // handling of header
-                    if (header) {
+                // handling of header
+                if (header) {
 
-                        // read header
-                        listReader.read();
+                    // read header
+                    listReader.read();
 
-                        if (!isWholeFFValidation) {
-                            invalidFF.set(session.append(invalidFF.get(), new OutputStreamCallback() {
-                                @Override
-                                public void process(OutputStream out) throws IOException {
-                                    out.write(print(listReader.getUntokenizedRow(), csvPref, true));
-                                }
-                            }));
-                            validFF.set(session.append(validFF.get(), new OutputStreamCallback() {
-                                @Override
-                                public void process(OutputStream out) throws IOException {
-                                    out.write(print(listReader.getUntokenizedRow(), csvPref, true));
-                                }
-                            }));
-                            isFirstLineValid.set(false);
-                            isFirstLineInvalid.set(false);
-                        }
+                    if (!isWholeFFValidation) {
+                        invalidFF.set(session.append(invalidFF.get(), out -> out.write(print(listReader.getUntokenizedRow(), csvPref, true))));
+                        validFF.set(session.append(validFF.get(), out -> out.write(print(listReader.getUntokenizedRow(), csvPref, true))));
+                        isFirstLineValid.set(false);
+                        isFirstLineInvalid.set(false);
                     }
-
-                    boolean stop = false;
-
-                    while (!stop) {
-                        try {
-
-                            // read next row and check if no more row
-                            stop = listReader.read(includeAllViolations && valid.get(), cellProcs) == null;
-
-                            if (!isWholeFFValidation && !stop) {
-                                validFF.set(session.append(validFF.get(), new OutputStreamCallback() {
-                                    @Override
-                                    public void process(OutputStream out) throws IOException {
-                                        out.write(print(listReader.getUntokenizedRow(), csvPref, isFirstLineValid.get()));
-                                    }
-                                }));
-                                okCount.set(okCount.get() + 1);
-
-                                if (isFirstLineValid.get()) {
-                                    isFirstLineValid.set(false);
-                                }
-                            }
-
-                        } catch (final SuperCsvException e) {
-                            valid.set(false);
-                            if (isWholeFFValidation) {
-                                validationError.set(e.getLocalizedMessage());
-                                logger.debug("Failed to validate {} against schema due to {}; routing to 'invalid'", flowFile, e);
-                                break;
-                            } else {
-                                // we append the invalid line to the flow file that will be routed to invalid relationship
-                                invalidFF.set(session.append(invalidFF.get(), new OutputStreamCallback() {
-                                    @Override
-                                    public void process(OutputStream out) throws IOException {
-                                        out.write(print(listReader.getUntokenizedRow(), csvPref, isFirstLineInvalid.get()));
-                                    }
-                                }));
-
-                                if (isFirstLineInvalid.get()) {
-                                    isFirstLineInvalid.set(false);
-                                }
-
-                                if (validationError.get() == null) {
-                                    validationError.set(e.getLocalizedMessage());
-                                }
-                            }
-                        } finally {
-                            if (!isWholeFFValidation) {
-                                totalCount.set(totalCount.get() + 1);
-                            }
-                        }
-                    }
-
-                } catch (final IOException e) {
-                    valid.set(false);
-                    logger.error("Failed to validate {} against schema due to {}", flowFile, e);
                 }
+
+                boolean stop = false;
+
+                while (!stop) {
+                    try {
+
+                        // read next row and check if no more row
+                        stop = listReader.read(includeAllViolations && valid.get(), cellProcs) == null;
+
+                        if (!isWholeFFValidation && !stop) {
+                            validFF.set(session.append(validFF.get(), out -> out.write(print(listReader.getUntokenizedRow(), csvPref, isFirstLineValid.get()))));
+                            okCount.set(okCount.get() + 1);
+
+                            if (isFirstLineValid.get()) {
+                                isFirstLineValid.set(false);
+                            }
+                        }
+
+                    } catch (final SuperCsvException e) {
+                        valid.set(false);
+                        if (isWholeFFValidation) {
+                            validationError.set(e.getLocalizedMessage());
+                            logger.debug("Failed to validate {} against schema due to {}; routing to 'invalid'", flowFile, e);
+                            break;
+                        } else {
+                            // we append the invalid line to the flow file that will be routed to invalid relationship
+                            invalidFF.set(session.append(invalidFF.get(), out -> out.write(print(listReader.getUntokenizedRow(), csvPref, isFirstLineInvalid.get()))));
+
+                            if (isFirstLineInvalid.get()) {
+                                isFirstLineInvalid.set(false);
+                            }
+
+                            if (validationError.get() == null) {
+                                validationError.set(e.getLocalizedMessage());
+                            }
+                        }
+                    } finally {
+                        if (!isWholeFFValidation) {
+                            totalCount.set(totalCount.get() + 1);
+                        }
+                    }
+                }
+
+            } catch (final IOException e) {
+                valid.set(false);
+                logger.error("Failed to validate {} against schema due to {}", flowFile, e);
             }
         });
 

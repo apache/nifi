@@ -51,21 +51,19 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
      * true - accept and continue, false - reject and continue, null - reject and stop, or any FlowFileFilterResult value.
      */
     public List<FlowFile> get(Closure filter) {
-        return this.get(new FlowFileFilter() {
-            @SuppressWarnings("ConstantConditions")
-            public FlowFileFilterResult filter(FlowFile flowFile) {
-                Object res = filter.call(wrap(flowFile));
-                if (res == null) {
-                    return FlowFileFilterResult.REJECT_AND_TERMINATE;
-                }
-                if (res instanceof Boolean) {
-                    return ((Boolean) res ? FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilterResult.REJECT_AND_CONTINUE);
-                }
-                if (res instanceof FlowFileFilterResult) {
-                    return (FlowFileFilterResult) res;
-                }
-                return (org.codehaus.groovy.runtime.DefaultGroovyMethods.asBoolean(res) ? FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilterResult.REJECT_AND_CONTINUE);
+        return this.get(flowFile -> {
+            Object res = filter.call(wrap(flowFile));
+            if (res == null) {
+                return FlowFileFilter.FlowFileFilterResult.REJECT_AND_TERMINATE;
             }
+            if (res instanceof Boolean) {
+                return ((Boolean) res ? FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE);
+            }
+            if (res instanceof FlowFileFilter.FlowFileFilterResult) {
+                return (FlowFileFilter.FlowFileFilterResult) res;
+            }
+            return (org.codehaus.groovy.runtime.DefaultGroovyMethods.asBoolean(res)
+                    ? FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE : FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE);
         });
     }
 }

@@ -60,19 +60,16 @@ public class StatelessSchedulingAgent implements SchedulingAgent {
     @Override
     public void schedule(final ReportingTaskNode taskNode, final LifecycleState scheduleState) {
         final long schedulingMillis = taskNode.getSchedulingPeriod(TimeUnit.MILLISECONDS);
-        final Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        Thread.sleep(schedulingMillis);
-                    } catch (final InterruptedException e) {
-                        logger.info("Interrupted while waiting to trigger {}. Will no longer trigger Reporting Task to run", taskNode);
-                        return;
-                    }
-
-                    triggerReportingTask(taskNode, scheduleState);
+        final Thread thread = new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(schedulingMillis);
+                } catch (final InterruptedException e) {
+                    logger.info("Interrupted while waiting to trigger {}. Will no longer trigger Reporting Task to run", taskNode);
+                    return;
                 }
+
+                triggerReportingTask(taskNode, scheduleState);
             }
         });
 

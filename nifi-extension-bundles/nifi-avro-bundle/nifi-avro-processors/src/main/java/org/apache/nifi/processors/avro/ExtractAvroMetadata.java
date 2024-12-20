@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.avro;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -51,7 +50,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @SideEffectFree
@@ -163,44 +161,41 @@ public class ExtractAvroMetadata extends AbstractProcessor {
         }
 
         try {
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream rawIn) throws IOException {
-                    try (final InputStream in = new BufferedInputStream(rawIn);
-                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
+            session.read(flowFile, rawIn -> {
+                try (final InputStream in = new BufferedInputStream(rawIn);
+                     final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
 
-                        final Schema schema = reader.getSchema();
-                        if (schema == null) {
-                            throw new ProcessException("Avro schema was null");
+                    final Schema schema = reader.getSchema();
+                    if (schema == null) {
+                        throw new ProcessException("Avro schema was null");
+                    }
+
+                    for (String key : reader.getMetaKeys()) {
+                        if (requestedMetadataKeys.contains(key)) {
+                            avroMetadata.put(key, reader.getMetaString(key));
                         }
+                    }
 
-                        for (String key : reader.getMetaKeys()) {
-                            if (requestedMetadataKeys.contains(key)) {
-                                avroMetadata.put(key, reader.getMetaString(key));
-                            }
-                        }
+                    try {
+                        final byte[] rawFingerprint = SchemaNormalization.parsingFingerprint(fingerprintAlgorithm, schema);
+                        avroMetadata.put(SCHEMA_FINGERPRINT_ATTR, Hex.encodeHexString(rawFingerprint));
+                        avroMetadata.put(SCHEMA_TYPE_ATTR, schema.getType().getName());
+                        avroMetadata.put(SCHEMA_NAME_ATTR, schema.getName());
+                    } catch (NoSuchAlgorithmException e) {
+                        // shouldn't happen since allowable values are valid algorithms
+                        throw new ProcessException(e);
+                    }
 
+                    if (countRecords) {
+                        long recordCount = reader.getBlockCount();
                         try {
-                            final byte[] rawFingerprint = SchemaNormalization.parsingFingerprint(fingerprintAlgorithm, schema);
-                            avroMetadata.put(SCHEMA_FINGERPRINT_ATTR, Hex.encodeHexString(rawFingerprint));
-                            avroMetadata.put(SCHEMA_TYPE_ATTR, schema.getType().getName());
-                            avroMetadata.put(SCHEMA_NAME_ATTR, schema.getName());
-                        } catch (NoSuchAlgorithmException e) {
-                            // shouldn't happen since allowable values are valid algorithms
-                            throw new ProcessException(e);
-                        }
-
-                        if (countRecords) {
-                            long recordCount = reader.getBlockCount();
-                            try {
-                                while (reader.nextBlock() != null) {
-                                    recordCount += reader.getBlockCount();
-                                }
-                            } catch (NoSuchElementException e) {
-                                // happens at end of file
+                            while (reader.nextBlock() != null) {
+                                recordCount += reader.getBlockCount();
                             }
-                            avroMetadata.put(ITEM_COUNT_ATTR, String.valueOf(recordCount));
+                        } catch (NoSuchElementException e) {
+                            // happens at end of file
                         }
+                        avroMetadata.put(ITEM_COUNT_ATTR, String.valueOf(recordCount));
                     }
                 }
             });
