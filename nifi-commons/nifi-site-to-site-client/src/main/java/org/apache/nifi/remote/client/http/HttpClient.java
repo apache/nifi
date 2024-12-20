@@ -75,12 +75,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             }
         });
 
-        taskExecutor.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                peerSelector.refresh();
-            }
-        }, 0, 5, TimeUnit.SECONDS);
+        taskExecutor.scheduleWithFixedDelay(peerSelector::refresh, 0, 5, TimeUnit.SECONDS);
 
     }
 

@@ -35,11 +35,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.List;
@@ -448,12 +445,7 @@ public class DebugFlow extends AbstractProcessor {
                             final byte[] data = new byte[context.getProperty(CONTENT_SIZE).asDataSize(DataUnit.B).intValue()];
                             random.nextBytes(data);
 
-                            ff = session.write(ff, new OutputStreamCallback() {
-                                @Override
-                                public void process(final OutputStream out) throws IOException {
-                                    out.write(data);
-                                }
-                            });
+                            ff = session.write(ff, out -> out.write(data));
                         }
                     }
 

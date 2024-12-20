@@ -47,25 +47,22 @@ public class StatelessPerformanceIT extends StatelessSystemIT {
         final List<Thread> threads = new ArrayList<>();
         final int numThreads = 6;
         for (int threadIndex = 0; threadIndex < numThreads; threadIndex++) {
-            final Thread t = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        final StatelessDataflow dataflow = loadDataflow(builder.getFlowSnapshot());
+            final Thread t = new Thread(() -> {
+                try {
+                    final StatelessDataflow dataflow = loadDataflow(builder.getFlowSnapshot());
 
-                        final int iterations = 5_000_000;
-                        final long start = System.currentTimeMillis();
-                        for (int i = 0; i < iterations; i++) {
-                            final DataflowTrigger trigger = dataflow.trigger();
-                            final TriggerResult result = trigger.getResult();
+                    final int iterations = 5_000_000;
+                    final long start = System.currentTimeMillis();
+                    for (int i = 0; i < iterations; i++) {
+                        final DataflowTrigger trigger = dataflow.trigger();
+                        final TriggerResult result = trigger.getResult();
 
-                            result.acknowledge();
-                        }
-                        final long millis = System.currentTimeMillis() - start;
-                        logger.info("Took {} millis to run {} iterations", millis, iterations);
-                    } catch (final Exception e) {
-                        e.printStackTrace();
+                        result.acknowledge();
                     }
+                    final long millis = System.currentTimeMillis() - start;
+                    logger.info("Took {} millis to run {} iterations", millis, iterations);
+                } catch (final Exception e) {
+                    e.printStackTrace();
                 }
             });
 

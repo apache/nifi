@@ -53,7 +53,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.StopWatch;
 import org.tukaani.xz.LZMA2Options;
@@ -300,112 +299,109 @@ public class CompressContent extends AbstractProcessor {
         };
 
         try {
-            flowFile = session.write(flowFile, new StreamCallback() {
-                @Override
-                public void process(final InputStream rawIn, final OutputStream rawOut) throws IOException {
-                    final OutputStream compressionOut;
-                    final InputStream compressionIn;
+            flowFile = session.write(flowFile, (rawIn, rawOut) -> {
+                final OutputStream compressionOut;
+                final InputStream compressionIn;
 
-                    final OutputStream bufferedOut = new BufferedOutputStream(rawOut, 65536);
-                    final InputStream bufferedIn = new BufferedInputStream(rawIn, 65536);
+                final OutputStream bufferedOut = new BufferedOutputStream(rawOut, 65536);
+                final InputStream bufferedIn = new BufferedInputStream(rawIn, 65536);
 
-                    try {
-                        if (MODE_COMPRESS.equalsIgnoreCase(compressionMode)) {
-                            compressionIn = bufferedIn;
+                try {
+                    if (MODE_COMPRESS.equalsIgnoreCase(compressionMode)) {
+                        compressionIn = bufferedIn;
 
-                            switch (compressionFormat.toLowerCase()) {
-                                case COMPRESSION_FORMAT_GZIP: {
-                                    int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
-                                    compressionOut = new GZIPOutputStream(bufferedOut, compressionLevel);
-                                    mimeTypeRef.set("application/gzip");
-                                    break;
-                                }
-                                case COMPRESSION_FORMAT_DEFLATE: {
-                                    final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
-                                    compressionOut = new DeflaterOutputStream(bufferedOut, new Deflater(compressionLevel));
-                                    mimeTypeRef.set("application/gzip");
-                                    break;
-                                }
-                                case COMPRESSION_FORMAT_LZMA:
-                                    compressionOut = new LzmaOutputStream.Builder(bufferedOut).build();
-                                    mimeTypeRef.set("application/x-lzma");
-                                    break;
-                                case COMPRESSION_FORMAT_XZ_LZMA2:
-                                    final int xzCompressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
-                                    compressionOut = new XZOutputStream(bufferedOut, new LZMA2Options(xzCompressionLevel));
-                                    mimeTypeRef.set("application/x-xz");
-                                    break;
-                                case COMPRESSION_FORMAT_SNAPPY:
-                                    compressionOut = new SnappyOutputStream(bufferedOut);
-                                    mimeTypeRef.set("application/x-snappy");
-                                    break;
-                                case COMPRESSION_FORMAT_SNAPPY_HADOOP:
-                                    compressionOut = new SnappyHadoopCompatibleOutputStream(bufferedOut);
-                                    mimeTypeRef.set("application/x-snappy-hadoop");
-                                    break;
-                                case COMPRESSION_FORMAT_SNAPPY_FRAMED:
-                                    compressionOut = new SnappyFramedOutputStream(bufferedOut);
-                                    mimeTypeRef.set("application/x-snappy-framed");
-                                    break;
-                                case COMPRESSION_FORMAT_LZ4_FRAMED:
-                                    mimeTypeRef.set("application/x-lz4-framed");
-                                    compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressionFormat.toLowerCase(), bufferedOut);
-                                    break;
-                                case COMPRESSION_FORMAT_ZSTD:
-                                    final int zstdCompressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger() * 2;
-                                    compressionOut = new ZstdCompressorOutputStream(bufferedOut, zstdCompressionLevel);
-                                    mimeTypeRef.set("application/zstd");
-                                    break;
-                                case COMPRESSION_FORMAT_BROTLI: {
-                                    Brotli4jLoader.ensureAvailability();
-                                    final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
-                                    Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
-                                    compressionOut = new BrotliOutputStream(bufferedOut, params);
-                                    mimeTypeRef.set("application/x-brotli");
-                                    break;
-                                }
-                                case COMPRESSION_FORMAT_BZIP2:
-                                default:
-                                    mimeTypeRef.set("application/x-bzip2");
-                                    compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressionFormat.toLowerCase(), bufferedOut);
-                                    break;
+                        switch (compressionFormat.toLowerCase()) {
+                            case COMPRESSION_FORMAT_GZIP: {
+                                int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+                                compressionOut = new GZIPOutputStream(bufferedOut, compressionLevel);
+                                mimeTypeRef.set("application/gzip");
+                                break;
                             }
-                        } else {
-                            compressionOut = bufferedOut;
-                            compressionIn = switch (compressionFormat.toLowerCase()) {
-                                case COMPRESSION_FORMAT_LZMA -> new LzmaInputStream(bufferedIn, new Decoder());
-                                case COMPRESSION_FORMAT_XZ_LZMA2 -> new XZInputStream(bufferedIn);
-                                case COMPRESSION_FORMAT_BZIP2 ->
-                                    // need this two-arg constructor to support concatenated streams
-                                    new BZip2CompressorInputStream(bufferedIn, true);
-                                case COMPRESSION_FORMAT_GZIP -> new GzipCompressorInputStream(bufferedIn, true);
-                                case COMPRESSION_FORMAT_DEFLATE -> new InflaterInputStream(bufferedIn);
-                                case COMPRESSION_FORMAT_SNAPPY -> new SnappyInputStream(bufferedIn);
-                                case COMPRESSION_FORMAT_SNAPPY_HADOOP -> throw new Exception("Cannot decompress snappy-hadoop.");
-                                case COMPRESSION_FORMAT_SNAPPY_FRAMED -> new SnappyFramedInputStream(bufferedIn);
-                                case COMPRESSION_FORMAT_LZ4_FRAMED -> new FramedLZ4CompressorInputStream(bufferedIn, true);
-                                case COMPRESSION_FORMAT_ZSTD -> new ZstdCompressorInputStream(bufferedIn);
-                                case COMPRESSION_FORMAT_BROTLI -> {
-                                    Brotli4jLoader.ensureAvailability();
-                                    yield new BrotliInputStream(bufferedIn);
-                                }
-                                default -> new CompressorStreamFactory().createCompressorInputStream(compressionFormat.toLowerCase(), bufferedIn);
-                            };
+                            case COMPRESSION_FORMAT_DEFLATE: {
+                                final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+                                compressionOut = new DeflaterOutputStream(bufferedOut, new Deflater(compressionLevel));
+                                mimeTypeRef.set("application/gzip");
+                                break;
+                            }
+                            case COMPRESSION_FORMAT_LZMA:
+                                compressionOut = new LzmaOutputStream.Builder(bufferedOut).build();
+                                mimeTypeRef.set("application/x-lzma");
+                                break;
+                            case COMPRESSION_FORMAT_XZ_LZMA2:
+                                final int xzCompressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+                                compressionOut = new XZOutputStream(bufferedOut, new LZMA2Options(xzCompressionLevel));
+                                mimeTypeRef.set("application/x-xz");
+                                break;
+                            case COMPRESSION_FORMAT_SNAPPY:
+                                compressionOut = new SnappyOutputStream(bufferedOut);
+                                mimeTypeRef.set("application/x-snappy");
+                                break;
+                            case COMPRESSION_FORMAT_SNAPPY_HADOOP:
+                                compressionOut = new SnappyHadoopCompatibleOutputStream(bufferedOut);
+                                mimeTypeRef.set("application/x-snappy-hadoop");
+                                break;
+                            case COMPRESSION_FORMAT_SNAPPY_FRAMED:
+                                compressionOut = new SnappyFramedOutputStream(bufferedOut);
+                                mimeTypeRef.set("application/x-snappy-framed");
+                                break;
+                            case COMPRESSION_FORMAT_LZ4_FRAMED:
+                                mimeTypeRef.set("application/x-lz4-framed");
+                                compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressionFormat.toLowerCase(), bufferedOut);
+                                break;
+                            case COMPRESSION_FORMAT_ZSTD:
+                                final int zstdCompressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger() * 2;
+                                compressionOut = new ZstdCompressorOutputStream(bufferedOut, zstdCompressionLevel);
+                                mimeTypeRef.set("application/zstd");
+                                break;
+                            case COMPRESSION_FORMAT_BROTLI: {
+                                Brotli4jLoader.ensureAvailability();
+                                final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+                                Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
+                                compressionOut = new BrotliOutputStream(bufferedOut, params);
+                                mimeTypeRef.set("application/x-brotli");
+                                break;
+                            }
+                            case COMPRESSION_FORMAT_BZIP2:
+                            default:
+                                mimeTypeRef.set("application/x-bzip2");
+                                compressionOut = new CompressorStreamFactory().createCompressorOutputStream(compressionFormat.toLowerCase(), bufferedOut);
+                                break;
                         }
-                    } catch (final Exception e) {
-                        closeQuietly(bufferedOut);
-                        throw new IOException(e);
+                    } else {
+                        compressionOut = bufferedOut;
+                        compressionIn = switch (compressionFormat.toLowerCase()) {
+                            case COMPRESSION_FORMAT_LZMA -> new LzmaInputStream(bufferedIn, new Decoder());
+                            case COMPRESSION_FORMAT_XZ_LZMA2 -> new XZInputStream(bufferedIn);
+                            case COMPRESSION_FORMAT_BZIP2 ->
+                                // need this two-arg constructor to support concatenated streams
+                                new BZip2CompressorInputStream(bufferedIn, true);
+                            case COMPRESSION_FORMAT_GZIP -> new GzipCompressorInputStream(bufferedIn, true);
+                            case COMPRESSION_FORMAT_DEFLATE -> new InflaterInputStream(bufferedIn);
+                            case COMPRESSION_FORMAT_SNAPPY -> new SnappyInputStream(bufferedIn);
+                            case COMPRESSION_FORMAT_SNAPPY_HADOOP -> throw new Exception("Cannot decompress snappy-hadoop.");
+                            case COMPRESSION_FORMAT_SNAPPY_FRAMED -> new SnappyFramedInputStream(bufferedIn);
+                            case COMPRESSION_FORMAT_LZ4_FRAMED -> new FramedLZ4CompressorInputStream(bufferedIn, true);
+                            case COMPRESSION_FORMAT_ZSTD -> new ZstdCompressorInputStream(bufferedIn);
+                            case COMPRESSION_FORMAT_BROTLI -> {
+                                Brotli4jLoader.ensureAvailability();
+                                yield new BrotliInputStream(bufferedIn);
+                            }
+                            default -> new CompressorStreamFactory().createCompressorInputStream(compressionFormat.toLowerCase(), bufferedIn);
+                        };
                     }
+                } catch (final Exception e) {
+                    closeQuietly(bufferedOut);
+                    throw new IOException(e);
+                }
 
-                    try (final InputStream in = compressionIn;
-                        final OutputStream out = compressionOut) {
-                        final byte[] buffer = new byte[8192];
-                        int len;
-                        while ((len = in.read(buffer)) > 0) {
-                            out.write(buffer, 0, len);
-                        }
-                        out.flush();
+                try (final InputStream in = compressionIn;
+                    final OutputStream out = compressionOut) {
+                    final byte[] buffer = new byte[8192];
+                    int len;
+                    while ((len = in.read(buffer)) > 0) {
+                        out.write(buffer, 0, len);
                     }
+                    out.flush();
                 }
             });
             stopWatch.stop();
