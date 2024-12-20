@@ -40,12 +40,14 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
     private volatile PythonProcessorAdapter adapter;
     private final File workingDir;
     private final File moduleFile;
+    private final boolean installDependenciesSequential;
     private volatile long lastModified;
     private volatile LoadState loadState = LoadState.DOWNLOADING_DEPENDENCIES;
     private volatile PythonProcessorInitializationContext initializationContext;
     private volatile String identifier;
     private volatile PythonController controller;
     private volatile CompletableFuture<Void> initializationFuture;
+    private static final Object DEPENDENCY_DOWNLOAD_LOCK = new Object();
 
 
     private StandardPythonProcessorBridge(final Builder builder) {
@@ -55,6 +57,7 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         this.processorVersion = builder.processorVersion;
         this.workingDir = builder.workDir;
         this.moduleFile = builder.moduleFile;
+        this.installDependenciesSequential = builder.installDependenciesSequential;
         this.lastModified = this.moduleFile.lastModified();
     }
 
@@ -115,8 +118,14 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
             loadState = LoadState.DOWNLOADING_DEPENDENCIES;
 
             try {
-                creationWorkflow.downloadDependencies();
-                logger.info("Successfully downloaded dependencies for Python Processor {} ({})", identifier, getProcessorType());
+                if (installDependenciesSequential) {
+                    synchronized (DEPENDENCY_DOWNLOAD_LOCK) {
+                        logger.debug("Installing dependencies sequentially.");
+                        downloadDependencies();
+                    }
+                } else {
+                    downloadDependencies();
+                }
 
                 break;
             } catch (final Exception e) {
@@ -171,6 +180,11 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         future.complete(null);
     }
 
+    private void downloadDependencies() {
+        creationWorkflow.downloadDependencies();
+        logger.info("Successfully downloaded dependencies for Python Processor {} ({})", identifier, getProcessorType());
+    }
+
     @Override
     public String getProcessorType() {
         return processorType;
@@ -198,6 +212,7 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         private File moduleFile;
         private String processorType;
         private String processorVersion;
+        private boolean installDependenciesSequential;
 
         public Builder controller(final PythonController controller) {
             this.controller = controller;
@@ -226,6 +241,11 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
 
         public Builder moduleFile(final File moduleFile) {
             this.moduleFile = moduleFile;
+            return this;
+        }
+
+        public Builder installDependenciesSequential(final boolean installDependenciesSequential) {
+            this.installDependenciesSequential = installDependenciesSequential;
             return this;
         }
 

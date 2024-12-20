@@ -482,6 +482,7 @@ public class PythonProcess {
                 .processorType(processorType)
                 .processorVersion(processorVersion)
                 .workingDirectory(processConfig.getPythonWorkingDirectory())
+                .installDependenciesSequential(processConfig.getDependencyInstallSequential())
                 .moduleFile(new File(controller.getModuleFile(type, version)))
                 .build();
 

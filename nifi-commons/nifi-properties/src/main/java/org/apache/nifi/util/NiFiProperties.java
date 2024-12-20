@@ -308,6 +308,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String PYTHON_WORKING_DIRECTORY = "nifi.python.working.directory";
     public static final String PYTHON_MAX_PROCESSES = "nifi.python.max.processes";
     public static final String PYTHON_MAX_PROCESSES_PER_TYPE = "nifi.python.max.processes.per.extension.type";
+    public static final String PYTHON_DEPENDENCY_INSTALL_SEQUENTIAL = "nifi.python.dependency.install.sequential";
     public static final String PYTHON_COMMS_TIMEOUT = "nifi.python.comms.timeout";
 
     public static final String PYTHON_CONTROLLER_DEBUGPY_ENABLED = "nifi.python.controller.debugpy.enabled";
