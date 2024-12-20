@@ -149,7 +149,7 @@
         <aspectj.version>1.9.22.1</aspectj.version>
         <jersey.bom.version>3.1.9</jersey.bom.version>
         <log4j2.version>2.24.3</log4j2.version>
-        <logback.version>1.5.13</logback.version>
+        <logback.version>1.5.14</logback.version>
         <mockito.version>5.14.2</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.3</snakeyaml.version>
