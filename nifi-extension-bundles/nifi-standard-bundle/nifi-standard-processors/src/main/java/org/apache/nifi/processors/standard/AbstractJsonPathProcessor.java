@@ -31,13 +31,10 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -90,23 +87,20 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
     static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile, Configuration jsonPathConfiguration) {
         // Parse the document once into an associated context to support multiple path evaluations if specified
         final AtomicReference<DocumentContext> contextHolder = new AtomicReference<>(null);
-        processSession.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(InputStream in) throws IOException {
-                try (BufferedInputStream bufferedInputStream = new BufferedInputStream(in)) {
-                    DocumentContext ctx = JsonPath.using(jsonPathConfiguration).parse(bufferedInputStream);
-                    contextHolder.set(ctx);
-                } catch (IllegalArgumentException iae) {
-                    // The JsonPath.parse() above first parses the json, then creates a context object from the parsed
-                    // json.  It is possible for the json parsing to complete without error, but produce a null object.
-                    // In this case the context creation will fail and throw an IllegalArgumentException.  This is in
-                    // my opinion a bug in the JsonPath library, as it doesn't really throw the correct exception
-                    // contextually.
-                    // The general handling in derived classes handles InvalidJsonException.
-                    // The best thing to do here, is to re-throw with the proper exception, such that the calling logic
-                    // can route.
-                    throw new InvalidJsonException(iae);
-                }
+        processSession.read(flowFile, in -> {
+            try (BufferedInputStream bufferedInputStream = new BufferedInputStream(in)) {
+                DocumentContext ctx = JsonPath.using(jsonPathConfiguration).parse(bufferedInputStream);
+                contextHolder.set(ctx);
+            } catch (IllegalArgumentException iae) {
+                // The JsonPath.parse() above first parses the json, then creates a context object from the parsed
+                // json.  It is possible for the json parsing to complete without error, but produce a null object.
+                // In this case the context creation will fail and throw an IllegalArgumentException.  This is in
+                // my opinion a bug in the JsonPath library, as it doesn't really throw the correct exception
+                // contextually.
+                // The general handling in derived classes handles InvalidJsonException.
+                // The best thing to do here, is to re-throw with the proper exception, such that the calling logic
+                // can route.
+                throw new InvalidJsonException(iae);
             }
         });
 

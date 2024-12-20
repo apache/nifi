@@ -25,7 +25,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PortAuthorizationResult;
 import org.apache.nifi.remote.PublicPort;
@@ -254,12 +253,9 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             final StopWatch transferWatch = new StopWatch(true);
 
             final FlowFile toSend = flowFile;
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream in) throws IOException {
-                    final DataPacket dataPacket = new StandardDataPacket(toSend.getAttributes(), in, toSend.getSize());
-                    codec.encode(dataPacket, checkedOutputStream);
-                }
+            session.read(flowFile, in -> {
+                final DataPacket dataPacket = new StandardDataPacket(toSend.getAttributes(), in, toSend.getSize());
+                codec.encode(dataPacket, checkedOutputStream);
             });
 
             final long transmissionMillis = transferWatch.getElapsed(TimeUnit.MILLISECONDS);

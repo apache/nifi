@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.test.processors;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Random;
@@ -29,7 +27,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,12 +63,7 @@ public class DataGeneratorTestProcessor extends AbstractProcessor {
         final byte[] data = new byte[4096];
         random.nextBytes(data);
 
-        flowFile = session.write(flowFile, new OutputStreamCallback() {
-            @Override
-            public void process(final OutputStream out) throws IOException {
-                out.write(data);
-            }
-        });
+        flowFile = session.write(flowFile, out -> out.write(data));
 
         LOG.info("{} transferring {} to success", this, flowFile);
         session.transfer(flowFile, REL_SUCCESS);
