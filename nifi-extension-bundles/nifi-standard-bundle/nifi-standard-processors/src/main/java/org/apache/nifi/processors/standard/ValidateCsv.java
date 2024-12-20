@@ -122,15 +122,6 @@ public class ValidateCsv extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor CSV_SOURCE_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("CSV Source Attribute")
-            .displayName("CSV Source Attribute")
-            .description("The name of the attribute containing CSV data to be validated. If this property is blank, the FlowFile content will be validated.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
-            .build();
-
     public static final PropertyDescriptor HEADER = new PropertyDescriptor.Builder()
             .name("validate-csv-header")
             .displayName("Header")
@@ -179,6 +170,16 @@ public class ValidateCsv extends AbstractProcessor {
             .defaultValue(VALIDATE_WHOLE_FLOWFILE.getValue())
             .allowableValues(VALIDATE_LINES_INDIVIDUALLY, VALIDATE_WHOLE_FLOWFILE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor CSV_SOURCE_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("CSV Source Attribute")
+            .displayName("CSV Source Attribute")
+            .description("The name of the attribute containing CSV data to be validated. If this property is blank, the FlowFile content will be validated.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+            .dependsOn(VALIDATION_STRATEGY, VALIDATE_WHOLE_FLOWFILE.getValue())
             .build();
 
     public static final PropertyDescriptor INCLUDE_ALL_VIOLATIONS = new PropertyDescriptor.Builder()
@@ -489,7 +490,7 @@ public class ValidateCsv extends AbstractProcessor {
         }
 
         InputStream stream;
-        if (context.getProperty(CSV_SOURCE_ATTRIBUTE).isSet()) {
+        if (context.getProperty(CSV_SOURCE_ATTRIBUTE).isSet() && isWholeFFValidation) {
             String csvAttribute = flowFile.getAttribute(context.getProperty(CSV_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue());
             stream = new ByteArrayInputStream(Objects.requireNonNullElse(csvAttribute, "").getBytes(StandardCharsets.UTF_8));
         } else {

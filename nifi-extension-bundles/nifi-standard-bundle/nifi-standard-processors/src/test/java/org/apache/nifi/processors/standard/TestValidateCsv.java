@@ -177,7 +177,6 @@ public class TestValidateCsv {
         runner.setProperty(ValidateCsv.HEADER, "true");
 
         runner.enqueue("bigdecimal,bool,char,integer,long\r\n10.0001,true,c,1,92147483647");
-        runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(ValidateCsv.REL_VALID, 1);
 
