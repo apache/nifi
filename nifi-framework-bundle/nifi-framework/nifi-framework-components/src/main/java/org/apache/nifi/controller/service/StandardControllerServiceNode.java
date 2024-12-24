@@ -729,19 +729,16 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         if (this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLED, future)) {
             final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null);
-            scheduler.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        invokeDisable(configContext);
-                    } finally {
-                        stateTransition.disable();
+            scheduler.execute(() -> {
+                try {
+                    invokeDisable(configContext);
+                } finally {
+                    stateTransition.disable();
 
-                        // Now all components that reference this service will be invalid. Trigger validation to occur so that
-                        // this is reflected in any response that may go back to a user/client.
-                        for (final ComponentNode component : getReferences().getReferencingComponents()) {
-                            component.performValidation();
-                        }
+                    // Now all components that reference this service will be invalid. Trigger validation to occur so that
+                    // this is reflected in any response that may go back to a user/client.
+                    for (final ComponentNode component : getReferences().getReferencingComponents()) {
+                        component.performValidation();
                     }
                 }
             });

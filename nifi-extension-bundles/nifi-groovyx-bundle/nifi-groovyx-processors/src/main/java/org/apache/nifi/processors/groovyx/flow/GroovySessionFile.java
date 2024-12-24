@@ -17,9 +17,6 @@
 package org.apache.nifi.processors.groovyx.flow;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.processor.io.InputStreamCallback;
 
 import groovy.lang.Writable;
 import groovy.lang.Closure;
@@ -110,13 +107,11 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @return reference to self
      */
     public GroovySessionFile write(String charset, Closure<?> c) {
-        this.write(new OutputStreamCallback() {
-            public void process(OutputStream out) throws IOException {
-                Writer w = new OutputStreamWriter(out, charset);
-                c.call(w);
-                w.flush();
-                w.close();
-            }
+        this.write(out -> {
+            Writer w = new OutputStreamWriter(out, charset);
+            c.call(w);
+            w.flush();
+            w.close();
         });
         return this;
     }
@@ -129,13 +124,11 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @return reference to self
      */
     public GroovySessionFile write(String charset, CharSequence c) {
-        this.write(new OutputStreamCallback() {
-            public void process(OutputStream out) throws IOException {
-                Writer w = new OutputStreamWriter(out, charset);
-                w.append(c);
-                w.flush();
-                w.close();
-            }
+        this.write(out -> {
+            Writer w = new OutputStreamWriter(out, charset);
+            w.append(c);
+            w.flush();
+            w.close();
         });
         return this;
     }
@@ -148,13 +141,11 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @return reference to self
      */
     public GroovySessionFile write(String charset, Writable c) {
-        this.write(new OutputStreamCallback() {
-            public void process(OutputStream out) throws IOException {
-                Writer w = new OutputStreamWriter(out, charset);
-                c.writeTo(w);
-                w.flush();
-                w.close();
-            }
+        this.write(out -> {
+            Writer w = new OutputStreamWriter(out, charset);
+            c.writeTo(w);
+            w.flush();
+            w.close();
         });
         return this;
     }
@@ -168,17 +159,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      */
     public GroovySessionFile write(Closure<?> c) {
         if (c.getMaximumNumberOfParameters() == 1) {
-            this.write(new OutputStreamCallback() {
-                public void process(OutputStream out) throws IOException {
-                    c.call(out);
-                }
-            });
+            this.write(out -> c.call(out));
         } else {
-            this.write(new StreamCallback() {
-                public void process(InputStream in, OutputStream out) throws IOException {
-                    c.call(in, out);
-                }
-            });
+            this.write((in, out) -> c.call(in, out));
         }
         return this;
     }
@@ -190,11 +173,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @return reference to self
      */
     public GroovySessionFile append(Closure<?> c) {
-        this.append(new OutputStreamCallback() {
-            public void process(OutputStream out) throws IOException {
-                c.call(out);
-            }
-        });
+        this.append(c::call);
         return this;
     }
 
@@ -206,13 +185,11 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @return reference to self
      */
     public GroovySessionFile append(String charset, Writable c) {
-        this.append(new OutputStreamCallback() {
-            public void process(OutputStream out) throws IOException {
-                Writer w = new OutputStreamWriter(out, charset);
-                c.writeTo(w);
-                w.flush();
-                w.close();
-            }
+        this.append(out -> {
+            Writer w = new OutputStreamWriter(out, charset);
+            c.writeTo(w);
+            w.flush();
+            w.close();
         });
         return this;
     }
@@ -225,13 +202,11 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @return reference to self
      */
     public GroovySessionFile append(String charset, Closure<?> c) {
-        this.append(new OutputStreamCallback() {
-            public void process(OutputStream out) throws IOException {
-                Writer w = new OutputStreamWriter(out, charset);
-                c.call(w);
-                w.flush();
-                w.close();
-            }
+        this.append(out -> {
+            Writer w = new OutputStreamWriter(out, charset);
+            c.call(w);
+            w.flush();
+            w.close();
         });
         return this;
     }
@@ -244,13 +219,11 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @return reference to self
      */
     public GroovySessionFile append(String charset, CharSequence c) {
-        this.append(new OutputStreamCallback() {
-            public void process(OutputStream out) throws IOException {
-                Writer w = new OutputStreamWriter(out, charset);
-                w.append(c);
-                w.flush();
-                w.close();
-            }
+        this.append(out -> {
+            Writer w = new OutputStreamWriter(out, charset);
+            w.append(c);
+            w.flush();
+            w.close();
         });
         return this;
     }
@@ -261,11 +234,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @param c Closure with one parameter InputStream.
      */
     public void read(Closure<?> c) {
-        this.read(new InputStreamCallback() {
-            public void process(InputStream in) {
-                c.call(in);
-            }
-        });
+        this.read(c::call);
     }
 
     /**
@@ -275,12 +244,10 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @param c       Closure with one parameter Reader.
      */
     public void read(String charset, Closure<?> c) {
-        this.read(new InputStreamCallback() {
-            public void process(InputStream in) throws IOException {
-                InputStreamReader r = new InputStreamReader(in, charset);
-                c.call(r);
-                r.close();
-            }
+        this.read(in -> {
+            InputStreamReader r = new InputStreamReader(in, charset);
+            c.call(r);
+            r.close();
         });
     }
 

@@ -41,15 +41,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.util.TextLineDemarcator;
 import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -203,46 +200,43 @@ public class SplitText extends AbstractProcessor {
         AtomicBoolean error = new AtomicBoolean();
         List<SplitInfo> computedSplitsInfo = new ArrayList<>();
         AtomicReference<SplitInfo> headerSplitInfoRef = new AtomicReference<>();
-        processSession.read(sourceFlowFile, new InputStreamCallback() {
-            @Override
-            public void process(InputStream in) throws IOException {
-                TextLineDemarcator demarcator = new TextLineDemarcator(in);
-                SplitInfo splitInfo = null;
-                long startOffset = 0;
+        processSession.read(sourceFlowFile, in -> {
+            TextLineDemarcator demarcator = new TextLineDemarcator(in);
+            SplitInfo splitInfo = null;
+            long startOffset = 0;
 
-                // Compute fragment representing the header (if available)
-                long start = System.nanoTime();
-                try {
-                    if (SplitText.this.headerLineCount > 0) {
-                        splitInfo = SplitText.this.computeHeader(demarcator, startOffset, SplitText.this.headerLineCount, null, null);
-                        if ((splitInfo != null) && (splitInfo.lineCount < SplitText.this.headerLineCount)) {
-                            error.set(true);
-                            getLogger().error("Unable to split {} due to insufficient amount of header lines. Required {} but was {}. Routing to failure.",
-                                    sourceFlowFile, SplitText.this.headerLineCount, splitInfo.lineCount);
-                        }
-                    } else if (SplitText.this.headerMarker != null) {
-                        splitInfo = SplitText.this.computeHeader(demarcator, startOffset, Long.MAX_VALUE, SplitText.this.headerMarker.getBytes(StandardCharsets.UTF_8), null);
+            // Compute fragment representing the header (if available)
+            long start = System.nanoTime();
+            try {
+                if (SplitText.this.headerLineCount > 0) {
+                    splitInfo = SplitText.this.computeHeader(demarcator, startOffset, SplitText.this.headerLineCount, null, null);
+                    if ((splitInfo != null) && (splitInfo.lineCount < SplitText.this.headerLineCount)) {
+                        error.set(true);
+                        getLogger().error("Unable to split {} due to insufficient amount of header lines. Required {} but was {}. Routing to failure.",
+                                sourceFlowFile, SplitText.this.headerLineCount, splitInfo.lineCount);
                     }
-                    headerSplitInfoRef.set(splitInfo);
-                } catch (IllegalStateException e) {
-                    error.set(true);
-                    getLogger().error("Routing to failure.", e);
+                } else if (SplitText.this.headerMarker != null) {
+                    splitInfo = SplitText.this.computeHeader(demarcator, startOffset, Long.MAX_VALUE, SplitText.this.headerMarker.getBytes(StandardCharsets.UTF_8), null);
                 }
+                headerSplitInfoRef.set(splitInfo);
+            } catch (IllegalStateException e) {
+                error.set(true);
+                getLogger().error("Routing to failure.", e);
+            }
 
-                // Compute and collect fragments representing the individual splits
-                if (!error.get()) {
-                    if (headerSplitInfoRef.get() != null) {
-                        startOffset = headerSplitInfoRef.get().length;
-                    }
-                    long preAccumulatedLength = startOffset;
-                    while ((splitInfo = SplitText.this.nextSplit(demarcator, startOffset, SplitText.this.lineCount, splitInfo, preAccumulatedLength)) != null) {
-                        computedSplitsInfo.add(splitInfo);
-                        startOffset += splitInfo.length;
-                    }
-                    long stop = System.nanoTime();
-                    if (getLogger().isDebugEnabled()) {
-                        getLogger().debug("Computed splits in {} milliseconds.", (stop - start));
-                    }
+            // Compute and collect fragments representing the individual splits
+            if (!error.get()) {
+                if (headerSplitInfoRef.get() != null) {
+                    startOffset = headerSplitInfoRef.get().length;
+                }
+                long preAccumulatedLength = startOffset;
+                while ((splitInfo = SplitText.this.nextSplit(demarcator, startOffset, SplitText.this.lineCount, splitInfo, preAccumulatedLength)) != null) {
+                    computedSplitsInfo.add(splitInfo);
+                    startOffset += splitInfo.length;
+                }
+                long stop = System.nanoTime();
+                if (getLogger().isDebugEnabled()) {
+                    getLogger().debug("Computed splits in {} milliseconds.", (stop - start));
                 }
             }
         });
@@ -357,12 +351,9 @@ public class SplitText extends AbstractProcessor {
     private FlowFile concatenateContents(FlowFile sourceFlowFile, ProcessSession session, FlowFile... flowFiles) {
         FlowFile mergedFlowFile = session.create(sourceFlowFile);
         for (FlowFile flowFile : flowFiles) {
-            mergedFlowFile = session.append(mergedFlowFile, new OutputStreamCallback() {
-                @Override
-                public void process(OutputStream out) throws IOException {
-                    try (InputStream is = session.read(flowFile)) {
-                        IOUtils.copy(is, out);
-                    }
+            mergedFlowFile = session.append(mergedFlowFile, out -> {
+                try (InputStream is = session.read(flowFile)) {
+                    IOUtils.copy(is, out);
                 }
             });
         }
