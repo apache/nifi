@@ -325,7 +325,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
                 getLogger().info("Successfully sent {} Provenance Events to destination in {} ms; Transaction ID = {}; First Event ID = {}",
-                        new Object[] {events.size(), transferMillis, transactionId, events.get(0).getEventId()});
+                        events.size(), transferMillis, transactionId, events.get(0).getEventId());
             } catch (final Exception e) {
                 if (transaction != null) {
                     transaction.error();

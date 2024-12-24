@@ -417,7 +417,7 @@ public class DebugFlow extends AbstractProcessor {
                             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                                 if (logger.isErrorEnabled()) {
                                     logger.error("{} unexpected exception throwing DebugFlow exception: {}",
-                                        new Object[] {this, e});
+                                            this, e);
                                 }
                             }
                         } else {
@@ -461,8 +461,8 @@ public class DebugFlow extends AbstractProcessor {
                         if (flowFileCurrSuccess < flowFileMaxSuccess) {
                             flowFileCurrSuccess += 1;
                             logger.info("DebugFlow transferring to success file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                                    ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key()));
                             session.transfer(ff, REL_SUCCESS);
                             break;
                         } else {
@@ -475,8 +475,8 @@ public class DebugFlow extends AbstractProcessor {
                         if (flowFileCurrFailure < flowFileMaxFailure) {
                             flowFileCurrFailure += 1;
                             logger.info("DebugFlow transferring to failure file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                                    ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key()));
                             session.transfer(ff, REL_FAILURE);
                             break;
                         } else {
@@ -489,8 +489,8 @@ public class DebugFlow extends AbstractProcessor {
                         if (flowFileCurrRollback < flowFileMaxRollback) {
                             flowFileCurrRollback += 1;
                             logger.info("DebugFlow rolling back (no penalty) file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                                    ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key()));
                             session.rollback();
                             break;
                         } else {
@@ -503,8 +503,8 @@ public class DebugFlow extends AbstractProcessor {
                         if (flowFileCurrYield < flowFileMaxYield) {
                             flowFileCurrYield += 1;
                             logger.info("DebugFlow yielding file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                                    ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key()));
                             session.rollback();
                             context.yield();
                             return;
@@ -518,8 +518,8 @@ public class DebugFlow extends AbstractProcessor {
                         if (flowFileCurrPenalty < flowFileMaxPenalty) {
                             flowFileCurrPenalty += 1;
                             logger.info("DebugFlow rolling back (with penalty) file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                                    ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key()));
                             session.rollback(true);
                             break;
                         } else {
@@ -533,8 +533,8 @@ public class DebugFlow extends AbstractProcessor {
                             flowFileCurrException += 1;
                             String message = "forced by " + this.getClass().getName();
                             logger.info("DebugFlow throwing NPE file={} UUID={}",
-                                new Object[] {ff.getAttribute(CoreAttributes.FILENAME.key()),
-                                    ff.getAttribute(CoreAttributes.UUID.key())});
+                                    ff.getAttribute(CoreAttributes.FILENAME.key()),
+                                    ff.getAttribute(CoreAttributes.UUID.key()));
                             RuntimeException rte;
                             try {
                                 rte = flowFileExceptionClass.getConstructor(String.class).newInstance(message);
@@ -542,7 +542,7 @@ public class DebugFlow extends AbstractProcessor {
                             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                                 if (logger.isErrorEnabled()) {
                                     logger.error("{} unexpected exception throwing DebugFlow exception: {}",
-                                        new Object[] {this, e});
+                                            this, e);
                                 }
                             }
                         } else {

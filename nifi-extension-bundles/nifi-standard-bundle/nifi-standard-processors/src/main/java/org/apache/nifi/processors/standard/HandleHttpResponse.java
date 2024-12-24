@@ -148,7 +148,7 @@ public class HandleHttpResponse extends AbstractProcessor {
         final HttpServletResponse response = contextMap.getResponse(contextIdentifier);
         if (response == null) {
             getLogger().error("Failed to respond to HTTP request for {} because FlowFile had an '{}' attribute of {} but could not find an HTTP Response Object for this identifier",
-                    new Object[]{flowFile, HTTPUtils.HTTP_CONTEXT_ID, contextIdentifier});
+                    flowFile, HTTPUtils.HTTP_CONTEXT_ID, contextIdentifier);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

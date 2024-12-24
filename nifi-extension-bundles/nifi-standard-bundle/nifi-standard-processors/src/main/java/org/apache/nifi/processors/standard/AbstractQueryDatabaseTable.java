@@ -436,7 +436,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         sqlWriter.updateCounters(session);
 
                         logger.debug("{} contains {} records; transferring to 'success'",
-                                new Object[]{fileToProcess, nrOfRows.get()});
+                                fileToProcess, nrOfRows.get());
 
                         session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                         resultSetFlowFiles.add(fileToProcess);

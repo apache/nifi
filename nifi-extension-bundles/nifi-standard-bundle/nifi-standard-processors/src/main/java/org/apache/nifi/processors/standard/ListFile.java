@@ -1058,7 +1058,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             if (duration > maxDiskOperationMillis) {
                 final String fullPath = getFullPath();
                 logger.warn("This Processor completed action {} on {} in {} milliseconds, which exceeds the configured threshold of {} milliseconds",
-                    new Object[] {operation, fullPath, duration, maxDiskOperationMillis});
+                        operation, fullPath, duration, maxDiskOperationMillis);
             }
 
             if (logger.isTraceEnabled()) {
@@ -1332,7 +1332,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 }
 
                 logger.warn("This Processor has currently spent {} milliseconds performing the {} action on {}, which exceeds the configured threshold of {} milliseconds",
-                    new Object[] {activeTime, activeOperation.getOperation(), fullPath, maxDiskOperationMillis});
+                        activeTime, activeOperation.getOperation(), fullPath, maxDiskOperationMillis);
             }
         }
 
@@ -1347,7 +1347,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             if (activeMillis > maxListingMillis) {
                 final String fullPath = activeDirectory.isEmpty() ? "the base directory" : activeDirectory;
                 logger.warn("This processor has currently spent {} milliseconds performing the listing of {}, which exceeds the configured threshold of {} milliseconds",
-                    new Object[] {activeMillis, fullPath, maxListingMillis});
+                        activeMillis, fullPath, maxListingMillis);
             }
         }
     }

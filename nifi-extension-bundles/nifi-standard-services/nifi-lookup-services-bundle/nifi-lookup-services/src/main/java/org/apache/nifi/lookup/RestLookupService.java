@@ -372,7 +372,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug("Response code {} was returned for coordinate {}",
-                        new Object[]{response.code(), coordinates});
+                        response.code(), coordinates);
             }
 
             if (!response.isSuccessful()

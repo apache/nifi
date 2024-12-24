@@ -107,7 +107,7 @@ public class SequenceFileWriterImpl implements SequenceFileWriter {
             }
         });
         logger.debug("Wrote Sequence File {} ({}).",
-                new Object[]{sequenceFilename, watch.calculateDataRate(flowFile.getSize())});
+                sequenceFilename, watch.calculateDataRate(flowFile.getSize()));
         return sfFlowFile;
     }
 

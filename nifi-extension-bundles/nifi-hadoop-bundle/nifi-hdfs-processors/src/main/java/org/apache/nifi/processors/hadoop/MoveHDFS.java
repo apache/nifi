@@ -377,20 +377,20 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                                 // Remove destination file (newFile) to replace
                                 if (hdfs.delete(newFile, false)) {
                                     getLogger().info("deleted {} in order to replace with the contents of {}",
-                                            new Object[]{newFile, flowFile});
+                                            newFile, flowFile);
                                 }
                                 break;
                             case IGNORE_RESOLUTION:
                                 session.transfer(flowFile, REL_SUCCESS);
                                 getLogger().info(
                                         "transferring {} to success because file with same name already exists",
-                                        new Object[]{flowFile});
+                                        flowFile);
                                 return null;
                             case FAIL_RESOLUTION:
                                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                                 getLogger().warn(
                                         "penalizing {} and routing to failure because file with same name already exists",
-                                        new Object[]{flowFile});
+                                        flowFile);
                                 return null;
                             default:
                                 break;

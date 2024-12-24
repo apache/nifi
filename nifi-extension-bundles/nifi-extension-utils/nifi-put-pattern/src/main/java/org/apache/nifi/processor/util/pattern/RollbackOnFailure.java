@@ -132,7 +132,7 @@ public class RollbackOnFailure {
             if (adjusted != null) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Adjusted {} to {} based on context rollbackOnFailure={}, processedCount={}, transactional={}",
-                            new Object[]{t, adjusted, c.isRollbackOnFailure(), c.getProcessedCount(), c.isTransactional()});
+                            t, adjusted, c.isRollbackOnFailure(), c.getProcessedCount(), c.isTransactional());
                 }
                 return adjusted;
             }
