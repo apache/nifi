@@ -31,16 +31,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -140,19 +136,16 @@ public class ConvertCharacterSet extends AbstractProcessor {
 
         try {
             final StopWatch stopWatch = new StopWatch(true);
-            flowFile = session.write(flowFile, new StreamCallback() {
-                @Override
-                public void process(final InputStream rawIn, final OutputStream rawOut) throws IOException {
-                    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(rawIn, decoder), MAX_BUFFER_SIZE);
-                            final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(rawOut, encoder), MAX_BUFFER_SIZE)) {
-                        int charsRead;
-                        while ((charsRead = reader.read(charBuffer)) != -1) {
-                            charBuffer.flip();
-                            writer.write(charBuffer.array(), 0, charsRead);
-                        }
-
-                        writer.flush();
+            flowFile = session.write(flowFile, (rawIn, rawOut) -> {
+                try (final BufferedReader reader = new BufferedReader(new InputStreamReader(rawIn, decoder), MAX_BUFFER_SIZE);
+                        final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(rawOut, encoder), MAX_BUFFER_SIZE)) {
+                    int charsRead;
+                    while ((charsRead = reader.read(charBuffer)) != -1) {
+                        charBuffer.flip();
+                        writer.write(charBuffer.array(), 0, charsRead);
                     }
+
+                    writer.flush();
                 }
             });
 

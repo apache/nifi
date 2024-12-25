@@ -38,12 +38,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.network.parser.Netflowv5Parser;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -177,12 +175,9 @@ public class ParseNetflowv5 extends AbstractProcessor {
             // Add JSON Objects
             generateJSONUtil(results, parser, record++);
 
-            recordFlowFile = session.write(recordFlowFile, new OutputStreamCallback() {
-                @Override
-                public void process(OutputStream out) throws IOException {
-                    try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                        outputStream.write(MAPPER.writeValueAsBytes(results));
-                    }
+            recordFlowFile = session.write(recordFlowFile, out -> {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write(MAPPER.writeValueAsBytes(results));
                 }
             });
             // Adjust the FlowFile mime.type attribute
