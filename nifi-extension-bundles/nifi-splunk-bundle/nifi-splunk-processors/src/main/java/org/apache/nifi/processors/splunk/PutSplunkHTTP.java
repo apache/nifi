@@ -188,7 +188,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
                     // fall-through
                 default:
                     getLogger().error("Putting data into Splunk was not successful. Response with header {} was: {}",
-                            new Object[] {responseMessage.getStatus(), IOUtils.toString(responseMessage.getContent(), "UTF-8")});
+                            responseMessage.getStatus(), IOUtils.toString(responseMessage.getContent(), "UTF-8"));
             }
         } catch (final Exception e) {
             getLogger().error("Error during communication with Splunk: {}", e.getMessage(), e);

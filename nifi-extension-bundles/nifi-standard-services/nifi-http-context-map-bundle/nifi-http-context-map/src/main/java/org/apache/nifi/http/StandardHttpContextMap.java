@@ -189,7 +189,7 @@ public class StandardHttpContextMap extends AbstractControllerService implements
                         final AsyncContext async = entry.getValue().getAsync();
 
                         getLogger().warn("Request from {} timed out; responding with SERVICE_UNAVAILABLE",
-                                new Object[]{async.getRequest().getRemoteAddr()});
+                                async.getRequest().getRemoteAddr());
 
                         ((HttpServletResponse) async.getResponse()).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Timeout occurred");
                         async.complete();
