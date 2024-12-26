@@ -102,7 +102,7 @@
             <dependency>
                 <groupId>com.aayushatharva.brotli4j</groupId>
                 <artifactId>brotli4j</artifactId>
-                <version>1.17.0</version>
+                <version>1.18.0</version>
             </dependency>
             <dependency>
                 <groupId>org.tukaani</groupId>
@@ -221,12 +221,12 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.3.1-jre</version>
+                <version>33.4.0-jre</version>
             </dependency>
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-                <version>1.5.2</version>
+                <version>1.5.4</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
