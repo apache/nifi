@@ -69,7 +69,8 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
-            CREDENTIAL_CONFIGURATION_STRATEGY, MANAGED_IDENTITY_CLIENT_ID
+            CREDENTIAL_CONFIGURATION_STRATEGY,
+            MANAGED_IDENTITY_CLIENT_ID
     );
 
     private TokenCredential credentials;

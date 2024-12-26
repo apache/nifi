@@ -140,7 +140,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                     HEADERS_PATTERN,
                     HEADER_SEPARATOR
             ),
-            getCommonPropertyDescriptors().stream()
+            PARENT_PROPERTIES.stream()
     ).toList();
 
     private final static Set<Relationship> RELATIONSHIPS = Set.of(

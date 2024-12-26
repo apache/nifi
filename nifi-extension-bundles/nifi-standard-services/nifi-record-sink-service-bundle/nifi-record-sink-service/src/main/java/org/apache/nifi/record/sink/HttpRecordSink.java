@@ -46,8 +46,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,20 +92,20 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
             .required(false)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            API_URL,
+            MAX_BATCH_SIZE,
+            RECORD_WRITER_FACTORY,
+            WEB_SERVICE_CLIENT_PROVIDER,
+            OAUTH2_ACCESS_TOKEN_PROVIDER
+    );
+
     private String apiUrl;
     private int maxBatchSize;
     private volatile RecordSetWriterFactory writerFactory;
     private WebClientServiceProvider webClientServiceProvider;
     private volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
     Map<String, String> dynamicHttpHeaders;
-
-    public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            API_URL,
-            MAX_BATCH_SIZE,
-            RECORD_WRITER_FACTORY,
-            WEB_SERVICE_CLIENT_PROVIDER,
-            OAUTH2_ACCESS_TOKEN_PROVIDER
-    ));
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {

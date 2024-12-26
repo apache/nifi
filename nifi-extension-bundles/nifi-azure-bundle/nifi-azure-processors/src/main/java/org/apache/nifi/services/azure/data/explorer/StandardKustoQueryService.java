@@ -83,7 +83,7 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
             .dependsOn(AUTHENTICATION_STRATEGY, KustoAuthenticationStrategy.APPLICATION_CREDENTIALS)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             CLUSTER_URI,
             AUTHENTICATION_STRATEGY,
             APPLICATION_CLIENT_ID,
@@ -95,7 +95,7 @@ public class StandardKustoQueryService extends AbstractControllerService impleme
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTY_DESCRIPTORS;
+        return PROPERTIES;
     }
 
     public static final Pair<String, String> NIFI_SOURCE = Pair.of("processor", "nifi-source");
