@@ -141,7 +141,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     private static final Object RESOURCES_LOCK = new Object();
     private static final HdfsResources EMPTY_HDFS_RESOURCES = new HdfsResources(null, null, null, null);
 
-    protected List<PropertyDescriptor> properties;
+    protected static final List<PropertyDescriptor> PARENT_PROPERTIES = List.of(
+            HADOOP_CONFIGURATION_RESOURCES,
+            KERBEROS_USER_SERVICE,
+            ADDITIONAL_CLASSPATH_RESOURCES
+    );
 
     // variables shared by all threads of this processor
     // Hadoop Configuration, Filesystem, and UserGroupInformation (optional)
@@ -153,12 +157,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     @Override
     protected void init(ProcessorInitializationContext context) {
         hdfsResources.set(EMPTY_HDFS_RESOURCES);
-
-        properties = List.of(
-                HADOOP_CONFIGURATION_RESOURCES,
-                KERBEROS_USER_SERVICE,
-                ADDITIONAL_CLASSPATH_RESOURCES
-        );
     }
 
     @Override
@@ -172,7 +170,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PARENT_PROPERTIES;
     }
 
     @Override

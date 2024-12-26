@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.services.dropbox;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -77,16 +75,12 @@ public class StandardDropboxCredentialService extends AbstractControllerService 
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES;
-
-    static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(APP_KEY);
-        props.add(APP_SECRET);
-        props.add(ACCESS_TOKEN);
-        props.add(REFRESH_TOKEN);
-        PROPERTIES = Collections.unmodifiableList(props);
-    }
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            APP_KEY,
+            APP_SECRET,
+            ACCESS_TOKEN,
+            REFRESH_TOKEN
+    );
 
     private DropboxCredentialDetails credential;
 
