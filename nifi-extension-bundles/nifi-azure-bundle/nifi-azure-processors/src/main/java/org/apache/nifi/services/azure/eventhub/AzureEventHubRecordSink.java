@@ -125,7 +125,7 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
             .required(false)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             SERVICE_BUS_ENDPOINT,
             EVENT_HUB_NAMESPACE,
             EVENT_HUB_NAME,
@@ -143,7 +143,7 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTY_DESCRIPTORS;
+        return PROPERTIES;
     }
 
     protected EventHubProducerClient createEventHubClient(final String namespace,

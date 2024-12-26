@@ -39,8 +39,6 @@ import org.apache.nifi.serialization.record.RecordSet;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,13 +78,11 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
             .defaultValue("2")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
-            Arrays.asList(
-                    HOSTNAME,
-                    PORT,
-                    RECORD_WRITER_FACTORY,
-                    SENDER_THREADS
-            )
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+        HOSTNAME,
+        PORT,
+        RECORD_WRITER_FACTORY,
+        SENDER_THREADS
     );
 
     private static final String TRANSIT_URI_ATTRIBUTE_KEY = "record.sink.url";
@@ -101,7 +97,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTY_DESCRIPTORS;
+        return PROPERTIES;
     }
 
     @OnEnabled
