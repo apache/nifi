@@ -59,7 +59,7 @@ public class ParamProviderResult extends AbstractWritableResult<ParameterProvide
                 .column("Property Value", 20, 80, false)
                 .build();
         if (parameterProviderDTO.getProperties() != null && !parameterProviderDTO.getProperties().isEmpty()) {
-            parameterProviderDTO.getProperties().forEach((name, value) -> propertiesTable.addRow(new String[] {name, value}));
+            parameterProviderDTO.getProperties().forEach((name, value) -> propertiesTable.addRow(name, value));
         }
         final Table fetchedParametersTable = new Table.Builder()
                 .column("Parameter Group", 20, 60, false)
@@ -70,12 +70,12 @@ public class ParamProviderResult extends AbstractWritableResult<ParameterProvide
         if (!sortedParameterNameGroups.isEmpty()) {
             sortedParameterNameGroups.forEach(group -> {
                 group.getParameterSensitivities().keySet().stream().sorted()
-                        .forEach(param -> fetchedParametersTable.addRow(new String[] {
+                        .forEach(param -> fetchedParametersTable.addRow(
                                 group.getGroupName(),
                                 getParameterContextId(group.getParameterContextName()),
                                 group.getParameterContextName(),
                                 param
-                        }));
+                        ));
             });
         }
 
