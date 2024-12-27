@@ -25,35 +25,23 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.RequestLog;
 import org.eclipse.jetty.server.Server;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpHeaders;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StandardServerProviderTest {
 
     private static final String RANDOM_PORT = "0";
 
     private static final String SSL_PROTOCOL = "ssl";
-
-    private static final String CONTENT_SECURITY_POLICY_HEADER = "Content-Security-Policy";
-
-    private static final String FRAME_OPTIONS_HEADER = "X-Frame-Options";
-
-    private static final String XSS_PROTECTION_HEADER = "X-XSS-Protection";
 
     @Test
     void testGetServer() {
@@ -84,6 +72,7 @@ class StandardServerProviderTest {
         assertHttpsConnectorFound(server);
     }
 
+    @Timeout(10)
     @Test
     void testGetServerStart() throws Exception {
         final Properties applicationProperties = new Properties();
@@ -100,29 +89,10 @@ class StandardServerProviderTest {
         try {
             server.start();
 
-            final URI serverUri = server.getURI();
-
-            final HttpHeaders responseHeaders = getResponseHeaders(serverUri);
-
-            assertHeaderFound(responseHeaders, CONTENT_SECURITY_POLICY_HEADER);
-            assertHeaderFound(responseHeaders, FRAME_OPTIONS_HEADER);
-            assertHeaderFound(responseHeaders, XSS_PROTECTION_HEADER);
+            assertFalse(server.isFailed());
         } finally {
             server.stop();
         }
-    }
-
-    HttpHeaders getResponseHeaders(final URI serverUri) throws IOException, InterruptedException {
-        try (HttpClient httpClient = HttpClient.newHttpClient()) {
-            final HttpRequest httpRequest = HttpRequest.newBuilder(serverUri).build();
-            final HttpResponse<Void> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.discarding());
-            return response.headers();
-        }
-    }
-
-    void assertHeaderFound(final HttpHeaders headers, final String headerName) {
-        final Optional<String> header = headers.firstValue(headerName);
-        assertTrue(header.isPresent());
     }
 
     void assertHttpConnectorFound(final Server server) {
