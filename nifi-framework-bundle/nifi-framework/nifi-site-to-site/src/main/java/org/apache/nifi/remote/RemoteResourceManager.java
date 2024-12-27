@@ -59,7 +59,7 @@ public class RemoteResourceManager {
             final Class<? extends FlowFileCodec> previousValue = codecMap.put(codecName, clazz);
             if (previousValue != null) {
                 logger.warn("Multiple FlowFileCodec's found with name {}; choosing to use {} in place of {}",
-                        new Object[]{codecName, clazz.getName(), previousValue.getName()});
+                        codecName, clazz.getName(), previousValue.getName());
             }
         }
 

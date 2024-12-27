@@ -123,7 +123,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
     public User addUser(final User user) throws AuthorizationAccessException {
         Objects.requireNonNull(user);
         final String sql = "INSERT INTO UGP_USER(IDENTIFIER, IDENTITY) VALUES (?, ?)";
-        jdbcTemplate.update(sql, new Object[] {user.getIdentifier(), user.getIdentity()});
+        jdbcTemplate.update(sql, user.getIdentifier(), user.getIdentity());
         return user;
     }
 
