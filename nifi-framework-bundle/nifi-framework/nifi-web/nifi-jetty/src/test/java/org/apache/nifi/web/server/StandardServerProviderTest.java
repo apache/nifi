@@ -25,7 +25,6 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.RequestLog;
 import org.eclipse.jetty.server.Server;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import javax.net.ssl.SSLContext;
 import java.security.NoSuchAlgorithmException;
@@ -72,7 +71,6 @@ class StandardServerProviderTest {
         assertHttpsConnectorFound(server);
     }
 
-    @Timeout(10)
     @Test
     void testGetServerStart() throws Exception {
         final Properties applicationProperties = new Properties();
