@@ -21,44 +21,51 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.KeyTypeException;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jose.jca.JCAContext;
 import com.nimbusds.jose.proc.JWSVerifierFactory;
 
 import java.security.Key;
 import java.security.PublicKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Set;
 
 /**
- * Ed25519 implementation of Verifier Factory
+ * Standard implementation of JSON Web Signature Verifier Factory
  */
-public class Ed25519VerifierFactory implements JWSVerifierFactory {
-    private static final Set<JWSAlgorithm> SUPPORTED_ALGORITHMS = Set.of(JWSAlgorithm.EdDSA);
+public class StandardJWSVerifierFactory implements JWSVerifierFactory {
+    /** Supported Algorithms aligned with supported Signers */
+    private static final Set<JWSAlgorithm> SUPPORTED_ALGORITHMS = Set.of(JWSAlgorithm.EdDSA, JWSAlgorithm.PS512);
 
     private final JCAContext jcaContext = new JCAContext();
 
     /**
-     * Create JSON Web Security Verifier for EdDSA using Ed25519 Public Key
+     * Create JSON Web Security Verifier for EdDSA using Ed25519 Public Key or PS512 using RSA Public Key
      *
      * @param jwsHeader JSON Web Security Header
-     * @param key Ed25519 Public Key required
+     * @param key Ed25519 or RSA Public Key required
      * @return JSON Web Security Verifier
      * @throws JOSEException Thrown on failure to create verifier
      */
     @Override
     public JWSVerifier createJWSVerifier(final JWSHeader jwsHeader, final Key key) throws JOSEException {
         final JWSAlgorithm algorithm = jwsHeader.getAlgorithm();
+        final JWSVerifier verifier;
 
         if (SUPPORTED_ALGORITHMS.contains(algorithm)) {
-           if (key instanceof PublicKey publicKey) {
-                final Ed25519Verifier verifier = new Ed25519Verifier(publicKey);
-                verifier.getJCAContext().setProvider(jcaContext.getProvider());
-                return verifier;
-           } else {
+            if (key instanceof RSAPublicKey rsaPublicKey) {
+                verifier = new RSASSAVerifier(rsaPublicKey);
+            } else if (key instanceof PublicKey publicKey) {
+                verifier = new Ed25519Verifier(publicKey);
+            } else {
                throw new KeyTypeException(PublicKey.class);
-           }
+            }
         } else {
             throw new JOSEException("JWS Algorithm [%s] not supported".formatted(algorithm));
         }
+
+        verifier.getJCAContext().setProvider(jcaContext.getProvider());
+        return verifier;
     }
 
     @Override
