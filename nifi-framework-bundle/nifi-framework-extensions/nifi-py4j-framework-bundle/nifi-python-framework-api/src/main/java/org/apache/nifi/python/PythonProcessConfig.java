@@ -35,6 +35,7 @@ public class PythonProcessConfig {
     private final boolean debugController;
     private final String debugHost;
     private final int debugPort;
+    private final boolean dependencyInstallSequential;
 
     private PythonProcessConfig(final Builder builder) {
         this.pythonCommand = builder.pythonCommand;
@@ -47,6 +48,7 @@ public class PythonProcessConfig {
         this.debugController = builder.debugController;
         this.debugPort = builder.debugPort;
         this.debugHost = builder.debugHost;
+        this.dependencyInstallSequential = builder.dependencyInstallSequential;
     }
 
     public String getPythonCommand() {
@@ -89,6 +91,10 @@ public class PythonProcessConfig {
         return debugPort;
     }
 
+    public boolean getDependencyInstallSequential() {
+        return dependencyInstallSequential;
+    }
+
     public static class Builder {
         private String pythonCommand = "python3";
         private File pythonFrameworkDirectory = new File("python/framework");
@@ -100,6 +106,7 @@ public class PythonProcessConfig {
         private boolean debugController = false;
         private String debugHost = "localhost";
         private int debugPort = 5678;
+        private boolean dependencyInstallSequential = false;
 
 
         public Builder pythonCommand(final String command) {
@@ -161,6 +168,11 @@ public class PythonProcessConfig {
 
         public Builder debugHost(final String debugHost) {
             this.debugHost = debugHost;
+            return this;
+        }
+
+        public Builder dependencyInstallSequential(final boolean dependencyInstallSequential) {
+            this.dependencyInstallSequential = dependencyInstallSequential;
             return this;
         }
 

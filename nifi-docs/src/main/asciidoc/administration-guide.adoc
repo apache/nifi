@@ -251,6 +251,7 @@ that can be allocated for each individual type of Processor.
 | nifi.python.max.processes | 100 | The maximum number of Python processes to spawn for all Processors combined. Once this limit is reached, if another Processor is added to the NiFi canvas,
 the newly added Processor will be added to one of the existing Python processes that was allocated for other Processors of the same type. If there are no other Python processes allocated for
 the same type, an Exception will be thrown and the Processor will not be added to the canvas.
+| nifi.python.dependency.install.sequential | false | The value controls whether dependencies are downloaded and installed sequentially or in parallel when initializing multiple Python processor
 |==================================================================================================================================================
 
 
