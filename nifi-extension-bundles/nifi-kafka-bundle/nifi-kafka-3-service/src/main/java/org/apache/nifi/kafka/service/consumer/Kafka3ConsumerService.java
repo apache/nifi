@@ -185,7 +185,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable {
                 recordHeaders.add(recordHeader);
             });
 
-            // NIFI-14122: Support Kafka tombstones
+            // Support Kafka tombstones
             byte[] value = consumerRecord.value();
             if (value == null) {
                 value = new byte[0];
