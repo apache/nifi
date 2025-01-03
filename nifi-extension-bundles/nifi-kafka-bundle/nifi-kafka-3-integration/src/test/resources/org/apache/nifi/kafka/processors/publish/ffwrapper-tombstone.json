@@ -1,0 +1,21 @@
+[
+  {
+    "headers": {
+      "a1": "valueA1"
+    },
+    "key": {
+      "street-number": 105,
+      "street-name": "Main"
+    },
+    "value": null
+  },
+  {
+    "headers": {
+      "a1": "valueA1"
+    },
+    "key": {
+      "street-number": 305,
+      "street-name": "Main"
+    }
+  }
+]
