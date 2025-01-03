@@ -52,10 +52,10 @@ public class FlowFileStreamKafkaRecordConverter implements KafkaRecordConverter 
         if (Boolean.TRUE.toString().equals(attributes.get(KafkaFlowFileAttribute.KAFKA_TOMBSTONE)) && inputLength == 0) {
             recordBytes = null;
         } else {
-	        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-	            in.transferTo(baos);
-	            recordBytes = baos.toByteArray();
-	        }
+            try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                in.transferTo(baos);
+                recordBytes = baos.toByteArray();
+            }
         }
 
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, keyFactory.getKey(attributes, null), recordBytes, headersFactory.getHeaders(attributes));
