@@ -185,6 +185,12 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable {
                 recordHeaders.add(recordHeader);
             });
 
+            // NIFI-14122: Support Kafka tombstones
+            byte[] value = consumerRecord.value();
+            if (value == null) {
+                value = new byte[0];
+            }
+
             return new ByteRecord(
                     consumerRecord.topic(),
                     consumerRecord.partition(),
@@ -192,7 +198,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable {
                     consumerRecord.timestamp(),
                     recordHeaders,
                     consumerRecord.key(),
-                    consumerRecord.value(),
+                    value,
                     1
             );
         }

@@ -20,6 +20,7 @@ import org.apache.nifi.kafka.processors.producer.common.ProducerUtils;
 import org.apache.nifi.kafka.processors.producer.header.HeadersFactory;
 import org.apache.nifi.kafka.processors.producer.key.KeyFactory;
 import org.apache.nifi.kafka.service.api.record.KafkaRecord;
+import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -48,9 +49,13 @@ public class FlowFileStreamKafkaRecordConverter implements KafkaRecordConverter 
         ProducerUtils.checkMessageSize(maxMessageSize, inputLength);
 
         final byte[] recordBytes;
-        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            in.transferTo(baos);
-            recordBytes = baos.toByteArray();
+        if (Boolean.TRUE.toString().equals(attributes.get(KafkaFlowFileAttribute.KAFKA_TOMBSTONE)) && inputLength == 0) {
+            recordBytes = null;
+        } else {
+	        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+	            in.transferTo(baos);
+	            recordBytes = baos.toByteArray();
+	        }
         }
 
         final KafkaRecord kafkaRecord = new KafkaRecord(null, null, null, keyFactory.getKey(attributes, null), recordBytes, headersFactory.getHeaders(attributes));
