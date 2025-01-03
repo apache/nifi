@@ -53,7 +53,6 @@ import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
-import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -149,14 +148,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             )
             .build();
 
-    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-credentials-service")
-            .displayName("Kerberos Credentials Service")
-            .description("Service supporting generalized credentials authentication with Kerberos")
-            .identifiesControllerService(KerberosUserService.class)
-            .required(false)
-            .build();
-
     public static final PropertyDescriptor SELF_CONTAINED_KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
             .name("kerberos-user-service")
             .displayName("Kerberos User Service")
@@ -239,7 +230,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             SASL_MECHANISM,
             SASL_USERNAME,
             SASL_PASSWORD,
-            KERBEROS_CREDENTIALS_SERVICE,
             SELF_CONTAINED_KERBEROS_USER_SERVICE,
             KERBEROS_SERVICE_NAME,
             SSL_CONTEXT_SERVICE,
