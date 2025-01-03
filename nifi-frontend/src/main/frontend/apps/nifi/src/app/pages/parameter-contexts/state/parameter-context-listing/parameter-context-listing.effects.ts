@@ -534,11 +534,14 @@ export class ParameterContextListingEffects {
                 ofType(ParameterContextListingActions.promptParameterContextDeletion),
                 map((action) => action.request),
                 tap((request) => {
+                    // @ts-ignore - component will be defined since the user has permissions to delete the context, but it is optional as defined by the type
+                    const name = request.parameterContext.component.name;
+
                     const dialogReference = this.dialog.open(YesNoDialog, {
                         ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Parameter Context',
-                            message: `Delete parameter context ${request.parameterContext.component.name}?`
+                            message: `Delete parameter context ${name}?`
                         }
                     });
 

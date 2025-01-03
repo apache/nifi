@@ -28,7 +28,8 @@ describe('EditProcessGroup', () => {
     let component: EditProcessGroup;
     let fixture: ComponentFixture<EditProcessGroup>;
 
-    const parameterContextId = '95d509b9-018b-1000-daff-b7957ea7934f';
+    const noPermissionsParameterContextId = '95d509b9-018b-1000-daff-b7957ea7935e';
+    const selectedParameterContextId = '95d509b9-018b-1000-daff-b7957ea7934f';
     const data: any = {
         type: 'ProcessGroup',
         uri: 'https://localhost:4200/nifi-api/process-groups/162380af-018c-1000-a7eb-f5d06f77168b',
@@ -63,7 +64,7 @@ describe('EditProcessGroup', () => {
                 defaultBackPressureObjectThreshold: 10000,
                 defaultBackPressureDataSizeThreshold: '1 GB',
                 parameterContext: {
-                    id: parameterContextId
+                    id: selectedParameterContextId
                 },
                 executionEngine: 'INHERITED',
                 maxConcurrentTasks: 1,
@@ -106,6 +107,38 @@ describe('EditProcessGroup', () => {
             outputPortCount: 0
         }
     };
+    const parameterContexts = [
+        {
+            revision: {
+                version: 0
+            },
+            id: selectedParameterContextId,
+            uri: '',
+            permissions: {
+                canRead: true,
+                canWrite: true
+            },
+            component: {
+                name: 'params 2',
+                description: '',
+                parameters: [],
+                boundProcessGroups: [],
+                inheritedParameterContexts: [],
+                id: '95d509b9-018b-1000-daff-b7957ea7934f'
+            }
+        },
+        {
+            revision: {
+                version: 0
+            },
+            id: noPermissionsParameterContextId,
+            uri: '',
+            permissions: {
+                canRead: false,
+                canWrite: false
+            }
+        }
+    ];
 
     beforeEach(() => {
         TestBed.configureTestingModule({
@@ -124,27 +157,7 @@ describe('EditProcessGroup', () => {
         });
         fixture = TestBed.createComponent(EditProcessGroup);
         component = fixture.componentInstance;
-        component.parameterContexts = [
-            {
-                revision: {
-                    version: 0
-                },
-                id: parameterContextId,
-                uri: '',
-                permissions: {
-                    canRead: true,
-                    canWrite: true
-                },
-                component: {
-                    name: 'params 2',
-                    description: '',
-                    parameters: [],
-                    boundProcessGroups: [],
-                    inheritedParameterContexts: [],
-                    id: '95d509b9-018b-1000-daff-b7957ea7934f'
-                }
-            }
-        ];
+        component.parameterContexts = parameterContexts;
 
         fixture.detectChanges();
     });
@@ -154,7 +167,78 @@ describe('EditProcessGroup', () => {
     });
 
     it('verify parameter context value', () => {
-        expect(component.parameterContextsOptions.length).toEqual(2);
-        expect(component.editProcessGroupForm.get('parameterContext')?.value).toEqual(parameterContextId);
+        expect(component.parameterContextsOptions.length).toEqual(3);
+        expect(component.editProcessGroupForm.get('parameterContext')?.value).toEqual(selectedParameterContextId);
+    });
+
+    describe('no permissions to available parameter context', () => {
+        it('verify selected parameter context with permissions', () => {
+            expect(component.parameterContextsOptions.length).toEqual(3);
+            component.parameterContextsOptions.forEach((parameterContextsOption) => {
+                if (parameterContextsOption.value === noPermissionsParameterContextId) {
+                    expect(parameterContextsOption.disabled).toBeTruthy();
+                } else if (parameterContextsOption.value === selectedParameterContextId) {
+                    expect(parameterContextsOption.disabled).toBeFalsy();
+                }
+            });
+        });
+
+        it('verify selected parameter context with no permissions', () => {
+            // change the selected parameter context to one with no permissions
+            component.request = {
+                ...data,
+                entity: {
+                    ...data.entity,
+                    component: {
+                        ...data.entity.component,
+                        parameterContext: {
+                            id: noPermissionsParameterContextId
+                        }
+                    }
+                }
+            };
+
+            // reset the parameter contexts to rebuild the options
+            component.parameterContexts = [...parameterContexts];
+
+            fixture.detectChanges();
+
+            expect(component.parameterContextsOptions.length).toEqual(3);
+            component.parameterContextsOptions.forEach((parameterContextsOption) => {
+                if (parameterContextsOption.value === noPermissionsParameterContextId) {
+                    expect(parameterContextsOption.disabled).toBeFalsy();
+                } else if (parameterContextsOption.value === selectedParameterContextId) {
+                    expect(parameterContextsOption.disabled).toBeFalsy();
+                }
+            });
+        });
+
+        it('verify no selected parameter context', () => {
+            // clear the selected parameter context
+            component.request = {
+                ...data,
+                entity: {
+                    ...data.entity,
+                    component: {
+                        ...data.entity.component,
+                        parameterContext: undefined
+                    }
+                }
+            };
+
+            // reset the parameter contexts to rebuild the options
+            component.parameterContexts = [...parameterContexts];
+
+            fixture.detectChanges();
+
+            expect(component.parameterContextsOptions.length).toEqual(3);
+            component.parameterContextsOptions.forEach((parameterContextsOption) => {
+                if (parameterContextsOption.value === noPermissionsParameterContextId) {
+                    expect(parameterContextsOption.disabled).toBeTruthy();
+                } else if (parameterContextsOption.value === selectedParameterContextId) {
+                    expect(parameterContextsOption.disabled).toBeFalsy();
+                }
+            });
+        });
     });
 });

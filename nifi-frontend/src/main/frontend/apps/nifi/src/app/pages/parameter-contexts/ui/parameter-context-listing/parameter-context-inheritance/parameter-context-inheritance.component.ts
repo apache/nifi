@@ -113,7 +113,7 @@ export class ParameterContextInheritance implements ControlValueAccessor {
     }
 
     hasDescription(entity: ParameterContextEntity): boolean {
-        return !this.nifiCommon.isBlank(entity.component.description);
+        return !this.nifiCommon.isBlank(entity.component?.description);
     }
 
     removeSelected(entity: ParameterContextEntity, i: number): void {
@@ -172,12 +172,15 @@ export class ParameterContextInheritance implements ControlValueAccessor {
 
     private serializeInheritedParameterContexts(): ParameterContextReferenceEntity[] {
         return this.selectedParameterContexts.map((parameterContext) => {
+            // @ts-ignore - component will be defined since the user has permissions to inherit from the context, but it is optional as defined by the type
+            const name = parameterContext.component.name;
+
             return {
                 permissions: parameterContext.permissions,
                 id: parameterContext.id,
                 component: {
-                    id: parameterContext.component.id,
-                    name: parameterContext.component.name
+                    id: parameterContext.id,
+                    name
                 }
             };
         });
