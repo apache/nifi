@@ -548,27 +548,22 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         }
 
         protected PathFilter getPathFilter(final Path dir) {
-            return new PathFilter() {
-
-                @Override
-                public boolean accept(Path path) {
-                    if (ignoreDottedFiles && path.getName().startsWith(".")) {
-                        return false;
-                    }
-                    final String pathToCompare;
-                    String relativePath = getPathDifference(dir, path);
-                    if (relativePath.length() == 0) {
-                        pathToCompare = path.getName();
-                    } else {
-                        pathToCompare = relativePath + Path.SEPARATOR + path.getName();
-                    }
-
-                    if (fileFilterPattern != null && !fileFilterPattern.matcher(pathToCompare).matches()) {
-                        return false;
-                    }
-                    return true;
+            return path -> {
+                if (ignoreDottedFiles && path.getName().startsWith(".")) {
+                    return false;
+                }
+                final String pathToCompare;
+                String relativePath = getPathDifference(dir, path);
+                if (relativePath.length() == 0) {
+                    pathToCompare = path.getName();
+                } else {
+                    pathToCompare = relativePath + Path.SEPARATOR + path.getName();
                 }
 
+                if (fileFilterPattern != null && !fileFilterPattern.matcher(pathToCompare).matches()) {
+                    return false;
+                }
+                return true;
             };
         }
     }
