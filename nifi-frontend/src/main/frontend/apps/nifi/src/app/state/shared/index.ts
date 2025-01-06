@@ -281,7 +281,7 @@ export interface ParameterContextEntity {
     permissions: Permissions;
     id: string;
     uri: string;
-    component: ParameterContext;
+    component?: ParameterContext;
 }
 
 export interface ParameterContext {
