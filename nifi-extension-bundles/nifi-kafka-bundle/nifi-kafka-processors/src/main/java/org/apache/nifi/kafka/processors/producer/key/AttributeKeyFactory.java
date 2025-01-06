@@ -30,14 +30,13 @@ public class AttributeKeyFactory implements KeyFactory {
 
     public AttributeKeyFactory(final String keyAttribute,
                                final String keyAttributeEncoding) {
-        this.keyAttribute = keyAttribute;
+        this.keyAttribute = (keyAttribute == null) ? KafkaFlowFileAttribute.KAFKA_KEY : keyAttribute;
         this.keyAttributeEncoding = Optional.ofNullable(keyAttributeEncoding).orElse(StandardCharsets.UTF_8.name());
     }
 
     @Override
     public byte[] getKey(final Map<String, String> attributes, final Record record) throws UnsupportedEncodingException {
-        final String keyAttributeEffective = (keyAttribute == null) ? KafkaFlowFileAttribute.KAFKA_KEY : keyAttribute;
-        final String keyAttributeValue = attributes.get(keyAttributeEffective);
+        final String keyAttributeValue = attributes.get(keyAttribute);
         return (keyAttributeValue == null) ? null : keyAttributeValue.getBytes(keyAttributeEncoding);
     }
 }
