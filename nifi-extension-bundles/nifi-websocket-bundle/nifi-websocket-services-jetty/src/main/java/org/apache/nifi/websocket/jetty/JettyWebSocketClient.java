@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
@@ -48,6 +49,12 @@ import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 import javax.net.ssl.SSLContext;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import com.google.gson.JsonParser;
+import java.io.FileReader;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -172,7 +179,6 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .sensitive(true)
             .build();
 
-
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
             .name("proxy-host")
             .displayName("HTTP Proxy Host")
@@ -189,6 +195,62 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+
+    public static final AllowableValue NO_AUTH = new AllowableValue("NOAUTH", "None", "No Authorization");
+    public static final AllowableValue JWT_AUTH = new AllowableValue("JWT", "JWT", "JWT Token");
+
+    public static final PropertyDescriptor AUTHORIZATION_TYPE = new PropertyDescriptor.Builder()
+            .name("auth-type")
+            .displayName("Authorization")
+            .description("Authorization Type.")
+            .required(false)
+            .allowableValues(JWT_AUTH)
+            .defaultValue((String) null)
+            .build();
+
+    public static final PropertyDescriptor JWT_JSON_FILE = new PropertyDescriptor.Builder()
+            .name("json-file")
+            .displayName("JWT Payload File Path")
+            .description("Path of payload file to generate JWT token.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .dependsOn(AUTHORIZATION_TYPE, JWT_AUTH)
+            .sensitive(false)
+            .build();
+    public static final PropertyDescriptor JWT_SIGNATURE_ALGO = new PropertyDescriptor.Builder()
+            .name("jwt-signature-algorithm")
+            .displayName("JWT Signature Algorithm")
+            .description("The JWT signature algorithm to genarate JWT token.")
+            .required(true)
+            .allowableValues("HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "PS256", "PS384", "PS512")
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .dependsOn(AUTHORIZATION_TYPE, JWT_AUTH)
+            .sensitive(false)
+            .build();
+    public static final PropertyDescriptor JWT_SECRET_KEY = new PropertyDescriptor.Builder()
+            .name("jwt-secret-key")
+            .displayName("JWT Secret Key")
+            .description("JWT secret key to generate JWT token")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .dependsOn(AUTHORIZATION_TYPE, JWT_AUTH)
+            .sensitive(true)
+            .build();
+
+    public static final AllowableValue HEADER_AUTHEN = new AllowableValue("AUTHEN_HEADER", "AUTHENTICATION", "Authentication Header");
+    public static final AllowableValue HEADER_AUTHOR = new AllowableValue("AUTHOR_HEADER", "AUTHORIZATION", "Authorization Header");
+
+    public static final PropertyDescriptor JWT_HTTP_HEADER = new PropertyDescriptor.Builder()
+            .name("header-type")
+            .displayName("HTTP Header")
+            .description("HTTP Header to use.")
+            .required(true)
+            .allowableValues(HEADER_AUTHOR, HEADER_AUTHEN)
+            .dependsOn(AUTHORIZATION_TYPE, JWT_AUTH)
+            .defaultValue(HEADER_AUTHOR.getValue())
             .build();
 
     private static final int INITIAL_BACKOFF_MILLIS = 100;
@@ -209,6 +271,12 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(PROXY_HOST);
         props.add(PROXY_PORT);
 
+        props.add(AUTHORIZATION_TYPE);
+        props.add(JWT_JSON_FILE);
+        props.add(JWT_SIGNATURE_ALGO);
+        props.add(JWT_SECRET_KEY);
+        props.add(JWT_HTTP_HEADER);
+
         properties = Collections.unmodifiableList(props);
     }
 
@@ -221,6 +289,8 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private volatile ScheduledExecutorService sessionMaintenanceScheduler;
     private ConfigurationContext configurationContext;
     protected String authorizationHeader;
+    private String JWTHeader;
+    private static final String BEARER = "Bearer ";
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -262,8 +332,24 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         final String userPassword = context.getProperty(USER_PASSWORD).evaluateAttributeExpressions().getValue();
         final String customAuth = context.getProperty(CUSTOM_AUTH).evaluateAttributeExpressions().getValue();
 
+        boolean isJwtEnabled = false;
+
+        final String authType = context.getProperty(AUTHORIZATION_TYPE).getValue();
+        if (authType != null && authType.equals("JWT"))
+            isJwtEnabled = true;
+
         if (!StringUtils.isEmpty(customAuth)) {
             authorizationHeader = customAuth;
+        } else if (isJwtEnabled) {
+            final String jsonFile = context.getProperty(JWT_JSON_FILE).evaluateAttributeExpressions().getValue();
+            final String jwtSignatureAlgo = context.getProperty(JWT_SIGNATURE_ALGO).evaluateAttributeExpressions().getValue();
+            final String jwtKey = context.getProperty(JWT_SECRET_KEY).evaluateAttributeExpressions().getValue();
+            String jwtToken = null;
+            jwtToken = generateJwt(jsonFile, jwtSignatureAlgo, jwtKey);
+            if (null == jwtToken) {
+                throw new SecurityException();
+            }
+            JWTHeader = BEARER + jwtToken;
         } else if (!StringUtils.isEmpty(userName) && !StringUtils.isEmpty(userPassword)) {
             final String charsetName = context.getProperty(AUTH_CHARSET).evaluateAttributeExpressions().getValue();
             if (StringUtils.isEmpty(charsetName)) {
@@ -274,6 +360,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             authorizationHeader = "Basic " + base64String;
         } else {
             authorizationHeader = null;
+            JWTHeader = null;
         }
 
         client.start();
@@ -311,7 +398,24 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                     "Properties related to Basic Authentication (\"User Name\" and \"User Password\") cannot be used together with \"Custom Authorization\"")).build());
         }
 
+        boolean isJwtEnabled = false;
+
+        final String authType = validationContext.getProperty(AUTHORIZATION_TYPE).getValue();
+        if (authType.equals("JWT"))
+            isJwtEnabled = true;
+
+        if (isJwtEnabled && !isJwtConfiguredProperly(validationContext)) {
+            results.add(new ValidationResult.Builder().subject("JWT")
+                .explanation("if JWT authentication is enabled jsonFile jwtSignature and jwtKey is mandatory").valid(false).build());
+        }
         return results;
+    }
+
+    private boolean isJwtConfiguredProperly(ValidationContext validationContext) {
+        final String jsonFile = validationContext.getProperty(JWT_JSON_FILE).evaluateAttributeExpressions().getValue();
+        final String  jwtSignature = validationContext.getProperty(JWT_SIGNATURE_ALGO).evaluateAttributeExpressions().getValue();
+        final String jwtKey = validationContext.getProperty(JWT_SECRET_KEY).evaluateAttributeExpressions().getValue();
+        return !(StringUtils.isEmpty(jsonFile) || StringUtils.isEmpty(jwtSignature) || StringUtils.isEmpty(jwtKey));
     }
 
     @OnDisabled
@@ -476,6 +580,54 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         policy.setInputBufferSize(inputBufferSize);
         policy.setMaxTextMessageSize(maxTextMessageSize);
         policy.setMaxBinaryMessageSize(maxBinaryMessageSize);
+    }
+
+    public String generateJwt(final String filePath, final String signatureAlgo, final String key )  {
+        final ComponentLog logger = getLogger();
+        String jwtToken = null;
+        byte[] keyBytes = key.getBytes();
+        SignatureAlgorithm jwtSignatureAlgo = getJwtSignatureAlgo(signatureAlgo);
+        try {
+            Object obj = JsonParser.parseReader(new FileReader(filePath));
+            String jsonText = obj.toString();
+            jwtToken = Jwts.builder().setPayload(jsonText).signWith(jwtSignatureAlgo, keyBytes).compact();
+        } catch ( Exception e) {
+            final String errorMessage = "Could not retrieve the signing key for JWT for ";
+            logger.warn(errorMessage, e);
+        }
+        return jwtToken;
+
+    }
+
+    public SignatureAlgorithm getJwtSignatureAlgo(String signatureAlgo) {
+         switch (signatureAlgo) {
+             case "HS256":
+                 return SignatureAlgorithm.HS256;
+             case "HS384":
+                 return SignatureAlgorithm.HS384;
+             case "HS512":
+                 return SignatureAlgorithm.HS512;
+             case "RS256":
+                 return SignatureAlgorithm.RS256;
+             case "RS384":
+                 return SignatureAlgorithm.RS384;
+             case "RS512":
+                 return SignatureAlgorithm.RS512;
+             case "ES256":
+                 return SignatureAlgorithm.ES256;
+             case "ES384":
+                 return SignatureAlgorithm.ES384;
+             case "ES512":
+                 return SignatureAlgorithm.ES512;
+             case "PS256":
+                 return SignatureAlgorithm.PS256;
+             case "PS384":
+                 return SignatureAlgorithm.PS384;
+             case "PS512":
+                 return SignatureAlgorithm.PS512;
+             default:
+                 return null;
+         }
     }
 
     public double getBackoffJitter(final double min, final double max) {
