@@ -105,7 +105,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             AUTHENTICATION_STRATEGY,
             APPLICATION_CLIENT_ID,
             APPLICATION_KEY,
@@ -127,7 +127,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

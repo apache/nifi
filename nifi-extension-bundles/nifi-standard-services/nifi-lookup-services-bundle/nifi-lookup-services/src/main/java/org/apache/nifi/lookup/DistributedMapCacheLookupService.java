@@ -79,7 +79,7 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
             .defaultValue(StandardCharsets.UTF_8.displayName())
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         PROP_DISTRIBUTED_CACHE_SERVICE,
         CHARACTER_ENCODING
     );
@@ -96,7 +96,7 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

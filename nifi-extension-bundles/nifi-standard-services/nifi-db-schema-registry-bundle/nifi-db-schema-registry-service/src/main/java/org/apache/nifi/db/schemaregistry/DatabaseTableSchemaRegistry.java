@@ -82,7 +82,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         DBCP_SERVICE,
         CATALOG_NAME,
         SCHEMA_NAME
@@ -94,7 +94,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

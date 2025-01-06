@@ -83,7 +83,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
 
     private static final boolean PARALLEL_DISABLED = false;
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             KEYRING_FILE,
             KEYRING
     );
@@ -134,7 +134,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
      */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     /**

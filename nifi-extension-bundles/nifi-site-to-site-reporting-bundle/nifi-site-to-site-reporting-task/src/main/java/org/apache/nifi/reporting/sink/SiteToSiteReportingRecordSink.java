@@ -50,7 +50,7 @@ import org.apache.nifi.serialization.record.RecordSet;
 @CapabilityDescription("Provides a service to write records using a configured RecordSetWriter over a Site-to-Site connection.")
 public class SiteToSiteReportingRecordSink extends AbstractControllerService implements RecordSinkService {
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             RECORD_WRITER_FACTORY,
             SiteToSiteUtils.DESTINATION_URL,
             SiteToSiteUtils.PORT_NAME,
@@ -74,7 +74,7 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

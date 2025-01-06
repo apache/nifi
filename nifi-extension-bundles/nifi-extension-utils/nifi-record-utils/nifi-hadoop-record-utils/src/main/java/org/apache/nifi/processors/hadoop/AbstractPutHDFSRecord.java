@@ -152,7 +152,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 REL_FAILURE
         );
 
-        final List<PropertyDescriptor> props = new ArrayList<>(PARENT_PROPERTIES);
+        final List<PropertyDescriptor> props = new ArrayList<>(getCommonPropertyDescriptors());
         props.add(RECORD_READER);
 
         props.add(new PropertyDescriptor.Builder()

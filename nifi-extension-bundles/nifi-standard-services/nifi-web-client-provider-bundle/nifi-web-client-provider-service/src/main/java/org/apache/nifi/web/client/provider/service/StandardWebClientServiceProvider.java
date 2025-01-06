@@ -98,7 +98,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
             .identifiesControllerService(SSLContextProvider.class)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CONNECT_TIMEOUT,
             READ_TIMEOUT,
             WRITE_TIMEOUT,
@@ -161,7 +161,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     private Duration getDuration(final ConfigurationContext context, final PropertyDescriptor propertyDescriptor) {

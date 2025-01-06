@@ -136,7 +136,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
 
     private static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS);
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SCHEMA_REGISTRY_NAME,
             REGION,
             COMMUNICATIONS_TIMEOUT,
@@ -150,7 +150,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     private volatile SchemaRegistryClient client;

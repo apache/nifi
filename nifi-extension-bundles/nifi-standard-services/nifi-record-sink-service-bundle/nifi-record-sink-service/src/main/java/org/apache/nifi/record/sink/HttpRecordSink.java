@@ -92,7 +92,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
             .required(false)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             API_URL,
             MAX_BATCH_SIZE,
             RECORD_WRITER_FACTORY,
@@ -109,7 +109,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     /**

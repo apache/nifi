@@ -114,7 +114,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                 REL_FAILURE
         );
 
-        final List<PropertyDescriptor> props = new ArrayList<>(PARENT_PROPERTIES);
+        final List<PropertyDescriptor> props = new ArrayList<>(getCommonPropertyDescriptors());
         props.add(FILENAME);
         props.add(RECORD_WRITER);
         props.addAll(getAdditionalProperties());

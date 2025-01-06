@@ -109,7 +109,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .defaultValue(RegionUtilV1.createAllowableValue(Regions.DEFAULT_REGION).getValue())
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
        ENCRYPTION_STRATEGY,
        ENCRYPTION_VALUE,
        KMS_REGION
@@ -194,7 +194,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

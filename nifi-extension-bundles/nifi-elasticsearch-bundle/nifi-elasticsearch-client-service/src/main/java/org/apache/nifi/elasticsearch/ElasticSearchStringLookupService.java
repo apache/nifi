@@ -64,7 +64,7 @@ public class ElasticSearchStringLookupService extends AbstractControllerService 
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CLIENT_SERVICE,
             INDEX,
             TYPE
@@ -78,7 +78,7 @@ public class ElasticSearchStringLookupService extends AbstractControllerService 
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

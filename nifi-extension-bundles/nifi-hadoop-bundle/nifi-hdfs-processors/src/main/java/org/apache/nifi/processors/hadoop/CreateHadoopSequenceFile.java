@@ -98,8 +98,8 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
             RELATIONSHIP_FAILURE
     );
 
-    private static final List<PropertyDescriptor> PROPERTIES = Stream.concat(
-            PARENT_PROPERTIES.stream(),
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+            getCommonPropertyDescriptors().stream(),
             Stream.of(
                 COMPRESSION_TYPE,
                 COMPRESSION_CODEC
@@ -113,7 +113,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

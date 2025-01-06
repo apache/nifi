@@ -84,7 +84,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
             .build();
 
     private static final long STARTING_REVISION = 1;
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         HAZELCAST_CACHE_MANAGER,
         HAZELCAST_CACHE_NAME,
         HAZELCAST_ENTRY_TTL
@@ -192,7 +192,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     private <S> String serializeCacheEntryKey(final S key, final Serializer<S> serializer) throws IOException {

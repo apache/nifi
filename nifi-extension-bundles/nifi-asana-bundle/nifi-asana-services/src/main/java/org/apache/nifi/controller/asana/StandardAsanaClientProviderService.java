@@ -71,7 +71,7 @@ public class StandardAsanaClientProviderService extends AbstractControllerServic
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             PROP_ASANA_API_BASE_URL,
             PROP_ASANA_PERSONAL_ACCESS_TOKEN,
             PROP_ASANA_WORKSPACE_NAME
@@ -83,7 +83,7 @@ public class StandardAsanaClientProviderService extends AbstractControllerServic
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

@@ -136,8 +136,8 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
             .description("A flow file with updated information about a specific event will be sent to this relationship.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Stream.concat(
-            PARENT_PROPERTIES.stream(),
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+            getCommonPropertyDescriptors().stream(),
             Stream.of(
                     POLL_DURATION,
                     HDFS_PATH_TO_WATCH,
@@ -158,7 +158,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

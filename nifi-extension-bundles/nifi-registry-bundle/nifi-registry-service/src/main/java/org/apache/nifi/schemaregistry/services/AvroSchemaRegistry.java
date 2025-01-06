@@ -63,7 +63,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             VALIDATE_FIELD_NAMES
     );
 
@@ -132,7 +132,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

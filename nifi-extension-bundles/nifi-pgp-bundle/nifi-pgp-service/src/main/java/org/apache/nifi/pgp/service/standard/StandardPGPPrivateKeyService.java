@@ -94,7 +94,7 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
 
     private static final Charset KEY_CHARSET = StandardCharsets.US_ASCII;
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             KEYRING_FILE,
             KEYRING,
             KEY_PASSWORD
@@ -153,7 +153,7 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
      */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     /**

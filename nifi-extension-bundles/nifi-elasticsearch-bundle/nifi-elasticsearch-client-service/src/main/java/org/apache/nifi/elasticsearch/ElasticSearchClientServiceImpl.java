@@ -102,7 +102,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     private ObjectMapper mapper;
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             HTTP_HOSTS,
             PATH_PREFIX,
             AUTHORIZATION_SCHEME,
@@ -137,7 +137,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

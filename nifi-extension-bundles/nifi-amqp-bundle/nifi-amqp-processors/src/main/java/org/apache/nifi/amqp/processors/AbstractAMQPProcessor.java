@@ -139,7 +139,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
-    protected static final List<PropertyDescriptor> PARENT_PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BROKERS,
             HOST, PORT,
             V_HOST,
@@ -147,8 +147,11 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             PASSWORD,
             AMQP_VERSION,
             SSL_CONTEXT_SERVICE,
-            USE_CERT_AUTHENTICATION
-    );
+            USE_CERT_AUTHENTICATION);
+
+    protected static List<PropertyDescriptor> getCommonPropertyDescriptors() {
+        return PROPERTY_DESCRIPTORS;
+    }
 
     private BlockingQueue<AMQPResource<T>> resourceQueue;
 

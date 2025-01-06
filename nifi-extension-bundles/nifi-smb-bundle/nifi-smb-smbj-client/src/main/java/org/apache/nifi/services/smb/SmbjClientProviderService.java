@@ -101,7 +101,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             HOSTNAME,
             PORT,
             SHARE,
@@ -122,7 +122,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

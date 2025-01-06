@@ -78,7 +78,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
             .defaultValue("2")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         HOSTNAME,
         PORT,
         RECORD_WRITER_FACTORY,
@@ -97,7 +97,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

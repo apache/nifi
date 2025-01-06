@@ -162,7 +162,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .description("All FlowFiles that are received from the AMQP queue are routed to this relationship")
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Stream.concat(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
           Stream.of(
               QUEUE,
               AUTO_ACKNOWLEDGE,
@@ -172,7 +172,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
               HEADER_KEY_PREFIX,
               HEADER_SEPARATOR,
               REMOVE_CURLY_BRACES
-          ), PARENT_PROPERTIES.stream()
+          ), getCommonPropertyDescriptors().stream()
     ).toList();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
@@ -315,7 +315,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

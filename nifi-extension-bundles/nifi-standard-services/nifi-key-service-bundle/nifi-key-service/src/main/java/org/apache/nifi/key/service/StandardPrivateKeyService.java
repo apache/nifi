@@ -79,7 +79,7 @@ public class StandardPrivateKeyService extends AbstractControllerService impleme
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             KEY_FILE,
             KEY,
             KEY_PASSWORD
@@ -141,7 +141,7 @@ public class StandardPrivateKeyService extends AbstractControllerService impleme
      */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     /**

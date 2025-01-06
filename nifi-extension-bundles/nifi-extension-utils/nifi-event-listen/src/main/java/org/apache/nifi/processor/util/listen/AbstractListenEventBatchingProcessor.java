@@ -43,7 +43,7 @@ import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_I
  */
 public abstract class AbstractListenEventBatchingProcessor<E extends Event> extends AbstractListenEventProcessor<E> {
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             NETWORK_INTF_NAME,
             PORT,
             RECV_BUFFER_SIZE,
@@ -60,7 +60,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
     @Override
     protected void init(final ProcessorInitializationContext context) {
         this.descriptors = Stream.concat(
-                PROPERTIES.stream(),
+                PROPERTY_DESCRIPTORS.stream(),
                 getAdditionalProperties().stream()
         ).toList();
 

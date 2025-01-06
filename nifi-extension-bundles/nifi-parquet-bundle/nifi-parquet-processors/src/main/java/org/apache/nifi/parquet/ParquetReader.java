@@ -40,7 +40,7 @@ import org.apache.nifi.serialization.RecordReaderFactory;
         "The schema will come from the Parquet data itself.")
 public class ParquetReader extends AbstractControllerService implements RecordReaderFactory {
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             ParquetUtils.AVRO_READ_COMPATIBILITY
     );
 
@@ -54,6 +54,6 @@ public class ParquetReader extends AbstractControllerService implements RecordRe
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 }

@@ -91,7 +91,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
             .identifiesControllerService(WebClientServiceProvider.class)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         API_URL,
         ACCESS_TOKEN,
         CHANNEL_ID,
@@ -105,7 +105,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

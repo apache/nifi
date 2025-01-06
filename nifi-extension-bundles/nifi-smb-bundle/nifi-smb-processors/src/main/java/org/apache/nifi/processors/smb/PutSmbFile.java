@@ -170,7 +170,7 @@ public class PutSmbFile extends AbstractProcessor {
             .description("Files that could not be written to the output network path for some reason are transferred to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             HOSTNAME,
             SHARE,
             DIRECTORY,
@@ -202,7 +202,7 @@ public class PutSmbFile extends AbstractProcessor {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnScheduled

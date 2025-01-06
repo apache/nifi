@@ -50,7 +50,7 @@ public class LoggingRecordSink extends AbstractControllerService implements Reco
             .defaultValue(LogLevel.INFO.name())
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             RecordSinkService.RECORD_WRITER_FACTORY,
             LOG_LEVEL
     );
@@ -60,7 +60,7 @@ public class LoggingRecordSink extends AbstractControllerService implements Reco
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

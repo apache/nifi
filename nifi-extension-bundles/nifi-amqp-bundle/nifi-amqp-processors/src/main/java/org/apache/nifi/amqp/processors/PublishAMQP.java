@@ -132,7 +132,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .description("All FlowFiles that cannot be routed to the AMQP destination are routed to this relationship")
             .build();
 
-    private final static List<PropertyDescriptor> PROPERTIES = Stream.concat(
+    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
             Stream.of(
                     EXCHANGE,
                     ROUTING_KEY,
@@ -140,7 +140,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                     HEADERS_PATTERN,
                     HEADER_SEPARATOR
             ),
-            PARENT_PROPERTIES.stream()
+            getCommonPropertyDescriptors().stream()
     ).toList();
 
     private final static Set<Relationship> RELATIONSHIPS = Set.of(
@@ -203,7 +203,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
