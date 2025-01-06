@@ -83,7 +83,7 @@ public class AzureCosmosDBClientService extends AbstractControllerService implem
                                 .buildClient();
     }
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             AzureCosmosDBUtils.URI,
             AzureCosmosDBUtils.DB_ACCESS_KEY,
             AzureCosmosDBUtils.CONSISTENCY
@@ -91,7 +91,7 @@ public class AzureCosmosDBClientService extends AbstractControllerService implem
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

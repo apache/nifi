@@ -188,8 +188,8 @@ public class MoveHDFS extends AbstractHadoopProcessor {
             REL_FAILURE
     );
 
-    private static final List<PropertyDescriptor> PROPERTIES = Stream.concat(
-            PARENT_PROPERTIES.stream(),
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+            getCommonPropertyDescriptors().stream(),
             Stream.of(
                 CONFLICT_RESOLUTION,
                 INPUT_DIRECTORY_OR_FILE,
@@ -220,7 +220,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnScheduled

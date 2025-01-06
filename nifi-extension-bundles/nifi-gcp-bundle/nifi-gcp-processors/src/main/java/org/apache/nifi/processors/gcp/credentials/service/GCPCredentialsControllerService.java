@@ -72,7 +72,7 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 )
 public class GCPCredentialsControllerService extends AbstractControllerService implements GCPCredentialsService, VerifiableControllerService {
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             USE_APPLICATION_DEFAULT_CREDENTIALS,
             USE_COMPUTE_ENGINE_CREDENTIALS,
             SERVICE_ACCOUNT_JSON_FILE,
@@ -85,7 +85,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     public GoogleCredentials getGoogleCredentials() throws ProcessException {

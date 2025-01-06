@@ -126,7 +126,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             FILE_SIZE,
             BATCH_SIZE,
             DATA_FORMAT,
@@ -140,13 +140,15 @@ public class GenerateFlowFile extends AbstractProcessor {
             .name("success")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            SUCCESS
+    );
 
     private static final char[] TEXT_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-_=+/?.,';:\"?<>\n\t ".toCharArray();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

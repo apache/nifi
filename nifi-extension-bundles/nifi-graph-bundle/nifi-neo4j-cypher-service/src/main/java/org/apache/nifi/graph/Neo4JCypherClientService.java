@@ -155,7 +155,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     protected String password;
     protected String connectionUrl;
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CONNECTION_URL,
             USERNAME,
             PASSWORD,
@@ -186,7 +186,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     protected Driver getDriver(ConfigurationContext context) {

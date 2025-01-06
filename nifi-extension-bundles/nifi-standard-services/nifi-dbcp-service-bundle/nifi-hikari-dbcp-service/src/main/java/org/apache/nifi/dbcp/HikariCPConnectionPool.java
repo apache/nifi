@@ -205,7 +205,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .required(false)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         DATABASE_URL,
         DB_DRIVERNAME,
         DB_DRIVER_LOCATION,
@@ -224,7 +224,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

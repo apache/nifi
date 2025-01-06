@@ -223,7 +223,7 @@ public class GeohashRecord extends AbstractProcessor {
             REL_FAILURE
     );
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             MODE,
             RECORD_READER,
             RECORD_WRITER,
@@ -255,7 +255,7 @@ public class GeohashRecord extends AbstractProcessor {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnScheduled

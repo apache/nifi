@@ -209,7 +209,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         AUTHORIZATION_SERVER_URL,
         CLIENT_AUTHENTICATION_STRATEGY,
         GRANT_TYPE,
@@ -251,7 +251,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

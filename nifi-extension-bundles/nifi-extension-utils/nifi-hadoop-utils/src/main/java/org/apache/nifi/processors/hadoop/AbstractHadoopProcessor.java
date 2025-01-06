@@ -141,7 +141,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     private static final Object RESOURCES_LOCK = new Object();
     private static final HdfsResources EMPTY_HDFS_RESOURCES = new HdfsResources(null, null, null, null);
 
-    protected static final List<PropertyDescriptor> PARENT_PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             HADOOP_CONFIGURATION_RESOURCES,
             KERBEROS_USER_SERVICE,
             ADDITIONAL_CLASSPATH_RESOURCES
@@ -153,6 +153,10 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
+
+    protected static List<PropertyDescriptor> getCommonPropertyDescriptors() {
+        return PROPERTY_DESCRIPTORS;
+    }
 
     @Override
     protected void init(ProcessorInitializationContext context) {
@@ -170,7 +174,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PARENT_PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

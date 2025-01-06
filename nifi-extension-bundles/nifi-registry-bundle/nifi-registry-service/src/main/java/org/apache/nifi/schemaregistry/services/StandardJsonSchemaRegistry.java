@@ -58,7 +58,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
         expressionLanguageScope = ExpressionLanguageScope.NONE)
 public class StandardJsonSchemaRegistry extends AbstractControllerService implements JsonSchemaRegistry, JsonSchemaRegistryComponent {
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SCHEMA_VERSION
     );
 
@@ -143,7 +143,7 @@ public class StandardJsonSchemaRegistry extends AbstractControllerService implem
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

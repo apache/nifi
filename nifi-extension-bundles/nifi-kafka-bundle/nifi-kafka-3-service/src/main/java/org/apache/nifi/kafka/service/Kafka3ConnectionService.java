@@ -214,7 +214,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .defaultValue("5 sec")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BOOTSTRAP_SERVERS,
             SECURITY_PROTOCOL,
             SASL_MECHANISM,
@@ -246,7 +246,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

@@ -138,7 +138,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         .required(true)
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         GEO_DATABASE_FILE,
         LOOKUP_CITY,
         LOOKUP_ISP,
@@ -149,7 +149,7 @@ public class IPLookupService extends AbstractControllerService implements Record
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

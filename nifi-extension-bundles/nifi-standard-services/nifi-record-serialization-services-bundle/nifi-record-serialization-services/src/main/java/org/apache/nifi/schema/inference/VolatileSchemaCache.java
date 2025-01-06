@@ -59,7 +59,7 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
 
     private static final Base64.Encoder ENCODER = Base64.getEncoder().withoutPadding();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         MAX_SIZE
     );
 
@@ -67,7 +67,7 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

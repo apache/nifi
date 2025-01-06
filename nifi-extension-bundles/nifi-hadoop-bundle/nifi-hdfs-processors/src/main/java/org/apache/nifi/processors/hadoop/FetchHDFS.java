@@ -106,8 +106,8 @@ public class FetchHDFS extends AbstractHadoopProcessor {
             REL_COMMS_FAILURE
     );
 
-    private static final List<PropertyDescriptor> PROPERTIES = Stream.concat(
-            PARENT_PROPERTIES.stream(),
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+            getCommonPropertyDescriptors().stream(),
             Stream.of(
                 FILENAME,
                 COMPRESSION_CODEC
@@ -116,7 +116,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

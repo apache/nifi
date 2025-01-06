@@ -67,7 +67,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CONFIGURATION_FILE
     );
 
@@ -89,7 +89,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

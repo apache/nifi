@@ -75,7 +75,7 @@ public class StandardDropboxCredentialService extends AbstractControllerService 
             .required(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             APP_KEY,
             APP_SECRET,
             ACCESS_TOKEN,
@@ -86,7 +86,7 @@ public class StandardDropboxCredentialService extends AbstractControllerService 
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

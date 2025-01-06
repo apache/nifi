@@ -148,7 +148,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             .sensitive(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         SCHEMA_REGISTRY_URLS,
         SSL_CONTEXT,
         TIMEOUT,
@@ -164,7 +164,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     private static final Validator REQUEST_HEADER_VALIDATOR = (subject, value, context) -> new ValidationResult.Builder()

@@ -57,7 +57,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         this.mongoClient = createClient(context, this.mongoClient);
     }
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         URI,
         DB_USER,
         DB_PASSWORD,
@@ -174,7 +174,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnDisabled

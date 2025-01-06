@@ -115,7 +115,7 @@ public class ExtractMediaMetadata extends AbstractProcessor {
             .description("Any FlowFile that fails to have media metadata extracted will be routed to failure")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         MAX_NUMBER_OF_ATTRIBUTES,
         MAX_ATTRIBUTE_LENGTH,
         METADATA_KEY_FILTER,
@@ -138,7 +138,7 @@ public class ExtractMediaMetadata extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @SuppressWarnings("unused")

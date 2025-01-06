@@ -65,7 +65,7 @@ public class StandardHttpContextMap extends AbstractControllerService implements
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         MAX_OUTSTANDING_REQUESTS,
         REQUEST_EXPIRATION
     );
@@ -80,7 +80,7 @@ public class StandardHttpContextMap extends AbstractControllerService implements
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

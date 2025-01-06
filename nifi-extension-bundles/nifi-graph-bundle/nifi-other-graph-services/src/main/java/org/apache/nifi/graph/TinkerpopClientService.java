@@ -217,7 +217,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
             .identifiesControllerService(SSLContextProvider.class)
             .build();
 
-    public static final List<PropertyDescriptor> PROPERTIES = List.of(
+    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SUBMISSION_TYPE,
             CONNECTION_SETTINGS,
             REMOTE_OBJECTS_FILE,
@@ -296,7 +296,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

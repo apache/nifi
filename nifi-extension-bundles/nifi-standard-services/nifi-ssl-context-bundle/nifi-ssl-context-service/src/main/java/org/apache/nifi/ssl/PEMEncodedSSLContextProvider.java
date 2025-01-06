@@ -141,7 +141,7 @@ public class PEMEncodedSSLContextProvider extends AbstractControllerService impl
             .dependsOn(CERTIFICATE_AUTHORITIES_SOURCE, CertificateAuthoritiesSource.PROPERTIES)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             TLS_PROTOCOL,
             PRIVATE_KEY_SOURCE,
             PRIVATE_KEY,
@@ -162,7 +162,7 @@ public class PEMEncodedSSLContextProvider extends AbstractControllerService impl
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

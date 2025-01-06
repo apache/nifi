@@ -75,7 +75,7 @@ public class ExtractImageMetadata extends AbstractProcessor {
         .description("Any FlowFile that fails to have image metadata extracted will be routed to failure")
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             MAX_NUMBER_OF_ATTRIBUTES
     );
 
@@ -91,7 +91,7 @@ public class ExtractImageMetadata extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

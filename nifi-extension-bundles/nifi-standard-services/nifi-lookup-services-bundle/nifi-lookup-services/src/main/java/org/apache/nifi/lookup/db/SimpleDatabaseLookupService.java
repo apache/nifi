@@ -60,7 +60,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
                     .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                     .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         DBCP_SERVICE,
         TABLE_NAME,
         LOOKUP_KEY_COLUMN,
@@ -72,7 +72,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
 
     @Override
     protected void init(final ControllerServiceInitializationContext context) {
-        this.properties = PROPERTIES;
+        this.properties = PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

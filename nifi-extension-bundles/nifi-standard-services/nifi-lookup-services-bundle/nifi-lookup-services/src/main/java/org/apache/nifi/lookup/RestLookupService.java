@@ -212,7 +212,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     static final String BODY_KEY = "request.body";
     static final String METHOD_KEY = "request.method";
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         URL,
         RECORD_READER,
         RECORD_PATH,
@@ -234,7 +234,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     private volatile ProxyConfigurationService proxyConfigurationService;

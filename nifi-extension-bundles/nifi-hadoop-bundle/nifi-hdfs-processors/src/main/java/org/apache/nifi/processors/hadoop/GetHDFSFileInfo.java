@@ -230,8 +230,8 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .description("All failed attempts to access HDFS will be routed to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Stream.concat(
-            PARENT_PROPERTIES.stream(),
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+            getCommonPropertyDescriptors().stream(),
             Stream.of(
                 FULL_PATH,
                 RECURSE_SUBDIRS,
@@ -260,7 +260,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
