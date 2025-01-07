@@ -57,7 +57,7 @@ class TestSchemaInferenceUtil {
             Arguments.of("tRUE", RecordFieldType.BOOLEAN.getDataType()),
             Arguments.of("fALSE", RecordFieldType.BOOLEAN.getDataType()),
 
-            Arguments.of(new BigDecimal(Double.MAX_VALUE - 1).toPlainString() + ".01", RecordFieldType.DOUBLE.getDataType()),
+            Arguments.of(new BigDecimal(Double.toString(Double.MAX_VALUE - 1)).toPlainString() + ".01", RecordFieldType.DOUBLE.getDataType()),
 
             Arguments.of(String.valueOf(1.1D), RecordFieldType.FLOAT.getDataType()),
 

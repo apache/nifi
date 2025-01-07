@@ -49,7 +49,7 @@ public class InferenceSchemaStrategyTest {
             {"double", 1D, RecordFieldType.DOUBLE.getDataType()},
             {"date", new Date(), RecordFieldType.DATE.getDataType()},
             {"decimal", BigDecimal.valueOf(123.456D), RecordFieldType.DECIMAL.getDecimalDataType(6, 3)},
-            {"array", new ArrayList<String>(), RecordFieldType.ARRAY.getDataType()},
+            {"array", new ArrayList<>(), RecordFieldType.ARRAY.getDataType()},
 
             // date subclasses
             {"time", new Time(System.currentTimeMillis()), RecordFieldType.DATE.getDataType()},

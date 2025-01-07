@@ -171,7 +171,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testWithEscaped$InReplacement() throws IOException {
+    public void testWithEscapedDollarSignInReplacement() throws IOException {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "a\\$b");
@@ -185,7 +185,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testWithUnEscaped$InReplacement() throws IOException {
+    public void testWithUnEscapedDollarSignInReplacement() throws IOException {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "a$b");

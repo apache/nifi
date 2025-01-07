@@ -39,7 +39,7 @@ class ControllerServiceEntityMergerTest {
     void testMergeStatusFields() {
         final ControllerServiceEntity nodeOneControllerserviceEntity = getControllerServiceEntity("id1", RunStatus.Stopped.name(), ValidationStatus.VALIDATING.name());
         final ControllerServiceEntity nodeTwoControllerServiceEntity = getControllerServiceEntity("id2", RunStatus.Validating.name(), ValidationStatus.INVALID.name());
-        final Map<NodeIdentifier, ControllerServiceEntity> entityMap = new HashMap();
+        final Map<NodeIdentifier, ControllerServiceEntity> entityMap = new HashMap<>();
         entityMap.put(getNodeIdentifier("node1", 8000), nodeOneControllerserviceEntity);
         entityMap.put(getNodeIdentifier("node2", 8010), nodeTwoControllerServiceEntity);
 

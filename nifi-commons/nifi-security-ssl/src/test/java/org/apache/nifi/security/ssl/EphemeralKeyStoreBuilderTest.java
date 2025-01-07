@@ -45,7 +45,7 @@ class EphemeralKeyStoreBuilderTest {
 
     private static final String KEY_ALGORITHM = "RSA";
 
-    private static final char[] KEY_PASSWORD = EphemeralKeyStoreBuilderTest.class.getSimpleName().toCharArray();;
+    private static final char[] KEY_PASSWORD = EphemeralKeyStoreBuilderTest.class.getSimpleName().toCharArray();
 
     private static KeyPair keyPair;
 

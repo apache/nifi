@@ -148,8 +148,8 @@ public class TestAvroTypeUtil {
         assertEquals(42L, avroSchema.getField("long").defaultVal());
         assertEquals(2.4D, (float) avroSchema.getField("float").defaultVal(), 0.002D); // Even though we provide a Float, avro converts it into a Double value.
         assertEquals(28.1D, (double) avroSchema.getField("double").defaultVal(), 0.002D);
-        assertEquals(new ArrayList<String>(), avroSchema.getField("stringArray").defaultVal());
-        assertEquals(new ArrayList<Integer>(), avroSchema.getField("intArray").defaultVal());
+        assertEquals(new ArrayList<>(), avroSchema.getField("stringArray").defaultVal());
+        assertEquals(new ArrayList<>(), avroSchema.getField("intArray").defaultVal());
     }
 
     @Test

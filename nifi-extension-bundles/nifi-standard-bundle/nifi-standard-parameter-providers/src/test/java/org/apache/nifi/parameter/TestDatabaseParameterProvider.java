@@ -253,13 +253,11 @@ public class TestDatabaseParameterProvider {
     }
 
     private class ResultSetAnswer implements Answer<Boolean> {
-        private final List<java.util.Map<String, String>> rows;
 
-        private Iterator<java.util.Map<String, String>> rowIterator;
+        private final Iterator<java.util.Map<String, String>> rowIterator;
         private java.util.Map<String, String> currentRow;
 
         private ResultSetAnswer(final List<java.util.Map<String, String>> rows) {
-            this.rows = rows;
             this.rowIterator = rows.iterator();
         }
 
