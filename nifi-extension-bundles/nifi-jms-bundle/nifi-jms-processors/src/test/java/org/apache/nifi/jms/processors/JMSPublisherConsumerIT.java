@@ -317,12 +317,7 @@ public class JMSPublisherConsumerIT {
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         try {
-            jmsTemplate.send(destinationName, new MessageCreator() {
-                @Override
-                public Message createMessage(Session session) throws JMSException {
-                    return session.createObjectMessage();
-                }
-            });
+            jmsTemplate.send(destinationName, Session::createObjectMessage);
 
             JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 1, responses -> {

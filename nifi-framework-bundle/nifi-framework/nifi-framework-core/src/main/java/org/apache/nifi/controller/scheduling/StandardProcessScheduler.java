@@ -332,37 +332,34 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
 
-        final Runnable unscheduleReportingTaskRunnable = new Runnable() {
-            @Override
-            public void run() {
-                final ConfigurationContext configurationContext = taskNode.getConfigurationContext();
+        final Runnable unscheduleReportingTaskRunnable = () -> {
+            final ConfigurationContext configurationContext = taskNode.getConfigurationContext();
 
-                synchronized (lifecycleState) {
-                    lifecycleState.setScheduled(false);
+            synchronized (lifecycleState) {
+                lifecycleState.setScheduled(false);
 
-                    try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
-                        ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
-                    } catch (final Exception e) {
-                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                        final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask, new StandardLoggingContext(null));
-                        componentLog.error("Failed to invoke @OnUnscheduled method due to {}", cause);
+                try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
+                    ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
+                } catch (final Exception e) {
+                    final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+                    final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask, new StandardLoggingContext(null));
+                    componentLog.error("Failed to invoke @OnUnscheduled method due to {}", cause);
 
-                        LOG.error("Failed to invoke the @OnUnscheduled methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
-                                reportingTask, cause.toString(), administrativeYieldDuration);
-                        LOG.error("", cause);
-                    }
-
-                    agent.unschedule(taskNode, lifecycleState);
-
-                    // If active thread count == 1, that indicates that all execution threads have completed. We use 1 here instead of 0 because
-                    // when the Reporting Task is unscheduled, we immediately increment the thread count to 1 as an indicator that we've not completely finished.
-                    if (lifecycleState.getActiveThreadCount() == 1 && lifecycleState.mustCallOnStoppedMethods()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, configurationContext);
-                        future.complete(null);
-                    }
-
-                    lifecycleState.decrementActiveThreadCount();
+                    LOG.error("Failed to invoke the @OnUnscheduled methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
+                            reportingTask, cause.toString(), administrativeYieldDuration);
+                    LOG.error("", cause);
                 }
+
+                agent.unschedule(taskNode, lifecycleState);
+
+                // If active thread count == 1, that indicates that all execution threads have completed. We use 1 here instead of 0 because
+                // when the Reporting Task is unscheduled, we immediately increment the thread count to 1 as an indicator that we've not completely finished.
+                if (lifecycleState.getActiveThreadCount() == 1 && lifecycleState.mustCallOnStoppedMethods()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, configurationContext);
+                    future.complete(null);
+                }
+
+                lifecycleState.decrementActiveThreadCount();
             }
         };
 
