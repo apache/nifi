@@ -174,7 +174,7 @@ public class BitBucketRepositoryClient implements GitRepositoryClient {
         }
         Iterator<JsonNode> branches = jsonResponse.get("values").elements();
 
-        Set<String> result = new HashSet<String>();
+        Set<String> result = new HashSet<>();
         while (branches.hasNext()) {
             JsonNode branch = branches.next();
             result.add(branch.get("name").asText());
@@ -190,7 +190,7 @@ public class BitBucketRepositoryClient implements GitRepositoryClient {
 
         final Iterator<JsonNode> files = getFiles(branch, resolvedPath);
 
-        final Set<String> result = new HashSet<String>();
+        final Set<String> result = new HashSet<>();
         while (files.hasNext()) {
             JsonNode file = files.next();
             if (file.get("type").asText().equals("commit_directory")) {
@@ -209,7 +209,7 @@ public class BitBucketRepositoryClient implements GitRepositoryClient {
 
         final Iterator<JsonNode> files = getFiles(branch, resolvedPath);
 
-        final Set<String> result = new HashSet<String>();
+        final Set<String> result = new HashSet<>();
         while (files.hasNext()) {
             JsonNode file = files.next();
             if (file.get("type").asText().equals("commit_file")) {
@@ -228,7 +228,7 @@ public class BitBucketRepositoryClient implements GitRepositoryClient {
 
         Iterator<JsonNode> commits = getListCommits(branch, resolvedPath);
 
-        final List<GitCommit> result = new ArrayList<GitCommit>();
+        final List<GitCommit> result = new ArrayList<>();
         while (commits.hasNext()) {
             JsonNode commit = commits.next();
             result.add(toGitCommit(commit));
