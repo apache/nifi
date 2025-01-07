@@ -26,8 +26,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.net.URISyntaxException;
@@ -44,8 +42,6 @@ import static org.mockito.Mockito.when;
  * Tests for {@link JMSConnectionFactoryProvider}
  */
 public class JMSConnectionFactoryProviderTest {
-
-    private static Logger logger = LoggerFactory.getLogger(JMSConnectionFactoryProviderTest.class);
 
     private static final String HOSTNAME = "myhost";
     private static final String PORT = "1234";

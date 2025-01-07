@@ -75,7 +75,7 @@ public class TestSchemaRecordReaderWriter {
         final FieldMapRecord complexRecord2 = new FieldMapRecord(complexMap2, new RecordSchema(longStringField, longField));
 
         // Create a Union Field that indicates that the type could be either 'complex 1' or 'complex 2'
-        final UnionRecordField unionRecordField = new UnionRecordField("union", Repetition.ZERO_OR_MORE, Arrays.asList(new RecordField[] {complexField1, complexField2}));
+        final UnionRecordField unionRecordField = new UnionRecordField("union", Repetition.ZERO_OR_MORE, List.of(complexField1, complexField2));
 
         // Create a Record Schema
         final List<RecordField> fields = new ArrayList<>();
@@ -123,9 +123,9 @@ public class TestSchemaRecordReaderWriter {
         values.put(createField("long string present", FieldType.LONG_STRING), "Long Hello");
         values.put(createField("complex present", FieldType.COMPLEX), new FieldMapRecord(complexFieldMap, new RecordSchema(colorField, fruitField)));
         values.put(new MapRecordField("map present", createField("key", FieldType.STRING), createField("value", FieldType.INT), Repetition.EXACTLY_ONE), simpleMap);
-        values.put(unionRecordField, Arrays.asList(new NamedValue[] {
+        values.put(unionRecordField, List.of(
             new NamedValue("complex1", complexRecord1),
-            new NamedValue("complex2", complexRecord2)}));
+            new NamedValue("complex2", complexRecord2)));
 
         final FieldMapRecord originalRecord = new FieldMapRecord(values, schema);
 

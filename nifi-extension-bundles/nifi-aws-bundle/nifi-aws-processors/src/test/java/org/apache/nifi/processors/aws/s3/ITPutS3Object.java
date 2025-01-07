@@ -565,7 +565,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final PutS3Object.MultipartState state1new = processor.getLocalStateIfInS3(mockClient, bucket, cacheKey1);
         assertEquals("", state1new.getUploadId());
         assertEquals(0L, state1new.getFilePosition().longValue());
-        assertEquals(new ArrayList<PartETag>(), state1new.getPartETags());
+        assertEquals(new ArrayList<>(), state1new.getPartETags());
         assertEquals(0L, state1new.getPartSize().longValue());
         assertEquals(StorageClass.fromValue(StorageClass.Standard.toString()), state1new.getStorageClass());
         assertEquals(0L, state1new.getContentLength().longValue());
@@ -573,7 +573,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final PutS3Object.MultipartState state2new = processor.getLocalStateIfInS3(mockClient, bucket, cacheKey2);
         assertEquals("1234", state2new.getUploadId());
         assertEquals(0L, state2new.getFilePosition().longValue());
-        assertEquals(new ArrayList<PartETag>(), state2new.getPartETags());
+        assertEquals(new ArrayList<>(), state2new.getPartETags());
         assertEquals(0L, state2new.getPartSize().longValue());
         assertEquals(StorageClass.fromValue(StorageClass.Standard.toString()), state2new.getStorageClass());
         assertEquals(1234L, state2new.getContentLength().longValue());
@@ -581,7 +581,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final PutS3Object.MultipartState state3new = processor.getLocalStateIfInS3(mockClient, bucket, cacheKey3);
         assertEquals("5678", state3new.getUploadId());
         assertEquals(0L, state3new.getFilePosition().longValue());
-        assertEquals(new ArrayList<PartETag>(), state3new.getPartETags());
+        assertEquals(new ArrayList<>(), state3new.getPartETags());
         assertEquals(0L, state3new.getPartSize().longValue());
         assertEquals(StorageClass.fromValue(StorageClass.Standard.toString()), state3new.getStorageClass());
         assertEquals(5678L, state3new.getContentLength().longValue());

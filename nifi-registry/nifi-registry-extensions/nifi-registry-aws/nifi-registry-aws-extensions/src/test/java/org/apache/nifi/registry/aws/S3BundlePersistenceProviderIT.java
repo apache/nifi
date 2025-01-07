@@ -95,7 +95,7 @@ public class S3BundlePersistenceProviderIT {
         try {
             s3Client.close();
         } catch (Exception e) {
-            e.printStackTrace();;
+            e.printStackTrace();
         }
     }
 

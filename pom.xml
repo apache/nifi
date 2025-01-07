@@ -1000,6 +1000,7 @@
                 <configuration>
                     <printFailingErrors>true</printFailingErrors>
                     <linkXRef>false</linkXRef>
+                    <includeTests>true</includeTests>
                     <targetJdk>${maven.compiler.release}</targetJdk>
                     <rulesets>
                         <ruleset>${maven.multiModuleProjectDirectory}/pmd-ruleset.xml</ruleset>
