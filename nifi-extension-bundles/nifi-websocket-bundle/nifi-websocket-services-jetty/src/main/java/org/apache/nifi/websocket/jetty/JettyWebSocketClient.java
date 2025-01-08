@@ -401,7 +401,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         boolean isJwtEnabled = false;
 
         final String authType = validationContext.getProperty(AUTHORIZATION_TYPE).getValue();
-        if (authType.equals("JWT"))
+        if (authType != null && authType.equals("JWT"))
             isJwtEnabled = true;
 
         if (isJwtEnabled && !isJwtConfiguredProperly(validationContext)) {
@@ -413,7 +413,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
 
     private boolean isJwtConfiguredProperly(ValidationContext validationContext) {
         final String jsonFile = validationContext.getProperty(JWT_JSON_FILE).evaluateAttributeExpressions().getValue();
-        final String  jwtSignature = validationContext.getProperty(JWT_SIGNATURE_ALGO).evaluateAttributeExpressions().getValue();
+        final String jwtSignature = validationContext.getProperty(JWT_SIGNATURE_ALGO).evaluateAttributeExpressions().getValue();
         final String jwtKey = validationContext.getProperty(JWT_SECRET_KEY).evaluateAttributeExpressions().getValue();
         return !(StringUtils.isEmpty(jsonFile) || StringUtils.isEmpty(jwtSignature) || StringUtils.isEmpty(jwtKey));
     }
