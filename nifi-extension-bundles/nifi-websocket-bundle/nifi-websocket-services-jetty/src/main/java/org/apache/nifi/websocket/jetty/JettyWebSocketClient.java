@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
@@ -52,6 +53,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -66,6 +69,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Stream;
 
 @Tags({"WebSocket", "Jetty", "client"})
 @CapabilityDescription("Implementation of WebSocketClientService." +
@@ -191,6 +195,29 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+    public static final AllowableValue NO_AUTH = new AllowableValue("NOAUTH", "None", "No Authorization");
+    public static final AllowableValue OAUTH2_AUTH = new AllowableValue("OAUTH2", "OAUTH2", "OAUHT2 Access Token");
+
+    public static final PropertyDescriptor AUTHORIZATION_TYPE = new PropertyDescriptor.Builder()
+            .name("auth-type")
+            .displayName("Authorization")
+            .description("Authorization Type.")
+            .required(false)
+            .allowableValues(OAUTH2_AUTH)
+            .defaultValue((String) null)
+            .build();
+
+    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_FILE = new PropertyDescriptor.Builder()
+            .name("access-token-file")
+            .displayName("OAUTH2 Access Token File Path")
+            .description("Path of Access Token file.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .dependsOn(AUTHORIZATION_TYPE, OAUTH2_AUTH)
+            .sensitive(false)
+            .build();
+
     private static final int INITIAL_BACKOFF_MILLIS = 100;
     private static final int MAXIMUM_BACKOFF_MILLIS = 3200;
     private static final List<PropertyDescriptor> properties;
@@ -209,6 +236,9 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(PROXY_HOST);
         props.add(PROXY_PORT);
 
+        props.add(AUTHORIZATION_TYPE);
+        props.add(OAUTH2_ACCESS_TOKEN_FILE);
+
         properties = Collections.unmodifiableList(props);
     }
 
@@ -221,6 +251,8 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private volatile ScheduledExecutorService sessionMaintenanceScheduler;
     private ConfigurationContext configurationContext;
     protected String authorizationHeader;
+    private String OAUTH2TokenFilePath;
+    private static final String BEARER = "Bearer ";
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -262,8 +294,17 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         final String userPassword = context.getProperty(USER_PASSWORD).evaluateAttributeExpressions().getValue();
         final String customAuth = context.getProperty(CUSTOM_AUTH).evaluateAttributeExpressions().getValue();
 
+        boolean isOauthEnabled = false;
+
+        final String authType = context.getProperty(AUTHORIZATION_TYPE).getValue();
+        if (authType != null && authType.equals("OAUTH2"))
+            isOauthEnabled = true;
+
         if (!StringUtils.isEmpty(customAuth)) {
             authorizationHeader = customAuth;
+        } else if (isOauthEnabled) {
+            final String tokenFilePath = context.getProperty(OAUTH2_ACCESS_TOKEN_FILE).evaluateAttributeExpressions().getValue();
+            OAUTH2TokenFilePath = tokenFilePath;
         } else if (!StringUtils.isEmpty(userName) && !StringUtils.isEmpty(userPassword)) {
             final String charsetName = context.getProperty(AUTH_CHARSET).evaluateAttributeExpressions().getValue();
             if (StringUtils.isEmpty(charsetName)) {
@@ -274,6 +315,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             authorizationHeader = "Basic " + base64String;
         } else {
             authorizationHeader = null;
+            OAUTH2TokenFilePath = null;
         }
 
         client.start();
@@ -311,7 +353,22 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                     "Properties related to Basic Authentication (\"User Name\" and \"User Password\") cannot be used together with \"Custom Authorization\"")).build());
         }
 
+        boolean isOauthEnabled = false;
+
+        final String authType = validationContext.getProperty(AUTHORIZATION_TYPE).getValue();
+        if (authType != null && authType.equals("OAUHT2"))
+            isOauthEnabled = true;
+
+        if (isOauthEnabled && !isOauthConfiguredProperly(validationContext)) {
+            results.add(new ValidationResult.Builder().subject("OAUTH2")
+                .explanation("if oauth2 is enabled  Bearer Token file path is mandatory").valid(false).build());
+        }
         return results;
+    }
+
+    private boolean isOauthConfiguredProperly(ValidationContext validationContext) {
+        final String tokenFile = validationContext.getProperty(OAUTH2_ACCESS_TOKEN_FILE).evaluateAttributeExpressions().getValue();
+        return !(StringUtils.isEmpty(tokenFile));
     }
 
     @OnDisabled
@@ -373,6 +430,11 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             }
             if (!StringUtils.isEmpty(authorizationHeader)) {
                 request.setHeader(HttpHeader.AUTHORIZATION.asString(), authorizationHeader);
+            }
+            if (!StringUtils.isEmpty(OAUTH2TokenFilePath)) {
+                String OAUHT2token = readLinesFromFile(OAUTH2TokenFilePath);
+                getLogger().debug("Using Authorization: " + BEARER + OAUHT2token);
+                request.setHeader("Authorization", BEARER + OAUHT2token);
             }
 
             final Session session = attemptConnection(listener, request, connectCount);
@@ -477,6 +539,17 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         policy.setMaxTextMessageSize(maxTextMessageSize);
         policy.setMaxBinaryMessageSize(maxBinaryMessageSize);
     }
+
+    protected String readLinesFromFile(String filePath) throws IOException {
+         StringBuilder contentBuilder = new StringBuilder();
+
+         try (Stream<String> stream = Files.lines(Paths.get(filePath))) {
+             stream.forEach(contentBuilder::append);
+         } catch (IOException e) {
+             throw e;
+         }
+         return contentBuilder.toString();
+     }
 
     public double getBackoffJitter(final double min, final double max) {
         return Math.random() * (max - min) + min;

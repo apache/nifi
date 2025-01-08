@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Collection;
+import java.util.Iterator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,9 +40,12 @@ public class TestJettyWebSocketClient {
         final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
-        assertEquals(1, results.size());
-        final ValidationResult result = results.iterator().next();
-        assertEquals(JettyWebSocketClient.WS_URI.getDisplayName(), result.getSubject());
+        assertEquals(2, results.size());
+        Iterator<ValidationResult> iter = results.iterator();
+        final ValidationResult result = iter.next();
+        assertEquals(JettyWebSocketClient.OAUTH2_ACCESS_TOKEN_FILE.getDisplayName(), result.getSubject());
+        final ValidationResult result1 = iter.next();
+        assertEquals(JettyWebSocketClient.WS_URI.getDisplayName(), result1.getSubject());
     }
 
     @Test
@@ -49,6 +53,7 @@ public class TestJettyWebSocketClient {
         final JettyWebSocketClient service = new JettyWebSocketClient();
         final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
         context.setCustomValue(JettyWebSocketClient.WS_URI, "ws://localhost:9001/test");
+        context.setCustomValue(JettyWebSocketClient.OAUTH2_ACCESS_TOKEN_FILE, "DUMMY");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
         assertEquals(0, results.size());
@@ -59,6 +64,7 @@ public class TestJettyWebSocketClient {
         final JettyWebSocketClient service = new JettyWebSocketClient();
         final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
         context.setCustomValue(JettyWebSocketClient.WS_URI, "http://localhost:9001/test");
+        context.setCustomValue(JettyWebSocketClient.OAUTH2_ACCESS_TOKEN_FILE, "DUMMY");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
         assertEquals(1, results.size());
@@ -72,6 +78,7 @@ public class TestJettyWebSocketClient {
         final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
         context.setCustomValue(JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
         context.setCustomValue(JettyWebSocketClient.PROXY_HOST, "localhost");
+        context.setCustomValue(JettyWebSocketClient.OAUTH2_ACCESS_TOKEN_FILE, "DUMMY");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
         assertEquals(1, results.size());
@@ -85,6 +92,7 @@ public class TestJettyWebSocketClient {
         final ControllerServiceTestContext context = new ControllerServiceTestContext(service, "service-id");
         context.setCustomValue(JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
         context.setCustomValue(JettyWebSocketClient.PROXY_PORT, "3128");
+        context.setCustomValue(JettyWebSocketClient.OAUTH2_ACCESS_TOKEN_FILE, "DUMMY");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
         assertEquals(1, results.size());
@@ -99,6 +107,7 @@ public class TestJettyWebSocketClient {
         context.setCustomValue(JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
         context.setCustomValue(JettyWebSocketClient.PROXY_HOST, "localhost");
         context.setCustomValue(JettyWebSocketClient.PROXY_PORT, "3128");
+        context.setCustomValue(JettyWebSocketClient.OAUTH2_ACCESS_TOKEN_FILE, "DUMMY");
         service.initialize(context.getInitializationContext());
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
         assertEquals(0, results.size());
@@ -111,6 +120,7 @@ public class TestJettyWebSocketClient {
         runner.addControllerService("client", testSubject);
         runner.setProperty(testSubject, JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");
         runner.setProperty(testSubject, JettyWebSocketClient.CUSTOM_AUTH, CUSTOM_AUTH);
+        runner.setProperty(testSubject, JettyWebSocketClient.OAUTH2_ACCESS_TOKEN_FILE, "DUMMY");
         runner.assertValid(testSubject);
         runner.enableControllerService(testSubject);
         assertEquals(CUSTOM_AUTH, testSubject.getAuthHeaderValue());
