@@ -107,4 +107,6 @@ jobs:
         uses: anchore/scan-action@v6
         with:
           sbom: nifi-${{ env.PROJECT_VERSION }}.spdx.json
-          fail-build: false
+          severity-cutoff: 'medium'
+          only-fixed: true
+          fail-build: ${{ github.ref_name == 'main' && 'true' || 'false' }}
