@@ -19,6 +19,7 @@ package org.apache.nifi.processors.evtx.parser.bxml.value;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -57,7 +58,7 @@ public class WStringArrayTypeNode extends VariantTypeNode {
         } catch (XMLStreamException e) {
             throw new IOException(e);
         }
-        value = stream.toString("UTF-8");
+        value = stream.toString(StandardCharsets.UTF_8);
     }
 
     @Override

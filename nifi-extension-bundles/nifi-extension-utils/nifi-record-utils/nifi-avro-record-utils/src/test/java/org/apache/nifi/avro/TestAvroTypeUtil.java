@@ -762,7 +762,7 @@ public class TestAvroTypeUtil {
 
     @Test
     public void testListToArrayConversion() {
-        final Charset charset = Charset.forName("UTF-8");
+        final Charset charset = StandardCharsets.UTF_8;
         Object o = AvroTypeUtil.convertToAvroObject(Collections.singletonList("Hello"), Schema.createArray(Schema.create(Type.STRING)), charset);
         assertTrue(o instanceof List);
         assertEquals(1, ((List) o).size());
@@ -771,7 +771,7 @@ public class TestAvroTypeUtil {
 
     @Test
     public void testMapToRecordConversion() {
-        final Charset charset = Charset.forName("UTF-8");
+        final Charset charset = StandardCharsets.UTF_8;
         Object o = AvroTypeUtil.convertToAvroObject(Collections.singletonMap("Hello", "World"),
             Schema.createRecord(null, null, null, false, Collections.singletonList(new Field("Hello", Schema.create(Type.STRING), "", ""))), charset);
         assertTrue(o instanceof Record);

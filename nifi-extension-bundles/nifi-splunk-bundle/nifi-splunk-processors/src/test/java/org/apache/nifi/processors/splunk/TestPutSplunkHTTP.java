@@ -224,25 +224,25 @@ public class TestPutSplunkHTTP {
 
     private MockFlowFile givenFlowFile() throws UnsupportedEncodingException {
         final MockFlowFile result = new MockFlowFile(System.currentTimeMillis());
-        result.setData(EVENT.getBytes("UTF-8"));
+        result.setData(EVENT.getBytes(StandardCharsets.UTF_8));
         result.putAttributes(Collections.singletonMap("mime.type", "application/json"));
         return result;
     }
 
     private void givenSplunkReturnsWithSuccess() throws Exception {
-        final InputStream inputStream = new ByteArrayInputStream(SUCCESS_RESPONSE.getBytes("UTF-8"));
+        final InputStream inputStream = new ByteArrayInputStream(SUCCESS_RESPONSE.getBytes(StandardCharsets.UTF_8));
         Mockito.when(response.getStatus()).thenReturn(200);
         Mockito.when(response.getContent()).thenReturn(inputStream);
     }
 
     private void givenSplunkReturnsWithFailure() throws Exception {
-        final InputStream inputStream = new ByteArrayInputStream(FAILURE_RESPONSE.getBytes("UTF-8"));
+        final InputStream inputStream = new ByteArrayInputStream(FAILURE_RESPONSE.getBytes(StandardCharsets.UTF_8));
         Mockito.when(response.getStatus()).thenReturn(200);
         Mockito.when(response.getContent()).thenReturn(inputStream);
     }
 
     private void givenSplunkReturnsWithApplicationFailure(int code) throws Exception {
-        final InputStream inputStream = new ByteArrayInputStream("non-json-content".getBytes("UTF-8"));
+        final InputStream inputStream = new ByteArrayInputStream("non-json-content".getBytes(StandardCharsets.UTF_8));
         Mockito.when(response.getStatus()).thenReturn(code);
         Mockito.when(response.getContent()).thenReturn(inputStream);
     }

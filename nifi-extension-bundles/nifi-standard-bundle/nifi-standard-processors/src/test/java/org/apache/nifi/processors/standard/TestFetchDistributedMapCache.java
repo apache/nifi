@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -101,7 +102,7 @@ public class TestFetchDistributedMapCache {
         final Map<String, String> props = new HashMap<>();
         props.put("cacheKeyAttribute", "key");
         String flowFileContent = "content";
-        runner.enqueue(flowFileContent.getBytes("UTF-8"), props);
+        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();
 
@@ -123,7 +124,7 @@ public class TestFetchDistributedMapCache {
         final Map<String, String> props = new HashMap<>();
         props.put("cacheKeyAttribute", "key");
         String flowFileContent = "content";
-        runner.enqueue(flowFileContent.getBytes("UTF-8"), props);
+        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();
 
@@ -146,7 +147,7 @@ public class TestFetchDistributedMapCache {
         final Map<String, String> props = new HashMap<>();
         props.put("cacheKeyAttribute", "key");
         String flowFileContent = "content";
-        runner.enqueue(flowFileContent.getBytes("UTF-8"), props);
+        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();
 
