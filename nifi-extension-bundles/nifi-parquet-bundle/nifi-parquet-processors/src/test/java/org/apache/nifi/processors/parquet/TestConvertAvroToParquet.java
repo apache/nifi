@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.processors.parquet;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -91,7 +91,7 @@ public class TestConvertAvroToParquet {
                 .set("mylong", 2L)
                 .set("myfloat", 3.1f)
                 .set("mydouble", 4.1)
-                .set("mybytes", ByteBuffer.wrap("hello".getBytes(Charsets.UTF_8)))
+                .set("mybytes", ByteBuffer.wrap("hello".getBytes(StandardCharsets.UTF_8)))
                 .set("mystring", "hello")
                 .set("mynestedrecord", nestedRecord)
                 .set("myarray", new GenericData.Array<>(Schema.createArray(Schema.create(Schema.Type.INT)), Arrays.asList(1, 2)))
