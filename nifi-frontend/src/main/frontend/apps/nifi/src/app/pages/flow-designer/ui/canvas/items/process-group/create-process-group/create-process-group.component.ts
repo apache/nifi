@@ -34,7 +34,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 import { openNewParameterContextDialog } from '../../../../../state/parameter/parameter.actions';
-import { CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective, SelectOption, TextTip } from '@nifi/shared';
+import {
+    CloseOnEscapeDialog,
+    NiFiCommon,
+    NifiTooltipDirective,
+    PipesModule,
+    SelectOption,
+    TextTip
+} from '@nifi/shared';
 import { ParameterContextEntity } from '../../../../../../../state/shared';
 
 @Component({
@@ -52,7 +59,8 @@ import { ParameterContextEntity } from '../../../../../../../state/shared';
         MatSelectModule,
         NifiTooltipDirective,
         MatIconModule,
-        ContextErrorBanner
+        ContextErrorBanner,
+        PipesModule
     ],
     templateUrl: './create-process-group.component.html',
     styleUrls: ['./create-process-group.component.scss']
