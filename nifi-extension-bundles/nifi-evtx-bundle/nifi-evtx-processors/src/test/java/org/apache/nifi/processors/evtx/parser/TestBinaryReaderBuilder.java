@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.evtx.parser;
 
-import com.google.common.base.Charsets;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 
@@ -25,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Calendar;
@@ -63,13 +63,13 @@ public class TestBinaryReaderBuilder {
     }
 
     public TestBinaryReaderBuilder putString(String val) {
-        data.add(val.getBytes(Charsets.US_ASCII));
+        data.add(val.getBytes(StandardCharsets.US_ASCII));
         data.add(new byte[]{0});
         return this;
     }
 
     public TestBinaryReaderBuilder putWString(String val) {
-        data.add(val.getBytes(Charsets.UTF_16LE));
+        data.add(val.getBytes(StandardCharsets.UTF_16LE));
         return this;
     }
 
