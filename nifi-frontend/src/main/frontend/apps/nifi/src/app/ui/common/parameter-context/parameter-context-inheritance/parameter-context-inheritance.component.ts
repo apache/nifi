@@ -20,11 +20,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
-import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
-import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
-import { RouterLink } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
 import { ParameterContextEntity } from '../../../../state/shared';
-import { ParameterReferences } from '../../parameter-references/parameter-references.component';
 import {
     DragDropModule,
     CdkDrag,
@@ -33,7 +30,8 @@ import {
     moveItemInArray,
     transferArrayItem
 } from '@angular/cdk/drag-drop';
-import { NiFiCommon, NifiTooltipDirective, ParameterContextReferenceEntity, TextTip } from '@nifi/shared';
+import { NiFiCommon, NifiTooltipDirective, ParameterContextReferenceEntity, PipesModule, TextTip } from '@nifi/shared';
+import { SortObjectByPropertyPipe } from '../../../../../../../../libs/shared/src/pipes/sort-by-property.pipe';
 
 @Component({
     selector: 'parameter-context-inheritance',
@@ -45,21 +43,18 @@ import { NiFiCommon, NifiTooltipDirective, ParameterContextReferenceEntity, Text
         MatTableModule,
         DragDropModule,
         NgTemplateOutlet,
-        CdkOverlayOrigin,
-        CdkConnectedOverlay,
-        RouterLink,
-        AsyncPipe,
         NifiTooltipDirective,
-        ParameterReferences,
         CdkDropList,
-        CdkDrag
+        CdkDrag,
+        PipesModule
     ],
     providers: [
         {
             provide: NG_VALUE_ACCESSOR,
             useExisting: forwardRef(() => ParameterContextInheritance),
             multi: true
-        }
+        },
+        SortObjectByPropertyPipe
     ],
     styleUrls: ['./parameter-context-inheritance.component.scss']
 })
@@ -83,7 +78,10 @@ export class ParameterContextInheritance implements ControlValueAccessor {
 
     inheritedParameterContexts!: ParameterContextReferenceEntity[];
 
-    constructor(private nifiCommon: NiFiCommon) {}
+    constructor(
+        private nifiCommon: NiFiCommon,
+        private sortObjectByPropertyPipe: SortObjectByPropertyPipe
+    ) {}
 
     private processParameterContexts(): void {
         this.availableParameterContexts = [];
@@ -100,6 +98,8 @@ export class ParameterContextInheritance implements ControlValueAccessor {
                     this.availableParameterContexts.push(parameterContext);
                 }
             });
+
+            this.sortObjectByPropertyPipe.transform(this.availableParameterContexts, 'component.name');
         }
     }
 
@@ -176,6 +176,8 @@ export class ParameterContextInheritance implements ControlValueAccessor {
 
         // emit the changes
         this.onChange(this.serializeInheritedParameterContexts());
+
+        this.sortObjectByPropertyPipe.transform(this.availableParameterContexts, 'component.name');
     }
 
     private serializeInheritedParameterContexts(): ParameterContextReferenceEntity[] {

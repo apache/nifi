@@ -37,7 +37,7 @@ import { openNewParameterContextDialog } from '../../../../../state/parameter/pa
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { ParameterContextEntity } from '../../../../../../../state/shared';
-import { NifiTooltipDirective, SelectOption, TextTip } from '@nifi/shared';
+import { NifiTooltipDirective, PipesModule, SelectOption, TextTip } from '@nifi/shared';
 
 @Component({
     selector: 'edit-process-group',
@@ -56,7 +56,8 @@ import { NifiTooltipDirective, SelectOption, TextTip } from '@nifi/shared';
         NifiSpinnerDirective,
         NifiTooltipDirective,
         FormsModule,
-        ContextErrorBanner
+        ContextErrorBanner,
+        PipesModule
     ],
     styleUrls: ['./edit-process-group.component.scss']
 })
