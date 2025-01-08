@@ -41,7 +41,8 @@ public class BinaryTypeNodeTest extends BxmlNodeTestBase {
     public void testInvalidStringLength() throws IOException {
         String val = "Test String";
         BinaryReader binaryReader = testBinaryReaderBuilder.putDWord(UnsignedInteger.fromIntBits(Integer.MAX_VALUE + 1)).putString(val).build();
-        assertThrows(IOException.class, () -> assertEquals(Base64.getEncoder().encodeToString(val.getBytes(StandardCharsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, -1).getValue()));
+        assertThrows(IOException.class,
+                () -> assertEquals(Base64.getEncoder().encodeToString(val.getBytes(StandardCharsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, -1).getValue()));
     }
 
     @Test
