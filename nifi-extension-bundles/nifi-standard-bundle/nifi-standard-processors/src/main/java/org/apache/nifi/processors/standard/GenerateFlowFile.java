@@ -71,12 +71,36 @@ public class GenerateFlowFile extends AbstractProcessor {
     public static final String DATA_FORMAT_BINARY = "Binary";
     public static final String DATA_FORMAT_TEXT = "Text";
 
-    public static final PropertyDescriptor FILE_SIZE = new PropertyDescriptor.Builder()
-            .name("File Size")
-            .description("The size of the file that will be used")
+    public static final PropertyDescriptor VARIABLE_SIZE = new PropertyDescriptor.Builder()
+            .name("Variable File Size")
+            .description("The size of the FlowFile will be randomized between a minimum and maximum size value. 'Unique FlowFiles' must be set to true in order to achieve varying sizes.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+    public static final PropertyDescriptor MINIMUM_FILE_SIZE = new PropertyDescriptor.Builder()
+            .name("Minimum File Size")
+            .description("The minimum size of the FlowFile that will be generated")
             .required(true)
             .defaultValue("0B")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .dependsOn(VARIABLE_SIZE, "true")
+            .build();
+    public static final PropertyDescriptor MAXIMUM_FILE_SIZE = new PropertyDescriptor.Builder()
+            .name("Maximum File Size")
+            .description("The maximum size of the FlowFile that will be generated")
+            .required(true)
+            .defaultValue("1 KB")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .dependsOn(VARIABLE_SIZE, "true")
+            .build();
+    public static final PropertyDescriptor FILE_SIZE = new PropertyDescriptor.Builder()
+            .name("File Size")
+            .description("The size of the FlowFile that will be generated")
+            .required(true)
+            .defaultValue("0B")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .dependsOn(VARIABLE_SIZE, "false")
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
@@ -128,6 +152,9 @@ public class GenerateFlowFile extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
             FILE_SIZE,
+            MINIMUM_FILE_SIZE,
+            MAXIMUM_FILE_SIZE,
+            VARIABLE_SIZE,
             BATCH_SIZE,
             DATA_FORMAT,
             UNIQUE_FLOWFILES,
@@ -181,19 +208,47 @@ public class GenerateFlowFile extends AbstractProcessor {
         final boolean isUnique = validationContext.getProperty(UNIQUE_FLOWFILES).asBoolean();
         final boolean isText = validationContext.getProperty(DATA_FORMAT).getValue().equals(DATA_FORMAT_TEXT);
         final boolean isCustom = validationContext.getProperty(CUSTOM_TEXT).isSet();
+        final boolean isVariableSize = validationContext.getProperty(VARIABLE_SIZE).getValue().equals("true");
 
         if (isCustom && (isUnique || !isText)) {
             results.add(new ValidationResult.Builder().subject("Custom Text").valid(false).explanation("If Custom Text is set, then Data Format must be "
                     + "text and Unique FlowFiles must be false.").build());
         }
 
+        if (isVariableSize) {
+            double minSize = validationContext.getProperty(MINIMUM_FILE_SIZE).asDataSize(DataUnit.B);
+            double maxSize = validationContext.getProperty(MAXIMUM_FILE_SIZE).asDataSize(DataUnit.B);
+            if (maxSize < minSize) {
+                results.add(new ValidationResult.Builder()
+                        .subject("Maximum File Size")
+                        .valid(false)
+                        .explanation("Maximum File Size must be greater than or equal to Minimum File Size")
+                        .build());
+            }
+            if (!isUnique) {
+                results.add(new ValidationResult.Builder()
+                        .subject("Unique FlowFiles")
+                        .valid(false)
+                        .explanation("Unique FlowFiles must be true when Variable File Size is set to true.")
+                        .build());
+            }
+        }
+
         return results;
     }
 
     private byte[] generateData(final ProcessContext context) {
-        final int byteCount = context.getProperty(FILE_SIZE).asDataSize(DataUnit.B).intValue();
-
         final Random random = new Random();
+        int byteCount;
+        if (context.getProperty(VARIABLE_SIZE).getValue().equals("true")) {
+            int min = context.getProperty(MINIMUM_FILE_SIZE).asDataSize(DataUnit.B).intValue();
+            int max = context.getProperty(MAXIMUM_FILE_SIZE).asDataSize(DataUnit.B).intValue();
+            byteCount = random.nextInt((max - min) + 1) + min;
+        } else {
+            byteCount = context.getProperty(FILE_SIZE).asDataSize(DataUnit.B).intValue();
+        }
+
+
         final byte[] array = new byte[byteCount];
         if (context.getProperty(DATA_FORMAT).getValue().equals(DATA_FORMAT_BINARY)) {
             random.nextBytes(array);

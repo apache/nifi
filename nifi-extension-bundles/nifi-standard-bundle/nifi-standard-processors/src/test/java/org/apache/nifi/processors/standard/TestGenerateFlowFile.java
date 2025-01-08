@@ -19,7 +19,12 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Unit tests for the GenerateFlowFile processor.
@@ -71,6 +76,33 @@ public class TestGenerateFlowFile {
         generatedFlowFile.assertAttributeEquals("plain.dynamic.property", "Plain Value");
         generatedFlowFile.assertAttributeEquals("expression.dynamic.property", "Expression Value");
         generatedFlowFile.assertAttributeEquals("mime.type", "application/text");
+    }
+
+    @Test
+    public void testVariableSize() {
+        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
+        runner.setProperty(GenerateFlowFile.VARIABLE_SIZE, "true");
+        runner.setProperty(GenerateFlowFile.MINIMUM_FILE_SIZE, "1 B");
+        runner.setProperty(GenerateFlowFile.MAXIMUM_FILE_SIZE, "10 B");
+        runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "true");
+        runner.assertValid();
+
+        // Execute multiple times to ensure adequate distribution of file sizes
+        runner.run(1000);
+
+        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1000);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS);
+        Map<Long, Integer> fileSizeDistribution = new HashMap<>();
+        flowFiles.forEach(ff -> {
+            long fileSize = ff.getSize();
+            fileSizeDistribution.put(fileSize, fileSizeDistribution.getOrDefault(fileSize, 0) + 1);
+        });
+        long minSize = fileSizeDistribution.keySet().stream().min(Long::compareTo).orElse(-1L); //.orElseThrow(() -> new NoSuchElementException("Map is empty"));
+        long maxSize = fileSizeDistribution.keySet().stream().max(Long::compareTo).orElse(-1L);
+
+        // Assert all file sizes fall within the range and that there exists more than one unique file size value
+        Assertions.assertTrue(minSize > 0 && minSize < maxSize);
+        Assertions.assertTrue(maxSize <= 10);
     }
 
 }
