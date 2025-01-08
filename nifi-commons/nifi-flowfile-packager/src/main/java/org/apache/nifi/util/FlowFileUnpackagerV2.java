@@ -20,6 +20,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -77,7 +78,7 @@ public class FlowFileUnpackagerV2 implements FlowFileUnpackager {
         }
         final byte[] bytes = new byte[numBytes];
         fillBuffer(in, bytes, numBytes);
-        return new String(bytes, "UTF-8");
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     private void fillBuffer(final InputStream in, final byte[] buffer, final int length) throws IOException {

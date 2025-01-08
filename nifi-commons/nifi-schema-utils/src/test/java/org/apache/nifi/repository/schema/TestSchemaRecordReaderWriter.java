@@ -24,7 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -198,7 +198,7 @@ public class TestSchemaRecordReaderWriter {
         final String utfString = utfStringOneByte + utfStringTwoByte + utfStringThreeByte;  // 3 chars and 6 utf8 bytes
         final String seventyK = StringUtils.repeat(utfString, 21845);  // 65,535 chars and 131070 utf8 bytes
         assertTrue(seventyK.length() == 65535);
-        assertTrue(seventyK.getBytes("UTF-8").length == 131070);
+        assertTrue(seventyK.getBytes(StandardCharsets.UTF_8).length == 131070);
         values.put(createField("string present", FieldType.STRING), seventyK);
 
         final FieldMapRecord originalRecord = new FieldMapRecord(values, schema);
@@ -224,7 +224,7 @@ public class TestSchemaRecordReaderWriter {
 
                     assertNotNull(record);
                     assertEquals(42, record.getFieldValue("int present"));
-                    assertTrue(MAX_ALLOWED_UTF_LENGTH - ((String) record.getFieldValue("string present")).getBytes("utf-8").length <= 3);
+                    assertTrue(MAX_ALLOWED_UTF_LENGTH - ((String) record.getFieldValue("string present")).getBytes(StandardCharsets.UTF_8).length <= 3);
                     assertEquals(32768, ((String) record.getFieldValue("string present")).length());
                 }
 
@@ -265,7 +265,7 @@ public class TestSchemaRecordReaderWriter {
     }
 
     @Test
-    public void testSmallCharUTFLengths() throws UnsupportedEncodingException {
+    public void testSmallCharUTFLengths() {
         final String string12b = StringUtils.repeat(utfStringOneByte + utfStringTwoByte + utfStringThreeByte, 2);
 
         assertEquals(0, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  0), "test multi-char string truncated to  0 utf bytes should be 0");
