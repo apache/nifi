@@ -76,7 +76,8 @@ public class GenerateFlowFile extends AbstractProcessor {
             .description("The size of the file that will be used")
             .required(true)
             .defaultValue("0B")
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
@@ -187,11 +188,13 @@ public class GenerateFlowFile extends AbstractProcessor {
                     + "text and Unique FlowFiles must be false.").build());
         }
 
+        results.add(StandardValidators.DATA_SIZE_VALIDATOR.validate("File Size", validationContext.getProperty(FILE_SIZE).evaluateAttributeExpressions().getValue(), validationContext));
+
         return results;
     }
 
     private byte[] generateData(final ProcessContext context) {
-        final int byteCount = context.getProperty(FILE_SIZE).asDataSize(DataUnit.B).intValue();
+        final int byteCount = context.getProperty(FILE_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).intValue();
 
         final Random random = new Random();
         final byte[] array = new byte[byteCount];
