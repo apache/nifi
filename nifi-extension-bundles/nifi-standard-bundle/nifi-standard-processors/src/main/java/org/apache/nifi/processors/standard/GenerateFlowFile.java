@@ -81,16 +81,12 @@ public class GenerateFlowFile extends AbstractProcessor {
     public static final PropertyDescriptor MINIMUM_FILE_SIZE = new PropertyDescriptor.Builder()
             .name("Minimum File Size")
             .description("The minimum size of the FlowFile that will be generated")
-            .required(true)
-            .defaultValue("0B")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .dependsOn(VARIABLE_SIZE, "true")
             .build();
     public static final PropertyDescriptor MAXIMUM_FILE_SIZE = new PropertyDescriptor.Builder()
             .name("Maximum File Size")
             .description("The maximum size of the FlowFile that will be generated")
-            .required(true)
-            .defaultValue("1 KB")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .dependsOn(VARIABLE_SIZE, "true")
             .build();
@@ -216,14 +212,33 @@ public class GenerateFlowFile extends AbstractProcessor {
         }
 
         if (isVariableSize) {
-            double minSize = validationContext.getProperty(MINIMUM_FILE_SIZE).asDataSize(DataUnit.B);
-            double maxSize = validationContext.getProperty(MAXIMUM_FILE_SIZE).asDataSize(DataUnit.B);
-            if (maxSize < minSize) {
+            boolean minMaxSet = true;
+            if (!validationContext.getProperty(MINIMUM_FILE_SIZE).isSet()) {
+                results.add(new ValidationResult.Builder()
+                        .subject("Minimum File Size")
+                        .valid(false)
+                        .explanation("Minimum File Size must be set when Variable File Size is set to true.")
+                        .build());
+                minMaxSet = false;
+            }
+            if (!validationContext.getProperty(MAXIMUM_FILE_SIZE).isSet()) {
                 results.add(new ValidationResult.Builder()
                         .subject("Maximum File Size")
                         .valid(false)
-                        .explanation("Maximum File Size must be greater than or equal to Minimum File Size")
+                        .explanation("Maximum File Size must be set when Variable File Size is set to true.")
                         .build());
+                minMaxSet = false;
+            }
+            if (minMaxSet) {
+                double minSize = validationContext.getProperty(MINIMUM_FILE_SIZE).asDataSize(DataUnit.B);
+                double maxSize = validationContext.getProperty(MAXIMUM_FILE_SIZE).asDataSize(DataUnit.B);
+                if (maxSize < minSize) {
+                    results.add(new ValidationResult.Builder()
+                            .subject("Maximum File Size")
+                            .valid(false)
+                            .explanation("Maximum File Size must be greater than or equal to Minimum File Size")
+                            .build());
+                }
             }
             if (!isUnique) {
                 results.add(new ValidationResult.Builder()
