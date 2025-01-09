@@ -16,15 +16,7 @@
  */
 package org.apache.nifi.flowanalysis.rules;
 
-import static org.junit.jupiter.api.Assertions.assertIterableEquals;
-import static org.mockito.ArgumentMatchers.any;
-
-import java.io.FileInputStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -41,13 +33,20 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.FileInputStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
+import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
 public abstract class AbstractFlowAnalaysisRuleTest<T extends AbstractFlowAnalysisRule> {
 
     private static final ObjectMapper FLOW_MAPPER = new ObjectMapper();
-    protected Map<PropertyDescriptor, PropertyValue> properties = new HashMap<PropertyDescriptor, PropertyValue>();
+    protected Map<PropertyDescriptor, PropertyValue> properties = new HashMap<>();
     protected T rule;
 
     @Mock

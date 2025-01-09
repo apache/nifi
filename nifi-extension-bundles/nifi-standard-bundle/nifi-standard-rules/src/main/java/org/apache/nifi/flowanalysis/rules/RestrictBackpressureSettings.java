@@ -42,8 +42,8 @@ import java.util.stream.Stream;
 
 @Tags({"connection", "backpressure"})
 @CapabilityDescription("This rule will generate a violation if backpressure settings of a connection exceed configured thresholds. "
-        + "Improper configuration of backpressure settings can lead to decreased performances because of excessive swapping as well as "
-        + "to filled up content repository with too much in-flight data in NiFi.")
+        + "Improper configuration of backpressure settings can lead to decreased performance because of excessive swapping and can "
+        + "fill up the content repository with too much in-flight data.")
 public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
 
     public static final PropertyDescriptor COUNT_MIN = new PropertyDescriptor.Builder()
@@ -91,7 +91,7 @@ public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<ValidationResult>();
+        final List<ValidationResult> results = new ArrayList<>();
 
         final long minCount = validationContext.getProperty(COUNT_MIN).asLong();
         final long maxCount = validationContext.getProperty(COUNT_MAX).asLong();
@@ -125,7 +125,7 @@ public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
 
     @Override
     public Collection<GroupAnalysisResult> analyzeProcessGroup(VersionedProcessGroup pg, FlowAnalysisRuleContext context) {
-        final Collection<GroupAnalysisResult> results = new HashSet<GroupAnalysisResult>();
+        final Collection<GroupAnalysisResult> results = new HashSet<>();
 
         final long minCount = context.getProperty(COUNT_MIN).asLong();
         final long maxCount = context.getProperty(COUNT_MAX).asLong();
@@ -134,11 +134,11 @@ public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
 
         // Map of all id/components to generate more human readable violations
         final Map<String, VersionedComponent> idComponent = Stream.of(
-                    pg.getFunnels().stream(),
-                    pg.getProcessors().stream(),
-                    pg.getInputPorts().stream(),
-                    pg.getOutputPorts().stream()
-                ).flatMap(c -> c)
+                pg.getFunnels().stream(),
+                pg.getProcessors().stream(),
+                pg.getInputPorts().stream(),
+                pg.getOutputPorts().stream())
+                .flatMap(c -> c)
                 .collect(Collectors.toMap(c -> c.getIdentifier(), Function.identity()));
 
         pg.getConnections().stream().forEach(
@@ -180,6 +180,11 @@ public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
 
     private GroupAnalysisResult buildViolation(final VersionedConnection connection, final VersionedComponent source,
             final VersionedComponent destination, final BackpressureViolationType backpressureViolationType, final String violationMessage) {
+        // The reason why we want the violation to be on the processor when we have one
+        // (either as source or destination) is because in case the rule is "enforced"
+        // we want the corresponding component to be invalid. If this is not a processor
+        // (funnel, process group, etc) we cannot make it invalid so we put the
+        // violation on the connection itself.
         if (!(source instanceof VersionedProcessor) && !(destination instanceof VersionedProcessor)) {
             // connection between two components that are not processors and cannot be invalid, setting violation on connection
             return GroupAnalysisResult.forComponent(connection,
@@ -207,18 +212,12 @@ public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
     }
 
     private String getViolationMessage(final BackpressureViolationType backpressureViolationType, final String configured, final String limit) {
-        switch (backpressureViolationType) {
-            case BP_COUNT_THRESHOLD_ABOVE_LIMIT:
-                return "The connection is configured with a Backpressure Count Threshold of " + configured + " and it should be lesser or equal than " + limit + ".";
-            case BP_COUNT_THRESHOLD_BELOW_LIMIT:
-                return "The connection is configured with a Backpressure Count Threshold of " + configured + " and it should be greater or equal than " + limit + ".";
-            case BP_SIZE_THRESHOLD_ABOVE_LIMIT:
-                return "The connection is configured with a Backpressure Data Size Threshold of " + configured + " and it should be lesser or equal than " + limit + ".";
-            case BP_SIZE_THRESHOLD_BELOW_LIMIT:
-                return "The connection is configured with a Backpressure Data Size Threshold of " + configured + " and it should be greater or equal than " + limit + ".";
-            default:
-                return null;
-        }
+        return switch (backpressureViolationType) {
+        case BP_COUNT_THRESHOLD_ABOVE_LIMIT -> "The connection is configured with a Backpressure Count Threshold of " + configured + " and it should be lesser or equal than " + limit + ".";
+        case BP_COUNT_THRESHOLD_BELOW_LIMIT -> "The connection is configured with a Backpressure Count Threshold of " + configured + " and it should be greater or equal than " + limit + ".";
+        case BP_SIZE_THRESHOLD_ABOVE_LIMIT -> "The connection is configured with a Backpressure Data Size Threshold of " + configured + " and it should be lesser or equal than " + limit + ".";
+        case BP_SIZE_THRESHOLD_BELOW_LIMIT -> "The connection is configured with a Backpressure Data Size Threshold of " + configured + " and it should be greater or equal than " + limit + ".";
+        };
     }
 
     private enum BackpressureViolationType {
@@ -228,7 +227,7 @@ public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
         BP_SIZE_THRESHOLD_BELOW_LIMIT("BackpressureSizeThresholdTooLow"),
         BP_SIZE_THRESHOLD_ABOVE_LIMIT("BackpressureSizeThresholdTooHigh");
 
-        private String id;
+        private final String id;
 
         BackpressureViolationType(String id) {
             this.id = id;
