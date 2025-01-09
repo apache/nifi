@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.flowanalysis.rules;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Collection;
 import java.util.List;
 
+import org.apache.nifi.components.ValidationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -44,14 +48,26 @@ public class RestrictBackpressureSettingsTest extends AbstractFlowAnalaysisRuleT
     public void testWrongCountConfiguration() {
         setProperty(RestrictBackpressureSettings.COUNT_MIN, "100");
         setProperty(RestrictBackpressureSettings.COUNT_MAX, "10");
-        assertFalse(rule.customValidate(validationContext).isEmpty());
+        Collection<ValidationResult> results = rule.customValidate(validationContext);
+        assertEquals(1, results.size());
+        results.forEach(result -> {
+            assertFalse(result.isValid());
+            assertEquals(RestrictBackpressureSettings.COUNT_MIN.getName(), result.getSubject());
+            assertTrue(result.getExplanation().contains("cannot be strictly greater than"));
+        });
     }
 
     @Test
     public void testWrongSizeConfiguration() {
         setProperty(RestrictBackpressureSettings.SIZE_MIN, "1GB");
         setProperty(RestrictBackpressureSettings.SIZE_MAX, "1MB");
-        assertFalse(rule.customValidate(validationContext).isEmpty());
+        Collection<ValidationResult> results = rule.customValidate(validationContext);
+        assertEquals(1, results.size());
+        results.forEach(result -> {
+            assertFalse(result.isValid());
+            assertEquals(RestrictBackpressureSettings.SIZE_MIN.getName(), result.getSubject());
+            assertTrue(result.getExplanation().contains("cannot be strictly greater than"));
+        });
     }
 
     @Test

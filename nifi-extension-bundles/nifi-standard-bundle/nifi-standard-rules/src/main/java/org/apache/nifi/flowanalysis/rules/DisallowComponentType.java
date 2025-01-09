@@ -26,9 +26,7 @@ import org.apache.nifi.flowanalysis.ComponentAnalysisResult;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
@@ -44,17 +42,13 @@ public class DisallowComponentType extends AbstractFlowAnalysisRule {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    private final static List<PropertyDescriptor> propertyDescriptors;
-
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.add(COMPONENT_TYPE);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
-    }
+    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            COMPONENT_TYPE
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -63,8 +57,7 @@ public class DisallowComponentType extends AbstractFlowAnalysisRule {
 
         String componentType = context.getProperty(COMPONENT_TYPE).getValue();
 
-        if (component instanceof VersionedExtensionComponent) {
-            VersionedExtensionComponent versionedExtensionComponent = (VersionedExtensionComponent) component;
+        if (component instanceof VersionedExtensionComponent versionedExtensionComponent) {
 
             String encounteredComponentType = versionedExtensionComponent.getType();
             String encounteredSimpleComponentType = encounteredComponentType.substring(encounteredComponentType.lastIndexOf(".") + 1);
