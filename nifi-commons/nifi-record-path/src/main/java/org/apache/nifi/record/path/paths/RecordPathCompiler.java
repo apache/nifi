@@ -36,6 +36,7 @@ import org.apache.nifi.record.path.filter.NotFilter;
 import org.apache.nifi.record.path.filter.RecordPathFilter;
 import org.apache.nifi.record.path.filter.StartsWith;
 import org.apache.nifi.record.path.functions.Anchored;
+import org.apache.nifi.record.path.functions.ArrayOf;
 import org.apache.nifi.record.path.functions.Base64Decode;
 import org.apache.nifi.record.path.functions.Base64Encode;
 import org.apache.nifi.record.path.functions.Coalesce;
@@ -277,6 +278,16 @@ public class RecordPathCompiler {
                         }
 
                         return new Concat(argPaths, absolute);
+                    }
+                    case "arrayOf": {
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];
+                        for (int i = 0; i < numArgs; i++) {
+                            argPaths[i] = buildPath(argumentListTree.getChild(i), null, absolute);
+                        }
+
+                        return new ArrayOf(argPaths, absolute);
                     }
                     case "mapOf": {
                         final int numArgs = argumentListTree.getChildCount();
