@@ -19,12 +19,11 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 /**
  * Unit tests for the GenerateFlowFile processor.
@@ -81,26 +80,26 @@ public class TestGenerateFlowFile {
     @Test
     public void testExpressionLanguageSupport() {
         TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
-        runner.setProperty(GenerateFlowFile.FILE_SIZE, "${random():mod(10):plus(1)}B");  // represents a range of 1-10 bytes, inclusive
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "${nextInt()}B");
         runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "true");
+        runner.setProperty(GenerateFlowFile.BATCH_SIZE, "2");
         runner.assertValid();
 
-        // Execute multiple times to ensure adequate distribution of file sizes
-        runner.run(1000);
+        runner.run();
 
-        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1000);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS);
-        Map<Long, Integer> fileSizeDistribution = new HashMap<>();
-        flowFiles.forEach(ff -> {
-            long fileSize = ff.getSize();
-            fileSizeDistribution.put(fileSize, fileSizeDistribution.getOrDefault(fileSize, 0) + 1);
-        });
-        long minSize = fileSizeDistribution.keySet().stream().min(Long::compareTo).orElse(-1L);
-        long maxSize = fileSizeDistribution.keySet().stream().max(Long::compareTo).orElse(-1L);
+        // verify multiple files in a batch each have a unique file size based on the given Expression Language and uniqueness set to true
+        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 2);
+        assertTrue(runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0).getSize() < runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(1).getSize());
+        runner.clearTransferState();
 
-        // Assert all file sizes fall within the range and that there exists more than one unique file size value
-        Assertions.assertTrue(minSize > 0 && minSize < maxSize);
-        Assertions.assertTrue(maxSize <= 10);
+        runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "false");
+        runner.assertValid();
+
+        runner.run();
+
+        // verify multiple files in a batch each have the same file size when uniqueness is set to false
+        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 2);
+        assertEquals(runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0).getSize(), runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(1).getSize());
     }
 
 
