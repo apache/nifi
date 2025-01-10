@@ -111,7 +111,7 @@ public class AMQPConsumerTest {
     }
 
     @Test
-    public void validateSuccessfullConsumeWithEmptyQueueDefaultExchange() throws Exception {
+    public void validateSuccessfulConsumeWithEmptyQueueDefaultExchange() throws Exception {
         Map<String, List<String>> routingMap = new HashMap<>();
         routingMap.put("queue1", Arrays.asList("queue1"));
         Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
@@ -125,7 +125,7 @@ public class AMQPConsumerTest {
     }
 
     @Test
-    public void validateSuccessfullConsumeWithEmptyQueue() throws Exception {
+    public void validateSuccessfulConsumeWithEmptyQueue() throws Exception {
         Map<String, List<String>> routingMap = new HashMap<>();
         routingMap.put("key1", Arrays.asList("queue1"));
         Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
