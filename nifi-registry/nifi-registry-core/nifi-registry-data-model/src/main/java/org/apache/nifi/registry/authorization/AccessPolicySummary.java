@@ -54,7 +54,7 @@ public class AccessPolicySummary implements RevisableEntity {
 
     @Schema(
             description = "The action associated with this access policy.",
-            allowableValues = "read, write, delete"
+            allowableValues = {"read", "write", "delete"}
     )
     public String getAction() {
         return action;

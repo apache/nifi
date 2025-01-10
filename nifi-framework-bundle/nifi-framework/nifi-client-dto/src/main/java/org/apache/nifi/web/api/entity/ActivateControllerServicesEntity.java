@@ -45,7 +45,7 @@ public class ActivateControllerServicesEntity extends Entity {
      * @return The desired state of the descendant components. Possible states are 'RUNNING' and 'STOPPED'
      */
     @Schema(description = "The desired state of the descendant components",
-        allowableValues = STATE_ENABLED + ", " + STATE_DISABLED)
+        allowableValues = {STATE_ENABLED, STATE_DISABLED})
     public String getState() {
         return state;
     }
