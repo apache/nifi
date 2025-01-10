@@ -27,6 +27,7 @@ import org.apache.nifi.minifi.toolkit.configuration.ConfigMain;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigTransformException;
 import org.apache.nifi.minifi.toolkit.configuration.PathInputStreamFactory;
 import org.apache.nifi.minifi.toolkit.configuration.PathOutputStreamFactory;
+import org.apache.nifi.minifi.toolkit.schema.CorePropertiesSchema;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,8 +64,9 @@ public class TransformNifiCommandFactory {
             RegisteredFlowSnapshot registeredFlowSnapshot = readNifiFlow(sourceNiFiJsonPath);
             VersionedDataflow versionedDataflow = new VersionedDataflow();
             versionedDataflow.setRootGroup(registeredFlowSnapshot.getFlowContents());
-            versionedDataflow
-                    .setParameterContexts(new ArrayList<>(registeredFlowSnapshot.getParameterContexts().values()));
+            versionedDataflow.setParameterContexts(new ArrayList<>(registeredFlowSnapshot.getParameterContexts().values()));
+            versionedDataflow.setMaxTimerDrivenThreadCount(CorePropertiesSchema.DEFAULT_MAX_CONCURRENT_THREADS);
+
             persistFlowJson(versionedDataflow, targetMiNiFiJsonPath);
         } catch (ConfigTransformException e) {
             System.out.println("Unable to convert NiFi JSON to MiNiFi flow JSON: " + e);
