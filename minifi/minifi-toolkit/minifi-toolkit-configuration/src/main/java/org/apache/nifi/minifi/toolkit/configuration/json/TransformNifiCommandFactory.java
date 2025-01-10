@@ -21,12 +21,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigMain;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigTransformException;
 import org.apache.nifi.minifi.toolkit.configuration.PathInputStreamFactory;
 import org.apache.nifi.minifi.toolkit.configuration.PathOutputStreamFactory;
+import org.apache.nifi.minifi.toolkit.schema.ConfigSchema;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,12 +62,15 @@ public class TransformNifiCommandFactory {
         String targetMiNiFiJsonPath = args[2];
 
         try {
+            ConfigSchema configSchema = new ConfigSchema(Collections.emptyMap());
+
             RegisteredFlowSnapshot registeredFlowSnapshot = readNifiFlow(sourceNiFiJsonPath);
             VersionedDataflow versionedDataflow = new VersionedDataflow();
             versionedDataflow.setRootGroup(registeredFlowSnapshot.getFlowContents());
             versionedDataflow
                     .setParameterContexts(new ArrayList<>(registeredFlowSnapshot.getParameterContexts().values()));
-            persistFlowJson(versionedDataflow, targetMiNiFiJsonPath);
+
+            versionedDataflow.setMaxTimerDrivenThreadCount(configSchema.getCoreProperties().getMaxConcurrentThreads().intValue());
         } catch (ConfigTransformException e) {
             System.out.println("Unable to convert NiFi JSON to MiNiFi flow JSON: " + e);
             return e.getErrorCode();
