@@ -54,7 +54,7 @@ public class ScheduleComponentsEntity extends Entity {
      * @return The desired state of the descendant components. Possible states are 'RUNNING', 'STOPPED', 'ENABLED', and 'DISABLED'
      */
     @Schema(description = "The desired state of the descendant components",
-        allowableValues = STATE_RUNNING + ", " + STATE_STOPPED + ", " + STATE_ENABLED + ", " + STATE_DISABLED
+        allowableValues = {STATE_RUNNING, STATE_STOPPED, STATE_ENABLED, STATE_DISABLED}
     )
     public String getState() {
         return state;

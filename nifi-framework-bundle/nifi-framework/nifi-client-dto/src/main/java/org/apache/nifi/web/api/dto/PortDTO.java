@@ -55,7 +55,7 @@ public class PortDTO extends ComponentDTO {
      * @return The state of this port. Possible states are 'RUNNING', 'STOPPED', and 'DISABLED'
      */
     @Schema(description = "The state of the port.",
-            allowableValues = "RUNNING, STOPPED, DISABLED"
+            allowableValues = {"RUNNING", "STOPPED", "DISABLED"}
     )
     public String getState() {
         return state;
@@ -71,7 +71,7 @@ public class PortDTO extends ComponentDTO {
      * @return The type of port
      */
     @Schema(description = "The type of port.",
-            allowableValues = "INPUT_PORT, OUTPUT_PORT"
+            allowableValues = {"INPUT_PORT", "OUTPUT_PORT"}
     )
     public String getType() {
         return type;
@@ -150,7 +150,7 @@ public class PortDTO extends ComponentDTO {
     }
 
     @Schema(description = "Specifies how the Port functions",
-        allowableValues = "STANDARD, FAILURE"
+        allowableValues = {"STANDARD", "FAILURE"}
     )
     public String getPortFunction() {
         return portFunction;

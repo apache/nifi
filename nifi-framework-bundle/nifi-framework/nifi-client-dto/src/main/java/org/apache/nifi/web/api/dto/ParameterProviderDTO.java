@@ -284,7 +284,7 @@ public class ParameterProviderDTO extends ComponentDTO {
 
     @Schema(description = "Indicates whether the Parameter Provider is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Parameter Provider is valid)",
         accessMode = Schema.AccessMode.READ_ONLY,
-        allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
+        allowableValues = {VALID, INVALID, VALIDATING})
     public String getValidationStatus() {
         return validationStatus;
     }

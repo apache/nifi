@@ -332,7 +332,7 @@ public class ProcessorConfigDTO {
     }
 
     @Schema(description = "Determines whether the FlowFile should be penalized or the processor should be yielded between retries.",
-            allowableValues = "PENALIZE_FLOWFILE, YIELD_PROCESSOR"
+            allowableValues = {"PENALIZE_FLOWFILE", "YIELD_PROCESSOR"}
     )
     public String getBackoffMechanism() {
         return backoffMechanism;

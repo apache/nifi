@@ -109,7 +109,7 @@ public class ProvenanceNodeDTO {
      * @return type of node
      */
     @Schema(description = "The type of the node.",
-            allowableValues = "FLOWFILE, EVENT"
+            allowableValues = {"FLOWFILE", "EVENT"}
     )
     public String getType() {
         return type;

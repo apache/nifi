@@ -45,7 +45,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
     }
 
     @Schema(description = "The new state of the references for the controller service.",
-        allowableValues = "ENABLED, DISABLED, RUNNING, STOPPED"
+        allowableValues = {"ENABLED", "DISABLED", "RUNNING", "STOPPED"}
     )
     public String getState() {
         return state;

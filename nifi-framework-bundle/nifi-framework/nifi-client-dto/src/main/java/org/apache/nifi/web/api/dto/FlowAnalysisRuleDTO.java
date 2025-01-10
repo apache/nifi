@@ -185,7 +185,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
      * @return current scheduling state of the flow analysis rule
      */
     @Schema(description = "The state of the flow analysis rule.",
-            allowableValues = "ENABLED, DISABLED"
+            allowableValues = {"ENABLED", "DISABLED"}
     )
     public String getState() {
         return state;
@@ -265,7 +265,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
 
     @Schema(description = "Indicates whether the Flow Analysis Rule is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Flow Analysis Rule is valid)",
         accessMode = Schema.AccessMode.READ_ONLY,
-        allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
+        allowableValues = {VALID, INVALID, VALIDATING})
     public String getValidationStatus() {
         return validationStatus;
     }

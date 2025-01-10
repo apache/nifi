@@ -26,9 +26,7 @@ import jakarta.xml.bind.annotation.XmlType;
 @XmlType(name = "processorRunStatus")
 public class ProcessorRunStatusEntity extends ComponentRunStatusEntity {
 
-    private static final String ALLOWABLE_VALUES = "RUNNING, STOPPED, DISABLED, RUN_ONCE";
-
-    private static String[] SUPPORTED_STATE = ALLOWABLE_VALUES.split(", ");
+    private static final String[] SUPPORTED_STATE = {"RUNNING", "STOPPED", "DISABLED", "RUN_ONCE"};
 
     @Override
     protected String[] getSupportedState() {
@@ -39,7 +37,7 @@ public class ProcessorRunStatusEntity extends ComponentRunStatusEntity {
      * Run status for this Processor.
      * @return The run status
      */
-    @Schema(description = "The run status of the Processor.", allowableValues = ALLOWABLE_VALUES)
+    @Schema(description = "The run status of the Processor.", allowableValues = {"RUNNING", "STOPPED", "DISABLED", "RUN_ONCE"})
     public String getState() {
         return super.getState();
     }

@@ -98,7 +98,7 @@ public class VersionedFlowDTO {
         this.comments = comments;
     }
 
-    @Schema(description = "The action being performed", allowableValues = COMMIT_ACTION + ", " + FORCE_COMMIT_ACTION)
+    @Schema(description = "The action being performed", allowableValues = {COMMIT_ACTION, FORCE_COMMIT_ACTION})
     public String getAction() {
         return action;
     }

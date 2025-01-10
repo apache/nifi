@@ -33,7 +33,7 @@ public class ReportingTaskStatusDTO extends ComponentStatusDTO {
 
     @Schema(description = "The run status of this ReportingTask",
             accessMode = Schema.AccessMode.READ_ONLY,
-            allowableValues = "RUNNING, STOPPED, DISABLED")
+            allowableValues = {"RUNNING", "STOPPED", "DISABLED"})
     @Override
     public String getRunStatus() {
         return super.getRunStatus();

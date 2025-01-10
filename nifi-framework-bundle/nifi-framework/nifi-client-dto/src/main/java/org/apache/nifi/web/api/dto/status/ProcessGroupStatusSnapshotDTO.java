@@ -112,7 +112,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
 
     @Schema(description = "The current state of the Process Group, as it relates to the Versioned Flow",
             accessMode = Schema.AccessMode.READ_ONLY,
-            allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE")
+            allowableValues = {"LOCALLY_MODIFIED", "STALE", "LOCALLY_MODIFIED_AND_STALE", "UP_TO_DATE", "SYNC_FAILURE"})
     public String getVersionedFlowState() {
         return versionedFlowState;
     }

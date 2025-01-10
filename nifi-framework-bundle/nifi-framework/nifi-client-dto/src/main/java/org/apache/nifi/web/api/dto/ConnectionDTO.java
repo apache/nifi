@@ -228,7 +228,7 @@ public class ConnectionDTO extends ComponentDTO {
     }
 
     @Schema(description = "How to load balance the data in this Connection across the nodes in the cluster.",
-        allowableValues = "DO_NOT_LOAD_BALANCE, PARTITION_BY_ATTRIBUTE, ROUND_ROBIN, SINGLE_NODE")
+        allowableValues = {"DO_NOT_LOAD_BALANCE", "PARTITION_BY_ATTRIBUTE", "ROUND_ROBIN", "SINGLE_NODE"})
     public String getLoadBalanceStrategy() {
         return loadBalanceStrategy;
     }
@@ -247,7 +247,7 @@ public class ConnectionDTO extends ComponentDTO {
     }
 
     @Schema(description = "Whether or not data should be compressed when being transferred between nodes in the cluster.",
-        allowableValues = "DO_NOT_COMPRESS, COMPRESS_ATTRIBUTES_ONLY, COMPRESS_ATTRIBUTES_AND_CONTENT")
+        allowableValues = {"DO_NOT_COMPRESS", "COMPRESS_ATTRIBUTES_ONLY", "COMPRESS_ATTRIBUTES_AND_CONTENT"})
     public String getLoadBalanceCompression() {
         return loadBalanceCompression;
     }
@@ -258,7 +258,7 @@ public class ConnectionDTO extends ComponentDTO {
 
     @Schema(description = "The current status of the Connection's Load Balancing Activities. Status can indicate that Load Balancing is not configured for the connection, that Load Balancing " +
         "is configured but inactive (not currently transferring data to another node), or that Load Balancing is configured and actively transferring data to another node.",
-        allowableValues = LOAD_BALANCE_NOT_CONFIGURED + ", " + LOAD_BALANCE_INACTIVE + ", " + LOAD_BALANCE_ACTIVE,
+        allowableValues = {LOAD_BALANCE_NOT_CONFIGURED, LOAD_BALANCE_INACTIVE, LOAD_BALANCE_ACTIVE},
         accessMode = Schema.AccessMode.READ_ONLY)
     public String getLoadBalanceStatus() {
         return loadBalanceStatus;

@@ -65,7 +65,7 @@ public class ConnectableDTO {
      */
     @Schema(description = "The type of component the connectable is.",
             requiredMode = Schema.RequiredMode.REQUIRED,
-            allowableValues = "PROCESSOR, REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT, INPUT_PORT, OUTPUT_PORT, FUNNEL"
+            allowableValues = {"PROCESSOR", "REMOTE_INPUT_PORT", "REMOTE_OUTPUT_PORT", "INPUT_PORT", "OUTPUT_PORT", "FUNNEL"}
     )
     public String getType() {
         return type;
