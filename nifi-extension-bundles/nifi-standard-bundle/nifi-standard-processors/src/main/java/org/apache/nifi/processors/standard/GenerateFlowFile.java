@@ -76,7 +76,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             .description("The size of the file that will be used")
             .required(true)
             .defaultValue("0B")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -187,8 +187,6 @@ public class GenerateFlowFile extends AbstractProcessor {
             results.add(new ValidationResult.Builder().subject("Custom Text").valid(false).explanation("If Custom Text is set, then Data Format must be "
                     + "text and Unique FlowFiles must be false.").build());
         }
-
-        results.add(StandardValidators.DATA_SIZE_VALIDATOR.validate("File Size", validationContext.getProperty(FILE_SIZE).evaluateAttributeExpressions().getValue(), validationContext));
 
         return results;
     }
