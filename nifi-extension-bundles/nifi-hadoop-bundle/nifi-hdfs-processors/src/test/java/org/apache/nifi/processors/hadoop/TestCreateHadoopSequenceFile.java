@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +106,7 @@ public class TestCreateHadoopSequenceFile {
 
         final byte[] data = successSeqFiles.iterator().next().toByteArray();
 
-        final String magicHeader = new String(data, 0, 3, "UTF-8");
+        final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);
         // Format of header is SEQ followed by the version (1 byte).
         // Then, the length of the Key type (1 byte), then the Key type
@@ -116,7 +116,7 @@ public class TestCreateHadoopSequenceFile {
         final int valueTypeLength = data[5 + keyType.length()];
         final String valueType = BytesWritable.class.getCanonicalName();
         assertEquals(valueType.length(), valueTypeLength);
-        assertEquals(valueType, new String(data, valueTypeStart, valueType.length(), "UTF-8"));
+        assertEquals(valueType, new String(data, valueTypeStart, valueType.length(), StandardCharsets.UTF_8));
     }
 
     @Test
@@ -175,7 +175,7 @@ public class TestCreateHadoopSequenceFile {
     }
 
     @Test
-    public void testSequenceFileBzipCompressionCodec() throws UnsupportedEncodingException, IOException {
+    public void testSequenceFileBzipCompressionCodec() throws IOException {
 
         controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, CompressionType.BZIP.name());
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
@@ -196,7 +196,7 @@ public class TestCreateHadoopSequenceFile {
         byte[] data = ff.toByteArray();
 
 
-        final String magicHeader = new String(data, 0, 3, "UTF-8");
+        final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);
         // Format of header is SEQ followed by the version (1 byte).
         // Then, the length of the Key type (1 byte), then the Key type
@@ -207,7 +207,7 @@ public class TestCreateHadoopSequenceFile {
         final String valueType = BytesWritable.class.getCanonicalName();
 
         assertEquals(valueType.length(), valueTypeLength);
-        assertEquals(valueType, new String(data, valueTypeStart, valueType.length(), "UTF-8"));
+        assertEquals(valueType, new String(data, valueTypeStart, valueType.length(), StandardCharsets.UTF_8));
 
         final int compressionIndex = 3 + 1 + 1 + keyType.length() + 1 + valueType.length();
         final int blockCompressionIndex = compressionIndex + 1;
@@ -218,11 +218,11 @@ public class TestCreateHadoopSequenceFile {
         final int codecTypeSize = data[blockCompressionIndex + 1];
         final int codecTypeStartIndex = blockCompressionIndex + 2;
 
-        assertEquals(BZip2Codec.class.getCanonicalName(), new String(data, codecTypeStartIndex, codecTypeSize, "UTF-8"));
+        assertEquals(BZip2Codec.class.getCanonicalName(), new String(data, codecTypeStartIndex, codecTypeSize, StandardCharsets.UTF_8));
     }
 
     @Test
-    public void testSequenceFileDefaultCompressionCodec() throws UnsupportedEncodingException, IOException {
+    public void testSequenceFileDefaultCompressionCodec() throws IOException {
 
         controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, CompressionType.DEFAULT.name());
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
@@ -243,7 +243,7 @@ public class TestCreateHadoopSequenceFile {
         byte[] data = ff.toByteArray();
 
 
-        final String magicHeader = new String(data, 0, 3, "UTF-8");
+        final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);
         // Format of header is SEQ followed by the version (1 byte).
         // Then, the length of the Key type (1 byte), then the Key type
@@ -254,7 +254,7 @@ public class TestCreateHadoopSequenceFile {
         final String valueType = BytesWritable.class.getCanonicalName();
 
         assertEquals(valueType.length(), valueTypeLength);
-        assertEquals(valueType, new String(data, valueTypeStart, valueType.length(), "UTF-8"));
+        assertEquals(valueType, new String(data, valueTypeStart, valueType.length(), StandardCharsets.UTF_8));
 
         final int compressionIndex = 3 + 1 + 1 + keyType.length() + 1 + valueType.length();
         final int blockCompressionIndex = compressionIndex + 1;
@@ -265,11 +265,11 @@ public class TestCreateHadoopSequenceFile {
         final int codecTypeSize = data[blockCompressionIndex + 1];
         final int codecTypeStartIndex = blockCompressionIndex + 2;
 
-        assertEquals(DefaultCodec.class.getCanonicalName(), new String(data, codecTypeStartIndex, codecTypeSize, "UTF-8"));
+        assertEquals(DefaultCodec.class.getCanonicalName(), new String(data, codecTypeStartIndex, codecTypeSize, StandardCharsets.UTF_8));
     }
 
     @Test
-    public void testSequenceFileNoneCompressionCodec() throws UnsupportedEncodingException, IOException {
+    public void testSequenceFileNoneCompressionCodec() throws IOException {
 
         controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, CompressionType.NONE.name());
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
@@ -290,7 +290,7 @@ public class TestCreateHadoopSequenceFile {
         byte[] data = ff.toByteArray();
 
 
-        final String magicHeader = new String(data, 0, 3, "UTF-8");
+        final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);
         // Format of header is SEQ followed by the version (1 byte).
         // Then, the length of the Key type (1 byte), then the Key type
@@ -301,7 +301,7 @@ public class TestCreateHadoopSequenceFile {
         final String valueType = BytesWritable.class.getCanonicalName();
 
         assertEquals(valueType.length(), valueTypeLength);
-        assertEquals(valueType, new String(data, valueTypeStart, valueType.length(), "UTF-8"));
+        assertEquals(valueType, new String(data, valueTypeStart, valueType.length(), StandardCharsets.UTF_8));
 
         final int compressionIndex = 3 + 1 + 1 + keyType.length() + 1 + valueType.length();
         final int blockCompressionIndex = compressionIndex + 1;
@@ -312,6 +312,6 @@ public class TestCreateHadoopSequenceFile {
         final int codecTypeSize = data[blockCompressionIndex + 1];
         final int codecTypeStartIndex = blockCompressionIndex + 2;
 
-        assertEquals(DefaultCodec.class.getCanonicalName(), new String(data, codecTypeStartIndex, codecTypeSize, "UTF-8"));
+        assertEquals(DefaultCodec.class.getCanonicalName(), new String(data, codecTypeStartIndex, codecTypeSize, StandardCharsets.UTF_8));
     }
 }

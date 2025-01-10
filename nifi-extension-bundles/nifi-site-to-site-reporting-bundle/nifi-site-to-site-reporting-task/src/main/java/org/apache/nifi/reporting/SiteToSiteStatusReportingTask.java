@@ -188,7 +188,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
 
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
                 getLogger().info("Successfully sent {} Status Records to destination in {} ms; Transaction ID = {}",
-                        new Object[]{jsonArray.size(), transferMillis, transactionId});
+                        jsonArray.size(), transferMillis, transactionId);
 
                 fromIndex = toIndex;
                 toIndex = Math.min(fromIndex + batchSize, jsonArray.size());

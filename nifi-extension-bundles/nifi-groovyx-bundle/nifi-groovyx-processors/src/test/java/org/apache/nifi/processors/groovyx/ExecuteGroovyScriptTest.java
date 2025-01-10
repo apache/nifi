@@ -281,7 +281,7 @@ public class ExecuteGroovyScriptTest {
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
         MockFlowFile resultFile = result.getFirst();
-        resultFile.assertContentEquals("OK", "UTF-8");
+        resultFile.assertContentEquals("OK", StandardCharsets.UTF_8);
     }
 
     @Test
@@ -296,7 +296,7 @@ public class ExecuteGroovyScriptTest {
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
         MockFlowFile resultFile = result.getFirst();
         resultFile.assertAttributeEquals("filename", "test.txt");
-        resultFile.assertContentEquals("Joe Smith\nCarrie Jones\n", "UTF-8");
+        resultFile.assertContentEquals("Joe Smith\nCarrie Jones\n", StandardCharsets.UTF_8);
     }
 
     @Test
@@ -350,7 +350,7 @@ public class ExecuteGroovyScriptTest {
         MockFlowFile resultFile = result.getFirst();
         List<String> lines = ResourceGroovyMethods.readLines(new File(TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.json"), "UTF-8");
         //pass through to&from json before compare
-        resultFile.assertContentEquals(JsonOutput.toJson(new JsonSlurper().parseText(lines.get(1))), "UTF-8");
+        resultFile.assertContentEquals(JsonOutput.toJson(new JsonSlurper().parseText(lines.get(1))), StandardCharsets.UTF_8);
     }
 
     @Test
@@ -367,7 +367,7 @@ public class ExecuteGroovyScriptTest {
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
         MockFlowFile resultFile = result.getFirst();
-        resultFile.assertContentEquals("\"1\",\"A\",\"XYZ\"\n", "UTF-8");
+        resultFile.assertContentEquals("\"1\",\"A\",\"XYZ\"\n", StandardCharsets.UTF_8);
     }
 
     @Test
@@ -386,8 +386,8 @@ public class ExecuteGroovyScriptTest {
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 2);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
 
-        result.get(0).assertContentEquals("31", "UTF-8");
-        result.get(1).assertContentEquals("32", "UTF-8");
+        result.get(0).assertContentEquals("31", StandardCharsets.UTF_8);
+        result.get(1).assertContentEquals("32", StandardCharsets.UTF_8);
     }
 
     @Test

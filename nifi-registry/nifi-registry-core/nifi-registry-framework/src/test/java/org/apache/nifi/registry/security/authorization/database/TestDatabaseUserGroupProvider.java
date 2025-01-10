@@ -98,7 +98,7 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
     private void createUser(final String userIdentifier, final String userIdentity) {
         final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         final String sql = "INSERT INTO UGP_USER(IDENTIFIER, IDENTITY) VALUES (?, ?)";
-        final int updatedRows1 = jdbcTemplate.update(sql, new Object[] {userIdentifier, userIdentity});
+        final int updatedRows1 = jdbcTemplate.update(sql, userIdentifier, userIdentity);
         assertEquals(1, updatedRows1);
     }
 
@@ -111,7 +111,7 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
     private void createGroup(final String groupIdentifier, final String groupIdentity) {
         final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         final String sql = "INSERT INTO UGP_GROUP(IDENTIFIER, IDENTITY) VALUES (?, ?)";
-        final int updatedRows1 = jdbcTemplate.update(sql, new Object[] {groupIdentifier, groupIdentity});
+        final int updatedRows1 = jdbcTemplate.update(sql, groupIdentifier, groupIdentity);
         assertEquals(1, updatedRows1);
     }
 
@@ -124,7 +124,7 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
     private void addUserToGroup(final String userIdentifier, final String groupIdentifier) {
         final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         final String sql = "INSERT INTO UGP_USER_GROUP(USER_IDENTIFIER, GROUP_IDENTIFIER) VALUES (?, ?)";
-        final int updatedRows1 = jdbcTemplate.update(sql, new Object[] {userIdentifier, groupIdentifier});
+        final int updatedRows1 = jdbcTemplate.update(sql, userIdentifier, groupIdentifier);
         assertEquals(1, updatedRows1);
     }
 

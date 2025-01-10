@@ -108,22 +108,19 @@ public class AsyncRequestManager<R, T> implements RequestManager<R, T> {
 
         logger.debug("Submitted request {}", key);
 
-        threadPool.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    // set the user authentication token
-                    final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(request.getUser()));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+        threadPool.submit(() -> {
+            try {
+                // set the user authentication token
+                final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(request.getUser()));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    task.accept(request);
-                } catch (final Exception e) {
-                    logger.error("Failed to perform asynchronous task", e);
-                    request.fail("Encountered unexpected error when performing asynchronous task: " + e);
-                } finally {
-                    // clear the authentication token
-                    SecurityContextHolder.getContext().setAuthentication(null);
-                }
+                task.accept(request);
+            } catch (final Exception e) {
+                logger.error("Failed to perform asynchronous task", e);
+                request.fail("Encountered unexpected error when performing asynchronous task: " + e);
+            } finally {
+                // clear the authentication token
+                SecurityContextHolder.getContext().setAuthentication(null);
             }
         });
     }

@@ -418,7 +418,7 @@ public class TestJdbcCommon {
 
     @Test
     public void testConvertToAvroStreamForBigDecimal() throws SQLException, IOException {
-        final BigDecimal bigDecimal = new BigDecimal(12345D);
+        final BigDecimal bigDecimal = new BigDecimal("12345");
         // If db returns a precision, it should be used.
         testConvertToAvroStreamForBigDecimal(bigDecimal, 38, 10, 38, 0);
     }
@@ -453,7 +453,7 @@ public class TestJdbcCommon {
         final int defaultScale = 15;
 
         final BigDecimal bigDecimal = new BigDecimal("1.123", new MathContext(dbPrecision));
-        final BigDecimal expectedValue = new BigDecimal("1");
+        final BigDecimal expectedValue = BigDecimal.ONE;
         testConvertToAvroStreamForBigDecimal(bigDecimal, expectedValue, dbPrecision, dbScale, defaultPrecision, defaultScale, expectedPrecision, expectedScale);
     }
 

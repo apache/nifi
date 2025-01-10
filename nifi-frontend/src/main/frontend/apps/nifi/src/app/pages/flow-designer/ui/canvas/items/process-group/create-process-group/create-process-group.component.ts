@@ -23,7 +23,6 @@ import { CanvasState } from '../../../../../state';
 import { createProcessGroup, uploadProcessGroup } from '../../../../../state/flow/flow.actions';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe } from '@angular/common';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -42,7 +41,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
     standalone: true,
     imports: [
         AsyncPipe,
-        ErrorBanner,
         MatButtonModule,
         MatDialogModule,
         MatFormFieldModule,
@@ -84,7 +82,7 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
         });
 
         dialogRequest.parameterContexts.forEach((parameterContext) => {
-            if (parameterContext.permissions.canRead) {
+            if (parameterContext.permissions.canRead && parameterContext.component) {
                 this.parameterContextsOptions.push({
                     text: parameterContext.component.name,
                     value: parameterContext.id,

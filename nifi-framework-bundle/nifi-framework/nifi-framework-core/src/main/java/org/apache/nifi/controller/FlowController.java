@@ -73,7 +73,6 @@ import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
-import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
 import org.apache.nifi.controller.queue.clustered.ContentRepositoryFlowFileAccess;
@@ -722,22 +721,19 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             analyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, statusHistoryRepository, statusAnalyticsModelMapFactory,
                     predictionIntervalMillis, queryIntervalMillis, modelScoreName, modelScoreThreshold);
 
-            timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Long startTs = System.currentTimeMillis();
-                        RepositoryStatusReport statusReport = flowFileEventRepository.reportTransferEvents(startTs);
-                        flowManager.findAllConnections().forEach(connection -> {
-                            ConnectionStatusAnalytics connectionStatusAnalytics = ((ConnectionStatusAnalytics) analyticsEngine.getStatusAnalytics(connection.getIdentifier()));
-                            connectionStatusAnalytics.refresh();
-                            connectionStatusAnalytics.loadPredictions(statusReport);
-                        });
-                        Long endTs = System.currentTimeMillis();
-                        LOG.debug("Time Elapsed for Prediction for loading all predictions: {}", endTs - startTs);
-                    } catch (final Exception e) {
-                        LOG.error("Failed to generate predictions", e);
-                    }
+            timerDrivenEngineRef.get().scheduleWithFixedDelay(() -> {
+                try {
+                    Long startTs = System.currentTimeMillis();
+                    RepositoryStatusReport statusReport = flowFileEventRepository.reportTransferEvents(startTs);
+                    flowManager.findAllConnections().forEach(connection -> {
+                        ConnectionStatusAnalytics connectionStatusAnalytics = ((ConnectionStatusAnalytics) analyticsEngine.getStatusAnalytics(connection.getIdentifier()));
+                        connectionStatusAnalytics.refresh();
+                        connectionStatusAnalytics.loadPredictions(statusReport);
+                    });
+                    Long endTs = System.currentTimeMillis();
+                    LOG.debug("Time Elapsed for Prediction for loading all predictions: {}", endTs - startTs);
+                } catch (final Exception e) {
+                    LOG.error("Failed to generate predictions", e);
                 }
             }, 0L, 15, TimeUnit.SECONDS);
 
@@ -746,14 +742,11 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         eventAccess = new StandardEventAccess(flowManager, flowFileEventRepository, processScheduler, authorizer, provenanceRepository,
                 auditService, analyticsEngine, flowFileRepository, contentRepository);
 
-        timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    statusHistoryRepository.capture(getNodeStatusSnapshot(), eventAccess.getControllerStatus(), getGarbageCollectionStatus(), new Date());
-                } catch (final Exception e) {
-                    LOG.error("Failed to capture component stats for Stats History", e);
-                }
+        timerDrivenEngineRef.get().scheduleWithFixedDelay(() -> {
+            try {
+                statusHistoryRepository.capture(getNodeStatusSnapshot(), eventAccess.getControllerStatus(), getGarbageCollectionStatus(), new Date());
+            } catch (final Exception e) {
+                LOG.error("Failed to capture component stats for Stats History", e);
             }
         }, snapshotMillis, snapshotMillis, TimeUnit.MILLISECONDS);
 
@@ -1066,30 +1059,24 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
             notifyComponentsConfigurationRestored();
 
-            timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        updateRemoteProcessGroups();
-                    } catch (final Throwable t) {
-                        LOG.warn("Unable to update Remote Process Groups", t);
-                    }
+            timerDrivenEngineRef.get().scheduleWithFixedDelay(() -> {
+                try {
+                    updateRemoteProcessGroups();
+                } catch (final Throwable t) {
+                    LOG.warn("Unable to update Remote Process Groups", t);
                 }
             }, 0L, 30L, TimeUnit.SECONDS);
 
-            timerDrivenEngineRef.get().scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    final ProcessGroup rootGroup = flowManager.getRootGroup();
-                    final List<ProcessGroup> allGroups = rootGroup.findAllProcessGroups();
-                    allGroups.add(rootGroup);
+            timerDrivenEngineRef.get().scheduleWithFixedDelay(() -> {
+                final ProcessGroup rootGroup = flowManager.getRootGroup();
+                final List<ProcessGroup> allGroups = rootGroup.findAllProcessGroups();
+                allGroups.add(rootGroup);
 
-                    for (final ProcessGroup group : allGroups) {
-                        try {
-                            group.synchronizeWithFlowRegistry(flowManager);
-                        } catch (final Exception e) {
-                            LOG.error("Failed to synchronize {} with Flow Registry", group, e);
-                        }
+                for (final ProcessGroup group : allGroups) {
+                    try {
+                        group.synchronizeWithFlowRegistry(flowManager);
+                    } catch (final Exception e) {
+                        LOG.error("Failed to synchronize {} with Flow Registry", group, e);
                     }
                 }
             }, 5, 60, TimeUnit.SECONDS);
@@ -2327,26 +2314,23 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             swapManager.initialize(initializationContext);
         }
 
-        final FlowFileQueueFactory flowFileQueueFactory = new FlowFileQueueFactory() {
-            @Override
-            public FlowFileQueue createFlowFileQueue(final LoadBalanceStrategy loadBalanceStrategy, final String partitioningAttribute, final ProcessGroup processGroup) {
-                final FlowFileQueue flowFileQueue;
+        final FlowFileQueueFactory flowFileQueueFactory = (loadBalanceStrategy, partitioningAttribute, processGroup) -> {
+            final FlowFileQueue flowFileQueue;
 
-                if (clusterCoordinator == null) {
-                    flowFileQueue = new StandardFlowFileQueue(id, flowFileRepository, provenanceRepository, processScheduler, swapManager,
-                            eventReporter, nifiProperties.getQueueSwapThreshold(),
-                            processGroup.getDefaultFlowFileExpiration(), processGroup.getDefaultBackPressureObjectThreshold(), processGroup.getDefaultBackPressureDataSizeThreshold());
-                } else {
-                    flowFileQueue = new SocketLoadBalancedFlowFileQueue(id, processScheduler, flowFileRepository, provenanceRepository, contentRepository,
-                            clusterCoordinator, loadBalanceClientRegistry, swapManager, nifiProperties.getQueueSwapThreshold(), eventReporter);
+            if (clusterCoordinator == null) {
+                flowFileQueue = new StandardFlowFileQueue(id, flowFileRepository, provenanceRepository, processScheduler, swapManager,
+                        eventReporter, nifiProperties.getQueueSwapThreshold(),
+                        processGroup.getDefaultFlowFileExpiration(), processGroup.getDefaultBackPressureObjectThreshold(), processGroup.getDefaultBackPressureDataSizeThreshold());
+            } else {
+                flowFileQueue = new SocketLoadBalancedFlowFileQueue(id, processScheduler, flowFileRepository, provenanceRepository, contentRepository,
+                        clusterCoordinator, loadBalanceClientRegistry, swapManager, nifiProperties.getQueueSwapThreshold(), eventReporter);
 
-                    flowFileQueue.setFlowFileExpiration(processGroup.getDefaultFlowFileExpiration());
-                    flowFileQueue.setBackPressureObjectThreshold(processGroup.getDefaultBackPressureObjectThreshold());
-                    flowFileQueue.setBackPressureDataSizeThreshold(processGroup.getDefaultBackPressureDataSizeThreshold());
-                }
-
-                return flowFileQueue;
+                flowFileQueue.setFlowFileExpiration(processGroup.getDefaultFlowFileExpiration());
+                flowFileQueue.setBackPressureObjectThreshold(processGroup.getDefaultBackPressureObjectThreshold());
+                flowFileQueue.setBackPressureDataSizeThreshold(processGroup.getDefaultBackPressureDataSizeThreshold());
             }
+
+            return flowFileQueue;
         };
 
         final Connection connection = builder.id(requireNonNull(id).intern())
@@ -3442,8 +3426,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         result.setTimerDrivenThreads(getActiveTimerDrivenThreadCount());
         result.setFlowFileRepositoryFreeSpace(systemDiagnostics.getFlowFileRepositoryStorageUsage().getFreeSpace());
         result.setFlowFileRepositoryUsedSpace(systemDiagnostics.getFlowFileRepositoryStorageUsage().getUsedSpace());
-        result.setContentRepositories(systemDiagnostics.getContentRepositoryStorageUsage().entrySet().stream().map(e -> getStorageStatus(e)).collect(Collectors.toList()));
-        result.setProvenanceRepositories(systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().stream().map(e -> getStorageStatus(e)).collect(Collectors.toList()));
+        result.setContentRepositories(systemDiagnostics.getContentRepositoryStorageUsage().entrySet().stream().map(FlowController::getStorageStatus).collect(Collectors.toList()));
+        result.setProvenanceRepositories(systemDiagnostics.getProvenanceRepositoryStorageUsage().entrySet().stream().map(FlowController::getStorageStatus).collect(Collectors.toList()));
 
         return result;
     }

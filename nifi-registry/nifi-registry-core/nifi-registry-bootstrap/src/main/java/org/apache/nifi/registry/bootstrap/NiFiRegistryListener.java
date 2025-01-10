@@ -25,7 +25,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 public class NiFiRegistryListener {
@@ -64,14 +63,11 @@ public class NiFiRegistryListener {
 
         public Listener(final ServerSocket serverSocket, final RunNiFiRegistry runner) {
             this.serverSocket = serverSocket;
-            this.executor = Executors.newFixedThreadPool(2, new ThreadFactory() {
-                @Override
-                public Thread newThread(final Runnable runnable) {
-                    final Thread t = Executors.defaultThreadFactory().newThread(runnable);
-                    t.setDaemon(true);
-                    t.setName("NiFi Registry Bootstrap Command Listener");
-                    return t;
-                }
+            this.executor = Executors.newFixedThreadPool(2, runnable -> {
+                final Thread t = Executors.defaultThreadFactory().newThread(runnable);
+                t.setDaemon(true);
+                t.setName("NiFi Registry Bootstrap Command Listener");
+                return t;
             });
 
             this.runner = runner;
@@ -108,26 +104,23 @@ public class NiFiRegistryListener {
                         throw ioe;
                     }
 
-                    executor.submit(new Runnable() {
-                        @Override
-                        public void run() {
+                    executor.submit(() -> {
+                        try {
+                            // we want to ensure that we don't try to read data from an InputStream directly
+                            // by a BufferedReader because any user on the system could open a socket and send
+                            // a multi-gigabyte file without any new lines in order to crash the Bootstrap,
+                            // which in turn may cause the Shutdown Hook to shutdown NiFi.
+                            // So we will limit the amount of data to read to 4 KB
+                            final InputStream limitingIn = new LimitingInputStream(socket.getInputStream(), 4096);
+                            final BootstrapCodec codec = new BootstrapCodec(runner, limitingIn, socket.getOutputStream());
+                            codec.communicate();
+                        } catch (final Throwable t) {
+                            System.out.println("Failed to communicate with NiFi Registry due to " + t);
+                            t.printStackTrace();
+                        } finally {
                             try {
-                                // we want to ensure that we don't try to read data from an InputStream directly
-                                // by a BufferedReader because any user on the system could open a socket and send
-                                // a multi-gigabyte file without any new lines in order to crash the Bootstrap,
-                                // which in turn may cause the Shutdown Hook to shutdown NiFi.
-                                // So we will limit the amount of data to read to 4 KB
-                                final InputStream limitingIn = new LimitingInputStream(socket.getInputStream(), 4096);
-                                final BootstrapCodec codec = new BootstrapCodec(runner, limitingIn, socket.getOutputStream());
-                                codec.communicate();
-                            } catch (final Throwable t) {
-                                System.out.println("Failed to communicate with NiFi Registry due to " + t);
-                                t.printStackTrace();
-                            } finally {
-                                try {
-                                    socket.close();
-                                } catch (final IOException ioe) {
-                                }
+                                socket.close();
+                            } catch (final IOException ignored) {
                             }
                         }
                     });

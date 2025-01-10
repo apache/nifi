@@ -52,7 +52,7 @@ public class ParamProvidersResult extends AbstractWritableResult<ParameterProvid
                 .build();
         for (int i = 0; i < parameterProviders.getParameterProviders().size(); i++) {
             final ParameterProviderEntity parameterProvider = parameterProviderEntities.get(i);
-            table.addRow(new String[] {String.valueOf(i), parameterProvider.getId(), parameterProvider.getComponent().getName(), parameterProvider.getComponent().getType()});
+            table.addRow(String.valueOf(i), parameterProvider.getId(), parameterProvider.getComponent().getName(), parameterProvider.getComponent().getType());
         }
         final TableWriter tableWriter = new DynamicTableWriter();
         tableWriter.write(table, output);

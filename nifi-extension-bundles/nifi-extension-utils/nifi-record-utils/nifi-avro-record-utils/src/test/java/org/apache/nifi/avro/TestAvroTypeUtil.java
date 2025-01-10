@@ -148,8 +148,8 @@ public class TestAvroTypeUtil {
         assertEquals(42L, avroSchema.getField("long").defaultVal());
         assertEquals(2.4D, (float) avroSchema.getField("float").defaultVal(), 0.002D); // Even though we provide a Float, avro converts it into a Double value.
         assertEquals(28.1D, (double) avroSchema.getField("double").defaultVal(), 0.002D);
-        assertEquals(new ArrayList<String>(), avroSchema.getField("stringArray").defaultVal());
-        assertEquals(new ArrayList<Integer>(), avroSchema.getField("intArray").defaultVal());
+        assertEquals(new ArrayList<>(), avroSchema.getField("stringArray").defaultVal());
+        assertEquals(new ArrayList<>(), avroSchema.getField("intArray").defaultVal());
     }
 
     @Test
@@ -762,7 +762,7 @@ public class TestAvroTypeUtil {
 
     @Test
     public void testListToArrayConversion() {
-        final Charset charset = Charset.forName("UTF-8");
+        final Charset charset = StandardCharsets.UTF_8;
         Object o = AvroTypeUtil.convertToAvroObject(Collections.singletonList("Hello"), Schema.createArray(Schema.create(Type.STRING)), charset);
         assertTrue(o instanceof List);
         assertEquals(1, ((List) o).size());
@@ -771,7 +771,7 @@ public class TestAvroTypeUtil {
 
     @Test
     public void testMapToRecordConversion() {
-        final Charset charset = Charset.forName("UTF-8");
+        final Charset charset = StandardCharsets.UTF_8;
         Object o = AvroTypeUtil.convertToAvroObject(Collections.singletonMap("Hello", "World"),
             Schema.createRecord(null, null, null, false, Collections.singletonList(new Field("Hello", Schema.create(Type.STRING), "", ""))), charset);
         assertTrue(o instanceof Record);

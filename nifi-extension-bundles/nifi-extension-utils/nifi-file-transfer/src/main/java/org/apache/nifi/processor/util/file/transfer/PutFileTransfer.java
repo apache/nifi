@@ -25,7 +25,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
@@ -120,16 +119,13 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                     beforePut(flowFile, context, transfer);
                     final FlowFile flowFileToTransfer = flowFile;
                     final AtomicReference<String> fullPathRef = new AtomicReference<>(null);
-                    session.read(flowFile, new InputStreamCallback() {
-                        @Override
-                        public void process(final InputStream in) throws IOException {
-                            try (final InputStream bufferedIn = new BufferedInputStream(in)) {
-                                if (workingDirPath != null && context.getProperty(FileTransfer.CREATE_DIRECTORY).asBoolean()) {
-                                    transfer.ensureDirectoryExists(flowFileToTransfer, new File(workingDirPath));
-                                }
-
-                                fullPathRef.set(transfer.put(flowFileToTransfer, workingDirPath, conflictResult.getFileName(), bufferedIn));
+                    session.read(flowFile, in -> {
+                        try (final InputStream bufferedIn = new BufferedInputStream(in)) {
+                            if (workingDirPath != null && context.getProperty(FileTransfer.CREATE_DIRECTORY).asBoolean()) {
+                                transfer.ensureDirectoryExists(flowFileToTransfer, new File(workingDirPath));
                             }
+
+                            fullPathRef.set(transfer.put(flowFileToTransfer, workingDirPath, conflictResult.getFileName(), bufferedIn));
                         }
                     });
                     afterPut(flowFile, context, transfer);

@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ByteRangeStreamingOutputTest {
 
-    private static final byte[] INPUT_BYTES = String.class.getSimpleName().getBytes(StandardCharsets.UTF_8);;
+    private static final byte[] INPUT_BYTES = String.class.getSimpleName().getBytes(StandardCharsets.UTF_8);
 
     private static final long NOT_SATISFIABLE_LENGTH = 1000;
 

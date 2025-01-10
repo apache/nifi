@@ -98,7 +98,7 @@ public class ReflectionUtils {
                 final Class<?>[] argumentTypes = method.getParameterTypes();
                 if (argumentTypes.length > args.length) {
                     LOG.error("Unable to invoke method {} on {} because method expects {} parameters but only {} were given",
-                        new Object[]{method.getName(), instance, argumentTypes.length, args.length});
+                        method.getName(), instance, argumentTypes.length, args.length);
                     return false;
                 }
 
@@ -106,7 +106,7 @@ public class ReflectionUtils {
                     final Class<?> argType = argumentTypes[i];
                     if (!argType.isAssignableFrom(args[i].getClass())) {
                         LOG.error("Unable to invoke method {} on {} because method parameter {} is expected to be of type {} but argument passed was of type {}",
-                            new Object[]{method.getName(), instance, i, argType, args[i].getClass()});
+                            method.getName(), instance, i, argType, args[i].getClass());
                         return false;
                     }
                 }
@@ -122,7 +122,6 @@ public class ReflectionUtils {
                     }
                 } catch (final IllegalAccessException | IllegalArgumentException | InvocationTargetException t) {
                     LOG.error("Unable to invoke method {} on {}", method.getName(), instance, t);
-                    LOG.error("", t);
                     return false;
                 }
             }

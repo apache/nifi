@@ -167,11 +167,11 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("Hlleo, World!".getBytes("UTF-8"));
+        out.assertContentEquals("Hlleo, World!".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
-    public void testWithEscaped$InReplacement() throws IOException {
+    public void testWithEscapedDollarSignInReplacement() throws IOException {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "a\\$b");
@@ -181,11 +181,11 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("a\\$b".getBytes("UTF-8"));
+        out.assertContentEquals("a\\$b".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
-    public void testWithUnEscaped$InReplacement() throws IOException {
+    public void testWithUnEscapedDollarSignInReplacement() throws IOException {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "a$b");
@@ -195,7 +195,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("a$b".getBytes("UTF-8"));
+        out.assertContentEquals("a$b".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -209,7 +209,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("TESTHello, World!".getBytes("UTF-8"));
+        out.assertContentEquals("TESTHello, World!".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -224,7 +224,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("_hello\n_there\n_madam".getBytes("UTF-8"));
+        out.assertContentEquals("_hello\n_there\n_madam".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -240,7 +240,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("_hello\nthere\nmadam".getBytes("UTF-8"));
+        out.assertContentEquals("_hello\nthere\nmadam".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -256,7 +256,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("hello\nthere\n_madam".getBytes("UTF-8"));
+        out.assertContentEquals("hello\nthere\n_madam".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -272,7 +272,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("hello\n_there\n_madam".getBytes("UTF-8"));
+        out.assertContentEquals("hello\n_there\n_madam".getBytes(StandardCharsets.UTF_8));
     }
 
 
@@ -289,7 +289,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("_hello\n_there\nmadam".getBytes("UTF-8"));
+        out.assertContentEquals("_hello\n_there\nmadam".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -303,7 +303,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("Hello, World!TEST".getBytes("UTF-8"));
+        out.assertContentEquals("Hello, World!TEST".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -496,7 +496,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("Hlleo, World!".getBytes("UTF-8"));
+        out.assertContentEquals("Hlleo, World!".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -985,7 +985,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("Hello TEST\rWorld TEST\r".getBytes("UTF-8"));
+        out.assertContentEquals("Hello TEST\rWorld TEST\r".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -1000,7 +1000,7 @@ public class TestReplaceText {
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
-        out.assertContentEquals("Hello TEST\r\nWorld TEST\r\n".getBytes("UTF-8"));
+        out.assertContentEquals("Hello TEST\r\nWorld TEST\r\n".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test

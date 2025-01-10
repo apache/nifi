@@ -40,9 +40,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -188,14 +188,14 @@ public class PutSplunkHTTP extends SplunkAPICall {
                     // fall-through
                 default:
                     getLogger().error("Putting data into Splunk was not successful. Response with header {} was: {}",
-                            new Object[] {responseMessage.getStatus(), IOUtils.toString(responseMessage.getContent(), "UTF-8")});
+                            responseMessage.getStatus(), IOUtils.toString(responseMessage.getContent(), StandardCharsets.UTF_8));
             }
         } catch (final Exception e) {
             getLogger().error("Error during communication with Splunk: {}", e.getMessage(), e);
 
             if (responseMessage != null) {
                 try {
-                    getLogger().error("The response content is: {}", IOUtils.toString(responseMessage.getContent(), "UTF-8"));
+                    getLogger().error("The response content is: {}", IOUtils.toString(responseMessage.getContent(), StandardCharsets.UTF_8));
                 } catch (final IOException ioException) {
                     getLogger().error("An error occurred during reading response content!");
                 }
@@ -259,13 +259,8 @@ public class PutSplunkHTTP extends SplunkAPICall {
         if (!queryParameters.isEmpty()) {
             final List<String> parameters = new LinkedList<>();
 
-            try {
-                for (final Map.Entry<String, String> parameter : queryParameters.entrySet()) {
-                    parameters.add(URLEncoder.encode(parameter.getKey(), "UTF-8") + '=' + URLEncoder.encode(parameter.getValue(), "UTF-8"));
-                }
-            } catch (final UnsupportedEncodingException e) {
-                getLogger().error("Could not be initialized because of: {}", e.getMessage(), e);
-                throw new ProcessException(e);
+            for (final Map.Entry<String, String> parameter : queryParameters.entrySet()) {
+                parameters.add(URLEncoder.encode(parameter.getKey(), StandardCharsets.UTF_8) + '=' + URLEncoder.encode(parameter.getValue(), StandardCharsets.UTF_8));
             }
 
             result.append('?');

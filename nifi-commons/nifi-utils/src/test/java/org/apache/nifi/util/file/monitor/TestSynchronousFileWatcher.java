@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,7 +35,7 @@ public class TestSynchronousFileWatcher {
     @Test
     public void testIt() throws IOException, InterruptedException {
         final Path path = Paths.get("target/1.txt");
-        Files.copy(new ByteArrayInputStream("Hello, World!".getBytes("UTF-8")), path, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(new ByteArrayInputStream("Hello, World!".getBytes(StandardCharsets.UTF_8)), path, StandardCopyOption.REPLACE_EXISTING);
         final UpdateMonitor monitor = new DigestUpdateMonitor();
 
         final SynchronousFileWatcher watcher = new SynchronousFileWatcher(path, monitor, 0L);
@@ -42,7 +43,7 @@ public class TestSynchronousFileWatcher {
         assertFalse(watcher.checkAndReset());
 
         try (FileOutputStream fos = new FileOutputStream(path.toFile())) {
-            fos.write("Good-bye, World!".getBytes("UTF-8"));
+            fos.write("Good-bye, World!".getBytes(StandardCharsets.UTF_8));
             fos.getFD().sync();
         }
 

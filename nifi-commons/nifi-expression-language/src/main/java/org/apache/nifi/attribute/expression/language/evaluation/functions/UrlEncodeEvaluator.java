@@ -22,8 +22,8 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 public class UrlEncodeEvaluator extends StringEvaluator {
 
@@ -40,11 +40,7 @@ public class UrlEncodeEvaluator extends StringEvaluator {
             return new StringQueryResult(null);
         }
 
-        try {
-            return new StringQueryResult(URLEncoder.encode(subjectValue, "UTF-8"));
-        } catch (final UnsupportedEncodingException e) {
-            return null;    // won't happen. It's UTF-8
-        }
+        return new StringQueryResult(URLEncoder.encode(subjectValue, StandardCharsets.UTF_8));
     }
 
     @Override
