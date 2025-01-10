@@ -67,7 +67,7 @@ public class AMQPPublisherTest {
     }
 
     @Test
-    public void validateSuccessfullPublishingAndRouting() throws Exception {
+    public void validateSuccessfulPublishingAndRouting() throws Exception {
         Map<String, List<String>> routingMap = new HashMap<>();
         routingMap.put("key1", Arrays.asList("queue1", "queue2"));
         Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
@@ -86,7 +86,7 @@ public class AMQPPublisherTest {
     }
 
     @Test
-    public void validateSuccessfullPublishingAndUndeliverableRoutingKey() throws Exception {
+    public void validateSuccessfulPublishingAndUndeliverableRoutingKey() throws Exception {
         Map<String, List<String>> routingMap = new HashMap<>();
         routingMap.put("key1", Arrays.asList("queue1", "queue2"));
         Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
