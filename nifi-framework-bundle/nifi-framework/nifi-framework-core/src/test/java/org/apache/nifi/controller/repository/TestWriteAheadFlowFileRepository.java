@@ -370,26 +370,29 @@ public class TestWriteAheadFlowFileRepository {
         final Thread[] threads = new Thread[numThreads];
         for (int j = 0; j < 2; j++) {
             for (int i = 0; i < numThreads; i++) {
-                final Thread t = new Thread(() -> {
-                    final List<SerializedRepositoryRecord> records = new ArrayList<>();
-                    final int numBatches = updateCountPerThread / batchSize;
-                    final MockFlowFile baseFlowFile = new MockFlowFile(0L);
+                final Thread t = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        final List<SerializedRepositoryRecord> records = new ArrayList<>();
+                        final int numBatches = updateCountPerThread / batchSize;
+                        final MockFlowFile baseFlowFile = new MockFlowFile(0L);
 
-                    for (int i1 = 0; i1 < numBatches; i1++) {
-                        records.clear();
-                        for (int k = 0; k < batchSize; k++) {
-                            final MockFlowFileRecord flowFile = new MockFlowFileRecord(baseFlowFile.getAttributes(), baseFlowFile.getSize());
-                            final String uuid = flowFile.getAttribute("uuid");
+                        for (int i = 0; i < numBatches; i++) {
+                            records.clear();
+                            for (int k = 0; k < batchSize; k++) {
+                                final MockFlowFileRecord flowFile = new MockFlowFileRecord(baseFlowFile.getAttributes(), baseFlowFile.getSize());
+                                final String uuid = flowFile.getAttribute("uuid");
 
-                            final StandardRepositoryRecord record = new StandardRepositoryRecord(null, flowFile);
-                            record.setDestination(queue);
-                            final Map<String, String> updatedAttrs = Collections.singletonMap("uuid", uuid);
-                            record.setWorking(flowFile, updatedAttrs, false);
+                                final StandardRepositoryRecord record = new StandardRepositoryRecord(null, flowFile);
+                                record.setDestination(queue);
+                                final Map<String, String> updatedAttrs = Collections.singletonMap("uuid", uuid);
+                                record.setWorking(flowFile, updatedAttrs, false);
 
-                            records.add(new LiveSerializedRepositoryRecord(record));
+                                records.add(new LiveSerializedRepositoryRecord(record));
+                            }
+
+                            assertThrows(IOException.class, () -> repo.update(records, false));
                         }
-
-                        assertThrows(IOException.class, () -> repo.update(records, false));
                     }
                 });
 

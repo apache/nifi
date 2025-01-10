@@ -21,7 +21,6 @@ import org.apache.nifi.kafka.processors.ConsumeKafka;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
-import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.provenance.ProvenanceReporter;
@@ -61,12 +60,7 @@ public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverte
 
             final byte[] value = consumerRecord.getValue();
             FlowFile flowFile = session.create();
-
-            if (consumerRecord.getValue().length > 0) {
-                flowFile = session.write(flowFile, outputStream -> outputStream.write(value));
-            } else {
-                session.putAttribute(flowFile, KafkaFlowFileAttribute.KAFKA_TOMBSTONE, Boolean.TRUE.toString());
-            }
+            flowFile = session.write(flowFile, outputStream -> outputStream.write(value));
 
             final Map<String, String> attributes = KafkaUtils.toAttributes(
                     consumerRecord, keyEncoding, headerNamePattern, headerEncoding, commitOffsets);

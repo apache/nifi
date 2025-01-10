@@ -958,35 +958,38 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private Future<Void> offloadAsynchronously(final OffloadMessage request, final int attempts, final int retrySeconds) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
 
-        final Thread offloadThread = new Thread(() -> {
-            final NodeIdentifier nodeId = request.getNodeId();
+        final Thread offloadThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final NodeIdentifier nodeId = request.getNodeId();
 
-            Exception lastException = null;
-            for (int i = 0; i < attempts; i++) {
-                try {
-                    senderListener.offload(request);
-                    reportEvent(nodeId, Severity.INFO, "Node was offloaded due to " + request.getExplanation());
-
-                    future.complete(null);
-                    return;
-                } catch (final Exception e) {
-                    logger.error("Failed to notify {} that it has been offloaded due to {}", request.getNodeId(), request.getExplanation(), e);
-                    lastException = e;
-
+                Exception lastException = null;
+                for (int i = 0; i < attempts; i++) {
                     try {
-                        Thread.sleep(retrySeconds * 1000L);
-                    } catch (final InterruptedException ie) {
-                        Thread.currentThread().interrupt();
+                        senderListener.offload(request);
+                        reportEvent(nodeId, Severity.INFO, "Node was offloaded due to " + request.getExplanation());
+
+                        future.complete(null);
                         return;
+                    } catch (final Exception e) {
+                        logger.error("Failed to notify {} that it has been offloaded due to {}", request.getNodeId(), request.getExplanation(), e);
+                        lastException = e;
+
+                        try {
+                            Thread.sleep(retrySeconds * 1000L);
+                        } catch (final InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
                     }
                 }
+
+                updateNodeStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED, null,
+                    "Attempted to offload node but failed to notify node that it was to offload its data. State reset to disconnected."));
+                addNodeEvent(nodeId, "Failed to initiate node offload: " + lastException);
+
+                future.completeExceptionally(lastException);
             }
-
-            updateNodeStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED, null,
-                "Attempted to offload node but failed to notify node that it was to offload its data. State reset to disconnected."));
-            addNodeEvent(nodeId, "Failed to initiate node offload: " + lastException);
-
-            future.completeExceptionally(lastException);
         }, "Offload " + request.getNodeId());
 
         offloadThread.start();
@@ -996,44 +999,47 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private Future<Void> disconnectAsynchronously(final DisconnectMessage request, final int attempts, final int retrySeconds) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
 
-        final Thread disconnectThread = new Thread(() -> {
-            final NodeIdentifier nodeId = request.getNodeId();
+        final Thread disconnectThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final NodeIdentifier nodeId = request.getNodeId();
 
-            Exception lastException = null;
-            for (int i = 0; i < attempts; i++) {
-                // If the node is restarted, it will attempt to reconnect. In that case, we don't want to disconnect the node
-                // again. So we instead log the fact that the state has now transitioned to this point and consider the task completed.
-                final NodeConnectionState currentConnectionState = getConnectionState(nodeId);
-                if (currentConnectionState == NodeConnectionState.CONNECTING || currentConnectionState == NodeConnectionState.CONNECTED) {
-                    reportEvent(nodeId, Severity.INFO, String.format(
-                        "State of Node %s has now transitioned from DISCONNECTED to %s so will no longer attempt to notify node that it is disconnected.", nodeId, currentConnectionState));
-                    future.completeExceptionally(new IllegalStateException("Node was marked as disconnected but its state transitioned from DISCONNECTED back to " + currentConnectionState +
-                        " before the node could be notified. This typically indicates that the node was restarted."));
+                Exception lastException = null;
+                for (int i = 0; i < attempts; i++) {
+                    // If the node is restarted, it will attempt to reconnect. In that case, we don't want to disconnect the node
+                    // again. So we instead log the fact that the state has now transitioned to this point and consider the task completed.
+                    final NodeConnectionState currentConnectionState = getConnectionState(nodeId);
+                    if (currentConnectionState == NodeConnectionState.CONNECTING || currentConnectionState == NodeConnectionState.CONNECTED) {
+                        reportEvent(nodeId, Severity.INFO, String.format(
+                            "State of Node %s has now transitioned from DISCONNECTED to %s so will no longer attempt to notify node that it is disconnected.", nodeId, currentConnectionState));
+                        future.completeExceptionally(new IllegalStateException("Node was marked as disconnected but its state transitioned from DISCONNECTED back to " + currentConnectionState +
+                            " before the node could be notified. This typically indicates that the node was restarted."));
 
-                    return;
-                }
-
-                // Try to send disconnect notice to the node
-                try {
-                    senderListener.disconnect(request);
-                    reportEvent(nodeId, Severity.INFO, "Node disconnected due to " + request.getExplanation());
-                    future.complete(null);
-                    return;
-                } catch (final Exception e) {
-                    logger.error("Failed to notify {} that it has been disconnected from the cluster due to {}", request.getNodeId(), request.getExplanation());
-                    lastException = e;
-
-                    try {
-                        Thread.sleep(retrySeconds * 1000L);
-                    } catch (final InterruptedException ie) {
-                        future.completeExceptionally(ie);
-                        Thread.currentThread().interrupt();
                         return;
                     }
-                }
-            }
 
-            future.completeExceptionally(lastException);
+                    // Try to send disconnect notice to the node
+                    try {
+                        senderListener.disconnect(request);
+                        reportEvent(nodeId, Severity.INFO, "Node disconnected due to " + request.getExplanation());
+                        future.complete(null);
+                        return;
+                    } catch (final Exception e) {
+                        logger.error("Failed to notify {} that it has been disconnected from the cluster due to {}", request.getNodeId(), request.getExplanation());
+                        lastException = e;
+
+                        try {
+                            Thread.sleep(retrySeconds * 1000L);
+                        } catch (final InterruptedException ie) {
+                            future.completeExceptionally(ie);
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                    }
+                }
+
+                future.completeExceptionally(lastException);
+            }
         }, "Disconnect " + request.getNodeId());
 
         disconnectThread.start();
@@ -1057,58 +1063,61 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     private void requestReconnectionAsynchronously(final ReconnectionRequestMessage request, final int reconnectionAttempts, final int retrySeconds, final boolean includeDataFlow) {
-        final Thread reconnectionThread = new Thread(() -> {
-            // create the request
-            while (flowService == null) {
-                try {
-                    Thread.sleep(100L);
-                } catch (final InterruptedException ie) {
-                    logger.info("Could not send Reconnection request to {} because thread was "
-                            + "interrupted before FlowService was made available", request.getNodeId());
-                    Thread.currentThread().interrupt();
-                    return;
-                }
-            }
-
-            for (int i = 0; i < reconnectionAttempts; i++) {
-                try {
-                    if (NodeConnectionState.CONNECTING != getConnectionState(request.getNodeId())) {
-                        // the node status has changed. It's no longer appropriate to attempt reconnection.
+        final Thread reconnectionThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // create the request
+                while (flowService == null) {
+                    try {
+                        Thread.sleep(100L);
+                    } catch (final InterruptedException ie) {
+                        logger.info("Could not send Reconnection request to {} because thread was "
+                                + "interrupted before FlowService was made available", request.getNodeId());
+                        Thread.currentThread().interrupt();
                         return;
                     }
+                }
 
-                    if (includeDataFlow) {
-                        request.setDataFlow(new StandardDataFlow(flowService.createDataFlowFromController()));
+                for (int i = 0; i < reconnectionAttempts; i++) {
+                    try {
+                        if (NodeConnectionState.CONNECTING != getConnectionState(request.getNodeId())) {
+                            // the node status has changed. It's no longer appropriate to attempt reconnection.
+                            return;
+                        }
+
+                        if (includeDataFlow) {
+                            request.setDataFlow(new StandardDataFlow(flowService.createDataFlowFromController()));
+                        }
+
+                        request.setNodeConnectionStatuses(getConnectionStatuses());
+                        final ComponentRevisionSnapshot componentRevisionSnapshot = ComponentRevisionSnapshot.fromRevisionSnapshot(revisionManager.getAllRevisions());
+                        request.setComponentRevisions(componentRevisionSnapshot);
+
+                        // Issue a reconnection request to the node.
+                        senderListener.requestReconnection(request);
+
+                        // successfully told node to reconnect -- we're done!
+                        logger.info("Successfully requested that {} join the cluster", request.getNodeId());
+
+                        return;
+                    } catch (final Exception e) {
+                        logger.warn("Problem encountered issuing reconnection request to node {}", request.getNodeId(), e);
+                        eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Problem encountered issuing reconnection request to node "
+                                + request.getNodeId() + " due to: " + e);
                     }
 
-                    request.setNodeConnectionStatuses(getConnectionStatuses());
-                    final ComponentRevisionSnapshot componentRevisionSnapshot = ComponentRevisionSnapshot.fromRevisionSnapshot(revisionManager.getAllRevisions());
-                    request.setComponentRevisions(componentRevisionSnapshot);
-
-                    // Issue a reconnection request to the node.
-                    senderListener.requestReconnection(request);
-
-                    // successfully told node to reconnect -- we're done!
-                    logger.info("Successfully requested that {} join the cluster", request.getNodeId());
-
-                    return;
-                } catch (final Exception e) {
-                    logger.warn("Problem encountered issuing reconnection request to node {}", request.getNodeId(), e);
-                    eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Problem encountered issuing reconnection request to node "
-                            + request.getNodeId() + " due to: " + e);
+                    try {
+                        Thread.sleep(1000L * retrySeconds);
+                    } catch (final InterruptedException ie) {
+                        break;
+                    }
                 }
 
-                try {
-                    Thread.sleep(1000L * retrySeconds);
-                } catch (final InterruptedException ie) {
-                    break;
+                // We failed to reconnect too many times. We must now mark node as disconnected.
+                if (NodeConnectionState.CONNECTING == getConnectionState(request.getNodeId())) {
+                    requestNodeDisconnect(request.getNodeId(), DisconnectionCode.UNABLE_TO_COMMUNICATE,
+                            "Attempted to request that node reconnect to cluster but could not communicate with node");
                 }
-            }
-
-            // We failed to reconnect too many times. We must now mark node as disconnected.
-            if (NodeConnectionState.CONNECTING == getConnectionState(request.getNodeId())) {
-                requestNodeDisconnect(request.getNodeId(), DisconnectionCode.UNABLE_TO_COMMUNICATE,
-                        "Attempted to request that node reconnect to cluster but could not communicate with node");
             }
         }, "Reconnect " + request.getNodeId());
 
@@ -1396,7 +1405,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
             // disconnect problematic nodes
             if (!problematicNodeResponses.isEmpty() && problematicNodeResponses.size() < nodeResponses.size()) {
-                final Set<NodeIdentifier> failedNodeIds = problematicNodeResponses.stream().map(NodeResponse::getNodeId).collect(Collectors.toSet());
+                final Set<NodeIdentifier> failedNodeIds = problematicNodeResponses.stream().map(response -> response.getNodeId()).collect(Collectors.toSet());
                 logger.warn("The following nodes failed to process URI {} '{}'.  Requesting each node reconnect to cluster.", uriPath, failedNodeIds);
                 for (final NodeIdentifier nodeId : failedNodeIds) {
                     // Update the node to 'CONNECTING' status and request that the node connect

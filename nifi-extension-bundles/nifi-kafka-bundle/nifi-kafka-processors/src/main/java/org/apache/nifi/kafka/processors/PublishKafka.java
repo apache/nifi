@@ -92,8 +92,7 @@ import java.util.stream.Collectors;
         + "The messages to send may be individual FlowFiles, may be delimited using a "
         + "user-specified delimiter (such as a new-line), or "
         + "may be record-oriented data that can be read by the configured Record Reader. "
-        + "The complementary NiFi processor for fetching messages is ConsumeKafka. "
-        + "To produce a kafka tombstone message while using PublishStrategy.USE_WRAPPER, simply set the value of a record to 'null'.")
+        + "The complementary NiFi processor for fetching messages is ConsumeKafka.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @ReadsAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOMBSTONE, description = "If this attribute is set to 'true', if the processor is not configured "
         + "with a demarcator and if the FlowFile's content is null, then a tombstone message with zero bytes will be sent to Kafka.")

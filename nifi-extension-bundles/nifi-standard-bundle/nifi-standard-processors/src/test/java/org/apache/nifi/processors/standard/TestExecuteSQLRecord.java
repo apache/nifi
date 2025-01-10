@@ -69,7 +69,7 @@ import static org.mockito.Mockito.when;
 
 public class TestExecuteSQLRecord {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(TestExecuteSQLRecord.class);
+    private final Logger LOGGER = LoggerFactory.getLogger(TestExecuteSQLRecord.class);;
 
     final static String DB_LOCATION = "target/db";
 

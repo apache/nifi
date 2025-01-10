@@ -360,7 +360,7 @@ public class GetMongoIT extends AbstractMongoIT {
      */
     @Test
     public void testReadQueryFromBodyWithEL() {
-        Map<String, String> attributes = new HashMap<>();
+        Map attributes = new HashMap();
         attributes.put("field", "c");
         attributes.put("value", "4");
         String query = "{ \"${field}\": { \"$gte\": ${value}}}";

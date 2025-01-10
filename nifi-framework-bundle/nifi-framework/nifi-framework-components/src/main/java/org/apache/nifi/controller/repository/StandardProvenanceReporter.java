@@ -457,10 +457,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
             final ProvenanceEventBuilder eventBuilder = build(parent, ProvenanceEventType.CLONE);
             eventBuilder.addChildFlowFile(child);
             eventBuilder.addParentFlowFile(parent);
-            final ProvenanceEventRecord eventRecord = eventBuilder.build();
-            final ProvenanceEventRecord enriched = eventEnricher == null ? eventRecord : eventEnricher.enrich(eventRecord, parent, System.nanoTime());
-
-            events.add(enriched);
+            events.add(eventBuilder.build());
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event", e);
         }

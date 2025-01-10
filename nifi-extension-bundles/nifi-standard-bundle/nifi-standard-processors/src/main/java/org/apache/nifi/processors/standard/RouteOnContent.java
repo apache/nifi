@@ -34,9 +34,12 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -152,7 +155,12 @@ public class RouteOnContent extends AbstractProcessor {
             return;
         }
 
-        final AttributeValueDecorator quoteDecorator = attributeValue -> (attributeValue == null) ? null : Pattern.quote(attributeValue);
+        final AttributeValueDecorator quoteDecorator = new AttributeValueDecorator() {
+            @Override
+            public String decorate(final String attributeValue) {
+                return (attributeValue == null) ? null : Pattern.quote(attributeValue);
+            }
+        };
 
         final Map<FlowFile, Set<Relationship>> flowFileDestinationMap = new HashMap<>();
         final ComponentLog logger = getLogger();
@@ -164,7 +172,12 @@ public class RouteOnContent extends AbstractProcessor {
             flowFileDestinationMap.put(flowFile, destinations);
 
             final AtomicInteger bufferedByteCount = new AtomicInteger(0);
-            session.read(flowFile, in -> bufferedByteCount.set(StreamUtils.fillBuffer(in, buffer, false)));
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream in) throws IOException {
+                    bufferedByteCount.set(StreamUtils.fillBuffer(in, buffer, false));
+                }
+            });
 
             final String contentString = new String(buffer, 0, bufferedByteCount.get(), charset);
 

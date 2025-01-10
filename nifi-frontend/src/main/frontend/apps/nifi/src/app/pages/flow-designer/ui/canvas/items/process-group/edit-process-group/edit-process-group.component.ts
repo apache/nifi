@@ -59,27 +59,18 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 })
 export class EditProcessGroup extends TabbedDialog {
     @Input() set parameterContexts(parameterContexts: ParameterContextEntity[]) {
-        this.initializeParameterContextOptions();
-
         parameterContexts.forEach((parameterContext) => {
-            if (parameterContext.permissions.canRead && parameterContext.component) {
+            if (parameterContext.permissions.canRead) {
                 this.parameterContextsOptions.push({
                     text: parameterContext.component.name,
                     value: parameterContext.id,
                     description: parameterContext.component.description
                 });
             } else {
-                let disabled: boolean;
-                if (this.request.entity.component.parameterContext) {
-                    disabled = this.request.entity.component.parameterContext.id !== parameterContext.id;
-                } else {
-                    disabled = true;
-                }
-
                 this.parameterContextsOptions.push({
                     text: parameterContext.id,
                     value: parameterContext.id,
-                    disabled
+                    disabled: this.request.entity.component.parameterContext.id !== parameterContext.id
                 });
             }
         });
@@ -176,7 +167,10 @@ export class EditProcessGroup extends TabbedDialog {
 
         this.readonly = !request.entity.permissions.canWrite;
 
-        this.initializeParameterContextOptions();
+        this.parameterContextsOptions.push({
+            text: 'No parameter context',
+            value: null
+        });
 
         this.editProcessGroupForm = this.formBuilder.group({
             name: new FormControl(request.entity.component.name, Validators.required),
@@ -207,15 +201,6 @@ export class EditProcessGroup extends TabbedDialog {
         this.initialStatelessFlowTimeout = request.entity.component.statelessFlowTimeout;
 
         this.executionEngineChanged(request.entity.component.executionEngine);
-    }
-
-    private initializeParameterContextOptions(): void {
-        this.parameterContextsOptions = [
-            {
-                text: 'No parameter context',
-                value: null
-            }
-        ];
     }
 
     executionEngineChanged(value: string): void {

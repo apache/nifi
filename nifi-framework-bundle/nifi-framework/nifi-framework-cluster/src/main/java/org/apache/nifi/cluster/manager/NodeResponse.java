@@ -25,12 +25,14 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.ResponseBuilder;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.StreamingOutput;
-
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.util.List;
 import java.util.Objects;
@@ -253,7 +255,12 @@ public class NodeResponse {
         if (!HttpMethod.HEAD.equalsIgnoreCase(httpMethod)) {
             // set the entity
             if (updatedEntity == null) {
-                responseBuilder.entity((StreamingOutput) output -> IOUtils.copy(getInputStream(), output));
+                responseBuilder.entity(new StreamingOutput() {
+                    @Override
+                    public void write(final OutputStream output) throws IOException, WebApplicationException {
+                        IOUtils.copy(getInputStream(), output);
+                    }
+                });
             } else {
                 responseBuilder.entity(updatedEntity);
             }

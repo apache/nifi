@@ -47,6 +47,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.TailFile.TailFileState.StateKeys;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -896,12 +897,15 @@ public class TailFile extends AbstractProcessor {
         final boolean reReadOnNul = context.getProperty(REREAD_ON_NUL).asBoolean();
 
         AtomicReference<NulCharacterEncounteredException> abort = new AtomicReference<>();
-        flowFile = session.write(flowFile, rawOut -> {
-            try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                positionHolder.set(readLines(fileReader, currentState.getBuffer(), out, chksum, reReadOnNul));
-            } catch (NulCharacterEncounteredException e) {
-                positionHolder.set(e.getRePos());
-                abort.set(e);
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(final OutputStream rawOut) throws IOException {
+                try (final OutputStream out = new BufferedOutputStream(rawOut)) {
+                    positionHolder.set(readLines(fileReader, currentState.getBuffer(), out, chksum, reReadOnNul));
+                } catch (NulCharacterEncounteredException e) {
+                    positionHolder.set(e.getRePos());
+                    abort.set(e);
+                }
             }
         });
 

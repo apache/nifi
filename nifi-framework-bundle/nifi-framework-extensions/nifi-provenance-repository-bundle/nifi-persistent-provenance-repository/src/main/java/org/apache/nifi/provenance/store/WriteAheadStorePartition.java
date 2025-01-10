@@ -623,43 +623,46 @@ public class WriteAheadStorePartition implements EventStorePartition {
                 skipToEvent = false;
             }
 
-            final Runnable reindexTask = () -> {
-                final Map<ProvenanceEventRecord, StorageSummary> storageMap = new HashMap<>(1000);
+            final Runnable reindexTask = new Runnable() {
+                @Override
+                public void run() {
+                    final Map<ProvenanceEventRecord, StorageSummary> storageMap = new HashMap<>(1000);
 
-                try (final RecordReader recordReader = recordReaderFactory.newRecordReader(eventFile, Collections.emptyList(), Integer.MAX_VALUE)) {
-                    if (skipToEvent) {
-                        final Optional<ProvenanceEventRecord> eventOption = recordReader.skipToEvent(minEventIdToReindex);
-                        if (!eventOption.isPresent()) {
-                            return;
+                    try (final RecordReader recordReader = recordReaderFactory.newRecordReader(eventFile, Collections.emptyList(), Integer.MAX_VALUE)) {
+                        if (skipToEvent) {
+                            final Optional<ProvenanceEventRecord> eventOption = recordReader.skipToEvent(minEventIdToReindex);
+                            if (!eventOption.isPresent()) {
+                                return;
+                            }
                         }
-                    }
 
-                    StandardProvenanceEventRecord event;
-                    while (true) {
-                        final long startBytesConsumed = recordReader.getBytesConsumed();
+                        StandardProvenanceEventRecord event;
+                        while (true) {
+                            final long startBytesConsumed = recordReader.getBytesConsumed();
 
-                        event = recordReader.nextRecord();
-                        if (event == null) {
-                            eventIndex.reindexEvents(storageMap);
-                            reindexedCount.addAndGet(storageMap.size());
-                            storageMap.clear();
-                            break; // stop reading from this file
-                        } else {
-                            final long eventSize = recordReader.getBytesConsumed() - startBytesConsumed;
-                            storageMap.put(event, new StorageSummary(event.getEventId(), eventFile.getName(), partitionName, recordReader.getBlockIndex(), eventSize, 0L));
-
-                            if (storageMap.size() == 1000) {
+                            event = recordReader.nextRecord();
+                            if (event == null) {
                                 eventIndex.reindexEvents(storageMap);
                                 reindexedCount.addAndGet(storageMap.size());
                                 storageMap.clear();
+                                break; // stop reading from this file
+                            } else {
+                                final long eventSize = recordReader.getBytesConsumed() - startBytesConsumed;
+                                storageMap.put(event, new StorageSummary(event.getEventId(), eventFile.getName(), partitionName, recordReader.getBlockIndex(), eventSize, 0L));
+
+                                if (storageMap.size() == 1000) {
+                                    eventIndex.reindexEvents(storageMap);
+                                    reindexedCount.addAndGet(storageMap.size());
+                                    storageMap.clear();
+                                }
                             }
                         }
+                    } catch (final EOFException | FileNotFoundException eof) {
+                        // Ran out of data. Continue on.
+                        logger.warn("Failed to find event with ID {} in Event File {}", minEventIdToReindex, eventFile, eof);
+                    } catch (final Exception e) {
+                        logger.error("Failed to index Provenance Events found in {}", eventFile, e);
                     }
-                } catch (final EOFException | FileNotFoundException eof) {
-                    // Ran out of data. Continue on.
-                    logger.warn("Failed to find event with ID {} in Event File {}", minEventIdToReindex, eventFile, eof);
-                } catch (final Exception e) {
-                    logger.error("Failed to index Provenance Events found in {}", eventFile, e);
                 }
             };
 

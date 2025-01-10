@@ -44,6 +44,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.AbstractHadoopProcessor;
 import org.apache.nifi.processors.hadoop.FetchHDFS;
@@ -52,6 +53,7 @@ import org.apache.nifi.processors.hadoop.ListHDFS;
 import org.apache.nifi.processors.hadoop.PutHDFS;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -198,7 +200,12 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                             flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
                             flowFile = session.putAttribute(flowFile, EventAttributes.EVENT_TYPE, e.getEventType().name());
                             flowFile = session.putAttribute(flowFile, EventAttributes.EVENT_PATH, path);
-                            flowFile = session.write(flowFile, out -> out.write(OBJECT_MAPPER.writeValueAsBytes(e)));
+                            flowFile = session.write(flowFile, new OutputStreamCallback() {
+                                @Override
+                                public void process(OutputStream out) throws IOException {
+                                    out.write(OBJECT_MAPPER.writeValueAsBytes(e));
+                                }
+                            });
 
                             flowFiles.add(flowFile);
                         }

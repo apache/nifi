@@ -22,6 +22,7 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -75,6 +76,7 @@ public class TestStandardRemoteGroupPort {
     private SiteToSiteClient siteToSiteClient;
     private Transaction transaction;
     private EventReporter eventReporter;
+    private ProcessGroup processGroup;
     private static final String REMOTE_CLUSTER_URL = "http://node0.example.com:8080/nifi";
     private StandardRemoteGroupPort port;
     private SharedSessionState sessionState;
@@ -96,6 +98,7 @@ public class TestStandardRemoteGroupPort {
     private void setupMock(final SiteToSiteTransportProtocol protocol,
             final TransferDirection direction,
            final SiteToSiteClientConfig siteToSiteClientConfig) throws Exception {
+        processGroup = null;
         remoteGroup = mock(RemoteProcessGroup.class);
         scheduler = null;
         siteToSiteClient = mock(SiteToSiteClient.class);

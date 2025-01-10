@@ -43,11 +43,13 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.NaiveSearchRingBuffer;
 import org.apache.nifi.util.Tuple;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -206,36 +208,39 @@ public class SplitContent extends AbstractProcessor {
         final List<Tuple<Long, Long>> splits = new ArrayList<>();
 
         final NaiveSearchRingBuffer buffer = new NaiveSearchRingBuffer(byteSequence);
-        session.read(flowFile, rawIn -> {
-            long bytesRead = 0L;
-            long startOffset = 0L;
+        session.read(flowFile, new InputStreamCallback() {
+            @Override
+            public void process(final InputStream rawIn) throws IOException {
+                long bytesRead = 0L;
+                long startOffset = 0L;
 
-            try (final InputStream in = new BufferedInputStream(rawIn)) {
-                while (true) {
-                    final int nextByte = in.read();
-                    if (nextByte == -1) {
-                        return;
-                    }
-
-                    bytesRead++;
-                    boolean matched = buffer.addAndCompare((byte) (nextByte & 0xFF));
-                    if (matched) {
-                        long splitLength;
-
-                        if (keepTrailingSequence) {
-                            splitLength = bytesRead - startOffset;
-                        } else {
-                            splitLength = bytesRead - startOffset - byteSequence.length;
+                try (final InputStream in = new BufferedInputStream(rawIn)) {
+                    while (true) {
+                        final int nextByte = in.read();
+                        if (nextByte == -1) {
+                            return;
                         }
 
-                        if (keepLeadingSequence && startOffset > 0) {
-                            splitLength += byteSequence.length;
-                        }
+                        bytesRead++;
+                        boolean matched = buffer.addAndCompare((byte) (nextByte & 0xFF));
+                        if (matched) {
+                            long splitLength;
 
-                        final long splitStart = (keepLeadingSequence && startOffset > 0) ? startOffset - byteSequence.length : startOffset;
-                        splits.add(new Tuple<>(splitStart, splitLength));
-                        startOffset = bytesRead;
-                        buffer.clear();
+                            if (keepTrailingSequence) {
+                                splitLength = bytesRead - startOffset;
+                            } else {
+                                splitLength = bytesRead - startOffset - byteSequence.length;
+                            }
+
+                            if (keepLeadingSequence && startOffset > 0) {
+                                splitLength += byteSequence.length;
+                            }
+
+                            final long splitStart = (keepLeadingSequence && startOffset > 0) ? startOffset - byteSequence.length : startOffset;
+                            splits.add(new Tuple<>(splitStart, splitLength));
+                            startOffset = bytesRead;
+                            buffer.clear();
+                        }
                     }
                 }
             }

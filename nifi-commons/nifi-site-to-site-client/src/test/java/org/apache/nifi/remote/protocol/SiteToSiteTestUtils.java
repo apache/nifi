@@ -24,7 +24,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,15 +36,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SiteToSiteTestUtils {
     public static DataPacket createDataPacket(String contents) {
-        byte[] bytes = contents.getBytes(StandardCharsets.UTF_8);
-        ByteArrayInputStream is = new ByteArrayInputStream(bytes);
-        return new StandardDataPacket(new HashMap<>(), is, bytes.length);
+        try {
+            byte[] bytes = contents.getBytes("UTF-8");
+            ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+            return new StandardDataPacket(new HashMap<>(), is, bytes.length);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static String readContents(DataPacket packet) throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream((int) packet.getSize());
         StreamUtils.copy(packet.getData(), os);
-        return new String(os.toByteArray(), StandardCharsets.UTF_8);
+        return new String(os.toByteArray(), "UTF-8");
     }
 
     public static void execReceiveZeroFlowFile(Transaction transaction) throws IOException {

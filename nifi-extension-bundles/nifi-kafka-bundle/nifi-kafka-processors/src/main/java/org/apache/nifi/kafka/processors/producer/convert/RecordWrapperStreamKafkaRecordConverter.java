@@ -107,10 +107,7 @@ public class RecordWrapperStreamKafkaRecordConverter implements KafkaRecordConve
                     final RecordFieldConverter converter = new RecordFieldConverter(record, flowFile, logger);
                     final byte[] key = converter.toBytes(WrapperRecord.KEY, keyWriterFactory);
                     final byte[] value = converter.toBytes(WrapperRecord.VALUE, writerFactory);
-
-                    if (value != null) {
-                        ProducerUtils.checkMessageSize(maxMessageSize, value.length);
-                    }
+                    ProducerUtils.checkMessageSize(maxMessageSize, value.length);
 
                     final List<RecordHeader> headers = getKafkaHeaders(record);
 

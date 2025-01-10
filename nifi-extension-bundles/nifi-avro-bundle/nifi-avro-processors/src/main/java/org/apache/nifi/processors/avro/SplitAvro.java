@@ -64,6 +64,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @SideEffectFree
@@ -245,49 +247,55 @@ public class SplitAvro extends AbstractProcessor {
             final List<FlowFile> childFlowFiles = new ArrayList<>();
             final AtomicReference<GenericRecord> recordHolder = new AtomicReference<>(null);
 
-            session.read(originalFlowFile, rawIn -> {
-                try (final InputStream in = new BufferedInputStream(rawIn);
-                     final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
+            session.read(originalFlowFile, new InputStreamCallback() {
+                @Override
+                public void process(InputStream rawIn) throws IOException {
+                    try (final InputStream in = new BufferedInputStream(rawIn);
+                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
 
-                    final AtomicReference<String> codec = new AtomicReference<>(reader.getMetaString(DataFileConstants.CODEC));
-                    if (codec.get() == null) {
-                        codec.set(DataFileConstants.NULL_CODEC);
-                    }
-
-                    // while records are left, start a new split by spawning a FlowFile
-                    final AtomicReference<Boolean> hasNextHolder = new AtomicReference<>(reader.hasNext());
-                    while (hasNextHolder.get()) {
-                        FlowFile childFlowFile = session.create(originalFlowFile);
-                        childFlowFile = session.write(childFlowFile, rawOut -> {
-                            try (final BufferedOutputStream out = new BufferedOutputStream(rawOut)) {
-                                splitWriter.init(reader, codec.get(), out);
-
-                                // append to the current FlowFile until no more records, or splitSize is reached
-                                int recordCount = 0;
-                                while (hasNextHolder.get() && recordCount < splitSize) {
-                                    recordHolder.set(reader.next(recordHolder.get()));
-                                    splitWriter.write(recordHolder.get());
-                                    recordCount++;
-                                    hasNextHolder.set(reader.hasNext());
-                                }
-
-                                splitWriter.flush();
-                            } finally {
-                                splitWriter.close();
-                            }
-                        });
-
-                        // would prefer this to be part of the SplitWriter, but putting the metadata in FlowFile attributes
-                        // can't be done inside of an OutputStream callback which is where the splitWriter is used
-                        if (splitWriter instanceof BareRecordSplitWriter && transferMetadata) {
-                            final Map<String, String> metadata = new HashMap<>();
-                            for (String metaKey : reader.getMetaKeys()) {
-                                metadata.put(metaKey, reader.getMetaString(metaKey));
-                            }
-                            childFlowFile = session.putAllAttributes(childFlowFile, metadata);
+                        final AtomicReference<String> codec = new AtomicReference<>(reader.getMetaString(DataFileConstants.CODEC));
+                        if (codec.get() == null) {
+                            codec.set(DataFileConstants.NULL_CODEC);
                         }
 
-                        childFlowFiles.add(childFlowFile);
+                        // while records are left, start a new split by spawning a FlowFile
+                        final AtomicReference<Boolean> hasNextHolder = new AtomicReference<>(reader.hasNext());
+                        while (hasNextHolder.get()) {
+                            FlowFile childFlowFile = session.create(originalFlowFile);
+                            childFlowFile = session.write(childFlowFile, new OutputStreamCallback() {
+                                @Override
+                                public void process(OutputStream rawOut) throws IOException {
+                                    try (final BufferedOutputStream out = new BufferedOutputStream(rawOut)) {
+                                        splitWriter.init(reader, codec.get(), out);
+
+                                        // append to the current FlowFile until no more records, or splitSize is reached
+                                        int recordCount = 0;
+                                        while (hasNextHolder.get() && recordCount < splitSize) {
+                                            recordHolder.set(reader.next(recordHolder.get()));
+                                            splitWriter.write(recordHolder.get());
+                                            recordCount++;
+                                            hasNextHolder.set(reader.hasNext());
+                                        }
+
+                                        splitWriter.flush();
+                                    } finally {
+                                        splitWriter.close();
+                                    }
+                                }
+                            });
+
+                            // would prefer this to be part of the SplitWriter, but putting the metadata in FlowFile attributes
+                            // can't be done inside of an OutputStream callback which is where the splitWriter is used
+                            if (splitWriter instanceof BareRecordSplitWriter && transferMetadata) {
+                                final Map<String, String> metadata = new HashMap<>();
+                                for (String metaKey : reader.getMetaKeys()) {
+                                    metadata.put(metaKey, reader.getMetaString(metaKey));
+                                }
+                                childFlowFile = session.putAllAttributes(childFlowFile, metadata);
+                            }
+
+                            childFlowFiles.add(childFlowFile);
+                        }
                     }
                 }
             });

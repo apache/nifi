@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.image;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +42,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.drew.imaging.ImageMetadataReader;
@@ -117,12 +120,15 @@ public class ExtractImageMetadata extends AbstractProcessor {
         final Integer max = context.getProperty(MAX_NUMBER_OF_ATTRIBUTES).asInteger();
 
         try {
-            session.read(flowfile, in -> {
-                try {
-                    Metadata imageMetadata = ImageMetadataReader.readMetadata(in);
-                    value.set(imageMetadata);
-                } catch (ImageProcessingException ex) {
-                    throw new ProcessException(ex);
+            session.read(flowfile, new InputStreamCallback() {
+                @Override
+                public void process(InputStream in) throws IOException {
+                    try {
+                        Metadata imageMetadata = ImageMetadataReader.readMetadata(in);
+                        value.set(imageMetadata);
+                    } catch (ImageProcessingException ex) {
+                        throw new ProcessException(ex);
+                    }
                 }
             });
 

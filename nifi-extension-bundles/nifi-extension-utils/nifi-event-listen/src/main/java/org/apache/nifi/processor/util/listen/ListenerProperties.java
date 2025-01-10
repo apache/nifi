@@ -17,7 +17,9 @@
 package org.apache.nifi.processor.util.listen;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -49,34 +51,37 @@ public class ListenerProperties {
     public static final PropertyDescriptor NETWORK_INTF_NAME = new PropertyDescriptor.Builder()
             .name("Local Network Interface")
             .description("The name of a local network interface to be used to restrict listening to a specific LAN.")
-            .addValidator((subject, input, context) -> {
-                ValidationResult result = new ValidationResult.Builder()
-                        .subject("Local Network Interface").valid(true).input(input).build();
-                if (interfaceSet.contains(input.toLowerCase())) {
-                    return result;
-                }
-
-                String message;
-                String realValue = input;
-                try {
-                    if (context.isExpressionLanguagePresent(input)) {
-                        AttributeExpression ae = context.newExpressionLanguageCompiler().compile(input);
-                        realValue = ae.evaluate();
-                    }
-
-                    if (interfaceSet.contains(realValue.toLowerCase())) {
+            .addValidator(new Validator() {
+                @Override
+                public ValidationResult validate(String subject, String input, ValidationContext context) {
+                    ValidationResult result = new ValidationResult.Builder()
+                            .subject("Local Network Interface").valid(true).input(input).build();
+                    if (interfaceSet.contains(input.toLowerCase())) {
                         return result;
                     }
 
-                    message = realValue + " is not a valid network name. Valid names are " + interfaceSet;
+                    String message;
+                    String realValue = input;
+                    try {
+                        if (context.isExpressionLanguagePresent(input)) {
+                            AttributeExpression ae = context.newExpressionLanguageCompiler().compile(input);
+                            realValue = ae.evaluate();
+                        }
 
-                } catch (IllegalArgumentException e) {
-                    message = "Not a valid AttributeExpression: " + e.getMessage();
+                        if (interfaceSet.contains(realValue.toLowerCase())) {
+                            return result;
+                        }
+
+                        message = realValue + " is not a valid network name. Valid names are " + interfaceSet.toString();
+
+                    } catch (IllegalArgumentException e) {
+                        message = "Not a valid AttributeExpression: " + e.getMessage();
+                    }
+                    result = new ValidationResult.Builder().subject("Local Network Interface")
+                            .valid(false).input(input).explanation(message).build();
+
+                    return result;
                 }
-                result = new ValidationResult.Builder().subject("Local Network Interface")
-                        .valid(false).input(input).explanation(message).build();
-
-                return result;
             })
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();

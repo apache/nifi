@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.websocket;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.io.UnsupportedEncodingException;
 
 public class WebSocketMessage {
-    public static final Charset CHARSET = StandardCharsets.UTF_8;
+    public static final String CHARSET_NAME = "UTF-8";
 
     public enum Type {
         TEXT,
@@ -50,10 +49,13 @@ public class WebSocketMessage {
             return;
         }
 
-        final byte[] bytes = text.getBytes(CHARSET);
-        setPayload(bytes, 0, bytes.length);
-        type = Type.TEXT;
-
+        try {
+            final byte[] bytes = text.getBytes(CHARSET_NAME);
+            setPayload(bytes, 0, bytes.length);
+            type = Type.TEXT;
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Failed to serialize messageStr, due to " + e, e);
+        }
     }
 
     public void setPayload(final byte[] payload, final int offset, final int length) {

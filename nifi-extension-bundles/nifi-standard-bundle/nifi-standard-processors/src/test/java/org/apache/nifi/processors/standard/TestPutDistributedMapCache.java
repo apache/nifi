@@ -28,7 +28,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,14 +72,14 @@ public class TestPutDistributedMapCache {
         props.put("cacheKeyAttribute", "1");
 
         String flowFileContent = "content";
-        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), props);
+        runner.enqueue(flowFileContent.getBytes("UTF-8"), props);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutDistributedMapCache.REL_SUCCESS, 1);
         runner.assertTransferCount(PutDistributedMapCache.REL_SUCCESS, 1);
         byte[] value = service.get("1", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
-        assertEquals(flowFileContent, new String(value, StandardCharsets.UTF_8));
+        assertEquals(flowFileContent, new String(value, "UTF-8"));
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(PutDistributedMapCache.REL_SUCCESS).get(0);
         outputFlowFile.assertAttributeEquals("cached", "true");
@@ -113,7 +112,7 @@ public class TestPutDistributedMapCache {
 
         // max length is 10 bytes, flow file content is 20 bytes
         String flowFileContent = "contentwhichistoobig";
-        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8));
+        runner.enqueue(flowFileContent.getBytes("UTF-8"));
 
         runner.run();
 
@@ -140,7 +139,7 @@ public class TestPutDistributedMapCache {
         props.put("cacheKeyAttribute", "replaceme");
 
         String original = "original";
-        runner.enqueue(original.getBytes(StandardCharsets.UTF_8), props);
+        runner.enqueue(original.getBytes("UTF-8"), props);
 
         runner.run();
 
@@ -153,10 +152,10 @@ public class TestPutDistributedMapCache {
 
         runner.clearTransferState();
         byte[] value = service.get("replaceme", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
-        assertEquals(original, new String(value, StandardCharsets.UTF_8));
+        assertEquals(original, new String(value, "UTF-8"));
 
         String replaced = "replaced";
-        runner.enqueue(replaced.getBytes(StandardCharsets.UTF_8), props);
+        runner.enqueue(replaced.getBytes("UTF-8"), props);
 
         runner.run();
 
@@ -171,7 +170,7 @@ public class TestPutDistributedMapCache {
 
         // we expect that the cache entry is replaced
         value = service.get("replaceme", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
-        assertEquals(replaced, new String(value, StandardCharsets.UTF_8));
+        assertEquals(replaced, new String(value, "UTF-8"));
     }
 
     @Test
@@ -184,7 +183,7 @@ public class TestPutDistributedMapCache {
         props.put("cacheKeyAttribute", "replaceme");
 
         String original = "original";
-        runner.enqueue(original.getBytes(StandardCharsets.UTF_8), props);
+        runner.enqueue(original.getBytes("UTF-8"), props);
 
         runner.run();
 
@@ -197,10 +196,10 @@ public class TestPutDistributedMapCache {
 
         runner.clearTransferState();
         byte[] value = service.get("replaceme", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
-        assertEquals(original, new String(value, StandardCharsets.UTF_8));
+        assertEquals(original, new String(value, "UTF-8"));
 
         String replaced = "replaced";
-        runner.enqueue(replaced.getBytes(StandardCharsets.UTF_8), props);
+        runner.enqueue(replaced.getBytes("UTF-8"), props);
 
         runner.run();
 
@@ -215,7 +214,7 @@ public class TestPutDistributedMapCache {
 
         // we expect that the cache entry is NOT replaced
         value = service.get("replaceme", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
-        assertEquals(original, new String(value, StandardCharsets.UTF_8));
+        assertEquals(original, new String(value, "UTF-8"));
     }
 
     private static class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {

@@ -25,7 +25,7 @@ import java.util.Arrays;
 
 public class ControllerServiceApiMatcher {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ControllerServiceApiMatcher.class);
+    private static Logger LOGGER = LoggerFactory.getLogger(ControllerServiceApiMatcher.class);
 
     /**
      * Determines if all of the methods from the API class are present in the implementation class.
@@ -60,7 +60,8 @@ public class ControllerServiceApiMatcher {
 
             if (!foundMatchingImplMethod) {
                 if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("{} does not implement the API method [{}] from {}", serviceImplementation.getCanonicalName(), apiMethod, serviceApi.getCanonicalName());
+                    LOGGER.debug("{} does not implement the API method [{}] from {}",
+                            new Object[]{serviceImplementation.getCanonicalName(), apiMethod.toString(), serviceApi.getCanonicalName()});
                 }
                 return false;
             }

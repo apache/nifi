@@ -45,6 +45,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
@@ -385,38 +386,41 @@ public class LookupRecord extends AbstractProcessor {
         }
 
         try {
-            session.read(flowFile, in -> {
-                try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, original.getSize(), getLogger())) {
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream in) throws IOException {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, original.getSize(), getLogger())) {
 
-                    final Map<Relationship, RecordSchema> writeSchemas = new HashMap<>();
+                        final Map<Relationship, RecordSchema> writeSchemas = new HashMap<>();
 
-                    Record record;
-                    while ((record = reader.nextRecord()) != null) {
-                        final List<Record> subRecords = getSubRecords(record, rootRecordPath);
-                        final Set<MatchResult> matchResults = new HashSet<>();
-                        for (final Record subRecord : subRecords) {
-                            final MatchResult matchResult = replacementStrategy.lookup(subRecord, context, lookupContext);
-                            matchResults.add(matchResult);
-                        }
-                        record.incorporateInactiveFields();
-
-                        final Set<Relationship> relationships = getRelationships(matchResults);
-
-                        for (final Relationship relationship : relationships) {
-                            // Determine the Write Schema to use for each relationship
-                            RecordSchema writeSchema = writeSchemas.get(relationship);
-                            if (writeSchema == null) {
-                                final RecordSchema outputSchema = enrichedSchema == null ? record.getSchema() : enrichedSchema;
-                                writeSchema = writerFactory.getSchema(originalAttributes, outputSchema);
-                                writeSchemas.put(relationship, writeSchema);
+                        Record record;
+                        while ((record = reader.nextRecord()) != null) {
+                            final List<Record> subRecords = getSubRecords(record, rootRecordPath);
+                            final Set<MatchResult> matchResults = new HashSet<>();
+                            for (final Record subRecord : subRecords) {
+                                final MatchResult matchResult = replacementStrategy.lookup(subRecord, context, lookupContext);
+                                matchResults.add(matchResult);
                             }
+                            record.incorporateInactiveFields();
 
-                            final RecordSetWriter writer = lookupContext.getRecordWriterForRelationship(relationship, writeSchema);
-                            writer.write(record);
+                            final Set<Relationship> relationships = getRelationships(matchResults);
+
+                            for (final Relationship relationship : relationships) {
+                                // Determine the Write Schema to use for each relationship
+                                RecordSchema writeSchema = writeSchemas.get(relationship);
+                                if (writeSchema == null) {
+                                    final RecordSchema outputSchema = enrichedSchema == null ? record.getSchema() : enrichedSchema;
+                                    writeSchema = writerFactory.getSchema(originalAttributes, outputSchema);
+                                    writeSchemas.put(relationship, writeSchema);
+                                }
+
+                                final RecordSetWriter writer = lookupContext.getRecordWriterForRelationship(relationship, writeSchema);
+                                writer.write(record);
+                            }
                         }
+                    } catch (final SchemaNotFoundException | MalformedRecordException e) {
+                        throw new ProcessException("Could not parse incoming data", e);
                     }
-                } catch (final SchemaNotFoundException | MalformedRecordException e) {
-                    throw new ProcessException("Could not parse incoming data", e);
                 }
             });
 

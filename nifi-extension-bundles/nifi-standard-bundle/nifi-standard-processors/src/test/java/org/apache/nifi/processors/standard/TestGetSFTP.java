@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -156,7 +155,7 @@ public class TestGetSFTP {
     }
 
     private void touchFile(String file) throws IOException {
-        FileUtils.writeStringToFile(new File(file), "", StandardCharsets.UTF_8);
+        FileUtils.writeStringToFile(new File(file), "", "UTF-8");
     }
 
     private void emptyTestDirectory() throws IOException {

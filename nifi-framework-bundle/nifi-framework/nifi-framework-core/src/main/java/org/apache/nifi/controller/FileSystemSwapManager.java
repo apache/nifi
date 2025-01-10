@@ -51,6 +51,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -207,7 +208,12 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
     @Override
     public void purge() {
-        final File[] swapFiles = storageDirectory.listFiles((dir, name) -> SWAP_FILE_PATTERN.matcher(name).matches() || TEMP_SWAP_FILE_PATTERN.matcher(name).matches());
+        final File[] swapFiles = storageDirectory.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(final File dir, final String name) {
+                return SWAP_FILE_PATTERN.matcher(name).matches() || TEMP_SWAP_FILE_PATTERN.matcher(name).matches();
+            }
+        });
 
         for (final File file : swapFiles) {
             if (!file.delete()) {
@@ -249,7 +255,12 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
     @Override
     public Set<String> getSwappedPartitionNames(final FlowFileQueue queue) {
-        final File[] swapFiles = storageDirectory.listFiles((dir, name) -> SWAP_FILE_PATTERN.matcher(name).matches());
+        final File[] swapFiles = storageDirectory.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(final File dir, final String name) {
+                return SWAP_FILE_PATTERN.matcher(name).matches();
+            }
+        });
 
         if (swapFiles == null) {
             return Collections.emptySet();
@@ -266,7 +277,12 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
     @Override
     public List<String> recoverSwapLocations(final FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
-        final File[] swapFiles = storageDirectory.listFiles((dir, name) -> SWAP_FILE_PATTERN.matcher(name).matches() || TEMP_SWAP_FILE_PATTERN.matcher(name).matches());
+        final File[] swapFiles = storageDirectory.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(final File dir, final String name) {
+                return SWAP_FILE_PATTERN.matcher(name).matches() || TEMP_SWAP_FILE_PATTERN.matcher(name).matches();
+            }
+        });
 
         if (swapFiles == null) {
             return Collections.emptyList();

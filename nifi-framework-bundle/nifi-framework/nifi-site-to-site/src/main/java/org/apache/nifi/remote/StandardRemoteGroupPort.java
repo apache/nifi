@@ -34,6 +34,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.exception.PortNotRunningException;
@@ -55,6 +56,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -316,9 +318,12 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 final long startNanos = System.nanoTime();
                 // call codec.encode within a session callback so that we have the InputStream to read the FlowFile
                 final FlowFile toWrap = flowFile;
-                session.read(flowFile, in -> {
-                    final DataPacket dataPacket = new StandardDataPacket(toWrap.getAttributes(), in, toWrap.getSize());
-                    transaction.send(dataPacket);
+                session.read(flowFile, new InputStreamCallback() {
+                    @Override
+                    public void process(final InputStream in) throws IOException {
+                        final DataPacket dataPacket = new StandardDataPacket(toWrap.getAttributes(), in, toWrap.getSize());
+                        transaction.send(dataPacket);
+                    }
                 });
 
                 final long transferNanos = System.nanoTime() - startNanos;
@@ -372,7 +377,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
     }
 
-    private int receiveFlowFiles(final Transaction transaction, final ProcessContext context, final ProcessSession session) throws IOException {
+    private int receiveFlowFiles(final Transaction transaction, final ProcessContext context, final ProcessSession session) throws IOException, ProtocolException {
         final String userDn = transaction.getCommunicant().getDistinguishedName();
 
         final StopWatch stopWatch = new StopWatch(true);

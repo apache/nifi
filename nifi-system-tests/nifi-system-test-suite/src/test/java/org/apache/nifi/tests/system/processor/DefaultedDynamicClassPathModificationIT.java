@@ -36,6 +36,7 @@ class DefaultedDynamicClassPathModificationIT extends NiFiSystemIT {
 
     private ConnectionEntity defaultedModifyClasspathInputConnection;
     private ConnectionEntity successConnection;
+    private ConnectionEntity failureConnection;
 
     @Test
     void testLoadsClassFromDefaultedDynamicModification() throws NiFiClientException, IOException, InterruptedException {
@@ -99,6 +100,6 @@ class DefaultedDynamicClassPathModificationIT extends NiFiSystemIT {
 
         defaultedModifyClasspathInputConnection = getClientUtil().createConnection(generateFlowFileProcessor, defaultedModifyClasspathProcessor, "success");
         successConnection = getClientUtil().createConnection(defaultedModifyClasspathProcessor, terminateSuccess, "success");
-        getClientUtil().createConnection(defaultedModifyClasspathProcessor, terminateFailure, "failure");
+        failureConnection = getClientUtil().createConnection(defaultedModifyClasspathProcessor, terminateFailure, "failure");
     }
 }

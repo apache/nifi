@@ -36,8 +36,8 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import jakarta.ws.rs.core.Response;
-
-import java.nio.charset.StandardCharsets;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -69,7 +69,11 @@ public class SecureKerberosIT extends IntegrationTestBase {
         public KerberosTicketValidation validateTicket(byte[] token) throws BadCredentialsException {
 
             boolean validTicket;
-            validTicket = Arrays.equals(validKerberosTicket.getBytes(StandardCharsets.UTF_8), token);
+            try {
+                 validTicket = Arrays.equals(validKerberosTicket.getBytes("UTF-8"), token);
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalStateException(e);
+            }
 
             if (!validTicket) {
                 throw new BadCredentialsException(MockKerberosTicketValidator.class.getSimpleName() + " does not validate token");
@@ -100,7 +104,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
 
     @BeforeEach
     public void generateAuthToken() {
-        String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(StandardCharsets.UTF_8)));
+        String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(Charset.forName("UTF-8"))));
         final String token = client
                 .target(createURL("/access/token/kerberos"))
                 .request()
@@ -138,7 +142,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
         assertEquals("Negotiate", tokenResponse1.getHeaders().get("www-authenticate").get(0));
 
         // When: the /access/token/kerberos endpoint is accessed again with an invalid ticket
-        String invalidTicket = new String(java.util.Base64.getEncoder().encode(invalidKerberosTicket.getBytes(StandardCharsets.UTF_8)));
+        String invalidTicket = new String(java.util.Base64.getEncoder().encode(invalidKerberosTicket.getBytes(Charset.forName("UTF-8"))));
         final Response tokenResponse2 = client
                 .target(createURL("/access/token/kerberos"))
                 .request()
@@ -149,7 +153,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
         assertEquals(401, tokenResponse2.getStatus());
 
         // When: the /access/token/kerberos endpoint is accessed with a valid ticket
-        String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(StandardCharsets.UTF_8)));
+        String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(Charset.forName("UTF-8"))));
         final Response tokenResponse3 = client
                 .target(createURL("/access/token/kerberos"))
                 .request()
@@ -162,7 +166,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
         assertTrue(StringUtils.isNotEmpty(token));
         String[] jwtParts = token.split("\\.");
         assertEquals(3, jwtParts.length);
-        String jwtPayload = new String(Base64.getDecoder().decode(jwtParts[1]), StandardCharsets.UTF_8);
+        String jwtPayload = new String(Base64.getDecoder().decode(jwtParts[1]), "UTF-8");
         JSONAssert.assertEquals(expectedJwtPayloadJson, jwtPayload, false);
 
         // When: the token is returned in the Authorization header

@@ -43,7 +43,6 @@ class ShutdownHookTest {
     private ShutdownHook shutdownHook;
 
     @Test
-    @SuppressWarnings("PMD.DontCallThreadRun")
     void testRunShouldShutdownSchedulersAndProcesses() {
         when(runner.getPeriodicStatusReporterManager()).thenReturn(periodicStatusReporterManager);
 

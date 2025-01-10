@@ -21,6 +21,7 @@ import org.eclipse.jetty.ee10.servlet.FilterHolder;
 import org.eclipse.jetty.ee10.servlets.DoSFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.web.header.HeaderWriterFilter;
 
 import jakarta.servlet.Filter;
 import java.util.Collections;
@@ -55,6 +56,7 @@ public class RestApiRequestFilterProviderTest {
         assertNotNull(filters);
         assertFalse(filters.isEmpty());
 
+        assertFilterClassFound(filters, HeaderWriterFilter.class);
         assertFilterClassFound(filters, DataTransferExcludedDoSFilter.class);
     }
 

@@ -32,7 +32,6 @@ import { Client } from '../../../../../service/client.service';
 import { ParameterTable } from '../parameter-table/parameter-table.component';
 import {
     EditParameterResponse,
-    ParameterContext,
     ParameterContextEntity,
     ParameterContextUpdateRequestEntity,
     ParameterEntity,
@@ -105,23 +104,20 @@ export class EditParameterContext extends TabbedDialog {
             this.isNew = false;
             this.readonly = !request.parameterContext.permissions.canWrite;
 
-            // @ts-ignore - component will be defined since the user has permissions to edit the context, but it is optional as defined by the type
-            const parameterContext: ParameterContext = request.parameterContext.component;
-
             this.editParameterContextForm = this.formBuilder.group({
-                name: new FormControl(parameterContext.name, Validators.required),
-                description: new FormControl(parameterContext.description),
+                name: new FormControl(request.parameterContext.component.name, Validators.required),
+                description: new FormControl(request.parameterContext.component.description),
                 parameters: new FormControl({
-                    value: parameterContext.parameters,
+                    value: request.parameterContext.component.parameters,
                     disabled: this.readonly
                 }),
                 inheritedParameterContexts: new FormControl({
-                    value: parameterContext.inheritedParameterContexts,
+                    value: request.parameterContext.component.inheritedParameterContexts,
                     disabled: this.readonly
                 })
             });
-            if (parameterContext.parameterProviderConfiguration) {
-                this.parameterProvider = parameterContext.parameterProviderConfiguration.component;
+            if (request.parameterContext.component.parameterProviderConfiguration) {
+                this.parameterProvider = request.parameterContext.component.parameterProviderConfiguration.component;
             }
         } else {
             this.isNew = true;

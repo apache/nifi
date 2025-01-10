@@ -49,8 +49,10 @@ import org.apache.nifi.util.TestRunners;
 import org.glassfish.jersey.internal.guava.Predicates;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -68,6 +70,8 @@ public class TestAbstractListProcessor {
 
     private ConcreteListProcessor proc;
     private TestRunner runner;
+    @TempDir
+    private Path testFolder;
 
     @BeforeEach
     public void setup() {
@@ -359,6 +363,7 @@ public class TestAbstractListProcessor {
 
     static class EphemeralMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
         private final Map<Object, Object> stored = new HashMap<>();
+        private int fetchCount = 0;
 
         @Override
         public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
@@ -383,6 +388,7 @@ public class TestAbstractListProcessor {
         @Override
         @SuppressWarnings("unchecked")
         public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+            fetchCount++;
             return (V) stored.get(key);
         }
 

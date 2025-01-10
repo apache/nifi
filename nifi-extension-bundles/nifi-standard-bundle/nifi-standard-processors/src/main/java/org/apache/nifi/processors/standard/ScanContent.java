@@ -33,6 +33,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
 import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 import org.apache.nifi.util.search.Search;
@@ -208,11 +209,14 @@ public class ScanContent extends AbstractProcessor {
         final AtomicReference<SearchTerm<byte[]>> termRef = new AtomicReference<>(null);
         termRef.set(null);
 
-        session.read(flowFile, rawIn -> {
-            try (final InputStream in = new BufferedInputStream(rawIn)) {
-                final SearchState<byte[]> searchResult = finalSearch.search(in, false);
-                if (searchResult.foundMatch()) {
-                    termRef.set(searchResult.getResults().keySet().iterator().next());
+        session.read(flowFile, new InputStreamCallback() {
+            @Override
+            public void process(final InputStream rawIn) throws IOException {
+                try (final InputStream in = new BufferedInputStream(rawIn)) {
+                    final SearchState<byte[]> searchResult = finalSearch.search(in, false);
+                    if (searchResult.foundMatch()) {
+                        termRef.set(searchResult.getResults().keySet().iterator().next());
+                    }
                 }
             }
         });

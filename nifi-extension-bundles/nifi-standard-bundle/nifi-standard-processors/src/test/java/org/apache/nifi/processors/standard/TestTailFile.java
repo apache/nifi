@@ -37,6 +37,7 @@ import org.junit.jupiter.api.condition.OS;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
@@ -181,7 +182,7 @@ public class TestTailFile {
         Integer reposition = "first_line_with_nul".length();
         String content2 = " overwrite_nul_and_continue_first_line\n";
 
-        List<String> expected = List.of("first_line_with_nul overwrite_nul_and_continue_first_line\n");
+        List<String> expected = Arrays.asList("first_line_with_nul overwrite_nul_and_continue_first_line\n");
 
         // WHEN
         // THEN
@@ -302,7 +303,7 @@ public class TestTailFile {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst();
+        final MockFlowFile out = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0);
         out.assertContentEquals("6\n");
     }
 
@@ -326,13 +327,13 @@ public class TestTailFile {
         raf.write("a\nb\n".getBytes());
         runner.run(1, false, true);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("a\nb\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("a\nb\n");
         runner.clearTransferState();
 
         raf.write("c\n".getBytes());
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("c\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("c\n");
         runner.clearTransferState();
 
         // Write additional data to file, then roll file over
@@ -351,7 +352,7 @@ public class TestTailFile {
         // Trigger processor and verify data is consumed properly
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("d\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("d\n");
         runner.clearTransferState();
 
         // Write to the file and trigger again.
@@ -359,7 +360,7 @@ public class TestTailFile {
         runner.run(1, false, false);
 
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("e\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("e\n");
         runner.clearTransferState();
 
         // Write out some more characters and then write NUL characters. This should result in the processor not consuming the data.
@@ -370,7 +371,7 @@ public class TestTailFile {
 
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("f\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("f\n");
         runner.clearTransferState();
 
         // Truncate the NUL bytes and replace with additional data, ending with a new line. This should ingest the entire line of text.
@@ -379,7 +380,7 @@ public class TestTailFile {
 
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("g\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("g\n");
         runner.clearTransferState();
 
         // Ensure that no data comes in for a bit, since the last modified date on the rolled over file isn't old enough.
@@ -413,7 +414,7 @@ public class TestTailFile {
         raf.write("hello\n".getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
 
         // roll over the file
@@ -432,7 +433,7 @@ public class TestTailFile {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("HELLO\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("HELLO\n");
     }
 
     @Test
@@ -445,7 +446,7 @@ public class TestTailFile {
         raf.write("hello\n".getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
 
         // truncate and then write same number of bytes
@@ -461,17 +462,17 @@ public class TestTailFile {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("HELLO\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("HELLO\n");
     }
 
     @Test
-    public void testStartAtBeginningOfFile() throws IOException {
+    public void testStartAtBeginningOfFile() throws IOException, InterruptedException {
         runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
 
         raf.write("hello world\n".getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("hello world\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello world\n");
     }
 
     @Test
@@ -485,7 +486,7 @@ public class TestTailFile {
     }
 
     @Test
-    public void testStartAtBeginningOfTime() throws IOException {
+    public void testStartAtBeginningOfTime() throws IOException, InterruptedException {
         raf.write("hello".getBytes());
         raf.close();
         file.renameTo(new File(file.getParentFile(), file.getName() + ".previous"));
@@ -525,7 +526,7 @@ public class TestTailFile {
         raf.write("hello\n".getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
 
         raf.write("world".getBytes());
@@ -551,7 +552,7 @@ public class TestTailFile {
         raf.write("hello\n".getBytes());
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
 
         raf.write("world".getBytes());
@@ -582,7 +583,7 @@ public class TestTailFile {
         raf.write("hello\n".getBytes());
         runner.run(1, true, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
 
         raf.write("world".getBytes());
@@ -605,7 +606,7 @@ public class TestTailFile {
     }
 
     @Test
-    public void testRolloverWriteMoreDataThanPrevious() throws IOException {
+    public void testRolloverWriteMoreDataThanPrevious() throws IOException, InterruptedException {
         // If we have read all data in a file, and that file does not end with a new-line, then the last line
         // in the file will have been read, added to the checksum, and then we would re-seek to "unread" that
         // last line since it didn't have a new-line. We need to ensure that if the data is then rolled over
@@ -619,7 +620,7 @@ public class TestTailFile {
         raf.write("hello\n".getBytes());
         runner.run(1, true, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
 
         raf.write("world".getBytes());
@@ -650,7 +651,7 @@ public class TestTailFile {
         raf.write("hello\n".getBytes());
         runner.run(1, true, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
 
         raf.write("world".getBytes());
@@ -697,7 +698,7 @@ public class TestTailFile {
         raf.write("hello\n".getBytes());
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
 
         raf.write("world".getBytes());
@@ -744,7 +745,7 @@ public class TestTailFile {
         raf.write("hello\n".getBytes());
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
         runner.clearTransferState();
 
         raf.write("world".getBytes());
@@ -799,7 +800,7 @@ public class TestTailFile {
         assertEquals("target/log.txt", state.getFilename());
         assertTrue(state.getTimestamp() <= System.currentTimeMillis());
         assertEquals(14, state.getPosition());
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("Hello, World\r\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("Hello, World\r\n");
 
         runner.clearTransferState();
 
@@ -810,19 +811,19 @@ public class TestTailFile {
         raf.write("\n".getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("12345\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("12345\n");
 
         runner.clearTransferState();
         raf.write("carriage\rreturn\r".getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("carriage\r");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("carriage\r");
 
         runner.clearTransferState();
         raf.write("\r\n".getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("return\r\r\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("return\r\r\n");
     }
 
     @Test
@@ -874,7 +875,7 @@ public class TestTailFile {
         runner.run(1, shutdownBetweenReads, shutdownBetweenReads);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
 
-        final MockFlowFile multiLineOutputFile = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst();
+        final MockFlowFile multiLineOutputFile = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0);
         multiLineOutputFile.assertContentEquals("<3>Start of multi-line\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n");
         runner.clearTransferState();
 
@@ -886,7 +887,7 @@ public class TestTailFile {
 
         runner.run(1, shutdownBetweenReads, shutdownBetweenReads);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        final MockFlowFile finalOutputFile = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst();
+        final MockFlowFile finalOutputFile = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0);
         finalOutputFile.assertContentEquals("<4>Last One\n");
     }
 
@@ -912,7 +913,7 @@ public class TestTailFile {
         // written to log.txt before it rolled, and then we should get some data from the new log.txt.
         runner.run(1, false, true);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("another");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("another");
 
         // If we run again, we should get nothing.
         // We did have an issue where we were recognizing the previously rolled over file again because the timestamps
@@ -944,7 +945,7 @@ public class TestTailFile {
         // from the tailed file
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("new file\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("new file\n");
         runner.clearTransferState();
 
         // in the unlikely case where more data is written after the file is moved
@@ -957,7 +958,7 @@ public class TestTailFile {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst().assertContentEquals("with longer data in the new file\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("with longer data in the new file\n");
         runner.clearTransferState();
     }
 
@@ -1051,7 +1052,7 @@ public class TestTailFile {
     }
 
     @Test
-    public void testDetectNewFile() throws IOException {
+    public void testDetectNewFile() throws IOException, InterruptedException {
         runner.setProperty(TailFile.BASE_DIRECTORY, "target");
         runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
         runner.setProperty(TailFile.LOOKUP_FREQUENCY, "1 sec");
@@ -1114,7 +1115,7 @@ public class TestTailFile {
     }
 
     @Test
-    public void testMultipleFilesWithBasedirAndFilenameEL() throws IOException {
+    public void testMultipleFilesWithBasedirAndFilenameEL() throws IOException, InterruptedException {
         runner.setEnvironmentVariableValue("vrBaseDirectory", "target");
         runner.setProperty(TailFile.BASE_DIRECTORY, "${vrBaseDirectory}");
         runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
@@ -1308,7 +1309,12 @@ public class TestTailFile {
     private void cleanFiles(String directory) {
         final File targetDir = new File(directory);
         if (targetDir.exists()) {
-            final File[] files = targetDir.listFiles((dir, name) -> name.startsWith("log") || name.endsWith("log"));
+            final File[] files = targetDir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(final File dir, final String name) {
+                    return name.startsWith("log") || name.endsWith("log");
+                }
+            });
 
             for (final File file : files) {
                 file.delete();
@@ -1333,7 +1339,7 @@ public class TestTailFile {
         return randomAccessFile;
     }
 
-    private void deleteFile(String path) {
+    private void deleteFile(String path) throws IOException {
         File file = new File(path);
         assertTrue(file.delete());
     }

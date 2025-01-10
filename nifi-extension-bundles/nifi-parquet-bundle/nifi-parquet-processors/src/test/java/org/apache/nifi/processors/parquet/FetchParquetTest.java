@@ -605,7 +605,7 @@ public class FetchParquetTest {
 
         try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
             for (int i = 0; i < USERS; i++) {
-                final BigDecimal incrementedAmount = initialAmount.add(BigDecimal.ONE);
+                final BigDecimal incrementedAmount = initialAmount.add(new BigDecimal("1"));
                 final GenericRecord user = new GenericData.Record(schemaWithDecimal);
                 user.put("name", "Bob" + i);
                 user.put("amount", decimalConversion.toFixed(incrementedAmount, amountSchema, amountSchema.getLogicalType()));

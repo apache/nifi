@@ -312,6 +312,6 @@ public abstract class GetFileTransfer extends AbstractProcessor {
         }
 
         getLogger().info("Obtained file listing in {} milliseconds; listing had {} items, {} of which were new",
-                millis, listing.size(), newItems);
+                new Object[]{millis, listing.size(), newItems});
     }
 }

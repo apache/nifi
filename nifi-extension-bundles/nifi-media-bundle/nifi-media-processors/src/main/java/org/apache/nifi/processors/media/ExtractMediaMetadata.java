@@ -46,6 +46,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import org.apache.tika.exception.TikaException;
@@ -179,12 +180,15 @@ public class ExtractMediaMetadata extends AbstractProcessor {
         final String prefix = context.getProperty(METADATA_KEY_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
-            session.read(flowFile, in -> {
-                try {
-                    Map<String, String> results = tika_parse(in, prefix, maxAttribCount, maxAttribLength);
-                    value.set(results);
-                } catch (SAXException | TikaException e) {
-                    throw new IOException(e);
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(InputStream in) throws IOException {
+                    try {
+                        Map<String, String> results = tika_parse(in, prefix, maxAttribCount, maxAttribLength);
+                        value.set(results);
+                    } catch (SAXException | TikaException e) {
+                        throw new IOException(e);
+                    }
                 }
             });
 

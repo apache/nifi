@@ -512,9 +512,12 @@ public class ReplaceText extends AbstractProcessor {
             final String replacementValue = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
 
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                flowFile = session.write(flowFile, (in, out) -> {
-                    out.write(replacementValue.getBytes(charset));
-                    IOUtils.copy(in, out);
+                flowFile = session.write(flowFile, new StreamCallback() {
+                    @Override
+                    public void process(final InputStream in, final OutputStream out) throws IOException {
+                        out.write(replacementValue.getBytes(charset));
+                        IOUtils.copy(in, out);
+                    }
                 });
             } else {
                 flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
@@ -545,13 +548,16 @@ public class ReplaceText extends AbstractProcessor {
             final String appendValue = context.getProperty(appendValueDescriptor).evaluateAttributeExpressions(flowFile).getValue();
 
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                flowFile = session.write(flowFile, (in, out) -> {
-                    if (prependValue != null && !prependValue.isEmpty()) {
-                        out.write(prependValue.getBytes(charset));
-                    }
+                flowFile = session.write(flowFile, new StreamCallback() {
+                    @Override
+                    public void process(final InputStream in, final OutputStream out) throws IOException {
+                        if (prependValue != null && !prependValue.isEmpty()) {
+                            out.write(prependValue.getBytes(charset));
+                        }
 
-                    IOUtils.copy(in, out);
-                    out.write(appendValue.getBytes(charset));
+                        IOUtils.copy(in, out);
+                        out.write(appendValue.getBytes(charset));
+                    }
                 });
             } else {
                 flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
@@ -599,9 +605,12 @@ public class ReplaceText extends AbstractProcessor {
         private final int numCapturingGroups;
 
         // back references are not supported in the evaluated expression
-        private final AttributeValueDecorator escapeBackRefDecorator = attributeValue -> {
-            // when we encounter a '$[0-9+]'  replace it with '\$[0-9+]'
-            return attributeValue.replaceAll("(\\$\\d+?)", "\\\\$1");
+        private final AttributeValueDecorator escapeBackRefDecorator = new AttributeValueDecorator() {
+            @Override
+            public String decorate(final String attributeValue) {
+                // when we encounter a '$[0-9+]'  replace it with '\$[0-9+]'
+                return attributeValue.replaceAll("(\\$\\d+?)", "\\\\$1");
+            }
         };
 
         public RegexReplace(final String regex) {
@@ -709,12 +718,15 @@ public class ReplaceText extends AbstractProcessor {
                 final int bufferSize = Math.min(maxBufferSize, flowFileSize);
                 final byte[] buffer = new byte[bufferSize];
 
-                flowFile = session.write(flowFile, (in, out) -> {
-                    StreamUtils.fillBuffer(in, buffer, false);
-                    final String contentString = new String(buffer, 0, flowFileSize, charset);
-                    // Interpreting the search and replacement values as char sequences
-                    final String updatedValue = contentString.replace(searchValue, replacementValue);
-                    out.write(updatedValue.getBytes(charset));
+                flowFile = session.write(flowFile, new StreamCallback() {
+                    @Override
+                    public void process(final InputStream in, final OutputStream out) throws IOException {
+                        StreamUtils.fillBuffer(in, buffer, false);
+                        final String contentString = new String(buffer, 0, flowFileSize, charset);
+                        // Interpreting the search and replacement values as char sequences
+                        final String updatedValue = contentString.replace(searchValue, replacementValue);
+                        out.write(updatedValue.getBytes(charset));
+                    }
                 });
             } else {
                 final Pattern searchPattern = Pattern.compile(searchValue, Pattern.LITERAL);
@@ -760,11 +772,14 @@ public class ReplaceText extends AbstractProcessor {
                 final int bufferSize = Math.min(maxBufferSize, flowFileSize);
                 final byte[] buffer = new byte[bufferSize];
 
-                flowFile = session.write(flowFile, (in, out) -> {
-                    StreamUtils.fillBuffer(in, buffer, false);
-                    final String originalContent = new String(buffer, 0, flowFileSize, charset);
-                    final String substitutedContent = StringSubstitutor.replace(originalContent, flowFileAttributes);
-                    out.write(substitutedContent.getBytes(charset));
+                flowFile = session.write(flowFile, new StreamCallback() {
+                    @Override
+                    public void process(final InputStream in, final OutputStream out) throws IOException {
+                        StreamUtils.fillBuffer(in, buffer, false);
+                        final String originalContent = new String(buffer, 0, flowFileSize, charset);
+                        final String substitutedContent = StringSubstitutor.replace(originalContent, flowFileAttributes);
+                        out.write(substitutedContent.getBytes(charset));
+                    }
                 });
             } else {
                 flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),

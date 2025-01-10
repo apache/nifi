@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -49,6 +50,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -119,11 +121,14 @@ public class RunNiFiRegistry {
     public RunNiFiRegistry(final File bootstrapConfigFile, final boolean verbose) {
         this.bootstrapConfigFile = bootstrapConfigFile;
 
-        loggingExecutor = Executors.newFixedThreadPool(2, runnable -> {
-            final Thread t = Executors.defaultThreadFactory().newThread(runnable);
-            t.setDaemon(true);
-            t.setName("NiFi logging handler");
-            return t;
+        loggingExecutor = Executors.newFixedThreadPool(2, new ThreadFactory() {
+            @Override
+            public Thread newThread(final Runnable runnable) {
+                final Thread t = Executors.defaultThreadFactory().newThread(runnable);
+                t.setDaemon(true);
+                t.setName("NiFi logging handler");
+                return t;
+            }
         });
     }
 
@@ -853,13 +858,23 @@ public class RunNiFiRegistry {
             }
         }
 
-        final File[] libSharedFiles = libSharedDir.listFiles((dir, filename) -> filename.toLowerCase().endsWith(".jar"));
+        final File[] libSharedFiles = libSharedDir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(final File dir, final String filename) {
+                return filename.toLowerCase().endsWith(".jar");
+            }
+        });
 
         if (libSharedFiles == null || libSharedFiles.length == 0) {
             throw new RuntimeException("Could not find lib shared directory at " + libSharedDir.getAbsolutePath());
         }
 
-        final File[] libFiles = libDir.listFiles((dir, filename) -> filename.toLowerCase().endsWith(".jar"));
+        final File[] libFiles = libDir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(final File dir, final String filename) {
+                return filename.toLowerCase().endsWith(".jar");
+            }
+        });
 
         if (libFiles == null || libFiles.length == 0) {
             throw new RuntimeException("Could not find lib directory at " + libDir.getAbsolutePath());
@@ -1035,29 +1050,35 @@ public class RunNiFiRegistry {
             }
         }
 
-        final Future<?> stdOutFuture = loggingExecutor.submit(() -> {
-            final Logger stdOutLogger = LoggerFactory.getLogger("org.apache.nifi.registry.StdOut");
-            final InputStream in = process.getInputStream();
-            try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    stdOutLogger.info(line);
+        final Future<?> stdOutFuture = loggingExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                final Logger stdOutLogger = LoggerFactory.getLogger("org.apache.nifi.registry.StdOut");
+                final InputStream in = process.getInputStream();
+                try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        stdOutLogger.info(line);
+                    }
+                } catch (IOException e) {
+                    defaultLogger.error("Failed to read from NiFi Registry's Standard Out stream", e);
                 }
-            } catch (IOException e) {
-                defaultLogger.error("Failed to read from NiFi Registry's Standard Out stream", e);
             }
         });
 
-        final Future<?> stdErrFuture = loggingExecutor.submit(() -> {
-            final Logger stdErrLogger = LoggerFactory.getLogger("org.apache.nifi.registry.StdErr");
-            final InputStream in = process.getErrorStream();
-            try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    stdErrLogger.error(line);
+        final Future<?> stdErrFuture = loggingExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                final Logger stdErrLogger = LoggerFactory.getLogger("org.apache.nifi.registry.StdErr");
+                final InputStream in = process.getErrorStream();
+                try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        stdErrLogger.error(line);
+                    }
+                } catch (IOException e) {
+                    defaultLogger.error("Failed to read from NiFi Registry's Standard Error stream", e);
                 }
-            } catch (IOException e) {
-                defaultLogger.error("Failed to read from NiFi Registry's Standard Error stream", e);
             }
         });
 

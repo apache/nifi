@@ -52,6 +52,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -171,10 +172,13 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         checkpointDelayMillis = FormatUtils.getTimeDuration(nifiProperties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
 
-        checkpointExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
-            final Thread t = Executors.defaultThreadFactory().newThread(r);
-            t.setName("Checkpoint FlowFile Repository");
-            return t;
+        checkpointExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread t = Executors.defaultThreadFactory().newThread(r);
+                t.setName("Checkpoint FlowFile Repository");
+                return t;
+            }
         });
     }
 
@@ -826,16 +830,19 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             logger.info("Successfully updated FlowFile Repository with {} Drop Records due to missing queues in {} milliseconds", dropRecords.size(), updateMillis);
         }
 
-        final Runnable checkpointRunnable = () -> {
-            try {
-                logger.info("Initiating checkpoint of FlowFile Repository");
-                final long start = System.nanoTime();
-                final int numRecordsCheckpointed = checkpoint();
-                final long end = System.nanoTime();
-                final long millis = TimeUnit.MILLISECONDS.convert(end - start, TimeUnit.NANOSECONDS);
-                logger.info("Successfully checkpointed FlowFile Repository with {} records in {} milliseconds", numRecordsCheckpointed, millis);
-            } catch (final Throwable t) {
-                logger.error("Unable to checkpoint FlowFile Repository", t);
+        final Runnable checkpointRunnable = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    logger.info("Initiating checkpoint of FlowFile Repository");
+                    final long start = System.nanoTime();
+                    final int numRecordsCheckpointed = checkpoint();
+                    final long end = System.nanoTime();
+                    final long millis = TimeUnit.MILLISECONDS.convert(end - start, TimeUnit.NANOSECONDS);
+                    logger.info("Successfully checkpointed FlowFile Repository with {} records in {} milliseconds", numRecordsCheckpointed, millis);
+                } catch (final Throwable t) {
+                    logger.error("Unable to checkpoint FlowFile Repository", t);
+                }
             }
         };
 

@@ -53,14 +53,14 @@ public class TestSchemaRecordReader {
         fields.add(new MapRecordField("map",
             new SimpleRecordField("key", FieldType.STRING, Repetition.EXACTLY_ONE),
             new SimpleRecordField("value", FieldType.STRING, Repetition.ZERO_OR_ONE), Repetition.EXACTLY_ONE));
-        fields.add(new UnionRecordField("union1", Repetition.EXACTLY_ONE, List.of(
+        fields.add(new UnionRecordField("union1", Repetition.EXACTLY_ONE, Arrays.asList(new RecordField[] {
             new SimpleRecordField("one", FieldType.STRING, Repetition.EXACTLY_ONE),
             new SimpleRecordField("two", FieldType.INT, Repetition.EXACTLY_ONE)
-        )));
-        fields.add(new UnionRecordField("union2", Repetition.EXACTLY_ONE, List.of(
+        })));
+        fields.add(new UnionRecordField("union2", Repetition.EXACTLY_ONE, Arrays.asList(new RecordField[] {
             new SimpleRecordField("one", FieldType.STRING, Repetition.EXACTLY_ONE),
             new SimpleRecordField("two", FieldType.INT, Repetition.EXACTLY_ONE)
-        )));
+        })));
         final RecordSchema schema = new RecordSchema(fields);
 
         final SchemaRecordReader reader = SchemaRecordReader.fromSchema(schema, new NoOpFieldCache());
@@ -156,14 +156,14 @@ public class TestSchemaRecordReader {
         fields.add(new MapRecordField("map present",
             new SimpleRecordField("key", FieldType.STRING, Repetition.ZERO_OR_ONE),
             new SimpleRecordField("value", FieldType.STRING, Repetition.ZERO_OR_MORE), Repetition.ZERO_OR_ONE));
-        fields.add(new UnionRecordField("union", Repetition.ZERO_OR_ONE, List.of(
+        fields.add(new UnionRecordField("union", Repetition.ZERO_OR_ONE, Arrays.asList(new RecordField[] {
             new SimpleRecordField("one", FieldType.STRING, Repetition.EXACTLY_ONE),
             new SimpleRecordField("two", FieldType.INT, Repetition.EXACTLY_ONE)
-        )));
-        fields.add(new UnionRecordField("union present", Repetition.ZERO_OR_ONE, List.of(
+        })));
+        fields.add(new UnionRecordField("union present", Repetition.ZERO_OR_ONE, Arrays.asList(new RecordField[] {
             new SimpleRecordField("one", FieldType.STRING, Repetition.EXACTLY_ONE),
             new SimpleRecordField("two", FieldType.INT, Repetition.ZERO_OR_MORE)
-        )));
+        })));
 
         final RecordSchema schema = new RecordSchema(fields);
 
@@ -266,9 +266,9 @@ public class TestSchemaRecordReader {
             assertTrue(map.containsKey(null));
             assertTrue(map.containsKey("key1"));
 
-            final List<String> key1Values = List.of("one", "two");
+            final List<String> key1Values = Arrays.asList(new String[] {"one", "two"});
             assertEquals(key1Values, map.get("key1"));
-            final List<String> nullKeyValues = List.of("three");
+            final List<String> nullKeyValues = Arrays.asList(new String[] {"three"});
             assertEquals(nullKeyValues, map.get(null));
 
             final List<Integer> unionValues = (List<Integer>) valueMap.get("union present");

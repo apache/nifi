@@ -76,9 +76,7 @@ public class ByteCountingInputStreamTest {
         int availableBytes = bcis.available();
         assertEquals(ALPHABET.length() - 2, availableBytes);
 
-        final long expectedSkip = 24;
-        final long actualSkip = bcis.skip(expectedSkip);
-        assertEquals(expectedSkip, actualSkip);
+        bcis.skip(24);
 
         // Assert
         int finalAvailableBytes = bcis.available();

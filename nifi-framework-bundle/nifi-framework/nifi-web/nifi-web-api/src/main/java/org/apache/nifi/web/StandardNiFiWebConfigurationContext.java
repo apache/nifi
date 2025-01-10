@@ -66,11 +66,10 @@ import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
-
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -365,9 +364,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    final String path = "/nifi-api/processors/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    final String path = "/nifi-api/processors/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
-                } catch (final URISyntaxException use) {
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
                 }
 
@@ -423,9 +422,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    final String path = "/nifi-api/processors/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    final String path = "/nifi-api/processors/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
-                } catch (final URISyntaxException use) {
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
                 }
 
@@ -550,9 +549,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller-services/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    String path = "/nifi-api/controller-services/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
-                } catch (final URISyntaxException use) {
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
                 }
 
@@ -608,9 +607,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller-services/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    String path = "/nifi-api/controller-services/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
-                } catch (final URISyntaxException use) {
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
                 }
 
@@ -698,9 +697,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/reporting-tasks/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    String path = "/nifi-api/reporting-tasks/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
-                } catch (final URISyntaxException use) {
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
                 }
 
@@ -752,9 +751,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/reporting-tasks/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    String path = "/nifi-api/reporting-tasks/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
-                } catch (final URISyntaxException use) {
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
                 }
 
@@ -843,9 +842,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/parameter-providers/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    String path = "/nifi-api/parameter-providers/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
-                } catch (final URISyntaxException use) {
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
                 }
 
@@ -897,9 +896,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/parameter-providers/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    String path = "/nifi-api/parameter-providers/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
-                } catch (final URISyntaxException use) {
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
                 }
 
@@ -987,9 +986,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller/registry-clients/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    String path = "/nifi-api/controller/registry-clients/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
-                } catch (final URISyntaxException use) {
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
                 }
 
@@ -1041,9 +1040,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // create the request URL
                 URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller/registry-clients/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    String path = "/nifi-api/controller/registry-clients/" + URLEncoder.encode(id, "UTF-8");
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
-                } catch (final URISyntaxException use) {
+                } catch (final URISyntaxException | UnsupportedEncodingException use) {
                     throw new ClusterRequestException(use);
                 }
 

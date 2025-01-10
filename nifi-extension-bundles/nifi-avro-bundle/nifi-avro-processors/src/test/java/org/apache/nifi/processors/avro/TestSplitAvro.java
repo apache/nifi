@@ -38,7 +38,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -83,7 +82,7 @@ public class TestSplitAvro {
         try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(new GenericDatumWriter<>(schema))) {
             dataFileWriter.setMeta(META_KEY1, META_VALUE1);
             dataFileWriter.setMeta(META_KEY2, META_VALUE2);
-            dataFileWriter.setMeta(META_KEY3, META_VALUE3.getBytes(StandardCharsets.UTF_8));
+            dataFileWriter.setMeta(META_KEY3, META_VALUE3.getBytes("UTF-8"));
 
             dataFileWriter.create(schema, users);
             for (GenericRecord user : userList) {
@@ -264,7 +263,7 @@ public class TestSplitAvro {
         final TestRunner runner = TestRunners.newTestRunner(new SplitAvro());
         runner.setProperty(SplitAvro.OUTPUT_SIZE, "200");
 
-        runner.enqueue("not avro".getBytes(StandardCharsets.UTF_8));
+        runner.enqueue("not avro".getBytes("UTF-8"));
         runner.run();
 
         runner.assertTransferCount(SplitAvro.REL_SPLIT, 0);
@@ -319,7 +318,7 @@ public class TestSplitAvro {
                 if (checkMetadata) {
                     assertEquals(META_VALUE1, reader.getMetaString(META_KEY1));
                     assertEquals(META_VALUE2, reader.getMetaLong(META_KEY2));
-                    assertEquals(META_VALUE3, new String(reader.getMeta(META_KEY3), StandardCharsets.UTF_8));
+                    assertEquals(META_VALUE3, new String(reader.getMeta(META_KEY3), "UTF-8"));
                 }
             }
         }

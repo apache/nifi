@@ -24,7 +24,7 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_MESSAGE_TYPE;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
-import static org.apache.nifi.websocket.WebSocketMessage.CHARSET;
+import static org.apache.nifi.websocket.WebSocketMessage.CHARSET_NAME;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -206,7 +206,7 @@ public class PutWebSocket extends AbstractProcessor {
             webSocketService.sendMessage(webSocketServiceEndpoint, sessionId, sender -> {
                 switch (messageType) {
                     case TEXT:
-                        sender.sendString(new String(messageContent, CHARSET));
+                        sender.sendString(new String(messageContent, CHARSET_NAME));
                         break;
                     case BINARY:
                         sender.sendBinary(ByteBuffer.wrap(messageContent));

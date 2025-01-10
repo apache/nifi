@@ -1118,7 +1118,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         if (!matchesApiByBundleCoordinates) {
             final Class<? extends ControllerService> controllerServiceImplClass = controllerServiceNode.getControllerServiceImplementation().getClass();
             logger.debug("Comparing methods from service api '{}' against service implementation '{}'",
-                    controllerServiceApiClass.getCanonicalName(), controllerServiceImplClass.getCanonicalName());
+                    new Object[]{controllerServiceApiClass.getCanonicalName(), controllerServiceImplClass.getCanonicalName()});
 
             final ControllerServiceApiMatcher controllerServiceApiMatcher = new ControllerServiceApiMatcher();
             final boolean matchesApi = controllerServiceApiMatcher.matches(controllerServiceApiClass, controllerServiceImplClass);

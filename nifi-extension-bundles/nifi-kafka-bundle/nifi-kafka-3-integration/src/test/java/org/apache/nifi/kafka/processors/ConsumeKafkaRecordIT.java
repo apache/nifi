@@ -52,6 +52,8 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
 
     private static final int FIRST_PARTITION = 0;
 
+    private static final long FIRST_OFFSET = 0;
+
     private TestRunner runner;
 
     @BeforeEach

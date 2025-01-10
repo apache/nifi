@@ -46,6 +46,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
@@ -183,50 +184,53 @@ public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
         activeBatches.add(messageBatch);
 
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            session.read(flowFile, rawIn -> {
-                byte[] data = null; // contents of a single message
-                boolean streamFinished = false;
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream rawIn) throws IOException {
+                    byte[] data = null; // contents of a single message
+                    boolean streamFinished = false;
 
-                int nextByte;
-                try (final InputStream bufferedIn = new BufferedInputStream(rawIn);
-                     final ByteCountingInputStream in = new ByteCountingInputStream(bufferedIn)) {
+                    int nextByte;
+                    try (final InputStream bufferedIn = new BufferedInputStream(rawIn);
+                         final ByteCountingInputStream in = new ByteCountingInputStream(bufferedIn)) {
 
-                    long messageStartOffset = in.getBytesConsumed();
+                        long messageStartOffset = in.getBytesConsumed();
 
-                    // read until we're out of data.
-                    while (!streamFinished) {
-                        nextByte = in.read();
+                        // read until we're out of data.
+                        while (!streamFinished) {
+                            nextByte = in.read();
 
-                        if (nextByte > -1) {
-                            baos.write(nextByte);
-                        }
-
-                        if (nextByte == -1) {
-                            // we ran out of data. This message is complete.
-                            data = getMessage(baos, baos.size(), protocol);
-                            streamFinished = true;
-                        } else if (buffer.addAndCompare((byte) nextByte)) {
-                            // we matched our delimiter. This message is complete. We want all of the bytes from the
-                            // underlying BAOS except for the last 'delimiterBytes.length' bytes because we don't want
-                            // the delimiter itself to be sent.
-                            data = getMessage(baos, baos.size() - delimiterBytes.length, protocol);
-                        }
-
-                        if (data != null) {
-                            final long messageEndOffset = in.getBytesConsumed();
-
-                            // If the message has no data, ignore it.
-                            if (data.length != 0) {
-                                final long rangeStart = messageStartOffset;
-                                eventSender.sendEvent(data);
-                                messageBatch.addSuccessfulRange(rangeStart, messageEndOffset);
-                                messagesSent.incrementAndGet();
+                            if (nextByte > -1) {
+                                baos.write(nextByte);
                             }
 
-                            // reset BAOS so that we can start a new message.
-                            baos.reset();
-                            data = null;
-                            messageStartOffset = in.getBytesConsumed();
+                            if (nextByte == -1) {
+                                // we ran out of data. This message is complete.
+                                data = getMessage(baos, baos.size(), protocol);
+                                streamFinished = true;
+                            } else if (buffer.addAndCompare((byte) nextByte)) {
+                                // we matched our delimiter. This message is complete. We want all of the bytes from the
+                                // underlying BAOS except for the last 'delimiterBytes.length' bytes because we don't want
+                                // the delimiter itself to be sent.
+                                data = getMessage(baos, baos.size() - delimiterBytes.length, protocol);
+                            }
+
+                            if (data != null) {
+                                final long messageEndOffset = in.getBytesConsumed();
+
+                                // If the message has no data, ignore it.
+                                if (data.length != 0) {
+                                    final long rangeStart = messageStartOffset;
+                                    eventSender.sendEvent(data);
+                                    messageBatch.addSuccessfulRange(rangeStart, messageEndOffset);
+                                    messagesSent.incrementAndGet();
+                                }
+
+                                // reset BAOS so that we can start a new message.
+                                baos.reset();
+                                data = null;
+                                messageStartOffset = in.getBytesConsumed();
+                            }
                         }
                     }
                 }

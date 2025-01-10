@@ -33,7 +33,7 @@
                             <mat-form-field>
                                 <mat-label>Parameter Context</mat-label>
                                 <mat-select formControlName="parameterContext">
-                                    @for (option of parameterContextsOptions; track option.value) {
+                                    @for (option of parameterContextsOptions; track option) {
                                         @if (option.description) {
                                             <mat-option
                                                 [value]="option.value"

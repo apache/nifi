@@ -90,6 +90,6 @@ public class TestHtmlExtensionDocWriter {
             extensionSerializer.serialize(tempExtension, serializedExtension);
         }
 
-        return serializedExtension.toString(StandardCharsets.UTF_8);
+        return serializedExtension.toString("UTF-8");
     }
 }

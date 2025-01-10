@@ -73,7 +73,7 @@ export class GroupComponents {
         });
 
         dialogRequest.parameterContexts.forEach((parameterContext) => {
-            if (parameterContext.permissions.canRead && parameterContext.component) {
+            if (parameterContext.permissions.canRead) {
                 this.parameterContextsOptions.push({
                     text: parameterContext.component.name,
                     value: parameterContext.id,

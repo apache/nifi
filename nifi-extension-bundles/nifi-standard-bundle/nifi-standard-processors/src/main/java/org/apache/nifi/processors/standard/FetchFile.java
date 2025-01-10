@@ -251,7 +251,7 @@ public class FetchFile extends AbstractProcessor {
         Path filePath = file.toPath();
         if (!Files.exists(filePath) && !Files.notExists(filePath)) { // see https://docs.oracle.com/javase/tutorial/essential/io/check.html for more details
             getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the existence of the file cannot be verified; routing to failure",
-                    file, flowFile);
+                    new Object[] {file, flowFile});
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         } else if (!Files.exists(filePath)) {
@@ -265,7 +265,7 @@ public class FetchFile extends AbstractProcessor {
         final String user = System.getProperty("user.name");
         if (!isReadable(file)) {
             getLogger().log(levelPermDenied, "Could not fetch file {} from file system for {} due to user {} not having sufficient permissions to read the file; routing to permission.denied",
-                    file, flowFile, user);
+                new Object[] {file, flowFile, user});
             session.getProvenanceReporter().route(flowFile, REL_PERMISSION_DENIED);
             session.transfer(session.penalize(flowFile), REL_PERMISSION_DENIED);
             return;
@@ -281,7 +281,7 @@ public class FetchFile extends AbstractProcessor {
                 if (targetDir.exists() && (!isWritable(targetDir) || !isDirectory(targetDir))) {
                     getLogger().error("Could not fetch file {} from file system for {} because Completion Strategy is configured to move the original file to {}, "
                         + "but that is not a directory or user {} does not have permissions to write to that directory",
-                            file, flowFile, targetDir, user);
+                        new Object[] {file, flowFile, targetDir, user});
                     session.transfer(flowFile, REL_FAILURE);
                     return;
                 }
@@ -305,7 +305,7 @@ public class FetchFile extends AbstractProcessor {
                     if (targetFile.exists()) {
                         getLogger().error("Could not fetch file {} from file system for {} because Completion Strategy is configured to move the original file to {}, "
                             + "but a file with name {} already exists in that directory and the Move Conflict Strategy is configured for failure",
-                                file, flowFile, targetDir, file.getName());
+                            new Object[] {file, flowFile, targetDir, file.getName()});
                         session.transfer(flowFile, REL_FAILURE);
                         return;
                     }

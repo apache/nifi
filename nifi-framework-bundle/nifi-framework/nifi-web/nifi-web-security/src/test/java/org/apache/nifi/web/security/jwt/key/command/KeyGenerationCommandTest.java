@@ -29,12 +29,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.security.Key;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,10 +57,8 @@ public class KeyGenerationCommandTest {
     private KeyGenerationCommand command;
 
     @BeforeEach
-    public void setCommand() throws NoSuchAlgorithmException {
-        final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(JWS_ALGORITHM.getName());
-
-        command = new KeyGenerationCommand(signerListener, verificationKeyListener, keyPairGenerator);
+    public void setCommand() {
+        command = new KeyGenerationCommand(signerListener, verificationKeyListener);
     }
 
     @Test
@@ -78,6 +72,5 @@ public class KeyGenerationCommandTest {
         verify(verificationKeyListener).onVerificationKeyGenerated(keyIdentifierCaptor.capture(), keyCaptor.capture());
         final Key key = keyCaptor.getValue();
         assertEquals(KEY_ALGORITHM, key.getAlgorithm());
-        assertInstanceOf(PublicKey.class, key);
     }
 }

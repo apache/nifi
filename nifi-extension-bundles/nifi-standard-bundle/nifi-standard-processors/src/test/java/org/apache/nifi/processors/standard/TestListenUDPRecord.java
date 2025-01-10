@@ -33,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
-import java.nio.channels.SelectableChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -98,13 +97,13 @@ public class TestListenUDPRecord {
     public void testSuccessWithBatchSizeGreaterThanAvailableRecords() {
         final String sender = "foo";
 
-        final StandardEvent<SelectableChannel> event1 = new StandardEvent<>(sender, DATAGRAM_1.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event1 = new StandardEvent(sender, DATAGRAM_1.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event1);
 
-        final StandardEvent<SelectableChannel> event2 = new StandardEvent<>(sender, DATAGRAM_2.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event2 = new StandardEvent(sender, DATAGRAM_2.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event2);
 
-        final StandardEvent<SelectableChannel> event3 = new StandardEvent<>(sender, DATAGRAM_3.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event3 = new StandardEvent(sender, DATAGRAM_3.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event3);
 
         runner.run();
@@ -118,13 +117,13 @@ public class TestListenUDPRecord {
     public void testSuccessWithBatchLessThanAvailableRecords() {
         final String sender = "foo";
 
-        final StandardEvent<SelectableChannel> event1 = new StandardEvent<>(sender, DATAGRAM_1.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event1 = new StandardEvent(sender, DATAGRAM_1.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event1);
 
-        final StandardEvent<SelectableChannel> event2 = new StandardEvent<>(sender, DATAGRAM_2.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event2 = new StandardEvent(sender, DATAGRAM_2.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event2);
 
-        final StandardEvent<SelectableChannel> event3 = new StandardEvent<>(sender, DATAGRAM_3.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event3 = new StandardEvent(sender, DATAGRAM_3.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event3);
 
         runner.setProperty(ListenUDPRecord.BATCH_SIZE, "1");
@@ -162,10 +161,10 @@ public class TestListenUDPRecord {
     public void testMultipleRecordsPerDatagram() {
         final String sender = "foo";
 
-        final StandardEvent<SelectableChannel> event1 = new StandardEvent<>(sender, MULTI_DATAGRAM_1.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event1 = new StandardEvent(sender, MULTI_DATAGRAM_1.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event1);
 
-        final StandardEvent<SelectableChannel> event2 = new StandardEvent<>(sender, MULTI_DATAGRAM_2.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event2 = new StandardEvent(sender, MULTI_DATAGRAM_2.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event2);
 
         runner.run();
@@ -179,10 +178,10 @@ public class TestListenUDPRecord {
     public void testParseFailure() {
         final String sender = "foo";
 
-        final StandardEvent<SelectableChannel> event1 = new StandardEvent<>(sender, DATAGRAM_1.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event1 = new StandardEvent(sender, DATAGRAM_1.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event1);
 
-        final StandardEvent<SelectableChannel> event2 = new StandardEvent<>(sender, "WILL NOT PARSE".getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event2 = new StandardEvent(sender, "WILL NOT PARSE".getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event2);
 
         runner.run();
@@ -204,13 +203,13 @@ public class TestListenUDPRecord {
 
         final String sender = "foo";
 
-        final StandardEvent<SelectableChannel> event1 = new StandardEvent<>(sender, DATAGRAM_1.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event1 = new StandardEvent(sender, DATAGRAM_1.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event1);
 
-        final StandardEvent<SelectableChannel> event2 = new StandardEvent<>(sender, DATAGRAM_2.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event2 = new StandardEvent(sender, DATAGRAM_2.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event2);
 
-        final StandardEvent<SelectableChannel> event3 = new StandardEvent<>(sender, DATAGRAM_3.getBytes(StandardCharsets.UTF_8), null);
+        final StandardEvent event3 = new StandardEvent(sender, DATAGRAM_3.getBytes(StandardCharsets.UTF_8), null);
         proc.addEvent(event3);
 
         runner.run();
@@ -220,8 +219,8 @@ public class TestListenUDPRecord {
 
     private static class TestableListenUDPRecord extends ListenUDPRecord {
 
-        private volatile BlockingQueue<StandardEvent<SelectableChannel>> testEvents = new LinkedBlockingQueue<>();
-        private volatile BlockingQueue<StandardEvent<SelectableChannel>> testErrorEvents = new LinkedBlockingQueue<>();
+        private volatile BlockingQueue<StandardEvent> testEvents = new LinkedBlockingQueue<>();
+        private volatile BlockingQueue<StandardEvent> testErrorEvents = new LinkedBlockingQueue<>();
 
         @Override
         protected ChannelDispatcher createDispatcher(ProcessContext context, BlockingQueue<StandardEvent> events) throws IOException {

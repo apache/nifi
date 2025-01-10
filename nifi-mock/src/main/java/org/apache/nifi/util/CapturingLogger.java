@@ -224,7 +224,6 @@ public class CapturingLogger implements Logger {
         this.info(format, arg, null);
     }
 
-    @SuppressWarnings("PMD.UnnecessaryVarargsArrayCreation")
     @Override
     public void info(String format, Object arg1, Object arg2) {
         this.info(format, new Object[] {arg1, arg2});
@@ -295,7 +294,6 @@ public class CapturingLogger implements Logger {
         this.warn(format, arg, null);
     }
 
-    @SuppressWarnings("PMD.UnnecessaryVarargsArrayCreation")
     @Override
     public void warn(String format, Object arg1, Object arg2) {
         this.warn(format, new Object[] {arg1, arg2});

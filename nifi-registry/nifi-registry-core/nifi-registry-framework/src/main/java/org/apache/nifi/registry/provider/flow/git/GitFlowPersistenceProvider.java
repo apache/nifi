@@ -102,7 +102,8 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
             logger.info("Loading remote repository [{}]", remoteRepo);
             flowMetaData.loadGitRepository(flowStorageDir);
             flowMetaData.startPushThread();
-            logger.info("Configured GitFlowPersistenceProvider with Flow Storage Directory {}", flowStorageDir.getAbsolutePath());
+            logger.info("Configured GitFlowPersistenceProvider with Flow Storage Directory {}",
+                    new Object[] {flowStorageDir.getAbsolutePath()});
         } catch (IOException | GitAPIException e) {
             throw new ProviderCreationException("Failed to load a git repository " + flowStorageDir, e);
         }

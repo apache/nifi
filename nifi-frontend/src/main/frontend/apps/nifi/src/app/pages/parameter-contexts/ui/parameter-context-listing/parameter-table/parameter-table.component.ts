@@ -20,7 +20,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { NgTemplateOutlet } from '@angular/common';
+import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
+import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { RouterLink } from '@angular/router';
 import { EditParameterResponse, ParameterEntity } from '../../../../../state/shared';
 import { NifiTooltipDirective, NiFiCommon, TextTip, Parameter } from '@nifi/shared';
@@ -50,7 +51,10 @@ export interface ParameterItem {
         MatTableModule,
         MatSortModule,
         NgTemplateOutlet,
+        CdkOverlayOrigin,
+        CdkConnectedOverlay,
         RouterLink,
+        AsyncPipe,
         NifiTooltipDirective,
         ParameterReferences,
         MatMenu,

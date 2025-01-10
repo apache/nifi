@@ -332,16 +332,19 @@ public class TestSequentialAccessWriteAheadLog {
 
         for (int j = 0; j < 2; j++) {
             for (int i = 0; i < numThreads; i++) {
-                final Thread t = new Thread(() -> {
-                    final List<DummyRecord> batch = new ArrayList<>();
-                    for (int i1 = 0; i1 < updateCountPerThread / batchSize; i1++) {
-                        batch.clear();
-                        for (int j1 = 0; j1 < batchSize; j1++) {
-                            final DummyRecord record = new DummyRecord(String.valueOf(i1), UpdateType.CREATE);
-                            batch.add(record);
-                        }
+                final Thread t = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        final List<DummyRecord> batch = new ArrayList<>();
+                        for (int i = 0; i < updateCountPerThread / batchSize; i++) {
+                            batch.clear();
+                            for (int j = 0; j < batchSize; j++) {
+                                final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
+                                batch.add(record);
+                            }
 
-                        assertThrows(Throwable.class, () -> repo.update(batch, false));
+                            assertThrows(Throwable.class, () -> repo.update(batch, false));
+                        }
                     }
                 });
 

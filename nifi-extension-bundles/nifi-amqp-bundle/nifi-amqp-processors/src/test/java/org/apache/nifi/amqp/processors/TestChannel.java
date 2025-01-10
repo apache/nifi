@@ -148,7 +148,7 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void close(int closeCode, String closeMessage) {
+    public void close(int closeCode, String closeMessage) throws IOException, TimeoutException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
@@ -285,11 +285,14 @@ class TestChannel implements Channel {
             final byte[] body) {
         // NO ROUTE. Invoke return listener async
         for (final ReturnListener listener : returnListeners) {
-            this.executorService.execute(() -> {
-                try {
-                    listener.handleReturn(-9, "Rejecting", exchange, routingKey, props, body);
-                } catch (Exception e) {
-                    throw new IllegalStateException("Failed to send return message", e);
+            this.executorService.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        listener.handleReturn(-9, "Rejecting", exchange, routingKey, props, body);
+                    } catch (Exception e) {
+                        throw new IllegalStateException("Failed to send return message", e);
+                    }
                 }
             });
         }
@@ -506,7 +509,7 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public String basicConsume(String queue, Consumer callback) {
+    public String basicConsume(String queue, Consumer callback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 

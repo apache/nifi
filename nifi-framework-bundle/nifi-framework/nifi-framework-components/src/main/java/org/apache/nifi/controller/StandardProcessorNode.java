@@ -1755,13 +1755,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         // to do this, we use #scheduleWithFixedDelay and then make that Future available to the task
         // itself by placing it into an AtomicReference.
         final AtomicReference<Future<?>> futureRef = new AtomicReference<>();
-        final Runnable monitoringTask = () -> {
-            Future<?> monitoringFuture = futureRef.get();
-            if (monitoringFuture == null) { // Future is not yet available. Just return and wait for the next invocation.
-                return;
-            }
+        final Runnable monitoringTask = new Runnable() {
+            @Override
+            public void run() {
+                Future<?> monitoringFuture = futureRef.get();
+                if (monitoringFuture == null) { // Future is not yet available. Just return and wait for the next invocation.
+                    return;
+                }
 
-           monitorAsyncTask(taskFuture, monitoringFuture, completionTimestampRef.get());
+               monitorAsyncTask(taskFuture, monitoringFuture, completionTimestampRef.get());
+            }
         };
 
         final Future<?> future = taskScheduler.scheduleWithFixedDelay(monitoringTask, 1, 10, TimeUnit.MILLISECONDS);

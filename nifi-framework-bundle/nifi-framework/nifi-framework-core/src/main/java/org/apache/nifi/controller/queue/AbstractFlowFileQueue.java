@@ -289,7 +289,12 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             return dropRequest;
         }
 
-        final Thread t = new Thread(() -> dropFlowFiles(dropRequest, requestor), "Drop FlowFiles for Connection " + getIdentifier());
+        final Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                dropFlowFiles(dropRequest, requestor);
+            }
+        }, "Drop FlowFiles for Connection " + getIdentifier());
         t.setDaemon(true);
         t.start();
 

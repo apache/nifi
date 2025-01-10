@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -49,13 +50,16 @@ import static org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob.TEX
 @SeeAlso({StartAwsTextractJob.class})
 public class GetAwsTextractJobStatus extends AbstractAwsMachineLearningJobStatusProcessor<TextractClient, TextractClientBuilder> {
 
-    public static final Validator TEXTRACT_TYPE_VALIDATOR = (subject, value, context) -> {
-        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
-            return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
-        } else if (TextractType.TEXTRACT_TYPES.contains(value)) {
-            return new ValidationResult.Builder().subject(subject).input(value).explanation("Supported Value.").valid(true).build();
-        } else {
-            return new ValidationResult.Builder().subject(subject).input(value).explanation("Not a supported value, flow file attribute or context parameter.").valid(false).build();
+    public static final Validator TEXTRACT_TYPE_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            } else if (TextractType.TEXTRACT_TYPES.contains(value)) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Supported Value.").valid(true).build();
+            } else {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Not a supported value, flow file attribute or context parameter.").valid(false).build();
+            }
         }
     };
 

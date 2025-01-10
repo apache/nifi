@@ -20,12 +20,14 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -59,7 +61,7 @@ public class TestSplitJson {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(SplitJson.REL_FAILURE, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(SplitJson.REL_FAILURE).getFirst();
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(SplitJson.REL_FAILURE).get(0);
         // Verify that the content was unchanged
         out.assertContentEquals(XML_SNIPPET);
     }
@@ -75,7 +77,7 @@ public class TestSplitJson {
         Relationship expectedRel = SplitJson.REL_FAILURE;
 
         testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).getFirst();
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
         out.assertContentEquals(JSON_SNIPPET);
     }
 
@@ -88,10 +90,10 @@ public class TestSplitJson {
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).getFirst().assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, 1);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).getFirst().assertContentEquals(JSON_SNIPPET);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).getFirst().assertContentEquals("0");
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertContentEquals(JSON_SNIPPET);
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0).assertContentEquals("0");
     }
 
     @Test
@@ -105,9 +107,9 @@ public class TestSplitJson {
         int numSplitsExpected = 10;
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).getFirst().assertAttributeEquals(FRAGMENT_COUNT.key(), String.valueOf(numSplitsExpected));
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), String.valueOf(numSplitsExpected));
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, numSplitsExpected);
-        final MockFlowFile originalOut = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).getFirst();
+        final MockFlowFile originalOut = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0);
         originalOut.assertContentEquals(JSON_SNIPPET);
     }
 
@@ -122,9 +124,9 @@ public class TestSplitJson {
         int numSplitsExpected = 10;
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).getFirst().assertAttributeEquals(FRAGMENT_COUNT.key(), String.valueOf(numSplitsExpected));
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), String.valueOf(numSplitsExpected));
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, numSplitsExpected);
-        final MockFlowFile originalOut = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).getFirst();
+        final MockFlowFile originalOut = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0);
         originalOut.assertContentEquals(JSON_SNIPPET);
 
         // Change JsonPath Expression, verify it is being applied correctly
@@ -135,12 +137,12 @@ public class TestSplitJson {
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
-        final MockFlowFile originalFlowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).getFirst();
+        final MockFlowFile originalFlowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0);
         originalFlowFile.assertAttributeExists(FRAGMENT_ID.key());
         originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "7");
         originalFlowFile.assertContentEquals(JSON_SNIPPET);
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, 7);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).getFirst();
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0);
         flowFile.assertContentEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}");
     }
 
@@ -153,12 +155,12 @@ public class TestSplitJson {
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
-        final MockFlowFile originalFlowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).getFirst();
+        final MockFlowFile originalFlowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0);
         originalFlowFile.assertAttributeExists(FRAGMENT_ID.key());
         originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "7");
         originalFlowFile.assertContentEquals(JSON_SNIPPET);
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, 7);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).getFirst();
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0);
         flowFile.assertContentEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}");
         flowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "7");
         flowFile.assertAttributeEquals(FRAGMENT_INDEX.key(), "0");
@@ -179,7 +181,7 @@ public class TestSplitJson {
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_FAILURE, 1);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_FAILURE).getFirst().assertContentEquals(JSON_SNIPPET);
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_FAILURE).get(0).assertContentEquals(JSON_SNIPPET);
     }
 
     @Test
@@ -190,9 +192,12 @@ public class TestSplitJson {
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
-        ff = session.write(ff, out -> {
-            try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                outputStream.write("{\"stringField\": \"String Value\", \"nullField\": null}".getBytes(StandardCharsets.UTF_8));
+        ff = session.write(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write("{\"stringField\": \"String Value\", \"nullField\": null}".getBytes(StandardCharsets.UTF_8));
+                }
             }
         });
 
@@ -210,9 +215,12 @@ public class TestSplitJson {
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
-        ff = session.write(ff, out -> {
-            try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                outputStream.write("{\"stringField\": \"String Value\", \"arrayOfNulls\": [null, null, null]}".getBytes(StandardCharsets.UTF_8));
+        ff = session.write(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write("{\"stringField\": \"String Value\", \"arrayOfNulls\": [null, null, null]}".getBytes(StandardCharsets.UTF_8));
+                }
             }
         });
 
@@ -237,9 +245,12 @@ public class TestSplitJson {
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
-        ff = session.write(ff, out -> {
-            try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                outputStream.write("{\"stringField\": \"String Value\", \"arrayOfNulls\": [null, null, null]}".getBytes(StandardCharsets.UTF_8));
+        ff = session.write(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write("{\"stringField\": \"String Value\", \"arrayOfNulls\": [null, null, null]}".getBytes(StandardCharsets.UTF_8));
+                }
             }
         });
 
@@ -260,9 +271,12 @@ public class TestSplitJson {
         testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.*");
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
-        ff = session.write(ff, out -> {
-            try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                outputStream.write("null".getBytes(StandardCharsets.UTF_8));
+        ff = session.write(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write("null".getBytes(StandardCharsets.UTF_8));
+                }
             }
         });
         testRunner.enqueue(ff);

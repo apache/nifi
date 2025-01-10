@@ -45,7 +45,7 @@
             <exclusions>
                 <exclusion>
                     <groupId>io.fabric8</groupId>
-                    <artifactId>kubernetes-httpclient-vertx</artifactId>
+                    <artifactId>kubernetes-httpclient-okhttp</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

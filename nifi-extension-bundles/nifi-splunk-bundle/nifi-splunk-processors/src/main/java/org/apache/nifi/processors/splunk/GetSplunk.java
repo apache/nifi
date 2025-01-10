@@ -48,6 +48,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.ssl.SSLContextProvider;
@@ -55,6 +56,7 @@ import org.apache.nifi.ssl.SSLContextProvider;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -492,9 +494,12 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         final InputStream exportSearch = export;
 
         FlowFile flowFile = session.create();
-        flowFile = session.write(flowFile, rawOut -> {
-            try (BufferedOutputStream out = new BufferedOutputStream(rawOut)) {
-                IOUtils.copyLarge(exportSearch, out);
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream rawOut) throws IOException {
+                try (BufferedOutputStream out = new BufferedOutputStream(rawOut)) {
+                    IOUtils.copyLarge(exportSearch, out);
+                }
             }
         });
 

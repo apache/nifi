@@ -1197,13 +1197,13 @@ public class TestMergeContent {
 
         if ("c".equals(attr1)) {
             assertEquals("b", attr2);
-            merged1.assertContentEquals("A Canal ", StandardCharsets.UTF_8);
-            merged2.assertContentEquals("A Man A Plan Panama", StandardCharsets.UTF_8);
+            merged1.assertContentEquals("A Canal ", "UTF-8");
+            merged2.assertContentEquals("A Man A Plan Panama", "UTF-8");
         } else {
             assertEquals("b", attr1);
             assertEquals("c", attr2);
-            merged1.assertContentEquals("A Man A Plan Panama", StandardCharsets.UTF_8);
-            merged2.assertContentEquals("A Canal ", StandardCharsets.UTF_8);
+            merged1.assertContentEquals("A Man A Plan Panama", "UTF-8");
+            merged2.assertContentEquals("A Canal ", "UTF-8");
         }
     }
 

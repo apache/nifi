@@ -22,6 +22,7 @@ import org.apache.nifi.web.server.log.RequestAuthenticationFilter;
 import org.eclipse.jetty.ee10.servlet.FilterHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.web.header.HeaderWriterFilter;
 
 import jakarta.servlet.Filter;
 import java.util.Collections;
@@ -80,7 +81,7 @@ public class StandardRequestFilterProviderTest {
 
         assertFilterClassFound(filters, RequestAuthenticationFilter.class);
 
-        final FilterHolder firstFilterHolder = filters.getFirst();
+        final FilterHolder firstFilterHolder = filters.get(0);
         final Class<? extends Filter> firstFilterClass = firstFilterHolder.getHeldClass();
         assertEquals(RequestAuthenticationFilter.class, firstFilterClass);
     }
@@ -89,6 +90,7 @@ public class StandardRequestFilterProviderTest {
         assertNotNull(filters);
         assertFalse(filters.isEmpty());
 
+        assertFilterClassFound(filters, HeaderWriterFilter.class);
         assertFilterClassFound(filters, DataTransferExcludedDoSFilter.class);
     }
 

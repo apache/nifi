@@ -388,18 +388,26 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     // may still be held, causing this node to take a long time to respond to requests.
                     controller.suspendHeartbeats();
 
-                    final Thread t = new Thread(() -> handleReconnectionRequest((ReconnectionRequestMessage) request), "Reconnect to Cluster");
+                    final Thread t = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            handleReconnectionRequest((ReconnectionRequestMessage) request);
+                        }
+                    }, "Reconnect to Cluster");
                     t.setDaemon(true);
                     t.start();
 
                     return new ReconnectionResponseMessage();
                 }
                 case OFFLOAD_REQUEST: {
-                    final Thread t = new Thread(() -> {
-                        try {
-                            handleOffloadRequest((OffloadMessage) request);
-                        } catch (InterruptedException e) {
-                            throw new ProtocolException("Could not complete offload request", e);
+                    final Thread t = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                handleOffloadRequest((OffloadMessage) request);
+                            } catch (InterruptedException e) {
+                                throw new ProtocolException("Could not complete offload request", e);
+                            }
                         }
                     }, "Offload Flow Files from Node");
                     t.setDaemon(true);
@@ -408,7 +416,12 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     return null;
                 }
                 case DISCONNECTION_REQUEST: {
-                    final Thread t = new Thread(() -> handleDisconnectionRequest((DisconnectMessage) request), "Disconnect from Cluster");
+                    final Thread t = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            handleDisconnectionRequest((DisconnectMessage) request);
+                        }
+                    }, "Disconnect from Cluster");
                     t.setDaemon(true);
                     t.start();
 

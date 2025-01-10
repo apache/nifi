@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.evtx.parser.bxml;
 
+import org.apache.nifi.processors.evtx.parser.BinaryReader;
 import org.apache.nifi.processors.evtx.parser.BxmlNodeVisitor;
 import org.apache.nifi.processors.evtx.parser.bxml.value.NullTypeNode;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class AttributeNodeTest extends BxmlNodeWithTokenAndStringTestBase {
     public static final String ATTRIBUTE_NAME = "AttributeName";
+    private BinaryReader binaryReader;
     private AttributeNode attributeNode;
 
     @Override

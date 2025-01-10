@@ -165,13 +165,18 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         return properties;
     }
 
-    private static final Validator REQUEST_HEADER_VALIDATOR = (subject, value, context) -> new ValidationResult.Builder()
-            .subject(subject)
-            .input(value)
-            .valid(subject.startsWith(REQUEST_HEADER_PREFIX)
-                    && subject.length() > REQUEST_HEADER_PREFIX.length())
-            .explanation("Dynamic property names must be of format 'request.header.*'")
-            .build();
+    private static final Validator REQUEST_HEADER_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(value)
+                    .valid(subject.startsWith(REQUEST_HEADER_PREFIX)
+                            && subject.length() > REQUEST_HEADER_PREFIX.length())
+                    .explanation("Dynamic property names must be of format 'request.header.*'")
+                    .build();
+        }
+    };
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptionName) {

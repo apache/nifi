@@ -15,7 +15,7 @@
 
 # Apache NiFi
 
-<img src="https://nifi.apache.org/images/apache-nifi-logo.svg" width="300" alt="Apache NiFi"/>
+<img src="https://nifi.apache.org/assets/images/apache-nifi-logo.svg" width="300" alt="Apache NiFi"/>
 
 ### Status
 
@@ -23,7 +23,6 @@
 [![system-tests](https://github.com/apache/nifi/workflows/system-tests/badge.svg)](https://github.com/apache/nifi/actions/workflows/system-tests.yml)
 [![integration-tests](https://github.com/apache/nifi/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/integration-tests.yml)
 [![docker-tests](https://github.com/apache/nifi/actions/workflows/docker-tests.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/docker-tests.yml)
-[![code-compliance](https://github.com/apache/nifi/actions/workflows/code-compliance.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/code-compliance.yml)
 [![code-coverage](https://github.com/apache/nifi/actions/workflows/code-coverage.yml/badge.svg)](https://github.com/apache/nifi/actions/workflows/code-coverage.yml)
 [![codecov](https://codecov.io/gh/apache/nifi/branch/main/graph/badge.svg)](https://codecov.io/gh/apache/nifi)
 

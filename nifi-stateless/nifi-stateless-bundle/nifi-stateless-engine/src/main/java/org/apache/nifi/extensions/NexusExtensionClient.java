@@ -38,15 +38,13 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 public class NexusExtensionClient implements ExtensionClient {
     private static final Logger logger = LoggerFactory.getLogger(NexusExtensionClient.class);
     private static final long DEFAULT_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(30);
-    private static final Charset URL_CHARSET = StandardCharsets.UTF_8;
+    private static final String URL_CHARSET = "UTF-8";
 
     private final String baseUrl;
     private final long timeoutMillis;

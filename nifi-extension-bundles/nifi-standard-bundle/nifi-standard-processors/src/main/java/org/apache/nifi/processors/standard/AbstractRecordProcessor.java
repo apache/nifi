@@ -27,6 +27,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -37,6 +38,9 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,18 +119,45 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         final FlowFile original = flowFile;
         final Map<String, String> originalAttributes = flowFile.getAttributes();
         try {
-            flowFile = session.write(flowFile, (in, out) -> {
+            flowFile = session.write(flowFile, new StreamCallback() {
+                @Override
+                public void process(final InputStream in, final OutputStream out) throws IOException {
 
-                try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, original.getSize(), getLogger())) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, original.getSize(), getLogger())) {
 
-                    // Get the first record and process it before we create the Record Writer. We do this so that if the Processor
-                    // updates the Record's schema, we can provide an updated schema to the Record Writer. If there are no records,
-                    // then we can simply create the Writer with the Reader's schema and begin & end the Record Set.
-                    Record firstRecord = reader.nextRecord();
-                    if (firstRecord == null) {
-                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
+                        // Get the first record and process it before we create the Record Writer. We do this so that if the Processor
+                        // updates the Record's schema, we can provide an updated schema to the Record Writer. If there are no records,
+                        // then we can simply create the Writer with the Reader's schema and begin & end the Record Set.
+                        Record firstRecord = reader.nextRecord();
+                        if (firstRecord == null) {
+                            final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
+                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes)) {
+                                writer.beginRecordSet();
+
+                                final WriteResult writeResult = writer.finishRecordSet();
+                                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                                attributes.putAll(writeResult.getAttributes());
+                                recordCount.set(writeResult.getRecordCount());
+                            }
+
+                            return;
+                        }
+
+                        firstRecord = AbstractRecordProcessor.this.process(firstRecord, original, context, 1L);
+
+                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, firstRecord.getSchema());
                         try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes)) {
                             writer.beginRecordSet();
+
+                            writer.write(firstRecord);
+
+                            Record record;
+                            long count = 1L;
+                            while ((record = reader.nextRecord()) != null) {
+                                final Record processed = AbstractRecordProcessor.this.process(record, original, context, ++count);
+                                writer.write(processed);
+                            }
 
                             final WriteResult writeResult = writer.finishRecordSet();
                             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
@@ -134,35 +165,11 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                             attributes.putAll(writeResult.getAttributes());
                             recordCount.set(writeResult.getRecordCount());
                         }
-
-                        return;
+                    } catch (final SchemaNotFoundException e) {
+                        throw new ProcessException(e.getLocalizedMessage(), e);
+                    } catch (final MalformedRecordException e) {
+                        throw new ProcessException("Could not parse incoming data", e);
                     }
-
-                    firstRecord = AbstractRecordProcessor.this.process(firstRecord, original, context, 1L);
-
-                    final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, firstRecord.getSchema());
-                    try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes)) {
-                        writer.beginRecordSet();
-
-                        writer.write(firstRecord);
-
-                        Record record;
-                        long count = 1L;
-                        while ((record = reader.nextRecord()) != null) {
-                            final Record processed = AbstractRecordProcessor.this.process(record, original, context, ++count);
-                            writer.write(processed);
-                        }
-
-                        final WriteResult writeResult = writer.finishRecordSet();
-                        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                        attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                        attributes.putAll(writeResult.getAttributes());
-                        recordCount.set(writeResult.getRecordCount());
-                    }
-                } catch (final SchemaNotFoundException e) {
-                    throw new ProcessException(e.getLocalizedMessage(), e);
-                } catch (final MalformedRecordException e) {
-                    throw new ProcessException("Could not parse incoming data", e);
                 }
             });
         } catch (final Exception e) {
