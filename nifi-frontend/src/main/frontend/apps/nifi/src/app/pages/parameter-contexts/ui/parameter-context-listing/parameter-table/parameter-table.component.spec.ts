@@ -17,10 +17,13 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ParameterTable } from './parameter-table.component';
+import { ParameterItem, ParameterTable } from './parameter-table.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../state/parameter-context-listing/parameter-context-listing.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { EditParameterResponse } from '../../../../../state/shared';
+import { Observable, of } from 'rxjs';
+import { Parameter } from '@nifi/shared';
 
 describe('ParameterTable', () => {
     let component: ParameterTable;
@@ -38,5 +41,74 @@ describe('ParameterTable', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('should handle no parameters with no edits', () => {
+        component.writeValue([]);
+        expect(component.serializeParameters()).toEqual([]);
+    });
+
+    it('should handle no parameters with one added', () => {
+        component.writeValue([]);
+
+        const parameter: Parameter = {
+            name: 'param',
+            value: 'value',
+            description: 'asdf',
+            sensitive: false
+        };
+        component.createNewParameter = (): Observable<EditParameterResponse> => {
+            return of({
+                parameter,
+                valueChanged: true
+            });
+        };
+        component.newParameterClicked();
+
+        expect(component.serializeParameters()).toEqual([{ parameter }]);
+    });
+
+    it('should handle no parameters with one added and then edited', () => {
+        component.writeValue([]);
+
+        const parameter: Parameter = {
+            name: 'param',
+            value: 'value',
+            description: 'asdf',
+            sensitive: false
+        };
+        component.createNewParameter = (): Observable<EditParameterResponse> => {
+            return of({
+                parameter,
+                valueChanged: true
+            });
+        };
+        component.newParameterClicked();
+
+        const parameterItem: ParameterItem = component.dataSource.data[0];
+        expect(parameterItem.originalEntity.parameter).toEqual(parameter);
+
+        const description = 'updated description';
+        component.editParameter = (): Observable<EditParameterResponse> => {
+            return of({
+                parameter: {
+                    name: 'param',
+                    value: null,
+                    sensitive: false,
+                    description
+                },
+                valueChanged: false
+            });
+        };
+        component.editClicked(parameterItem);
+
+        expect(component.serializeParameters()).toEqual([
+            {
+                parameter: {
+                    ...parameter,
+                    description
+                }
+            }
+        ]);
     });
 });

@@ -353,10 +353,19 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         if (!item.updatedEntity) {
             item.updatedEntity = {
                 parameter: {
-                    ...item.originalEntity.parameter,
-                    value: null
+                    ...item.originalEntity.parameter
                 }
             };
+
+            // if this parameter is an existing parameter, we want to mark the value as null. a null value
+            // for existing parameters will indicate to the server that the value is unchanged. this is needed
+            // for sensitive parameters where the value isn't available client side. for new parameters which
+            // are not known on the server should not have their value cleared. this is relevant when the user
+            // created a new parameter and then subsequents edits it (e.g. to change the description) before
+            // submission.
+            if (!item.added) {
+                item.updatedEntity.parameter.value = null;
+            }
         }
 
         let hasChanged: boolean = response.valueChanged;
@@ -434,7 +443,10 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         this.onChange(this.serializeParameters());
     }
 
-    private serializeParameters(): any[] {
+    /**
+     * Serializes the Parameters. Not private for testing purposes.
+     */
+    serializeParameters(): any[] {
         const parameters: ParameterItem[] = this.dataSource.data;
 
         // only include dirty items
