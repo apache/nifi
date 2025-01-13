@@ -1106,7 +1106,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         for (final ControllerServiceNode serviceNode : flowManager.getAllControllerServices()) {
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
                 final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
             }
@@ -1115,7 +1115,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
             final ReportingTask task = taskNode.getReportingTask();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, task.getClass(), task.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, task.getClass(), task.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task, taskNode.getConfigurationContext());
             }
         }
@@ -1123,7 +1123,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         for (final FlowAnalysisRuleNode ruleNode : getAllFlowAnalysisRules()) {
             final FlowAnalysisRule rule = ruleNode.getFlowAnalysisRule();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, rule.getClass(), rule.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, rule.getClass(), rule.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, rule, ruleNode.getConfigurationContext());
             }
         }
@@ -1131,7 +1131,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
             final ParameterProvider provider = parameterProviderNode.getParameterProvider();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, provider.getClass(), provider.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, provider.getClass(), provider.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, provider);
             }
         }
