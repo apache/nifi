@@ -48,7 +48,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -344,7 +344,7 @@ public class TestDataTransferResource {
         final Object entity = response.getEntity();
 
         assertEquals(202, response.getStatus());
-        assertTrue(entity instanceof StreamingOutput);
+        assertInstanceOf(StreamingOutput.class, entity);
     }
 
     @Test

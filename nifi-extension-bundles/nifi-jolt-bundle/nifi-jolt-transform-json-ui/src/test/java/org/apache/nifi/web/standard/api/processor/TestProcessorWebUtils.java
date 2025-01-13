@@ -31,8 +31,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -64,7 +64,7 @@ public class TestProcessorWebUtils {
         Method method = ProcessorWebUtils.class.getDeclaredMethod("getRequestContext", String.class, HttpServletRequest.class);
         method.setAccessible(true);
         NiFiWebRequestContext requestContext = (NiFiWebRequestContext) method.invoke(null, "1", mock(HttpServletRequest.class));
-        assertTrue(requestContext instanceof HttpServletRequestContext);
+        assertInstanceOf(HttpServletRequestContext.class, requestContext);
         assertEquals("1", requestContext.getId());
 
     }

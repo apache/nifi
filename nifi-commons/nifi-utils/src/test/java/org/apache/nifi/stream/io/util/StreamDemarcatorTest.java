@@ -22,14 +22,12 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 
@@ -86,7 +84,7 @@ public class StreamDemarcatorTest {
         String data = "Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, null, 1000);
-        assertTrue(Arrays.equals(data.getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
+        assertArrayEquals(data.getBytes(StandardCharsets.UTF_8), scanner.nextToken());
         // validate that subsequent invocations of nextToken() do not result in exception
         assertNull(scanner.nextToken());
         assertNull(scanner.nextToken());
@@ -97,7 +95,7 @@ public class StreamDemarcatorTest {
         String data = "Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, null, 1000, 1);
-        assertTrue(Arrays.equals(data.getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
+        assertArrayEquals(data.getBytes(StandardCharsets.UTF_8), scanner.nextToken());
     }
 
     @Test
@@ -105,9 +103,9 @@ public class StreamDemarcatorTest {
         String data = "Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, ",".getBytes(StandardCharsets.UTF_8), 1000);
-        assertTrue(Arrays.equals("Learn from yesterday".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals(" live for today".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals(" hope for tomorrow. The important thing is not to stop questioning.".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
+        assertArrayEquals("Learn from yesterday".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals(" live for today".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals(" hope for tomorrow. The important thing is not to stop questioning.".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
         assertNull(scanner.nextToken());
     }
 
@@ -116,9 +114,9 @@ public class StreamDemarcatorTest {
         String data = ",Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, ",".getBytes(StandardCharsets.UTF_8), 1000);
-        assertTrue(Arrays.equals("Learn from yesterday".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals(" live for today".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals(" hope for tomorrow. The important thing is not to stop questioning.".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
+        assertArrayEquals("Learn from yesterday".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals(" live for today".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals(" hope for tomorrow. The important thing is not to stop questioning.".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
         assertNull(scanner.nextToken());
     }
 
@@ -127,9 +125,9 @@ public class StreamDemarcatorTest {
         String data = ",,,,,Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, ",".getBytes(StandardCharsets.UTF_8), 1000);
-        assertTrue(Arrays.equals("Learn from yesterday".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals(" live for today".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals(" hope for tomorrow. The important thing is not to stop questioning.".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
+        assertArrayEquals("Learn from yesterday".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals(" live for today".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals(" hope for tomorrow. The important thing is not to stop questioning.".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
         assertNull(scanner.nextToken());
     }
 
@@ -138,9 +136,9 @@ public class StreamDemarcatorTest {
         String data = "Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, ",".getBytes(StandardCharsets.UTF_8), 1000, 2);
-        assertTrue(Arrays.equals("Learn from yesterday".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals(" live for today".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals(" hope for tomorrow. The important thing is not to stop questioning.".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
+        assertArrayEquals("Learn from yesterday".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals(" live for today".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals(" hope for tomorrow. The important thing is not to stop questioning.".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
         assertNull(scanner.nextToken());
     }
 
@@ -149,9 +147,9 @@ public class StreamDemarcatorTest {
         String data = "foodaabardaabazzz";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, "daa".getBytes(StandardCharsets.UTF_8), 1000);
-        assertTrue(Arrays.equals("foo".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals("bar".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals("bazzz".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
+        assertArrayEquals("foo".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals("bar".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals("bazzz".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
         assertNull(scanner.nextToken());
     }
 
@@ -160,9 +158,9 @@ public class StreamDemarcatorTest {
         String data = "daafoodaabardaabazzz";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, "daa".getBytes(StandardCharsets.UTF_8), 1000);
-        assertTrue(Arrays.equals("foo".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals("bar".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals("bazzz".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
+        assertArrayEquals("foo".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals("bar".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals("bazzz".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
         assertNull(scanner.nextToken());
     }
 
@@ -171,9 +169,9 @@ public class StreamDemarcatorTest {
         String data = "foodaabarffdaabazz";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, "daa".getBytes(StandardCharsets.UTF_8), 1000, 1);
-        assertTrue(Arrays.equals("foo".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals("barff".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
-        assertTrue(Arrays.equals("bazz".getBytes(StandardCharsets.UTF_8), scanner.nextToken()));
+        assertArrayEquals("foo".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals("barff".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
+        assertArrayEquals("bazz".getBytes(StandardCharsets.UTF_8), scanner.nextToken());
         assertNull(scanner.nextToken());
     }
 

@@ -1359,7 +1359,7 @@ public class TestRegistryService {
                 .filter(p -> p.getComponentId().equals("ID-pg1")).findFirst();
 
         assertTrue(removedComponent.isPresent());
-        assertTrue(removedComponent.get().getDifferences().iterator().next().getDifferenceType().equals("COMPONENT_REMOVED"));
+        assertEquals("COMPONENT_REMOVED", removedComponent.get().getDifferences().iterator().next().getDifferenceType());
     }
 
     @Test

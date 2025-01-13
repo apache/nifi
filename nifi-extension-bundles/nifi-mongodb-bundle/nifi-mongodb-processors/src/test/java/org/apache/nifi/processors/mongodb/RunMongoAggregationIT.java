@@ -202,7 +202,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
         for (MockFlowFile mockFlowFile : flowFiles) {
             byte[] raw = runner.getContentAsByteArray(mockFlowFile);
             Map<String, List<Long>> read = mapper.readValue(raw, Map.class);
-            assertTrue(read.get("myArray").get(1) == now.getTimeInMillis());
+            assertEquals((long) read.get("myArray").get(1), now.getTimeInMillis());
         }
     }
 

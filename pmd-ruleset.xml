@@ -36,6 +36,7 @@ under the License.
     <rule ref="category/java/bestpractices.xml/AvoidReassigningCatchVariables" />
 
     <rule ref="category/java/bestpractices.xml/PrimitiveWrapperInstantiation" />
+    <rule ref="category/java/bestpractices.xml/SimplifiableTestAssertion" />
     <rule ref="category/java/bestpractices.xml/UnusedPrivateField" />
     <rule ref="category/java/bestpractices.xml/UnnecessaryVarargsArrayCreation" />
     <rule ref="category/java/bestpractices.xml/UnusedLocalVariable" />

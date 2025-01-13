@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -181,12 +183,10 @@ class TestJsonPathRowRecordReader {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object value = record.getValue("timestamp");
-                assertTrue(value instanceof java.sql.Timestamp,
-                        "With coerceTypes set to " + coerceTypes + ", value is not a Timestamp");
+                assertInstanceOf(Timestamp.class, value, "With coerceTypes set to " + coerceTypes + ", value is not a Timestamp");
 
                 final Object valueNotInSchema = record.getValue("field_not_in_schema");
-                assertTrue(valueNotInSchema instanceof String,
-                        "field_not_in_schema should be String");
+                assertInstanceOf(String.class, valueNotInSchema, "field_not_in_schema should be String");
             }
         }
     }
@@ -220,7 +220,7 @@ class TestJsonPathRowRecordReader {
             assertArrayEquals(new Object[] {1, "John Doe", null, "123 My Street", "My City", "MS", "11111", "USA"}, simpleElements);
 
             final Object lastElement = firstRecordValues[firstRecordValues.length - 1];
-            assertTrue(lastElement instanceof Record);
+            assertInstanceOf(Record.class, lastElement);
             final Record record = (Record) lastElement;
             assertEquals(42, record.getValue("id"));
             assertEquals(4750.89D, record.getValue("balance"));
@@ -263,14 +263,14 @@ class TestJsonPathRowRecordReader {
             final Object[] array = (Object[]) lastRecord;
             assertEquals(2, array.length);
             final Object firstElement = array[0];
-            assertTrue(firstElement instanceof Record);
+            assertInstanceOf(Record.class, firstElement);
 
             final Record firstRecord = (Record) firstElement;
             assertEquals(42, firstRecord.getValue("id"));
             assertEquals(4750.89D, firstRecord.getValue("balance"));
 
             final Object secondElement = array[1];
-            assertTrue(secondElement instanceof Record);
+            assertInstanceOf(Record.class, secondElement);
             final Record secondRecord = (Record) secondElement;
             assertEquals(43, secondRecord.getValue("id"));
             assertEquals(48212.38D, secondRecord.getValue("balance"));

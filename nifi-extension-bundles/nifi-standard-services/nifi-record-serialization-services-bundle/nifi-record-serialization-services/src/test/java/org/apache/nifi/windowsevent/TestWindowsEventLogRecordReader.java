@@ -31,10 +31,10 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestWindowsEventLogRecordReader {
 
@@ -53,12 +53,12 @@ public class TestWindowsEventLogRecordReader {
         // Verify some System fields
         Object childObj = r.getValue("System");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         Record childRecord = (Record) childObj;
         assertEquals(14, childRecord.getValues().length);
         childObj = childRecord.getValue("Provider");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(2, childRecord.getValues().length);
         assertEquals("Microsoft-Windows-Security-Auditing", childRecord.getAsString("Name"));
@@ -66,7 +66,7 @@ public class TestWindowsEventLogRecordReader {
         // Verify some EventData fields, including Data fields
         childObj = r.getValue("EventData");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(4, childRecord.getValues().length);
         assertEquals("DOMAIN", childRecord.getAsString("TargetDomainName"));
@@ -85,12 +85,12 @@ public class TestWindowsEventLogRecordReader {
         // Verify some System fields
         Object childObj = r.getValue("System");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         Record childRecord = (Record) childObj;
         assertEquals(14, childRecord.getValues().length);
         childObj = childRecord.getValue("Provider");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(2, childRecord.getValues().length);
         assertEquals("Microsoft-Windows-Security-Auditing", childRecord.getAsString("Name"));
@@ -98,7 +98,7 @@ public class TestWindowsEventLogRecordReader {
         // Verify some EventData fields, including Data fields
         childObj = r.getValue("EventData");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(4, childRecord.getValues().length);
         assertEquals("DOMAIN", childRecord.getAsString("TargetDomainName"));
@@ -117,12 +117,12 @@ public class TestWindowsEventLogRecordReader {
         // Verify some System fields
         Object childObj = r.getValue("System");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         Record childRecord = (Record) childObj;
         assertEquals(14, childRecord.getValues().length);
         childObj = childRecord.getValue("Provider");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(2, childRecord.getValues().length);
         assertEquals("Microsoft-Windows-Security-Auditing", childRecord.getAsString("Name"));
@@ -130,7 +130,7 @@ public class TestWindowsEventLogRecordReader {
         // Verify some EventData fields, including Data fields
         childObj = r.getValue("EventData");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(16, childRecord.getValues().length);
         assertEquals("DOMAIN", childRecord.getAsString("TargetDomainName"));
@@ -142,12 +142,12 @@ public class TestWindowsEventLogRecordReader {
         assertEquals(2, r.getValues().length);
         childObj = r.getValue("System");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(14, childRecord.getValues().length);
         childObj = childRecord.getValue("Provider");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(2, childRecord.getValues().length);
         assertEquals("Microsoft-Windows-Security-Auditing", childRecord.getAsString("Name"));
@@ -155,7 +155,7 @@ public class TestWindowsEventLogRecordReader {
         // Verify some EventData fields, including Data fields
         childObj = r.getValue("EventData");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(16, childRecord.getValues().length);
         assertEquals("DOMAIN", childRecord.getAsString("TargetDomainName"));
@@ -167,12 +167,12 @@ public class TestWindowsEventLogRecordReader {
         assertEquals(2, r.getValues().length);
         childObj = r.getValue("System");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(14, childRecord.getValues().length);
         childObj = childRecord.getValue("Provider");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(2, childRecord.getValues().length);
         assertEquals("Microsoft-Windows-Security-Auditing", childRecord.getAsString("Name"));
@@ -180,7 +180,7 @@ public class TestWindowsEventLogRecordReader {
         // Verify some EventData fields, including Data fields
         childObj = r.getValue("EventData");
         assertNotNull(childObj);
-        assertTrue(childObj instanceof Record);
+        assertInstanceOf(Record.class, childObj);
         childRecord = (Record) childObj;
         assertEquals(16, childRecord.getValues().length);
         assertNull(childRecord.getAsString("TargetDomainName"));

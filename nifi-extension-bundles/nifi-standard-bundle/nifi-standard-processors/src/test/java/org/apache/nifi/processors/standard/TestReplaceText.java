@@ -850,7 +850,7 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        assertTrue(outContent.equals("attribute header\n\nabc.txt\n\ndata header\n\nHello\nWorld!\n\nfooter"));
+        assertEquals("attribute header\n\nabc.txt\n\ndata header\n\nHello\nWorld!\n\nfooter", outContent);
     }
 
     @Test

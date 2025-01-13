@@ -29,8 +29,8 @@ import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestExceptionHandler {
@@ -90,7 +90,7 @@ public class TestExceptionHandler {
         final Integer nullInput = null;
         ProcessException pe = assertThrows(ProcessException.class, () -> handler.execute(context, nullInput, i -> r.set(p.divide(i, 2))),
                 "Exception should be thrown because input is null.");
-        assertTrue(pe.getCause() instanceof NullPointerException);
+        assertInstanceOf(NullPointerException.class, pe.getCause());
     }
 
     // Reusable Exception mapping function.

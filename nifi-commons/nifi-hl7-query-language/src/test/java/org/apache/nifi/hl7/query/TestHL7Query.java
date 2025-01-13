@@ -35,6 +35,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("resource")
@@ -136,7 +137,7 @@ public class TestHL7Query {
         assertEquals(1, result.getHitCount());
 
         final Object names = result.nextHit().getValue("PID.5");
-        assertTrue(names instanceof List);
+        assertInstanceOf(List.class, names);
         final List<Object> nameList = (List) names;
         assertEquals(1, nameList.size());
         final HL7Field nameField = (HL7Field) nameList.get(0);

@@ -36,8 +36,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class InferenceSchemaStrategyTest {
@@ -89,7 +89,7 @@ public class InferenceSchemaStrategyTest {
 
         // then
         assertNotNull(result);
-        assertTrue(RecordDataType.class.isInstance(result.getField("f1").get().getDataType()));
+        assertInstanceOf(RecordDataType.class, result.getField("f1").get().getDataType());
         final RecordDataType recordDataType = (RecordDataType) result.getField("f1").get().getDataType();
 
         final RecordSchema childSchema = recordDataType.getChildSchema();

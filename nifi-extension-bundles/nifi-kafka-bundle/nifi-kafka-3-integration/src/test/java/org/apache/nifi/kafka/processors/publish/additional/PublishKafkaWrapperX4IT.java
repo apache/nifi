@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -94,7 +95,7 @@ public class PublishKafkaWrapperX4IT extends AbstractPublishKafkaIT {
                 assertNotNull(kafkaValue);
                 assertEquals("1234 First Street", kafkaValue.get("address").textValue());
                 assertEquals("12345", kafkaValue.get("zip").textValue());
-                assertTrue(kafkaValue.get("account") instanceof ObjectNode);
+                assertInstanceOf(ObjectNode.class, kafkaValue.get("account"));
             }
         }
     }

@@ -81,6 +81,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.nifi.util.db.JdbcCommon.MASKED_LOG_VALUE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -609,7 +610,7 @@ public class TestJdbcCommon {
                         assertNull(o);
                     } else {
                         assertNotNull(o);
-                        assertTrue(o instanceof ByteBuffer);
+                        assertInstanceOf(ByteBuffer.class, o);
                         final byte[] blob = ((ByteBuffer) o).array();
                         assertEquals(4002, blob.length);
                         // Third byte should be 67 ('C')
@@ -647,7 +648,7 @@ public class TestJdbcCommon {
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
                 Object o = record.get("t_clob");
-                assertTrue(o instanceof Utf8);
+                assertInstanceOf(Utf8.class, o);
                 assertEquals("test clob", o.toString());
             }
         }
@@ -681,7 +682,7 @@ public class TestJdbcCommon {
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
                 Object o = record.get("t_blob");
-                assertTrue(o instanceof ByteBuffer);
+                assertInstanceOf(ByteBuffer.class, o);
                 ByteBuffer bb = (ByteBuffer) o;
                 assertEquals("test blob", new String(bb.array(), StandardCharsets.UTF_8));
             }

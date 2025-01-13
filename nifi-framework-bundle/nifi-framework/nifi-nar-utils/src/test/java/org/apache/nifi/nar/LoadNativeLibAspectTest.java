@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -107,7 +108,7 @@ public class LoadNativeLibAspectTest {
         assertNotNull(args);
         assertEquals(1, args.length);
         assertNotNull(args[0]);
-        assertTrue(args[0] instanceof String);
+        assertInstanceOf(String.class, args[0]);
 
         String tempLibFilePathStr = (String) args[0];
         Path tempLibFilePath = Paths.get(tempLibFilePathStr);

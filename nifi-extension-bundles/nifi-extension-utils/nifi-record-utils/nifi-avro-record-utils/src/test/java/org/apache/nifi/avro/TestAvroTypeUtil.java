@@ -63,8 +63,10 @@ import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -221,7 +223,7 @@ public class TestAvroTypeUtil {
         Optional<RecordField> uuidField = recordSchema.getField("uuid_test");
         assertTrue(uuidField.isPresent());
         RecordField field = uuidField.get();
-        assertTrue(field.getDataType() == RecordFieldType.UUID.getDataType());
+        assertSame(field.getDataType(), RecordFieldType.UUID.getDataType());
     }
 
     @Test
@@ -307,7 +309,7 @@ public class TestAvroTypeUtil {
         RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
         RecordField field = record.getField("listOfInt").get();
         assertEquals(RecordFieldType.ARRAY, field.getDataType().getFieldType());
-        assertTrue(field.getDefaultValue() instanceof Object[]);
+        assertInstanceOf(Object[].class, field.getDefaultValue());
         assertEquals(1, ((Object[]) field.getDefaultValue()).length);
     }
 
@@ -329,7 +331,7 @@ public class TestAvroTypeUtil {
         RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
         RecordField field = record.getField("listOfInt").get();
         assertEquals(RecordFieldType.ARRAY, field.getDataType().getFieldType());
-        assertTrue(field.getDefaultValue() instanceof Object[]);
+        assertInstanceOf(Object[].class, field.getDefaultValue());
         assertArrayEquals(new Object[] {1, 2}, ((Object[]) field.getDefaultValue()));
     }
 
@@ -359,7 +361,7 @@ public class TestAvroTypeUtil {
         RecordSchema childSchema = data.getChildSchema();
         RecordField childField = childSchema.getField("listOfInt").get();
         assertEquals(RecordFieldType.ARRAY, childField.getDataType().getFieldType());
-        assertTrue(childField.getDefaultValue() instanceof Object[]);
+        assertInstanceOf(Object[].class, childField.getDefaultValue());
         assertArrayEquals(new Object[] {0}, ((Object[]) childField.getDefaultValue()));
     }
 
@@ -389,7 +391,7 @@ public class TestAvroTypeUtil {
        RecordSchema childSchema = data.getChildSchema();
        RecordField childField = childSchema.getField("listOfInt").get();
        assertEquals(RecordFieldType.ARRAY, childField.getDataType().getFieldType());
-       assertTrue(childField.getDefaultValue() instanceof Object[]);
+       assertInstanceOf(Object[].class, childField.getDefaultValue());
        assertArrayEquals(new Object[] {1, 2, 3}, ((Object[]) childField.getDefaultValue()));
    }
     @Test
@@ -587,7 +589,7 @@ public class TestAvroTypeUtil {
                 return;
             }
 
-            assertTrue(convertedValue instanceof ByteBuffer);
+            assertInstanceOf(ByteBuffer.class, convertedValue);
             final ByteBuffer serializedBytes = (ByteBuffer) convertedValue;
 
             final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromBytes(serializedBytes, fieldSchema,
@@ -652,7 +654,7 @@ public class TestAvroTypeUtil {
 
         final Object resultObject = convertedMap.get("amount");
         assertNotNull(resultObject);
-        assertTrue(resultObject instanceof BigDecimal);
+        assertInstanceOf(BigDecimal.class, resultObject);
 
         final BigDecimal resultBigDecimal = (BigDecimal) resultObject;
         assertEquals(expectedBigDecimal, resultBigDecimal);
@@ -664,7 +666,7 @@ public class TestAvroTypeUtil {
         final Schema fieldSchema = Schema.create(Type.BYTES);
         decimalType.addToSchema(fieldSchema);
         final Object convertedValue = AvroTypeUtil.convertToAvroObject("2.5", fieldSchema, StandardCharsets.UTF_8);
-        assertTrue(convertedValue instanceof ByteBuffer);
+        assertInstanceOf(ByteBuffer.class, convertedValue);
         final ByteBuffer serializedBytes = (ByteBuffer) convertedValue;
         final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromBytes(serializedBytes, fieldSchema, decimalType);
         assertEquals(new BigDecimal("2.5").setScale(8), bigDecimal);
@@ -678,7 +680,7 @@ public class TestAvroTypeUtil {
         final Schema fieldSchema = Schema.create(Type.INT);
         dateType.addToSchema(fieldSchema);
         final Object convertedValue = AvroTypeUtil.convertToAvroObject(Date.valueOf(date), fieldSchema);
-        assertTrue(convertedValue instanceof Integer);
+        assertInstanceOf(Integer.class, convertedValue);
         final int epochDay = (int) LocalDate.parse(date).toEpochDay();
         assertEquals(epochDay, convertedValue);
     }
@@ -689,7 +691,7 @@ public class TestAvroTypeUtil {
         final Schema fieldSchema = Schema.createFixed("mydecimal", "no doc", "myspace", 18);
         decimalType.addToSchema(fieldSchema);
         final Object convertedValue = AvroTypeUtil.convertToAvroObject("2.5", fieldSchema, StandardCharsets.UTF_8);
-        assertTrue(convertedValue instanceof GenericFixed);
+        assertInstanceOf(GenericFixed.class, convertedValue);
         final GenericFixed genericFixed = (GenericFixed) convertedValue;
         final BigDecimal bigDecimal = new Conversions.DecimalConversion().fromFixed(genericFixed, fieldSchema, decimalType);
         assertEquals(new BigDecimal("2.5").setScale(8), bigDecimal);
@@ -706,14 +708,14 @@ public class TestAvroTypeUtil {
     @Test
     public void testStringToBytesConversion() {
         Object o = AvroTypeUtil.convertToAvroObject("Hello", Schema.create(Type.BYTES), StandardCharsets.UTF_16);
-        assertTrue(o instanceof ByteBuffer);
+        assertInstanceOf(ByteBuffer.class, o);
         assertEquals("Hello", new String(((ByteBuffer) o).array(), StandardCharsets.UTF_16));
     }
 
     @Test
     public void testStringToNullableBytesConversion() {
         Object o = AvroTypeUtil.convertToAvroObject("Hello", Schema.createUnion(Schema.create(Type.NULL), Schema.create(Type.BYTES)), StandardCharsets.UTF_16);
-        assertTrue(o instanceof ByteBuffer);
+        assertInstanceOf(ByteBuffer.class, o);
         assertEquals("Hello", new String(((ByteBuffer) o).array(), StandardCharsets.UTF_16));
     }
 
@@ -721,7 +723,7 @@ public class TestAvroTypeUtil {
     public void testBytesToStringConversion() {
         final Charset charset = Charset.forName("UTF_32LE");
         Object o = AvroTypeUtil.convertToAvroObject("Hello".getBytes(charset), Schema.create(Type.STRING), charset);
-        assertTrue(o instanceof String);
+        assertInstanceOf(String.class, o);
         assertEquals("Hello", o);
     }
 
@@ -764,7 +766,7 @@ public class TestAvroTypeUtil {
     public void testListToArrayConversion() {
         final Charset charset = StandardCharsets.UTF_8;
         Object o = AvroTypeUtil.convertToAvroObject(Collections.singletonList("Hello"), Schema.createArray(Schema.create(Type.STRING)), charset);
-        assertTrue(o instanceof List);
+        assertInstanceOf(List.class, o);
         assertEquals(1, ((List) o).size());
         assertEquals("Hello", ((List) o).get(0));
     }
@@ -774,7 +776,7 @@ public class TestAvroTypeUtil {
         final Charset charset = StandardCharsets.UTF_8;
         Object o = AvroTypeUtil.convertToAvroObject(Collections.singletonMap("Hello", "World"),
             Schema.createRecord(null, null, null, false, Collections.singletonList(new Field("Hello", Schema.create(Type.STRING), "", ""))), charset);
-        assertTrue(o instanceof Record);
+        assertInstanceOf(Record.class, o);
         assertEquals("World", ((Record) o).get("Hello"));
     }
 
@@ -796,12 +798,12 @@ public class TestAvroTypeUtil {
         obj.put("List", list);
 
         Object o = AvroTypeUtil.convertToAvroObject(obj, s);
-        assertTrue(o instanceof Record);
+        assertInstanceOf(Record.class, o);
         List innerList = (List) ((Record) o).get("List");
         assertNotNull( innerList );
         assertEquals(10, innerList.size());
         for (Object inner : innerList) {
-            assertTrue(inner instanceof Record);
+            assertInstanceOf(Record.class, inner);
             assertNotNull(((Record) inner).get("Message"));
         }
     }
@@ -908,8 +910,8 @@ public class TestAvroTypeUtil {
 
         // then
         final HashMap<String, Object> numbers = (HashMap<String, Object>) result.get("numbers");
-        assertTrue(Long.class.isInstance(numbers.get("number1")));
-        assertTrue(Long.class.isInstance(numbers.get("number2")));
+        assertInstanceOf(Long.class, numbers.get("number1"));
+        assertInstanceOf(Long.class, numbers.get("number2"));
     }
 
     @Test

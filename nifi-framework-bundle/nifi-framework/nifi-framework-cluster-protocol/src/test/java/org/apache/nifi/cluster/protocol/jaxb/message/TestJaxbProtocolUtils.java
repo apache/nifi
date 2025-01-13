@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJaxbProtocolUtils {
@@ -73,7 +74,7 @@ public class TestJaxbProtocolUtils {
 
         JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
         final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
-        assertTrue(unmarshalled instanceof ConnectionResponseMessage);
+        assertInstanceOf(ConnectionResponseMessage.class, unmarshalled);
 
         final ComponentRevisionSnapshot receivedSnapshot = msg.getConnectionResponse().getComponentRevisions();
         final List<ComponentRevision> revisions = receivedSnapshot.getComponentRevisions();
@@ -94,7 +95,7 @@ public class TestJaxbProtocolUtils {
 
         JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
         final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
-        assertTrue(unmarshalled instanceof NodeConnectionStatusRequestMessage);
+        assertInstanceOf(NodeConnectionStatusRequestMessage.class, unmarshalled);
     }
 
 
@@ -109,7 +110,7 @@ public class TestJaxbProtocolUtils {
 
         JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
         final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
-        assertTrue(unmarshalled instanceof NodeConnectionStatusResponseMessage);
+        assertInstanceOf(NodeConnectionStatusResponseMessage.class, unmarshalled);
         final NodeConnectionStatusResponseMessage unmarshalledMsg = (NodeConnectionStatusResponseMessage) unmarshalled;
 
         final NodeConnectionStatus unmarshalledStatus = unmarshalledMsg.getNodeConnectionStatus();
@@ -138,7 +139,7 @@ public class TestJaxbProtocolUtils {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
         final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
-        assertTrue(unmarshalled instanceof HeartbeatMessage);
+        assertInstanceOf(HeartbeatMessage.class, unmarshalled);
     }
 
     @Test
@@ -147,7 +148,7 @@ public class TestJaxbProtocolUtils {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
         final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
-        assertTrue(unmarshalled instanceof ClusterWorkloadRequestMessage);
+        assertInstanceOf(ClusterWorkloadRequestMessage.class, unmarshalled);
     }
 
     @Test
@@ -174,7 +175,7 @@ public class TestJaxbProtocolUtils {
 
         // Un-marshall.
         final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
-        assertTrue(unmarshalled instanceof ClusterWorkloadResponseMessage);
+        assertInstanceOf(ClusterWorkloadResponseMessage.class, unmarshalled);
 
         // Assert result.
         final ClusterWorkloadResponseMessage response = (ClusterWorkloadResponseMessage) unmarshalled;
