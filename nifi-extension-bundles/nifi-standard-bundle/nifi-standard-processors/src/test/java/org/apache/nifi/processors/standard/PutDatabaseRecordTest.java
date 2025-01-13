@@ -255,8 +255,6 @@ public class PutDatabaseRecordTest {
 
         LocalDate testDate1 = LocalDate.of(2021, 1, 26);
         Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
-        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
-        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
 
         parser.addRecord(1, "rec1", 101, jdbcDate1);
 
@@ -1221,7 +1219,6 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
 
         // Set some existing records with different values for name and code
-        Exception e;
         ResultSet rs;
 
         stmt.execute("INSERT INTO SCHEMA1.PERSONS VALUES (1,'x1',101,null)");
@@ -1715,14 +1712,6 @@ public class PutDatabaseRecordTest {
     public void testGenerateTableName() throws InitializationException, ProcessException {
         setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
 
-        final List<RecordField> fields = Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
-                new RecordField("name", RecordFieldType.STRING.getDataType()),
-                new RecordField("code", RecordFieldType.INT.getDataType()),
-                new RecordField("non_existing", RecordFieldType.BOOLEAN.getDataType())
-        );
-
-        final RecordSchema schema = new SimpleRecordSchema(fields);
-
         final TableSchema tableSchema = new TableSchema(
                 null,
                 null,
@@ -1830,9 +1819,6 @@ public class PutDatabaseRecordTest {
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("code", RecordFieldType.INT);
         parser.addSchemaField("dt", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.FLOAT.getDataType()).getFieldType());
-
-        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
-        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
 
         parser.addRecord("1", "rec1", 101, Arrays.asList(1.0, 2.0));
         parser.addRecord("2", "rec2", 102, Arrays.asList(3.0, 4.0));

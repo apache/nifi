@@ -79,7 +79,7 @@ class TestInferJsonSchemaAccessStrategy {
 
             for (int i = 0; i < 10_000; i++) {
                 try (final InputStream in = new ByteArrayInputStream(manyCopies)) {
-                    final RecordSchema schema = accessStrategy.getSchema(null, in, null);
+                    accessStrategy.getSchema(null, in, null);
                 }
             }
 
@@ -107,7 +107,7 @@ class TestInferJsonSchemaAccessStrategy {
                     final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>((var, content) -> new JsonRecordSource(content),
                             noTimestampInference, Mockito.mock(ComponentLog.class));
 
-                    final RecordSchema schema = accessStrategy.getSchema(null, in, null);
+                    accessStrategy.getSchema(null, in, null);
                 }
             }
 

@@ -27,8 +27,6 @@ public class TestUser {
     public void testSimpleCreation() {
         final String identifier = "1";
         final String identity = "user1";
-        final String group1 = "group1";
-        final String group2 = "group2";
 
         final User user = new User.Builder()
                 .identifier(identifier)
@@ -57,8 +55,6 @@ public class TestUser {
     public void testFromUser() {
         final String identifier = "1";
         final String identity = "user1";
-        final String group1 = "group1";
-        final String group2 = "group2";
 
         final User user = new User.Builder()
                 .identifier(identifier)

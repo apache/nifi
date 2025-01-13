@@ -43,7 +43,7 @@ public class ReportingTaskWrapper implements Runnable {
         if (!lifecycleState.tryIncrementActiveThreadCount(null)) {
             return;
         }
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
             taskNode.getReportingTask().onTrigger(taskNode.getReportingContext());
         } catch (final Throwable t) {
             final ComponentLog componentLog = new SimpleProcessLogger(taskNode.getIdentifier(), taskNode.getReportingTask(), new StandardLoggingContext(null));

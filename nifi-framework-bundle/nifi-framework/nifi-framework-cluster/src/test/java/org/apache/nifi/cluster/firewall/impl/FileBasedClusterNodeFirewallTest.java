@@ -58,9 +58,8 @@ public class FileBasedClusterNodeFirewallTest {
      */
     @BeforeAll
     public static void ensureBadHostsDoNotWork() {
-        final InetAddress ip;
         try {
-            ip = InetAddress.getByName(NONEXISTENT_HOSTNAME);
+            InetAddress.getByName(NONEXISTENT_HOSTNAME);
         } catch (final UnknownHostException uhe) {
             badHostsDoNotResolve = true;
         }

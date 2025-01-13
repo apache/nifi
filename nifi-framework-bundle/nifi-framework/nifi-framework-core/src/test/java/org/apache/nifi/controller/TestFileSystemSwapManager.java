@@ -28,8 +28,6 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -74,22 +72,18 @@ public class TestFileSystemSwapManager {
     @Test
     public void testBackwardCompatible() throws IOException {
 
-        try (final InputStream fis = new FileInputStream("src/test/resources/old-swap-file.swap");
-             final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
+        when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
-            final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
-            when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
+        final FileSystemSwapManager swapManager = createSwapManager();
+        final SwapContents swapContents = swapManager.peek("src/test/resources/old-swap-file.swap", flowFileQueue);
 
-            final FileSystemSwapManager swapManager = createSwapManager();
-            final SwapContents swapContents = swapManager.peek("src/test/resources/old-swap-file.swap", flowFileQueue);
+        final List<FlowFileRecord> records = swapContents.getFlowFiles();
+        assertEquals(10000, records.size());
 
-            final List<FlowFileRecord> records = swapContents.getFlowFiles();
-            assertEquals(10000, records.size());
-
-            for (final FlowFileRecord record : records) {
-                assertEquals(4, record.getAttributes().size());
-                assertEquals("value", record.getAttribute("key"));
-            }
+        for (final FlowFileRecord record : records) {
+            assertEquals(4, record.getAttributes().size());
+            assertEquals("value", record.getAttribute("key"));
         }
     }
 

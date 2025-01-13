@@ -134,6 +134,7 @@ public class TestScriptedTransformRecord {
         assertEquals(0, testRunner.getCounterValue("Records Dropped").intValue());
 
         final List<Record> written = recordWriter.getRecordsWritten();
+        assertEquals(0, written.size());
     }
 
     @Test

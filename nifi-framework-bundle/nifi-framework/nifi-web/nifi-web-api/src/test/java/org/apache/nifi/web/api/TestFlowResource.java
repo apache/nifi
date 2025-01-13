@@ -392,8 +392,6 @@ public class TestFlowResource {
     }
 
     private void setUpGetVersionDifference() {
-        final FlowVersionLocation baseLocation = new FlowVersionLocation(SAMPLE_BRANCH_ID_A, SAMPLE_BUCKET_ID_A, SAMPLE_FLOW_ID_A, "1");
-        final FlowVersionLocation comparedLocation = new FlowVersionLocation(SAMPLE_BRANCH_ID_B, SAMPLE_BUCKET_ID_B, SAMPLE_FLOW_ID_B, "2");
         doReturn(getDifferences()).when(serviceFacade).getVersionDifference(anyString(), any(FlowVersionLocation.class), any(FlowVersionLocation.class));
     }
 

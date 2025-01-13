@@ -227,7 +227,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public void shutdownReportingTask(final ReportingTaskNode reportingTask) {
         final ConfigurationContext configContext = reportingTask.getConfigurationContext();
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getReportingTask().getClass(), reportingTask.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getReportingTask().getClass(), reportingTask.getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, reportingTask.getReportingTask(), configContext);
         }
     }
@@ -235,7 +235,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public void shutdownControllerService(final ControllerServiceNode serviceNode, final ControllerServiceProvider controllerServiceProvider) {
         final Class<?> serviceImplClass = serviceNode.getControllerServiceImplementation().getClass();
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), serviceImplClass, serviceNode.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), serviceImplClass, serviceNode.getIdentifier())) {
             final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
         }
@@ -283,7 +283,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             return;
                         }
 
-                        try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
+                        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
                         }
 
@@ -299,7 +299,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             reportingTask, e.toString(), administrativeYieldDuration, e);
 
 
-                    try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, taskNode.getConfigurationContext());
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, taskNode.getConfigurationContext());
                     }
@@ -338,7 +338,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             synchronized (lifecycleState) {
                 lifecycleState.setScheduled(false);
 
-                try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
                 } catch (final Exception e) {
                     final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
@@ -696,7 +696,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
             final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, getStateManager(connectable.getIdentifier()));
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getClass(), connectable.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getClass(), connectable.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
             }
         }

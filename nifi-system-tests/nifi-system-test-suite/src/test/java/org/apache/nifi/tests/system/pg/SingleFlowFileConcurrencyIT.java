@@ -121,9 +121,9 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
 
         // Connect Generate -> Input Port -> Count -> Output Port -> Terminate
         // Also connect InputPort -> Out2 -> Terminate
-        final ConnectionEntity generateToInput = getClientUtil().createConnection(generate, inputPort, "success");
+        getClientUtil().createConnection(generate, inputPort, "success");
         final ConnectionEntity inputToSleep = getClientUtil().createConnection(inputPort, sleep);
-        final ConnectionEntity sleepToOutput = getClientUtil().createConnection(sleep, outputPort, "success");
+        getClientUtil().createConnection(sleep, outputPort, "success");
         final ConnectionEntity inputToSecondOut = getClientUtil().createConnection(inputPort, secondOut);
         final ConnectionEntity outputToTerminate = getClientUtil().createConnection(outputPort, terminate);
         final ConnectionEntity secondOutToTerminate = getClientUtil().createConnection(secondOut, terminate);
@@ -192,7 +192,7 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
 
         // Connect Generate -> Input Port -> Count -> Output Port -> Terminate
         // Also connect InputPort -> Out2 -> Terminate
-        final ConnectionEntity generateToInput = getClientUtil().createConnection(generate, inputPort, "success");
+        getClientUtil().createConnection(generate, inputPort, "success");
         final ConnectionEntity inputToOutput = getClientUtil().createConnection(inputPort, outputPort);
         final ConnectionEntity inputToSecondOut = getClientUtil().createConnection(inputPort, secondOut);
         final ConnectionEntity outputToTerminate = getClientUtil().createConnection(outputPort, terminate);

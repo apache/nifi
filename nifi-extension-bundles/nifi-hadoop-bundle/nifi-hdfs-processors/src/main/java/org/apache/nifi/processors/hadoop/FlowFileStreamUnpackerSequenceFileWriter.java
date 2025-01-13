@@ -41,7 +41,7 @@ public class FlowFileStreamUnpackerSequenceFileWriter extends SequenceFileWriter
     @Override
     protected void processInputStream(final InputStream stream, final FlowFile flowFileStreamPackedFlowFile, final Writer writer) throws IOException {
         final FlowFileUnpackager unpackager = new FlowFileUnpackager();
-        try (final InputStream in = new BufferedInputStream(stream)) {
+        try (final InputStream ignored = new BufferedInputStream(stream)) {
             while (unpackager.hasMoreData()) {
                 unpackager.unpackageFlowFile(stream, writer);
             }

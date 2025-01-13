@@ -79,7 +79,7 @@ public class StatelessSchedulingAgent implements SchedulingAgent {
     }
 
     private void triggerReportingTask(final ReportingTaskNode taskNode, final LifecycleState scheduleState) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
             logger.debug("Triggering {} to run", taskNode);
             scheduleState.incrementActiveThreadCount(null);
 

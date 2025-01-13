@@ -717,7 +717,6 @@ public class ReplaceText extends AbstractProcessor {
                     out.write(updatedValue.getBytes(charset));
                 });
             } else {
-                final Pattern searchPattern = Pattern.compile(searchValue, Pattern.LITERAL);
 
                 flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
                     (bw, oneLine) -> {

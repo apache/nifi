@@ -42,7 +42,7 @@ public class FlowAnalysisRuleInitializer implements ConfigurableComponentInitial
     public void initialize(ConfigurableComponent component) throws InitializationException {
         FlowAnalysisRule flowAnalysisRule = (FlowAnalysisRule) component;
         FlowAnalysisRuleInitializationContext context = new MockFlowAnalysisRuleInitializationContext();
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             flowAnalysisRule.initialize(context);
         }
     }
@@ -50,7 +50,7 @@ public class FlowAnalysisRuleInitializer implements ConfigurableComponentInitial
     @Override
     public void teardown(ConfigurableComponent component) {
         FlowAnalysisRule flowAnalysisRule = (FlowAnalysisRule) component;
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
 
             final MockConfigurationContext context = new MockConfigurationContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, flowAnalysisRule, new MockComponentLogger(), context);

@@ -74,7 +74,6 @@ public class TestJaxbProtocolUtils {
         JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
         final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
         assertTrue(unmarshalled instanceof ConnectionResponseMessage);
-        final ConnectionResponseMessage unmarshalledMsg = (ConnectionResponseMessage) unmarshalled;
 
         final ComponentRevisionSnapshot receivedSnapshot = msg.getConnectionResponse().getComponentRevisions();
         final List<ComponentRevision> revisions = receivedSnapshot.getComponentRevisions();

@@ -894,15 +894,11 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                 },
                 () -> serviceFacade.verifyUpdateRemoteProcessGroups(processGroupId, shouldTransmit(requestRemotePortRunStatusEntity)),
                 (_revisions, remotePortRunStatusEntity) -> {
-                    Set<RemoteProcessGroupEntity> remoteProcessGroupEntities = _revisions.stream()
-                            .map(revision -> {
-                                final RemoteProcessGroupEntity entity = serviceFacade.updateRemoteProcessGroup(revision, createDTOWithDesiredRunStatus(revision.getComponentId(),
-                                        remotePortRunStatusEntity));
+                    _revisions.forEach(revision -> {
+                                final RemoteProcessGroupEntity entity =
+                                        serviceFacade.updateRemoteProcessGroup(revision, createDTOWithDesiredRunStatus(revision.getComponentId(), remotePortRunStatusEntity));
                                 populateRemainingRemoteProcessGroupEntityContent(entity);
-
-                                return entity;
-                            })
-                            .collect(Collectors.toSet());
+                            });
 
                     RemoteProcessGroupsEntity remoteProcessGroupsEntity = new RemoteProcessGroupsEntity();
 

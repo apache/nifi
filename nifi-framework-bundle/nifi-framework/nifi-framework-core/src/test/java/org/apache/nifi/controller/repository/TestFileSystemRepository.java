@@ -401,7 +401,7 @@ public class TestFileSystemRepository {
         // should not be equal because claim1 may still be in use
         assertNotSame(claim1.getResourceClaim(), claim2.getResourceClaim());
 
-        try (final OutputStream out = repository.write(claim1)) {
+        try (final OutputStream ignored = repository.write(claim1)) {
         }
 
         final ContentClaim claim3 = repository.create(false);
@@ -411,7 +411,7 @@ public class TestFileSystemRepository {
     @Test
     public void testResourceClaimNotReusedAfterRestart() throws IOException, InterruptedException {
         final ContentClaim claim1 = repository.create(false);
-        try (final OutputStream out = repository.write(claim1)) {
+        try (final OutputStream ignored = repository.write(claim1)) {
         }
 
         repository.shutdown();
@@ -434,7 +434,7 @@ public class TestFileSystemRepository {
 
         final ContentClaim claim2 = repository.create(false);
         assertEquals(claim1.getResourceClaim(), claim2.getResourceClaim());
-        try (final OutputStream out = repository.write(claim2)) {
+        try (final OutputStream ignored = repository.write(claim2)) {
 
         }
 

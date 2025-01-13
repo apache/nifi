@@ -141,11 +141,9 @@ public class TestGetFile {
         final Path targetPath = destFile.toPath();
         Files.copy(inPath, targetPath);
 
-        boolean verifyLastModified = false;
         try {
             destFile.setLastModified(1000000000);
-            verifyLastModified = true;
-        } catch (Exception doNothing) {
+        } catch (Exception ignored) {
         }
 
         final TestRunner runner = TestRunners.newTestRunner(new GetFile());
@@ -153,7 +151,6 @@ public class TestGetFile {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
-        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
         //permissions are not verified as these are very environmentally specific
     }
 }

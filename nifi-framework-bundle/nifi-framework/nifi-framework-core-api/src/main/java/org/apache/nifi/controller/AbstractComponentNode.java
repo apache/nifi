@@ -283,7 +283,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             final Set<String> removedPropertyNames = new LinkedHashSet<>();
 
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), id)) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), id)) {
                 boolean classpathChanged = false;
                 for (final Map.Entry<String, String> entry : properties.entrySet()) {
                     final String propertyName = entry.getKey();
@@ -640,7 +640,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     public Map<PropertyDescriptor, PropertyConfiguration> getProperties() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
             final List<PropertyDescriptor> supported = getComponent().getPropertyDescriptors();
             if (supported == null || supported.isEmpty()) {
                 return Collections.unmodifiableMap(properties);
@@ -670,7 +670,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     private Map<PropertyDescriptor, String> getPropertyValues(final BiFunction<PropertyDescriptor, PropertyConfiguration, String> valueFunction) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
             final List<PropertyDescriptor> supported = getComponent().getPropertyDescriptors();
 
             final Map<PropertyDescriptor, String> props = new LinkedHashMap<>();
@@ -827,7 +827,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public String toString() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             return getComponent().toString();
         } catch (final Throwable t) {
             return getClass().getSimpleName() + "[id=" + getIdentifier() + "]";
@@ -843,7 +843,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     @Override
     public ValidationState performValidation(final ValidationContext validationContext) {
         final Collection<ValidationResult> results;
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
             results = computeValidationErrors(validationContext);
         }
 
@@ -1192,7 +1192,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public PropertyDescriptor getPropertyDescriptor(final String name) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             final PropertyDescriptor propertyDescriptor = getComponent().getPropertyDescriptor(name);
             if (propertyDescriptor.isDynamic() && isSensitiveDynamicProperty(name)) {
                 return new PropertyDescriptor.Builder().fromPropertyDescriptor(propertyDescriptor).sensitive(true).build();
@@ -1204,14 +1204,14 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public List<PropertyDescriptor> getPropertyDescriptors() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             return getComponent().getPropertyDescriptors();
         }
     }
 
 
     protected void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             getComponent().onPropertyModified(descriptor, oldValue, newValue);
         }
     }

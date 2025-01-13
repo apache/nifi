@@ -563,7 +563,6 @@ public class TestExecuteSQLRecord {
 
         // ResultSet size will be 1x200x100 = 20 000 rows
         // because of where PER.ID = ${person.id}
-        final int nrOfRows = 20000;
 
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
