@@ -39,7 +39,7 @@ public class ControllerServiceRunStatusEntity extends ComponentRunStatusEntity {
      * @return The run status
      */
     @Schema(description = "The run status of the ControllerService.",
-            allowableValues = "ENABLED, DISABLED"
+            allowableValues = {"ENABLED", "DISABLED"}
     )
     public String getState() {
         return super.getState();

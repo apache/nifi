@@ -39,7 +39,7 @@ public class ReplayLastEventResponseEntity extends Entity {
     }
 
     @Schema(description = "Which nodes were requested to replay their last provenance event.",
-        allowableValues = "ALL, PRIMARY"
+        allowableValues = {"ALL", "PRIMARY"}
     )
     public String getNodes() {
         return nodes;

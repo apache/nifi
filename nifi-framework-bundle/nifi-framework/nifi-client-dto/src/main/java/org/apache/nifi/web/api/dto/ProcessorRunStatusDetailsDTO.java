@@ -56,7 +56,7 @@ public class ProcessorRunStatusDetailsDTO {
     }
 
     @Schema(description = "The run status of the processor",
-        allowableValues = RUNNING + ", " + STOPPED + ", " + INVALID + ", " + VALIDATING + ", " + DISABLED
+        allowableValues = {RUNNING, STOPPED, INVALID, VALIDATING, DISABLED}
     )
     public String getRunStatus() {
         return runStatus;

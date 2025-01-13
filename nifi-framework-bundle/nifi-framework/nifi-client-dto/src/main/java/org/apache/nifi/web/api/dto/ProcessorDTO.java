@@ -108,7 +108,7 @@ public class ProcessorDTO extends ComponentDTO {
      * @return The state of this processor. Possible states are 'RUNNING', 'STOPPED', and 'DISABLED'
      */
     @Schema(description = "The state of the processor",
-            allowableValues = "RUNNING, STOPPED, DISABLED"
+            allowableValues = {"RUNNING", "STOPPED", "DISABLED"}
     )
     public String getState() {
         return state;
@@ -296,7 +296,7 @@ public class ProcessorDTO extends ComponentDTO {
 
     @Schema(description = "Indicates whether the Processor is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Processor is valid)",
         accessMode = Schema.AccessMode.READ_ONLY,
-        allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
+        allowableValues = {VALID, INVALID, VALIDATING})
     public String getValidationStatus() {
         return validationStatus;
     }
