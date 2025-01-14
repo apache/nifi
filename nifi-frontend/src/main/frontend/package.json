@@ -74,6 +74,7 @@
         "@types/humanize-duration": "^3.27.3",
         "@types/jest": "29.5.13",
         "@types/jsonlint": "^1.6.3",
+        "@types/node": "18.16.9",
         "@types/uuid": "^10.0.0",
         "@types/webfontloader": "^1.6.38",
         "@typescript-eslint/eslint-plugin": "7.18.0",
