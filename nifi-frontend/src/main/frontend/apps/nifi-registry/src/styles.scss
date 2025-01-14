@@ -1,0 +1,50 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@use '@angular/material' as mat;
+@use 'sass:map';
+
+@use 'libs/shared/src/assets/styles/app' as app;
+@use 'app/app.component-theme' as app-component;
+@use 'app/ui/header/header.component-theme' as header;
+
+@use 'font-awesome';
+@use 'libs/shared/src/assets/themes/material';
+
+ // Include the common styles for Angular Material. We include this here so that you only
+ // have to load a single css file for Angular Material in your app.
+ // Be sure that you only ever include this mixin once!
+ @include mat.core();
+
+ @tailwind base;
+ @tailwind components;
+ @tailwind utilities;
+
+ // only include these once (not needed for dark mode)
+ @include app.styles();
+
+ html {
+    @include app.generate-material-theme();
+     @include app-component.generate-theme();
+     @include header.generate-theme();
+
+     .dark-theme {
+         @include app.generate-material-theme();
+         @include app-component.generate-theme();
+         @include header.generate-theme();
+     }
+ }

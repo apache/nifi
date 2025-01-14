@@ -1,0 +1,106 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div class="pad-bottom-md flex justify-between items-center">
+    <h2 mat-dialog-title>
+        <div class="flex justify-between items-baseline">
+            <div>Import New Flow</div>
+        </div>
+    </h2>
+</div>
+<mat-dialog-content>
+    <div class="dialog-content flex flex-col h-full gap-y-2">
+        <div class="w-full">
+            <div class="flex justify-between items-center">
+                <div class="w-full flex flex-1 items-center">
+                    <mat-form-field class="flex-1">
+                        <mat-label>Flow Name</mat-label>
+                        <input #flowName id="new-flow-name-input-field" class="pad-bottom-md w-full" matInput
+                            type="text" placeholder="Create a unique name" [(ngModel)]="name" />
+                    </mat-form-field>
+                    <div class="version-count ml-2">
+                        v.1
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="w-full flex flex-1">
+            <mat-form-field class="w-full">
+                <mat-label class="mb-2">Flow Description</mat-label>
+                <textarea matInput class="pb-2 w-full" [(ngModel)]="description"></textarea>
+            </mat-form-field>
+        </div>
+        <div class="w-full flex flex-col">
+            <mat-label class="mb-2">Bucket</mat-label>
+            <mat-form-field class="flex">
+                <mat-select #bucketSelect panelClass="bucket-dropdown-select" placeholder="Choose a location"
+                    [(value)]="activeBucket">
+                    <mat-option *ngFor="let bucket of writableBuckets" [value]="bucket.identifier">
+                        {{bucket.name}}
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+        </div>
+
+        <div class="w-full flex flex-col justify-between pb-2" (click)="selectFile()"
+            (dragenter)="fileDragHandler($event, extensions)" (dragover)="fileDragHandler($event, extensions)"
+            (dragend)="fileDragEndHandler()" (dragleave)="fileDragEndHandler()" (drop)="fileDropHandler($event)">
+            <div class="flex justify-between">
+                <mat-label>Flow Definition</mat-label>
+                <div class="flex justify-between items-center">
+                    <ng-container *ngIf="fileToUpload !== null && !hoverValidity || hoverValidity === 'valid'">
+                        <span class="file-upload-message">
+                            Looks good!
+                            <i class="fa fa-check-circle-o success-color-default" aria-hidden="true"></i>
+                        </span>
+                    </ng-container>
+                    <ng-container *ngIf="hoverValidity === 'invalid'">
+                        <span class="file-upload-message">
+                            File format is not valid
+                            <i class="fa fa-times-circle error-color" aria-hidden="true"></i></span>
+                    </ng-container>
+                </div>
+            </div>
+            <mat-form-field class="w-full">
+                <div class="flex items-center justify-between w-full">
+                    <input matInput class="ellipsis" type="text" autocomplete="off" class="flex-1"
+                        placeholder="Drop file or select..." [value]="fileName" [ngClass]="{'file-hover-valid': (hoverValidity === 'valid'),
+                               'file-hover-error': (hoverValidity === 'invalid'),
+                               'file-selected': (fileToUpload !== null), 'multiple': multiple}" />
+                    <div class="flex flex-1 items-center justify-end">
+                        <i class="fa fa-upload" aria-hidden="true"></i>
+                        <div class="ml-2">Select file</div>
+                    </div>
+                </div>
+                <div>
+                    <form enctype="multipart/form-data" method="post">
+                        <input #uploadFlowFileField type="file" name="file" [accept]="extensions" hidden="true"
+                            (change)="handleFileInput($any($event.target).files)" />
+                    </form>
+                </div>
+            </mat-form-field>
+        </div>
+    </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close type="button">
+        Cancel
+    </button>
+    <button [disabled]="!fileToUpload || !flowName.value || !bucketSelect.value" class="pl-2"
+        data-automation-id="import-new-versioned-flow-button" (click)="importNewFlow()" type="button"
+        mat-flat-button mat-dialog-close>
+        Import
+    </button>
+</mat-dialog-actions>
