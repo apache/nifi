@@ -46,7 +46,7 @@ import java.util.Set;
  */
 public class PGImport extends AbstractNiFiCommand<StringResult> {
 
-    private final static ObjectMapper objectMapper = new ObjectMapper();
+    private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public PGImport() {
         super("pg-import", StringResult.class);
@@ -109,16 +109,16 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
             if (!input.exists() || !input.isFile() || !input.canRead()) {
                 throw new IllegalArgumentException("Specified input is not a local readable file: " + inputSource);
             }
-            if (!StringUtils.isBlank(bucketId)) {
+            if (StringUtils.isNotBlank(bucketId)) {
                 throw new IllegalArgumentException("Input path is specified so Bucket ID should not be specified");
             }
-            if (!StringUtils.isBlank(flowId)) {
+            if (StringUtils.isNotBlank(flowId)) {
                 throw new IllegalArgumentException("Input path is specified so Flow ID should not be specified");
             }
-            if (!StringUtils.isBlank(flowVersion)) {
+            if (StringUtils.isNotBlank(flowVersion)) {
                 throw new IllegalArgumentException("Input path is specified so Flow Version should not be specified");
             }
-            if (!StringUtils.isBlank(flowBranch)) {
+            if (StringUtils.isNotBlank(flowBranch)) {
                 throw new IllegalArgumentException("Input path is specified so Flow Branch should not be specified");
             }
         }
@@ -200,7 +200,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
             createdEntity = pgClient.createProcessGroup(parentPgId, pgEntity, Boolean.parseBoolean(keepExistingPC));
 
         } else {
-            JsonNode rootNode = objectMapper.readTree(input);
+            JsonNode rootNode = OBJECT_MAPPER.readTree(input);
             JsonNode flowContentsNode = rootNode.path("flowContents");
             String pgName = flowContentsNode.path("name").asText();
             createdEntity = pgClient.upload(parentPgId, input, pgName, posDto.getX(), posDto.getY());

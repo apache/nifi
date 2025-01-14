@@ -391,7 +391,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
             throw new IllegalArgumentException("File cannot be null");
         }
         if (!file.exists() || !file.canRead()) {
-            throw new IllegalArgumentException("File does not exist: " + file.getAbsolutePath());
+            throw new IllegalArgumentException("Specified file is not a local readable file: " + file.getAbsolutePath());
         }
 
         FormDataMultiPart form = new FormDataMultiPart();
