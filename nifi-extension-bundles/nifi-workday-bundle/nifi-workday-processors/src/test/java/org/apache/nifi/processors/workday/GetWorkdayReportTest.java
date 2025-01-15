@@ -31,6 +31,8 @@ import static org.apache.nifi.processors.workday.GetWorkdayReport.WEB_CLIENT_SER
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -44,6 +46,7 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -55,7 +58,9 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 
 class GetWorkdayReportTest {
 
@@ -84,40 +89,92 @@ class GetWorkdayReportTest {
         mockWebServer.shutdown();
     }
 
-    @Test
-    public void testNotValidWithoutReportUrlProperty() throws InitializationException {
-        withWebClientService();
-        runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
-        runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
+    @Nested
+    class BasicAuthPropertiesValidation {
+        @Test
+        void testNotValidWithoutReportUrlProperty() throws InitializationException {
+            withWebClientService();
+            runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
+            runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
 
-        runner.assertNotValid();
+            runner.assertNotValid();
+        }
+
+        @Test
+        void testNotValidWithInvalidReportUrlProperty() throws InitializationException {
+            withWebClientService();
+            runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
+            runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
+            runner.setProperty(GetWorkdayReport.REPORT_URL, INVALID_URL);
+            runner.assertNotValid();
+        }
+
+        @Test
+        void testNotValidWithoutUserName() throws InitializationException {
+            withWebClientService();
+            runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
+            runner.setProperty(GetWorkdayReport.REPORT_URL, REPORT_URL);
+
+            runner.assertNotValid();
+        }
+
+        @Test
+        void testNotValidWithoutPassword() throws InitializationException {
+            withWebClientService();
+            runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
+            runner.setProperty(GetWorkdayReport.REPORT_URL, REPORT_URL);
+
+            runner.assertNotValid();
+        }
+
+        @Test
+        void testNotValidWithoutWebClient() {
+            runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
+            runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
+            runner.setProperty(GetWorkdayReport.REPORT_URL, REPORT_URL);
+
+            runner.assertNotValid();
+        }
     }
 
-    @Test
-    public void testNotValidWithInvalidReportUrlProperty() throws InitializationException {
-        withWebClientService();
-        runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
-        runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
-        runner.setProperty(GetWorkdayReport.REPORT_URL, INVALID_URL);
-        runner.assertNotValid();
-    }
+    @Nested
+    class OAuthPropertiesValidation {
+        @BeforeEach
+        void setUp() {
+            runner.setProperty(GetWorkdayReport.AUTH_TYPE, GetWorkdayReport.OAUTH_TYPE);
+        }
 
-    @Test
-    public void testNotValidWithoutUserName() throws InitializationException {
-        withWebClientService();
-        runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
-        runner.setProperty(GetWorkdayReport.REPORT_URL, REPORT_URL);
+        @Test
+        void testNotValidWithoutOAuth2AccessTokenProvider() throws InitializationException {
+            withWebClientService();
+            runner.setProperty(GetWorkdayReport.REPORT_URL, REPORT_URL);
 
-        runner.assertNotValid();
-    }
+            runner.assertNotValid();
+        }
 
-    @Test
-    public void testNotValidWithoutPassword() throws InitializationException {
-        withWebClientService();
-        runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
-        runner.setProperty(GetWorkdayReport.REPORT_URL, REPORT_URL);
+        @Test
+        void testNotValidWithInvalidReportUrlProperty() throws InitializationException {
+            withWebClientService();
+            withAccessTokenProvider();
+            runner.setProperty(GetWorkdayReport.REPORT_URL, INVALID_URL);
+            runner.assertNotValid();
+        }
 
-        runner.assertNotValid();
+        @Test
+        void testNotValidWithoutReportUrlProperty() throws InitializationException {
+            withWebClientService();
+            withAccessTokenProvider();
+
+            runner.assertNotValid();
+        }
+
+        @Test
+        void testNotValidWithoutWebClient() throws InitializationException {
+            withAccessTokenProvider();
+            runner.setProperty(GetWorkdayReport.REPORT_URL, REPORT_URL);
+
+            runner.assertNotValid();
+        }
     }
 
     @Test
@@ -297,6 +354,26 @@ class GetWorkdayReportTest {
     }
 
     @Test
+    void testOAuthAuthorization() throws InitializationException, InterruptedException {
+        runner.setIncomingConnection(false);
+        withWebClientService();
+        runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
+        runner.setProperty(GetWorkdayReport.AUTH_TYPE, GetWorkdayReport.OAUTH_TYPE);
+        withAccessTokenProvider();
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setHeader(CONTENT_TYPE, APPLICATION_JSON));
+
+        runner.run();
+
+        RecordedRequest recordedRequest = mockWebServer.takeRequest(1, TimeUnit.SECONDS);
+        String authorization = recordedRequest.getHeader(HEADER_AUTHORIZATION);
+        assertNotNull(authorization, "Authorization Header not found");
+
+        Pattern bearerPattern = Pattern.compile("^Bearer \\S+$");
+        assertTrue(bearerPattern.matcher(authorization).matches(), "OAuth bearer not matched");
+    }
+
+    @Test
     void testBasicAuthentication() throws InitializationException, InterruptedException {
         runner.setIncomingConnection(false);
         runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
@@ -318,6 +395,19 @@ class GetWorkdayReportTest {
 
     private String getMockWebServerUrl() {
         return mockWebServer.url("workdayReport").newBuilder().host(LOCALHOST).build().toString();
+    }
+
+    private void withAccessTokenProvider() throws InitializationException {
+        String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
+        String accessToken = "access_token";
+
+        OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
+        when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(oauth2AccessTokenProviderId);
+        when(oauth2AccessTokenProvider.getAccessDetails().getAccessToken()).thenReturn(accessToken);
+
+        runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
+        runner.enableControllerService(oauth2AccessTokenProvider);
+        runner.setProperty(GetWorkdayReport.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
     }
 
     private void withWebClientService() throws InitializationException {
