@@ -47,6 +47,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.DELEGATION_STRATEGY;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.DELEGATION_USER;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_APPLICATION_DEFAULT_CREDENTIALS;
@@ -82,6 +84,8 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         props.add(SERVICE_ACCOUNT_JSON_FILE);
         props.add(SERVICE_ACCOUNT_JSON);
         props.add(ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS));
+        props.add(DELEGATION_STRATEGY);
+        props.add(DELEGATION_USER);
         properties = Collections.unmodifiableList(props);
     }
 
