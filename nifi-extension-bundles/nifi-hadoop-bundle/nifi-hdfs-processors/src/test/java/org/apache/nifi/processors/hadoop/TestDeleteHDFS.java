@@ -38,6 +38,7 @@ import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_F
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -56,6 +57,7 @@ public class TestDeleteHDFS {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
+        when(mockFileSystem.delete(any(Path.class), anyBoolean())).thenReturn(true);
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(false);
@@ -82,6 +84,7 @@ public class TestDeleteHDFS {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
+        when(mockFileSystem.delete(any(Path.class), anyBoolean())).thenReturn(true);
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, "${hdfs.file}");
@@ -156,7 +159,7 @@ public class TestDeleteHDFS {
     }
 
     @Test
-    public void testUnsuccessfulDelete() throws Exception {
+    public void testDeleteNotExistingFile() throws Exception {
         Path filePath = new Path("/some/path/to/file.txt");
         when(mockFileSystem.exists(any(Path.class))).thenReturn(false);
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
@@ -167,6 +170,22 @@ public class TestDeleteHDFS {
         runner.assertValid();
         runner.run();
         runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 0);
+    }
+
+    @Test
+    public void testFailedDelete() throws Exception {
+        final Path filePath = new Path("/some/path/to/file.txt");
+        when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
+        when(mockFileSystem.delete(any(Path.class), anyBoolean())).thenReturn(false);
+        final DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
+        runner.setIncomingConnection(false);
+        runner.assertNotValid();
+        runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, filePath.toString());
+        runner.assertValid();
+        runner.run();
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 1);
     }
 
     @Test
@@ -183,6 +202,7 @@ public class TestDeleteHDFS {
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.globStatus(any(Path.class))).thenReturn(fileStatuses);
         when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
+        when(mockFileSystem.delete(any(Path.class), anyBoolean())).thenReturn(true);
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(false);
@@ -191,6 +211,61 @@ public class TestDeleteHDFS {
         runner.assertValid();
         runner.run();
         runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testFailedGlobDelete() throws Exception {
+        final Path glob = new Path("/data/for/2017/08/05/*");
+        final int fileCount = 10;
+        final FileStatus[] fileStatuses = new FileStatus[fileCount];
+        for (int i = 0; i < fileCount; i++) {
+            final Path file = new Path("/data/for/2017/08/05/file" + i);
+            final FileStatus fileStatus = mock(FileStatus.class);
+            when(fileStatus.getPath()).thenReturn(file);
+            fileStatuses[i] = fileStatus;
+        }
+        when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
+        when(mockFileSystem.globStatus(any(Path.class))).thenReturn(fileStatuses);
+        when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
+        when(mockFileSystem.delete(any(Path.class), anyBoolean())).thenReturn(false);
+        final DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
+        runner.setIncomingConnection(false);
+        runner.assertNotValid();
+        runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, glob.toString());
+        runner.assertValid();
+        runner.run();
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, fileCount);
+    }
+
+    @Test
+    public void testMixedGlobDelete() throws Exception {
+        final Path glob = new Path("/data/for/2017/08/05/*");
+        final int fileCount = 3;
+        final FileStatus[] fileStatuses = new FileStatus[fileCount];
+        for (int i = 0; i < fileCount; i++) {
+            final Path file = new Path("/data/for/2017/08/05/file" + i);
+            final FileStatus fileStatus = mock(FileStatus.class);
+            when(fileStatus.getPath()).thenReturn(file);
+            fileStatuses[i] = fileStatus;
+        }
+        when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
+        when(mockFileSystem.globStatus(any(Path.class))).thenReturn(fileStatuses);
+        when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
+        when(mockFileSystem.delete(any(Path.class), anyBoolean()))
+                .thenReturn(false)
+                .thenReturn(true)
+                .thenReturn(false);
+        final DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
+        runner.setIncomingConnection(false);
+        runner.assertNotValid();
+        runner.setProperty(DeleteHDFS.FILE_OR_DIRECTORY, glob.toString());
+        runner.assertValid();
+        runner.run();
+        runner.assertTransferCount(DeleteHDFS.REL_SUCCESS, 0);
+        runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 2);
     }
 
     @Test
@@ -207,6 +282,7 @@ public class TestDeleteHDFS {
         when(mockFileSystem.exists(any(Path.class))).thenReturn(true);
         when(mockFileSystem.globStatus(any(Path.class))).thenReturn(fileStatuses);
         when(mockFileSystem.getUri()).thenReturn(new URI("hdfs://0.example.com:8020"));
+        when(mockFileSystem.delete(any(Path.class), anyBoolean())).thenReturn(true);
         DeleteHDFS deleteHDFS = new TestableDeleteHDFS(mockFileSystem);
         TestRunner runner = TestRunners.newTestRunner(deleteHDFS);
         runner.setIncomingConnection(true);
