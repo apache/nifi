@@ -172,11 +172,19 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                             attributes.put(getAttributePrefix() + ".path", path.getParent().toString());
                             flowFile = session.putAllAttributes(flowFile, attributes);
 
-                            fileSystem.delete(path, isRecursive(context, session));
-                            getLogger().debug("For flowfile {} Deleted file at path {} with name {}", originalFlowFile, path.getParent(), path.getName());
-                            final Path qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
-                            flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
-                            session.getProvenanceReporter().invokeRemoteProcess(flowFile, qualifiedPath.toString());
+                            boolean success = fileSystem.delete(path, isRecursive(context, session));
+
+                            if (success) {
+                                getLogger().debug("For flowfile {} Deleted file at path {} with name {}", originalFlowFile, path.getParent(), path.getName());
+                                final Path qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
+                                flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
+                                session.getProvenanceReporter().invokeRemoteProcess(flowFile, qualifiedPath.toString());
+                            } else {
+                                getLogger().warn("Failed to delete file at path {} with name {} due to unknown issue, please check related component logs.", path.getParent(), path.getName());
+                                attributes.put(getAttributePrefix() + ".error.message", "Delete action failed due to unknown issue, please check related component logs.");
+                                session.transfer(session.putAllAttributes(session.clone(flowFile), attributes), getFailureRelationship());
+                                failedPath++;
+                            }
                         } catch (IOException ioe) {
                             if (handleAuthErrors(ioe, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
                                 return null;
