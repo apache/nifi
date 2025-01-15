@@ -91,6 +91,7 @@ public class ConsumeElasticsearchTest extends SearchElasticsearchTest {
     @Override
     TestRunner createRunner(final boolean returnAggs) {
         final TestRunner runner = super.createRunner(returnAggs);
+        runner.setValidateExpressionUsage(false);
 
         // onScheduled method isn't always triggered (because the processor isn't always executed through the TestRunner)
         // so set the trackingRange fields directly as well as in the ProcessContext

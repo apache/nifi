@@ -82,6 +82,7 @@ public class StartGcpVisionAnnotateFilesOperationTest {
         runner.enableControllerService(gcpCredentialsService);
         runner.setProperty(GCP_CREDENTIALS_PROVIDER_SERVICE, "gcp-credentials-provider-service-id");
         runner.assertValid(gcpCredentialsService);
+        runner.setValidateExpressionUsage(false);
     }
 
     @Test

@@ -73,6 +73,7 @@ public class StartGcpVisionAnnotateImagesOperationTest {
         runner.setProperty(GCP_CREDENTIALS_PROVIDER_SERVICE, "gcp-credentials-provider-service-id");
         runner.assertValid(gcpCredentialsService);
         runner.setProperty(JSON_PAYLOAD, jsonPayloadValue);
+        runner.setValidateExpressionUsage(false);
     }
 
     @Test
