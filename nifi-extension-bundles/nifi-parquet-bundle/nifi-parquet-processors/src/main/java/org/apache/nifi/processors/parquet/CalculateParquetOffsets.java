@@ -133,7 +133,7 @@ public class CalculateParquetOffsets extends AbstractProcessor {
             return;
         }
 
-        final long partitionSize = context.getProperty(PROP_RECORDS_PER_SPLIT).asLong();
+        final long partitionSize = context.getProperty(PROP_RECORDS_PER_SPLIT).evaluateAttributeExpressions(inputFlowFile).asLong();
         final boolean zeroContentOutput = context.getProperty(PROP_ZERO_CONTENT_OUTPUT).asBoolean();
 
         final long recordOffset = Optional.ofNullable(inputFlowFile.getAttribute(ParquetAttribute.RECORD_OFFSET))

@@ -166,7 +166,7 @@ public class PutTCP extends AbstractPutEventProcessor<InputStream> {
 
             final String delimiter = getOutgoingMessageDelimiter(context, flowFile);
             if (delimiter != null) {
-                final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
+                final Charset charSet = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
                 inputStreamEvent = new DelimitedInputStream(inputStream, delimiter.getBytes(charSet));
             }
 

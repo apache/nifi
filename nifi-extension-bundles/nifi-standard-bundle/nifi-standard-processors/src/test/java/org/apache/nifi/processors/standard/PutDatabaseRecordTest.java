@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.dbcp2.DelegatingConnection;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
@@ -780,7 +781,7 @@ public class PutDatabaseRecordTest {
         runner.enqueue(new byte[0], attrs);
         runner.run();
 
-        final int maxBatchSize = runner.getProcessContext().getProperty(PutDatabaseRecord.MAX_BATCH_SIZE).asInteger();
+        final int maxBatchSize = runner.getProcessContext().getProperty(PutDatabaseRecord.MAX_BATCH_SIZE).evaluateAttributeExpressions((FlowFile) null).asInteger();
         assertNotNull(spyStmt.get());
         if (sqlStatements.length <= 1) {
             // When there is only 1 sql statement, then never use batching
