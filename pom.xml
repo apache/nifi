@@ -144,7 +144,7 @@
         <groovy.version>4.0.24</groovy.version>
         <surefire.version>3.5.1</surefire.version>
         <hadoop.version>3.4.1</hadoop.version>
-        <ozone.version>1.2.1</ozone.version>
+        <ozone.version>1.4.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.22.1</aspectj.version>
         <jersey.bom.version>3.1.10</jersey.bom.version>
