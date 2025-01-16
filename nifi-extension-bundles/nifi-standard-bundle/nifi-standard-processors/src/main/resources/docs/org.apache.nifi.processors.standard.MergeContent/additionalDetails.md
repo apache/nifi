@@ -83,7 +83,7 @@ example, the user can specify the minimum number of FlowFiles that must be packa
 performed. The minimum number of bytes can also be configured. Additionally, a maximum number of FlowFiles and bytes may
 be specified.
 
-There are also two other conditions that will result in the contents of a Bin being merged together. The Max Bin Age
+There are two other conditions that will result in the contents of a Bin being merged together. The Max Bin Age
 property specifies the maximum amount of time that FlowFiles can be binned together before the bin is merged. This
 property should almost always be set, as it provides a means to set a timeout on a bin, so that even if data stops
 flowing to the Processor for a while (due to a problem with an upstream system, a source processor being stopped, etc.)
@@ -102,6 +102,25 @@ this value or the bin will never be complete. If all the necessary FlowFiles are
 which the bin times amount (as specified by the <Max Bin Age> property), then the FlowFiles will all be routed to the '
 failure' relationship instead of being merged together.
 
+Finally, a bin can be merged if the <Bin Termination Check> property is configured and a FlowFile is received that
+satisfies the specified condition. The condition is specified as an Expression Language expression. If any FlowFile
+result in the expression returning a value of true, then the bin will be merged, regardless of how much data is in
+the bin or how old the bin is. This incoming FlowFile that triggers the bin to be merged can either be added as the
+last entry in the bin, as the first entry in a new bin, or output as its own bin, depending on the value of the
+<FlowFile Insertion Strategy> property.
+
+A bin of FlowFiles, then, is merged when any one of the following conditions is met:
+- The bin has reached the maximum number of bytes, as configured by the <Max Group Size> property.
+- The bin has reached the maximum number of FlowFiles, as configured by the <Maximum Number of Entries> property.
+- The bin has reached both the minimum number of bytes, as configured by the <Min Group Size> property,
+  AND the minimum number of FlowFiles, as configured by the <Minimum Number of Entries> property.
+- The bin has reached the maximum age, as configured by the <Max Bin Age> property.
+- The maximum number of bins has been reached, as configured by the <Maximum number of Bins> property, and a new bin must be created.
+- The <Bin Termination Check> property is configured and a FlowFile is received that satisfies the specified condition.
+
+
+### Reason for Merge
+
 Whenever the contents of a Bin are merged, an attribute with the name "merge.reason" will be added to the merged
 FlowFile. The below table provides a listing of all possible values for this attribute with an explanation of each.
 
@@ -112,6 +131,7 @@ FlowFile. The below table provides a listing of all possible values for this att
 | MIN\_THRESHOLDS\_REACHED         | The bin has reached both the minimum number of bytes, as configured by the <Min Group Size> property, AND the minimum number of FlowFiles, as configured by the <Minimum Number of Entries> property. The bin has not reached the maximum number of bytes (Max Group Size) OR the maximum number of FlowFiles (Maximum Number of Entries).                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | TIMEOUT                          | The Bin has reached the maximum age, as configured by the <Max Bin Age> property. If this threshold is reached, the contents of the Bin will be merged together, even if the Bin has not yet reached either of the minimum thresholds. Note that the age here is determined by when the Bin was created, NOT the age of the FlowFiles that reside within those Bins. As a result, if the Processor is stopped until it has 1 million FlowFiles queued, each one being 10 days old, but the Max Bin Age is set to "1 day," the Max Bin Age will not be met for at least one full day, even though the FlowFiles themselves are much older than this threshold. If the Processor is stopped and restarted, all Bins are destroyed and recreated, and the timer is reset. |
 | BIN\_MANAGER\_FULL               | If an incoming FlowFile does not fit into any of the existing Bins (either due to the Maximum thresholds set, or due to the Correlation Attribute being used, etc.), then a new Bin must be created for the incoming FlowFiles. If the number of active Bins is already equal to the <Maximum number of Bins> property, the oldest Bin will be merged in order to make room for the new Bin. In that case, the Bin Manager is said to be full, and this value will be used.                                                                                                                                                                                                                                                                                            |
+| BIN\_TERMINATION\_SIGNAL         | A FlowFile signaled that the Bin should be terminated by satisfying the configured <Bin Termination Check> property.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 Note that the attribute value is minimally named, while the textual description is far more verbose. This is done for a
 few reasons. Firstly, storing a large value for the attribute can be more costly, utilizing more heap space and
