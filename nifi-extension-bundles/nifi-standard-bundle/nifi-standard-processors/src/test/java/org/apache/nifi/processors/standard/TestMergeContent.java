@@ -33,6 +33,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.bin.InsertionLocation;
 import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -48,6 +49,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1336,6 +1338,147 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_MERGED, 3);
         runner.assertTransferCount(MergeContent.REL_ORIGINAL, 15);
         assertEquals(2, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
+    public void testBinTerminationTriggerStartOfBin() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MIN_ENTRIES, "10");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "25");
+        runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");
+        runner.setProperty(MergeContent.BIN_TERMINATION_CHECK, "${termination:equals('true')}");
+        runner.setProperty(MergeContent.FLOWFILE_INSERTION_STRATEGY, InsertionLocation.FIRST_IN_NEW_BIN);
+
+        // Enqueue 5 FlowFiles, followed by a FlowFile with the 'termination' attribute set to 'true'.
+        // Do this 3 times.
+        int flowFileIndex = 0;
+        for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < 6; i++) {
+                final Map<String, String> attributes = (i == 5) ? Map.of("termination", "true") : Collections.emptyMap();
+                runner.enqueue((flowFileIndex++) + "\n", attributes);
+            }
+        }
+
+        runner.run(2);
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 3);
+
+        // We should get out 17 because the last FlowFile has not yet been transferred out, since it is the start of a new bin.
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 17);
+
+        final List<MockFlowFile> merged = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
+        merged.getFirst().assertContentEquals("0\n1\n2\n3\n4\n");
+        merged.get(1).assertContentEquals("5\n6\n7\n8\n9\n10\n");
+        merged.get(2).assertContentEquals("11\n12\n13\n14\n15\n16\n");
+    }
+
+    @Test
+    public void testBinTerminationTriggerEndOfBin() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MIN_ENTRIES, "10");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "25");
+        runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");
+        runner.setProperty(MergeContent.BIN_TERMINATION_CHECK, "${termination:equals('true')}");
+        runner.setProperty(MergeContent.FLOWFILE_INSERTION_STRATEGY, InsertionLocation.LAST_IN_BIN);
+
+        // Enqueue 5 FlowFiles, followed by a FlowFile with the 'termination' attribute set to 'true'.
+        // Do this 3 times.
+        int flowFileIndex = 0;
+        for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < 6; i++) {
+                final Map<String, String> attributes = (i == 5) ? Map.of("termination", "true") : Collections.emptyMap();
+                runner.enqueue((flowFileIndex++) + "\n", attributes);
+            }
+        }
+
+        runner.run(2);
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 3);
+
+        // We should get out 18 because the last FlowFile ended the bin and was transferred out.
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 18);
+
+        final List<MockFlowFile> merged = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
+        merged.getFirst().assertContentEquals("0\n1\n2\n3\n4\n5\n");
+        merged.get(1).assertContentEquals("6\n7\n8\n9\n10\n11\n");
+        merged.get(2).assertContentEquals("12\n13\n14\n15\n16\n17\n");
+    }
+
+    @Test
+    public void testBinTerminationTriggerIsolated() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MIN_ENTRIES, "10");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "25");
+        runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");
+        runner.setProperty(MergeContent.BIN_TERMINATION_CHECK, "${termination:equals('true')}");
+        runner.setProperty(MergeContent.FLOWFILE_INSERTION_STRATEGY, InsertionLocation.ISOLATED);
+
+        // Enqueue 5 FlowFiles, followed by a FlowFile with the 'termination' attribute set to 'true'.
+        // Do this 3 times.
+        int flowFileIndex = 0;
+        for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < 6; i++) {
+                final Map<String, String> attributes = (i == 5) ? Map.of("termination", "true") : Collections.emptyMap();
+                runner.enqueue((flowFileIndex++) + "\n", attributes);
+            }
+        }
+
+        runner.run(2);
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 6);
+
+        // We should get out 18 because the last FlowFile ended the bin and was transferred out.
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 18);
+
+        final List<MockFlowFile> merged = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
+        merged.getFirst().assertContentEquals("0\n1\n2\n3\n4\n");
+        merged.get(1).assertContentEquals("5\n");
+        merged.get(2).assertContentEquals("6\n7\n8\n9\n10\n");
+        merged.get(3).assertContentEquals("11\n");
+        merged.get(4).assertContentEquals("12\n13\n14\n15\n16\n");
+        merged.get(5).assertContentEquals("17\n");
+    }
+
+    @Test
+    public void testTerminationTriggerWithCorrelationAttribute() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MIN_ENTRIES, "10");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "25");
+        runner.setProperty(MergeContent.MAX_BIN_COUNT, "3");
+        runner.setProperty(MergeContent.BIN_TERMINATION_CHECK, "${termination:equals('true')}");
+        runner.setProperty(MergeContent.FLOWFILE_INSERTION_STRATEGY, InsertionLocation.FIRST_IN_NEW_BIN);
+        runner.setProperty(MergeContent.CORRELATION_ATTRIBUTE_NAME, "correlation");
+
+        // Enqueue FlowFiles. This should create 2 bins:
+        // '1' should get values 0, 1
+        // Then, '2' should get value 2
+        // Then, FlowFile with content '3' should be the start of a new bin
+        // Then, FlowFile with content '4' should be teh start of another new bin
+        // Then, we add 10 additional FlowFiles to bin 2 in order to fill it without a termination signal
+        // This should leave the FlowFile with content '4' in the bin, but not transferred out.
+        final Map<String, String> terminationAttributes = Map.of("termination", "true", "correlation", "1");
+        final Map<String, String> correlation1 = Map.of("correlation", "1");
+        final Map<String, String> correlation2 = Map.of("correlation", "2");
+
+        runner.enqueue("0\n", correlation1);
+        runner.enqueue("1\n", correlation1);
+        runner.enqueue("2\n", correlation2);
+        runner.enqueue("3\n", terminationAttributes);
+        runner.enqueue("4\n", terminationAttributes);
+
+        for (int i = 0; i < 10; i++) {
+            runner.enqueue(i + "\n", correlation2);
+        }
+
+        runner.run(2);
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 3);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 14);
+
+        final List<MockFlowFile> merged = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
+        merged.getFirst().assertContentEquals("0\n1\n");
+        merged.get(1).assertContentEquals("3\n");
+        merged.get(2).assertContentEquals("2\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n");
     }
 
     private void createFlowFiles(final TestRunner testRunner) {

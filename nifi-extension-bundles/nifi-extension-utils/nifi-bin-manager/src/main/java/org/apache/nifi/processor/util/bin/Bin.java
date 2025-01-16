@@ -48,6 +48,7 @@ public class Bin {
     private volatile int maximumEntries;
     private final String fileCountAttribute;
     private volatile EvictionReason evictionReason = EvictionReason.UNSET;
+    private volatile boolean forcefullyCompleted = false;
 
     private final List<FlowFile> binContents = new ArrayList<>();
     private final Set<String> binIndexSet = new HashSet<>();
@@ -93,6 +94,14 @@ public class Bin {
         return session;
     }
 
+    public void complete() {
+        forcefullyCompleted = true;
+    }
+
+    public boolean isForcefullyCompleted() {
+        return forcefullyCompleted;
+    }
+
     /**
      * Indicates whether the bin has enough items to be considered full. This is based on whether the current size of the bin is greater than the minimum size in bytes and based on having a number of
      * successive unsuccessful attempts to add a new item (because it is so close to the max or the size of the objects being attempted do not favor tight packing)
@@ -101,10 +110,14 @@ public class Bin {
      */
     public boolean isFull() {
         return (((size >= minimumSizeBytes) && binContents.size() >= minimumEntries) && (successiveFailedOfferings > 5))
-                || (size >= maximumSizeBytes) || (binContents.size() >= maximumEntries);
+                || (size >= maximumSizeBytes) || (binContents.size() >= maximumEntries)
+                || forcefullyCompleted;
     }
 
-    public EvictionReason determineFullness() {
+    public EvictionReason determineEvictionReason() {
+        if (forcefullyCompleted) {
+            return EvictionReason.BIN_TERMINATION_SIGNAL;
+        }
         if (size >= maximumSizeBytes) {
             return EvictionReason.MAX_BYTES_THRESHOLD_REACHED;
         }
@@ -165,27 +178,27 @@ public class Bin {
      * @return true if added; false otherwise
      */
     public boolean offer(final FlowFile flowFile, final ProcessSession session) {
-        if (((size + flowFile.getSize()) > maximumSizeBytes) || (binContents.size() >= maximumEntries)) {
+        if (forcefullyCompleted || ((size + flowFile.getSize()) > maximumSizeBytes) || (binContents.size() >= maximumEntries)) {
             successiveFailedOfferings++;
             return false;
         }
 
         // fileCountAttribute is non-null for defragment mode
         if (fileCountAttribute != null) {
-            final String countValue = flowFile.getAttribute(fileCountAttribute);
-            final Integer count = toInteger(countValue);
-            if (count != null) {
-                // set the limits for the bin as an exact count when the count attribute arrives
-                this.maximumEntries = count;
-                this.minimumEntries = count;
-            }
-
             final String index = flowFile.getAttribute(FRAGMENT_INDEX_ATTRIBUTE);
             if (index == null || index.isEmpty() || !binIndexSet.add(index)) {
                 // Do not accept flowfile with duplicate fragment index value
                 logger.warn("Duplicate or missing value for '{}' in defragment mode. Flowfile {} not allowed in Bin", FRAGMENT_INDEX_ATTRIBUTE, flowFile);
                 successiveFailedOfferings++;
                 return false;
+            }
+
+            final String countValue = flowFile.getAttribute(fileCountAttribute);
+            final Integer count = toInteger(countValue);
+            if (count != null) {
+                // set the limits for the bin as an exact count when the count attribute arrives
+                this.maximumEntries = count;
+                this.minimumEntries = count;
             }
         }
 
