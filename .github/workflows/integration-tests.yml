@@ -25,6 +25,7 @@ on:
       - '**/test/**/*IT.java'
       - '**/test/**/*ITCase.java'
       - '**/test/**/IT*.java'
+      - 'nifi-mock/**'
   pull_request:
     paths:
       - '.github/workflows/integration-tests.yml'
@@ -34,6 +35,7 @@ on:
       - '**/test/**/*IT.java'
       - '**/test/**/*ITCase.java'
       - '**/test/**/IT*.java'
+      - 'nifi-mock/**'
 
 env:
   DEFAULT_MAVEN_OPTS: >-
