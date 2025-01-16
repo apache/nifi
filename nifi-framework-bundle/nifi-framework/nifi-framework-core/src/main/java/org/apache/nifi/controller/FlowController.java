@@ -950,7 +950,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final FlowFileSwapManager swapManager = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, FlowFileSwapManager.class, nifiProperties);
 
             final EventReporter eventReporter = createEventReporter();
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                 final SwapManagerInitializationContext initializationContext = new SwapManagerInitializationContext() {
                     @Override
                     public ResourceClaimManager getResourceClaimManager() {
@@ -1096,7 +1096,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private void notifyComponentsConfigurationRestored() {
         for (final ProcessorNode procNode : flowManager.getRootGroup().findAllProcessors()) {
             final Processor processor = procNode.getProcessor();
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, processor.getClass(), processor.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, processor.getClass(), processor.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider,
                         getStateManagerProvider().getStateManager(processor.getIdentifier()), () -> false, this);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor, processContext);
@@ -1106,7 +1106,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         for (final ControllerServiceNode serviceNode : flowManager.getAllControllerServices()) {
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
                 final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
             }
@@ -1115,7 +1115,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
             final ReportingTask task = taskNode.getReportingTask();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, task.getClass(), task.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, task.getClass(), task.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task, taskNode.getConfigurationContext());
             }
         }
@@ -1123,7 +1123,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         for (final FlowAnalysisRuleNode ruleNode : getAllFlowAnalysisRules()) {
             final FlowAnalysisRule rule = ruleNode.getFlowAnalysisRule();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, rule.getClass(), rule.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, rule.getClass(), rule.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, rule, ruleNode.getConfigurationContext());
             }
         }
@@ -1131,7 +1131,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
             final ParameterProvider provider = parameterProviderNode.getParameterProvider();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, provider.getClass(), provider.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, provider.getClass(), provider.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, provider);
             }
         }
@@ -1372,42 +1372,42 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final AssetManager instrumented = new AssetManager() {
                 @Override
                 public void initialize(final AssetManagerInitializationContext context) {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
                         assetManager.initialize(context);
                     }
                 }
 
                 @Override
                 public Asset createAsset(final String parameterContextId, final String assetName, final InputStream contents) throws IOException {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
                         return assetManager.createAsset(parameterContextId, assetName, contents);
                     }
                 }
 
                 @Override
                 public Optional<Asset> getAsset(final String id) {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
                         return assetManager.getAsset(id);
                     }
                 }
 
                 @Override
                 public List<Asset> getAssets(final String parameterContextId) {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
                         return assetManager.getAssets(parameterContextId);
                     }
                 }
 
                 @Override
                 public Asset createMissingAsset(final String parameterContextId, final String assetName) {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
                         return assetManager.createMissingAsset(parameterContextId, assetName);
                     }
                 }
 
                 @Override
                 public Optional<Asset> deleteAsset(final String id) {
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(assetManagerClassLoader)) {
                         return assetManager.deleteAsset(id);
                     }
                 }
@@ -2293,7 +2293,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         final FlowFileSwapManager swapManager = createSwapManager();
         final EventReporter eventReporter = createEventReporter();
 
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
             final SwapManagerInitializationContext initializationContext = new SwapManagerInitializationContext() {
                 @Override
                 public ResourceClaimManager getResourceClaimManager() {
@@ -3265,7 +3265,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private class HeartbeatSendTask implements Runnable {
         @Override
         public void run() {
-            try (final NarCloseable narCloseable = NarCloseable.withFrameworkNar()) {
+            try (final NarCloseable ignored = NarCloseable.withFrameworkNar()) {
                 if (heartbeatsSuspended.get()) {
                     return;
                 }

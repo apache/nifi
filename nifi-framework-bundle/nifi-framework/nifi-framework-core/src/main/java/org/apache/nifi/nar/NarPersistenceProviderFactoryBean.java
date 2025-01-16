@@ -95,63 +95,63 @@ public class NarPersistenceProviderFactoryBean implements FactoryBean<NarPersist
         return new NarPersistenceProvider() {
             @Override
             public void initialize(final NarPersistenceProviderInitializationContext initializationContext) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(originalClassLoader)) {
                     originalInstance.initialize(initializationContext);
                 }
             }
 
             @Override
             public void shutdown() {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(originalClassLoader)) {
                     originalInstance.shutdown();
                 }
             }
 
             @Override
             public File createTempFile(final InputStream inputStream) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(originalClassLoader)) {
                     return originalInstance.createTempFile(inputStream);
                 }
             }
 
             @Override
             public NarPersistenceInfo saveNar(final NarPersistenceContext persistenceContext, final File tempNarFile) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(originalClassLoader)) {
                     return originalInstance.saveNar(persistenceContext, tempNarFile);
                 }
             }
 
             @Override
             public void deleteNar(final BundleCoordinate narCoordinate) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(originalClassLoader)) {
                     originalInstance.deleteNar(narCoordinate);
                 }
             }
 
             @Override
             public InputStream readNar(final BundleCoordinate narCoordinate) throws FileNotFoundException {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(originalClassLoader)) {
                     return originalInstance.readNar(narCoordinate);
                 }
             }
 
             @Override
             public boolean exists(final BundleCoordinate narCoordinate) {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(originalClassLoader)) {
                     return originalInstance.exists(narCoordinate);
                 }
             }
 
             @Override
             public NarPersistenceInfo getNarInfo(final BundleCoordinate narCoordinate) throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(originalClassLoader)) {
                     return originalInstance.getNarInfo(narCoordinate);
                 }
             }
 
             @Override
             public Set<NarPersistenceInfo> getAllNarInfo() throws IOException {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalClassLoader)) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(originalClassLoader)) {
                     return originalInstance.getAllNarInfo();
                 }
             }

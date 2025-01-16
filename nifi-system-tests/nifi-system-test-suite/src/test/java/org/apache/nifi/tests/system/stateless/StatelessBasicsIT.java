@@ -806,7 +806,7 @@ public class StatelessBasicsIT extends NiFiSystemIT {
         getClientUtil().createConnection(reverseContents, outputPort, SUCCESS, statelessGroup.getId());
 
         // Save v2 of the flow
-        final VersionControlInformationEntity v2Vci = getClientUtil().saveFlowVersion(statelessGroup, registryClient, vci);
+        getClientUtil().saveFlowVersion(statelessGroup, registryClient, vci);
         waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(statelessGroup.getId())) );
 
         // Let a FlowFile go through and verify the results

@@ -471,6 +471,7 @@ public class TestStandardProcessScheduler {
      */
     @Test
     @Disabled
+    @SuppressWarnings("PMD.UnusedLocalVariable")
     public void validateEnabledDisableMultiThread() throws Exception {
         final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);

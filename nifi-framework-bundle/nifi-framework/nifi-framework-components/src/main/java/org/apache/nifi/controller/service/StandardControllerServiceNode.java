@@ -527,7 +527,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     }
                 } else {
                     // Verify the configuration, using the component's classloader
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, controllerService.getClass(), getIdentifier())) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, controllerService.getClass(), getIdentifier())) {
                         results.addAll(verifiable.verify(context, logger, variables));
                     }
                 }
@@ -651,7 +651,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     }
 
                     try {
-                        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
+                        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
                         }
 
@@ -749,7 +749,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
 
     private void invokeDisable(ConfigurationContext configContext) {
-        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, StandardControllerServiceNode.this.getControllerServiceImplementation(), configContext);
             LOG.debug("Successfully disabled {}", this);
         } catch (Exception e) {
@@ -829,7 +829,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             return;
         }
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), implementationClass, getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), implementationClass, getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, getControllerServiceImplementation(), nodeState);
         }
     }
@@ -843,7 +843,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 originalPropertyValues, super::mapRawValueToEffectiveValue, toString(), serviceFactory);
 
         final ControllerService implementation = getControllerServiceImplementation();
-        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), implementation.getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), implementation.getClass(), getIdentifier())) {
             implementation.migrateProperties(propertyConfig);
         } catch (final Exception e) {
             LOG.error("Failed to migrate Property Configuration for {}.", this, e);

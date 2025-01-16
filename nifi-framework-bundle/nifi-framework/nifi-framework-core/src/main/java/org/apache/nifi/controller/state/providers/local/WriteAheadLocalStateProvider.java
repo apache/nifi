@@ -110,7 +110,6 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
     @Override
     public synchronized void init(final StateProviderInitializationContext context) throws IOException {
         long checkpointIntervalMillis = context.getProperty(CHECKPOINT_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
-        int numPartitions = context.getProperty(NUM_PARTITIONS).asInteger();
         alwaysSync = context.getProperty(ALWAYS_SYNC).asBoolean();
 
 

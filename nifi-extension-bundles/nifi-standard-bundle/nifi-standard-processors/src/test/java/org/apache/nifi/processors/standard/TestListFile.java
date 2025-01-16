@@ -140,7 +140,7 @@ public class TestListFile {
     private void runNext() throws InterruptedException {
         runner.clearTransferState();
 
-        final List<File> files = listFiles(testDir);
+        listFiles(testDir);
         final Long lagMillis;
         if (isMillisecondSupported) {
             lagMillis = AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS);

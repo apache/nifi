@@ -493,7 +493,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         final Bundle bundle = extensionDefinition.getBundle();
         final ClassLoader bundleClassLoader = bundle.getClassLoader();
 
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(bundleClassLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(bundleClassLoader)) {
             return Class.forName(extensionDefinition.getImplementationClassName(), true, bundleClassLoader);
         } catch (final Exception e) {
             throw new RuntimeException("Could not create Class for " + extensionDefinition, e);
@@ -654,7 +654,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     protected Set<BundleCoordinate> findReachableApiBundles(final ConfigurableComponent component) {
         final Set<BundleCoordinate> reachableApiBundles = new HashSet<>();
 
-        try (final NarCloseable closeable = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
             final List<PropertyDescriptor> descriptors = component.getPropertyDescriptors();
             if (descriptors != null && !descriptors.isEmpty()) {
                 for (final PropertyDescriptor descriptor : descriptors) {
@@ -854,7 +854,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         }
 
         final ClassLoader bundleClassLoader = bundle.getClassLoader();
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(bundleClassLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(bundleClassLoader)) {
             final ConfigurableComponent tempComponent;
             if (PythonBundle.isPythonCoordinate(bundle.getBundleDetails().getCoordinate())) {
                 final String procId = getPythonTempComponentId(classType);

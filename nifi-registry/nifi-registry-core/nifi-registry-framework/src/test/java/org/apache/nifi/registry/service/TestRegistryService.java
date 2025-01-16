@@ -52,7 +52,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.SortedSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1106,8 +1105,6 @@ public class TestRegistryService {
         existingFlow.setCreated(new Date());
         existingFlow.setModified(new Date());
         existingFlow.setBucketId(existingBucket.getId());
-
-        final Set<FlowSnapshotEntity> snapshots = new HashSet<>();
 
         when(metadataService.getFlowById(existingFlow.getId())).thenReturn(existingFlow);
 

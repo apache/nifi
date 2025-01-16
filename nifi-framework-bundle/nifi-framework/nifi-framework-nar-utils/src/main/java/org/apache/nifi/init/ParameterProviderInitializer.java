@@ -44,7 +44,7 @@ public class ParameterProviderInitializer implements ConfigurableComponentInitia
     public void initialize(final ConfigurableComponent component) throws InitializationException {
         ParameterProvider parameterProvider = (ParameterProvider) component;
         ParameterProviderInitializationContext context = new MockParameterProviderInitializationContext();
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             parameterProvider.initialize(context);
         }
     }
@@ -52,7 +52,7 @@ public class ParameterProviderInitializer implements ConfigurableComponentInitia
     @Override
     public void teardown(final ConfigurableComponent component) {
         ParameterProvider parameterProvider = (ParameterProvider) component;
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
 
             final MockConfigurationContext context = new MockConfigurationContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, parameterProvider, new MockComponentLogger(), context);

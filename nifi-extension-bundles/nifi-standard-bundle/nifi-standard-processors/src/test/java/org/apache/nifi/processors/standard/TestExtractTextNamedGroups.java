@@ -48,7 +48,6 @@ public class TestExtractTextNamedGroups {
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
-        java.util.Map<String, String> attributes = out.getAttributes();
         out.assertAttributeEquals("regex.result1.ALL", SAMPLE_STRING);
         out.assertAttributeEquals("regex.result2.BAR1", "bar1");
         out.assertAttributeEquals("regex.result3.BAR1", "bar1");

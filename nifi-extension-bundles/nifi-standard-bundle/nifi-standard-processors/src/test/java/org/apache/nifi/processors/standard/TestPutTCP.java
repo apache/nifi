@@ -352,7 +352,7 @@ public class TestPutTCP {
 
     private void assertMessagesReceived(final String[] sentData, final int iterations) throws Exception {
         for (int i = 0; i < iterations; i++) {
-            for (String item : sentData) {
+            for (String ignored : sentData) {
                 final ByteArrayMessage message = messages.take();
                 assertNotNull(message, String.format("Message [%d] not found", i));
                 assertTrue(Arrays.asList(sentData).contains(new String(message.getMessage())));

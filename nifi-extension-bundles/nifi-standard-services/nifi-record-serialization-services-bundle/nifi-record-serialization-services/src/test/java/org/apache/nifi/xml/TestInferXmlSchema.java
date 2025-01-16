@@ -131,7 +131,6 @@ public class TestInferXmlSchema {
         final SchemaInferenceEngine<XmlNode> schemaInference = new XmlSchemaInference(timeValueInference);
         final InferSchemaAccessStrategy<XmlNode> inferStrategy = new InferSchemaAccessStrategy<>(xmlSourceFactory, schemaInference, Mockito.mock(ComponentLog.class));
 
-        final RecordSchema schema;
         try (final InputStream fis = new FileInputStream(file);
              final InputStream in = new BufferedInputStream(fis)) {
             return inferStrategy.getSchema(Collections.emptyMap(), in, null);

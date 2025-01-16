@@ -148,7 +148,6 @@ public class KubernetesSecretParameterProvider extends AbstractParameterProvider
 
         try {
             final List<ParameterGroup> parameterGroups = fetchParameters(context);
-            final Set<String> parameterGroupNames = parameterGroups.stream().map(ParameterGroup::getGroupName).collect(Collectors.toSet());
             final long parameterCount = parameterGroups.stream()
                     .flatMap(group -> group.getParameters().stream())
                     .count();
