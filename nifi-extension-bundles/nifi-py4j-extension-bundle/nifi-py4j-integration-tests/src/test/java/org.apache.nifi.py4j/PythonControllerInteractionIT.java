@@ -472,6 +472,7 @@ public class PythonControllerInteractionIT {
 
     private TestRunner createRecordTransformRunner(final String type) throws InitializationException {
         final TestRunner runner = createProcessor("SetRecordField");
+        runner.setValidateExpressionUsage(false);
 
         final JsonTreeReader reader = new JsonTreeReader();
         final JsonRecordSetWriter writer = new JsonRecordSetWriter();
@@ -724,6 +725,7 @@ public class PythonControllerInteractionIT {
         final AsyncLoadedProcessor processor = bridge.createProcessor(createId(), type, version, true, true);
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setValidateExpressionUsage(false);
 
         final long maxInitTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
         while (true) {
