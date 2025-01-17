@@ -402,8 +402,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         String identity = claimsSet.getStringClaim(identityClaim);
 
         // Attempt to extract groups from the configured claim; default is 'groups'
-        String groupsClaim = properties.getOidcClaimGroups();
-        List<String> groups = claimsSet.getStringListClaim(groupsClaim);
+        final String groupsClaim = properties.getOidcClaimGroups();
+        final List<String> groups = claimsSet.getStringListClaim(groupsClaim);
 
         // If default identity not available, attempt secondary identity extraction
         if (StringUtils.isBlank(identity)) {
