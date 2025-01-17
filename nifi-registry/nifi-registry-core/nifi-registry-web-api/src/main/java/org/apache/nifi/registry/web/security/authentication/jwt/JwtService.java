@@ -92,7 +92,7 @@ public class JwtService {
 
     public Set<String> getUserGroupsFromToken(final Jws<Claims> jws) throws JwtException {
         @SuppressWarnings("unchecked")
-        ArrayList<String> groupsString = jws.getPayload().get(GROUPS_CLAIM, ArrayList.class);
+        final List<String> groupsString = jws.getPayload().get(GROUPS_CLAIM, ArrayList.class);
 
         return new HashSet<>(groupsString);
     }
