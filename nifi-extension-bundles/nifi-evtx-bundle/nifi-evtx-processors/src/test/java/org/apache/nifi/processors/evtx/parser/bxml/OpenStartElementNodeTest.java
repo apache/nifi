@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -58,7 +59,7 @@ public class OpenStartElementNodeTest extends BxmlNodeWithTokenTestBase {
         assertEquals(tagName, openStartElementNode.getTagName());
         List<BxmlNode> children = openStartElementNode.getChildren();
         assertEquals(1, children.size());
-        assertTrue(children.get(0) instanceof CloseEmptyElementNode);
+        assertInstanceOf(CloseEmptyElementNode.class, children.get(0));
     }
 
     @Test

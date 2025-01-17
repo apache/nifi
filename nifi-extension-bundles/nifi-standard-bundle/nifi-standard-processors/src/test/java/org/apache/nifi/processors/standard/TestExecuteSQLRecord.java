@@ -59,9 +59,9 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -462,17 +462,17 @@ public class TestExecuteSQLRecord {
 
         Object imageObj = avroRecord.get("IMAGE");
         assertNotNull(imageObj);
-        assertTrue(imageObj instanceof ByteBuffer);
+        assertInstanceOf(ByteBuffer.class, imageObj);
         assertArrayEquals(new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF}, ((ByteBuffer) imageObj).array());
 
         Object wordsObj = avroRecord.get("WORDS");
         assertNotNull(wordsObj);
-        assertTrue(wordsObj instanceof Utf8);
+        assertInstanceOf(Utf8.class, wordsObj);
         assertEquals("Hello World", wordsObj.toString());
 
         Object natwordsObj = avroRecord.get("NATWORDS");
         assertNotNull(natwordsObj);
-        assertTrue(natwordsObj instanceof Utf8);
+        assertInstanceOf(Utf8.class, natwordsObj);
         assertEquals("I am an NCLOB", natwordsObj.toString());
     }
 

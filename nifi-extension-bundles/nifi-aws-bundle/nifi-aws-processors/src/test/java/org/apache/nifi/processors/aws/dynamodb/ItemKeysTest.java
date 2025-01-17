@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class ItemKeysTest {
 
@@ -64,7 +64,7 @@ public class ItemKeysTest {
     public void testHashNotNullRangeNotNullForOtherNotEquals() {
         ItemKeys ik1 = new ItemKeys(null, string("ab"));
         ItemKeys ik2 = new ItemKeys(string("ab"), null);
-        assertFalse(ik1.equals(ik2));
+        assertNotEquals(ik1, ik2);
     }
 
     private static AttributeValue string(final String s) {

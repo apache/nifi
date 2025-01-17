@@ -25,7 +25,9 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -263,7 +265,7 @@ public class AuthorizerFactoryTest {
         Authorizer authorizer = AuthorizerFactory.installIntegrityChecks(mockAuthorizer);
         authorizer.onConfigured(context);
 
-        assertTrue(authorizer instanceof AuthorizationAuditor);
+        assertInstanceOf(AuthorizationAuditor.class, authorizer);
 
         final AuthorizationRequest accessAttempt = new AuthorizationRequest.Builder()
                 .resource(new MockResource("resource1", "Resource 1"))
@@ -275,7 +277,7 @@ public class AuthorizerFactoryTest {
 
         final AuthorizationResult accessAttemptResult = authorizer.authorize(accessAttempt);
 
-        assertTrue(Result.Approved.equals(accessAttemptResult.getResult()));
+        assertEquals(Result.Approved, accessAttemptResult.getResult());
         assertTrue(mockAuthorizer.isAudited(accessAttempt));
 
         final AuthorizationRequest nonAccessAttempt = new AuthorizationRequest.Builder()
@@ -288,7 +290,7 @@ public class AuthorizerFactoryTest {
 
         final AuthorizationResult nonAccessAttempResult = authorizer.authorize(nonAccessAttempt);
 
-        assertTrue(Result.Approved.equals(nonAccessAttempResult.getResult()));
+        assertEquals(Result.Approved, nonAccessAttempResult.getResult());
         assertFalse(mockAuthorizer.isAudited(nonAccessAttempt));
     }
 

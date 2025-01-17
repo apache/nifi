@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -315,17 +316,17 @@ class TestMapRecord {
 
         Map<String, Object> fullConversion = ((MapRecord) record).toMap(true);
         assertEquals(FOO_TEST_VAL, fullConversion.get("foo"));
-        assertTrue(fullConversion.get("nested") instanceof Map);
+        assertInstanceOf(Map.class, fullConversion.get("nested"));
 
         Map<String, Object> nested = (Map<String, Object>) fullConversion.get("nested");
         assertEquals(1, nested.size());
         assertEquals(NESTED_RECORD_VALUE, nested.get("test"));
 
-        assertTrue(fullConversion.get("list") instanceof List);
+        assertInstanceOf(List.class, fullConversion.get("list"));
         List recordList = (List) fullConversion.get("list");
         assertEquals(5, recordList.size());
         for (Object rec : recordList) {
-            assertTrue(rec instanceof Map);
+            assertInstanceOf(Map.class, rec);
             Map<String, Object> map = (Map<String, Object>) rec;
             assertEquals(1, map.size());
             assertEquals(NESTED_RECORD_VALUE, map.get("test"));

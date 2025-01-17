@@ -26,13 +26,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.repository.schema.SchemaRecordWriter.MAX_ALLOWED_UTF_LENGTH;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -152,7 +152,7 @@ public class TestSchemaRecordReaderWriter {
                     assertEquals(42, record.getFieldValue("int"));
                     assertEquals(42, record.getFieldValue("int present"));
                     assertEquals(true, record.getFieldValue("boolean present"));
-                    assertTrue(Arrays.equals("Hello".getBytes(), (byte[]) record.getFieldValue("byte array present")));
+                    assertArrayEquals("Hello".getBytes(), (byte[]) record.getFieldValue("byte array present"));
                     assertEquals(42L, record.getFieldValue("long present"));
                     assertEquals("Hello", record.getFieldValue("string present"));
                     assertEquals("Long Hello", record.getFieldValue("long string present"));
@@ -197,8 +197,8 @@ public class TestSchemaRecordReaderWriter {
         values.put(createField("int present", FieldType.INT), 42);
         final String utfString = utfStringOneByte + utfStringTwoByte + utfStringThreeByte;  // 3 chars and 6 utf8 bytes
         final String seventyK = StringUtils.repeat(utfString, 21845);  // 65,535 chars and 131070 utf8 bytes
-        assertTrue(seventyK.length() == 65535);
-        assertTrue(seventyK.getBytes(StandardCharsets.UTF_8).length == 131070);
+        assertEquals(65535, seventyK.length());
+        assertEquals(131070, seventyK.getBytes(StandardCharsets.UTF_8).length);
         values.put(createField("string present", FieldType.STRING), seventyK);
 
         final FieldMapRecord originalRecord = new FieldMapRecord(values, schema);

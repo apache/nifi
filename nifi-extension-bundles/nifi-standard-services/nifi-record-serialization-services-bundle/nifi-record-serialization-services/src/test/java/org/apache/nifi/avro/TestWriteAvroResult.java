@@ -59,8 +59,8 @@ import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class TestWriteAvroResult {
 
@@ -342,8 +342,7 @@ public abstract class TestWriteAvroResult {
                     assertEquals(objectArray[i], bb.get());
                 }
             } else if (recordValue instanceof Object[]) {
-                assertTrue(avroValue instanceof Array,
-                        fieldName + " should have been instanceof Array");
+                assertInstanceOf(Array.class, avroValue, fieldName + " should have been instanceof Array");
                 final Array<?> avroArray = (Array<?>) avroValue;
                 final Object[] recordArray = (Object[]) recordValue;
                 assertEquals(recordArray.length, avroArray.size(),
@@ -357,8 +356,7 @@ public abstract class TestWriteAvroResult {
                 assertEquals(bb, avroValue,
                         fieldName + " not equal");
             } else if (recordValue instanceof Map) {
-               assertTrue(avroValue instanceof Map,
-                       fieldName + " should have been instanceof Map");
+                assertInstanceOf(Map.class, avroValue, fieldName + " should have been instanceof Map");
                final Map<?, ?> avroMap = (Map<?, ?>) avroValue;
                final Map<?, ?> recordMap = (Map<?, ?>) recordValue;
                assertEquals(recordMap.size(), avroMap.size(),

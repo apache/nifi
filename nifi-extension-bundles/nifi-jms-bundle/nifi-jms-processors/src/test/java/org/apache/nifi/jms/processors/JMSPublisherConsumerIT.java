@@ -51,6 +51,7 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -222,7 +223,7 @@ public class JMSPublisherConsumerIT {
             publisher.publish(destinationName, "hellomq".getBytes());
 
             Message receivedMessage = jmsTemplate.receive(destinationName);
-            assertTrue(receivedMessage instanceof BytesMessage);
+            assertInstanceOf(BytesMessage.class, receivedMessage);
             byte[] bytes = new byte[7];
             ((BytesMessage) receivedMessage).readBytes(bytes);
             assertEquals("hellomq", new String(bytes));
@@ -249,11 +250,11 @@ public class JMSPublisherConsumerIT {
             publisher.publish(destinationName, "hellomq".getBytes(), flowFileAttributes);
 
             Message receivedMessage = jmsTemplate.receive(destinationName);
-            assertTrue(receivedMessage instanceof BytesMessage);
+            assertInstanceOf(BytesMessage.class, receivedMessage);
             assertEquals("foo", receivedMessage.getStringProperty("foo"));
             assertTrue(receivedMessage.propertyExists("hyphen-property"));
             assertTrue(receivedMessage.propertyExists("fullstop.property"));
-            assertTrue(receivedMessage.getJMSReplyTo() instanceof Topic);
+            assertInstanceOf(Topic.class, receivedMessage.getJMSReplyTo());
             assertEquals(1, receivedMessage.getJMSDeliveryMode());
             assertEquals(1, receivedMessage.getJMSPriority());
             assertEquals("myTopic", ((Topic) receivedMessage.getJMSReplyTo()).getTopicName());

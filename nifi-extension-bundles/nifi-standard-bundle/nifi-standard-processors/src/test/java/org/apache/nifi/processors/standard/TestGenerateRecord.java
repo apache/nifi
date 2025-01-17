@@ -25,6 +25,7 @@ import org.apache.nifi.processors.standard.faker.FakerMethodHolder;
 import org.apache.nifi.processors.standard.faker.FakerUtils;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -48,6 +49,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -246,19 +248,19 @@ public class TestGenerateRecord {
             assertNotNull(record);
             final Object systemObject = record.getValue("System");
             assertNotNull(systemObject);
-            assertTrue(systemObject instanceof org.apache.nifi.serialization.record.Record);
+            assertInstanceOf(Record.class, systemObject);
             final org.apache.nifi.serialization.record.Record systemRecord = (org.apache.nifi.serialization.record.Record) systemObject;
             final Object providerObject = systemRecord.getValue("Provider");
             assertNotNull(providerObject);
-            assertTrue(providerObject instanceof org.apache.nifi.serialization.record.Record);
+            assertInstanceOf(Record.class, providerObject);
             final org.apache.nifi.serialization.record.Record providerRecord = (org.apache.nifi.serialization.record.Record) providerObject;
             final Object guidObject = providerRecord.getValue("Guid");
             assertNotNull(guidObject);
-            assertTrue(guidObject instanceof Object[]);
+            assertInstanceOf(Object[].class, guidObject);
             // Check for array of Byte objects if not empty
             Object[] guidArray = (Object[]) guidObject;
             if (guidArray.length > 0) {
-                assertTrue(guidArray[0] instanceof Byte);
+                assertInstanceOf(Byte.class, guidArray[0]);
             }
 
         }

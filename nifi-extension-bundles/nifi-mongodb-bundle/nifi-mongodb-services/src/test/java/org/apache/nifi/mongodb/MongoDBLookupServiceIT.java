@@ -45,6 +45,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -122,7 +124,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
             fail();
         }
 
-        assertTrue(!result.isPresent());
+        assertFalse(result.isPresent());
     }
 
     @Test
@@ -211,7 +213,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
         Optional result = service.lookup(criteria);
 
         assertNotNull(result.get(), "The value was null.");
-        assertTrue(result.get() instanceof MapRecord, "The value was wrong.");
+        assertInstanceOf(MapRecord.class, result.get(), "The value was wrong.");
         MapRecord record = (MapRecord) result.get();
         RecordSchema subSchema = ((RecordDataType) record.getSchema().getField("subrecordField").get().getDataType()).getChildSchema();
 
@@ -238,7 +240,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
             fail();
         }
 
-        assertTrue(!result.isPresent());
+        assertFalse(result.isPresent());
     }
 
     @Test
