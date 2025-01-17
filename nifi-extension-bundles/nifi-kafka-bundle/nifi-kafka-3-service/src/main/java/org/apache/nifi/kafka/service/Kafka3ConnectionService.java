@@ -369,7 +369,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         final int requestTimeoutMs = getRequestTimeoutMs(propertyContext);
         properties.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, requestTimeoutMs);
 
-        final long timePeriod = propertyContext.getProperty(METADATA_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long timePeriod = propertyContext.getProperty(METADATA_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, timePeriod);
 
         return properties;
