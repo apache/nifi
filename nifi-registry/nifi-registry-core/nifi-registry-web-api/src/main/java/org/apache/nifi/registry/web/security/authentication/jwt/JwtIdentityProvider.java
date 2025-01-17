@@ -70,7 +70,7 @@ public class JwtIdentityProvider extends BearerAuthIdentityProvider implements I
         }
 
         try {
-            String jwtAuthToken = credentials instanceof String ? (String) credentials : null;
+            String jwtAuthToken = credentials.toString();
             final Jws<Claims> jws = jwtService.parseAndValidateToken(jwtAuthToken);
 
             final String jwtPrincipal = jwtService.getUserIdentityFromToken(jws);

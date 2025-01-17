@@ -40,7 +40,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -94,7 +96,7 @@ public class JwtService {
         @SuppressWarnings("unchecked")
         final List<String> groupsString = jws.getPayload().get(GROUPS_CLAIM, ArrayList.class);
 
-        return new HashSet<>(groupsString);
+        return new HashSet<>(groupsString != null ? groupsString : Collections.emptyList());
     }
 
     private Jws<Claims> parseTokenFromBase64EncodedString(final String base64EncodedToken) throws JwtException {
