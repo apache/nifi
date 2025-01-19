@@ -18,7 +18,7 @@
 import { Directive, ElementRef, HostListener, Input, OnDestroy, Type } from '@angular/core';
 import { ConnectedPosition, Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
-import { NiFiCommon } from '../services';
+import { NiFiCommon } from '../services/nifi-common.service';
 
 @Directive({
     selector: '[nifiTooltip]',

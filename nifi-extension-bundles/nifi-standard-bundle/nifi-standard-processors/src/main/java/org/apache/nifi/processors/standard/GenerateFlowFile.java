@@ -38,12 +38,9 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,6 +77,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             .required(true)
             .defaultValue("0B")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
@@ -194,7 +192,7 @@ public class GenerateFlowFile extends AbstractProcessor {
     }
 
     private byte[] generateData(final ProcessContext context) {
-        final int byteCount = context.getProperty(FILE_SIZE).asDataSize(DataUnit.B).intValue();
+        final int byteCount = context.getProperty(FILE_SIZE).evaluateAttributeExpressions().asDataSize(DataUnit.B).intValue();
 
         final Random random = new Random();
         final byte[] array = new byte[byteCount];
@@ -243,12 +241,7 @@ public class GenerateFlowFile extends AbstractProcessor {
         FlowFile flowFile = session.create();
             final byte[] writtenData = uniqueData ? generateData(context) : data;
             if (writtenData.length > 0) {
-                flowFile = session.write(flowFile, new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream out) throws IOException {
-                        out.write(writtenData);
-                    }
-                });
+                flowFile = session.write(flowFile, out -> out.write(writtenData));
             }
             flowFile = session.putAllAttributes(flowFile, generatedAttributes);
 

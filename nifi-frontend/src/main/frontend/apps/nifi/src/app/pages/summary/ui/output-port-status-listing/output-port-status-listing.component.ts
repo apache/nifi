@@ -34,7 +34,7 @@ import {
     selectClusterSearchResults,
     selectClusterSummary
 } from '../../../../state/cluster-summary/cluster-summary.selectors';
-import { ComponentType, isDefinedAndNotNull } from 'libs/shared/src';
+import { ComponentType, isDefinedAndNotNull } from '@nifi/shared';
 import { map } from 'rxjs';
 import { NodeSearchResult } from '../../../../state/cluster-summary';
 import * as ClusterStatusActions from '../../state/component-cluster-status/component-cluster-status.actions';

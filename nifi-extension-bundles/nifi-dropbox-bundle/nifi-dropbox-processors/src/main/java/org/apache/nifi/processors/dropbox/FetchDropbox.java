@@ -36,9 +36,6 @@ import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,16 +100,16 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
                     .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
                     .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
+    );
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             CREDENTIAL_SERVICE,
             FILE,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP_AUTH)
-    ));
+    );
 
     private volatile DbxClientV2 dropboxApiClient;
 

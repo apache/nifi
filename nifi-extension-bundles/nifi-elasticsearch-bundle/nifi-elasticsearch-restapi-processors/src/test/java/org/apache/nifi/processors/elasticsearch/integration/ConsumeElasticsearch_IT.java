@@ -35,6 +35,7 @@ class ConsumeElasticsearch_IT extends AbstractJsonQueryElasticsearch_IT {
         runner.setProperty(ConsumeElasticsearch.RANGE_FIELD, RANGE_FIELD);
         runner.setProperty(ConsumeElasticsearch.RANGE_FIELD_SORT_ORDER, RANGE_SORT_ORDER);
         runner.removeProperty(ConsumeElasticsearch.RANGE_INITIAL_VALUE);
+        runner.setValidateExpressionUsage(false);
     }
 
     @Test

@@ -65,10 +65,8 @@ import java.io.OutputStream;
 import java.io.PushbackInputStream;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -150,9 +148,12 @@ public class EncryptContentPGP extends AbstractProcessor {
     /** Disable Compression as recommended in OpenPGP refreshed specification */
     private static final CompressionAlgorithm COMPRESSION_DISABLED = CompressionAlgorithm.UNCOMPRESSED;
 
-    private static final Set<Relationship> RELATIONSHIPS = new HashSet<>(Arrays.asList(SUCCESS, FAILURE));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            SUCCESS,
+            FAILURE
+    );
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             SYMMETRIC_KEY_ALGORITHM,
             FILE_ENCODING,
             PASSPHRASE,

@@ -45,6 +45,7 @@ import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthen
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 
+import java.security.KeyPairGenerator;
 import java.time.Duration;
 
 /**
@@ -180,11 +181,12 @@ public class JwtAuthenticationSecurityConfiguration {
     /**
      * Key Generation Command responsible for rotating JSON Web Signature key pairs based on configuration
      *
+     * @param keyPairGenerator Key Pair Generator for JSON Web Signatures
      * @return Key Generation Command scheduled according to application properties
      */
     @Bean
-    public KeyGenerationCommand keyGenerationCommand() {
-        final KeyGenerationCommand command = new KeyGenerationCommand(jwsSignerProvider(), verificationKeySelector);
+    public KeyGenerationCommand keyGenerationCommand(final KeyPairGenerator keyPairGenerator) {
+        final KeyGenerationCommand command = new KeyGenerationCommand(jwsSignerProvider(), verificationKeySelector, keyPairGenerator);
         commandScheduler().scheduleAtFixedRate(command, keyRotationPeriod);
         return command;
     }

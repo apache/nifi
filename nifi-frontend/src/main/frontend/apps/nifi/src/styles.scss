@@ -51,7 +51,7 @@
 @use 'app/ui/common/navigation/navigation.component-theme' as navigation;
 @use 'app/ui/common/property-table/editors/nf-editor/nf-editor.component-theme' as nf-editor;
 @use 'app/ui/common/status-history/status-history.component-theme' as status-history;
-@use 'app/ui/common/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
+@use 'libs/shared/src/components/tooltips/property-hint-tip/property-hint-tip.component-theme' as property-hint-tip;
 @use 'app/pages/summary/ui/processor-status-listing/processor-status-table/processor-status-table.component-theme' as
     processor-status-table;
 @use 'app/pages/flow-designer/ui/canvas/change-color-dialog/change-color-dialog.component-theme' as change-color-dialog;

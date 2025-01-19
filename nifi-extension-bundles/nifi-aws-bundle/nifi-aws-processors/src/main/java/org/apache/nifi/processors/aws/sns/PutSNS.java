@@ -122,7 +122,7 @@ public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder
             .build();
 
 
-    public static final List<PropertyDescriptor> properties = List.of(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
             ARN,
             ARN_TYPE,
             SUBJECT,
@@ -141,7 +141,7 @@ public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

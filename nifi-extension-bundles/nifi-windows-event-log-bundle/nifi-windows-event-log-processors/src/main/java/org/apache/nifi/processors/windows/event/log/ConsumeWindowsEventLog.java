@@ -49,10 +49,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -126,15 +123,22 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
             .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.MILLISECONDS))
             .build();
 
-    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
-            Arrays.asList(CHANNEL, QUERY, MAX_BUFFER_SIZE, MAX_EVENT_QUEUE_SIZE, INACTIVE_DURATION_TO_RECONNECT));
+    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            CHANNEL,
+            QUERY,
+            MAX_BUFFER_SIZE,
+            MAX_EVENT_QUEUE_SIZE,
+            INACTIVE_DURATION_TO_RECONNECT);
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Relationship for successfully consumed events.")
             .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS)));
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
+
     public static final String APPLICATION_XML = "application/xml";
     public static final String UNABLE_TO_SUBSCRIBE = "Unable to subscribe with provided parameters, received the following error code: ";
     public static final String PROCESSOR_ALREADY_SUBSCRIBED = "Processor already subscribed to Event Log, expected cleanup to unsubscribe.";

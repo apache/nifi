@@ -20,6 +20,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NfEditor } from './nf-editor.component';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { PropertyItem } from '../../property-table.component';
+import { MockComponent } from 'ng-mocks';
+import { PropertyHint } from '@nifi/shared';
 
 import 'codemirror/addon/hint/show-hint';
 
@@ -29,7 +31,7 @@ describe('NfEditor', () => {
 
     beforeEach(() => {
         TestBed.configureTestingModule({
-            imports: [NfEditor, HttpClientTestingModule]
+            imports: [NfEditor, HttpClientTestingModule, MockComponent(PropertyHint)]
         });
         fixture = TestBed.createComponent(NfEditor);
         component = fixture.componentInstance;

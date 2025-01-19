@@ -128,7 +128,7 @@ public class TestXMLRecordSetWriter {
 
     @Test
     public void testSchemaRootRecordNaming() throws IOException, InitializationException {
-        String avroSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/xml/testschema3")));;
+        String avroSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/xml/testschema3")));
         Schema avroSchema = new Schema.Parser().parse(avroSchemaText);
 
         SchemaIdentifier schemaId = SchemaIdentifier.builder().name("schemaName").build();

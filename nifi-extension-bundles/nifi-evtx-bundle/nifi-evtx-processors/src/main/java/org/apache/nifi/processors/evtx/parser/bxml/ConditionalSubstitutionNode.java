@@ -30,6 +30,7 @@ import java.util.List;
  */
 public class ConditionalSubstitutionNode extends BxmlNodeWithToken {
     private final int index;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final int type;
 
     public ConditionalSubstitutionNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {

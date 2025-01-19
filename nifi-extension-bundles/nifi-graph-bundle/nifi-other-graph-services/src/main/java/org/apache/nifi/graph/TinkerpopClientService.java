@@ -488,7 +488,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
                                 Map.Entry<String, Object> tempResult = (Map.Entry<String, Object>) resultSet.next();
                                 Map<String, Object> tempRetObject = new HashMap<>();
                                 tempRetObject.put(tempResult.getKey(), tempResult.getValue());
-                                SimpleEntry returnObject = new SimpleEntry<String, Object>(tempResult.getKey(), tempRetObject);
+                                SimpleEntry<String, Object> returnObject = new SimpleEntry<>(tempResult.getKey(), tempRetObject);
                                 Map<String, Object> resultReturnMap = new HashMap<>();
                                 resultReturnMap.put(innerResultSet.getKey(), returnObject);
                                 if (getLogger().isDebugEnabled()) {

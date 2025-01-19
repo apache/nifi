@@ -634,6 +634,7 @@ public abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQ
     TestRunner createRunner(final boolean returnAggs) {
         final P processor = getProcessor();
         final TestRunner runner = TestRunners.newTestRunner(processor);
+
         final TestElasticsearchClientService service = new TestElasticsearchClientService(returnAggs);
         try {
             runner.addControllerService("esService", service);

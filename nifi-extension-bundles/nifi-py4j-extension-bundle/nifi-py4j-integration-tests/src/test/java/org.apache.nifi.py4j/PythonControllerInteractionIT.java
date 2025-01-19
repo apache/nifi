@@ -472,6 +472,7 @@ public class PythonControllerInteractionIT {
 
     private TestRunner createRecordTransformRunner(final String type) throws InitializationException {
         final TestRunner runner = createProcessor("SetRecordField");
+        runner.setValidateExpressionUsage(false);
 
         final JsonTreeReader reader = new JsonTreeReader();
         final JsonRecordSetWriter writer = new JsonRecordSetWriter();
@@ -614,6 +615,16 @@ public class PythonControllerInteractionIT {
     }
 
     @Test
+    public void testMultipleProcessorsInAPackage() {
+        // This processor is in a package with another processor, which has additional dependency requirements
+        final TestRunner runner = createProcessor("CreateHttpRequest");
+        waitForValid(runner);
+        runner.run();
+
+        runner.assertTransferCount("success", 1);
+    }
+
+    @Test
     public void testStateManagerSetState() {
         final TestRunner runner = createStateManagerTesterProcessor("setState");
 
@@ -714,6 +725,7 @@ public class PythonControllerInteractionIT {
         final AsyncLoadedProcessor processor = bridge.createProcessor(createId(), type, version, true, true);
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setValidateExpressionUsage(false);
 
         final long maxInitTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
         while (true) {

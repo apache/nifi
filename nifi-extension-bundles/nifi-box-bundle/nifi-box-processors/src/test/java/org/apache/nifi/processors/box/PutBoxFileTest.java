@@ -104,7 +104,7 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
 
         testRunner.assertAllFlowFilesTransferred(PutBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutBoxFile.REL_SUCCESS);
-        final MockFlowFile ff0 = flowFiles.get(0);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0);
         assertProvenanceEvent(ProvenanceEventType.SEND);
     }
@@ -138,7 +138,7 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
 
         testRunner.assertAllFlowFilesTransferred(PutBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutBoxFile.REL_SUCCESS);
-        final MockFlowFile ff0 = flowFiles.get(0);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0, format("/%s/%s/%s", TEST_FOLDER_NAME, "sub1", "sub2"));
         assertProvenanceEvent(ProvenanceEventType.SEND);
     }
@@ -181,7 +181,7 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
 
         testRunner.assertAllFlowFilesTransferred(PutBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutBoxFile.REL_SUCCESS);
-        final MockFlowFile ff0 = flowFiles.get(0);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0, format("/%s/%s/%s", TEST_FOLDER_NAME, "new1", "new2"));
         assertProvenanceEvent(ProvenanceEventType.SEND);
         verify(mockBoxFolder).createFolder("new1");
@@ -205,7 +205,7 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
 
         testRunner.assertAllFlowFilesTransferred(PutBoxFile.REL_FAILURE, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutBoxFile.REL_FAILURE);
-        final MockFlowFile ff0 = flowFiles.get(0);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Upload error");
         assertNoProvenanceEvent();
     }

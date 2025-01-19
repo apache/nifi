@@ -115,7 +115,6 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         List<String> allControllerServiceIds = allProcessGroups.stream().flatMap(p -> p.getControllerServices().stream()).map(ControllerServiceSchema::getId).collect(Collectors.toList());
         List<String> allFunnelIds = allProcessGroups.stream().flatMap(p -> p.getFunnels().stream()).map(FunnelSchema::getId).collect(Collectors.toList());
         List<String> allConnectionIds = allConnectionSchemas.stream().map(ConnectionSchema::getId).collect(Collectors.toList());
-        List<String> allRemoteProcessGroupNames = allRemoteProcessGroups.stream().map(RemoteProcessGroupSchema::getName).collect(Collectors.toList());
         List<String> allRemoteInputPortIds = allRemoteProcessGroups.stream().filter(r -> r.getInputPorts() != null)
                 .flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).collect(Collectors.toList());
         List<String> allRemoteOutputPortIds = allRemoteProcessGroups.stream().filter(r -> r.getOutputPorts() != null)

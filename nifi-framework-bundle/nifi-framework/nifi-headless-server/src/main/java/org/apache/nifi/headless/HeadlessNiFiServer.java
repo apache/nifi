@@ -103,7 +103,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             ExtensionManagerHolder.init(extensionManager);
 
             // Enrich the flow xml using the Extension Manager mapping
-            final FlowParser flowParser = new FlowParser();
+            new FlowParser();
             logger.info("Loading Flow...");
 
             FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);

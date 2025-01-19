@@ -215,7 +215,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             return;
         }
 
-        final String projectId = context.getProperty(PROJECT_ID).getValue();
+        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
         final String dataset = context.getProperty(DATASET).evaluateAttributeExpressions(flowFile).getValue();
         final String dataTableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final TableName tableName = TableName.of(projectId, dataset, dataTableName);

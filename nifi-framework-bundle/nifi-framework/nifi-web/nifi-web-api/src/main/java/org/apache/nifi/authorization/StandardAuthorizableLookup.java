@@ -324,7 +324,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Set<ComponentAuthorizable> getControllerServices(final String groupId, final Predicate<org.apache.nifi.authorization.resource.VersionedComponentAuthorizable> filter) {
+    public Set<ComponentAuthorizable> getControllerServices(final String groupId, final Predicate<VersionedComponentAuthorizable> filter) {
         return controllerServiceDAO.getControllerServices(groupId, true, false).stream()
                 .filter(cs -> filter.test(new VersionedComponentAuthorizable() {
                         @Override

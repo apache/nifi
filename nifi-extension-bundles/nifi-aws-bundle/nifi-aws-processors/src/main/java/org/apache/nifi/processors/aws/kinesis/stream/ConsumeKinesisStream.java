@@ -86,9 +86,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -317,7 +315,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                     " the contents of the message will be routed to this Relationship as its own individual FlowFile.")
             .build();
 
-    public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
             // Kinesis Stream specific properties
             KINESIS_STREAM_NAME,
             APPLICATION_NAME,
@@ -350,8 +348,14 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     private static final Object WORKER_LOCK = new Object();
     private static final String SCHEDULER_THREAD_NAME_TEMPLATE = ConsumeKinesisStream.class.getSimpleName() + "-" + Scheduler.class.getSimpleName() + "-";
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
-    private static final Set<Relationship> RECORD_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_PARSE_FAILURE)));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
+
+    private static final Set<Relationship> RECORD_RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_PARSE_FAILURE
+    );
 
     private static final PropertyUtilsBean PROPERTY_UTILS_BEAN;
     private static final BeanUtilsBean BEAN_UTILS_BEAN;
@@ -384,7 +388,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTY_DESCRIPTORS;
+        return PROPERTIES;
     }
 
     @Override

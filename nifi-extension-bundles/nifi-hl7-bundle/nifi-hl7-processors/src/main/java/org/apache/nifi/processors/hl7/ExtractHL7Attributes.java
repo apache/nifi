@@ -33,13 +33,10 @@ import ca.uhn.hl7v2.parser.Escaping;
 import ca.uhn.hl7v2.parser.PipeParser;
 import ca.uhn.hl7v2.validation.ValidationContext;
 import ca.uhn.hl7v2.validation.impl.ValidationContextFactory;
-import java.io.IOException;
-import java.io.InputStream;
+
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,7 +60,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 
@@ -141,23 +137,27 @@ public class ExtractHL7Attributes extends AbstractProcessor {
             .description("A FlowFile is routed to this relationship if it cannot be mapped to FlowFile Attributes. This would happen if the FlowFile does not contain valid HL7 data")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            CHARACTER_SET,
+            USE_SEGMENT_NAMES,
+            PARSE_SEGMENT_FIELDS,
+            SKIP_VALIDATION,
+            HL7_INPUT_VERSION
+    );
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(CHARACTER_SET);
-        properties.add(USE_SEGMENT_NAMES);
-        properties.add(PARSE_SEGMENT_FIELDS);
-        properties.add(SKIP_VALIDATION);
-        properties.add(HL7_INPUT_VERSION);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -174,12 +174,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
         final String inputVersion = context.getProperty(HL7_INPUT_VERSION).getValue();
 
         final byte[] buffer = new byte[(int) flowFile.getSize()];
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.fillBuffer(in, buffer);
-            }
-        });
+        session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer));
 
         @SuppressWarnings("resource")
         final HapiContext hapiContext = new DefaultHapiContext();

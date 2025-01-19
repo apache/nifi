@@ -157,7 +157,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
-    static final List<PropertyDescriptor> descriptors = List.of(
+    static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             CLIENT_SERVICE,
             DATABASE_NAME,
             COLLECTION_NAME

@@ -36,7 +36,7 @@ import org.mockito.quality.Strictness;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,21 +57,19 @@ public class TestQuerySplunkIndexingStatus {
     @Mock
     private ResponseMessage response;
 
-    private MockedQuerySplunkIndexingStatus processor;
     private TestRunner testRunner;
 
-    private ArgumentCaptor<String> path;
     private ArgumentCaptor<RequestMessage> request;
 
     @BeforeEach
     public void setUp() {
-        processor = new MockedQuerySplunkIndexingStatus(service);
+        MockedQuerySplunkIndexingStatus processor = new MockedQuerySplunkIndexingStatus(service);
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(SplunkAPICall.SCHEME, "http");
         testRunner.setProperty(SplunkAPICall.TOKEN, "Splunk 888c5a81-8777-49a0-a3af-f76e050ab5d9");
         testRunner.setProperty(SplunkAPICall.REQUEST_CHANNEL, "22bd7414-0d77-4c73-936d-c8f5d1b21862");
 
-        path = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> path = ArgumentCaptor.forClass(String.class);
         request = ArgumentCaptor.forClass(RequestMessage.class);
         Mockito.when(service.send(path.capture(), request.capture())).thenReturn(response);
     }
@@ -82,7 +80,7 @@ public class TestQuerySplunkIndexingStatus {
     }
 
     @Test
-    public void testRunSuccess() throws Exception {
+    public void testRunSuccess() {
         // given
         final Map<Integer, Boolean> acks = new HashMap<>();
         acks.put(1, true);
@@ -100,12 +98,12 @@ public class TestQuerySplunkIndexingStatus {
 
         assertEquals(1, acknowledged.size());
         assertEquals(1, undetermined.size());
-        assertFalse(acknowledged.get(0).isPenalized());
-        assertTrue(undetermined.get(0).isPenalized());
+        assertFalse(acknowledged.getFirst().isPenalized());
+        assertTrue(undetermined.getFirst().isPenalized());
     }
 
     @Test
-    public void testMoreIncomingFlowFileThanQueryLimit() throws Exception {
+    public void testMoreIncomingFlowFileThanQueryLimit() {
         // given
         testRunner.setProperty(QuerySplunkIndexingStatus.MAX_QUERY_SIZE, "2");
         final Map<Integer, Boolean> acks = new HashMap<>();
@@ -126,7 +124,7 @@ public class TestQuerySplunkIndexingStatus {
     }
 
     @Test
-    public void testWhenFlowFileIsLackOfNecessaryAttributes() throws Exception {
+    public void testWhenFlowFileIsLackOfNecessaryAttributes() {
         // when
         testRunner.enqueue(EVENT);
         testRunner.run();
@@ -136,7 +134,7 @@ public class TestQuerySplunkIndexingStatus {
     }
 
     @Test
-    public void testWhenSplunkReturnsWithError() throws Exception {
+    public void testWhenSplunkReturnsWithError() {
         // given
         givenSplunkReturnsWithFailure();
 
@@ -150,12 +148,12 @@ public class TestQuerySplunkIndexingStatus {
         testRunner.assertAllFlowFilesTransferred(QuerySplunkIndexingStatus.RELATIONSHIP_UNDETERMINED, 3);
     }
 
-    private void givenSplunkReturns(final Map<Integer, Boolean> acks) throws Exception {
-        final StringBuilder responseContent = new StringBuilder("{\"acks\":{")
-                .append(acks.entrySet().stream().map(e -> "\"" + e.getKey() + "\": " + e.getValue()).collect(Collectors.joining(", ")))
-                .append("}}");
+    private void givenSplunkReturns(final Map<Integer, Boolean> acks) {
+        String responseContent = "{\"acks\":{" +
+                acks.entrySet().stream().map(e -> "\"" + e.getKey() + "\": " + e.getValue()).collect(Collectors.joining(", ")) +
+                "}}";
 
-        final InputStream inputStream = new ByteArrayInputStream(responseContent.toString().getBytes("UTF-8"));
+        final InputStream inputStream = new ByteArrayInputStream(responseContent.getBytes(StandardCharsets.UTF_8));
         Mockito.when(response.getStatus()).thenReturn(200);
         Mockito.when(response.getContent()).thenReturn(inputStream);
     }
@@ -164,9 +162,9 @@ public class TestQuerySplunkIndexingStatus {
         Mockito.when(response.getStatus()).thenReturn(403);
     }
 
-    private MockFlowFile givenFlowFile(final int ackId, final long sentAt) throws UnsupportedEncodingException {
+    private MockFlowFile givenFlowFile(final int ackId, final long sentAt) {
         final MockFlowFile result = new MockFlowFile(ackId);
-        result.setData(EVENT.getBytes("UTF-8"));
+        result.setData(EVENT.getBytes(StandardCharsets.UTF_8));
         Map<String, String> attributes = new HashMap<>();
         attributes.put("splunk.acknowledgement.id", String.valueOf(ackId));
         attributes.put("splunk.responded.at", String.valueOf(sentAt));

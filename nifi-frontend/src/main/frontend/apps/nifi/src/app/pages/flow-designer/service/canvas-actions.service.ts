@@ -52,7 +52,7 @@ import { CanvasState } from '../state';
 import * as d3 from 'd3';
 import { MatDialog } from '@angular/material/dialog';
 import { CanvasView } from './canvas-view.service';
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 import { Client } from '../../../service/client.service';
 import { CopyRequestContext, CopyRequestEntity, CopyResponseEntity } from '../../../state/copy';
 import { CopyPasteService } from './copy-paste.service';

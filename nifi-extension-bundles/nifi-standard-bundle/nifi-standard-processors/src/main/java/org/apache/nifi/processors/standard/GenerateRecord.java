@@ -59,7 +59,6 @@ import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.StringUtils;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -315,8 +314,7 @@ public class GenerateRecord extends AbstractProcessor {
                 return faker.number().randomDouble(6, Long.MIN_VALUE, Long.MAX_VALUE);
             case FLOAT:
                 final double randomDouble = faker.number().randomDouble(6, Long.MIN_VALUE, Long.MAX_VALUE);
-                final BigDecimal asBigDecimal = new BigDecimal(randomDouble);
-                return asBigDecimal.floatValue();
+                return (float) randomDouble;
             case DECIMAL:
                 return faker.number().randomDouble(((DecimalDataType) recordField.getDataType()).getScale(), Long.MIN_VALUE, Long.MAX_VALUE);
             case INT:

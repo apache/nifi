@@ -30,14 +30,13 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { NiFiCommon, NifiTooltipDirective, Parameter, TextTip } from '@nifi/shared';
 import { NgTemplateOutlet } from '@angular/common';
 import {
     AllowableValueEntity,
     ComponentHistory,
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
-    Parameter,
     ParameterConfig,
     ParameterContextEntity,
     Property,
@@ -236,7 +235,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
                 // the dependent value contains parameter reference, if the user can view
                 // the parameter context resolve the parameter value to see if it
                 // satisfies the dependent values
-                if (this.parameterContext?.permissions.canRead) {
+                if (this.parameterContext?.permissions.canRead && this.parameterContext.component) {
                     const referencedParameter = this.parameterContext.component.parameters
                         .map((parameterEntity) => parameterEntity.parameter)
                         .find((parameter: Parameter) => dependentValue == `#{${parameter.name}}`);
@@ -329,7 +328,7 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         if (!this.supportsParameters || !this.parameterContext) {
             return null;
         }
-        if (this.parameterContext.permissions.canRead) {
+        if (this.parameterContext.permissions.canRead && this.parameterContext.component) {
             return this.parameterContext.component.parameters
                 .map((parameterEntity) => parameterEntity.parameter)
                 .filter((parameter: Parameter) => parameter.sensitive == propertyItem.descriptor.sensitive);

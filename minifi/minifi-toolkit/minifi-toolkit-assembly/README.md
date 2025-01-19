@@ -48,7 +48,8 @@ After downloading the binary and extracting it, to run the MiNiFi Toolkit Conver
       java org.apache.nifi.minifi.toolkit.configuration.ConfigMain <command> options
 
       Valid commands include:
-      transform-yml: Transforms legacy MiNiFi flow config YAML into MiNiFi flow config JSON
+     - transform-nifi: Transform NiFi2 flow JSON format into MiNifi flow JSON format
+     - transform-yml: Transforms legacy MiNiFi flow config YAML into MiNiFi flow config JSON
 
 ## Example
 - You have an older version of MiNiFi located in <legacy_minifi_directory>.
@@ -56,6 +57,10 @@ After downloading the binary and extracting it, to run the MiNiFi Toolkit Conver
 - Run the following command to migrate the flow and the bootstrap config
 ```
 ./config.sh transform-yml <legacy_minifi_directory>/conf/config.yml <legacy_minifi_directory>/conf/bootstrap.conf <latest_minifi_directory>/conf/flow.json.raw <latest_minifi_directory>/conf/bootstrap.conf
+```
+- Run the following command to transform NiFi flow JSON format into MiNifi flow JSON format
+```
+./config.sh transform-nifi <downloaded_nifi2_flow_json_file> <minifi_flow_json_file> 
 ```
 
 ## Note

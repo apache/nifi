@@ -22,12 +22,10 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 
 import { AccessPolicySummaryEntity, ComponentReferenceEntity } from '../../../../../state/shared';
-import { NiFiCommon } from '@nifi/shared';
 import { RouterLink } from '@angular/router';
 import { UserAccessPoliciesDialogRequest } from '../../../state/user-listing';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
-import { CloseOnEscapeDialog } from '@nifi/shared';
-import { ComponentType, SelectOption } from 'libs/shared/src';
+import { ComponentType, SelectOption, CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
 
 @Component({
     selector: 'user-access-policies',

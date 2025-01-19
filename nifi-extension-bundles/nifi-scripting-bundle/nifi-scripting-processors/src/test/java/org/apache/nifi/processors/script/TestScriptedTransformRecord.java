@@ -72,7 +72,7 @@ public class TestScriptedTransformRecord {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "3");
         assertEquals(3, testRunner.getCounterValue("Records Transformed").intValue());
         assertEquals(0, testRunner.getCounterValue("Records Dropped").intValue());
@@ -103,7 +103,7 @@ public class TestScriptedTransformRecord {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "3");
         assertEquals(3, testRunner.getCounterValue("Records Transformed").intValue());
         assertEquals(0, testRunner.getCounterValue("Records Dropped").intValue());
@@ -128,12 +128,13 @@ public class TestScriptedTransformRecord {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "0");
         assertEquals(0, testRunner.getCounterValue("Records Transformed").intValue());
         assertEquals(0, testRunner.getCounterValue("Records Dropped").intValue());
 
         final List<Record> written = recordWriter.getRecordsWritten();
+        assertEquals(0, written.size());
     }
 
     @Test
@@ -152,7 +153,7 @@ public class TestScriptedTransformRecord {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "0");
         assertEquals(0, testRunner.getCounterValue("Records Transformed").intValue());
         assertEquals(3, testRunner.getCounterValue("Records Dropped").intValue());
@@ -179,7 +180,7 @@ public class TestScriptedTransformRecord {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "9");
         assertEquals(3, testRunner.getCounterValue("Records Transformed").intValue());
         assertEquals(0, testRunner.getCounterValue("Records Dropped").intValue());
@@ -212,7 +213,7 @@ public class TestScriptedTransformRecord {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "6");
         assertEquals(3, testRunner.getCounterValue("Records Transformed").intValue());
         assertEquals(0, testRunner.getCounterValue("Records Dropped").intValue());
@@ -243,7 +244,7 @@ public class TestScriptedTransformRecord {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_FAILURE, 1);
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_FAILURE).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_FAILURE).getFirst();
         out.assertAttributeNotExists("record.count");
         assertNull(testRunner.getCounterValue("Records Transformed"));
         assertNull(testRunner.getCounterValue("Records Dropped"));
@@ -272,7 +273,7 @@ public class TestScriptedTransformRecord {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "3");
         assertEquals(3, testRunner.getCounterValue("Records Transformed").intValue());
         assertEquals(0, testRunner.getCounterValue("Records Dropped").intValue());
@@ -303,7 +304,7 @@ public class TestScriptedTransformRecord {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "2");
         assertEquals(2, testRunner.getCounterValue("Records Transformed").intValue());
         assertEquals(2, testRunner.getCounterValue("Records Dropped").intValue());
@@ -333,7 +334,7 @@ public class TestScriptedTransformRecord {
 
         assertEquals(1, recordWriter.getRecordsWritten().size());
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_FAILURE).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_FAILURE).getFirst();
         out.assertAttributeNotExists("record.count");
         assertNull(testRunner.getCounterValue("Records Transformed"));
         assertNull(testRunner.getCounterValue("Records Dropped"));
@@ -358,7 +359,7 @@ public class TestScriptedTransformRecord {
 
         assertEquals(2, recordWriter.getRecordsWritten().size());
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_FAILURE).get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_FAILURE).getFirst();
         out.assertAttributeNotExists("record.count");
         assertNull(testRunner.getCounterValue("Records Transformed"));
         assertNull(testRunner.getCounterValue("Records Dropped"));
@@ -394,7 +395,7 @@ public class TestScriptedTransformRecord {
 
         testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile output = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).get(0);
+        final MockFlowFile output = testRunner.getFlowFilesForRelationship(ScriptedTransformRecord.REL_SUCCESS).getFirst();
         output.assertAttributeEquals("record.count", "2");
 
         final List<Record> outputRecords = recordWriter.getRecordsWritten();

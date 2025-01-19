@@ -31,10 +31,11 @@ import java.util.List;
  * Instance of a Template
  */
 public class TemplateInstanceNode extends BxmlNodeWithToken {
-
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final int unknown;
     private final UnsignedInteger templateId;
     private final int templateOffset;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final boolean isResident;
     private final TemplateNode templateNode;
     private final int templateLength;

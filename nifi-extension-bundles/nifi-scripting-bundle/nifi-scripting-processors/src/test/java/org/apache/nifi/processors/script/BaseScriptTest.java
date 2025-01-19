@@ -49,7 +49,7 @@ public abstract class BaseScriptTest {
         FileUtils.copyDirectory(new File("src/test/resources"), new File("target/test/resources"));
     }
 
-    public void setupExecuteScript() throws Exception {
+    public void setupExecuteScript() {
         final ExecuteScript executeScript = new AccessibleExecuteScript();
         // Need to do something to initialize the properties, like retrieve the list of properties
         assertNotNull(executeScript.getSupportedPropertyDescriptors());
@@ -57,7 +57,7 @@ public abstract class BaseScriptTest {
         scriptingComponent = (AccessibleScriptingComponentHelper) executeScript;
     }
 
-    public void setupInvokeScriptProcessor() throws Exception {
+    public void setupInvokeScriptProcessor() {
         final InvokeScriptedProcessor invokeScriptedProcessor = new AccessibleInvokeScriptedProcessor();
         // Need to do something to initialize the properties, like retrieve the list of properties
         assertNotNull(invokeScriptedProcessor.getSupportedPropertyDescriptors());

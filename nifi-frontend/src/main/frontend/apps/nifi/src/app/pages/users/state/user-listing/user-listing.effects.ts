@@ -26,17 +26,16 @@ import { selectTenant } from './user-listing.actions';
 import { catchError, combineLatest, filter, from, map, mergeMap, of, switchMap, take, takeUntil, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { UsersService } from '../../service/users.service';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { YesNoDialog } from '@nifi/shared';
 import { EditTenantDialog } from '../../../../ui/common/edit-tenant/edit-tenant-dialog.component';
 import { selectSaving, selectStatus, selectUserGroups, selectUsers } from './user-listing.selectors';
 import { EditTenantRequest, UserGroupEntity } from '../../../../state/shared';
 import { Client } from '../../../../service/client.service';
-import { NiFiCommon } from '@nifi/shared';
+import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG, NiFiCommon } from '@nifi/shared';
 import { UserAccessPolicies } from '../../ui/user-listing/user-access-policies/user-access-policies.component';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()

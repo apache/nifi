@@ -34,10 +34,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -156,12 +153,15 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
             .defaultValue(Charset.defaultCharset().name())
             .build();
 
-    public static final Set<Relationship> dynamoDBrelationships = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_UNPROCESSED)));
+    public static final Set<Relationship> COMMON_RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_UNPROCESSED
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return dynamoDBrelationships;
+        return COMMON_RELATIONSHIPS;
     }
 
     @Override

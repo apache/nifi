@@ -55,6 +55,6 @@ public class FlowRegistryClientEndpointMerger extends AbstractSingleEntityEndpoi
     protected void mergeResponses(
             final FlowRegistryClientEntity clientEntity, final Map<NodeIdentifier, FlowRegistryClientEntity> entityMap,
             final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
-        flowRegistryClientEntityMerger.merge(clientEntity, entityMap);;
+        flowRegistryClientEntityMerger.merge(clientEntity, entityMap);
     }
 }

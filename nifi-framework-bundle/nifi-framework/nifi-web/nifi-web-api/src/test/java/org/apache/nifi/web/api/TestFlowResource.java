@@ -65,6 +65,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -307,7 +308,7 @@ public class TestFlowResource {
                 SAMPLE_REGISTRY_ID, SAMPLE_BRANCH_ID_A, SAMPLE_BUCKET_ID_A, SAMPLE_FLOW_ID_A, "1", SAMPLE_BRANCH_ID_B, SAMPLE_BUCKET_ID_B, SAMPLE_FLOW_ID_B, "2", 0, 0);
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
-        assertTrue(FlowComparisonEntity.class.isInstance(response.getEntity()));
+        assertInstanceOf(FlowComparisonEntity.class, response.getEntity());
 
         final FlowComparisonEntity entity = (FlowComparisonEntity) response.getEntity();
         final List<DifferenceDTO> differences = entity.getComponentDifferences().stream().map(ComponentDifferenceDTO::getDifferences).flatMap(Collection::stream).collect(Collectors.toList());
@@ -324,7 +325,7 @@ public class TestFlowResource {
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
-        assertTrue(FlowComparisonEntity.class.isInstance(response.getEntity()));
+        assertInstanceOf(FlowComparisonEntity.class, response.getEntity());
 
         final FlowComparisonEntity entity = (FlowComparisonEntity) response.getEntity();
         final List<DifferenceDTO> differences = entity.getComponentDifferences().stream().map(ComponentDifferenceDTO::getDifferences).flatMap(Collection::stream).collect(Collectors.toList());
@@ -343,7 +344,7 @@ public class TestFlowResource {
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
-        assertTrue(FlowComparisonEntity.class.isInstance(response.getEntity()));
+        assertInstanceOf(FlowComparisonEntity.class, response.getEntity());
 
         final FlowComparisonEntity entity = (FlowComparisonEntity) response.getEntity();
         final List<DifferenceDTO> differences = entity.getComponentDifferences().stream().map(ComponentDifferenceDTO::getDifferences).flatMap(Collection::stream).collect(Collectors.toList());
@@ -363,7 +364,7 @@ public class TestFlowResource {
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
-        assertTrue(FlowComparisonEntity.class.isInstance(response.getEntity()));
+        assertInstanceOf(FlowComparisonEntity.class, response.getEntity());
 
         final FlowComparisonEntity entity = (FlowComparisonEntity) response.getEntity();
         final List<DifferenceDTO> differences = entity.getComponentDifferences().stream().map(ComponentDifferenceDTO::getDifferences).flatMap(Collection::stream).collect(Collectors.toList());
@@ -383,7 +384,7 @@ public class TestFlowResource {
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
-        assertTrue(FlowComparisonEntity.class.isInstance(response.getEntity()));
+        assertInstanceOf(FlowComparisonEntity.class, response.getEntity());
 
         final FlowComparisonEntity entity = (FlowComparisonEntity) response.getEntity();
         final List<DifferenceDTO> differences = entity.getComponentDifferences().stream().map(ComponentDifferenceDTO::getDifferences).flatMap(Collection::stream).collect(Collectors.toList());
@@ -392,8 +393,6 @@ public class TestFlowResource {
     }
 
     private void setUpGetVersionDifference() {
-        final FlowVersionLocation baseLocation = new FlowVersionLocation(SAMPLE_BRANCH_ID_A, SAMPLE_BUCKET_ID_A, SAMPLE_FLOW_ID_A, "1");
-        final FlowVersionLocation comparedLocation = new FlowVersionLocation(SAMPLE_BRANCH_ID_B, SAMPLE_BUCKET_ID_B, SAMPLE_FLOW_ID_B, "2");
         doReturn(getDifferences()).when(serviceFacade).getVersionDifference(anyString(), any(FlowVersionLocation.class), any(FlowVersionLocation.class));
     }
 

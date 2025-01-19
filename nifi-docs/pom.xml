@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.2.0-SNAPSHOT</version>
     </parent>
     <packaging>pom</packaging>
     <artifactId>nifi-docs</artifactId>
@@ -52,7 +52,7 @@
                 <executions>
                     <execution>
                         <id>output-html</id>
-                        <phase>prepare-package</phase>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>process-asciidoc</goal>
                         </goals>
@@ -83,7 +83,7 @@
                 <version>1.5.3</version>
                 <executions>
                     <execution>
-                        <phase>package</phase>
+                        <phase>compile</phase>
                         <goals>
                             <goal>replace</goal>
                         </goals>
@@ -139,7 +139,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>package</phase>
+                        <phase>compile</phase>
                         <configuration>
                             <descriptors>
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>

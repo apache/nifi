@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.evtx.parser;
 
-import com.google.common.base.Charsets;
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedLong;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
@@ -59,7 +59,7 @@ public class BinaryReaderTest {
 
     @Test
     public void testReadBytesJustLength() throws IOException {
-        byte[] bytes = "Hello world".getBytes(Charsets.US_ASCII);
+        byte[] bytes = "Hello world".getBytes(StandardCharsets.US_ASCII);
         BinaryReader binaryReader = testBinaryReaderBuilder.put(bytes).build();
         assertArrayEquals(Arrays.copyOfRange(bytes, 0, 5), binaryReader.readBytes(5));
         assertEquals(5, binaryReader.getPosition());
@@ -67,7 +67,7 @@ public class BinaryReaderTest {
 
     @Test
     public void testPeekBytes() throws IOException {
-        byte[] bytes = "Hello world".getBytes(Charsets.US_ASCII);
+        byte[] bytes = "Hello world".getBytes(StandardCharsets.US_ASCII);
         BinaryReader binaryReader = testBinaryReaderBuilder.put(bytes).build();
         assertArrayEquals(Arrays.copyOfRange(bytes, 0, 5), binaryReader.peekBytes(5));
         assertEquals(0, binaryReader.getPosition());
@@ -75,7 +75,7 @@ public class BinaryReaderTest {
 
     @Test
     public void testReadBytesBufOffsetLength() throws IOException {
-        byte[] bytes = "Hello world".getBytes(Charsets.US_ASCII);
+        byte[] bytes = "Hello world".getBytes(StandardCharsets.US_ASCII);
         byte[] buf = new byte[5];
 
         BinaryReader binaryReader = testBinaryReaderBuilder.put(bytes).build();
@@ -96,7 +96,7 @@ public class BinaryReaderTest {
     public void testReadStringNotNullTerminated() throws IOException {
         String value = "Hello world";
 
-        BinaryReader binaryReader = testBinaryReaderBuilder.put(value.getBytes(Charsets.US_ASCII)).build();
+        BinaryReader binaryReader = testBinaryReaderBuilder.put(value.getBytes(StandardCharsets.US_ASCII)).build();
         assertThrows(IOException.class, () -> binaryReader.readString(value.length()));
     }
 
@@ -175,7 +175,7 @@ public class BinaryReaderTest {
     @Test
     public void testReadAndBase64EncodeBinary() throws IOException {
         String orig = "Hello World";
-        String stringValue = Base64.getEncoder().encodeToString(orig.getBytes(Charsets.US_ASCII));
+        String stringValue = Base64.getEncoder().encodeToString(orig.getBytes(StandardCharsets.US_ASCII));
         BinaryReader binaryReader = testBinaryReaderBuilder.putBase64EncodedBinary(stringValue).build();
 
         assertEquals(stringValue, binaryReader.readAndBase64EncodeBinary(orig.length()));
@@ -192,7 +192,7 @@ public class BinaryReaderTest {
     @Test
     public void testReaderPositionConstructor() throws IOException {
         String value = "Hello world";
-        BinaryReader binaryReader = new BinaryReader(new BinaryReader(value.getBytes(Charsets.UTF_16LE)), 2);
+        BinaryReader binaryReader = new BinaryReader(new BinaryReader(value.getBytes(StandardCharsets.UTF_16LE)), 2);
 
         assertEquals(value.substring(1), binaryReader.readWString(value.length() - 1));
         assertEquals(value.length() * 2, binaryReader.getPosition());
@@ -201,7 +201,7 @@ public class BinaryReaderTest {
     @Test
     public void testInputStreamSizeConstructor() throws IOException {
         String value = "Hello world";
-        BinaryReader binaryReader = new BinaryReader(new ByteArrayInputStream(value.getBytes(Charsets.UTF_16LE)), 10);
+        BinaryReader binaryReader = new BinaryReader(new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_16LE)), 10);
 
         assertEquals(value.substring(0, 5), binaryReader.readWString(5));
         assertEquals(10, binaryReader.getPosition());

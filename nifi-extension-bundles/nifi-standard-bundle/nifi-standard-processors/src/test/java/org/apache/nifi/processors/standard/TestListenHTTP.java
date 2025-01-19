@@ -58,6 +58,7 @@ import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -345,14 +346,14 @@ public class TestListenHTTP {
     public void testSecureServerTrustStoreConfiguredClientAuthenticationRequired() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED);
         final int port = startSecureServer();
-        assertThrows(IOException.class, () -> sendMessage(null, true, port, false, HTTP_POST));
+        assertThrows(IOException.class, () -> sendMessage(null, true, port, HTTP_BASE_PATH, false, HTTP_POST));
     }
 
     @Test
     public void testSecureServerTrustStoreNotConfiguredClientAuthenticationNotRequired() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO);
         final int port = startSecureServer();
-        final int responseCode = sendMessage(null, true, port, true, HTTP_POST);
+        final int responseCode = sendMessage(null, true, port, HTTP_BASE_PATH, true, HTTP_POST);
         assertEquals(HttpServletResponse.SC_NO_CONTENT, responseCode);
     }
 
@@ -464,7 +465,7 @@ public class TestListenHTTP {
 
         final OkHttpClient okHttpClient = getOkHttpClient(false, false);
         final Request.Builder requestBuilder = new Request.Builder();
-        final String url = buildUrl(false, port);
+        final String url = buildUrl(false, port, HTTP_BASE_PATH);
         requestBuilder.url(url);
 
         final String message = String.class.getSimpleName();
@@ -497,11 +498,27 @@ public class TestListenHTTP {
     }
 
     @Test
+    public void testOptionsNotAllowedOnNonBasePath() throws Exception {
+        final int port = startWebServer();
+        final int statusCode = sendMessage("payload 1", false, port, "randomPath", false, HTTP_OPTIONS);
+
+        assertEquals(HttpServletResponse.SC_METHOD_NOT_ALLOWED, statusCode, "HTTP Status Code not matched");
+    }
+
+    @Test
     public void testTraceNotAllowed() throws Exception {
         final List<String> messages = new ArrayList<>();
         messages.add("payload 1");
 
         startWebServerAndSendMessages(messages, HttpServletResponse.SC_METHOD_NOT_ALLOWED, false, false, HTTP_TRACE);
+    }
+
+    @Test
+    public void testTraceNotAllowedOnNonBasePath() throws Exception {
+        final int port = startWebServer();
+        final int statusCode = sendMessage("payload 1", false, port, "randomPath", false, HTTP_TRACE);
+
+        assertEquals(HttpServletResponse.SC_METHOD_NOT_ALLOWED, statusCode, "HTTP Status Code not matched");
     }
 
     private MockRecordParser setupRecordReaderTest() throws InitializationException {
@@ -527,10 +544,10 @@ public class TestListenHTTP {
         return startWebServer();
     }
 
-    private int sendMessage(final String message, final boolean secure, final int port, boolean clientAuthRequired, final String httpMethod) throws IOException {
+    private int sendMessage(final String message, final boolean secure, final int port, final String basePath, boolean clientAuthRequired, final String httpMethod) throws IOException {
         final byte[] bytes = message == null ? new byte[]{} : message.getBytes(StandardCharsets.UTF_8);
         final RequestBody requestBody = RequestBody.create(bytes, APPLICATION_OCTET_STREAM);
-        final String url = buildUrl(secure, port);
+        final String url = buildUrl(secure, port, basePath);
         final Request.Builder requestBuilder = new Request.Builder();
         final Request request = requestBuilder.method(httpMethod, requestBody)
                 .url(url)
@@ -557,8 +574,8 @@ public class TestListenHTTP {
         return builder.build();
     }
 
-    private String buildUrl(final boolean secure, final int port) {
-        return String.format("%s://localhost:%s/%s", secure ? "https" : "http", port, HTTP_BASE_PATH);
+    private String buildUrl(final boolean secure, final int port, String basePath) {
+        return String.format("%s://localhost:%s/%s", secure ? "https" : "http", port, basePath);
     }
 
     private void testPOSTRequestsReceived(int returnCode, boolean secure, boolean twoWaySsl) throws Exception {
@@ -623,7 +640,7 @@ public class TestListenHTTP {
         final int port = startWebServer();
 
         for (final String message : messages) {
-            final int statusCode = sendMessage(message, secure, port, clientAuthRequired, httpMethod);
+            final int statusCode = sendMessage(message, secure, port, HTTP_BASE_PATH, clientAuthRequired, httpMethod);
             assertEquals(expectedStatusCode, statusCode, "HTTP Status Code not matched");
         }
     }
@@ -669,7 +686,7 @@ public class TestListenHTTP {
             .build();
 
         final Request request = new Request.Builder()
-            .url(buildUrl(isSecure, port))
+            .url(buildUrl(isSecure, port, HTTP_BASE_PATH))
             .post(multipartBody)
             .build();
 
@@ -741,7 +758,7 @@ public class TestListenHTTP {
 
         final int port = startWebServer();
         OkHttpClient client = getOkHttpClient(false, false);
-        final String url = buildUrl(false, port);
+        final String url = buildUrl(false, port, HTTP_BASE_PATH);
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Large-Header", largeHeaderValue)

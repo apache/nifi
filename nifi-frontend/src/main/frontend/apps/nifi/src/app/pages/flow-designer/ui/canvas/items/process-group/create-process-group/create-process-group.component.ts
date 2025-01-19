@@ -21,10 +21,8 @@ import { CreateProcessGroupDialogRequest } from '../../../../../state/flow';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { createProcessGroup, uploadProcessGroup } from '../../../../../state/flow/flow.actions';
-import { SelectOption } from 'libs/shared/src';
 import { selectSaving } from '../../../../../state/flow/flow.selectors';
 import { AsyncPipe } from '@angular/common';
-import { ErrorBanner } from '../../../../../../../ui/common/error-banner/error-banner.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -34,7 +32,7 @@ import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nif
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { NiFiCommon, TextTip, NifiTooltipDirective } from '@nifi/shared';
-import { CloseOnEscapeDialog } from '@nifi/shared';
+import { CloseOnEscapeDialog, SelectOption } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 
@@ -43,7 +41,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
     standalone: true,
     imports: [
         AsyncPipe,
-        ErrorBanner,
         MatButtonModule,
         MatDialogModule,
         MatFormFieldModule,
@@ -85,7 +82,7 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
         });
 
         dialogRequest.parameterContexts.forEach((parameterContext) => {
-            if (parameterContext.permissions.canRead) {
+            if (parameterContext.permissions.canRead && parameterContext.component) {
                 this.parameterContextsOptions.push({
                     text: parameterContext.component.name,
                     value: parameterContext.id,

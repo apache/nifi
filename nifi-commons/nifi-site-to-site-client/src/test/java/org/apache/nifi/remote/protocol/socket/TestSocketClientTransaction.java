@@ -31,8 +31,6 @@ import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.Response;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -57,7 +55,6 @@ import static org.mockito.Mockito.when;
 
 public class TestSocketClientTransaction {
 
-    private Logger logger = LoggerFactory.getLogger(TestSocketClientTransaction.class);
     private FlowFileCodec codec = new StandardFlowFileCodec();
 
     private SocketClientTransaction getClientTransaction(ByteArrayInputStream bis, ByteArrayOutputStream bos, TransferDirection direction) throws IOException {

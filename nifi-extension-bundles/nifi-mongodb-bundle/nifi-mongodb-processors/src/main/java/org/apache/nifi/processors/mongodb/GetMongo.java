@@ -47,11 +47,10 @@ import org.bson.json.JsonWriterSettings;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Tags({ "mongodb", "read", "get" })
 @InputRequirement(Requirement.INPUT_ALLOWED)
@@ -86,33 +85,31 @@ public class GetMongo extends AbstractMongoQueryProcessor {
             .addValidator(Validator.VALID)
             .build();
 
-    private final static Set<Relationship> relationships;
-    private final static List<PropertyDescriptor> propertyDescriptors;
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_ORIGINAL
+    );
+
+    private final static List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            AbstractMongoProcessor.DESCRIPTORS.stream(),
+            Stream.of(
+                    JSON_TYPE,
+                    USE_PRETTY_PRINTING,
+                    CHARSET,
+                    QUERY,
+                    QUERY_ATTRIBUTE,
+                    PROJECTION,
+                    SORT,
+                    LIMIT,
+                    BATCH_SIZE,
+                    RESULTS_PER_FLOWFILE,
+                    DATE_FORMAT,
+                    SEND_EMPTY_RESULTS
+            )
+    ).toList();
+
     private ComponentLog logger;
-
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(descriptors);
-        _propertyDescriptors.add(JSON_TYPE);
-        _propertyDescriptors.add(USE_PRETTY_PRINTING);
-        _propertyDescriptors.add(CHARSET);
-        _propertyDescriptors.add(QUERY);
-        _propertyDescriptors.add(QUERY_ATTRIBUTE);
-        _propertyDescriptors.add(PROJECTION);
-        _propertyDescriptors.add(SORT);
-        _propertyDescriptors.add(LIMIT);
-        _propertyDescriptors.add(BATCH_SIZE);
-        _propertyDescriptors.add(RESULTS_PER_FLOWFILE);
-        _propertyDescriptors.add(DATE_FORMAT);
-        _propertyDescriptors.add(SEND_EMPTY_RESULTS);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
-
-        final Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_FAILURE);
-        _relationships.add(REL_ORIGINAL);
-        relationships = Collections.unmodifiableSet(_relationships);
-    }
 
     private boolean sendEmpty;
     @OnScheduled
@@ -122,12 +119,12 @@ public class GetMongo extends AbstractMongoQueryProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     //Turn a list of Mongo result documents into a String representation of a JSON array

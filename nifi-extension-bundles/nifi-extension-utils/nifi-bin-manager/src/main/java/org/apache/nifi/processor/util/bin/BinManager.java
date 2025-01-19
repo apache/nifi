@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 
 /**
  * This class is thread safe
@@ -45,6 +46,8 @@ public class BinManager {
     private final AtomicInteger minEntries = new AtomicInteger(0);
     private final AtomicInteger maxEntries = new AtomicInteger(Integer.MAX_VALUE);
     private final AtomicReference<String> fileCountAttribute = new AtomicReference<>(null);
+    private volatile Predicate<FlowFile> binTerminationCheck = ff -> false;
+    private volatile InsertionLocation insertionLocation = InsertionLocation.LAST_IN_BIN;
 
     private final AtomicInteger maxBinAgeSeconds = new AtomicInteger(Integer.MAX_VALUE);
     private final Map<String, List<Bin>> groupBinMap = new HashMap<>();
@@ -88,6 +91,16 @@ public class BinManager {
         this.maxEntries.set(maximumEntries);
     }
 
+    /**
+     * Sets the predicate that determines whether or not a FlowFile should terminate a bin and the location in the bin where the FlowFile should be inserted if so.
+     * @param binTerminationCheck the predicate to use to determine if a FlowFile should terminate a bin
+     * @param insertionLocation the location in the bin where the FlowFile should be inserted if it terminates the bin
+     */
+    public void setBinTermination(final Predicate<FlowFile> binTerminationCheck, final InsertionLocation insertionLocation) {
+        this.binTerminationCheck = binTerminationCheck;
+        this.insertionLocation = insertionLocation;
+    }
+
     public int getBinCount() {
         rLock.lock();
         try {
@@ -121,39 +134,8 @@ public class BinManager {
      * @return true if added; false if no bin exists which can fit this item and no bin can be created based on current min/max criteria
      */
     public boolean offer(final String groupIdentifier, final FlowFile flowFile, final ProcessSession session, final ProcessSessionFactory sessionFactory) {
-        final long currentMaxSizeBytes = maxSizeBytes.get();
-        if (flowFile.getSize() > currentMaxSizeBytes) { //won't fit into any new bins (and probably none existing)
-            return false;
-        }
-        wLock.lock();
-        try {
-            final List<Bin> currentBins = groupBinMap.get(groupIdentifier);
-            if (currentBins == null) { // this is a new group we need to register
-                final List<Bin> bins = new ArrayList<>();
-                final Bin bin = new Bin(sessionFactory.createSession(), minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(),
-                    maxEntries.get(), fileCountAttribute.get());
-                bins.add(bin);
-                groupBinMap.put(groupIdentifier, bins);
-                binCount++;
-                return bin.offer(flowFile, session);
-            } else {
-                for (final Bin bin : currentBins) {
-                    final boolean accepted = bin.offer(flowFile, session);
-                    if (accepted) {
-                        return true;
-                    }
-                }
-
-                //if we've reached this point then we couldn't fit it into any existing bins - gotta make a new one
-                final Bin bin = new Bin(sessionFactory.createSession(), minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(),
-                    maxEntries.get(), fileCountAttribute.get());
-                currentBins.add(bin);
-                binCount++;
-                return bin.offer(flowFile, session);
-            }
-        } finally {
-            wLock.unlock();
-        }
+        final Set<FlowFile> unbinned = offer(groupIdentifier, List.of(flowFile), session, sessionFactory);
+        return unbinned.isEmpty();
     }
 
     /**
@@ -179,11 +161,39 @@ public class BinManager {
                     continue;
                 }
 
+                final boolean terminatesBin = binTerminationCheck != null && binTerminationCheck.test(flowFile);
+
                 final List<Bin> currentBins = groupBinMap.computeIfAbsent(groupIdentifier, k -> new ArrayList<>());
-                for (final Bin bin : currentBins) {
-                    final boolean accepted = bin.offer(flowFile, session);
-                    if (accepted) {
-                        continue flowFileLoop;
+                if (terminatesBin) {
+                    if (insertionLocation == InsertionLocation.LAST_IN_BIN) {
+                        for (final Bin bin : currentBins) {
+                            final boolean accepted = bin.offer(flowFile, session);
+                            if (accepted) {
+                                bin.complete();
+                                bin.setEvictionReason(EvictionReason.BIN_TERMINATION_SIGNAL);
+
+                                continue flowFileLoop;
+                            }
+                        }
+                    } else if (!currentBins.isEmpty()) {
+                        for (final Bin bin : currentBins) {
+                            if (bin.isForcefullyCompleted()) {
+                                continue;
+                            }
+
+                            bin.complete();
+                            bin.setEvictionReason(EvictionReason.BIN_TERMINATION_SIGNAL);
+                            break;
+
+                            // Note that we intentionally do not continue the flowFileLoop here because we want to create a new bin
+                        }
+                    }
+                } else {
+                    for (final Bin bin : currentBins) {
+                        final boolean accepted = bin.offer(flowFile, session);
+                        if (accepted) {
+                            continue flowFileLoop;
+                        }
                     }
                 }
 
@@ -194,7 +204,12 @@ public class BinManager {
                 currentBins.add(bin);
                 binCount++;
                 final boolean added = bin.offer(flowFile, session);
-                if (!added) {
+                if (added) {
+                    if (terminatesBin && (insertionLocation == InsertionLocation.ISOLATED || insertionLocation == InsertionLocation.LAST_IN_BIN)) {
+                        bin.complete();
+                        bin.setEvictionReason(EvictionReason.BIN_TERMINATION_SIGNAL);
+                    }
+                } else {
                     unbinned.add(flowFile);
                 }
 
@@ -223,10 +238,10 @@ public class BinManager {
                 final List<Bin> remainingBins = new ArrayList<>();
                 for (final Bin bin : group.getValue()) {
                     if (relaxFullnessConstraint && bin.isFullEnough()) {
-                        bin.setEvictionReason(bin.determineFullness());
+                        bin.setEvictionReason(bin.determineEvictionReason());
                         readyBins.add(bin);
                     } else if (!relaxFullnessConstraint && bin.isFull()) { //strict check
-                        bin.setEvictionReason(bin.determineFullness());
+                        bin.setEvictionReason(bin.determineEvictionReason());
                         readyBins.add(bin);
                     } else if (relaxFullnessConstraint && bin.isOlderThan(maxBinAgeSeconds.get(), TimeUnit.SECONDS)) {
                         bin.setEvictionReason(EvictionReason.TIMEOUT);
@@ -277,25 +292,6 @@ public class BinManager {
         } finally {
             wLock.unlock();
         }
-    }
-
-    /**
-     * @return true if any current bins are older than the allowable max
-     */
-    public boolean containsOldBins() {
-        rLock.lock();
-        try {
-            for (final List<Bin> bins : groupBinMap.values()) {
-                for (final Bin bin : bins) {
-                    if (bin.isOlderThan(maxBinAgeSeconds.get(), TimeUnit.SECONDS)) {
-                        return true;
-                    }
-                }
-            }
-        } finally {
-            rLock.unlock();
-        }
-        return false;
     }
 
 }

@@ -47,9 +47,6 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,35 +76,29 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
         .required(true)
         .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS;
-    private static final Set<Relationship> RELATIONSHIPS;
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            CLIENT_SERVICE,
+            WRITER_FACTORY,
+            DATABASE_NAME,
+            COLLECTION_NAME,
+            SCHEMA_NAME,
+            QUERY_ATTRIBUTE,
+            QUERY,
+            PROJECTION,
+            SORT,
+            LIMIT,
+            BATCH_SIZE
+    );
 
-    static {
-        List<PropertyDescriptor> _temp = new ArrayList<>();
-        _temp.add(CLIENT_SERVICE);
-        _temp.add(WRITER_FACTORY);
-        _temp.add(DATABASE_NAME);
-        _temp.add(COLLECTION_NAME);
-        _temp.add(SCHEMA_NAME);
-        _temp.add(QUERY_ATTRIBUTE);
-        _temp.add(QUERY);
-        _temp.add(PROJECTION);
-        _temp.add(SORT);
-        _temp.add(LIMIT);
-        _temp.add(BATCH_SIZE);
-
-        DESCRIPTORS = Collections.unmodifiableList(_temp);
-
-        Set<Relationship> _rels = new HashSet<>();
-        _rels.add(REL_SUCCESS);
-        _rels.add(REL_FAILURE);
-        _rels.add(REL_ORIGINAL);
-        RELATIONSHIPS = Collections.unmodifiableSet(_rels);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_ORIGINAL
+    );
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return DESCRIPTORS;
+        return PROPERTIES;
     }
 
     @Override
@@ -191,7 +182,6 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
                 session.transfer(input, REL_ORIGINAL);
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
             getLogger().error("Error writing record set from Mongo query.", ex);
             session.remove(output);
             if (input != null) {

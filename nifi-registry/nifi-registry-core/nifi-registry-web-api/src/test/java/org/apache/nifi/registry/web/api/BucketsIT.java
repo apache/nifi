@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertBucketsEqual;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -93,7 +94,7 @@ public class BucketsIT extends UnsecuredITBase {
         // Then: the pre-populated list of buckets is returned
 
         JSONAssert.assertEquals(expected, bucketsJson, false);
-        assertTrue(!bucketsJson.contains("null")); // JSON serialization from the server should not include null fields, such as "versionedFlows": null
+        assertFalse(bucketsJson.contains("null")); // JSON serialization from the server should not include null fields, such as "versionedFlows": null
     }
 
     @Test

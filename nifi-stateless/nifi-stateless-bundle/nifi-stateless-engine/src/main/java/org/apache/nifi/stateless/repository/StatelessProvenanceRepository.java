@@ -91,7 +91,7 @@ public class StatelessProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords, final NiFiUser user) throws IOException {
-        return ringBuffer.getSelectedElements(new RingBuffer.Filter<ProvenanceEventRecord>() {
+        return ringBuffer.getSelectedElements(new RingBuffer.Filter<>() {
             @Override
             public boolean select(final ProvenanceEventRecord value) {
                 return value.getEventId() >= firstRecordId;
@@ -106,7 +106,7 @@ public class StatelessProvenanceRepository implements ProvenanceRepository {
     }
 
     public ProvenanceEventRecord getEvent(final String identifier) throws IOException {
-        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new RingBuffer.Filter<ProvenanceEventRecord>() {
+        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new RingBuffer.Filter<>() {
             @Override
             public boolean select(final ProvenanceEventRecord event) {
                 return identifier.equals(event.getFlowFileUuid());
@@ -117,7 +117,7 @@ public class StatelessProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public ProvenanceEventRecord getEvent(final long id) {
-        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new RingBuffer.Filter<ProvenanceEventRecord>() {
+        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new RingBuffer.Filter<>() {
             @Override
             public boolean select(final ProvenanceEventRecord event) {
                 return event.getEventId() == id;

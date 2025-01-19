@@ -24,15 +24,15 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.repository.schema.SchemaRecordWriter.MAX_ALLOWED_UTF_LENGTH;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -75,7 +75,7 @@ public class TestSchemaRecordReaderWriter {
         final FieldMapRecord complexRecord2 = new FieldMapRecord(complexMap2, new RecordSchema(longStringField, longField));
 
         // Create a Union Field that indicates that the type could be either 'complex 1' or 'complex 2'
-        final UnionRecordField unionRecordField = new UnionRecordField("union", Repetition.ZERO_OR_MORE, Arrays.asList(new RecordField[] {complexField1, complexField2}));
+        final UnionRecordField unionRecordField = new UnionRecordField("union", Repetition.ZERO_OR_MORE, List.of(complexField1, complexField2));
 
         // Create a Record Schema
         final List<RecordField> fields = new ArrayList<>();
@@ -123,9 +123,9 @@ public class TestSchemaRecordReaderWriter {
         values.put(createField("long string present", FieldType.LONG_STRING), "Long Hello");
         values.put(createField("complex present", FieldType.COMPLEX), new FieldMapRecord(complexFieldMap, new RecordSchema(colorField, fruitField)));
         values.put(new MapRecordField("map present", createField("key", FieldType.STRING), createField("value", FieldType.INT), Repetition.EXACTLY_ONE), simpleMap);
-        values.put(unionRecordField, Arrays.asList(new NamedValue[] {
+        values.put(unionRecordField, List.of(
             new NamedValue("complex1", complexRecord1),
-            new NamedValue("complex2", complexRecord2)}));
+            new NamedValue("complex2", complexRecord2)));
 
         final FieldMapRecord originalRecord = new FieldMapRecord(values, schema);
 
@@ -152,7 +152,7 @@ public class TestSchemaRecordReaderWriter {
                     assertEquals(42, record.getFieldValue("int"));
                     assertEquals(42, record.getFieldValue("int present"));
                     assertEquals(true, record.getFieldValue("boolean present"));
-                    assertTrue(Arrays.equals("Hello".getBytes(), (byte[]) record.getFieldValue("byte array present")));
+                    assertArrayEquals("Hello".getBytes(), (byte[]) record.getFieldValue("byte array present"));
                     assertEquals(42L, record.getFieldValue("long present"));
                     assertEquals("Hello", record.getFieldValue("string present"));
                     assertEquals("Long Hello", record.getFieldValue("long string present"));
@@ -197,8 +197,8 @@ public class TestSchemaRecordReaderWriter {
         values.put(createField("int present", FieldType.INT), 42);
         final String utfString = utfStringOneByte + utfStringTwoByte + utfStringThreeByte;  // 3 chars and 6 utf8 bytes
         final String seventyK = StringUtils.repeat(utfString, 21845);  // 65,535 chars and 131070 utf8 bytes
-        assertTrue(seventyK.length() == 65535);
-        assertTrue(seventyK.getBytes("UTF-8").length == 131070);
+        assertEquals(65535, seventyK.length());
+        assertEquals(131070, seventyK.getBytes(StandardCharsets.UTF_8).length);
         values.put(createField("string present", FieldType.STRING), seventyK);
 
         final FieldMapRecord originalRecord = new FieldMapRecord(values, schema);
@@ -224,7 +224,7 @@ public class TestSchemaRecordReaderWriter {
 
                     assertNotNull(record);
                     assertEquals(42, record.getFieldValue("int present"));
-                    assertTrue(MAX_ALLOWED_UTF_LENGTH - ((String) record.getFieldValue("string present")).getBytes("utf-8").length <= 3);
+                    assertTrue(MAX_ALLOWED_UTF_LENGTH - ((String) record.getFieldValue("string present")).getBytes(StandardCharsets.UTF_8).length <= 3);
                     assertEquals(32768, ((String) record.getFieldValue("string present")).length());
                 }
 
@@ -265,7 +265,7 @@ public class TestSchemaRecordReaderWriter {
     }
 
     @Test
-    public void testSmallCharUTFLengths() throws UnsupportedEncodingException {
+    public void testSmallCharUTFLengths() {
         final String string12b = StringUtils.repeat(utfStringOneByte + utfStringTwoByte + utfStringThreeByte, 2);
 
         assertEquals(0, SchemaRecordWriter.getCharsInUTF8Limit(string12b,  0), "test multi-char string truncated to  0 utf bytes should be 0");

@@ -168,9 +168,9 @@ public class ConnectionFactoryConfigIT {
 
     private void assertResult() {
         publisher.assertAllFlowFilesTransferred(PublishJMS.REL_SUCCESS, 1);
-        publisher.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS).get(0).assertContentEquals(TEST_MESSAGE);
+        publisher.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS).getFirst().assertContentEquals(TEST_MESSAGE);
 
         consumer.assertAllFlowFilesTransferred(ConsumeJMS.REL_SUCCESS, 1);
-        consumer.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS).get(0).assertContentEquals(TEST_MESSAGE);
+        consumer.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS).getFirst().assertContentEquals(TEST_MESSAGE);
     }
 }

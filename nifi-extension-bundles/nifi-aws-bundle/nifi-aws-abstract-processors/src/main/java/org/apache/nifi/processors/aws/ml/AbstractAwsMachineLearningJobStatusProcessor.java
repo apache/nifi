@@ -99,10 +99,10 @@ public abstract class AbstractAwsMachineLearningJobStatusProcessor<
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
-    private static final Set<Relationship> relationships = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_ORIGINAL,
             REL_SUCCESS,
             REL_RUNNING,

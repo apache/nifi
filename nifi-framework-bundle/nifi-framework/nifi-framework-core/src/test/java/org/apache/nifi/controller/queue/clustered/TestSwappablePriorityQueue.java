@@ -27,7 +27,6 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,13 +81,10 @@ public class TestSwappablePriorityQueue {
 
     @Test
     public void testPrioritizersBigQueue() {
-        final FlowFilePrioritizer iAttributePrioritizer = new FlowFilePrioritizer() {
-            @Override
-            public int compare(final FlowFile o1, final FlowFile o2) {
-                final int i1 = Integer.parseInt(o1.getAttribute("i"));
-                final int i2 = Integer.parseInt(o2.getAttribute("i"));
-                return Integer.compare(i1, i2);
-            }
+        final FlowFilePrioritizer iAttributePrioritizer = (o1, o2) -> {
+            final int i1 = Integer.parseInt(o1.getAttribute("i"));
+            final int i2 = Integer.parseInt(o2.getAttribute("i"));
+            return Integer.compare(i1, i2);
         };
 
         queue.setPriorities(Collections.singletonList(iAttributePrioritizer));
@@ -127,13 +123,10 @@ public class TestSwappablePriorityQueue {
 
     @Test
     public void testOrderingWithCornerCases() {
-        final FlowFilePrioritizer iAttributePrioritizer = new FlowFilePrioritizer() {
-            @Override
-            public int compare(final FlowFile o1, final FlowFile o2) {
-                final int i1 = Integer.parseInt(o1.getAttribute("i"));
-                final int i2 = Integer.parseInt(o2.getAttribute("i"));
-                return Integer.compare(i1, i2);
-            }
+        final FlowFilePrioritizer iAttributePrioritizer = (o1, o2) -> {
+            final int i1 = Integer.parseInt(o1.getAttribute("i"));
+            final int i2 = Integer.parseInt(o2.getAttribute("i"));
+            return Integer.compare(i1, i2);
         };
 
         queue.setPriorities(Collections.singletonList(iAttributePrioritizer));
@@ -157,13 +150,10 @@ public class TestSwappablePriorityQueue {
 
     @Test
     public void testPrioritizerWhenOutOfOrderDataEntersSwapQueue() {
-        final FlowFilePrioritizer iAttributePrioritizer = new FlowFilePrioritizer() {
-            @Override
-            public int compare(final FlowFile o1, final FlowFile o2) {
-                final int i1 = Integer.parseInt(o1.getAttribute("i"));
-                final int i2 = Integer.parseInt(o2.getAttribute("i"));
-                return Integer.compare(i1, i2);
-            }
+        final FlowFilePrioritizer iAttributePrioritizer = (o1, o2) -> {
+            final int i1 = Integer.parseInt(o1.getAttribute("i"));
+            final int i2 = Integer.parseInt(o2.getAttribute("i"));
+            return Integer.compare(i1, i2);
         };
 
         queue.setPriorities(Collections.singletonList(iAttributePrioritizer));
@@ -195,13 +185,10 @@ public class TestSwappablePriorityQueue {
 
     @Test
     public void testPrioritizersDataAddedAfterSwapOccurs() {
-        final FlowFilePrioritizer iAttributePrioritizer = new FlowFilePrioritizer() {
-            @Override
-            public int compare(final FlowFile o1, final FlowFile o2) {
-                final int i1 = Integer.parseInt(o1.getAttribute("i"));
-                final int i2 = Integer.parseInt(o2.getAttribute("i"));
-                return Integer.compare(i1, i2);
-            }
+        final FlowFilePrioritizer iAttributePrioritizer = (o1, o2) -> {
+            final int i1 = Integer.parseInt(o1.getAttribute("i"));
+            final int i2 = Integer.parseInt(o2.getAttribute("i"));
+            return Integer.compare(i1, i2);
         };
 
         queue.setPriorities(Collections.singletonList(iAttributePrioritizer));

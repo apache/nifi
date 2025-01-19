@@ -34,7 +34,7 @@ public class UserGroupProviderInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             return method.invoke(userGroupProvider, args);
         } catch (final InvocationTargetException e) {
             // If the proxied instance throws an Exception, it'll be wrapped in an InvocationTargetException. We want

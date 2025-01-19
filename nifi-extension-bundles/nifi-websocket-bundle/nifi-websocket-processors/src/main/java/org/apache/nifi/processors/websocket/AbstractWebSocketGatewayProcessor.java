@@ -35,13 +35,13 @@ import org.apache.nifi.websocket.TextMessageConsumer;
 import org.apache.nifi.websocket.WebSocketClientService;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
 import org.apache.nifi.websocket.WebSocketConnectedMessage;
+import org.apache.nifi.websocket.WebSocketDisconnectedMessage;
 import org.apache.nifi.websocket.WebSocketMessage;
 import org.apache.nifi.websocket.WebSocketService;
 import org.apache.nifi.websocket.WebSocketSessionInfo;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -67,6 +67,12 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             .description("The WebSocket session is established")
             .build();
 
+    public static final Relationship REL_DISCONNECTED = new Relationship.Builder()
+            .name("disconnected")
+            .description("The WebSocket session is disconnected")
+            .autoTerminateDefault(true)
+            .build();
+
     public static final Relationship REL_MESSAGE_TEXT = new Relationship.Builder()
             .name("text message")
             .description("The WebSocket text message output")
@@ -89,12 +95,15 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             .autoTerminateDefault(true)
             .build();
 
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_CONNECTED,
+            REL_DISCONNECTED,
+            REL_MESSAGE_TEXT,
+            REL_MESSAGE_BINARY
+    );
+
     static Set<Relationship> getAbstractRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_CONNECTED);
-        relationships.add(REL_MESSAGE_TEXT);
-        relationships.add(REL_MESSAGE_BINARY);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -110,6 +119,13 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     @Override
     public void connected(WebSocketSessionInfo sessionInfo) {
         final WebSocketMessage message = new WebSocketConnectedMessage(sessionInfo);
+        sessionInfo.setTransitUri(getTransitUri(sessionInfo));
+        enqueueMessage(message);
+    }
+
+    @Override
+    public void disconnected(WebSocketSessionInfo sessionInfo) {
+        final WebSocketMessage message = new WebSocketDisconnectedMessage(sessionInfo);
         sessionInfo.setTransitUri(getTransitUri(sessionInfo));
         enqueueMessage(message);
     }
@@ -133,10 +149,9 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     // @OnScheduled can not report error messages well on bulletin since it's an async method.
     // So, let's do it in onTrigger().
     public void onWebSocketServiceReady(final WebSocketService webSocketService, final ProcessContext context) throws IOException {
-        if (webSocketService instanceof WebSocketClientService) {
+        if (webSocketService instanceof WebSocketClientService webSocketClientService) {
             // If it's a ws client, then connect to the remote here.
             // Otherwise, ws server is already started at WebSocketServerService
-            WebSocketClientService webSocketClientService = (WebSocketClientService) webSocketService;
             if (context.hasIncomingConnection()) {
                 final ProcessSession session = processSessionFactory.createSession();
                 final FlowFile flowFile = session.get();
@@ -252,6 +267,8 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
 
             if (incomingMessage instanceof WebSocketConnectedMessage) {
                 session.transfer(messageFlowFile, REL_CONNECTED);
+            } else if (incomingMessage instanceof WebSocketDisconnectedMessage) {
+                session.transfer(messageFlowFile, REL_DISCONNECTED);
             } else {
                 switch (Objects.requireNonNull(messageType)) {
                     case TEXT:

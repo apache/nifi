@@ -716,7 +716,7 @@ public class ExtensionBuilder {
 
        // Find any Controller Service API's that are bundled in the same NAR.
        final Set<Class<?>> cobundledApis = new HashSet<>();
-       try (final NarCloseable closeable = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
+       try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(component.getClass().getClassLoader())) {
            final List<PropertyDescriptor> descriptors = component.getPropertyDescriptors();
            if (descriptors != null && !descriptors.isEmpty()) {
                for (final PropertyDescriptor descriptor : descriptors) {

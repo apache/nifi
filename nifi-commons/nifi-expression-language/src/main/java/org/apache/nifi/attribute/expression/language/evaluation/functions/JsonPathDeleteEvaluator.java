@@ -42,7 +42,7 @@ public class JsonPathDeleteEvaluator extends JsonPathBaseEvaluator {
     public QueryResult<String> evaluate(EvaluationContext context) {
         DocumentContext documentContext = getDocumentContext(context);
 
-        final JsonPath compiledJsonPath = getJsonPath(context);;
+        final JsonPath compiledJsonPath = getJsonPath(context);
 
         String result = null;
         try {

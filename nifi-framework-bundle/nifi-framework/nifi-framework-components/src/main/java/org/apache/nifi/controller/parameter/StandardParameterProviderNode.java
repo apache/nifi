@@ -280,7 +280,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         final ParameterProvider parameterProvider = parameterProviderRef.get().getParameterProvider();
         final ConfigurationContext configurationContext = getConfigurationContext();
         List<ParameterGroup> fetchedParameterGroups;
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), parameterProvider.getClass(), parameterProvider.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), parameterProvider.getClass(), parameterProvider.getIdentifier())) {
             fetchedParameterGroups = parameterProvider.fetchParameters(configurationContext);
         } catch (final IOException | RuntimeException e) {
             throw new IllegalStateException(String.format("Error fetching parameters for %s: %s", this, e.getMessage()), e);
@@ -440,7 +440,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                     }
                 } else {
                     // Verify the configuration, using the component's classloader
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, parameterProvider.getClass(), getIdentifier())) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, parameterProvider.getClass(), getIdentifier())) {
                         results.addAll(verifiable.verify(context, logger));
                     }
                 }

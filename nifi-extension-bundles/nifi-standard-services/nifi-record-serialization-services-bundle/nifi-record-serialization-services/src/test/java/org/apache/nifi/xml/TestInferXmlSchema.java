@@ -39,8 +39,8 @@ import java.io.InputStream;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestInferXmlSchema {
 
@@ -103,7 +103,7 @@ public class TestInferXmlSchema {
 
         final DataType softwareDataType = schema.getDataType("software").get();
         assertSame(RecordFieldType.RECORD, softwareDataType.getFieldType());
-        assertTrue(softwareDataType instanceof RecordDataType);
+        assertInstanceOf(RecordDataType.class, softwareDataType);
 
         final RecordSchema childSchema = ((RecordDataType) softwareDataType).getChildSchema();
         assertSame(RecordFieldType.BOOLEAN, childSchema.getDataType("favorite").get().getFieldType());
@@ -131,7 +131,6 @@ public class TestInferXmlSchema {
         final SchemaInferenceEngine<XmlNode> schemaInference = new XmlSchemaInference(timeValueInference);
         final InferSchemaAccessStrategy<XmlNode> inferStrategy = new InferSchemaAccessStrategy<>(xmlSourceFactory, schemaInference, Mockito.mock(ComponentLog.class));
 
-        final RecordSchema schema;
         try (final InputStream fis = new FileInputStream(file);
              final InputStream in = new BufferedInputStream(fis)) {
             return inferStrategy.getSchema(Collections.emptyMap(), in, null);

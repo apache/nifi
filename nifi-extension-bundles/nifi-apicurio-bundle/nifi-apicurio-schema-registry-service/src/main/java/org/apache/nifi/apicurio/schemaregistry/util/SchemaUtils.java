@@ -24,8 +24,6 @@ import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,7 +31,6 @@ import java.util.OptionalInt;
 
 public class SchemaUtils {
 
-    private static final Logger logger = LoggerFactory.getLogger(SchemaUtils.class);
     private static final ObjectMapper OBJECT_MAPPER = setObjectMapper();
 
     private SchemaUtils() {

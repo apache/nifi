@@ -28,7 +28,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ControllerServiceStateService } from '../../service/controller-service-state.service';
 import { ControllerServiceEntity, ControllerServiceReferencingComponentEntity } from '../shared';
 import { SetEnableRequest, SetEnableStep } from './index';
-import { isDefinedAndNotNull, MEDIUM_DIALOG } from 'libs/shared/src';
+import { isDefinedAndNotNull, MEDIUM_DIALOG } from '@nifi/shared';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../service/error-helper.service';
 

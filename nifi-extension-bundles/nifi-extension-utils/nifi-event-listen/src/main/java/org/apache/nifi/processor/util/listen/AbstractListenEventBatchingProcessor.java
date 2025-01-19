@@ -24,11 +24,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.listen.event.Event;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -185,15 +183,12 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
             final boolean writeDemarcator = (i > 0);
             try {
                 final byte[] rawMessage = event.getData();
-                FlowFile appendedFlowFile = session.append(batch.getFlowFile(), new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream out) throws IOException {
-                        if (writeDemarcator) {
-                            out.write(messageDemarcatorBytes);
-                        }
-
-                        out.write(rawMessage);
+                FlowFile appendedFlowFile = session.append(batch.getFlowFile(), out -> {
+                    if (writeDemarcator) {
+                        out.write(messageDemarcatorBytes);
                     }
+
+                    out.write(rawMessage);
                 });
 
                 // update the FlowFile reference in the batch object

@@ -41,10 +41,7 @@ import org.snmp4j.mp.SnmpConstants;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,7 +87,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
             .description("All FlowFiles that cannot received from the SNMP agent are routed to this relationship")
             .build();
 
-    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SNMP_MANAGER_HOST,
             SNMP_MANAGER_PORT,
             BasicProperties.SNMP_VERSION,
@@ -108,11 +105,12 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
             V1TrapProperties.GENERIC_TRAP_TYPE,
             V1TrapProperties.SPECIFIC_TRAP_TYPE,
             V2TrapProperties.TRAP_OID_VALUE
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS, REL_FAILURE
-    )));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private volatile SendTrapSNMPHandler snmpHandler;
 

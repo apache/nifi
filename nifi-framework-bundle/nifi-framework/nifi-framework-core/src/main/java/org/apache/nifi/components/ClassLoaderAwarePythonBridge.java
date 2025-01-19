@@ -42,84 +42,84 @@ public class ClassLoaderAwarePythonBridge implements PythonBridge {
 
     @Override
     public void initialize(final PythonBridgeInitializationContext context) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             delegate.initialize(context);
         }
     }
 
     @Override
     public void start() throws IOException {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             delegate.start();
         }
     }
 
     @Override
     public void shutdown() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             delegate.shutdown();
         }
     }
 
     @Override
     public void ping() throws IOException {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             delegate.ping();
         }
     }
 
     @Override
     public List<PythonProcessorDetails> getProcessorTypes() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             return delegate.getProcessorTypes();
         }
     }
 
     @Override
     public Map<String, Integer> getProcessCountsPerType() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             return delegate.getProcessCountsPerType();
         }
     }
 
     @Override
     public List<BoundObjectCounts> getBoundObjectCounts() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             return delegate.getBoundObjectCounts();
         }
     }
 
     @Override
     public void discoverExtensions(final boolean includeNarDirectories) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             delegate.discoverExtensions(includeNarDirectories);
         }
     }
 
     @Override
     public void discoverExtensions(final List<File> extensionDirectories) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             delegate.discoverExtensions(extensionDirectories);
         }
     }
 
     @Override
     public AsyncLoadedProcessor createProcessor(final String identifier, final String type, final String version, final boolean preferIsolatedProcess, final boolean initialize) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             return delegate.createProcessor(identifier, type, version, preferIsolatedProcess, initialize);
         }
     }
 
     @Override
     public void onProcessorRemoved(final String identifier, final String type, final String version) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             delegate.onProcessorRemoved(identifier, type, version);
         }
     }
 
     @Override
     public void removeProcessorType(final String type, final String version) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             delegate.removeProcessorType(type, version);
         }
     }

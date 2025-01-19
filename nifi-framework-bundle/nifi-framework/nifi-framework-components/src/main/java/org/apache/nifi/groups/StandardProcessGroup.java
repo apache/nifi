@@ -149,9 +149,6 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static java.util.Objects.requireNonNull;
-
-
 public final class StandardProcessGroup implements ProcessGroup {
     public static final List<DropFlowFileState> AGGREGATE_DROP_FLOW_FILE_STATE_PRECEDENCES = Arrays.asList(
         DropFlowFileState.FAILURE,
@@ -669,7 +666,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, node.getProcessor().getClass(), node.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, node.getProcessor().getClass(), node.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider,
                     getStateManager(node.getIdentifier()), () -> false, nodeTypeProvider);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
@@ -704,7 +701,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                                       final Map<String, Port> portIdMap,
                                       final Function<String, Port> getPortByName) {
 
-        if (portIdMap.containsKey(requireNonNull(port).getIdentifier())) {
+        if (portIdMap.containsKey(Objects.requireNonNull(port).getIdentifier())) {
             throw new IllegalStateException("A port with the same id already exists.");
         }
 
@@ -728,7 +725,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             ensureUniqueVersionControlId(port, ProcessGroup::getInputPorts);
 
             port.setProcessGroup(this);
-            inputPorts.put(requireNonNull(port).getIdentifier(), port);
+            inputPorts.put(Objects.requireNonNull(port).getIdentifier(), port);
             flowManager.onInputPortAdded(port);
             onComponentModified();
 
@@ -742,7 +739,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void removeInputPort(final Port port) {
         writeLock.lock();
         try {
-            final Port toRemove = inputPorts.get(requireNonNull(port).getIdentifier());
+            final Port toRemove = inputPorts.get(Objects.requireNonNull(port).getIdentifier());
             if (toRemove == null) {
                 throw new IllegalStateException(port.getIdentifier() + " is not an Input Port of this Process Group");
             }
@@ -826,7 +823,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void removeOutputPort(final Port port) {
         writeLock.lock();
         try {
-            final Port toRemove = outputPorts.get(requireNonNull(port).getIdentifier());
+            final Port toRemove = outputPorts.get(Objects.requireNonNull(port).getIdentifier());
             toRemove.verifyCanDelete();
 
             if (port.isRunning()) {
@@ -925,7 +922,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void removeProcessGroup(final ProcessGroup group) {
-        requireNonNull(group).verifyCanDelete();
+        Objects.requireNonNull(group).verifyCanDelete();
 
         writeLock.lock();
         try {
@@ -990,7 +987,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void addRemoteProcessGroup(final RemoteProcessGroup remoteGroup) {
         writeLock.lock();
         try {
-            if (remoteGroups.containsKey(requireNonNull(remoteGroup).getIdentifier())) {
+            if (remoteGroups.containsKey(Objects.requireNonNull(remoteGroup).getIdentifier())) {
                 throw new IllegalStateException("RemoteProcessGroup already exists with ID " + remoteGroup.getIdentifier());
             }
 
@@ -1017,7 +1014,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void removeRemoteProcessGroup(final RemoteProcessGroup remoteProcessGroup) {
-        final String remoteGroupId = requireNonNull(remoteProcessGroup).getIdentifier();
+        final String remoteGroupId = Objects.requireNonNull(remoteProcessGroup).getIdentifier();
 
         writeLock.lock();
         try {
@@ -1052,12 +1049,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             remoteGroup.getInputPorts().forEach(scheduler::onPortRemoved);
             remoteGroup.getOutputPorts().forEach(scheduler::onPortRemoved);
 
-            scheduler.submitFrameworkTask(new Runnable() {
-                @Override
-                public void run() {
-                    stateManagerProvider.onComponentRemoved(remoteGroup.getIdentifier());
-                }
-            });
+            scheduler.submitFrameworkTask(() -> stateManagerProvider.onComponentRemoved(remoteGroup.getIdentifier()));
 
             remoteGroups.remove(remoteGroupId);
             LOG.info("{} removed from flow", remoteProcessGroup);
@@ -1070,7 +1062,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void addProcessor(final ProcessorNode processor) {
         writeLock.lock();
         try {
-            final String processorId = requireNonNull(processor).getIdentifier();
+            final String processorId = Objects.requireNonNull(processor).getIdentifier();
             final ProcessorNode existingProcessor = processors.get(processorId);
             if (existingProcessor != null) {
                 throw new IllegalStateException("A processor is already registered to this ProcessGroup with ID " + processorId);
@@ -1223,7 +1215,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void removeProcessor(final ProcessorNode processor) {
         boolean removed = false;
-        final String id = requireNonNull(processor).getIdentifier();
+        final String id = Objects.requireNonNull(processor).getIdentifier();
         writeLock.lock();
         try {
             if (!processors.containsKey(id)) {
@@ -1240,7 +1232,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             // with the Python process even after the Python process has been destroyed.
             processor.pauseValidationTrigger();
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, processor.getProcessor().getClass(), processor.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, processor.getProcessor().getClass(), processor.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider,
                     getStateManager(processor.getIdentifier()), () -> false, nodeTypeProvider);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
@@ -1346,7 +1338,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void addConnection(final Connection connection) {
         writeLock.lock();
         try {
-            final String id = requireNonNull(connection).getIdentifier();
+            final String id = Objects.requireNonNull(connection).getIdentifier();
             final Connection existingConnection = connections.get(id);
             if (existingConnection != null) {
                 throw new IllegalStateException("Connection already exists with ID " + id);
@@ -1482,7 +1474,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         writeLock.lock();
         try {
             // verify that Connection belongs to this group
-            final Connection connection = connections.get(requireNonNull(connectionToRemove).getIdentifier());
+            final Connection connection = connections.get(Objects.requireNonNull(connectionToRemove).getIdentifier());
             if (connection == null) {
                 throw new IllegalStateException("Connection " + connectionToRemove.getIdentifier() + " is not a member of this Process Group");
             }
@@ -1653,7 +1645,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void addLabel(final Label label) {
         writeLock.lock();
         try {
-            final Label existing = labels.get(requireNonNull(label).getIdentifier());
+            final Label existing = labels.get(Objects.requireNonNull(label).getIdentifier());
             if (existing != null) {
                 throw new IllegalStateException("A label already exists in this ProcessGroup with ID " + label.getIdentifier());
             }
@@ -1671,7 +1663,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void removeLabel(final Label label) {
         writeLock.lock();
         try {
-            final Label removed = labels.remove(requireNonNull(label).getIdentifier());
+            final Label removed = labels.remove(Objects.requireNonNull(label).getIdentifier());
             if (removed == null) {
                 throw new IllegalStateException(label + " is not a member of this Process Group.");
             }
@@ -2090,7 +2082,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public ProcessGroup findProcessGroup(final String id) {
-        if (requireNonNull(id).equals(getIdentifier())) {
+        if (Objects.requireNonNull(id).equals(getIdentifier())) {
             return this;
         }
 
@@ -2150,7 +2142,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public RemoteProcessGroup findRemoteProcessGroup(final String id) {
-        return findRemoteProcessGroup(requireNonNull(id), this);
+        return findRemoteProcessGroup(Objects.requireNonNull(id), this);
     }
 
     private RemoteProcessGroup findRemoteProcessGroup(final String id, final ProcessGroup start) {
@@ -2399,7 +2391,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void addFunnel(final Funnel funnel, final boolean autoStart) {
         writeLock.lock();
         try {
-            final Funnel existing = funnels.get(requireNonNull(funnel).getIdentifier());
+            final Funnel existing = funnels.get(Objects.requireNonNull(funnel).getIdentifier());
             if (existing != null) {
                 throw new IllegalStateException("A funnel already exists in this ProcessGroup with ID " + funnel.getIdentifier());
             }
@@ -2509,7 +2501,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void removeFunnel(final Funnel funnel) {
         writeLock.lock();
         try {
-            final Funnel existing = funnels.get(requireNonNull(funnel).getIdentifier());
+            final Funnel existing = funnels.get(Objects.requireNonNull(funnel).getIdentifier());
             if (existing == null) {
                 throw new IllegalStateException("Funnel " + funnel.getIdentifier() + " is not a member of this ProcessGroup");
             }
@@ -2551,7 +2543,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void addControllerService(final ControllerServiceNode service) {
         writeLock.lock();
         try {
-            final String id = requireNonNull(service).getIdentifier();
+            final String id = Objects.requireNonNull(service).getIdentifier();
             final ControllerServiceNode existingService = controllerServices.get(id);
             if (existingService != null) {
                 throw new IllegalStateException("A Controller Service is already registered to this ProcessGroup with ID " + id);
@@ -2569,7 +2561,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public ControllerServiceNode getControllerService(final String id) {
-        return controllerServices.get(requireNonNull(id));
+        return controllerServices.get(Objects.requireNonNull(id));
     }
 
     @Override
@@ -2591,14 +2583,14 @@ public final class StandardProcessGroup implements ProcessGroup {
         boolean removed = false;
         writeLock.lock();
         try {
-            final ControllerServiceNode existing = controllerServices.get(requireNonNull(service).getIdentifier());
+            final ControllerServiceNode existing = controllerServices.get(Objects.requireNonNull(service).getIdentifier());
             if (existing == null) {
                 throw new IllegalStateException("ControllerService " + service.getIdentifier() + " is not a member of this Process Group");
             }
 
             service.verifyCanDelete();
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
                 final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
             }
@@ -2885,7 +2877,7 @@ public final class StandardProcessGroup implements ProcessGroup {
      * references a component that is not part of this ProcessGroup
      */
     private void verifyContents(final Snippet snippet) throws NullPointerException, IllegalStateException {
-        requireNonNull(snippet);
+        Objects.requireNonNull(snippet);
 
         verifyAllKeysExist(snippet.getInputPorts().keySet(), inputPorts, "Input Port");
         verifyAllKeysExist(snippet.getOutputPorts().keySet(), outputPorts, "Output Port");

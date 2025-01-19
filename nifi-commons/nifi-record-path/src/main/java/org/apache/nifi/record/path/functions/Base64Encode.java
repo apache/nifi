@@ -22,7 +22,7 @@ import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.stream.Stream;
 
@@ -42,11 +42,7 @@ public class Base64Encode extends RecordPathSegment {
 
                     Object value = fv.getValue();
                     if (value instanceof String) {
-                        try {
-                            return new StandardFieldValue(Base64.getEncoder().encodeToString(value.toString().getBytes("UTF-8")), fv.getField(), fv.getParent().orElse(null));
-                        } catch (final UnsupportedEncodingException e) {
-                            return null;    // won't happen.
-                        }
+                        return new StandardFieldValue(Base64.getEncoder().encodeToString(value.toString().getBytes(StandardCharsets.UTF_8)), fv.getField(), fv.getParent().orElse(null));
                     } else if (value instanceof byte[]) {
                         return new StandardFieldValue(Base64.getEncoder().encode((byte[]) value), fv.getField(), fv.getParent().orElse(null));
                     } else {

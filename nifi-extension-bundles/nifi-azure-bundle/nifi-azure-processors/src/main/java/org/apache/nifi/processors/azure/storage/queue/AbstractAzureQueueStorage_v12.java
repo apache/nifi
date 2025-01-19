@@ -93,7 +93,10 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
             .description("Unsuccessful operations will be transferred to the failure relationship.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     static final String URI_ATTRIBUTE = "azure.queue.uri";
     static final String INSERTION_TIME_ATTRIBUTE = "azure.queue.insertionTime";

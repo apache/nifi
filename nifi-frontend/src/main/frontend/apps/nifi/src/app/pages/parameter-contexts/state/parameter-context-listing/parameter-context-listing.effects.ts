@@ -39,7 +39,7 @@ import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { Router } from '@angular/router';
 import { ParameterContextService } from '../../service/parameter-contexts.service';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { Parameter, YesNoDialog } from '@nifi/shared';
 import { EditParameterContext } from '../../ui/parameter-context-listing/edit-parameter-context/edit-parameter-context.component';
 import {
     selectParameterContexts,
@@ -47,19 +47,13 @@ import {
     selectSaving,
     selectUpdateRequest
 } from './parameter-context-listing.selectors';
-import {
-    EditParameterRequest,
-    EditParameterResponse,
-    Parameter,
-    ParameterContextUpdateRequest
-} from '../../../../state/shared';
+import { EditParameterRequest, EditParameterResponse, ParameterContextUpdateRequest } from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG } from 'libs/shared/src';
 import { BackNavigation } from '../../../../state/navigation';
-import { NiFiCommon, Storage } from '@nifi/shared';
+import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG, NiFiCommon, Storage } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
@@ -540,11 +534,14 @@ export class ParameterContextListingEffects {
                 ofType(ParameterContextListingActions.promptParameterContextDeletion),
                 map((action) => action.request),
                 tap((request) => {
+                    // @ts-ignore - component will be defined since the user has permissions to delete the context, but it is optional as defined by the type
+                    const name = request.parameterContext.component.name;
+
                     const dialogReference = this.dialog.open(YesNoDialog, {
                         ...SMALL_DIALOG,
                         data: {
                             title: 'Delete Parameter Context',
-                            message: `Delete parameter context ${request.parameterContext.component.name}?`
+                            message: `Delete parameter context ${name}?`
                         }
                     });
 

@@ -564,13 +564,13 @@ public class NiFiProperties extends ApplicationProperties {
 
         final String propertyKey;
         if (isSiteToSiteSecure()) {
-            if (StringUtils.isBlank(getProperty(NiFiProperties.WEB_HTTPS_PORT_FORWARDING))) {
+            if (StringUtils.isBlank(getProperty(WEB_HTTPS_PORT_FORWARDING))) {
                 propertyKey = WEB_HTTPS_PORT;
             } else {
                 propertyKey = WEB_HTTPS_PORT_FORWARDING;
             }
         } else {
-            if (StringUtils.isBlank(getProperty(NiFiProperties.WEB_HTTP_PORT_FORWARDING))) {
+            if (StringUtils.isBlank(getProperty(WEB_HTTP_PORT_FORWARDING))) {
                 propertyKey = WEB_HTTP_PORT;
             } else {
                 propertyKey = WEB_HTTP_PORT_FORWARDING;
@@ -968,7 +968,7 @@ public class NiFiProperties extends ApplicationProperties {
      * @return true if the login identity provider has been configured
      */
     public boolean isLoginIdentityProviderEnabled() {
-        return !StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER));
+        return !StringUtils.isBlank(getProperty(SECURITY_USER_LOGIN_IDENTITY_PROVIDER));
     }
 
     /**
@@ -1547,7 +1547,7 @@ public class NiFiProperties extends ApplicationProperties {
         final String clientSecure = getProperty(ZOOKEEPER_CLIENT_SECURE, defaultValue).trim();
 
         if (!"true".equalsIgnoreCase(clientSecure) && !"false".equalsIgnoreCase(clientSecure)) {
-            throw new RuntimeException(String.format("%s was '%s', expected true or false", NiFiProperties.ZOOKEEPER_CLIENT_SECURE, clientSecure));
+            throw new RuntimeException(String.format("%s was '%s', expected true or false", ZOOKEEPER_CLIENT_SECURE, clientSecure));
         }
 
         return Boolean.parseBoolean(clientSecure);
@@ -1558,18 +1558,18 @@ public class NiFiProperties extends ApplicationProperties {
         final String withEnsembleTracker = getProperty(ZOOKEEPER_CLIENT_ENSEMBLE_TRACKER, defaultValue).trim();
 
         if (!"true".equalsIgnoreCase(withEnsembleTracker) && !"false".equalsIgnoreCase(withEnsembleTracker)) {
-            throw new RuntimeException(String.format("%s was '%s', expected true or false", NiFiProperties.ZOOKEEPER_CLIENT_ENSEMBLE_TRACKER, withEnsembleTracker));
+            throw new RuntimeException(String.format("%s was '%s', expected true or false", ZOOKEEPER_CLIENT_ENSEMBLE_TRACKER, withEnsembleTracker));
         }
 
         return Boolean.parseBoolean(withEnsembleTracker);
     }
 
     public boolean isZooKeeperTlsConfigurationPresent() {
-        return StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE))
-                && StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE))
-                && getProperty(NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD) != null
-                && StringUtils.isNotBlank(getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE))
-                && getProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD) != null;
+        return StringUtils.isNotBlank(getProperty(ZOOKEEPER_CLIENT_SECURE))
+                && StringUtils.isNotBlank(getProperty(ZOOKEEPER_SECURITY_KEYSTORE))
+                && getProperty(ZOOKEEPER_SECURITY_KEYSTORE_PASSWD) != null
+                && StringUtils.isNotBlank(getProperty(ZOOKEEPER_SECURITY_TRUSTSTORE))
+                && getProperty(ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD) != null;
     }
 
     public boolean isTlsConfigurationPresent() {
@@ -1835,7 +1835,7 @@ public class NiFiProperties extends ApplicationProperties {
 
     private static void readFromPropertiesFile(String propertiesFilePath, Properties properties) {
         final String nfPropertiesFilePath = (propertiesFilePath == null)
-                ? System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
+                ? System.getProperty(PROPERTIES_FILE_PATH)
                 : propertiesFilePath;
         if (nfPropertiesFilePath != null) {
             final File propertiesFile = new File(nfPropertiesFilePath.trim());

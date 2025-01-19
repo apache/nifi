@@ -41,9 +41,7 @@ import jakarta.mail.MessagingException;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -163,28 +161,26 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .description("All messages that are the are successfully received from Email server and converted to FlowFiles are routed to this relationship")
             .build();
 
-    final static List<PropertyDescriptor> SHARED_DESCRIPTORS = new ArrayList<>();
-
-    final static Set<Relationship> SHARED_RELATIONSHIPS = new HashSet<>();
-
     /*
      * Will ensure that list of PropertyDescriptors is build only once, since
      * all other lifecycle methods are invoked multiple times.
      */
-    static {
-        SHARED_DESCRIPTORS.add(HOST);
-        SHARED_DESCRIPTORS.add(PORT);
-        SHARED_DESCRIPTORS.add(AUTHORIZATION_MODE);
-        SHARED_DESCRIPTORS.add(OAUTH2_ACCESS_TOKEN_PROVIDER);
-        SHARED_DESCRIPTORS.add(USER);
-        SHARED_DESCRIPTORS.add(PASSWORD);
-        SHARED_DESCRIPTORS.add(FOLDER);
-        SHARED_DESCRIPTORS.add(FETCH_SIZE);
-        SHARED_DESCRIPTORS.add(SHOULD_DELETE_MESSAGES);
-        SHARED_DESCRIPTORS.add(CONNECTION_TIMEOUT);
+    final static List<PropertyDescriptor> SHARED_DESCRIPTORS = List.of(
+            HOST,
+            PORT,
+            AUTHORIZATION_MODE,
+            OAUTH2_ACCESS_TOKEN_PROVIDER,
+            USER,
+            PASSWORD,
+            FOLDER,
+            FETCH_SIZE,
+            SHOULD_DELETE_MESSAGES,
+            CONNECTION_TIMEOUT
+    );
 
-        SHARED_RELATIONSHIPS.add(REL_SUCCESS);
-    }
+    final static Set<Relationship> SHARED_RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -195,8 +191,6 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
     private volatile String displayUrl;
 
     private volatile ProcessSession processSession;
-
-    private volatile boolean shouldSetDeleteFlag;
 
     protected volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
     protected volatile AccessToken oauth2AccessDetails;
@@ -313,7 +307,6 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             this.processSession = processSession;
             this.messageReceiver = this.buildMessageReceiver(context);
 
-            this.shouldSetDeleteFlag = context.getProperty(SHOULD_DELETE_MESSAGES).asBoolean();
             int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
 
             this.messageReceiver.setMaxFetchSize(fetchSize);

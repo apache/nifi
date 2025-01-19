@@ -154,7 +154,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
     public abstract HDFSRecordReader createHDFSRecordReader(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path)
             throws IOException;
 
-
+    @SuppressWarnings("PMD.IdenticalCatchBranches")
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         // do this before getting a flow file so that we always get a chance to attempt Kerberos relogin

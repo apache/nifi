@@ -117,7 +117,7 @@ public class ConsumeWindowsEventLogTest {
         }).start();
 
         // Wait until the thread has really started
-        while (testRunner.getFlowFilesForRelationship(ConsumeWindowsEventLog.REL_SUCCESS).size() == 0) {
+        while (testRunner.getFlowFilesForRelationship(ConsumeWindowsEventLog.REL_SUCCESS).isEmpty()) {
             testRunner.run(1, false, false);
         }
 
@@ -169,7 +169,7 @@ public class ConsumeWindowsEventLogTest {
 
         testRunner.run(1, false, true);
 
-        WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, Arrays.asList("test")).get(0);
+        WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, List.of("test")).getFirst();
         List<EventSubscribeXmlRenderingCallback> renderingCallbacks = getRenderingCallbacks(2);
         EventSubscribeXmlRenderingCallback subscribeRenderingCallback = renderingCallbacks.get(0);
         EventSubscribeXmlRenderingCallback renderingCallback = renderingCallbacks.get(1);
@@ -209,7 +209,7 @@ public class ConsumeWindowsEventLogTest {
     public void testScheduleQueueStopThrowsException() throws Throwable {
         ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, evtSubscribe, testRunner.getProcessContext());
 
-        WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, Arrays.asList("test")).get(0);
+        WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, List.of("test")).getFirst();
         getRenderingCallback().onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, handle);
 
         assertThrows(ProcessException.class, () -> {
@@ -222,7 +222,7 @@ public class ConsumeWindowsEventLogTest {
     }
 
     public EventSubscribeXmlRenderingCallback getRenderingCallback() {
-        return getRenderingCallbacks(1).get(0);
+        return getRenderingCallbacks(1).getFirst();
     }
 
     public List<EventSubscribeXmlRenderingCallback> getRenderingCallbacks(int times) {

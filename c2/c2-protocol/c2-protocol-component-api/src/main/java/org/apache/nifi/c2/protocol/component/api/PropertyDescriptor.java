@@ -34,6 +34,7 @@ public class PropertyDescriptor implements Serializable {
     private boolean required;
     private boolean sensitive;
     private ExpressionLanguageScope expressionLanguageScope = ExpressionLanguageScope.NONE;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private String expressionLanguageScopeDescription = ExpressionLanguageScope.NONE.getDescription();
     private DefinedType typeProvidedByValue;
     private String validRegex;

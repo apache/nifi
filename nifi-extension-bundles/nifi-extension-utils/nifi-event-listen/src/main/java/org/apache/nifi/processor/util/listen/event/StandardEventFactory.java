@@ -23,7 +23,8 @@ import java.util.Map;
 /**
  * EventFactory to create StandardEvent instances.
  */
-public class StandardEventFactory implements EventFactory<StandardEvent> {
+@SuppressWarnings("PMD.UseDiamondOperator")
+public class StandardEventFactory<T extends Event<?>> implements EventFactory<StandardEvent> {
 
     @Override
     public StandardEvent create(final byte[] data, final Map<String, String> metadata, final ChannelResponder responder) {

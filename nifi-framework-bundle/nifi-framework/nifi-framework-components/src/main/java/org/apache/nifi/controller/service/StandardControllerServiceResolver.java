@@ -186,7 +186,7 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
             }
 
             final VersionedControllerService matchingService = matchingControllerServices.get(0);
-            final String resolvedId = matchingService.getIdentifier();;
+            final String resolvedId = matchingService.getIdentifier();
             componentProperties.put(propertyName, resolvedId);
         }
     }

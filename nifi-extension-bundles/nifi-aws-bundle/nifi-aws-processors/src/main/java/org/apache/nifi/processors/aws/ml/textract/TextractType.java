@@ -29,7 +29,7 @@ public enum TextractType {
     DOCUMENT_TEXT_DETECTION("Document Text Detection"),
     EXPENSE_ANALYSIS("Expense Analysis");
 
-    public static final Set<String> TEXTRACT_TYPES = Arrays.stream(TextractType.values()).map(TextractType::getType)
+    public static final Set<String> TEXTRACT_TYPES = Arrays.stream(values()).map(TextractType::getType)
             .collect(collectingAndThen(toSet(), Collections::unmodifiableSet));
 
     public final String type;

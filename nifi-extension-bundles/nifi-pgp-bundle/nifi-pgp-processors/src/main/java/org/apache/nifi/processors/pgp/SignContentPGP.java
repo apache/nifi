@@ -55,7 +55,6 @@ import java.io.OutputStream;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -139,9 +138,12 @@ public class SignContentPGP extends AbstractProcessor {
             .required(true)
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = new HashSet<>(Arrays.asList(SUCCESS, FAILURE));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            SUCCESS,
+            FAILURE
+    );
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             FILE_ENCODING,
             HASH_ALGORITHM,
             SIGNING_STRATEGY,

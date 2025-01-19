@@ -61,7 +61,10 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
             .description("FlowFiles are routed to this relationship if the Google BigQuery operation fails.")
             .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     public static final PropertyDescriptor DATASET = new PropertyDescriptor.Builder()
             .name(BigQueryAttributes.DATASET_ATTR)

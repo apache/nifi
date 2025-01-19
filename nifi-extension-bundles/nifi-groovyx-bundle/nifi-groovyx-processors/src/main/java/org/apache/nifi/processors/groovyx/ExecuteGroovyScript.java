@@ -22,7 +22,6 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -52,7 +51,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -138,8 +136,18 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles that failed to be processed").build();
 
-    private List<PropertyDescriptor> descriptors;
-    private Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+            SCRIPT_FILE,
+            SCRIPT_BODY,
+            FAIL_STRATEGY,
+            ADD_CLASSPATH
+    );
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+
     //parameters evaluated on Start or on Validate
     File scriptFile = null;  //SCRIPT_FILE
     String scriptBody = null; //SCRIPT_BODY
@@ -151,32 +159,17 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     volatile long scriptLastModified = 0;  //last scriptFile modification to check if recompile required
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(SCRIPT_FILE);
-        descriptors.add(SCRIPT_BODY);
-        descriptors.add(FAIL_STRATEGY);
-        descriptors.add(ADD_CLASSPATH);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        HashSet<Relationship> relationshipSet = new HashSet<>();
-        relationshipSet.add(REL_SUCCESS);
-        relationshipSet.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(relationshipSet);
-    }
-
-    @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return DESCRIPTORS;
     }
 
     private File asFile(String f) {
-        if (f == null || f.length() == 0) {
+        if (f == null || f.isEmpty()) {
             return null;
         }
         return new File(f);
@@ -305,7 +298,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             CompilerConfiguration conf = new CompilerConfiguration();
             conf.setDebug(true);
             shell = new GroovyShell(conf);
-            if (addClasspath != null && addClasspath.length() > 0) {
+            if (addClasspath != null && !addClasspath.isEmpty()) {
                 for (File fcp : Files.listPathsFiles(addClasspath)) {
                     if (!fcp.exists()) {
                         throw new ProcessException("Path not found `" + fcp + "` for `" + ADD_CLASSPATH.getDisplayName() + "`");
@@ -314,7 +307,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 }
             }
             //try to add classpath with groovy classes
-            if (groovyClasspath != null && groovyClasspath.length() > 0) {
+            if (groovyClasspath != null && !groovyClasspath.isEmpty()) {
                 shell.getClassLoader().addClasspath(groovyClasspath);
             }
         }

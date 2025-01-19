@@ -37,7 +37,7 @@ public final class BulletinFactory {
         final String groupId = connectable.getProcessGroupIdentifier();
         final String groupName = group == null ? null : group.getName();
         final String groupPath = buildGroupPath(group);
-        return BulletinFactory.createBulletin(groupId, groupName, connectable.getIdentifier(), type, connectable.getName(), category, severity, message, groupPath, null);
+        return createBulletin(groupId, groupName, connectable.getIdentifier(), type, connectable.getName(), category, severity, message, groupPath, null);
     }
 
     public static Bulletin createBulletin(final Connectable connectable, final String category, final String severity, final String message, final String flowFileUUID) {
@@ -47,7 +47,7 @@ public final class BulletinFactory {
         final String groupId = connectable.getProcessGroupIdentifier();
         final String groupName = group == null ? null : group.getName();
         final String groupPath = buildGroupPath(group);
-        return BulletinFactory.createBulletin(groupId, groupName, connectable.getIdentifier(), type, connectable.getName(), category, severity, message, groupPath, flowFileUUID);
+        return createBulletin(groupId, groupName, connectable.getIdentifier(), type, connectable.getName(), category, severity, message, groupPath, flowFileUUID);
     }
 
     private static String buildGroupPath(ProcessGroup group) {

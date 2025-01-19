@@ -34,7 +34,6 @@ public class TestProcessorEndpointMerger {
 
     @Test
     public void testMergeValidationErrors() {
-        final ProcessorEndpointMerger merger = new ProcessorEndpointMerger();
         final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
 
         final NodeIdentifier nodeId1234 = new NodeIdentifier("1234", "localhost", 9000, "localhost", 9001, "localhost", 9002, 9003, false);

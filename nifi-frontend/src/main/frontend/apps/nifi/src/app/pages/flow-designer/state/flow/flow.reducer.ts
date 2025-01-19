@@ -89,7 +89,7 @@ import {
     uploadProcessGroup
 } from './flow.actions';
 import { ComponentEntity, FlowState } from './index';
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 import { produce } from 'immer';
 
 export const initialState: FlowState = {

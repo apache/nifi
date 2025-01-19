@@ -41,7 +41,6 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.event.StandardEvent;
 import org.apache.nifi.processor.util.listen.event.StandardEventFactory;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -121,13 +120,12 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
     }
 
     @Override
-    protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<StandardEvent> events)
-            throws IOException {
+    protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<StandardEvent> events) {
         final String sendingHost = context.getProperty(SENDING_HOST).evaluateAttributeExpressions().getValue();
         final Integer sendingHostPort = context.getProperty(SENDING_HOST_PORT).evaluateAttributeExpressions().asInteger();
         final Integer bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final ByteBufferSource byteBufferSource = new ByteBufferPool(context.getMaxConcurrentTasks(), bufferSize);
-        final EventFactory<StandardEvent> eventFactory = new StandardEventFactory();
+        final EventFactory<StandardEvent> eventFactory = new StandardEventFactory<>();
         return new DatagramChannelDispatcher<>(eventFactory, byteBufferSource, events, getLogger(), sendingHost, sendingHostPort);
     }
 

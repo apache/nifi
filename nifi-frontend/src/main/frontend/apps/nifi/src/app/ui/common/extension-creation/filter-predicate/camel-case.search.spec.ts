@@ -22,6 +22,7 @@ describe('matchesCamelCaseSearch', () => {
 
     it.each([
         { value, query: '', expectedResult: false },
+        { value, query: '[', expectedResult: false },
         { value, query: value, expectedResult: true },
         { value, query: 'Generate', expectedResult: true },
         { value, query: 'GFlowFile', expectedResult: true },

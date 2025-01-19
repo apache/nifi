@@ -32,7 +32,7 @@ public class TestStandardTocWriter {
         try {
             assertTrue(tocFile.createNewFile());
 
-            try (final StandardTocWriter writer = new StandardTocWriter(tocFile, false, false)) {
+            try (final StandardTocWriter ignored = new StandardTocWriter(tocFile, false, false)) {
             }
         } finally {
             FileUtils.deleteFile(tocFile, false);

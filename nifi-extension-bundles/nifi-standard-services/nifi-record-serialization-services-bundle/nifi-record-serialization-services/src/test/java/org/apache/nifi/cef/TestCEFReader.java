@@ -35,7 +35,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -50,6 +49,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestCEFReader {
     private TestRunner runner;
@@ -264,13 +267,13 @@ public class TestCEFReader {
 
     private void triggerProcessorWithError(final String input) throws FileNotFoundException {
         runner.enqueue(new FileInputStream(input));
-        final AssertionError exception = Assertions.assertThrows(AssertionError.class, () -> runner.run());
-        Assertions.assertTrue(exception.getCause() instanceof RuntimeException);
-        Assertions.assertTrue(exception.getCause().getCause() instanceof IOException);
+        final AssertionError exception = assertThrows(AssertionError.class, () -> runner.run());
+        assertInstanceOf(RuntimeException.class, exception.getCause());
+        assertInstanceOf(IOException.class, exception.getCause().getCause());
     }
 
     private void assertNumberOfResults(final int numberOfResults) {
-        Assertions.assertEquals(numberOfResults, processor.getRecords().size());
+        assertEquals(numberOfResults, processor.getRecords().size());
     }
 
     private void assertReaderIsInvalid() {
@@ -278,7 +281,7 @@ public class TestCEFReader {
     }
 
     private void assertFieldIsSet(final int number, final String name, final String value) {
-        Assertions.assertEquals(value, processor.getRecords().get(number).getValue(name));
+        assertEquals(value, processor.getRecords().get(number).getValue(name));
     }
 
     private void assertFieldsAre(final Map<String, Object>... fieldGroups) {

@@ -33,6 +33,10 @@ import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.web.client.RestClient;
 
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -50,6 +54,8 @@ public class StandardClientRegistrationProvider implements ClientRegistrationPro
     private static final String REGISTRATION_REDIRECT_URI = String.format("{baseUrl}%s", OidcUrlPath.CALLBACK.getPath());
 
     private static final Set<String> STANDARD_SCOPES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(OidcScopes.OPENID, OidcScopes.EMAIL)));
+
+    private static final String FILE_URI_SCHEME = "file";
 
     private final NiFiProperties properties;
 
@@ -107,13 +113,26 @@ public class StandardClientRegistrationProvider implements ClientRegistrationPro
 
     private OIDCProviderMetadata getProviderMetadata() {
         final String discoveryUrl = properties.getOidcDiscoveryUrl();
+        final URI discoveryUri = URI.create(discoveryUrl);
+        final String discoveryUriScheme = discoveryUri.getScheme();
 
         final String metadataObject;
-        try {
-            metadataObject = restClient.get().uri(discoveryUrl).retrieve().body(String.class);
-        } catch (final RuntimeException e) {
-            final String message = String.format("OpenID Connect Metadata URL [%s] retrieval failed", discoveryUrl);
-            throw new OidcConfigurationException(message, e);
+
+        if (FILE_URI_SCHEME.equals(discoveryUriScheme)) {
+            try {
+                final Path discoveryPath = Paths.get(discoveryUri);
+                metadataObject = Files.readString(discoveryPath);
+            } catch (final Exception e) {
+                final String message = String.format("OpenID Connect Metadata File URI [%s] read failed", discoveryUrl);
+                throw new OidcConfigurationException(message, e);
+            }
+        } else {
+            try {
+                metadataObject = restClient.get().uri(discoveryUrl).retrieve().body(String.class);
+            } catch (final RuntimeException e) {
+                final String message = String.format("OpenID Connect Metadata URL [%s] retrieval failed", discoveryUrl);
+                throw new OidcConfigurationException(message, e);
+            }
         }
 
         try {

@@ -44,7 +44,7 @@ public class SambaTestContainers {
     protected final static Integer DEFAULT_SAMBA_PORT = 445;
 
     protected enum AccessMode {
-        READ_ONLY, READ_WRITE;
+        READ_ONLY, READ_WRITE
     }
 
     protected final GenericContainer<?> sambaContainer = new GenericContainer<>(DockerImageName.parse("dperson/samba"))
@@ -107,7 +107,7 @@ public class SambaTestContainers {
     }
 
     protected void writeFile(final String path, final String content, final AccessMode accessMode) {
-        final int fileMode = accessMode == AccessMode.READ_ONLY ? 0100644 : 0100666;
+        final int fileMode = Integer.decode(accessMode == AccessMode.READ_ONLY ? "0100644" : "0100666");
         sambaContainer.copyFileToContainer(Transferable.of(content, fileMode), getContainerPath(path));
     }
 

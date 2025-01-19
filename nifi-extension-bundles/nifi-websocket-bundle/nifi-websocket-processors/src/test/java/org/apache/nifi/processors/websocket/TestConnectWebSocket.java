@@ -91,6 +91,7 @@ class TestConnectWebSocket extends TestListenWebSocket {
             processor.consume(webSocketSession, binaryMessage, 0, binaryMessage.length);
             processor.consume(webSocketSession, binaryMessage, 0, binaryMessage.length);
             processor.consume(webSocketSession, binaryMessage, 0, binaryMessage.length);
+            processor.disconnected(webSocketSession);
             return null;
         }).when(service).connect(endpointId);
         runner.addControllerService(serviceId, service);
@@ -110,16 +111,14 @@ class TestConnectWebSocket extends TestListenWebSocket {
 
         List<MockFlowFile> textFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_TEXT);
         assertEquals(2, textFlowFiles.size());
-        textFlowFiles.forEach(ff -> {
-            assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.TEXT);
-        });
+        textFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.TEXT));
 
         List<MockFlowFile> binaryFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_BINARY);
         assertEquals(3, binaryFlowFiles.size());
         binaryFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.BINARY));
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedSessionState.getProvenanceEvents();
-        assertEquals(6, provenanceEvents.size());
+        assertEquals(7, provenanceEvents.size());
         assertTrue(provenanceEvents.stream().allMatch(event -> ProvenanceEventType.RECEIVE.equals(event.getEventType())));
     }
 
@@ -201,6 +200,56 @@ class TestConnectWebSocket extends TestListenWebSocket {
         runner.stop();
     }
 
+    @Test
+    void testDynamicUrlsParsedFromFlowFileAndAbleToConnectAndDisconnect() throws InitializationException {
+        // Start websocket server
+        final TestRunner webSocketListener = TestRunners.newTestRunner(ListenWebSocket.class);
+
+        final String serverId = "ws-server-service";
+        JettyWebSocketServer server = new JettyWebSocketServer();
+        webSocketListener.addControllerService(serverId, server);
+        webSocketListener.setProperty(server, JettyWebSocketServer.LISTEN_PORT, "0");
+        webSocketListener.enableControllerService(server);
+
+        webSocketListener.setProperty(ListenWebSocket.PROP_WEBSOCKET_SERVER_SERVICE, serverId);
+        webSocketListener.setProperty(ListenWebSocket.PROP_SERVER_URL_PATH, "/test");
+
+        webSocketListener.run(1, false);
+        final int listeningPort = server.getListeningPort();
+
+        final TestRunner runner = TestRunners.newTestRunner(ConnectWebSocket.class);
+
+        final String clientId = "ws-service";
+        final String endpointId = "client-1";
+
+        MockFlowFile flowFile = getFlowFile();
+        runner.enqueue(flowFile);
+
+        JettyWebSocketClient client = new JettyWebSocketClient();
+
+
+        runner.addControllerService(clientId, client);
+        runner.setProperty(client, JettyWebSocketClient.WS_URI, String.format("ws://localhost:%s/${dynamicUrlPart}", listeningPort));
+        runner.enableControllerService(client);
+
+        runner.setProperty(ConnectWebSocket.PROP_WEBSOCKET_CLIENT_SERVICE, clientId);
+        runner.setProperty(ConnectWebSocket.PROP_WEBSOCKET_CLIENT_ID, endpointId);
+
+        runner.run(1, false);
+
+        final List<MockFlowFile> flowFilesForConnectedRelationship = runner.getFlowFilesForRelationship(ConnectWebSocket.REL_CONNECTED);
+        assertEquals(1, flowFilesForConnectedRelationship.size());
+
+        final List<MockFlowFile> flowFilesForSuccess = runner.getFlowFilesForRelationship(ConnectWebSocket.REL_SUCCESS);
+        assertEquals(1, flowFilesForSuccess.size());
+
+        webSocketListener.disableControllerService(server);
+
+        final List<MockFlowFile> flowFilesForDisconnectedRelationship = runner.getFlowFilesForRelationship(ConnectWebSocket.REL_DISCONNECTED);
+        assertEquals(1, flowFilesForDisconnectedRelationship.size());
+
+        runner.stop();
+    }
 
     private MockFlowFile getFlowFile() {
         Map<String, String> attributes = new HashMap<>();

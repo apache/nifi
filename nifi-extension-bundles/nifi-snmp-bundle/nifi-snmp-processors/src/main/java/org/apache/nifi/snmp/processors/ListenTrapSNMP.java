@@ -49,9 +49,6 @@ import org.apache.nifi.snmp.utils.UsmReader;
 import org.snmp4j.security.UsmUser;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -135,7 +132,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             .description("All FlowFiles that cannot received from the SNMP agent are routed to this relationship")
             .build();
 
-    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SNMP_MANAGER_PORT,
             BasicProperties.SNMP_VERSION,
             BasicProperties.SNMP_COMMUNITY,
@@ -144,12 +141,12 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             SNMP_USM_USERS_JSON_FILE_PATH,
             SNMP_USM_USERS_JSON,
             SNMP_USM_SECURITY_NAMES
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
+    );
 
     private volatile SNMPTrapReceiverHandler snmpTrapReceiverHandler;
     private volatile List<UsmUser> usmUsers;

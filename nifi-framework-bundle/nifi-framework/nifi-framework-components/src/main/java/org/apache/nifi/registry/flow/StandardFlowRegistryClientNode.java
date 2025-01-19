@@ -186,7 +186,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
 
     @Override
     public boolean isStorageLocationApplicable(final String location) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), client.getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), client.getClass(), getIdentifier())) {
             return client.get().getComponent().isStorageLocationApplicable(getConfigurationContext(), location);
         }
     }
@@ -310,7 +310,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             throw new FlowRegistryInvalidException(validationProblems);
         }
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), client.getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), client.getClass(), getIdentifier())) {
             return action.execute();
         }
     }

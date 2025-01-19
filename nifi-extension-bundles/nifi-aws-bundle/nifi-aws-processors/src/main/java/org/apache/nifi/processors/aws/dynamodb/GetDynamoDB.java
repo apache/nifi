@@ -46,9 +46,7 @@ import software.amazon.awssdk.utils.CollectionUtils;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -85,7 +83,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             .required(false)
             .build();
 
-    public static final List<PropertyDescriptor> properties = List.of(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
         TABLE,
         REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -105,17 +103,21 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
     public static final Relationship REL_NOT_FOUND = new Relationship.Builder().name("not found")
             .description("FlowFiles are routed to not found relationship if key not found in the table").build();
 
-    public static final Set<Relationship> getDynamoDBrelationships = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_UNPROCESSED, REL_NOT_FOUND)));
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_UNPROCESSED,
+            REL_NOT_FOUND
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return getDynamoDBrelationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

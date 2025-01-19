@@ -46,8 +46,8 @@ import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @ExtendWith(SpringExtension.class)
@@ -134,35 +134,35 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
             proxiedFlowClient.get("1");
             fail("Shouldn't have been able to retrieve flow");
         } catch (NiFiRegistryException e) {
-            assertTrue(e.getCause()  instanceof ForbiddenException);
+            assertInstanceOf(ForbiddenException.class, e.getCause());
         }
 
         try {
             proxiedFlowSnapshotClient.getLatest("1");
             fail("Shouldn't have been able to retrieve flow");
         } catch (NiFiRegistryException e) {
-            assertTrue(e.getCause()  instanceof ForbiddenException);
+            assertInstanceOf(ForbiddenException.class, e.getCause());
         }
 
         try {
             proxiedFlowSnapshotClient.getLatestMetadata("1");
             fail("Shouldn't have been able to retrieve flow");
         } catch (NiFiRegistryException e) {
-            assertTrue(e.getCause()  instanceof ForbiddenException);
+            assertInstanceOf(ForbiddenException.class, e.getCause());
         }
 
         try {
             proxiedFlowSnapshotClient.get("1", 1);
             fail("Shouldn't have been able to retrieve flow");
         } catch (NiFiRegistryException e) {
-            assertTrue(e.getCause()  instanceof ForbiddenException);
+            assertInstanceOf(ForbiddenException.class, e.getCause());
         }
 
         try {
             proxiedFlowSnapshotClient.getSnapshotMetadata("1");
             fail("Shouldn't have been able to retrieve flow");
         } catch (NiFiRegistryException e) {
-            assertTrue(e.getCause()  instanceof ForbiddenException);
+            assertInstanceOf(ForbiddenException.class, e.getCause());
         }
 
     }

@@ -43,7 +43,7 @@ public class AuthorizerInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             if (getAccessPolicyProviderMethod.equals(method)) {
                 final AccessPolicyProvider accessPolicyProvider = (AccessPolicyProvider) method.invoke(authorizer, args);
                 if (accessPolicyProvider == null) {

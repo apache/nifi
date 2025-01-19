@@ -46,10 +46,8 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.ssl.SSLContextProvider;
@@ -57,15 +55,12 @@ import org.apache.nifi.ssl.SSLContextProvider;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -271,8 +266,31 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
     public static final String EARLIEST_TIME_ATTR = "splunk.earliest.time";
     public static final String LATEST_TIME_ATTR = "splunk.latest.time";
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> descriptors;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+        SCHEME,
+        HOSTNAME,
+        PORT,
+        CONNECT_TIMEOUT,
+        READ_TIMEOUT,
+        QUERY,
+        TIME_FIELD_STRATEGY,
+        TIME_RANGE_STRATEGY,
+        EARLIEST_TIME,
+        LATEST_TIME,
+        TIME_ZONE,
+        APP,
+        OWNER,
+        TOKEN,
+        USERNAME,
+        PASSWORD,
+        SECURITY_PROTOCOL,
+        OUTPUT_MODE,
+        SSL_CONTEXT_SERVICE
+    );
 
     private volatile String transitUri;
     private volatile boolean resetState = false;
@@ -280,42 +298,13 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
     protected final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(SCHEME);
-        descriptors.add(HOSTNAME);
-        descriptors.add(PORT);
-        descriptors.add(CONNECT_TIMEOUT);
-        descriptors.add(READ_TIMEOUT);
-        descriptors.add(QUERY);
-        descriptors.add(TIME_FIELD_STRATEGY);
-        descriptors.add(TIME_RANGE_STRATEGY);
-        descriptors.add(EARLIEST_TIME);
-        descriptors.add(LATEST_TIME);
-        descriptors.add(TIME_ZONE);
-        descriptors.add(APP);
-        descriptors.add(OWNER);
-        descriptors.add(TOKEN);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(SECURITY_PROTOCOL);
-        descriptors.add(OUTPUT_MODE);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
     public final Set<Relationship> getRelationships() {
-        return this.relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override
@@ -364,7 +353,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         final String scheme = context.getProperty(SCHEME).getValue();
         final String host = context.getProperty(HOSTNAME).getValue();
         final int port = context.getProperty(PORT).asInteger();
-        transitUri = new StringBuilder().append(scheme).append("://").append(host).append(":").append(port).toString();
+        transitUri = scheme + "://" + host + ":" + port;
 
         // if properties changed since last execution then remove any previous state
         if (resetState) {
@@ -418,7 +407,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         exportArgs.setOutputMode(JobExportArgs.OutputMode.valueOf(outputMode));
 
         String earliestTime = null;
-        String latestTime = null;
+        String latestTime;
 
         if (PROVIDED_VALUE.getValue().equals(timeRangeStrategy)) {
             // for provided we just use the values of the properties
@@ -503,12 +492,9 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         final InputStream exportSearch = export;
 
         FlowFile flowFile = session.create();
-        flowFile = session.write(flowFile, new OutputStreamCallback() {
-            @Override
-            public void process(OutputStream rawOut) throws IOException {
-                try (BufferedOutputStream out = new BufferedOutputStream(rawOut)) {
-                    IOUtils.copyLarge(exportSearch, out);
-                }
+        flowFile = session.write(flowFile, rawOut -> {
+            try (BufferedOutputStream out = new BufferedOutputStream(rawOut)) {
+                IOUtils.copyLarge(exportSearch, out);
             }
         });
 
@@ -607,7 +593,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
     private TimeRange loadState(final ProcessSession session) throws IOException {
         final StateMap stateMap = session.getState(Scope.CLUSTER);
 
-        if (!stateMap.getStateVersion().isPresent()) {
+        if (stateMap.getStateVersion().isEmpty()) {
             getLogger().debug("No previous state found");
             return null;
         }

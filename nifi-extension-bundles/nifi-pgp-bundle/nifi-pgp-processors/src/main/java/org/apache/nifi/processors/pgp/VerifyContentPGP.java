@@ -49,10 +49,7 @@ import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentVerifierBuilderProv
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -97,9 +94,12 @@ public class VerifyContentPGP extends AbstractProcessor {
             .required(true)
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = new HashSet<>(Arrays.asList(SUCCESS, FAILURE));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            SUCCESS,
+            FAILURE
+    );
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = Collections.singletonList(
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             PUBLIC_KEY_SERVICE
     );
 

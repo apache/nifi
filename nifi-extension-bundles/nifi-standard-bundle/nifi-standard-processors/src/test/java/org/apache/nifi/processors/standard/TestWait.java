@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ConcurrentModificationException;
@@ -259,7 +260,7 @@ public class TestWait {
         waitAttributes.put("wait.only", "waitValue");
         waitAttributes.put("both", "waitValue");
         String flowFileContent = "content";
-        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
+        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         // make sure the key is in the cache before Wait runs
         assertNotNull(protocol.getSignal("key"));
@@ -304,7 +305,7 @@ public class TestWait {
         waitAttributes.put("wait.only", "waitValue");
         waitAttributes.put("both", "waitValue");
         String flowFileContent = "content";
-        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
+        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         runner.run();
 
@@ -344,7 +345,7 @@ public class TestWait {
         waitAttributes.put("wait.only", "waitValue");
         waitAttributes.put("both", "waitValue");
         String flowFileContent = "content";
-        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
+        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         /*
          * 1st iteration
@@ -432,7 +433,7 @@ public class TestWait {
         waitAttributes.put("wait.only", "waitValue");
         waitAttributes.put("both", "waitValue");
         String flowFileContent = "content";
-        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
+        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         /*
          * 1st iteration
@@ -534,7 +535,7 @@ public class TestWait {
         waitAttributes.put("both", "waitValue");
         waitAttributes.put("uuid", UUID.randomUUID().toString());
         String flowFileContent = "content";
-        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
+        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         /*
          * 1st iteration
@@ -550,7 +551,7 @@ public class TestWait {
         assertEquals("1", Long.toString(protocol.getSignal("key").getReleasableCount()));
 
         // introduce a second flow file with the same signal attribute
-        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
+        runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         /*
          * 2nd iteration

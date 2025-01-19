@@ -15,93 +15,9 @@
  * limitations under the License.
  */
 
-import { MatDialogConfig } from '@angular/material/dialog';
-import { filter, Observable } from 'rxjs';
-
-export const SMALL_DIALOG: MatDialogConfig = {
-    maxWidth: '24rem',
-    minWidth: 320,
-    disableClose: true,
-    closeOnNavigation: false
-};
-export const MEDIUM_DIALOG: MatDialogConfig = {
-    maxWidth: 470,
-    minWidth: 470,
-    disableClose: true,
-    closeOnNavigation: false
-};
-export const LARGE_DIALOG: MatDialogConfig = {
-    maxWidth: 760,
-    minWidth: 760,
-    disableClose: true,
-    closeOnNavigation: false
-};
-export const XL_DIALOG: MatDialogConfig = {
-    maxWidth: 1024,
-    minWidth: 1024,
-    disableClose: true,
-    closeOnNavigation: false
-};
-
-export enum ComponentType {
-    Processor = 'Processor',
-    ProcessGroup = 'ProcessGroup',
-    RemoteProcessGroup = 'RemoteProcessGroup',
-    InputPort = 'InputPort',
-    OutputPort = 'OutputPort',
-    Label = 'Label',
-    Funnel = 'Funnel',
-    Connection = 'Connection',
-    ControllerService = 'ControllerService',
-    ReportingTask = 'ReportingTask',
-    FlowAnalysisRule = 'FlowAnalysisRule',
-    ParameterProvider = 'ParameterProvider',
-    FlowRegistryClient = 'FlowRegistryClient',
-    Flow = 'Flow'
-}
-
-export interface SelectGroup {
-    text: string;
-    options: SelectOption[];
-}
-
-export interface SelectOption {
-    text: string;
-    value: string | null;
-    description?: string;
-    disabled?: boolean;
-}
-
-export interface MapTableEntry {
-    name: string;
-    value: string | null;
-}
-
-export interface MapTableItem {
-    entry: MapTableEntry;
-    id: number;
-    triggerEdit: boolean;
-    deleted: boolean;
-    dirty: boolean;
-    added: boolean;
-}
-
-export interface MapTableEntryData {
-    existingEntries: string[];
-    entryTypeLabel?: string;
-}
-
-export function isDefinedAndNotNull<T>() {
-    return (source$: Observable<null | undefined | T>) =>
-        source$.pipe(
-            filter((input: null | undefined | T): input is T => {
-                return input !== null && typeof input !== 'undefined';
-            })
-        );
-}
-
 export * from './components';
 export * from './directives';
 export * from './pipes';
 export * from './services';
 export * from './state';
+export * from './types';

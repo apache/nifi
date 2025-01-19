@@ -39,8 +39,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -82,6 +80,20 @@ public class AttributeRollingWindow extends AbstractProcessor {
     public static final String COUNT_APPEND_KEY = "_count";
     public static final int COUNT_APPEND_KEY_LENGTH = 6;
 
+    // relationships
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .description("All FlowFiles are successfully processed are routed here")
+            .name("success")
+            .build();
+    public static final Relationship REL_FAILED_SET_STATE = new Relationship.Builder()
+            .name("set state fail")
+            .description("When state fails to save when processing a FlowFile, the FlowFile is routed here.")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("When a FlowFile fails for a reason other than failing to set state it is routed here.")
+            .build();
+
     static final PropertyDescriptor VALUE_TO_TRACK = new PropertyDescriptor.Builder()
             .displayName("Value to track")
             .name("Value to track")
@@ -108,49 +120,30 @@ public class AttributeRollingWindow extends AbstractProcessor {
             .required(false)
             .build();
 
-
-    private final Set<Relationship> relationships;
-    private final List<PropertyDescriptor> properties;
-    private Long timeWindow;
-    private Long microBatchTime;
     private static final Scope SCOPE = Scope.LOCAL;
 
-    // relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .description("All FlowFiles are successfully processed are routed here")
-            .name("success")
-            .build();
-    public static final Relationship REL_FAILED_SET_STATE = new Relationship.Builder()
-            .name("set state fail")
-            .description("When state fails to save when processing a FlowFile, the FlowFile is routed here.")
-            .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("When a FlowFile fails for a reason other than failing to set state it is routed here.")
-            .build();
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+                REL_SUCCESS,
+                REL_FAILED_SET_STATE,
+                REL_FAILURE);
 
-    {
-        final Set<Relationship> relationshipSet = new HashSet<>();
-        relationshipSet.add(REL_SUCCESS);
-        relationshipSet.add(REL_FAILED_SET_STATE);
-        relationshipSet.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(relationshipSet);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            VALUE_TO_TRACK,
+            TIME_WINDOW,
+            SUB_WINDOW_LENGTH
+    );
 
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(VALUE_TO_TRACK);
-        properties.add(TIME_WINDOW);
-        properties.add(SUB_WINDOW_LENGTH);
-        this.properties = Collections.unmodifiableList(properties);
-    }
+    private Long timeWindow;
+    private Long microBatchTime;
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @OnScheduled

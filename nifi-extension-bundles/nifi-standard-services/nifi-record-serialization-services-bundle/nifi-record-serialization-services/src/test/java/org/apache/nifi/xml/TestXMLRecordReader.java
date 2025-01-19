@@ -425,19 +425,19 @@ public class TestXMLRecordReader {
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
-        assertTrue(Arrays.asList(new Object[] {"Cleve Butler", "42", "USA", "P1"}).containsAll(Arrays.asList(first.getValues())));
+        assertTrue(List.of("Cleve Butler", "42", "USA", "P1").containsAll(Arrays.asList(first.getValues())));
         assertEquals("P1", first.getAsString("ID"));
 
         Record second = reader.nextRecord(false, false);
-        assertTrue(Arrays.asList(new Object[] {"Ainslie Fletcher", "33", "UK", "P2"}).containsAll(Arrays.asList(second.getValues())));
+        assertTrue(List.of("Ainslie Fletcher", "33", "UK", "P2").containsAll(Arrays.asList(second.getValues())));
         assertEquals("P2", second.getAsString("ID"));
 
         Record third = reader.nextRecord(false, false);
-        assertTrue(Arrays.asList(new Object[] {"Amélie Bonfils", "74", "FR", "P3"}).containsAll(Arrays.asList(third.getValues())));
+        assertTrue(List.of("Amélie Bonfils", "74", "FR", "P3").containsAll(Arrays.asList(third.getValues())));
         assertEquals("P3", third.getAsString("ID"));
 
         Record fourth = reader.nextRecord(false, false);
-        assertTrue(Arrays.asList(new Object[] {"Elenora Scrivens", "16", "USA", "P4"}).containsAll(Arrays.asList(fourth.getValues())));
+        assertTrue(List.of("Elenora Scrivens", "16", "USA", "P4").containsAll(Arrays.asList(fourth.getValues())));
         assertEquals("P4", fourth.getAsString("ID"));
     }
 

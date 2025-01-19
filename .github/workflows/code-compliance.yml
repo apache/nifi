@@ -1,0 +1,112 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: code-compliance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+  pull_request:
+  push:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  security-events: write
+  contents: write
+  pull-requests: read
+
+env:
+  DEFAULT_MAVEN_OPTS: >-
+    -Xms6g
+    -Xmx6g
+    -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
+
+jobs:
+  validate:
+    timeout-minutes: 60
+    name: Validate
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+          cache: 'maven'
+      - name: Maven Validate
+        run: >
+          ./mvnw
+          --show-version
+          --no-snapshot-updates
+          --no-transfer-progress
+          --fail-fast
+          --activate-profiles contrib-check
+          validate
+
+  scan:
+    timeout-minutes: 120
+    name: Scan
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+          cache: 'maven'
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+      - name: Maven Package
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+        run: >
+          ./mvnw
+          --show-version
+          --no-snapshot-updates
+          --no-transfer-progress
+          --fail-fast
+          -DskipTests
+          pmd:check
+          package
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+      - name: Get Project Version
+        run: echo "PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          format: spdx-json
+          path: ''
+          file: nifi-assembly/target/nifi-${{ env.PROJECT_VERSION }}-bin.zip
+          artifact-name: nifi-${{ env.PROJECT_VERSION }}.spdx.json
+          output-file: nifi-${{ env.PROJECT_VERSION }}.spdx.json
+      - name: Scan SBOM
+        uses: anchore/scan-action@v6
+        with:
+          sbom: nifi-${{ env.PROJECT_VERSION }}.spdx.json
+          severity-cutoff: 'medium'
+          only-fixed: true
+          fail-build: ${{ github.ref_name == 'main' && 'true' || 'false' }}

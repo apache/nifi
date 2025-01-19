@@ -31,7 +31,6 @@ import static java.nio.file.StandardOpenOption.SYNC;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
 import static java.util.Optional.empty;
-import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toList;
@@ -115,7 +114,7 @@ public class FileResourceRepository implements ResourceRepository {
             newItems.add(resourceItem);
             ResourceRepositoryDescriptor newRepositoryDescriptor = new ResourceRepositoryDescriptor(resourceRepositoryDescriptor.resourcesGlobalHash(), newItems);
             persist(newRepositoryDescriptor);
-            return of(resourceItem);
+            return Optional.of(resourceItem);
         } catch (IOException e) {
             LOG.error("Unable to persist repository metadata", e);
             return empty();

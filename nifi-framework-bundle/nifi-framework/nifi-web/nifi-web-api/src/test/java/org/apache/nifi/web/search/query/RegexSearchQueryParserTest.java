@@ -20,11 +20,12 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.params.ParameterizedTest;
+
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -52,30 +53,30 @@ public class RegexSearchQueryParserTest {
         }
     }
 
-    private static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                {"", "", new String[]{}, new String[]{}},
-                {"lorem ipsum", "lorem ipsum", new String[]{}, new String[]{}},
-                {"lorem ipsum  ", "lorem ipsum  ", new String[]{}, new String[]{}},
-                {"a:b c:d lorem ipsum", "lorem ipsum", new String[]{"a", "c"}, new String[]{"b", "d"}},
-                {"a:b\tc:d\tlorem ipsum", "lorem ipsum", new String[]{"a", "c"}, new String[]{"b", "d"}},
-                {"a:b   c:d     lorem ipsum", "lorem ipsum", new String[]{"a", "c"}, new String[]{"b", "d"}},
-                {"1a:1b c2:d2 lorem ipsum", "lorem ipsum", new String[]{"1a", "c2"}, new String[]{"1b", "d2"}},
-                {"1:2 3:4 lorem ipsum", "lorem ipsum", new String[]{"1", "3"}, new String[]{"2", "4"}},
-                {"a:b lorem c:d ipsum", "lorem c:d ipsum", new String[]{"a"}, new String[]{"b"}},
-                {"a:b lorem ipsum c:d", "lorem ipsum c:d", new String[]{"a"}, new String[]{"b"}},
-                {"a:b lorem ipsum c:d ", "lorem ipsum c:d ", new String[]{"a"}, new String[]{"b"}},
-                {"lorem ipsum a:b", "lorem ipsum a:b", new String[]{}, new String[]{}},
-                {"a:b c:d", StringUtils.EMPTY, new String[]{"a", "c"}, new String[]{"b", "d"}},
-                {"a:b c:d     ", StringUtils.EMPTY, new String[]{"a", "c"}, new String[]{"b", "d"}},
-                {"a: lorem ipsum", "a: lorem ipsum", new String[]{}, new String[]{}},
-                {":b lorem ipsum", ":b lorem ipsum", new String[]{}, new String[]{}},
-                {":b lorem ipsum", ":b lorem ipsum", new String[]{}, new String[]{}},
-                {"a:b a:b lorem ipsum", "lorem ipsum", new String[]{"a"}, new String[]{"b"}},
-                {"a:b a:c lorem ipsum", "lorem ipsum", new String[]{"a"}, new String[]{"b"}},
-                {"a:b-c", StringUtils.EMPTY, new String[]{"a"}, new String[]{"b-c"}},
-                {"a:b-c lorem ipsum", "lorem ipsum", new String[]{"a"}, new String[]{"b-c"}},
-                {"a:b-c d:e lorem ipsum", "lorem ipsum", new String[]{"a", "d"}, new String[]{"b-c", "e"}}
-        });
+    private static Stream<Arguments> data() {
+        return Stream.of(
+                Arguments.of("", "", new String[]{}, new String[]{}),
+                Arguments.of("lorem ipsum", "lorem ipsum", new String[]{}, new String[]{}),
+                Arguments.of("lorem ipsum  ", "lorem ipsum  ", new String[]{}, new String[]{}),
+                Arguments.of("a:b c:d lorem ipsum", "lorem ipsum", new String[]{"a", "c"}, new String[]{"b", "d"}),
+                Arguments.of("a:b\tc:d\tlorem ipsum", "lorem ipsum", new String[]{"a", "c"}, new String[]{"b", "d"}),
+                Arguments.of("a:b   c:d     lorem ipsum", "lorem ipsum", new String[]{"a", "c"}, new String[]{"b", "d"}),
+                Arguments.of("1a:1b c2:d2 lorem ipsum", "lorem ipsum", new String[]{"1a", "c2"}, new String[]{"1b", "d2"}),
+                Arguments.of("1:2 3:4 lorem ipsum", "lorem ipsum", new String[]{"1", "3"}, new String[]{"2", "4"}),
+                Arguments.of("a:b lorem c:d ipsum", "lorem c:d ipsum", new String[]{"a"}, new String[]{"b"}),
+                Arguments.of("a:b lorem ipsum c:d", "lorem ipsum c:d", new String[]{"a"}, new String[]{"b"}),
+                Arguments.of("a:b lorem ipsum c:d ", "lorem ipsum c:d ", new String[]{"a"}, new String[]{"b"}),
+                Arguments.of("lorem ipsum a:b", "lorem ipsum a:b", new String[]{}, new String[]{}),
+                Arguments.of("a:b c:d", StringUtils.EMPTY, new String[]{"a", "c"}, new String[]{"b", "d"}),
+                Arguments.of("a:b c:d     ", StringUtils.EMPTY, new String[]{"a", "c"}, new String[]{"b", "d"}),
+                Arguments.of("a: lorem ipsum", "a: lorem ipsum", new String[]{}, new String[]{}),
+                Arguments.of(":b lorem ipsum", ":b lorem ipsum", new String[]{}, new String[]{}),
+                Arguments.of(":b lorem ipsum", ":b lorem ipsum", new String[]{}, new String[]{}),
+                Arguments.of("a:b a:b lorem ipsum", "lorem ipsum", new String[]{"a"}, new String[]{"b"}),
+                Arguments.of("a:b a:c lorem ipsum", "lorem ipsum", new String[]{"a"}, new String[]{"b"}),
+                Arguments.of("a:b-c", StringUtils.EMPTY, new String[]{"a"}, new String[]{"b-c"}),
+                Arguments.of("a:b-c lorem ipsum", "lorem ipsum", new String[]{"a"}, new String[]{"b-c"}),
+                Arguments.of("a:b-c d:e lorem ipsum", "lorem ipsum", new String[]{"a", "d"}, new String[]{"b-c", "e"})
+        );
     }
 }

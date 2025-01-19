@@ -41,20 +41,16 @@ import org.bson.conversions.Bson;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Tags({"mongo", "aggregation", "aggregate"})
 @CapabilityDescription("A processor that runs an aggregation query whenever a flowfile is received.")
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 public class RunMongoAggregation extends AbstractMongoProcessor {
-
-    private final static Set<Relationship> relationships;
-    private final static List<PropertyDescriptor> propertyDescriptors;
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .description("The input flowfile gets sent to this relationship when the query succeeds.")
@@ -102,40 +98,40 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(descriptors);
-        _propertyDescriptors.add(CHARSET);
-        _propertyDescriptors.add(QUERY);
-        _propertyDescriptors.add(ALLOW_DISK_USE);
-        _propertyDescriptors.add(JSON_TYPE);
-        _propertyDescriptors.add(QUERY_ATTRIBUTE);
-        _propertyDescriptors.add(BATCH_SIZE);
-        _propertyDescriptors.add(RESULTS_PER_FLOWFILE);
-        _propertyDescriptors.add(DATE_FORMAT);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_RESULTS,
+            REL_ORIGINAL,
+            REL_FAILURE
+    );
 
-        final Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_RESULTS);
-        _relationships.add(REL_ORIGINAL);
-        _relationships.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(_relationships);
-    }
+    private final static List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            AbstractMongoProcessor.DESCRIPTORS.stream(),
+            Stream.of(
+                    CHARSET,
+                    QUERY,
+                    ALLOW_DISK_USE,
+                    JSON_TYPE,
+                    QUERY_ATTRIBUTE,
+                    BATCH_SIZE,
+                    RESULTS_PER_FLOWFILE,
+                    DATE_FORMAT
+            )
+    ).toList();
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     private String buildBatch(List<Document> batch) {
         String retVal;
         try {
-            retVal = objectMapper.writeValueAsString(batch.size() > 1 ? batch : batch.get(0));
+            retVal = objectMapper.writeValueAsString(batch.size() > 1 ? batch : batch.getFirst());
         } catch (Exception e) {
             retVal = null;
         }
@@ -165,7 +161,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         configureMapper(jsonTypeSetting, dateFormat);
 
         Map<String, String> attrs = new HashMap<>();
-        if (queryAttr != null && queryAttr.trim().length() > 0) {
+        if (queryAttr != null && !queryAttr.trim().isEmpty()) {
             attrs.put(queryAttr, query);
         }
 
@@ -174,7 +170,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         try {
             MongoCollection<Document> collection = getCollection(context, flowFile);
             List<Bson> aggQuery = buildAggregationQuery(query);
-            AggregateIterable<Document> it = collection.aggregate(aggQuery).allowDiskUse(allowDiskUse);;
+            AggregateIterable<Document> it = collection.aggregate(aggQuery).allowDiskUse(allowDiskUse);
             it.batchSize(batchSize != null ? batchSize : 1);
 
             iter = it.iterator();

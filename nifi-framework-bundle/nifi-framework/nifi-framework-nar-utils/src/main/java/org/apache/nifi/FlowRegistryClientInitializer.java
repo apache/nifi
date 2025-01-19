@@ -45,7 +45,7 @@ public class FlowRegistryClientInitializer implements ConfigurableComponentIniti
     public void initialize(final ConfigurableComponent component) throws InitializationException {
         FlowRegistryClient flowRegistryClient = (FlowRegistryClient) component;
         FlowRegistryClientInitializationContext context = new MockFlowRegistryClientInitializationContext();
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             flowRegistryClient.initialize(context);
         }
     }
@@ -53,7 +53,7 @@ public class FlowRegistryClientInitializer implements ConfigurableComponentIniti
     @Override
     public void teardown(final ConfigurableComponent component) {
         FlowRegistryClient flowRegistryClient = (FlowRegistryClient) component;
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
             final MockConfigurationContext context = new MockConfigurationContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, flowRegistryClient, new MockComponentLogger(), context);
         } finally {

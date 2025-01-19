@@ -42,7 +42,7 @@ public class AccessPolicyProviderInvocationHandler implements InvocationHandler 
 
     @Override
     public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(classLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(classLoader)) {
             if (getUserGroupProviderMethod.equals(method)) {
                 final UserGroupProvider userGroupProvider = (UserGroupProvider) method.invoke(accessPolicyProvider, args);
                 if (userGroupProvider == null) {

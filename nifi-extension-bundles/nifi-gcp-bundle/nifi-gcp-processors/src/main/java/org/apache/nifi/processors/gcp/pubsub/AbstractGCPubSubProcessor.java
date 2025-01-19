@@ -30,9 +30,7 @@ import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -91,11 +89,14 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
             .description("FlowFiles are routed to this relationship if the Google Cloud Pub/Sub operation fails.")
             .build();
 
-    private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

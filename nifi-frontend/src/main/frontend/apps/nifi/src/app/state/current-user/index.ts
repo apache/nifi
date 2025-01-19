@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-import { Permissions, RequiredPermission } from '../shared';
+import { RequiredPermission } from '../shared';
+import { Permissions } from '@nifi/shared';
 
 export const currentUserFeatureKey = 'currentUser';
 

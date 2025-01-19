@@ -20,7 +20,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EditConnectionComponent } from './edit-connection.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { EditConnectionDialogRequest } from '../../../../../state/flow';
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';

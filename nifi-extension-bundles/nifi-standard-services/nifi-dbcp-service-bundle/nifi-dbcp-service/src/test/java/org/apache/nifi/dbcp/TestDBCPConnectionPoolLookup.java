@@ -33,9 +33,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -88,7 +88,7 @@ public class TestDBCPConnectionPoolLookup {
 
         final Connection connection = dbcpLookupService.getConnection(attributes);
         assertNotNull(connection);
-        assertTrue(connection instanceof MockConnection);
+        assertInstanceOf(MockConnection.class, connection);
 
         final MockConnection mockConnection = (MockConnection) connection;
         assertEquals(connectionA.getName(), mockConnection.getName());
@@ -101,7 +101,7 @@ public class TestDBCPConnectionPoolLookup {
 
         final Connection connection = dbcpLookupService.getConnection(attributes);
         assertNotNull(connection);
-        assertTrue(connection instanceof MockConnection);
+        assertInstanceOf(MockConnection.class, connection);
 
         final MockConnection mockConnection = (MockConnection) connection;
         assertEquals(connectionB.getName(), mockConnection.getName());

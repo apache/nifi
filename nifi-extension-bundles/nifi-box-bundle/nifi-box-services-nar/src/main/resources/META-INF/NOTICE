@@ -10,24 +10,7 @@ Apache Software License v2
 
 The following binary components are provided under the Apache Software License v2
 
-  (ASLv2) Jackson Databind
-    The following NOTICE information applies:
-      Jackson Databind
-      Copyright (c) 2007- Tatu Saloranta, tatu.saloranta@iki.fi
+  (ASLv2) Jackson
+      The following NOTICE information applies:
+        Copyright 2007-, Tatu Saloranta (tatu.saloranta@iki.fi)
 
-      Jackson is a high-performance, Free/Open Source JSON processing library.
-      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
-      been in development since 2007.
-
-      It is currently developed by a community of developers, as well as supported
-      commercially by FasterXML.com.
-
-  (ASLv2) Jackson Core
-    The following NOTICE information applies:
-      Jackson Core
-      Copyright Tatu Saloranta
-
-  (ASLv2) Jackson Annotations
-    The following NOTICE information applies:
-      Jackson Annotations
-      Copyright (c) 2019 Tatu Saloranta

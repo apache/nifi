@@ -101,7 +101,7 @@ class GetHubSpotTest {
         runner.run(1);
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHubSpot.REL_SUCCESS);
-        final MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.getFirst();
 
         final String expectedFlowFileContent = getResourceAsString("expected_flowfile_content.json");
 
@@ -111,7 +111,7 @@ class GetHubSpotTest {
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         assertEquals(expectedJsonNode, actualJsonNode);
         List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        assertEquals(baseUrl.toString(), provenanceEvents.get(0).getTransitUri());
+        assertEquals(baseUrl.toString(), provenanceEvents.getFirst().getTransitUri());
     }
 
     @Test
@@ -179,7 +179,7 @@ class GetHubSpotTest {
 
         assertEquals(OBJECT_MAPPER.readTree(expectedJsonString), OBJECT_MAPPER.readTree(requestBodyString));
         List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        assertEquals(baseUrl.toString(), provenanceEvents.get(0).getTransitUri());
+        assertEquals(baseUrl.toString(), provenanceEvents.getFirst().getTransitUri());
     }
 
     @Test
@@ -228,7 +228,7 @@ class GetHubSpotTest {
 
         assertEquals(OBJECT_MAPPER.readTree(expectedJsonString), OBJECT_MAPPER.readTree(requestBodyString));
         List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        assertEquals(baseUrl.toString(), provenanceEvents.get(0).getTransitUri());
+        assertEquals(baseUrl.toString(), provenanceEvents.getFirst().getTransitUri());
     }
 
     static class MockGetHubSpot extends GetHubSpot {

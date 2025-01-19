@@ -24,7 +24,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { selectRegistryClientTypes } from '../../../../state/extension-types/extension-types.selectors';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { LARGE_DIALOG, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { Router } from '@angular/router';
 import { RegistryClientService } from '../../service/registry-client.service';
 import { CreateRegistryClient } from '../../ui/registry-clients/create-registry-client/create-registry-client.component';
@@ -36,7 +36,6 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { LARGE_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { BackNavigation } from '../../../../state/navigation';
 import { ErrorContextKey } from '../../../../state/error';
 

@@ -56,10 +56,8 @@ import org.springframework.jms.support.JmsHeaders;
 import jakarta.jms.Session;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -225,50 +223,44 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .autoTerminateDefault(true) // to make sure flow are still valid after upgrades
             .build();
 
-    private final static Set<Relationship> relationships;
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_PARSE_FAILURE
+    );
 
-    private final static List<PropertyDescriptor> propertyDescriptors;
+    private static final PropertyDescriptor CHARSET_WITH_EL_VALIDATOR_PROPERTY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(CHARSET)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR_WITH_EVALUATION)
+            .build();
 
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+    private static final List<PropertyDescriptor> OTHER_PROPERTIES = Stream.concat(
+            JNDI_JMS_CF_PROPERTIES.stream(),
+            JMS_CF_PROPERTIES.stream()
+    ).toList();
 
-        _propertyDescriptors.add(CF_SERVICE);
-        _propertyDescriptors.add(DESTINATION);
-        _propertyDescriptors.add(DESTINATION_TYPE);
-        _propertyDescriptors.add(MESSAGE_SELECTOR);
-        _propertyDescriptors.add(USER);
-        _propertyDescriptors.add(PASSWORD);
-        _propertyDescriptors.add(CLIENT_ID);
-
-        // change the validator on CHARSET property
-        PropertyDescriptor charsetWithELValidatorProperty = new PropertyDescriptor.Builder()
-                .fromPropertyDescriptor(CHARSET)
-                .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR_WITH_EVALUATION)
-                .build();
-        _propertyDescriptors.add(charsetWithELValidatorProperty);
-
-        _propertyDescriptors.add(ACKNOWLEDGEMENT_MODE);
-        _propertyDescriptors.add(DURABLE_SUBSCRIBER);
-        _propertyDescriptors.add(SHARED_SUBSCRIBER);
-        _propertyDescriptors.add(SUBSCRIPTION_NAME);
-        _propertyDescriptors.add(TIMEOUT);
-        _propertyDescriptors.add(MAX_BATCH_SIZE);
-        _propertyDescriptors.add(ERROR_QUEUE);
-
-        _propertyDescriptors.add(RECORD_READER);
-        _propertyDescriptors.add(RECORD_WRITER);
-        _propertyDescriptors.add(OUTPUT_STRATEGY);
-
-        _propertyDescriptors.addAll(JNDI_JMS_CF_PROPERTIES);
-        _propertyDescriptors.addAll(JMS_CF_PROPERTIES);
-
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
-
-        Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_PARSE_FAILURE);
-        relationships = Collections.unmodifiableSet(_relationships);
-    }
+    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+            Stream.of(
+                    CF_SERVICE,
+                    DESTINATION,
+                    DESTINATION_TYPE,
+                    MESSAGE_SELECTOR,
+                    USER,
+                    PASSWORD,
+                    CLIENT_ID,
+                    CHARSET_WITH_EL_VALIDATOR_PROPERTY,
+                    ACKNOWLEDGEMENT_MODE,
+                    DURABLE_SUBSCRIBER,
+                    SHARED_SUBSCRIBER,
+                    SUBSCRIPTION_NAME,
+                    TIMEOUT,
+                    MAX_BATCH_SIZE,
+                    ERROR_QUEUE,
+                    RECORD_READER,
+                    RECORD_WRITER,
+                    OUTPUT_STRATEGY
+            ),
+            OTHER_PROPERTIES.stream()
+    ).toList();
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
@@ -477,12 +469,12 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTY_DESCRIPTORS;
     }
 
     /**

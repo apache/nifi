@@ -113,7 +113,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final List<PropertyDescriptor> properties = List.of(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
         KINESIS_STREAM_NAME,
         REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -129,7 +129,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -158,7 +158,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
                 session.exportTo(flowFile, baos);
                 final PutRecordsRequestEntry.Builder recordBuilder = PutRecordsRequestEntry.builder().data(SdkBytes.fromByteArray(baos.toByteArray()));
 
-                final String partitionKey = context.getProperty(PutKinesisStream.KINESIS_PARTITION_KEY)
+                final String partitionKey = context.getProperty(KINESIS_PARTITION_KEY)
                         .evaluateAttributeExpressions(flowFile).getValue();
 
                 recordBuilder.partitionKey(StringUtils.isBlank(partitionKey) ? Integer.toString(randomPartitionKeyGenerator.nextInt()) : partitionKey);

@@ -39,10 +39,9 @@ import org.bson.Document;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({ "delete", "mongo", "mongodb" })
@@ -56,9 +55,6 @@ import java.util.Set;
             "configured to use this option. Acceptable values are 'one' and 'many.'"
 )
 public class DeleteMongo extends AbstractMongoProcessor {
-
-    private final static Set<Relationship> relationships;
-    private final static List<PropertyDescriptor> propertyDescriptors;
 
     static final AllowableValue DELETE_ONE = new AllowableValue("one", "Delete One", "Delete only the first document that matches the query.");
     static final AllowableValue DELETE_MANY = new AllowableValue("many", "Delete Many", "Delete every document that matches the query.");
@@ -91,27 +87,27 @@ public class DeleteMongo extends AbstractMongoProcessor {
     static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("All FlowFiles that cannot be written to MongoDB are routed to this relationship").build();
 
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(descriptors);
-        _propertyDescriptors.add(DELETE_MODE);
-        _propertyDescriptors.add(FAIL_ON_NO_DELETE);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
-        final Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(_relationships);
-    }
+    private final static List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            AbstractMongoProcessor.DESCRIPTORS.stream(),
+            Stream.of(
+                    DELETE_MODE,
+                    FAIL_ON_NO_DELETE
+            )
+    ).toList();
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     private static final List<String> ALLOWED_DELETE_VALUES;

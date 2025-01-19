@@ -353,7 +353,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
                     .explanation("Successfully configured data source")
                     .build());
 
-            try (final Connection conn = getConnection(hikariDataSource, kerberosUser)) {
+            try (final Connection ignored = getConnection(hikariDataSource, kerberosUser)) {
                 results.add(new ConfigVerificationResult.Builder()
                         .verificationStepName("Establish Connection")
                         .outcome(SUCCESSFUL)

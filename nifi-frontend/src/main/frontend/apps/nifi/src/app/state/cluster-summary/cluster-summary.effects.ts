@@ -23,13 +23,12 @@ import { acknowledgeClusterConnectionChange, setDisconnectionAcknowledged } from
 import { asyncScheduler, catchError, delay, filter, from, interval, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { ClusterService } from '../../service/cluster.service';
 import { selectClusterSummary } from './cluster-summary.selectors';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import { isDefinedAndNotNull, MEDIUM_DIALOG } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { ClusterSummary, ClusterSummaryState } from './index';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../error/error.actions';
 import { OkDialog } from '../../ui/common/ok-dialog/ok-dialog.component';
-import { MEDIUM_DIALOG } from 'libs/shared/src';
 import { MatDialog } from '@angular/material/dialog';
 import { ErrorHelper } from '../../service/error-helper.service';
 

@@ -236,7 +236,7 @@ public class FormatUtils {
     protected static List<Object> makeWholeNumberTime(double decimal, TimeUnit timeUnit) {
         // If the value is already a whole number, return it and the current time unit
         if (decimal == Math.rint(decimal)) {
-            return Arrays.asList(new Object[]{(long) decimal, timeUnit});
+            return Arrays.asList((long) decimal, timeUnit);
         } else if (TimeUnit.NANOSECONDS == timeUnit) {
             // The time unit is as small as possible
             if (decimal < 1.0) {
@@ -244,7 +244,7 @@ public class FormatUtils {
             } else {
                 decimal = Math.rint(decimal);
             }
-            return Arrays.asList(new Object[]{(long) decimal, timeUnit});
+            return Arrays.asList((long) decimal, timeUnit);
         } else {
             // Determine the next time unit and the respective multiplier
             TimeUnit smallerTimeUnit = getSmallerTimeUnit(timeUnit);

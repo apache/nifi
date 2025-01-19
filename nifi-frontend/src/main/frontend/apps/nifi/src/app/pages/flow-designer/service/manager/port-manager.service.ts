@@ -30,10 +30,9 @@ import {
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
-import { TextTip, NiFiCommon } from '@nifi/shared';
+import { ComponentType, TextTip, NiFiCommon } from '@nifi/shared';
 import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
 import { Dimension } from '../../state/shared';
-import { ComponentType } from 'libs/shared/src';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { renderConnectionsForComponent } from '../../state/flow/flow.actions';
 

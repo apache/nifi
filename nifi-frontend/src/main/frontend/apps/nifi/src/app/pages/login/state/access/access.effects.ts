@@ -23,7 +23,7 @@ import { AuthService } from '../../../../service/auth.service';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
-import { MEDIUM_DIALOG } from 'libs/shared/src';
+import { MEDIUM_DIALOG } from '@nifi/shared';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Store } from '@ngrx/store';

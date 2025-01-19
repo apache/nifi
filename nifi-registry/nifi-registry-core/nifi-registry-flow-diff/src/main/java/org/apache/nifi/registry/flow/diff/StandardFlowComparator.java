@@ -623,7 +623,6 @@ public class StandardFlowComparator implements FlowComparator {
         final String storageLocationB = coordinatesB.getStorageLocation();
         if (storageLocationA != null && storageLocationB != null && !storageLocationA.equals(storageLocationB)) {
             differences.add(difference(DifferenceType.VERSIONED_FLOW_COORDINATES_CHANGED, groupA, groupB, coordinatesA, coordinatesB));
-            return;
         }
     }
 

@@ -17,21 +17,24 @@
 
 import { BreadcrumbEntity, Position } from '../shared';
 import {
-    BulletinEntity,
     Bundle,
     ComponentHistory,
     DocumentedType,
     ParameterContextEntity,
-    ParameterContextReferenceEntity,
-    Permissions,
     RegistryClientEntity,
-    Revision,
     SparseVersionedFlow,
     VersionedFlowSnapshotMetadataEntity
 } from '../../../../state/shared';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BackNavigation } from '../../../../state/navigation';
-import { ComponentType, SelectOption } from 'libs/shared/src';
+import {
+    BulletinEntity,
+    ComponentType,
+    ParameterContextReferenceEntity,
+    Permissions,
+    Revision,
+    SelectOption
+} from '@nifi/shared';
 import { CopyResponseEntity, PasteRequestStrategy } from '../../../../state/copy';
 
 export const flowFeatureKey = 'flowState';

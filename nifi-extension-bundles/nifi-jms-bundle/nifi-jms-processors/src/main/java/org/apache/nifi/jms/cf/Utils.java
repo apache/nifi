@@ -20,15 +20,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public final class Utils {
-
-    private static final Logger logger = LoggerFactory.getLogger(Utils.class);
 
     /**
      * Creates new instance of the class specified by 'className' by first

@@ -85,7 +85,7 @@ public class MockPropertyValue implements PropertyValue {
     }
 
     private void ensureExpressionsEvaluated() {
-        if (Boolean.TRUE.equals(expectExpressions) && !expressionsEvaluated && isExpressionLanguagePresent()) {
+        if (Boolean.TRUE.equals(expectExpressions) && !expressionsEvaluated) {
             throw new IllegalStateException("Attempting to retrieve value of " + propertyDescriptor
                     + " without first evaluating Expressions, even though the PropertyDescriptor indicates "
                     + "that the Expression Language is Supported. If you realize that this is the case and do not want "

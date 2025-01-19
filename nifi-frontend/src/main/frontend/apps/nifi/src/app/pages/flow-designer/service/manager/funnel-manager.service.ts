@@ -29,7 +29,7 @@ import {
     selectTransitionRequired
 } from '../../state/flow/flow.selectors';
 import { Dimension } from '../../state/shared';
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })

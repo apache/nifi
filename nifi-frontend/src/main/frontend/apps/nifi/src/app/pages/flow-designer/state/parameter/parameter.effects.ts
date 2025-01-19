@@ -22,7 +22,7 @@ import * as ParameterActions from './parameter.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../index';
 import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import { isDefinedAndNotNull } from '@nifi/shared';
 import { ParameterContextUpdateRequest } from '../../../../state/shared';
 import { selectUpdateRequest } from './parameter.selectors';
 import { ParameterService } from '../../service/parameter.service';

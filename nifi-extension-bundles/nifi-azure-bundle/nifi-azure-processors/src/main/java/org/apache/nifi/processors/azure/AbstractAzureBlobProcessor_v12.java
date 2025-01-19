@@ -71,7 +71,10 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
             .description("Unsuccessful operations will be transferred to the failure relationship.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private volatile BlobServiceClientFactory clientFactory;
 

@@ -66,10 +66,11 @@ export const processorAdvancedUiParamsResolver: ResolveFn<AdvancedUiParams> = (r
         map((entity) => {
             const revision = client.getRevision(entity);
 
-            const editable = !(
-                entity.status.aggregateSnapshot.runStatus === 'Running' ||
-                entity.status.aggregateSnapshot.activeThreadCount > 0
-            );
+            const editable =
+                !(
+                    entity.status.aggregateSnapshot.runStatus === 'Running' ||
+                    entity.status.aggregateSnapshot.activeThreadCount > 0
+                ) && entity.permissions.canWrite;
 
             return {
                 url: entity.component.config.customUiUrl,

@@ -381,7 +381,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
                     }
                 } else {
                     // Verify the configuration, using the component's classloader
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), getIdentifier())) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), getIdentifier())) {
                         results.addAll(verifiable.verify(context, logger));
                     }
                 }
@@ -417,7 +417,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
 
         lifecycleState.incrementActiveThreadCount(null);
         try {
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, getIdentifier())) {
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, getReportingTask(), nodeState);
             }
         } finally {
@@ -440,7 +440,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
         final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(effectiveValues,
                 originalPropertyValues, this::mapRawValueToEffectiveValue, toString(), serviceFactory);
 
-        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), task.getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), task.getClass(), getIdentifier())) {
             task.migrateProperties(propertyConfig);
         } catch (final Exception e) {
             LOG.error("Failed to migrate Property Configuration for {}.", this, e);

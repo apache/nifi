@@ -45,11 +45,10 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 @SideEffectFree
 @SupportsBatching
@@ -88,17 +87,21 @@ public class JoltTransformJSON extends AbstractJoltTransform {
             .description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid JSON), it will be routed to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES;
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);;
+    private static final List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            AbstractJoltTransform.PROPERTIES.stream(),
+            Stream.of(
+                    PRETTY_PRINT,
+                    MAX_STRING_LENGTH
+            )
+    ).toList();
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
+
     private volatile ClassLoader customClassLoader;
     private volatile JsonUtil jsonUtil;
-
-    static {
-        final List<PropertyDescriptor> tmp = new ArrayList<>(AbstractJoltTransform.PROPERTIES);
-        tmp.add(PRETTY_PRINT);
-        tmp.add(MAX_STRING_LENGTH);
-        PROPERTIES = Collections.unmodifiableList(tmp);
-    }
 
     @Override
     public Set<Relationship> getRelationships() {

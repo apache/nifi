@@ -330,7 +330,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
         pollingContext = createPollingContext(context);
         headerEncoding = Charset.forName(context.getProperty(HEADER_ENCODING).getValue());
 

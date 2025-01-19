@@ -91,4 +91,22 @@ public final class CredentialPropertyDescriptors {
             .sensitive(true)
             .build();
 
+    public static final PropertyDescriptor DELEGATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Delegation Strategy")
+            .required(true)
+            .defaultValue(DelegationStrategy.SERVICE_ACCOUNT)
+            .allowableValues(DelegationStrategy.class)
+            .description("The Delegation Strategy determines which account is used when calls are made with the GCP Credential.")
+            .build();
+
+    public static final PropertyDescriptor DELEGATION_USER = new PropertyDescriptor.Builder()
+            .name("Delegation User")
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(DELEGATION_STRATEGY, DelegationStrategy.DELEGATED_ACCOUNT)
+            .description("This user will be impersonated by the service account for api calls. " +
+                    "API calls made using this credential will appear as if they are coming from delegate user with the delegate user's access. " +
+                    "Any scopes supplied from processors to this credential must have domain-wide delegation setup with the service account.")
+            .build();
 }

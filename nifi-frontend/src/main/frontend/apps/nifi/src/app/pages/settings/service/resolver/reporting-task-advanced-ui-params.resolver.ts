@@ -66,7 +66,9 @@ export const reportingTaskAdvancedUiParamsResolver: ResolveFn<AdvancedUiParams> 
         map((entity) => {
             const revision = client.getRevision(entity);
 
-            const editable = entity.status.runStatus === 'STOPPED' || entity.status.runStatus === 'DISABLED';
+            const editable =
+                (entity.status.runStatus === 'STOPPED' || entity.status.runStatus === 'DISABLED') &&
+                entity.permissions.canWrite;
 
             return {
                 url: entity.component.customUiUrl,

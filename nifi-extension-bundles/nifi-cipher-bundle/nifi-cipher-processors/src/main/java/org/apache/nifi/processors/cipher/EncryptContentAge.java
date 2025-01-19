@@ -122,9 +122,12 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
             .dependsOn(PUBLIC_KEY_SOURCE, KeySource.RESOURCES)
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS, FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            SUCCESS,
+            FAILURE
+    );
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             FILE_ENCODING,
             PUBLIC_KEY_SOURCE,
             PUBLIC_KEY_RECIPIENTS,
@@ -161,7 +164,7 @@ public class EncryptContentAge extends AbstractProcessor implements VerifiablePr
      */
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return DESCRIPTORS;
+        return PROPERTIES;
     }
 
     /**

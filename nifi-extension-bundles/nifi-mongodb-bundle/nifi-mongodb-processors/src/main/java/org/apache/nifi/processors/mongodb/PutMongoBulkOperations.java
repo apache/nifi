@@ -92,18 +92,24 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
         .defaultValue("UTF-8")
         .build();
 
-    private final static Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
-    private final static List<PropertyDescriptor> propertyDescriptors = Stream.concat(descriptors.stream(), Stream.of(ORDERED, CHARACTER_SET)).toList();
+    private final static List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            AbstractMongoProcessor.DESCRIPTORS.stream(),
+            Stream.of(ORDERED, CHARACTER_SET)
+    ).toList();
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     @Override

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.security.proxied.entity;
 
+import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -34,7 +35,7 @@ public class StandardProxiedEntityEncoder implements ProxiedEntityEncoder {
 
     private static final String ESCAPED_LT = "\\\\<";
 
-    private static final CharsetEncoder headerValueCharsetEncoder = StandardCharsets.US_ASCII.newEncoder();
+    private static final Charset headerValueCharset = StandardCharsets.US_ASCII;
 
     private static final Base64.Encoder headerValueEncoder = Base64.getEncoder();
 
@@ -73,7 +74,9 @@ public class StandardProxiedEntityEncoder implements ProxiedEntityEncoder {
         } else {
             final String escaped = identity.replaceAll(LT, ESCAPED_LT).replaceAll(GT, ESCAPED_GT);
 
-            if (headerValueCharsetEncoder.canEncode(escaped)) {
+            // Create method-local CharsetEncoder for thread-safe state handling
+            final CharsetEncoder charsetEncoder = headerValueCharset.newEncoder();
+            if (charsetEncoder.canEncode(escaped)) {
                 // Strings limited to US-ASCII characters can be transmitted as HTTP header values without encoding
                 sanitized = escaped;
             } else {

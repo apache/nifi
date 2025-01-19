@@ -100,7 +100,10 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
             .description("FlowFiles are routed to failure relationship")
             .build();
 
-    private static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
             .name("Region")
@@ -180,7 +183,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

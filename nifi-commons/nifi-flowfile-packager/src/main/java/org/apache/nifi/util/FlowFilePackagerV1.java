@@ -30,6 +30,7 @@ public class FlowFilePackagerV1 implements FlowFilePackager {
 
     public static final String FILENAME_ATTRIBUTES = "flowfile.attributes";
     public static final String FILENAME_CONTENT = "flowfile.content";
+    @SuppressWarnings("PMD.AvoidUsingOctalValues")
     public static final int DEFAULT_TAR_PERMISSIONS = 0644;
 
     private final int tarPermissions;

@@ -46,14 +46,13 @@ import static org.mockito.Mockito.when;
 class TestPutRedisHashRecord {
 
     private TestRunner runner;
-    private PutRedisHashRecord processor;
     private MockRecordParser parser;
 
     private MockRedisConnectionPoolService connectionPoolService;
 
     @BeforeEach
     public void setup() throws Exception {
-        processor = new PutRedisHashRecord();
+        PutRedisHashRecord processor = new PutRedisHashRecord();
         runner = TestRunners.newTestRunner(processor);
         parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -91,7 +90,7 @@ class TestPutRedisHashRecord {
         runner.assertAllFlowFilesTransferred(PutRedisHashRecord.REL_SUCCESS, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(PutRedisHashRecord.REL_SUCCESS);
         assertEquals(1, result.size());
-        MockFlowFile ff = result.get(0);
+        MockFlowFile ff = result.getFirst();
         ff.assertAttributeEquals(PutRedisHashRecord.SUCCESS_RECORD_COUNT, "3");
         // Verify the content is untouched
         ff.assertContentEquals("hello");
@@ -116,7 +115,7 @@ class TestPutRedisHashRecord {
         runner.assertAllFlowFilesTransferred(PutRedisHashRecord.REL_FAILURE, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(PutRedisHashRecord.REL_FAILURE);
         assertEquals(1, result.size());
-        MockFlowFile ff = result.get(0);
+        MockFlowFile ff = result.getFirst();
         ff.assertAttributeEquals(PutRedisHashRecord.SUCCESS_RECORD_COUNT, "1");
         // Verify the content is untouched
         ff.assertContentEquals("hello");
@@ -140,7 +139,7 @@ class TestPutRedisHashRecord {
         runner.assertAllFlowFilesTransferred(PutRedisHashRecord.REL_FAILURE, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(PutRedisHashRecord.REL_FAILURE);
         assertEquals(1, result.size());
-        MockFlowFile ff = result.get(0);
+        MockFlowFile ff = result.getFirst();
         ff.assertAttributeEquals(PutRedisHashRecord.SUCCESS_RECORD_COUNT, "0");
         // Verify the content is untouched
         ff.assertContentEquals("hello");
@@ -164,7 +163,7 @@ class TestPutRedisHashRecord {
         runner.assertAllFlowFilesTransferred(PutRedisHashRecord.REL_SUCCESS, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(PutRedisHashRecord.REL_SUCCESS);
         assertEquals(1, result.size());
-        MockFlowFile ff = result.get(0);
+        MockFlowFile ff = result.getFirst();
         // Both records are transferred successfully, but the null value was not put into Redis
         ff.assertAttributeEquals(PutRedisHashRecord.SUCCESS_RECORD_COUNT, "2");
         // Verify the content is untouched

@@ -29,7 +29,7 @@ import { selectStatus } from './general.selectors';
 import { NiFiState } from '../../../../state';
 import { Store } from '@ngrx/store';
 import { HttpErrorResponse } from '@angular/common/http';
-import { SMALL_DIALOG } from 'libs/shared/src';
+import { SMALL_DIALOG } from '@nifi/shared';
 
 @Injectable()
 export class GeneralEffects {

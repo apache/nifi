@@ -20,8 +20,6 @@ import com.sun.management.GarbageCollectionNotificationInfo;
 import com.sun.management.GcInfo;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.Tuple;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.management.Notification;
 import javax.management.NotificationListener;
@@ -35,7 +33,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RingBufferGarbageCollectionLog implements GarbageCollectionLog, NotificationListener {
-    private static final Logger logger = LoggerFactory.getLogger(RingBufferGarbageCollectionLog.class);
     private final RingBuffer<GarbageCollectionEvent> events;
     private final long minDurationThreshold;
     private final long jvmStartTime;

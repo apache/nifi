@@ -188,7 +188,7 @@ public class NiFiPropertiesTest {
         NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
         // Act
-        Integer clusterProtocolPort = properties.getClusterNodeProtocolPort();
+        properties.getClusterNodeProtocolPort();
         assertThrows(NumberFormatException.class, () -> Integer.parseInt(portValue));
     }
 

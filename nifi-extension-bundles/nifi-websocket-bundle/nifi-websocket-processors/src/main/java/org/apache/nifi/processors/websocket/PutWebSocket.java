@@ -24,14 +24,11 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_MESSAGE_TYPE;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
-import static org.apache.nifi.websocket.WebSocketMessage.CHARSET_NAME;
+import static org.apache.nifi.websocket.WebSocketMessage.CHARSET;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -128,31 +125,26 @@ public class PutWebSocket extends AbstractProcessor {
             .description("FlowFiles that failed to send to the destination are transferred to this relationship.")
             .build();
 
-    private static final List<PropertyDescriptor> descriptors;
-    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            PROP_WS_SESSION_ID,
+            PROP_WS_CONTROLLER_SERVICE_ID,
+            PROP_WS_CONTROLLER_SERVICE_ENDPOINT,
+            PROP_WS_MESSAGE_TYPE
+    );
 
-    static {
-        final List<PropertyDescriptor> innerDescriptorsList = new ArrayList<>();
-        innerDescriptorsList.add(PROP_WS_SESSION_ID);
-        innerDescriptorsList.add(PROP_WS_CONTROLLER_SERVICE_ID);
-        innerDescriptorsList.add(PROP_WS_CONTROLLER_SERVICE_ENDPOINT);
-        innerDescriptorsList.add(PROP_WS_MESSAGE_TYPE);
-        descriptors = Collections.unmodifiableList(innerDescriptorsList);
-
-        final Set<Relationship> innerRelationshipsSet = new HashSet<>();
-        innerRelationshipsSet.add(REL_SUCCESS);
-        innerRelationshipsSet.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(innerRelationshipsSet);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return PROPERTIES;
     }
 
     @Override
@@ -207,16 +199,14 @@ public class PutWebSocket extends AbstractProcessor {
         attrs.put(ATTR_WS_ENDPOINT_ID, webSocketServiceEndpoint);
         attrs.put(ATTR_WS_MESSAGE_TYPE, messageTypeStr);
 
-        processSession.read(flowfile, in -> {
-            StreamUtils.fillBuffer(in, messageContent, true);
-        });
+        processSession.read(flowfile, in -> StreamUtils.fillBuffer(in, messageContent, true));
 
         try {
 
             webSocketService.sendMessage(webSocketServiceEndpoint, sessionId, sender -> {
                 switch (messageType) {
                     case TEXT:
-                        sender.sendString(new String(messageContent, CHARSET_NAME));
+                        sender.sendString(new String(messageContent, CHARSET));
                         break;
                     case BINARY:
                         sender.sendBinary(ByteBuffer.wrap(messageContent));
@@ -244,10 +234,9 @@ public class PutWebSocket extends AbstractProcessor {
 
     }
 
-    private FlowFile transferToFailure(final ProcessSession processSession, FlowFile flowfile, final String value) {
+    private void transferToFailure(final ProcessSession processSession, FlowFile flowfile, final String value) {
         flowfile = processSession.putAttribute(flowfile, ATTR_WS_FAILURE_DETAIL, value);
         processSession.transfer(flowfile, REL_FAILURE);
-        return flowfile;
     }
 
 }

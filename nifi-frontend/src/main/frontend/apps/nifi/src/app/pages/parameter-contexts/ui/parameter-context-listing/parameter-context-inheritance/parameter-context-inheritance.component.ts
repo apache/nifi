@@ -20,12 +20,9 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
-import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
-import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
-import { RouterLink } from '@angular/router';
-import { ParameterContextEntity, ParameterContextReferenceEntity } from '../../../../../state/shared';
-import { NifiTooltipDirective, NiFiCommon, TextTip } from '@nifi/shared';
-import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
+import { NgTemplateOutlet } from '@angular/common';
+import { ParameterContextEntity } from '../../../../../state/shared';
+import { NifiTooltipDirective, NiFiCommon, TextTip, ParameterContextReferenceEntity } from '@nifi/shared';
 import {
     DragDropModule,
     CdkDrag,
@@ -45,12 +42,7 @@ import {
         MatTableModule,
         DragDropModule,
         NgTemplateOutlet,
-        CdkOverlayOrigin,
-        CdkConnectedOverlay,
-        RouterLink,
-        AsyncPipe,
         NifiTooltipDirective,
-        ParameterReferences,
         CdkDropList,
         CdkDrag
     ],
@@ -121,7 +113,7 @@ export class ParameterContextInheritance implements ControlValueAccessor {
     }
 
     hasDescription(entity: ParameterContextEntity): boolean {
-        return !this.nifiCommon.isBlank(entity.component.description);
+        return !this.nifiCommon.isBlank(entity.component?.description);
     }
 
     removeSelected(entity: ParameterContextEntity, i: number): void {
@@ -180,12 +172,15 @@ export class ParameterContextInheritance implements ControlValueAccessor {
 
     private serializeInheritedParameterContexts(): ParameterContextReferenceEntity[] {
         return this.selectedParameterContexts.map((parameterContext) => {
+            // @ts-ignore - component will be defined since the user has permissions to inherit from the context, but it is optional as defined by the type
+            const name = parameterContext.component.name;
+
             return {
                 permissions: parameterContext.permissions,
                 id: parameterContext.id,
                 component: {
-                    id: parameterContext.component.id,
-                    name: parameterContext.component.name
+                    id: parameterContext.id,
+                    name
                 }
             };
         });

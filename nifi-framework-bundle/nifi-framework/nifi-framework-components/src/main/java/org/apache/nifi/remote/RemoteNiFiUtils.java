@@ -63,7 +63,7 @@ public class RemoteNiFiUtils {
         final URI uri = URI.create(String.format("%s/controller/users", baseApiUri));
 
         // set up the query params
-        MultivaluedHashMap entity = new MultivaluedHashMap();
+        MultivaluedHashMap<String, String> entity = new MultivaluedHashMap<>();
         entity.add("justification", "A Remote instance of NiFi has attempted to create a reference to this NiFi. This action must be approved first.");
 
         // get the resource

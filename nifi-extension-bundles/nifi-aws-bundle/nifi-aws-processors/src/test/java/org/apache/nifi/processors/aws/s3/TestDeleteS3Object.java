@@ -100,7 +100,6 @@ public class TestDeleteS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_FAILURE, 1);
-        ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.never()).deleteVersion(Mockito.any(DeleteVersionRequest.class));
     }
 

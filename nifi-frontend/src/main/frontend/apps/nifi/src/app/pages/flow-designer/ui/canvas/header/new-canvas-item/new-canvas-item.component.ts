@@ -23,9 +23,8 @@ import { createComponentRequest, setDragging } from '../../../../state/flow/flow
 import { Client } from '../../../../../../service/client.service';
 import { selectDragging } from '../../../../state/flow/flow.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ComponentType } from 'libs/shared/src';
 import { CanvasView } from '../../../../service/canvas-view.service';
-import { NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { ComponentType, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { ConnectedPosition } from '@angular/cdk/overlay';
 
 @Component({

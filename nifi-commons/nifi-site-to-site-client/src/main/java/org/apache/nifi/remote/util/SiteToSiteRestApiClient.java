@@ -126,7 +126,6 @@ import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
@@ -258,7 +257,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     private void setupCredentialsProvider() {
         credentialsProvider = new BasicCredentialsProvider();
         if (proxy != null) {
-            if (!isEmpty(proxy.getUsername()) && !isEmpty(proxy.getPassword())) {
+            if (StringUtils.isNotEmpty(proxy.getUsername()) && StringUtils.isNotEmpty(proxy.getPassword())) {
                 credentialsProvider.setCredentials(
                     new AuthScope(proxy.getHttpHost()),
                     new UsernamePasswordCredentials(proxy.getUsername(), proxy.getPassword()));
@@ -477,7 +476,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                 EntityUtils.consume(response.getEntity());
 
                 transactionUrl = readTransactionUrl(response);
-                if (isEmpty(transactionUrl)) {
+                if (StringUtils.isEmpty(transactionUrl)) {
                     throw new ProtocolException("Server returned RESPONSE_CODE_CREATED without Location header");
                 }
                 final Header transportProtocolVersionHeader = response.getFirstHeader(HttpHeaders.PROTOCOL_VERSION);
@@ -680,7 +679,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     }
 
     private boolean shouldCheckProxyAuth() {
-        return proxy != null && !isEmpty(proxy.getUsername());
+        return proxy != null && StringUtils.isNotEmpty(proxy.getUsername());
     }
 
     public boolean openConnectionForReceive(final String transactionUrl, final Peer peer) throws IOException {
@@ -1199,7 +1198,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
 
         public String getDescription() {
-            return !isEmpty(explanation) ? explanation : responseMessage;
+            return StringUtils.isNotEmpty(explanation) ? explanation : responseMessage;
         }
     }
 

@@ -240,7 +240,10 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         GOOGLE_DRAWING_EXPORT_TYPE
     );
 
-    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     private volatile Drive driveService;
 

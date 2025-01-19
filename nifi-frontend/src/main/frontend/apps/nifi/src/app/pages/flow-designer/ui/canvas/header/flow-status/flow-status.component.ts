@@ -19,10 +19,10 @@ import { Component, Input } from '@angular/core';
 import { ControllerStatus } from '../../../../state/flow';
 import { initialState } from '../../../../state/flow/flow.reducer';
 import { BulletinsTip } from '../../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
-import { BulletinEntity, BulletinsTipInput } from '../../../../../../state/shared';
+import { BulletinsTipInput } from '../../../../../../state/shared';
 
 import { Search } from '../search/search.component';
-import { NifiTooltipDirective, Storage } from '@nifi/shared';
+import { BulletinEntity, NifiTooltipDirective, Storage } from '@nifi/shared';
 import { ClusterSummary } from '../../../../../../state/cluster-summary';
 import { ConnectedPosition } from '@angular/cdk/overlay';
 import { FlowAnalysisState } from '../../../../state/flow-analysis';

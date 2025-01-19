@@ -45,7 +45,6 @@ public class MockFlowFile implements FlowFile {
 
     private final long id;
     private final long entryDate;
-    private final long creationTime;
     private boolean penalized = false;
 
     private byte[] data = new byte[0];
@@ -54,7 +53,6 @@ public class MockFlowFile implements FlowFile {
     private long enqueuedIndex = 0;
 
     public MockFlowFile(final long id) {
-        this.creationTime = System.nanoTime();
         this.id = id;
         entryDate = System.currentTimeMillis();
         lastEnqueuedDate = entryDate;
@@ -66,7 +64,6 @@ public class MockFlowFile implements FlowFile {
     }
 
     public MockFlowFile(final long id, final FlowFile toCopy) {
-        this.creationTime = System.nanoTime();
         this.id = id;
         entryDate = toCopy.getEntryDate();
 
