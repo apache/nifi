@@ -24,6 +24,7 @@ class Flow {
     /**
      * The ID of a Flow. It never changes.
      */
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final String flowId;
 
     /**

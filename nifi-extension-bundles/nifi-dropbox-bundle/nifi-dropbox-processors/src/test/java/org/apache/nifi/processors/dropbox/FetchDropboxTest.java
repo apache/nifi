@@ -78,7 +78,7 @@ public class FetchDropboxTest extends AbstractDropboxTest {
 
         testRunner.assertAllFlowFilesTransferred(FetchDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertContentEquals("content");
         assertOutFlowFileAttributes(ff0);
         assertProvenanceEvent(ProvenanceEventType.FETCH);
@@ -98,7 +98,7 @@ public class FetchDropboxTest extends AbstractDropboxTest {
 
         testRunner.assertAllFlowFilesTransferred(FetchDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertContentEquals("contentByPath");
         assertOutFlowFileAttributes(ff0);
         assertProvenanceEvent(ProvenanceEventType.FETCH);
@@ -116,7 +116,7 @@ public class FetchDropboxTest extends AbstractDropboxTest {
 
         testRunner.assertAllFlowFilesTransferred(FetchDropbox.REL_FAILURE, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_FAILURE);
-        MockFlowFile ff0 = flowFiles.get(0);
+        MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertAttributeEquals(ERROR_MESSAGE, "Error in Dropbox");
         assertOutFlowFileAttributes(ff0);
         assertNoProvenanceEvent();

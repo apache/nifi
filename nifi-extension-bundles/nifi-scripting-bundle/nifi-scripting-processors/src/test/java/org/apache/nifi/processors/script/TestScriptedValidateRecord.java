@@ -32,7 +32,7 @@ public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
     private static final Object[] INVALID_RECORD_2 = new Object[] {2, "ipsum"};
 
     @Test
-    public void testIncomingFlowFileContainsValidRecordsOnly() throws Exception {
+    public void testIncomingFlowFileContainsValidRecordsOnly() {
         // given
         recordReader.addRecord(VALID_RECORD_1);
         recordReader.addRecord(VALID_RECORD_2);
@@ -105,14 +105,14 @@ public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
 
     private void thenValidFlowFileContains(final Object[]... records) {
         testRunner.assertTransferCount(ScriptedValidateRecord.RELATIONSHIP_VALID, 1);
-        final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedValidateRecord.RELATIONSHIP_VALID).get(0);
+        final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedValidateRecord.RELATIONSHIP_VALID).getFirst();
         assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
         assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
     }
 
     private void thenInvalidFlowFileContains(final Object[]... records) {
         testRunner.assertTransferCount(ScriptedValidateRecord.RELATIONSHIP_INVALID, 1);
-        final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedValidateRecord.RELATIONSHIP_INVALID).get(0);
+        final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedValidateRecord.RELATIONSHIP_INVALID).getFirst();
         assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
         assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
     }

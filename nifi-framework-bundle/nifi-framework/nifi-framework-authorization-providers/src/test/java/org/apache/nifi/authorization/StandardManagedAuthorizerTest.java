@@ -29,7 +29,6 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -479,7 +478,7 @@ public class StandardManagedAuthorizerTest {
                 .build();
 
         final StandardManagedAuthorizer managedAuthorizer = getStandardManagedAuthorizer(accessPolicyProvider);
-        assertTrue(AuthorizationResult.denied().getResult().equals(managedAuthorizer.authorize(request).getResult()));
+        assertEquals(AuthorizationResult.denied().getResult(), managedAuthorizer.authorize(request).getResult());
     }
 
     @Test
@@ -525,7 +524,7 @@ public class StandardManagedAuthorizerTest {
                 .build();
 
         final StandardManagedAuthorizer managedAuthorizer = getStandardManagedAuthorizer(accessPolicyProvider);
-        assertTrue(AuthorizationResult.denied().getResult().equals(managedAuthorizer.authorize(request).getResult()));
+        assertEquals(AuthorizationResult.denied().getResult(), managedAuthorizer.authorize(request).getResult());
     }
 
     private StandardManagedAuthorizer getStandardManagedAuthorizer(final AccessPolicyProvider accessPolicyProvider) {

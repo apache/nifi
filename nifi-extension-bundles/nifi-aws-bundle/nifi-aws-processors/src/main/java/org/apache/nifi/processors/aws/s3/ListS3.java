@@ -52,7 +52,6 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
-import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
@@ -291,7 +290,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         .build();
 
 
-    public static final List<PropertyDescriptor> properties = List.of(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
         BUCKET_WITHOUT_DEFAULT_VALUE,
         REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -318,7 +317,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         LIST_TYPE,
         REQUESTER_PAYS);
 
-    public static final Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     private static final Set<PropertyDescriptor> TRACKING_RESET_PROPERTIES = Set.of(
             BUCKET_WITHOUT_DEFAULT_VALUE,
@@ -392,46 +393,40 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
 
     private static Validator createRequesterPaysValidator() {
-        return new Validator() {
-            @Override
-            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-                boolean requesterPays = Boolean.parseBoolean(input);
-                boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
-                boolean valid = !requesterPays || !useVersions;
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(valid)
-                        .explanation(valid ? null : "'Requester Pays' cannot be used when listing object versions.")
-                        .build();
-            }
+        return (subject, input, context) -> {
+            boolean requesterPays = Boolean.parseBoolean(input);
+            boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
+            boolean valid = !requesterPays || !useVersions;
+            return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(valid)
+                    .explanation(valid ? null : "'Requester Pays' cannot be used when listing object versions.")
+                    .build();
         };
     }
     private static Validator createMaxAgeValidator() {
-        return new Validator() {
-            @Override
-            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-                Double  maxAge = input != null ? FormatUtils.getPreciseTimeDuration(input, TimeUnit.MILLISECONDS) : null;
-                long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-                boolean valid = input != null && maxAge > minAge;
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(valid)
-                        .explanation(valid ? null : "'Maximum Age' must be greater than 'Minimum Age' ")
-                        .build();
-            }
+        return (subject, input, context) -> {
+            Double  maxAge = input != null ? FormatUtils.getPreciseTimeDuration(input, TimeUnit.MILLISECONDS) : null;
+            long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+            boolean valid = input != null && maxAge > minAge;
+            return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(valid)
+                    .explanation(valid ? null : "'Maximum Age' must be greater than 'Minimum Age' ")
+                    .build();
         };
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     private Set<String> extractKeys(final StateMap stateMap) {

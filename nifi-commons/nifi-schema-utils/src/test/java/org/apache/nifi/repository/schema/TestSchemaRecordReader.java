@@ -25,11 +25,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -53,14 +53,14 @@ public class TestSchemaRecordReader {
         fields.add(new MapRecordField("map",
             new SimpleRecordField("key", FieldType.STRING, Repetition.EXACTLY_ONE),
             new SimpleRecordField("value", FieldType.STRING, Repetition.ZERO_OR_ONE), Repetition.EXACTLY_ONE));
-        fields.add(new UnionRecordField("union1", Repetition.EXACTLY_ONE, Arrays.asList(new RecordField[] {
+        fields.add(new UnionRecordField("union1", Repetition.EXACTLY_ONE, List.of(
             new SimpleRecordField("one", FieldType.STRING, Repetition.EXACTLY_ONE),
             new SimpleRecordField("two", FieldType.INT, Repetition.EXACTLY_ONE)
-        })));
-        fields.add(new UnionRecordField("union2", Repetition.EXACTLY_ONE, Arrays.asList(new RecordField[] {
+        )));
+        fields.add(new UnionRecordField("union2", Repetition.EXACTLY_ONE, List.of(
             new SimpleRecordField("one", FieldType.STRING, Repetition.EXACTLY_ONE),
             new SimpleRecordField("two", FieldType.INT, Repetition.EXACTLY_ONE)
-        })));
+        )));
         final RecordSchema schema = new RecordSchema(fields);
 
         final SchemaRecordReader reader = SchemaRecordReader.fromSchema(schema, new NoOpFieldCache());
@@ -109,7 +109,7 @@ public class TestSchemaRecordReader {
 
             assertEquals(42, record.getFieldValue("int"));
             assertTrue((boolean) record.getFieldValue("boolean"));
-            assertTrue(Arrays.equals("hello".getBytes(), (byte[]) record.getFieldValue("byte array")));
+            assertArrayEquals("hello".getBytes(), (byte[]) record.getFieldValue("byte array"));
             assertEquals(42L, record.getFieldValue("long"));
             assertEquals("hello", record.getFieldValue("string"));
             assertEquals("hello", record.getFieldValue("long string"));
@@ -156,14 +156,14 @@ public class TestSchemaRecordReader {
         fields.add(new MapRecordField("map present",
             new SimpleRecordField("key", FieldType.STRING, Repetition.ZERO_OR_ONE),
             new SimpleRecordField("value", FieldType.STRING, Repetition.ZERO_OR_MORE), Repetition.ZERO_OR_ONE));
-        fields.add(new UnionRecordField("union", Repetition.ZERO_OR_ONE, Arrays.asList(new RecordField[] {
+        fields.add(new UnionRecordField("union", Repetition.ZERO_OR_ONE, List.of(
             new SimpleRecordField("one", FieldType.STRING, Repetition.EXACTLY_ONE),
             new SimpleRecordField("two", FieldType.INT, Repetition.EXACTLY_ONE)
-        })));
-        fields.add(new UnionRecordField("union present", Repetition.ZERO_OR_ONE, Arrays.asList(new RecordField[] {
+        )));
+        fields.add(new UnionRecordField("union present", Repetition.ZERO_OR_ONE, List.of(
             new SimpleRecordField("one", FieldType.STRING, Repetition.EXACTLY_ONE),
             new SimpleRecordField("two", FieldType.INT, Repetition.ZERO_OR_MORE)
-        })));
+        )));
 
         final RecordSchema schema = new RecordSchema(fields);
 
@@ -251,7 +251,7 @@ public class TestSchemaRecordReader {
 
             assertEquals(42, valueMap.get("int present"));
             assertTrue((boolean) valueMap.get("boolean present"));
-            assertTrue(Arrays.equals("hello".getBytes(), (byte[]) valueMap.get("byte array present")));
+            assertArrayEquals("hello".getBytes(), (byte[]) valueMap.get("byte array present"));
             assertEquals(42L, valueMap.get("long present"));
             assertEquals("hello", valueMap.get("string present"));
             assertEquals("hello", valueMap.get("long string present"));
@@ -266,9 +266,9 @@ public class TestSchemaRecordReader {
             assertTrue(map.containsKey(null));
             assertTrue(map.containsKey("key1"));
 
-            final List<String> key1Values = Arrays.asList(new String[] {"one", "two"});
+            final List<String> key1Values = List.of("one", "two");
             assertEquals(key1Values, map.get("key1"));
-            final List<String> nullKeyValues = Arrays.asList(new String[] {"three"});
+            final List<String> nullKeyValues = List.of("three");
             assertEquals(nullKeyValues, map.get(null));
 
             final List<Integer> unionValues = (List<Integer>) valueMap.get("union present");

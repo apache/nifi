@@ -60,43 +60,41 @@ public abstract class AbstractUpdateParamContextCommand<R extends Result> extend
         // the request will be deleted
         final String contextId = parameterContextEntity.getId();
         final String updateRequestId = updateRequestEntity.getRequest().getRequestId();
-        try {
-            boolean completed = false;
-            for (int i = 0; i < maxPollIterations; i++) {
-                final ParameterContextUpdateRequestEntity retrievedUpdateRequest = client.getParamContextUpdateRequest(contextId, updateRequestId);
-                if (retrievedUpdateRequest != null && retrievedUpdateRequest.getRequest().isComplete()) {
-                    completed = true;
-                    break;
-                } else {
-                    try {
-                        if (getContext().isInteractive()) {
-                            println("Waiting for update request to complete...");
-                        }
-                        Thread.sleep(POLL_INTERVAL_MILLIS);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+
+        boolean completed = false;
+        for (int i = 0; i < maxPollIterations; i++) {
+            final ParameterContextUpdateRequestEntity retrievedUpdateRequest = client.getParamContextUpdateRequest(contextId, updateRequestId);
+            if (retrievedUpdateRequest != null && retrievedUpdateRequest.getRequest().isComplete()) {
+                completed = true;
+                break;
+            } else {
+                try {
+                    if (getContext().isInteractive()) {
+                        println("Waiting for update request to complete...");
                     }
+                    Thread.sleep(POLL_INTERVAL_MILLIS);
+                } catch (InterruptedException e) {
+                    println("Update request polling interrupted");
                 }
             }
-
-            if (!completed) {
-                cancelled.set(true);
-            }
-
-        } finally {
-            final ParameterContextUpdateRequestEntity deleteUpdateRequest = client.deleteParamContextUpdateRequest(contextId, updateRequestId);
-
-            final String failureReason = deleteUpdateRequest.getRequest().getFailureReason();
-            if (!StringUtils.isBlank(failureReason)) {
-                throw new NiFiClientException(failureReason);
-            }
-
-            if (cancelled.get()) {
-                throw new NiFiClientException("Unable to update parameter context in time, cancelling update request");
-            }
-
-            return deleteUpdateRequest;
         }
+
+        if (!completed) {
+            cancelled.set(true);
+        }
+
+        final ParameterContextUpdateRequestEntity deleteParamContextUpdateRequest = client.deleteParamContextUpdateRequest(contextId, updateRequestId);
+
+        final String failureReason = deleteParamContextUpdateRequest.getRequest().getFailureReason();
+        if (!StringUtils.isBlank(failureReason)) {
+            throw new NiFiClientException(failureReason);
+        }
+
+        if (cancelled.get()) {
+            throw new NiFiClientException("Unable to update parameter context in time, cancelling update request");
+        }
+
+        return deleteParamContextUpdateRequest;
     }
 
     protected int getUpdateTimeout(final Properties properties) {

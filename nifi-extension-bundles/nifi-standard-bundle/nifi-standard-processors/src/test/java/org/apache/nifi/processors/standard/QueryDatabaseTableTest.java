@@ -1104,7 +1104,6 @@ public class QueryDatabaseTableTest {
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
-        InputStream in;
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");

@@ -111,7 +111,7 @@ public class ConsumeJMSIT {
 
             runner.run(1, false);
             //
-            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).getFirst();
             assertNotNull(successFF);
             successFF.assertAttributeExists(JmsHeaders.DESTINATION);
             successFF.assertAttributeEquals(JmsHeaders.DESTINATION, destinationName);
@@ -254,7 +254,7 @@ public class ConsumeJMSIT {
             runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.QUEUE);
             runner.run(1, false);
             //
-            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).getFirst();
             assertNotNull(successFF);
 
             successFF.assertAttributeExists(ConsumeJMS.JMS_MESSAGETYPE);
@@ -299,7 +299,7 @@ public class ConsumeJMSIT {
             final String destinationName = "validateNifi6915";
 
             TestRunner c1Consumer = createNonSharedDurableConsumer(cf, destinationName);
-            // 1. Start a durable non shared consumer C1 with client id client1 subscribed to topic T.
+            // 1. Start a durable non-shared consumer C1 with client id client1 subscribed to topic T.
             boolean stopConsumer = true;
             c1Consumer.run(1, stopConsumer);
             List<MockFlowFile> flowFiles = c1Consumer.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
@@ -312,7 +312,7 @@ public class ConsumeJMSIT {
             assertEquals(1, flowFiles.size());
 
             // It is expected C1 receives message M1.
-            final MockFlowFile successFF = flowFiles.get(0);
+            final MockFlowFile successFF = flowFiles.getFirst();
             assertNotNull(successFF);
             successFF.assertAttributeExists(JmsHeaders.DESTINATION);
             successFF.assertAttributeEquals(JmsHeaders.DESTINATION, destinationName);
@@ -379,7 +379,7 @@ public class ConsumeJMSIT {
             final AtomicReference<TcpTransport> tcpTransport = new AtomicReference<>();
             TcpTransportFactory.registerTransportFactory("validateNIFI7034", new TcpTransportFactory() {
                 @Override
-                protected TcpTransport createTcpTransport(WireFormat wf, SocketFactory socketFactory, URI location, URI localLocation) throws UnknownHostException, IOException {
+                protected TcpTransport createTcpTransport(WireFormat wf, SocketFactory socketFactory, URI location, URI localLocation) throws IOException {
                     TcpTransport transport = super.createTcpTransport(wf, socketFactory, location, localLocation);
                     tcpTransport.set(transport);
                     return transport;
@@ -509,7 +509,7 @@ public class ConsumeJMSIT {
 
             List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
             assertEquals(1, successFlowFiles.size());
-            assertEquals(expectedRecordSet.toString(), new String(successFlowFiles.get(0).toByteArray()));
+            assertEquals(expectedRecordSet.toString(), new String(successFlowFiles.getFirst().toByteArray()));
 
             List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
             assertEquals(0, parseFailedFlowFiles.size());
@@ -544,7 +544,7 @@ public class ConsumeJMSIT {
             // checking whether the processor was able to construct a valid recordSet from the properly formatted messages
             List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
             assertEquals(1, successFlowFiles.size());
-            assertEquals(expectedRecordSet.toString(), new String(successFlowFiles.get(0).toByteArray()));
+            assertEquals(expectedRecordSet.toString(), new String(successFlowFiles.getFirst().toByteArray()));
 
             // and checking whether it creates separate FlowFiles for the malformed messages
             List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
@@ -577,7 +577,7 @@ public class ConsumeJMSIT {
 
             List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
             assertEquals(1, successFlowFiles.size());
-            JsonNode flowFileContentAsJson = deserializeToJsonNode(new String(successFlowFiles.get(0).toByteArray()));
+            JsonNode flowFileContentAsJson = deserializeToJsonNode(new String(successFlowFiles.getFirst().toByteArray()));
             // checking that the output contains at least a part of the original input
             assertEquals(inputRecordSet.get(0).get("firstAttribute").asText(), flowFileContentAsJson.get(0).get("firstAttribute").asText());
             assertEquals(inputRecordSet.get(1).get("firstAttribute").asText(), flowFileContentAsJson.get(1).get("firstAttribute").asText());
@@ -619,7 +619,7 @@ public class ConsumeJMSIT {
 
             List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
             assertEquals(1, successFlowFiles.size());
-            JsonNode flowFileContentAsJson = deserializeToJsonNode(new String(successFlowFiles.get(0).toByteArray()));
+            JsonNode flowFileContentAsJson = deserializeToJsonNode(new String(successFlowFiles.getFirst().toByteArray()));
             // checking that the original json is equal to the leaf
             assertEquals(inputRecordSet.get(0), flowFileContentAsJson.get(0).get(valueKey));
             assertEquals(inputRecordSet.get(1), flowFileContentAsJson.get(1).get(valueKey));

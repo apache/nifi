@@ -242,7 +242,7 @@ public final class BundleUtils {
 
     public static void discoverCompatibleBundle(final ExtensionManager extensionManager, final VersionedConfigurableExtension extension) {
         final BundleDTO dto = createBundleDto(extension.getBundle());
-        final BundleCoordinate coordinate = BundleUtils.getOptionalCompatibleBundle(extensionManager, extension.getType(), dto).orElse(
+        final BundleCoordinate coordinate = getOptionalCompatibleBundle(extensionManager, extension.getType(), dto).orElse(
                 new BundleCoordinate(dto.getGroup(), dto.getArtifact(), dto.getVersion()));
         extension.setBundle(createBundle(coordinate));
     }

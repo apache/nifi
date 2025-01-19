@@ -342,7 +342,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
     private static String generateSas(final BlobContainerClient sourceContainerClient) {
         final BlobContainerSasPermission permissions = new BlobContainerSasPermission().setCreatePermission(true).setWritePermission(true).setAddPermission(true).setReadPermission(true);
         final OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-        final OffsetDateTime expiryTime = now.plusHours(CopyAzureBlobStorage_v12.GENERATE_SAS_EXPIRY_HOURS);
+        final OffsetDateTime expiryTime = now.plusHours(GENERATE_SAS_EXPIRY_HOURS);
         final BlobServiceSasSignatureValues signatureValues = new BlobServiceSasSignatureValues(expiryTime, permissions);
         return sourceContainerClient.generateSas(signatureValues);
     }

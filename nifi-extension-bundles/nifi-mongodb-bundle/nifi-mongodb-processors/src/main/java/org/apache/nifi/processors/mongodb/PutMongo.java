@@ -52,10 +52,10 @@ import org.bson.types.ObjectId;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Tags({ "mongodb", "insert", "update", "write", "put" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -146,30 +146,32 @@ public class PutMongo extends AbstractMongoProcessor {
         .defaultValue("UTF-8")
         .build();
 
-    private final static Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
-    private final static List<PropertyDescriptor> propertyDescriptors;
-
-    static {
-      List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>(descriptors);
-        _propertyDescriptors.add(MODE);
-        _propertyDescriptors.add(UPSERT);
-        _propertyDescriptors.add(UPDATE_QUERY_KEY);
-        _propertyDescriptors.add(UPDATE_QUERY);
-        _propertyDescriptors.add(UPDATE_OPERATION_MODE);
-        _propertyDescriptors.add(UPDATE_METHOD);
-        _propertyDescriptors.add(CHARACTER_SET);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
-    }
+    private final static List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            AbstractMongoProcessor.DESCRIPTORS.stream(),
+            Stream.of(
+                    MODE,
+                    UPSERT,
+                    UPDATE_QUERY_KEY,
+                    UPDATE_QUERY,
+                    UPDATE_OPERATION_MODE,
+                    UPDATE_METHOD,
+                    CHARACTER_SET
+            )
+    ).toList();
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     @Override

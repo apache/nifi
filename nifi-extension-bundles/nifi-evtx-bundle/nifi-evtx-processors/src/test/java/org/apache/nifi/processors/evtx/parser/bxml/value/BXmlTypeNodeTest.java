@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 public class BXmlTypeNodeTest extends BxmlNodeTestBase {
     private BXmlTypeNode bXmlTypeNode;
@@ -47,7 +47,7 @@ public class BXmlTypeNodeTest extends BxmlNodeTestBase {
         RootNode rootNode = bXmlTypeNode.getRootNode();
         List<BxmlNode> children = rootNode.getChildren();
         assertEquals(1, children.size());
-        assertTrue(children.get(0) instanceof EndOfStreamNode);
+        assertInstanceOf(EndOfStreamNode.class, children.get(0));
         assertEquals(0, rootNode.getSubstitutions().size());
         assertEquals(rootNode.toString(), bXmlTypeNode.getValue());
     }

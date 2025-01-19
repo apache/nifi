@@ -26,11 +26,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,9 +46,11 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -92,6 +92,7 @@ public class GetWorkdayReport extends AbstractProcessor {
     protected static final String GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE = "getworkdayreport.java.exception.message";
     protected static final String RECORD_COUNT = "record.count";
     protected static final String BASIC_PREFIX = "Basic ";
+    protected static final String BEARER_PREFIX = "Bearer ";
     protected static final String HEADER_AUTHORIZATION = "Authorization";
     protected static final String HEADER_CONTENT_TYPE = "Content-Type";
     protected static final String USERNAME_PASSWORD_SEPARATOR = ":";
@@ -105,10 +106,31 @@ public class GetWorkdayReport extends AbstractProcessor {
         .addValidator(URL_VALIDATOR)
         .build();
 
+    public static AllowableValue BASIC_AUTH_TYPE = new AllowableValue(
+        "BASIC_AUTH",
+        "Basic Auth",
+        "Used to access resources using Workday password and username."
+    );
+
+    public static AllowableValue OAUTH_TYPE = new AllowableValue(
+        "OAUTH",
+        "OAuth",
+        "Used to get fresh access tokens based on a previously acquired refresh token. Requires Client ID, Client Secret and Refresh Token."
+    );
+
+    public static final PropertyDescriptor AUTH_TYPE = new PropertyDescriptor.Builder()
+        .name("Authorization Type")
+        .description("The type of authorization for retrieving data from Workday resources.")
+        .required(true)
+        .allowableValues(BASIC_AUTH_TYPE, OAUTH_TYPE)
+        .defaultValue(BASIC_AUTH_TYPE.getValue())
+        .build();
+
     protected static final PropertyDescriptor WORKDAY_USERNAME = new PropertyDescriptor.Builder()
         .name("Workday Username")
         .displayName("Workday Username")
         .description("The username provided for authentication of Workday requests. Encoded using Base64 for HTTP Basic Authentication as described in RFC 7617.")
+        .dependsOn(AUTH_TYPE, BASIC_AUTH_TYPE)
         .required(true)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -118,6 +140,7 @@ public class GetWorkdayReport extends AbstractProcessor {
         .name("Workday Password")
         .displayName("Workday Password")
         .description("The password provided for authentication of Workday requests. Encoded using Base64 for HTTP Basic Authentication as described in RFC 7617.")
+        .dependsOn(AUTH_TYPE, BASIC_AUTH_TYPE)
         .required(true)
         .sensitive(true)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
@@ -129,6 +152,14 @@ public class GetWorkdayReport extends AbstractProcessor {
         .description("Web client which is used to communicate with the Workday API.")
         .required(true)
         .identifiesControllerService(WebClientServiceProvider.class)
+        .build();
+
+    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+        .name("Access Token Provider")
+        .description("Enables managed retrieval of OAuth2 Bearer Token.")
+        .dependsOn(AUTH_TYPE, OAUTH_TYPE)
+        .identifiesControllerService(OAuth2AccessTokenProvider.class)
+        .required(true)
         .build();
 
     protected static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
@@ -164,17 +195,25 @@ public class GetWorkdayReport extends AbstractProcessor {
         .description("Response FlowFiles transferred when receiving HTTP responses with a status code between 200 and 299.")
         .build();
 
-    protected static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(ORIGINAL, SUCCESS, FAILURE)));
-    protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-        REPORT_URL,
-        WORKDAY_USERNAME,
-        WORKDAY_PASSWORD,
-        WEB_CLIENT_SERVICE,
-        RECORD_READER_FACTORY,
-        RECORD_WRITER_FACTORY
-    ));
+    protected static final Set<Relationship> RELATIONSHIPS = Set.of(
+            ORIGINAL,
+            SUCCESS,
+            FAILURE
+    );
+
+    protected static final List<PropertyDescriptor> PROPERTIES = List.of(
+            REPORT_URL,
+            AUTH_TYPE,
+            OAUTH2_ACCESS_TOKEN_PROVIDER,
+            WORKDAY_USERNAME,
+            WORKDAY_PASSWORD,
+            WEB_CLIENT_SERVICE,
+            RECORD_READER_FACTORY,
+            RECORD_WRITER_FACTORY
+    );
 
     private final AtomicReference<WebClientService> webClientReference = new AtomicReference<>();
+    private final AtomicReference<OAuth2AccessTokenProvider> tokenProviderReference = new AtomicReference<>();
     private final AtomicReference<RecordReaderFactory> recordReaderFactoryReference = new AtomicReference<>();
     private final AtomicReference<RecordSetWriterFactory> recordSetWriterFactoryReference = new AtomicReference<>();
 
@@ -190,10 +229,12 @@ public class GetWorkdayReport extends AbstractProcessor {
 
     @OnScheduled
     public void setUpClient(final ProcessContext context)  {
+        OAuth2AccessTokenProvider tokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
         WebClientServiceProvider standardWebClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE).asControllerService(WebClientServiceProvider.class);
         RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
         RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
         WebClientService webClientService = standardWebClientServiceProvider.getWebClientService();
+        tokenProviderReference.set(tokenProvider);
         webClientReference.set(webClientService);
         recordReaderFactoryReference.set(recordReaderFactory);
         recordSetWriterFactoryReference.set(recordSetWriterFactory);
@@ -293,10 +334,16 @@ public class GetWorkdayReport extends AbstractProcessor {
     }
 
     private String createAuthorizationHeader(ProcessContext context, FlowFile flowfile) {
-        String userName = context.getProperty(WORKDAY_USERNAME).evaluateAttributeExpressions(flowfile).getValue();
-        String password = context.getProperty(WORKDAY_PASSWORD).evaluateAttributeExpressions(flowfile).getValue();
-        String base64Credential = Base64.getEncoder().encodeToString((userName + USERNAME_PASSWORD_SEPARATOR + password).getBytes(StandardCharsets.UTF_8));
-        return BASIC_PREFIX + base64Credential;
+        String authType = context.getProperty(AUTH_TYPE).getValue();
+        if (BASIC_AUTH_TYPE.getValue().equals(authType)) {
+            String userName = context.getProperty(WORKDAY_USERNAME).evaluateAttributeExpressions(flowfile).getValue();
+            String password = context.getProperty(WORKDAY_PASSWORD).evaluateAttributeExpressions(flowfile).getValue();
+            String base64Credential = Base64.getEncoder().encodeToString((userName + USERNAME_PASSWORD_SEPARATOR + password).getBytes(StandardCharsets.UTF_8));
+            return BASIC_PREFIX + base64Credential;
+        } else {
+            OAuth2AccessTokenProvider tokenProvider = tokenProviderReference.get();
+            return BEARER_PREFIX + tokenProvider.getAccessDetails().getAccessToken();
+        }
     }
 
     private TransformResult transformRecords(ProcessSession session, FlowFile flowfile, FlowFile responseFlowFile, InputStream responseBodyStream)

@@ -21,7 +21,6 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.Relationship;
 
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
@@ -65,14 +64,12 @@ public class ScriptedValidateRecord extends ScriptedRouterProcessor<Boolean> {
             .description("In case of any issue during processing the incoming flow file, the incoming FlowFile will be routed to this relationship.")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = new HashSet<>();
-
-    static {
-        RELATIONSHIPS.add(RELATIONSHIP_VALID);
-        RELATIONSHIPS.add(RELATIONSHIP_INVALID);
-        RELATIONSHIPS.add(RELATIONSHIP_ORIGINAL);
-        RELATIONSHIPS.add(RELATIONSHIP_FAILURE);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            RELATIONSHIP_VALID,
+            RELATIONSHIP_INVALID,
+            RELATIONSHIP_ORIGINAL,
+            RELATIONSHIP_FAILURE
+    );
 
     public ScriptedValidateRecord() {
         super(Boolean.class);

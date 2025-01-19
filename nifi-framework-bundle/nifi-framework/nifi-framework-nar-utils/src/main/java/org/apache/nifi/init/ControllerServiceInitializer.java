@@ -45,14 +45,14 @@ public class ControllerServiceInitializer implements ConfigurableComponentInitia
     public void initialize(ConfigurableComponent component) throws InitializationException {
         ControllerService controllerService = (ControllerService) component;
         ControllerServiceInitializationContext context = new MockControllerServiceInitializationContext();
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             controllerService.initialize(context);
         }
     }
 
     @Override
     public void teardown(ConfigurableComponent component) {
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
             ControllerService controllerService = (ControllerService) component;
 
             final ComponentLog logger = new MockComponentLogger();

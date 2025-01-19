@@ -31,7 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.util.NiFiProperties.DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL;
@@ -41,7 +40,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpRemoteSiteListener.class);
     private final int transactionTtlSec;
-    private static HttpRemoteSiteListener instance;
+    private static volatile HttpRemoteSiteListener instance;
 
     private final Map<String, TransactionWrapper> transactions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService taskExecutor;
@@ -50,14 +49,11 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     private HttpRemoteSiteListener(final NiFiProperties nifiProperties) {
         super();
-        taskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(final Runnable r) {
-                final Thread thread = Executors.defaultThreadFactory().newThread(r);
-                thread.setName("Http Site-to-Site Transaction Maintenance");
-                thread.setDaemon(true);
-                return thread;
-            }
+        taskExecutor = Executors.newScheduledThreadPool(1, r -> {
+            final Thread thread = Executors.defaultThreadFactory().newThread(r);
+            thread.setName("Http Site-to-Site Transaction Maintenance");
+            thread.setDaemon(true);
+            return thread;
         });
 
         int txTtlSec;

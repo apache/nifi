@@ -41,9 +41,7 @@ import org.apache.nifi.snmp.validators.OIDValidator;
 import org.snmp4j.Target;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -119,7 +117,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
             .description("All FlowFiles that cannot received from the SNMP agent are routed to this relationship.")
             .build();
 
-    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
+    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             AGENT_HOST,
             AGENT_PORT,
             BasicProperties.SNMP_VERSION,
@@ -135,12 +133,12 @@ public class GetSNMP extends AbstractSNMPProcessor {
             OID,
             TEXTUAL_OID,
             SNMP_STRATEGY
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
+    );
 
     private volatile GetSNMPHandler snmpHandler;
 

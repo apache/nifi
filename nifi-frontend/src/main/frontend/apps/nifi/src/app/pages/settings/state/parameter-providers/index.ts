@@ -16,16 +16,13 @@
  */
 
 import {
-    AffectedComponentEntity,
     Bundle,
     ComponentHistory,
     DocumentedType,
-    ParameterContextReferenceEntity,
     ParameterEntity,
-    Permissions,
-    PropertyDescriptor,
-    Revision
+    PropertyDescriptor
 } from '../../../../state/shared';
+import { AffectedComponentEntity, ParameterContextReferenceEntity, Permissions, Revision } from '@nifi/shared';
 
 export const parameterProvidersFeatureKey = 'parameterProviders';
 

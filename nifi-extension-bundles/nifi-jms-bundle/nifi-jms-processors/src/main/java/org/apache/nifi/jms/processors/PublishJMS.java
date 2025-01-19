@@ -56,14 +56,12 @@ import jakarta.jms.Destination;
 import jakarta.jms.Message;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static org.apache.nifi.jms.processors.ioconcept.reader.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
 import static org.apache.nifi.jms.processors.ioconcept.reader.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
@@ -163,42 +161,32 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
             .description("All FlowFiles that cannot be sent to JMS destination are routed to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> propertyDescriptors;
-    private final static Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> COMMON_PROPERTIES = Stream.concat(
+            JNDI_JMS_CF_PROPERTIES.stream(),
+            JMS_CF_PROPERTIES.stream()
+    ).toList();
 
-    /*
-     * Will ensure that the list of property descriptors is build only once.
-     * Will also create a Set of relationships
-     */
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-
-        _propertyDescriptors.add(CF_SERVICE);
-        _propertyDescriptors.add(DESTINATION);
-        _propertyDescriptors.add(DESTINATION_TYPE);
-        _propertyDescriptors.add(USER);
-        _propertyDescriptors.add(PASSWORD);
-        _propertyDescriptors.add(CLIENT_ID);
-
-        _propertyDescriptors.add(MESSAGE_BODY);
-        _propertyDescriptors.add(CHARSET);
-        _propertyDescriptors.add(ALLOW_ILLEGAL_HEADER_CHARS);
-        _propertyDescriptors.add(ATTRIBUTES_AS_HEADERS_REGEX);
-        _propertyDescriptors.add(MAX_BATCH_SIZE);
-
-        _propertyDescriptors.add(RECORD_READER);
-        _propertyDescriptors.add(RECORD_WRITER);
-
-        _propertyDescriptors.addAll(JNDI_JMS_CF_PROPERTIES);
-        _propertyDescriptors.addAll(JMS_CF_PROPERTIES);
-
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
-
-        Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(_relationships);
-    }
+    private static final List<PropertyDescriptor> PROPERTIES = Stream.concat(
+            Stream.of(
+                    CF_SERVICE,
+                    DESTINATION,
+                    DESTINATION_TYPE,
+                    USER,
+                    PASSWORD,
+                    CLIENT_ID,
+                    MESSAGE_BODY,
+                    CHARSET,
+                    ALLOW_ILLEGAL_HEADER_CHARS,
+                    ATTRIBUTES_AS_HEADERS_REGEX,
+                    MAX_BATCH_SIZE,
+                    RECORD_READER,
+                    RECORD_WRITER),
+            COMMON_PROPERTIES.stream()
+    ).toList();
+    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     volatile Boolean allowIllegalChars;
     volatile Pattern attributeHeaderPattern;
@@ -306,7 +294,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     /**
@@ -314,7 +302,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
      */
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     /**

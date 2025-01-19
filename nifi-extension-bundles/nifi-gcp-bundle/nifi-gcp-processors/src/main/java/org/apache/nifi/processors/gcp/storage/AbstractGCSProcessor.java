@@ -59,7 +59,10 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
                     .description("FlowFiles are routed to this relationship if the Google Cloud Storage operation fails.")
                     .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

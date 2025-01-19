@@ -26,7 +26,6 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
@@ -36,9 +35,6 @@ import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -94,8 +90,17 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
         DEBUG, INFO, WARN, ERROR
     }
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> propertyDescriptors;
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_FOUND,
+            REL_NOT_FOUND
+    );
+
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            GEO_DATABASE_FILE,
+            IP_ADDRESS_ATTRIBUTE,
+            LOG_LEVEL
+        );
+
     final AtomicReference<DatabaseReader> databaseReaderRef = new AtomicReference<>(null);
     private volatile SynchronousFileWatcher watcher;
 
@@ -107,12 +112,12 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTIES;
     }
 
     @OnScheduled
@@ -136,20 +141,6 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
         if (reader != null) {
             reader.close();
         }
-    }
-
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_FOUND);
-        rels.add(REL_NOT_FOUND);
-        this.relationships = Collections.unmodifiableSet(rels);
-
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(GEO_DATABASE_FILE);
-        props.add(IP_ADDRESS_ATTRIBUTE);
-        props.add(LOG_LEVEL);
-        this.propertyDescriptors = Collections.unmodifiableList(props);
     }
 
     protected SynchronousFileWatcher getWatcher() {

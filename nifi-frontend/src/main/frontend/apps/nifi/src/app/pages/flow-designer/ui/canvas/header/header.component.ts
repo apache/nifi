@@ -16,7 +16,7 @@
  */
 
 import { Component } from '@angular/core';
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../state';
 import {

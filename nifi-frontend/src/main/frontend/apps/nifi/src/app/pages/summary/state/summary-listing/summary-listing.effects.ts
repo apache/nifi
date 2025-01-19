@@ -25,7 +25,7 @@ import * as SummaryListingActions from './summary-listing.actions';
 import * as StatusHistoryActions from '../../../../state/status-history/status-history.actions';
 import { catchError, filter, from, map, of, switchMap, tap } from 'rxjs';
 import { Router } from '@angular/router';
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { selectSelectedClusterNode, selectSummaryListingStatus } from './summary-listing.selectors';

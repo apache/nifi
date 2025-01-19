@@ -22,7 +22,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialComponentClusterStatusState } from '../../../state/component-cluster-status/component-cluster-status.reducer';
 import { ComponentClusterStatusRequest, ComponentClusterStatusState } from '../../../state/component-cluster-status';
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ClusterSummaryDialog', () => {

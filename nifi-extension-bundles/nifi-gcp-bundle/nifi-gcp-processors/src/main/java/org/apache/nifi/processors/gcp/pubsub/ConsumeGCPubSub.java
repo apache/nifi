@@ -95,7 +95,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             GCP_CREDENTIALS_PROVIDER_SERVICE,
             PROJECT_ID,
             SUBSCRIPTION,
@@ -104,7 +104,9 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             PROXY_CONFIGURATION_SERVICE
     );
 
-    public static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     private SubscriberStub subscriber = null;
     private PullRequest pullRequest;
@@ -113,7 +115,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return DESCRIPTORS;
+        return PROPERTIES;
     }
 
     @Override

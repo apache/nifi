@@ -88,11 +88,16 @@ public abstract class AbstractAwsMachineLearningJobStarter<
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
             .findAndAddModules()
             .build();
-    private static final Set<Relationship> relationships = Set.of(REL_ORIGINAL, REL_SUCCESS, REL_FAILURE);
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_ORIGINAL,
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

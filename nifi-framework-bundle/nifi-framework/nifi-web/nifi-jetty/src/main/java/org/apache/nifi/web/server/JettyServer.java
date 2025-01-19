@@ -22,11 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -36,7 +32,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -103,14 +98,11 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.server.connector.FrameworkServerConnectorFactory;
 import org.apache.nifi.web.server.filter.FilterParameter;
 import org.apache.nifi.web.server.filter.LogoutCompleteRedirectFilter;
 import org.apache.nifi.web.server.filter.RequestFilterProvider;
 import org.apache.nifi.web.server.filter.RestApiRequestFilterProvider;
 import org.apache.nifi.web.server.filter.StandardRequestFilterProvider;
-import org.apache.nifi.web.server.log.RequestLogProvider;
-import org.apache.nifi.web.server.log.StandardRequestLogProvider;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.AppProvider;
 import org.eclipse.jetty.deploy.DeploymentManager;
@@ -121,7 +113,6 @@ import org.eclipse.jetty.ee10.webapp.MetaInfConfiguration;
 import org.eclipse.jetty.rewrite.handler.RedirectPatternRule;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.RequestLog;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
@@ -130,7 +121,6 @@ import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.ee10.servlet.ErrorPageErrorHandler;
 import org.eclipse.jetty.ee10.servlet.FilterHolder;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.ee10.webapp.WebAppClassLoader;
 import org.eclipse.jetty.ee10.webapp.WebAppContext;
 import org.slf4j.Logger;
@@ -222,42 +212,29 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
     public void init() {
         clearWorkingDirectory();
-        final QueuedThreadPool threadPool = new QueuedThreadPool(props.getWebThreads());
-        threadPool.setName("NiFi Web Server");
-        this.server = new Server(threadPool);
-        final FrameworkSslContextProvider sslContextProvider = new FrameworkSslContextProvider(props);
-        this.sslContext = sslContextProvider.loadSslContext().orElse(null);
 
-        configureConnectors(server);
+        try {
+            final FrameworkSslContextProvider sslContextProvider = new FrameworkSslContextProvider(props);
+            sslContext = sslContextProvider.loadSslContext().orElse(null);
 
-        final ContextHandlerCollection handlerCollection = new ContextHandlerCollection();
-        final Handler standardHandler = getStandardHandler(handlerCollection);
-        server.setHandler(standardHandler);
+            final ServerProvider serverProvider = new StandardServerProvider(sslContext);
+            server = serverProvider.getServer(props);
 
-        final RewriteHandler defaultRewriteHandler = new RewriteHandler();
-        final RedirectPatternRule redirectDefault = new RedirectPatternRule("/*", "/nifi");
-        defaultRewriteHandler.addRule(redirectDefault);
-        server.setDefaultHandler(defaultRewriteHandler);
+            final Handler serverHandler = server.getHandler();
+            if (serverHandler instanceof Handler.Collection serverHandlerCollection) {
+                final ContextHandlerCollection contextHandlerCollection = new ContextHandlerCollection();
+                final Handler warHandlers = loadInitialWars(bundles);
+                contextHandlerCollection.addHandler(warHandlers);
+                deploymentManager.setContexts(contextHandlerCollection);
+                server.addBean(deploymentManager);
 
-        deploymentManager.setContexts(handlerCollection);
-        server.addBean(deploymentManager);
-
-        final String requestLogFormat = props.getProperty(NiFiProperties.WEB_REQUEST_LOG_FORMAT);
-        final RequestLogProvider requestLogProvider = new StandardRequestLogProvider(requestLogFormat);
-        final RequestLog requestLog = requestLogProvider.getRequestLog();
-        server.setRequestLog(requestLog);
-    }
-
-    private Handler getStandardHandler(final ContextHandlerCollection handlerCollection) {
-        // Only restrict the host header if running in HTTPS mode
-        if (props.isHTTPSConfigured()) {
-            final HostHeaderHandler hostHeaderHandler = new HostHeaderHandler(props);
-            handlerCollection.addHandler(hostHeaderHandler);
+                serverHandlerCollection.addHandler(contextHandlerCollection);
+            } else {
+                throw new IllegalStateException("Server Handler not Handler.Collection: Server Provider configuration failed");
+            }
+        } catch (final Throwable e) {
+            startUpFailure(e);
         }
-
-        final Handler warHandlers = loadInitialWars(bundles);
-        handlerCollection.addHandler(warHandlers);
-        return handlerCollection;
     }
 
     private void clearWorkingDirectory() {
@@ -769,50 +746,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             }
         }
         return webApiDocsDir;
-    }
-
-    private void configureConnectors(final Server server) {
-        try {
-            final FrameworkServerConnectorFactory serverConnectorFactory = new FrameworkServerConnectorFactory(server, props);
-            if (props.isHTTPSConfigured()) {
-                serverConnectorFactory.setSslContext(sslContext);
-            }
-
-            final Map<String, String> interfaces = props.isHTTPSConfigured() ? props.getHttpsNetworkInterfaces() : props.getHttpNetworkInterfaces();
-            final Set<String> interfaceNames = interfaces.values().stream().filter(StringUtils::isNotBlank).collect(Collectors.toSet());
-            // Add Server Connectors based on configured Network Interface Names
-            if (interfaceNames.isEmpty()) {
-                final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
-                final String host = props.isHTTPSConfigured() ? props.getProperty(NiFiProperties.WEB_HTTPS_HOST) : props.getProperty(NiFiProperties.WEB_HTTP_HOST);
-                if (StringUtils.isNotBlank(host)) {
-                    serverConnector.setHost(host);
-                }
-                server.addConnector(serverConnector);
-            } else {
-                interfaceNames.stream()
-                        // Map interface name properties to Network Interfaces
-                        .map(interfaceName -> {
-                            try {
-                                return NetworkInterface.getByName(interfaceName);
-                            } catch (final SocketException e) {
-                                throw new UncheckedIOException(String.format("Network Interface [%s] not found", interfaceName), e);
-                            }
-                        })
-                        // Map Network Interfaces to host addresses
-                        .filter(Objects::nonNull)
-                        .flatMap(networkInterface -> Collections.list(networkInterface.getInetAddresses()).stream())
-                        .map(InetAddress::getHostAddress)
-                        // Map host addresses to Server Connectors
-                        .map(host -> {
-                            final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
-                            serverConnector.setHost(host);
-                            return serverConnector;
-                        })
-                        .forEach(server::addConnector);
-            }
-        } catch (final Throwable e) {
-            startUpFailure(e);
-        }
     }
 
     protected List<URI> getApplicationUrls() {

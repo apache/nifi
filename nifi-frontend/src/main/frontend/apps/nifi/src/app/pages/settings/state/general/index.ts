@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Revision } from '../../../../state/shared';
+import { Revision } from '@nifi/shared';
 
 export const generalFeatureKey = 'general';
 

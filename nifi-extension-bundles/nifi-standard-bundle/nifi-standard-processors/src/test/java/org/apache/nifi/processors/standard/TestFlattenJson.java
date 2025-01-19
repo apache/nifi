@@ -32,7 +32,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFlattenJson {
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -86,7 +85,7 @@ public class TestFlattenJson {
 
         final List<String> expected = Arrays.asList("Hello", "World");
         final List parsed = (List) baseTest(testRunner, json, 2);
-        assertTrue(parsed instanceof List, "Not a list");
+        assertInstanceOf(List.class, parsed, "Not a list");
         for (int i = 0; i < parsed.size(); i++) {
             final Map map = (Map) parsed.get(i);
             assertEquals(map.get("first.second"), expected.get(i), "Missing values.");

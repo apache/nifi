@@ -38,7 +38,7 @@ public class SystemtimeTypeNode extends VariantTypeNode {
         int year = binaryReader.readWord();
         int month = binaryReader.readWord();
         final int monthOfYear = month + 1;
-        int dayOfWeek = binaryReader.readWord();
+        binaryReader.readWord(); // dayOfWeek
         int day = binaryReader.readWord();
         int hour = binaryReader.readWord();
         int minute = binaryReader.readWord();

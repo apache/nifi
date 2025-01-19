@@ -139,7 +139,7 @@ public enum MiNiFiProperties {
     }
 
     public static LinkedHashMap<String, MiNiFiProperties> sortedPropertiesByKey() {
-        return Arrays.stream(MiNiFiProperties.values())
+        return Arrays.stream(values())
             .sorted()
             .collect(Collectors.toMap(MiNiFiProperties::getKey, Function.identity(), (x, y) -> y, LinkedHashMap::new));
     }

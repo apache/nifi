@@ -21,15 +21,13 @@ import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
 import { CanvasUtils } from '../../../../service/canvas-utils.service';
 import { initialState } from '../../../../state/flow/flow.reducer';
-import { Storage, ComponentContext } from '@nifi/shared';
-
+import { ComponentType, Storage, ComponentContext } from '@nifi/shared';
 import { BreadcrumbEntity } from '../../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
 import * as d3 from 'd3';
 import { CanvasView } from '../../../../service/canvas-view.service';
 import { Client } from '../../../../../../service/client.service';
 import { CanvasActionsService } from '../../../../service/canvas-actions.service';
-import { ComponentType } from 'libs/shared/src';
 
 @Component({
     selector: 'operation-control',

@@ -3463,7 +3463,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 });
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterProvider);
-        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
+        dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(parameterProvider.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
         return entityFactory.createParameterProviderEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, bulletinEntities);
@@ -3485,7 +3485,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ParameterProviderEntity deleteParameterProvider(final Revision revision, final String parameterProviderId) {
         final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterProvider);
-        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
+        dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
         final ParameterProviderDTO snapshot = deleteComponent(
                 revision,
                 parameterProvider.getResource(),
@@ -5002,7 +5002,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private ParameterProviderEntity createParameterProviderEntity(final ParameterProviderNode parameterProvider) {
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(parameterProvider.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterProvider);
-        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
+        dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(parameterProvider.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
         return entityFactory.createParameterProviderEntity(dtoFactory.createParameterProviderDto(parameterProvider),

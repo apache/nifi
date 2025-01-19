@@ -21,7 +21,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -33,7 +32,6 @@ public class GhostParameterProvider implements ParameterProvider {
 
     private String id;
     private String canonicalClassName;
-    private ComponentLog logger;
 
     public void setIdentifier(final String id) {
         this.id = id;
@@ -88,7 +86,7 @@ public class GhostParameterProvider implements ParameterProvider {
 
     @Override
     public void initialize(final ParameterProviderInitializationContext config) throws InitializationException {
-        this.logger = config.getLogger();
+
     }
 
     @Override

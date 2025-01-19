@@ -286,7 +286,7 @@ public class CSVUtils {
         final Character quoteChar = getCharUnescaped(context, QUOTE_CHAR, variables);
         builder = builder.setQuote(quoteChar);
 
-        final Character escapeChar = context.getProperty(CSVUtils.ESCAPE_CHAR).evaluateAttributeExpressions(variables).getValue().isEmpty() ? null : getCharUnescaped(context, ESCAPE_CHAR, variables);
+        final Character escapeChar = context.getProperty(ESCAPE_CHAR).evaluateAttributeExpressions(variables).getValue().isEmpty() ? null : getCharUnescaped(context, ESCAPE_CHAR, variables);
         builder = builder.setEscape(escapeChar);
 
         builder = builder.setTrim(context.getProperty(TRIM_FIELDS).asBoolean());

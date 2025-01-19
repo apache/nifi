@@ -98,7 +98,7 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         }
 
         final ClassLoader callerClassLoader = Thread.currentThread().getContextClassLoader();
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, originalService.getClass(), originalService.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, originalService.getClass(), originalService.getIdentifier())) {
             // If any objects are proxied, unwrap them so that we provide the unproxied object to the Controller Service.
             ClassLoader serviceClassLoader = Thread.currentThread().getContextClassLoader();
 

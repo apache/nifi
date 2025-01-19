@@ -65,9 +65,8 @@ public final class AzureEventHubUtils {
             .description("To support namespaces not in the default windows.net domain.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(AzureEventHubUtils.AZURE_ENDPOINT, AzureEventHubUtils.AZURE_CHINA_ENDPOINT,
-                    AzureEventHubUtils.AZURE_GERMANY_ENDPOINT, AzureEventHubUtils.AZURE_US_GOV_ENDPOINT)
-            .defaultValue(AzureEventHubUtils.AZURE_ENDPOINT)
+            .allowableValues(AZURE_ENDPOINT, AZURE_CHINA_ENDPOINT, AZURE_GERMANY_ENDPOINT, AZURE_US_GOV_ENDPOINT)
+            .defaultValue(AZURE_ENDPOINT)
             .required(true)
             .build();
 

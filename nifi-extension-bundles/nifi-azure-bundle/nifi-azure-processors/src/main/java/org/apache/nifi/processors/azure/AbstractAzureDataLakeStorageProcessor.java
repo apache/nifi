@@ -45,7 +45,10 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             .description("Files that could not be written to Azure storage for some reason are transferred to this relationship")
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     public static final String TEMP_FILE_DIRECTORY = "_nifitempdirectory";
 

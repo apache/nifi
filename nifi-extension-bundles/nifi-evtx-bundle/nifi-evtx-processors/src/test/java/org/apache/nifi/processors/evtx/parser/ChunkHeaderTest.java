@@ -41,6 +41,7 @@ import java.util.zip.CRC32;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -137,7 +138,7 @@ public class ChunkHeaderTest {
         RootNode rootNode = next.getRootNode();
         List<BxmlNode> children = rootNode.getChildren();
         assertEquals(1, children.size());
-        assertTrue(children.get(0) instanceof EndOfStreamNode);
+        assertInstanceOf(EndOfStreamNode.class, children.get(0));
         assertEquals(0, rootNode.getSubstitutions().size());
 
         assertFalse(chunkHeader.hasNext());

@@ -33,10 +33,9 @@ import {
     selectPropertyVerificationRequestContext
 } from './property-verification.selectors';
 import { PropertyVerificationProgress } from '../../ui/common/property-verification/common/property-verification-progress/property-verification-progress.component';
-import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG } from 'libs/shared/src';
 import { ReferencedAttributesDialog } from '../../ui/common/property-verification/common/referenced-attributes-dialog/referenced-attributes-dialog.component';
 import { PropertyTableHelperService } from '../../service/property-table-helper.service';
-import { MapTableHelperService, MapTableEntry } from '@nifi/shared';
+import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG, MapTableHelperService, MapTableEntry } from '@nifi/shared';
 
 @Injectable()
 export class PropertyVerificationEffects {

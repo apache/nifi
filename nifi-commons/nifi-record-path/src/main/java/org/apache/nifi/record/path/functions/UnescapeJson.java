@@ -26,6 +26,7 @@ import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.record.path.util.RecordPathUtils;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
@@ -69,13 +70,23 @@ public class UnescapeJson extends RecordPathSegment {
 
                     if (value instanceof String) {
                         try {
-                            DataType dataType = fv.getField().getDataType();
-                            if (fv.getField().getDataType() instanceof ChoiceDataType) {
-                                dataType = DataTypeUtils.chooseDataType(value, (ChoiceDataType) fv.getField().getDataType());
+                            final RecordField recordField = fv.getField();
+                            DataType dataType;
+                            final String fieldName;
+                            if (recordField == null) {
+                                dataType = DataTypeUtils.inferDataType(fv.getValue(), RecordFieldType.STRING.getDataType());
+                                fieldName = "unescapeJson";
+                            } else {
+                                dataType = recordField.getDataType();
+                                fieldName = recordField.getFieldName();
+                            }
+
+                            if (dataType.getFieldType() == RecordFieldType.CHOICE) {
+                                dataType = DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType);
                             }
 
                             return new StandardFieldValue(
-                                    convertFieldValue(value, fv.getField().getFieldName(), dataType, convertMapToRecord, recursiveMapToRecord),
+                                    convertFieldValue(value, fieldName, dataType, convertMapToRecord, recursiveMapToRecord),
                                     fv.getField(), fv.getParent().orElse(null)
                             );
                         } catch (IOException e) {

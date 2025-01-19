@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.2.0-SNAPSHOT</version>
     </parent>
     <packaging>pom</packaging>
     <artifactId>nifi-registry-docs</artifactId>
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-web-api</artifactId>
-            <version>2.1.0-SNAPSHOT</version>
+            <version>2.2.0-SNAPSHOT</version>
             <type>war</type>
         </dependency>
     </dependencies>
@@ -40,7 +40,7 @@
                 <executions>
                     <execution>
                         <id>copy-asciidoc</id>
-                        <phase>generate-resources</phase>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -62,7 +62,7 @@
                 <executions>
                     <execution>
                         <id>output-html</id>
-                        <phase>prepare-package</phase>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>process-asciidoc</goal>
                         </goals>
@@ -171,7 +171,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>package</phase>
+                        <phase>process-resources</phase>
                         <configuration>
                             <descriptors>
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>

@@ -44,13 +44,19 @@ import { Observable, of, take } from 'rxjs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NiFiCommon, TextTip, NifiTooltipDirective, CloseOnEscapeDialog } from '@nifi/shared';
+import {
+    isDefinedAndNotNull,
+    SelectOption,
+    NiFiCommon,
+    TextTip,
+    NifiTooltipDirective,
+    CloseOnEscapeDialog
+} from '@nifi/shared';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Client } from '../../../../../../../service/client.service';
 import { importFromRegistry } from '../../../../../state/flow/flow.actions';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
-import { isDefinedAndNotNull, SelectOption } from 'libs/shared/src';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 

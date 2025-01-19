@@ -248,7 +248,7 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         return property;
     }
 
-    private static List<Dependency> getDependencies(org.apache.nifi.python.processor.documentation.PropertyDescription propertyDescription) {
+    private static List<Dependency> getDependencies(final PropertyDescription propertyDescription) {
         return Optional.ofNullable(propertyDescription.getDependencies()).orElse(List.of())
                 .stream()
                 .map(value -> {

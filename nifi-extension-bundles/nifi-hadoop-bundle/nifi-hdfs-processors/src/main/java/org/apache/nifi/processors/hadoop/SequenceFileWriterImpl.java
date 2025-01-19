@@ -28,7 +28,6 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.hadoop.util.ByteFilteringOutputStream;
 import org.apache.nifi.processors.hadoop.util.InputStreamWritable;
 import org.apache.nifi.processors.hadoop.util.SequenceFileWriter;
@@ -39,8 +38,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 public class SequenceFileWriterImpl implements SequenceFileWriter {
 
@@ -64,50 +62,41 @@ public class SequenceFileWriterImpl implements SequenceFileWriter {
         // read via the BytesWritable class) while allowing us to stream the data rather than buffering
         // entire files in memory.
         final byte[] toReplace, replaceWith;
-        try {
-            toReplace = InputStreamWritable.class.getCanonicalName().getBytes("UTF-8");
-            replaceWith = BytesWritable.class.getCanonicalName().getBytes("UTF-8");
-        } catch (final UnsupportedEncodingException e) {
-            // This won't happen.
-            throw new RuntimeException("UTF-8 is not a supported Character Format");
-        }
+        toReplace = InputStreamWritable.class.getCanonicalName().getBytes(StandardCharsets.UTF_8);
+        replaceWith = BytesWritable.class.getCanonicalName().getBytes(StandardCharsets.UTF_8);
 
         final StopWatch watch = new StopWatch(true);
-        FlowFile sfFlowFile = session.write(flowFile, new StreamCallback() {
+        FlowFile sfFlowFile = session.write(flowFile, (in, out) -> {
+            // Use a FilterableOutputStream to change 'InputStreamWritable' to 'BytesWritable' - see comment
+            // above for an explanation of why we want to do this.
+            final ByteFilteringOutputStream bwos = new ByteFilteringOutputStream(out);
 
-            @Override
-            public void process(InputStream in, OutputStream out) throws IOException {
-                // Use a FilterableOutputStream to change 'InputStreamWritable' to 'BytesWritable' - see comment
-                // above for an explanation of why we want to do this.
-                final ByteFilteringOutputStream bwos = new ByteFilteringOutputStream(out);
+            // TODO: Adding this filter could be dangerous... A Sequence File's header contains 3 bytes: "SEQ",
+            // followed by 1 byte that is the Sequence File version, followed by 2 "entries." These "entries"
+            // contain the size of the Key/Value type and the Key/Value type. So, we will be writing the
+            // value type as InputStreamWritable -- which we need to change to BytesWritable. This means that
+            // we must also change the "size" that is written, but replacing this single byte could be
+            // dangerous. However, we know exactly what will be written to the header, and we limit this at one
+            // replacement, so we should be just fine.
+            bwos.addFilter(toReplace, replaceWith, 1);
+            bwos.addFilter((byte) InputStreamWritable.class.getCanonicalName().length(),
+                    (byte) BytesWritable.class.getCanonicalName().length(), 1);
 
-                // TODO: Adding this filter could be dangerous... A Sequence File's header contains 3 bytes: "SEQ",
-                // followed by 1 byte that is the Sequence File version, followed by 2 "entries." These "entries"
-                // contain the size of the Key/Value type and the Key/Value type. So, we will be writing the
-                // value type as InputStreamWritable -- which we need to change to BytesWritable. This means that
-                // we must also change the "size" that is written, but replacing this single byte could be
-                // dangerous. However, we know exactly what will be written to the header, and we limit this at one
-                // replacement, so we should be just fine.
-                bwos.addFilter(toReplace, replaceWith, 1);
-                bwos.addFilter((byte) InputStreamWritable.class.getCanonicalName().length(),
-                        (byte) BytesWritable.class.getCanonicalName().length(), 1);
+            try (final FSDataOutputStream fsDataOutputStream = new FSDataOutputStream(bwos, new Statistics(""));
+                    final Writer writer = SequenceFile.createWriter(configuration,
+                            Writer.stream(fsDataOutputStream),
+                            Writer.keyClass(Text.class),
+                            Writer.valueClass(InputStreamWritable.class),
+                            Writer.compression(compressionType, compressionCodec))) {
 
-                try (final FSDataOutputStream fsDataOutputStream = new FSDataOutputStream(bwos, new Statistics(""));
-                        final SequenceFile.Writer writer = SequenceFile.createWriter(configuration,
-                                SequenceFile.Writer.stream(fsDataOutputStream),
-                                SequenceFile.Writer.keyClass(Text.class),
-                                SequenceFile.Writer.valueClass(InputStreamWritable.class),
-                                SequenceFile.Writer.compression(compressionType, compressionCodec))) {
+                processInputStream(in, flowFile, writer);
 
-                    processInputStream(in, flowFile, writer);
-
-                } finally {
-                    watch.stop();
-                }
+            } finally {
+                watch.stop();
             }
         });
         logger.debug("Wrote Sequence File {} ({}).",
-                new Object[]{sequenceFilename, watch.calculateDataRate(flowFile.getSize())});
+                sequenceFilename, watch.calculateDataRate(flowFile.getSize()));
         return sfFlowFile;
     }
 

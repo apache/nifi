@@ -119,7 +119,7 @@ import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { GroupComponents } from '../../ui/canvas/items/process-group/group-components/group-components.component';
 import { EditProcessGroup } from '../../ui/canvas/items/process-group/edit-process-group/edit-process-group.component';
 import { ControllerServiceService } from '../../service/controller-service.service';
-import { YesNoDialog } from '../../../../ui/common/yes-no-dialog/yes-no-dialog.component';
+import { YesNoDialog } from '@nifi/shared';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
 import { RegistryService } from '../../service/registry.service';
@@ -127,14 +127,6 @@ import { ImportFromRegistry } from '../../ui/canvas/items/flow/import-from-regis
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import { NoRegistryClientsDialog } from '../../ui/common/no-registry-clients-dialog/no-registry-clients-dialog.component';
 import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-group/edit-remote-process-group/edit-remote-process-group.component';
-import {
-    ComponentType,
-    isDefinedAndNotNull,
-    LARGE_DIALOG,
-    MEDIUM_DIALOG,
-    SMALL_DIALOG,
-    XL_DIALOG
-} from 'libs/shared/src';
 import { HttpErrorResponse } from '@angular/common/http';
 import { SaveVersionDialog } from '../../ui/canvas/items/flow/save-version-dialog/save-version-dialog.component';
 import { ChangeVersionDialog } from '../../ui/canvas/items/flow/change-version-dialog/change-version-dialog';
@@ -159,7 +151,16 @@ import {
 } from '../../../../state/property-verification/property-verification.selectors';
 import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 import { BackNavigation } from '../../../../state/navigation';
-import { NiFiCommon, Storage } from '@nifi/shared';
+import {
+    ComponentType,
+    isDefinedAndNotNull,
+    LARGE_DIALOG,
+    MEDIUM_DIALOG,
+    SMALL_DIALOG,
+    XL_DIALOG,
+    NiFiCommon,
+    Storage
+} from '@nifi/shared';
 import { resetPollingFlowAnalysis } from '../flow-analysis/flow-analysis.actions';
 import { selectDocumentVisibilityState } from '../../../../state/document-visibility/document-visibility.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';

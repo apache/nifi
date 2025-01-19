@@ -32,9 +32,8 @@ import { CanvasUtils } from '../canvas-utils.service';
 import { enterProcessGroup } from '../../state/flow/flow.actions';
 import { VersionControlTip } from '../../ui/common/tooltips/version-control-tip/version-control-tip.component';
 import { Dimension } from '../../state/shared';
-import { ComponentType } from 'libs/shared/src';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
-import { NiFiCommon, TextTip } from '@nifi/shared';
+import { ComponentType, NiFiCommon, TextTip } from '@nifi/shared';
 
 @Injectable({
     providedIn: 'root'

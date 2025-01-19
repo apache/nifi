@@ -32,7 +32,7 @@ public enum KustoIngestionResult {
     }
 
     public static KustoIngestionResult fromString(String status) {
-        for (KustoIngestionResult result : KustoIngestionResult.values()) {
+        for (KustoIngestionResult result : values()) {
             if (result.status.equalsIgnoreCase(status)) {
                 return result;
             }

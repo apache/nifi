@@ -32,7 +32,7 @@ import { Client } from '../../../../../service/client.service';
 import { ParameterTable } from '../parameter-table/parameter-table.component';
 import {
     EditParameterResponse,
-    Parameter,
+    ParameterContext,
     ParameterContextEntity,
     ParameterContextUpdateRequestEntity,
     ParameterEntity,
@@ -42,10 +42,9 @@ import { ProcessGroupReferences } from '../process-group-references/process-grou
 import { ParameterContextInheritance } from '../parameter-context-inheritance/parameter-context-inheritance.component';
 import { ParameterReferences } from '../../../../../ui/common/parameter-references/parameter-references.component';
 import { RouterLink } from '@angular/router';
-import { ErrorBanner } from '../../../../../ui/common/error-banner/error-banner.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
-import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective } from '@nifi/shared';
+import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective, Parameter } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 
@@ -70,7 +69,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         ParameterContextInheritance,
         ParameterReferences,
         RouterLink,
-        ErrorBanner,
         NifiTooltipDirective,
         ContextErrorBanner,
         CopyDirective
@@ -107,20 +105,23 @@ export class EditParameterContext extends TabbedDialog {
             this.isNew = false;
             this.readonly = !request.parameterContext.permissions.canWrite;
 
+            // @ts-ignore - component will be defined since the user has permissions to edit the context, but it is optional as defined by the type
+            const parameterContext: ParameterContext = request.parameterContext.component;
+
             this.editParameterContextForm = this.formBuilder.group({
-                name: new FormControl(request.parameterContext.component.name, Validators.required),
-                description: new FormControl(request.parameterContext.component.description),
+                name: new FormControl(parameterContext.name, Validators.required),
+                description: new FormControl(parameterContext.description),
                 parameters: new FormControl({
-                    value: request.parameterContext.component.parameters,
+                    value: parameterContext.parameters,
                     disabled: this.readonly
                 }),
                 inheritedParameterContexts: new FormControl({
-                    value: request.parameterContext.component.inheritedParameterContexts,
+                    value: parameterContext.inheritedParameterContexts,
                     disabled: this.readonly
                 })
             });
-            if (request.parameterContext.component.parameterProviderConfiguration) {
-                this.parameterProvider = request.parameterContext.component.parameterProviderConfiguration.component;
+            if (parameterContext.parameterProviderConfiguration) {
+                this.parameterProvider = parameterContext.parameterProviderConfiguration.component;
             }
         } else {
             this.isNew = true;

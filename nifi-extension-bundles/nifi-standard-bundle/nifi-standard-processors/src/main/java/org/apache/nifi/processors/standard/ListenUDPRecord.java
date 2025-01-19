@@ -219,7 +219,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
         final Integer sendingHostPort = context.getProperty(SENDING_HOST_PORT).evaluateAttributeExpressions().asInteger();
         final Integer bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final ByteBufferSource byteBufferSource = new ByteBufferPool(context.getMaxConcurrentTasks(), bufferSize);
-        final EventFactory<StandardEvent> eventFactory = new StandardEventFactory();
+        final EventFactory<StandardEvent> eventFactory = new StandardEventFactory<>();
         return new DatagramChannelDispatcher<>(eventFactory, byteBufferSource, events, getLogger(), sendingHost, sendingHostPort);
     }
 

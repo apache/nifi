@@ -48,11 +48,9 @@ public class WebSocketMessageRouter {
     public synchronized void deregisterProcessor(final Processor processor) {
         if (!isProcessorRegistered(processor)) {
             if (this.processor == null) {
-                logger.info("Deregister processor {}, do nothing because this router doesn't have registered processor",
-                        new Object[]{processor});
+                logger.info("Deregister processor {}, do nothing because this router doesn't have registered processor", processor);
             } else {
-                logger.info("Deregister processor {}, do nothing because this router is assigned to different processor {}",
-                        new Object[]{processor, this.processor});
+                logger.info("Deregister processor {}, do nothing because this router is assigned to different processor {}", processor, this.processor);
             }
             return;
         }
@@ -62,7 +60,7 @@ public class WebSocketMessageRouter {
             try {
                 disconnect(sessionId, "Processing has stopped.");
             } catch (IOException e) {
-                logger.warn("Failed to disconnect session {} due to {}", sessionId, e, e);
+                logger.warn("Failed to disconnect session {} endpoint [{}] due to {}", sessionId, endpointId, e, e);
             }
         });
     }
@@ -77,6 +75,9 @@ public class WebSocketMessageRouter {
     }
 
     public void onWebSocketClose(final String sessionId, final int statusCode, final String reason) {
+        if (processor instanceof ConnectedListener connectedListener) {
+            connectedListener.disconnected(getSessionOrFail(sessionId));
+        }
         sessions.remove(sessionId);
     }
 

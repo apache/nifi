@@ -122,19 +122,17 @@ public class PutGridFS extends AbstractGridFSProcessor {
     static final Set<Relationship> RELATIONSHIP_SET;
 
     static {
-        List _temp = new ArrayList<>();
-        _temp.addAll(PARENT_PROPERTIES);
-        _temp.add(FILE_NAME);
-        _temp.add(PROPERTIES_PREFIX);
-        _temp.add(ENFORCE_UNIQUENESS);
-        _temp.add(HASH_ATTRIBUTE);
-        _temp.add(CHUNK_SIZE);
-        DESCRIPTORS = Collections.unmodifiableList(_temp);
+        List<PropertyDescriptor> propertyDescriptors = new ArrayList<>(PARENT_PROPERTIES);
+        propertyDescriptors.add(FILE_NAME);
+        propertyDescriptors.add(PROPERTIES_PREFIX);
+        propertyDescriptors.add(ENFORCE_UNIQUENESS);
+        propertyDescriptors.add(HASH_ATTRIBUTE);
+        propertyDescriptors.add(CHUNK_SIZE);
+        DESCRIPTORS = Collections.unmodifiableList(propertyDescriptors);
 
-        Set _rels = new HashSet();
-        _rels.addAll(PARENT_RELATIONSHIPS);
-        _rels.add(REL_DUPLICATE);
-        RELATIONSHIP_SET = Collections.unmodifiableSet(_rels);
+        Set<Relationship> relationships = new HashSet<>(PARENT_RELATIONSHIPS);
+        relationships.add(REL_DUPLICATE);
+        RELATIONSHIP_SET = Collections.unmodifiableSet(relationships);
     }
 
     private String uniqueness;

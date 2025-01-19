@@ -20,7 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.nio.charset.Charset;
+
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public abstract class BasicAuthIdentityProvider implements IdentityProvider {
@@ -74,7 +75,7 @@ public abstract class BasicAuthIdentityProvider implements IdentityProvider {
 
             // Authorization: Basic {base64credentials}
             String base64Credentials = authorization.substring(BASIC.length()).trim();
-            String credentials = new String(Base64.getDecoder().decode(base64Credentials), Charset.forName("UTF-8"));
+            String credentials = new String(Base64.getDecoder().decode(base64Credentials), StandardCharsets.UTF_8);
             // credentials = username:password
             final String[] credentialParts = credentials.split(":", 2);
             String username = credentialParts[0];

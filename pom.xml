@@ -19,7 +19,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>2.1.0-SNAPSHOT</version>
+    <version>2.2.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -105,34 +105,35 @@
         <frontend.mvn.plugin.version>1.15.1</frontend.mvn.plugin.version>
         <nifi.nar.maven.plugin.version>2.1.0</nifi.nar.maven.plugin.version>
         <nifi-api.version>2.0.0</nifi-api.version>
-        <project.build.outputTimestamp>1730519710</project.build.outputTimestamp>
+        <project.build.outputTimestamp>1734995065</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <com.amazonaws.version>1.12.779</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.29.23</software.amazon.awssdk.version>
+        <com.amazonaws.version>1.12.780</com.amazonaws.version>
+        <software.amazon.awssdk.version>2.29.48</software.amazon.awssdk.version>
         <gson.version>2.11.0</gson.version>
-        <io.fabric8.kubernetes.client.version>6.13.4</io.fabric8.kubernetes.client.version>
+        <io.fabric8.kubernetes.client.version>7.0.1</io.fabric8.kubernetes.client.version>
         <kotlin.version>2.1.0</kotlin.version>
         <okhttp.version>4.12.0</okhttp.version>
-        <okio.version>3.9.1</okio.version>
+        <okio.version>3.10.2</okio.version>
         <org.apache.commons.cli.version>1.9.0</org.apache.commons.cli.version>
-        <org.apache.commons.codec.version>1.17.1</org.apache.commons.codec.version>
+        <org.apache.commons.codec.version>1.17.2</org.apache.commons.codec.version>
         <org.apache.commons.compress.version>1.27.1</org.apache.commons.compress.version>
-        <com.github.luben.zstd-jni.version>1.5.6-8</com.github.luben.zstd-jni.version>
+        <com.github.luben.zstd-jni.version>1.5.6-9</com.github.luben.zstd-jni.version>
         <org.apache.commons.configuration.version>2.11.0</org.apache.commons.configuration.version>
         <org.apache.commons.lang3.version>3.17.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.11.1</org.apache.commons.net.version>
         <org.apache.commons.io.version>2.18.0</org.apache.commons.io.version>
-        <org.apache.commons.text.version>1.12.0</org.apache.commons.text.version>
+        <org.apache.commons.text.version>1.13.0</org.apache.commons.text.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.79</org.bouncycastle.version>
+        <pmd.version>7.9.0</pmd.version>
         <testcontainers.version>1.20.4</testcontainers.version>
         <org.slf4j.version>2.0.16</org.slf4j.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <derby.version>10.17.1.0</derby.version>
-        <jetty.version>12.0.15</jetty.version>
+        <jetty.version>12.0.16</jetty.version>
         <jackson.bom.version>2.18.2</jackson.bom.version>
         <avro.version>1.11.4</avro.version>
         <jaxb.runtime.version>4.0.5</jaxb.runtime.version>
@@ -143,25 +144,25 @@
         <groovy.version>4.0.24</groovy.version>
         <surefire.version>3.5.1</surefire.version>
         <hadoop.version>3.4.1</hadoop.version>
-        <ozone.version>1.2.1</ozone.version>
+        <ozone.version>1.4.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.22.1</aspectj.version>
-        <jersey.bom.version>3.1.9</jersey.bom.version>
-        <log4j2.version>2.24.2</log4j2.version>
-        <logback.version>1.5.12</logback.version>
-        <mockito.version>5.14.2</mockito.version>
+        <jersey.bom.version>3.1.10</jersey.bom.version>
+        <log4j2.version>2.24.3</log4j2.version>
+        <logback.version>1.5.16</logback.version>
+        <mockito.version>5.15.2</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.3</snakeyaml.version>
-        <netty.4.version>4.1.115.Final</netty.4.version>
+        <netty.4.version>4.1.116.Final</netty.4.version>
         <servlet-api.version>6.1.0</servlet-api.version>
-        <spring.version>6.2.0</spring.version>
-        <spring.security.version>6.4.1</spring.security.version>
-        <swagger.annotations.version>2.2.26</swagger.annotations.version>
+        <spring.version>6.2.1</spring.version>
+        <spring.security.version>6.4.2</spring.security.version>
+        <swagger.annotations.version>2.2.27</swagger.annotations.version>
         <h2.version>2.3.232</h2.version>
         <zookeeper.version>3.9.3</zookeeper.version>
         <caffeine.version>3.1.8</caffeine.version>
         <hapi.version>2.5.1</hapi.version>
-        <commons.dbcp2.version>2.12.0</commons.dbcp2.version>
+        <commons.dbcp2.version>2.13.0</commons.dbcp2.version>
         <prometheus.version>0.16.0</prometheus.version>
         <velocity-engine-core.version>2.4.1</velocity-engine-core.version>
     </properties>
@@ -307,7 +308,7 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.11.3</version>
+                <version>5.11.4</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -532,7 +533,7 @@
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
-                <version>1.18.2</version>
+                <version>1.18.3</version>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
@@ -575,7 +576,7 @@
             <dependency>
                 <groupId>org.junit.platform</groupId>
                 <artifactId>junit-platform-commons</artifactId>
-                <version>1.11.3</version>
+                <version>1.11.4</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
@@ -737,7 +738,7 @@
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>10.20.0</version>
+                            <version>10.21.1</version>
                         </dependency>
                     </dependencies>
                 </plugin>
@@ -788,6 +789,23 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>3.4.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-pmd-plugin</artifactId>
+                    <version>3.26.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>net.sourceforge.pmd</groupId>
+                            <artifactId>pmd-core</artifactId>
+                            <version>${pmd.version}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>net.sourceforge.pmd</groupId>
+                            <artifactId>pmd-java</artifactId>
+                            <version>${pmd.version}</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -976,6 +994,19 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <configuration>
+                    <printFailingErrors>true</printFailingErrors>
+                    <linkXRef>false</linkXRef>
+                    <includeTests>true</includeTests>
+                    <targetJdk>${maven.compiler.release}</targetJdk>
+                    <rulesets>
+                        <ruleset>${maven.multiModuleProjectDirectory}/pmd-ruleset.xml</ruleset>
+                    </rulesets>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <profiles>
@@ -1101,6 +1132,19 @@
                                         <sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
                                     </sourceDirectories>
                                 </configuration>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-pmd-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>check</id>
+                                <phase>compile</phase>
                                 <goals>
                                     <goal>check</goal>
                                 </goals>

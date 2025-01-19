@@ -29,13 +29,11 @@ import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.
 import { MatDialog } from '@angular/material/dialog';
 import { selectAbout } from '../../../../state/about/about.selectors';
 import { FlowFileDialog } from '../../ui/queue-listing/flowfile-dialog/flowfile-dialog.component';
-import { NiFiCommon } from '@nifi/shared';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import { isDefinedAndNotNull, NiFiCommon, LARGE_DIALOG } from '@nifi/shared';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { stopPollingQueueListingRequest } from './queue-listing.actions';
-import { LARGE_DIALOG } from 'libs/shared/src';
 import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()

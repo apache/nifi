@@ -47,8 +47,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static java.util.Objects.requireNonNull;
-
 public class MockProcessContext extends MockControllerServiceLookup implements ProcessContext, ControllerServiceLookup, NodeTypeProvider {
 
     private final ConfigurableComponent component;
@@ -195,8 +193,8 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
      * @return result
      */
     public ValidationResult setProperty(final PropertyDescriptor descriptor, final String value) {
-        requireNonNull(descriptor, "Cannot set property for null descriptor");
-        requireNonNull(value, "Cannot set property " + descriptor.getName() + " to null value; if the intent is to remove the property, call removeProperty instead");
+        Objects.requireNonNull(descriptor, "Cannot set property for null descriptor");
+        Objects.requireNonNull(value, "Cannot set property " + descriptor.getName() + " to null value; if the intent is to remove the property, call removeProperty instead");
         final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(descriptor.getName());
 
         final ValidationResult result = fullyPopulatedDescriptor.validate(value, new MockValidationContext(this, stateManager));
@@ -249,7 +247,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     }
 
     public void addControllerService(final ControllerService controllerService, final Map<PropertyDescriptor, String> properties, final String annotationData) {
-        requireNonNull(controllerService);
+        Objects.requireNonNull(controllerService);
         final ControllerServiceConfiguration config = addControllerService(controllerService);
         config.setProperties(properties);
         config.setAnnotationData(annotationData);

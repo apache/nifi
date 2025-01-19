@@ -24,27 +24,11 @@
     <form class="h-full" [formGroup]="nfEditorForm" cdkTrapFocus [cdkTrapFocusAutoCapture]="!readonly">
         <div class="flex flex-col gap-y-3 relative h-full">
             <div class="flex justify-end">
-                <div
-                    class="property-hint flex gap-x-4 italic text-gray-500"
-                    nifiTooltip
-                    [tooltipComponentType]="PropertyHintTip"
-                    [tooltipInputData]="getPropertyHintTipData()"
-                    (mousedown)="preventDrag($event)">
-                    <div class="flex items-baseline gap-x-1">
-                        <div>EL</div>
-                        <ng-container *ngTemplateOutlet="supportsEl ? supported : notSupported"></ng-container>
-                    </div>
-                    <div class="flex items-baseline gap-x-1">
-                        <div>PARAM</div>
-                        <ng-container *ngTemplateOutlet="supportsParameters ? supported : notSupported"></ng-container>
-                    </div>
-                </div>
-                <ng-template #supported>
-                    <div class="fa fa-check"></div>
-                </ng-template>
-                <ng-template #notSupported>
-                    <div class="fa fa-ban"></div>
-                </ng-template>
+                <property-hint
+                    [supportsEl]="supportsEl"
+                    [showParameters]="true"
+                    [supportsParameters]="supportsParameters"
+                    [hasParameterContext]="parameters !== null"></property-hint>
             </div>
             <div class="flex flex-col gap-y-0.5 flex-1">
                 <div

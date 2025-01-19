@@ -23,9 +23,7 @@ import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
 import com.google.cloud.vision.v1.ImageAnnotatorSettings;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
+
 import java.util.List;
 import java.util.Set;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -44,24 +42,25 @@ public abstract class AbstractGcpVisionProcessor extends AbstractProcessor  {
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("FlowFiles are routed to failure relationship").build();
 
-    protected static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    protected static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
-    protected static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
-            GCP_CREDENTIALS_PROVIDER_SERVICE)
+    );
+
+    protected static final List<PropertyDescriptor> COMMON_PROPERTIES = List.of(
+            GCP_CREDENTIALS_PROVIDER_SERVICE
     );
 
     private ImageAnnotatorClient vision;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return COMMON_PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnScheduled

@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.UUID;
 
@@ -58,7 +59,7 @@ public class TestCompoundUpdateMonitor {
 
         final long lastModifiedDate = file.lastModified();
         try (final OutputStream out = new FileOutputStream(file)) {
-            out.write("Hello".getBytes("UTF-8"));
+            out.write("Hello".getBytes(StandardCharsets.UTF_8));
         }
 
         file.setLastModified(lastModifiedDate);

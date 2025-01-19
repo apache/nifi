@@ -105,7 +105,7 @@ public class ContentAccessIT extends NiFiSystemIT {
         final ProcessorEntity terminateAa = getClientUtil().createProcessor("TerminateFlowFile");
         final ProcessorEntity terminateBa = getClientUtil().createProcessor("TerminateFlowFile");
         final ProcessorEntity terminateCa = getClientUtil().createProcessor("TerminateFlowFile");
-        final ProcessorEntity terminateUnmatched = getClientUtil().createProcessor("TerminateFlowFile");
+        getClientUtil().createProcessor("TerminateFlowFile");
 
         // Configure Generate
         getClientUtil().updateProcessorSchedulingPeriod(generate, "10 mins");

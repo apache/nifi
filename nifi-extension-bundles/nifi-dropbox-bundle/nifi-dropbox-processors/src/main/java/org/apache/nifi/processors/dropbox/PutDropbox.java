@@ -237,7 +237,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             } catch (UploadErrorException e) {
                 handleUploadError(conflictResolution, uploadPath, e);
             } catch (UploadSessionFinishErrorException e) {
-                handleUploadError(conflictResolution, uploadPath, e);
+                handleUploadSessionError(conflictResolution, uploadPath, e);
             } catch (RateLimitException e) {
                 context.yield();
                 throw new ProcessException("Dropbox API rate limit exceeded while uploading file", e);
@@ -268,7 +268,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         }
     }
 
-    private void handleUploadError(final ConflictResolutionStrategy conflictResolution, final String uploadPath, final UploadSessionFinishErrorException e) {
+    private void handleUploadSessionError(final ConflictResolutionStrategy conflictResolution, final String uploadPath, final UploadSessionFinishErrorException e) {
         if (e.errorValue.isPath() && e.errorValue.getPathValue().isConflict()) {
             handleConflict(conflictResolution, uploadPath, e);
         } else {

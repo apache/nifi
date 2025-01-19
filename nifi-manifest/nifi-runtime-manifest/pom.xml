@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-manifest</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.2.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-runtime-manifest</artifactId>
     <packaging>jar</packaging>
@@ -29,20 +29,6 @@
         <runtime.manifest.file>${project.build.directory}/classes/nifi-runtime-manifest.json</runtime.manifest.file>
         <runtime.manifest.id>apache-nifi</runtime.manifest.id>
     </properties>
-
-    <dependencies>
-        <!-- Needed to unpack the extension-manifest.xml files during the build, marked as optional
-             because it is not a real dependency for anyone depending on this module -->
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-assembly</artifactId>
-            <version>2.1.0-SNAPSHOT</version>
-            <classifier>manifests</classifier>
-            <type>zip</type>
-            <optional>true</optional>
-        </dependency>
-
-    </dependencies>
 
     <build>
         <!-- Replace variables in src/main/resource/build.properties when processing resources -->
@@ -86,23 +72,33 @@
                     <execution>
                         <id>extract-extension-manifests</id>
                         <goals>
-                            <goal>unpack-dependencies</goal>
+                            <goal>unpack</goal>
                         </goals>
-                        <phase>generate-resources</phase>
+                        <phase>prepare-package</phase>
                         <configuration>
-                            <includeArtifactIds>nifi-assembly</includeArtifactIds>
-                            <includeClassifiers>manifests</includeClassifiers>
-                            <excludeTransitive>true</excludeTransitive>
                             <outputDirectory>${extension.manifest.unpack.dir}</outputDirectory>
                             <silent>true</silent>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.apache.nifi</groupId>
+                                    <artifactId>nifi-assembly</artifactId>
+                                    <version>${project.version}</version>
+                                    <classifier>manifests</classifier>
+                                    <type>zip</type>
+                                </artifactItem>
+                            </artifactItems>
                         </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <ignoredUnusedDeclaredDependencies combine.children="append">
-                        <ignoredUnusedDeclaredDependency>org.apache.nifi:nifi-assembly</ignoredUnusedDeclaredDependency>
-                    </ignoredUnusedDeclaredDependencies>
-                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-assembly</artifactId>
+                        <version>${project.version}</version>
+                        <classifier>manifests</classifier>
+                        <type>zip</type>
+                    </dependency>
+                </dependencies>
             </plugin>
             <!-- Execute the runtime manifest generator -->
             <plugin>
@@ -132,7 +128,7 @@
                     <dependency>
                         <groupId>org.apache.nifi</groupId>
                         <artifactId>nifi-runtime-manifest-core</artifactId>
-                        <version>2.1.0-SNAPSHOT</version>
+                        <version>2.2.0-SNAPSHOT</version>
                     </dependency>
                     <dependency>
                         <groupId>org.slf4j</groupId>

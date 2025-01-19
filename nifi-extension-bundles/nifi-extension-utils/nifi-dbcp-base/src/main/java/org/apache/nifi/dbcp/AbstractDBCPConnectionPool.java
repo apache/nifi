@@ -86,7 +86,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                     .explanation("Successfully configured data source")
                     .build());
 
-            try (final Connection conn = getConnection(basicDataSource, kerberosUser)) {
+            try (final Connection ignored = getConnection(basicDataSource, kerberosUser)) {
                 results.add(new ConfigVerificationResult.Builder()
                         .verificationStepName("Establish Connection")
                         .outcome(SUCCESSFUL)

@@ -15,7 +15,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-shared-bom</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.2.0-SNAPSHOT</version>
         <relativePath>../nifi-standard-shared-bundle/nifi-standard-shared-bom</relativePath>
     </parent>
 
@@ -33,7 +33,7 @@ language governing permissions and limitations under the License. -->
     </modules>
 
     <properties>
-        <elasticsearch.client.version>8.16.1</elasticsearch.client.version>
+        <elasticsearch.client.version>8.17.0</elasticsearch.client.version>
     </properties>
 
     <dependencyManagement>
@@ -46,7 +46,7 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-restapi-processors</artifactId>
-                <version>2.1.0-SNAPSHOT</version>
+                <version>2.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.elasticsearch.client</groupId>

@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.slack;
 
+import com.slack.api.Slack;
+import com.slack.api.SlackConfig;
 import com.slack.api.bolt.App;
 import com.slack.api.bolt.AppConfig;
 import com.slack.api.methods.MethodsClient;
@@ -211,6 +213,15 @@ public class PublishSlack extends AbstractProcessor {
         .required(false)
         .build();
 
+    static PropertyDescriptor METHODS_ENDPOINT_URL_PREFIX = new PropertyDescriptor.Builder()
+        .name("Methods Endpoint Url Prefix")
+        .description("Customization of the Slack Client. Set the methodsEndpointUrlPrefix. If you need to set a different URL prefix for Slack API Methods calls, " +
+                     "you can set the one. Default value: https://slack.com/api/")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .required(false)
+        .build();
+
     private static final List<PropertyDescriptor> properties = List.of(ACCESS_TOKEN,
         CHANNEL,
         PUBLISH_STRATEGY,
@@ -218,7 +229,8 @@ public class PublishSlack extends AbstractProcessor {
         CHARACTER_SET,
         SEND_CONTENT_AS_ATTACHMENT,
         MAX_FILE_SIZE,
-        THREAD_TS);
+        THREAD_TS,
+        METHODS_ENDPOINT_URL_PREFIX);
 
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -279,7 +291,14 @@ public class PublishSlack extends AbstractProcessor {
 
     private App createSlackApp(final ProcessContext context) {
         final String botToken = context.getProperty(ACCESS_TOKEN).getValue();
+        final String methodsEndpointUrlPrefix = context.getProperty(METHODS_ENDPOINT_URL_PREFIX).getValue();
+
+        final SlackConfig slackConfig = new SlackConfig();
+        if (context.getProperty(METHODS_ENDPOINT_URL_PREFIX).isSet()) {
+            slackConfig.setMethodsEndpointUrlPrefix(methodsEndpointUrlPrefix);
+        }
         final AppConfig appConfig = AppConfig.builder()
+            .slack(Slack.getInstance(slackConfig))
             .singleTeamBotToken(botToken)
             .build();
 

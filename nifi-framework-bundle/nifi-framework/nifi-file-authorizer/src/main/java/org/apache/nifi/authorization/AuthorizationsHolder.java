@@ -67,7 +67,7 @@ public class AuthorizationsHolder {
      * @param policies the JAXB Policies element
      * @return a set of AccessPolicies corresponding to the provided Resources
      */
-    private Set<AccessPolicy> createAccessPolicies(org.apache.nifi.authorization.file.generated.Policies policies) {
+    private Set<AccessPolicy> createAccessPolicies(final Policies policies) {
         Set<AccessPolicy> allPolicies = new HashSet<>();
         if (policies == null || policies.getPolicy() == null) {
             return allPolicies;

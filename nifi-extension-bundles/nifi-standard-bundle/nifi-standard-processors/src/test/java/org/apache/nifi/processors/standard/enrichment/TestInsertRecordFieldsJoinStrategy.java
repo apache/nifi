@@ -37,6 +37,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -167,7 +168,7 @@ public class TestInsertRecordFieldsJoinStrategy extends TestIndexCorrelatedJoinS
         assertEquals(555, combined.getAsInt("id"));
 
         final Object xyzValue = combined.getValue("xyz");
-        assertTrue(xyzValue instanceof Record);
+        assertInstanceOf(Record.class, xyzValue);
 
         final Record xyzRecord = (Record) xyzValue;
         assertEquals("John Doe", xyzRecord.getValue("name"));

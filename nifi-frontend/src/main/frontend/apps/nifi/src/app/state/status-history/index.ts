@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 
 export const statusHistoryFeatureKey = 'status-history';
 

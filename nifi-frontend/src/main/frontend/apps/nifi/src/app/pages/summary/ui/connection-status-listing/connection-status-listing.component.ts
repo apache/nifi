@@ -33,7 +33,7 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 import { filter, map, switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/status-history.actions';
-import { ComponentType, isDefinedAndNotNull } from 'libs/shared/src';
+import { ComponentType, isDefinedAndNotNull } from '@nifi/shared';
 import { loadClusterSummary } from '../../../../state/cluster-summary/cluster-summary.actions';
 import { ConnectionStatusSnapshotEntity } from '../../state';
 import {

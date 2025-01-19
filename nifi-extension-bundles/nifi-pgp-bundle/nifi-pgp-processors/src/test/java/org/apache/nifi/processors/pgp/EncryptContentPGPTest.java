@@ -267,7 +267,7 @@ public class EncryptContentPGPTest {
 
     private void assertSuccess(final PGPPrivateKey privateKey, final DecryptionStrategy decryptionStrategy, final byte[] expected) throws IOException, PGPException {
         runner.assertAllFlowFilesTransferred(EncryptContentPGP.SUCCESS);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(EncryptContentPGP.SUCCESS).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(EncryptContentPGP.SUCCESS).getFirst();
         assertAttributesFound(DEFAULT_SYMMETRIC_KEY_ALGORITHM, flowFile);
 
         final PGPEncryptedDataList encryptedDataList = getEncryptedDataList(flowFile);
@@ -283,7 +283,7 @@ public class EncryptContentPGPTest {
 
     private void assertSuccess(final SymmetricKeyAlgorithm symmetricKeyAlgorithm, final char[] passphrase) throws IOException, PGPException {
         runner.assertAllFlowFilesTransferred(EncryptContentPGP.SUCCESS);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(EncryptContentPGP.SUCCESS).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(EncryptContentPGP.SUCCESS).getFirst();
         assertAttributesFound(symmetricKeyAlgorithm, flowFile);
 
         final PGPEncryptedDataList encryptedDataList = getEncryptedDataList(flowFile);
@@ -353,8 +353,7 @@ public class EncryptContentPGPTest {
             if (object instanceof PGPLiteralData) {
                 literalData = (PGPLiteralData) object;
                 break;
-            } else if (object instanceof PGPCompressedData) {
-                final PGPCompressedData compressedData = (PGPCompressedData) object;
+            } else if (object instanceof PGPCompressedData compressedData) {
                 final PGPObjectFactory compressedObjectFactory = new JcaPGPObjectFactory(compressedData.getDataStream());
                 literalData = getLiteralData(compressedObjectFactory);
                 break;

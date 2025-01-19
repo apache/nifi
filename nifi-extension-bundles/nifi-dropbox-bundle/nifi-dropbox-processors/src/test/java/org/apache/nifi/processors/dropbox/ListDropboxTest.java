@@ -130,7 +130,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
 
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0, folderName);
     }
 
@@ -151,7 +151,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
 
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0);
     }
 
@@ -171,7 +171,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
 
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0);
     }
 
@@ -192,7 +192,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
 
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        MockFlowFile ff0 = flowFiles.getFirst();
         List<String> expectedFileNames = Arrays.asList(FILENAME_1, FILENAME_2);
         List<String> actualFileNames = getFilenames(ff0.getContent());
 

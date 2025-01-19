@@ -16,7 +16,7 @@
  */
 
 import { ConnectionStatus, PortStatus, ProcessGroupStatus, ProcessorStatus, RemoteProcessGroupStatus } from '../index';
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 
 export const componentClusterStatusFeatureKey = 'component-cluster-status';
 

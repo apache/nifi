@@ -18,7 +18,6 @@ package org.apache.nifi.remote.protocol.socket;
 
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
-import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformation;
 import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
@@ -90,9 +89,7 @@ public class TestSocketFlowFileServerProtocol {
     }
 
     private SocketFlowFileServerProtocol getDefaultSocketFlowFileServerProtocol() {
-        final StandardVersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
-        final SocketFlowFileServerProtocol protocol = spy(new SocketFlowFileServerProtocol());
-        return protocol;
+        return spy(new SocketFlowFileServerProtocol());
     }
 
     @Test

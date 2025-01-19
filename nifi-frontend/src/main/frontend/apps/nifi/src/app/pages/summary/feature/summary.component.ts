@@ -22,7 +22,7 @@ import { loadSummaryListing, resetSummaryState } from '../state/summary-listing/
 import { loadClusterSummary, searchCluster } from '../../../state/cluster-summary/cluster-summary.actions';
 import { selectClusterSummary } from '../../../state/cluster-summary/cluster-summary.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { isDefinedAndNotNull } from 'libs/shared/src';
+import { isDefinedAndNotNull } from '@nifi/shared';
 import { selectSelectedClusterNode } from '../state/summary-listing/summary-listing.selectors';
 
 interface TabLink {

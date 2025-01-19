@@ -65,7 +65,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -132,9 +131,6 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     private final AtomicReference<Criteria> criteriaCache = new AtomicReference<>(null);
     private final ConcurrentMap<String, PropertyValue> propertyValues = new ConcurrentHashMap<>();
 
-    private final static Set<Relationship> statelessRelationshipSet;
-    private final static Set<Relationship> statefulRelationshipSet;
-
     /**
      * This field caches a 'canonical' value for a given attribute value. When this processor is used to update an attribute or add a new
      * attribute, if Expression Language is used, we may well end up with a new String object for each attribute for each FlowFile. As a result,
@@ -154,18 +150,15 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     public static final Relationship REL_FAILED_SET_STATE = new Relationship.Builder()
             .description("A failure to set the state after adding the attributes to the FlowFile will route the FlowFile here.").name("set state fail").build();
 
-    static {
-        Set<Relationship> tempStatelessSet = new HashSet<>();
-        tempStatelessSet.add(REL_SUCCESS);
+    private final static Set<Relationship> STATELESS_RELATIONSHIP_SET = Set.of(
+            REL_SUCCESS
+    );
 
-        statelessRelationshipSet = Collections.unmodifiableSet(tempStatelessSet);
+    private final static Set<Relationship> STATEFUL_RELATIONSHIP_SET = Set.of(
+            REL_SUCCESS,
+            REL_FAILED_SET_STATE
+    );
 
-        Set<Relationship> tempStatefulSet = new HashSet<>();
-        tempStatefulSet.add(REL_SUCCESS);
-        tempStatefulSet.add(REL_FAILED_SET_STATE);
-
-        statefulRelationshipSet = Collections.unmodifiableSet(tempStatefulSet);
-    }
 
     private volatile Set<Relationship> relationships;
 
@@ -238,13 +231,20 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            DELETE_ATTRIBUTES,
+            STORE_STATE,
+            STATEFUL_VARIABLES_INIT_VALUE,
+            CANONICAL_VALUE_LOOKUP_CACHE_SIZE
+    );
+
     private volatile Map<String, Action> defaultActions;
     private volatile boolean debugEnabled;
     private volatile boolean stateful = false;
 
 
     public UpdateAttribute() {
-        relationships = statelessRelationshipSet;
+        relationships = STATELESS_RELATIONSHIP_SET;
     }
 
     @Override
@@ -254,12 +254,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(DELETE_ATTRIBUTES);
-        descriptors.add(STORE_STATE);
-        descriptors.add(STATEFUL_VARIABLES_INIT_VALUE);
-        descriptors.add(CANONICAL_VALUE_LOOKUP_CACHE_SIZE);
-        return Collections.unmodifiableList(descriptors);
+        return PROPERTIES;
     }
 
     @Override
@@ -286,10 +281,10 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         if (descriptor.equals(STORE_STATE)) {
             if (DO_NOT_STORE_STATE.equals(newValue)) {
                 stateful = false;
-                relationships = statelessRelationshipSet;
+                relationships = STATELESS_RELATIONSHIP_SET;
             } else {
                 stateful = true;
-                relationships = statefulRelationshipSet;
+                relationships = STATEFUL_RELATIONSHIP_SET;
             }
         }
     }
@@ -308,8 +303,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         if (stateful) {
             StateManager stateManager = context.getStateManager();
             StateMap state = stateManager.getState(Scope.LOCAL);
-            HashMap<String, String> tempMap = new HashMap<>();
-            tempMap.putAll(state.toMap());
+            Map<String, String> tempMap = new HashMap<>(state.toMap());
             String initValue = context.getProperty(STATEFUL_VARIABLES_INIT_VALUE).getValue();
 
             // Initialize the stateful default actions
@@ -553,7 +547,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                                 "once; transferring to '{}'", incomingFlowFile, REL_FAILED_SET_STATE.getName());
 
                         flowFilesToTransfer.remove(incomingFlowFile);
-                        if (flowFilesToTransfer.size() > 0) {
+                        if (!flowFilesToTransfer.isEmpty()) {
                             session.remove(flowFilesToTransfer);
                         }
 
@@ -566,7 +560,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         "once; transferring to '{}'", incomingFlowFile, REL_FAILED_SET_STATE.getName(), e);
 
                 flowFilesToTransfer.remove(incomingFlowFile);
-                if (flowFilesToTransfer.size() > 0) {
+                if (!flowFilesToTransfer.isEmpty()) {
                     session.remove(flowFilesToTransfer);
                 }
 
@@ -604,11 +598,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 }
 
                 // store the flow file to use when executing this rule
-                List<Rule> rulesForFlowFile = matchedRules.get(flowfileToUse);
-                if (rulesForFlowFile == null) {
-                    rulesForFlowFile = new ArrayList<>();
-                    matchedRules.put(flowfileToUse, rulesForFlowFile);
-                }
+                List<Rule> rulesForFlowFile = matchedRules.computeIfAbsent(flowfileToUse, k -> new ArrayList<>());
                 rulesForFlowFile.add(rule);
 
                 // log if appropriate
@@ -655,10 +645,10 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                                     final Map<String, String> stateInitialAttributes, final Map<String, String> stateWorkingAttributes) {
             final ComponentLog logger = getLogger();
         final Map<String, Action> actions = new HashMap<>(defaultActions);
-        final String ruleName = (rules == null || rules.isEmpty()) ? "default" : rules.get(rules.size() - 1).getName();
+        final String ruleName = (rules == null || rules.isEmpty()) ? "default" : rules.getLast().getName();
 
         // if a rule matched, get its actions and possible overwrite the default ones
-        if (rules != null && rules.size() > 0) {
+        if (rules != null && !rules.isEmpty()) {
             // combine all rules actions with the default actions... loop through the rules in order, this way
             // subsequent matching rules will take precedence over previously matching rules and default values
             for (final Rule rule : rules) {
@@ -754,18 +744,18 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                     final String identifier = alternateIdentifierAdd.substring(Math.min(namespace.length() + 1, alternateIdentifierAdd.length() - 1));
                     session.getProvenanceReporter().associate(flowfile, namespace, identifier);
                 }
-            } catch (final URISyntaxException e) {
+            } catch (final URISyntaxException ignored) {
             }
         }
 
         // update and delete the FlowFile attributes
         FlowFile returnFlowfile = flowfile;
 
-        if (attributesToUpdate.size() > 0) {
+        if (!attributesToUpdate.isEmpty()) {
             returnFlowfile = session.putAllAttributes(returnFlowfile, attributesToUpdate);
         }
 
-        if (attributesToDelete.size() > 0) {
+        if (!attributesToDelete.isEmpty()) {
             returnFlowfile = session.removeAllAttributes(returnFlowfile, attributesToDelete);
         }
 

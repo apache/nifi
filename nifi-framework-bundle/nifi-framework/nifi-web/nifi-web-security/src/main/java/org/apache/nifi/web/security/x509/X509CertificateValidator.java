@@ -21,15 +21,11 @@ import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 import org.apache.nifi.web.security.x509.ocsp.CertificateStatusException;
 import org.apache.nifi.web.security.x509.ocsp.OcspCertificateValidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Extracts client certificates from Http requests.
  */
 public class X509CertificateValidator {
-
-    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private OcspCertificateValidator ocspValidator;
 

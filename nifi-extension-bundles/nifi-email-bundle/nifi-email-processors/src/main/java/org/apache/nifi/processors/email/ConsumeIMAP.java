@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.processors.email;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -52,14 +51,13 @@ public class ConsumeIMAP extends AbstractEmailProcessor<ImapMailReceiver> {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
-    static final List<PropertyDescriptor> DESCRIPTORS;
-
-    static {
-        List<PropertyDescriptor> descriptors = new ArrayList<>(SHARED_DESCRIPTORS);
-        descriptors.add(SHOULD_MARK_READ);
-        descriptors.add(USE_SSL);
-        DESCRIPTORS = Collections.unmodifiableList(descriptors);
-    }
+    static final List<PropertyDescriptor> DESCRIPTORS = Stream.concat(
+            SHARED_DESCRIPTORS.stream(),
+            Stream.of(
+                    SHOULD_MARK_READ,
+                    USE_SSL
+            )
+    ).toList();
 
     @Override
     protected ImapMailReceiver buildMessageReceiver(ProcessContext processContext) {

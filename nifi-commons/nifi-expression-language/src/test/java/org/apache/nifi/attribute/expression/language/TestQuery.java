@@ -58,6 +58,7 @@ import static java.lang.Double.POSITIVE_INFINITY;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -2560,14 +2561,14 @@ public class TestQuery {
         if (expectedResult instanceof Long) {
             if (ResultType.NUMBER.equals(result.getResultType())) {
                 final Number resultNumber = ((NumberQueryResult) result).getValue();
-                assertTrue(resultNumber instanceof Long);
+                assertInstanceOf(Long.class, resultNumber);
             } else {
                 assertEquals(ResultType.WHOLE_NUMBER, result.getResultType());
             }
         } else if (expectedResult instanceof Double) {
             if (ResultType.NUMBER.equals(result.getResultType())) {
                 final Number resultNumber = ((NumberQueryResult) result).getValue();
-                assertTrue(resultNumber instanceof Double);
+                assertInstanceOf(Double.class, resultNumber);
             } else {
                 assertEquals(ResultType.DECIMAL, result.getResultType());
             }

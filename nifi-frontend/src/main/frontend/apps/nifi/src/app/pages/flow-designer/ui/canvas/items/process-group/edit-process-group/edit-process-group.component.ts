@@ -26,11 +26,10 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { Observable } from 'rxjs';
-import { SelectOption } from 'libs/shared/src';
 import { ParameterContextEntity } from '../../../../../../../state/shared';
 import { Client } from '../../../../../../../service/client.service';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
-import { NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { NifiTooltipDirective, SelectOption, TextTip } from '@nifi/shared';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
@@ -60,18 +59,27 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 })
 export class EditProcessGroup extends TabbedDialog {
     @Input() set parameterContexts(parameterContexts: ParameterContextEntity[]) {
+        this.initializeParameterContextOptions();
+
         parameterContexts.forEach((parameterContext) => {
-            if (parameterContext.permissions.canRead) {
+            if (parameterContext.permissions.canRead && parameterContext.component) {
                 this.parameterContextsOptions.push({
                     text: parameterContext.component.name,
                     value: parameterContext.id,
                     description: parameterContext.component.description
                 });
             } else {
+                let disabled: boolean;
+                if (this.request.entity.component.parameterContext) {
+                    disabled = this.request.entity.component.parameterContext.id !== parameterContext.id;
+                } else {
+                    disabled = true;
+                }
+
                 this.parameterContextsOptions.push({
                     text: parameterContext.id,
                     value: parameterContext.id,
-                    disabled: this.request.entity.component.parameterContext.id !== parameterContext.id
+                    disabled
                 });
             }
         });
@@ -168,10 +176,7 @@ export class EditProcessGroup extends TabbedDialog {
 
         this.readonly = !request.entity.permissions.canWrite;
 
-        this.parameterContextsOptions.push({
-            text: 'No parameter context',
-            value: null
-        });
+        this.initializeParameterContextOptions();
 
         this.editProcessGroupForm = this.formBuilder.group({
             name: new FormControl(request.entity.component.name, Validators.required),
@@ -202,6 +207,15 @@ export class EditProcessGroup extends TabbedDialog {
         this.initialStatelessFlowTimeout = request.entity.component.statelessFlowTimeout;
 
         this.executionEngineChanged(request.entity.component.executionEngine);
+    }
+
+    private initializeParameterContextOptions(): void {
+        this.parameterContextsOptions = [
+            {
+                text: 'No parameter context',
+                value: null
+            }
+        ];
     }
 
     executionEngineChanged(value: string): void {

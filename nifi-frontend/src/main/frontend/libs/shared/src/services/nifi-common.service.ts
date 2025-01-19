@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { SelectOption } from '../index';
+import { SelectOption } from '../types';
 
 @Injectable({
     providedIn: 'root'

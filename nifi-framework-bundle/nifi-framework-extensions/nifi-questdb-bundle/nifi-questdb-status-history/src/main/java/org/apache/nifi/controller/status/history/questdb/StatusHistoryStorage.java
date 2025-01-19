@@ -30,8 +30,8 @@ import java.util.List;
 
 interface StatusHistoryStorage {
 
-    default void init() { };
-    default void close() { };
+    default void init() { }
+    default void close() { }
 
     List<StatusSnapshot> getConnectionSnapshots(final String componentId, final Date start, final Date end);
     List<StatusSnapshot> getProcessGroupSnapshots(final String componentId, final Date start, final Date end);

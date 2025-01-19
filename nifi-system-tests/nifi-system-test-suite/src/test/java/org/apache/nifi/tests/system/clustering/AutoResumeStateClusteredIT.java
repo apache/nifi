@@ -21,7 +21,6 @@ import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +37,7 @@ public class AutoResumeStateClusteredIT extends NiFiSystemIT {
     public void testRestartWithAutoResumeStateFalse() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
-        final ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, "success");
+        getClientUtil().createConnection(generate, terminate, "success");
         getClientUtil().waitForValidProcessor(generate.getId());
 
         getClientUtil().startProcessor(terminate);

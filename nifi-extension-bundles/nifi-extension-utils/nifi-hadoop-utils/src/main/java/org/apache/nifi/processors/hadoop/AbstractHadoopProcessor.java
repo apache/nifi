@@ -371,7 +371,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
         final Path workingDir = fs.getWorkingDirectory();
         getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
-                new Object[]{workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString()});
+                workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString());
 
         return new HdfsResources(config, fs, ugi, kerberosUser);
     }

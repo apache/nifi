@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 public class RollbackOnExceptionIT extends StatelessSystemIT {
     private static final String EXCEPTION_TEXT = "Intentional Exception to verify behavior in RollbackOnExceptionIT";
@@ -54,7 +54,7 @@ public class RollbackOnExceptionIT extends StatelessSystemIT {
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         assertFalse(result.isSuccessful());
-        assertTrue(result.getFailureCause().get() instanceof ProcessException);
+        assertInstanceOf(ProcessException.class, result.getFailureCause().get());
 
         // Wait for dataflow to be purged
         while (dataflow.isFlowFileQueued()) {
@@ -79,7 +79,7 @@ public class RollbackOnExceptionIT extends StatelessSystemIT {
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         assertFalse(result.isSuccessful());
-        assertTrue(result.getFailureCause().get() instanceof FailurePortEncounteredException);
+        assertInstanceOf(FailurePortEncounteredException.class, result.getFailureCause().get());
 
         assertFalse(dataflow.isFlowFileQueued());
     }

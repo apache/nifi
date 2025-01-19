@@ -126,12 +126,9 @@ public class NarClassLoader extends AbstractNativeLibHandlingClassLoader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NarClassLoader.class);
 
-    private static final FileFilter JAR_FILTER = new FileFilter() {
-        @Override
-        public boolean accept(File pathname) {
-            final String nameToTest = pathname.getName().toLowerCase();
-            return nameToTest.endsWith(".jar") && pathname.isFile();
-        }
+    private static final FileFilter JAR_FILTER = pathname -> {
+        final String nameToTest = pathname.getName().toLowerCase();
+        return nameToTest.endsWith(".jar") && pathname.isFile();
     };
 
     /**

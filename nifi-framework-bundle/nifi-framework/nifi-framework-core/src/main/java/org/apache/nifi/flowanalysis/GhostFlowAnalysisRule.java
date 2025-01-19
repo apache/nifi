@@ -20,7 +20,6 @@ package org.apache.nifi.flowanalysis;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,7 +29,6 @@ public class GhostFlowAnalysisRule implements FlowAnalysisRule {
 
     private String id;
     private String canonicalClassName;
-    private ComponentLog logger;
 
     public void setIdentifier(final String id) {
         this.id = id;
@@ -85,6 +83,6 @@ public class GhostFlowAnalysisRule implements FlowAnalysisRule {
 
     @Override
     public void initialize(FlowAnalysisRuleInitializationContext context) throws InitializationException {
-        this.logger = context.getLogger();
+
     }
 }

@@ -111,7 +111,7 @@ public class AhoCorasick<T> implements Search<T> {
         if (root == null) {
             throw new IllegalStateException();
         }
-        final SearchState<T> currentState = (state == null) ? new SearchState(root) : state;
+        final SearchState<T> currentState = (state == null) ? new SearchState<>(root) : state;
         if (!findAll && currentState.foundMatch()) {
             throw new IllegalStateException("A match has already been found yet we're being asked to keep searching");
         }

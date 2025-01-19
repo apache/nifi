@@ -27,7 +27,6 @@ import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -54,6 +53,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
 import static org.apache.nifi.processors.mqtt.common.MqttTestUtil.createJsonRecordSetReaderService;
 import static org.apache.nifi.processors.mqtt.common.MqttTestUtil.createJsonRecordSetWriterService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -200,7 +200,7 @@ public class TestConsumeMQTT {
         assertProvenanceEvents(1);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
-        final MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.getFirst();
 
         flowFile.assertContentEquals("testMessage");
         flowFile.assertAttributeEquals(BROKER_ATTRIBUTE_KEY, BROKER_URI);
@@ -245,7 +245,7 @@ public class TestConsumeMQTT {
         assertProvenanceEvents(1);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
-        final MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.getFirst();
 
         flowFile.assertContentEquals("testMessage");
         flowFile.assertAttributeEquals(BROKER_ATTRIBUTE_KEY, BROKER_URI);
@@ -279,9 +279,9 @@ public class TestConsumeMQTT {
         testRunner.run(1, false, false);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
-        assertTrue(flowFiles.size() > 0);
+        assertFalse(flowFiles.isEmpty());
         assertProvenanceEvents(flowFiles.size());
-        final MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.getFirst();
 
         flowFile.assertContentEquals("testMessage");
         flowFile.assertAttributeEquals(BROKER_ATTRIBUTE_KEY, BROKER_URI);
@@ -325,9 +325,9 @@ public class TestConsumeMQTT {
         testRunner.assertTransferCount(ConsumeMQTT.REL_MESSAGE, 1);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
-        assertTrue(flowFiles.size() > 0);
+        assertFalse(flowFiles.isEmpty());
         assertProvenanceEvents(flowFiles.size());
-        final MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.getFirst();
 
         flowFile.assertContentEquals("testMessage");
         flowFile.assertAttributeEquals(BROKER_ATTRIBUTE_KEY, BROKER_URI);
@@ -365,7 +365,7 @@ public class TestConsumeMQTT {
         assertProvenanceEvents(flowFiles.size());
 
         if (flowFiles.size() == 1) {
-            MockFlowFile flowFile = flowFiles.get(0);
+            MockFlowFile flowFile = flowFiles.getFirst();
 
             flowFile.assertContentEquals("testMessage");
             flowFile.assertAttributeEquals(BROKER_ATTRIBUTE_KEY, BROKER_URI);
@@ -411,7 +411,7 @@ public class TestConsumeMQTT {
         assertProvenanceEvents(1);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
-        final MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.getFirst();
 
         flowFile.assertContentEquals("testMessage");
         flowFile.assertAttributeEquals(BROKER_ATTRIBUTE_KEY, BROKER_URI);
@@ -457,7 +457,7 @@ public class TestConsumeMQTT {
         assertProvenanceEvents(2);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
-        final MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.getFirst();
 
         flowFile.assertContentEquals("testMessage");
         flowFile.assertAttributeEquals(BROKER_ATTRIBUTE_KEY, BROKER_URI);
@@ -497,11 +497,11 @@ public class TestConsumeMQTT {
         assertEquals(1, flowFiles.size());
         assertEquals("[{\"name\":\"Apache NiFi\",\"_topic\":\"testTopic\",\"_qos\":0,\"_isDuplicate\":false,\"_isRetained\":false},"
                         + "{\"name\":\"Apache NiFi\",\"_topic\":\"testTopic\",\"_qos\":0,\"_isDuplicate\":false,\"_isRetained\":false}]",
-                new String(flowFiles.get(0).toByteArray()));
+                new String(flowFiles.getFirst().toByteArray()));
 
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
         assertEquals(1, badFlowFiles.size());
-        assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
+        assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.getFirst().toByteArray()));
     }
 
     @Test
@@ -534,7 +534,7 @@ public class TestConsumeMQTT {
         assertEquals("{\"name\":\"Apache NiFi\"}\\n"
                         + THIS_IS_NOT_JSON + "\\n"
                         + "{\"name\":\"Apache NiFi\"}",
-                new String(flowFiles.get(0).toByteArray()));
+                new String(flowFiles.getFirst().toByteArray()));
 
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
         assertEquals(0, badFlowFiles.size());
@@ -569,11 +569,11 @@ public class TestConsumeMQTT {
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
         assertEquals(1, flowFiles.size());
-        assertEquals("[{\"name\":\"Apache NiFi\"},{\"name\":\"Apache NiFi\"}]", new String(flowFiles.get(0).toByteArray()));
+        assertEquals("[{\"name\":\"Apache NiFi\"},{\"name\":\"Apache NiFi\"}]", new String(flowFiles.getFirst().toByteArray()));
 
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
         assertEquals(1, badFlowFiles.size());
-        assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
+        assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.getFirst().toByteArray()));
     }
 
     @Test
@@ -603,11 +603,11 @@ public class TestConsumeMQTT {
 
         final List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
         assertEquals(1, badFlowFiles.size());
-        assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
+        assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.getFirst().toByteArray()));
     }
 
     @Test
-    public void testSslContextService() throws InitializationException, TlsException {
+    public void testSslContextService() throws InitializationException {
         testRunner = initializeTestRunner();
         testRunner.setEnvironmentVariableValue("brokerURI",  "ssl://localhost:8883");
         testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, "${brokerURI}");
@@ -709,7 +709,7 @@ public class TestConsumeMQTT {
         assertNotNull(provenanceEvents);
         assertEquals(count, provenanceEvents.size());
         if (count > 0) {
-            assertEquals(ProvenanceEventType.RECEIVE, provenanceEvents.get(0).getEventType());
+            assertEquals(ProvenanceEventType.RECEIVE, provenanceEvents.getFirst().getEventType());
         }
     }
 

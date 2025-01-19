@@ -656,26 +656,22 @@ public class DataTransferResource extends ApplicationResource {
         try {
             final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
 
-            StreamingOutput flowFileContent = new StreamingOutput() {
-                @Override
-                public void write(OutputStream outputStream) throws IOException, WebApplicationException {
+            StreamingOutput flowFileContent = outputStream -> {
 
-                    HttpOutput output = (HttpOutput) peer.getCommunicationsSession().getOutput();
-                    output.setOutputStream(outputStream);
+                HttpOutput output = (HttpOutput) peer.getCommunicationsSession().getOutput();
+                output.setOutputStream(outputStream);
 
-                    try {
-                        int numOfFlowFiles = serverProtocol.getPort().transferFlowFiles(peer, serverProtocol);
-                        logger.debug("finished transferring flow files, numOfFlowFiles={}", numOfFlowFiles);
-                        if (numOfFlowFiles < 1) {
-                            // There was no flow file to transfer. Throw this exception to stop responding with SEE OTHER.
-                            throw new WebApplicationException(Response.Status.OK);
-                        }
-                    } catch (NotAuthorizedException | BadRequestException | RequestExpiredException e) {
-                        // Handshake is done outside of write() method, so these exception wouldn't be thrown.
-                        throw new IOException("Failed to process the request.", e);
+                try {
+                    int numOfFlowFiles = serverProtocol.getPort().transferFlowFiles(peer, serverProtocol);
+                    logger.debug("finished transferring flow files, numOfFlowFiles={}", numOfFlowFiles);
+                    if (numOfFlowFiles < 1) {
+                        // There was no flow file to transfer. Throw this exception to stop responding with SEE OTHER.
+                        throw new WebApplicationException(Response.Status.OK);
                     }
+                } catch (NotAuthorizedException | BadRequestException | RequestExpiredException e) {
+                    // Handshake is done outside of write() method, so these exception wouldn't be thrown.
+                    throw new IOException("Failed to process the request.", e);
                 }
-
             };
 
             return responseCreator.acceptedResponse(transactionManager, flowFileContent, transportProtocolVersion);

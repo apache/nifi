@@ -51,7 +51,7 @@ import {
     terminateThreads,
     updatePositions
 } from '../state/flow/flow.actions';
-import { ComponentType } from 'libs/shared/src';
+import { ComponentType } from '@nifi/shared';
 import {
     ConfirmStopVersionControlRequest,
     MoveComponentRequest,

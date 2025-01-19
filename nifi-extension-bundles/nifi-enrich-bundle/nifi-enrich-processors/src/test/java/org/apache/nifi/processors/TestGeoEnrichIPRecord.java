@@ -42,8 +42,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.net.InetAddress;
-import java.util.Arrays;
-import java.util.Collections;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +73,7 @@ public class TestGeoEnrichIPRecord {
 
 
         try (InputStream is = getClass().getResourceAsStream("/avro/record_schema.avsc")) {
-            String raw = IOUtils.toString(is, "UTF-8");
+            String raw = IOUtils.toString(is, StandardCharsets.UTF_8);
             RecordSchema parsed = AvroTypeUtil.createSchema(new Schema.Parser().parse(raw));
             ((MockSchemaRegistry) registry).addSchema("record", parsed);
 
@@ -114,13 +113,13 @@ public class TestGeoEnrichIPRecord {
     }
 
     @Test
-    public void testSplitOutput() throws Exception {
+    public void testSplitOutput() {
         runner.setProperty(GeoEnrichIPRecord.SPLIT_FOUND_NOT_FOUND, "true");
         commonTest("/json/two_records_for_split.json", 1, 1, 1);
     }
 
     @Test
-    public void testEnrichSendToNotFound() throws Exception {
+    public void testEnrichSendToNotFound() {
         commonTest("/json/one_record_no_geo.json", 1, 0, 0);
     }
 
@@ -128,7 +127,7 @@ public class TestGeoEnrichIPRecord {
     public void testEnrichSendToFound() throws Exception {
         commonTest("/json/one_record.json", 0, 1, 0);
 
-        MockFlowFile ff = runner.getFlowFilesForRelationship(GeoEnrichIPRecord.REL_FOUND).get(0);
+        MockFlowFile ff = runner.getFlowFilesForRelationship(GeoEnrichIPRecord.REL_FOUND).getFirst();
         byte[] raw = runner.getContentAsByteArray(ff);
         String content = new String(raw);
         ObjectMapper mapper = new ObjectMapper();
@@ -137,7 +136,7 @@ public class TestGeoEnrichIPRecord {
         assertNotNull(result);
         assertEquals(1, result.size());
 
-        Map<String, Object> element = result.get(0);
+        Map<String, Object> element = result.getFirst();
         Map<String, Object> geo = (Map<String, Object>) element.get("geo");
 
         assertNotNull(geo);
@@ -154,10 +153,19 @@ public class TestGeoEnrichIPRecord {
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            return Collections.unmodifiableList(Arrays.asList(
-                    READER, WRITER, IP_RECORD_PATH, SPLIT_FOUND_NOT_FOUND, GEO_CITY, GEO_LATITUDE, GEO_LONGITUDE,
-                    GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE, LOG_LEVEL
-            ));
+            return List.of(
+                    READER,
+                    WRITER,
+                    IP_RECORD_PATH,
+                    SPLIT_FOUND_NOT_FOUND,
+                    GEO_CITY,
+                    GEO_LATITUDE,
+                    GEO_LONGITUDE,
+                    GEO_COUNTRY,
+                    GEO_COUNTRY_ISO,
+                    GEO_POSTAL_CODE,
+                    LOG_LEVEL
+            );
         }
         @Override
         @OnScheduled

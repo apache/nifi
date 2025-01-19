@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.2.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-commons</artifactId>
     <packaging>pom</packaging>
@@ -72,7 +72,7 @@
     </modules>
     <properties>
         <gcp.sdk.version>26.38.0</gcp.sdk.version>
-        <guava.version>33.3.1-jre</guava.version>
+        <guava.version>33.4.0-jre</guava.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -84,12 +84,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-api</artifactId>
-                <version>2.1.0-SNAPSHOT</version>
+                <version>2.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
-                <version>2.1.0-SNAPSHOT</version>
+                <version>2.2.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

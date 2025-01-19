@@ -73,7 +73,7 @@ class FetchSmbIT extends SambaTestContainers {
     }
 
     @Test
-    void tryToFetchNonExistingFileEmitsFailure() throws Exception {
+    void tryToFetchNonExistingFileEmitsFailure() {
         testRunner.setProperty(REMOTE_FILE, "${attribute_to_find_using_EL}");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -227,7 +227,7 @@ class FetchSmbIT extends SambaTestContainers {
 
     private void assertSuccessFlowFile() {
         testRunner.assertTransferCount(REL_SUCCESS, 1);
-        assertEquals(TEST_CONTENT, testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0).getContent());
+        assertEquals(TEST_CONTENT, testRunner.getFlowFilesForRelationship(REL_SUCCESS).getFirst().getContent());
     }
 
     private void assertWarning() {

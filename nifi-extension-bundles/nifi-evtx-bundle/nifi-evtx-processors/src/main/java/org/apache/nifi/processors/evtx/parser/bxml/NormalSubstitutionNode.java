@@ -30,6 +30,7 @@ import java.util.List;
  */
 public class NormalSubstitutionNode extends BxmlNodeWithToken {
     private final int index;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final int type;
 
     public NormalSubstitutionNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {

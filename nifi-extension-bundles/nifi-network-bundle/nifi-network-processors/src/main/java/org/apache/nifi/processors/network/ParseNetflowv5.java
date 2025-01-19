@@ -38,18 +38,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.network.parser.Netflowv5Parser;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -70,7 +65,7 @@ import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getRecor
 public class ParseNetflowv5 extends AbstractProcessor {
     private String destination;
     // Add mapper
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static final String FLOWFILE_CONTENT = "flowfile-content";
     public static final String FLOWFILE_ATTRIBUTE = "flowfile-attribute";
@@ -89,8 +84,15 @@ public class ParseNetflowv5 extends AbstractProcessor {
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Any FlowFile that is successfully parsed as a netflowv5 data will be transferred to this Relationship.").build();
 
-    public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(FIELDS_DESTINATION));
-    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_FAILURE, REL_ORIGINAL, REL_SUCCESS)));
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
+            FIELDS_DESTINATION
+    );
+
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_FAILURE,
+            REL_ORIGINAL,
+            REL_SUCCESS
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -164,21 +166,18 @@ public class ParseNetflowv5 extends AbstractProcessor {
         FlowFile recordFlowFile = flowFile;
         int record = 0;
         while (numberOfRecords-- > 0) {
-            ObjectNode results = mapper.createObjectNode();
+            ObjectNode results = MAPPER.createObjectNode();
             // Add Port number and message format
-            results.set("port", mapper.valueToTree(parser.getPortNumber()));
-            results.set("format", mapper.valueToTree("netflowv5"));
+            results.set("port", MAPPER.valueToTree(parser.getPortNumber()));
+            results.set("format", MAPPER.valueToTree("netflowv5"));
 
             recordFlowFile = session.create(flowFile);
             // Add JSON Objects
             generateJSONUtil(results, parser, record++);
 
-            recordFlowFile = session.write(recordFlowFile, new OutputStreamCallback() {
-                @Override
-                public void process(OutputStream out) throws IOException {
-                    try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                        outputStream.write(mapper.writeValueAsBytes(results));
-                    }
+            recordFlowFile = session.write(recordFlowFile, out -> {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write(MAPPER.writeValueAsBytes(results));
                 }
             });
             // Adjust the FlowFile mime.type attribute
@@ -216,22 +215,22 @@ public class ParseNetflowv5 extends AbstractProcessor {
     }
 
     private void generateJSONUtil(final ObjectNode results, final Netflowv5Parser parser, final int record) {
-        final ObjectNode header = mapper.createObjectNode();
+        final ObjectNode header = MAPPER.createObjectNode();
 
         // Process KVs of the Flow Header fields
         String fieldname[] = getHeaderFields();
         Object fieldvalue[] = parser.getHeaderData();
         for (int i = 0; i < fieldname.length; i++) {
-            header.set(fieldname[i], mapper.valueToTree(fieldvalue[i]));
+            header.set(fieldname[i], MAPPER.valueToTree(fieldvalue[i]));
         }
         results.set("header", header);
 
-        final ObjectNode data = mapper.createObjectNode();
+        final ObjectNode data = MAPPER.createObjectNode();
         // Process KVs of the Flow Record fields
         fieldname = getRecordFields();
         fieldvalue = parser.getRecordData()[record];
         for (int i = 0; i < fieldname.length; i++) {
-            data.set(fieldname[i], mapper.valueToTree(fieldvalue[i]));
+            data.set(fieldname[i], MAPPER.valueToTree(fieldvalue[i]));
         }
         results.set("record", data);
     }

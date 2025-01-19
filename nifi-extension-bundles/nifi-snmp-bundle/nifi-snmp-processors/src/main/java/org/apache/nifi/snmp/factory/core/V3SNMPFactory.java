@@ -62,8 +62,8 @@ public class V3SNMPFactory extends SNMPManagerFactory implements SNMPContext {
     }
 
     @Override
-    public Target createTargetInstance(final SNMPConfiguration configuration) {
-        final UserTarget userTarget = new UserTarget();
+    public Target<?> createTargetInstance(final SNMPConfiguration configuration) {
+        final UserTarget<?> userTarget = new UserTarget<>();
         setupTargetBasicProperties(userTarget, configuration);
 
         final int securityLevel = SecurityLevel.valueOf(configuration.getSecurityLevel()).getSnmpValue();

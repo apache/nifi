@@ -100,7 +100,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     @Override
     public void shutdownControllerService(final ControllerServiceNode serviceNode, final ControllerServiceProvider controllerServiceProvider) {
         final Class<?> serviceImplClass = serviceNode.getControllerServiceImplementation().getClass();
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, serviceImplClass, serviceNode.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, serviceImplClass, serviceNode.getIdentifier())) {
             final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
         }
@@ -109,7 +109,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     @Override
     public void shutdownReportingTask(final ReportingTaskNode taskNode) {
         final ConfigurationContext configContext = taskNode.getConfigurationContext();
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, taskNode.getReportingTask(), configContext);
         }
     }
@@ -290,7 +290,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         }
 
         final ReportingTask reportingTask = taskNode.getReportingTask();
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), taskNode.getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), taskNode.getIdentifier())) {
             ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
         }
     }

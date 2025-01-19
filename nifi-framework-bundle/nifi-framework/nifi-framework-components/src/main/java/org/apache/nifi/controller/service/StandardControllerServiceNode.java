@@ -527,7 +527,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     }
                 } else {
                     // Verify the configuration, using the component's classloader
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, controllerService.getClass(), getIdentifier())) {
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, controllerService.getClass(), getIdentifier())) {
                         results.addAll(verifiable.verify(context, logger, variables));
                     }
                 }
@@ -651,7 +651,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     }
 
                     try {
-                        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
+                        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
                         }
 
@@ -729,19 +729,16 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         if (this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLED, future)) {
             final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null);
-            scheduler.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        invokeDisable(configContext);
-                    } finally {
-                        stateTransition.disable();
+            scheduler.execute(() -> {
+                try {
+                    invokeDisable(configContext);
+                } finally {
+                    stateTransition.disable();
 
-                        // Now all components that reference this service will be invalid. Trigger validation to occur so that
-                        // this is reflected in any response that may go back to a user/client.
-                        for (final ComponentNode component : getReferences().getReferencingComponents()) {
-                            component.performValidation();
-                        }
+                    // Now all components that reference this service will be invalid. Trigger validation to occur so that
+                    // this is reflected in any response that may go back to a user/client.
+                    for (final ComponentNode component : getReferences().getReferencingComponents()) {
+                        component.performValidation();
                     }
                 }
             });
@@ -752,7 +749,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
 
     private void invokeDisable(ConfigurationContext configContext) {
-        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, StandardControllerServiceNode.this.getControllerServiceImplementation(), configContext);
             LOG.debug("Successfully disabled {}", this);
         } catch (Exception e) {
@@ -832,7 +829,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             return;
         }
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), implementationClass, getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), implementationClass, getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, getControllerServiceImplementation(), nodeState);
         }
     }
@@ -846,7 +843,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 originalPropertyValues, super::mapRawValueToEffectiveValue, toString(), serviceFactory);
 
         final ControllerService implementation = getControllerServiceImplementation();
-        try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), implementation.getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), implementation.getClass(), getIdentifier())) {
             implementation.migrateProperties(propertyConfig);
         } catch (final Exception e) {
             LOG.error("Failed to migrate Property Configuration for {}.", this, e);

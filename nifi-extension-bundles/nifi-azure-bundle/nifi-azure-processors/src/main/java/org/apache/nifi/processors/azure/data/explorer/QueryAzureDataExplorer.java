@@ -90,9 +90,16 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
 
     protected static final String APPLICATION_JSON = "application/json";
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(SUCCESS, FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            SUCCESS,
+            FAILURE
+    );
 
-    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(KUSTO_QUERY_SERVICE, DATABASE_NAME, QUERY);
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+            KUSTO_QUERY_SERVICE,
+            DATABASE_NAME,
+            QUERY
+    );
 
     private volatile KustoQueryService service;
 
@@ -103,7 +110,7 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return DESCRIPTORS;
+        return PROPERTIES;
     }
 
     @OnScheduled

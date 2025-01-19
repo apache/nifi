@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
     private HazelcastInstance hazelcastInstance;
@@ -55,7 +55,7 @@ public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheMan
         testRunner.addControllerService("hazelcast-connection-service", testSubject);
 
         final SocketAddress localAddress = hazelcastInstance.getLocalEndpoint().getSocketAddress();
-        assertTrue(localAddress instanceof InetSocketAddress);
+        assertInstanceOf(InetSocketAddress.class, localAddress);
         final int port = ((InetSocketAddress) localAddress).getPort();
         testRunner.setProperty(testSubject, ExternalHazelcastCacheManager.HAZELCAST_SERVER_ADDRESS, "localhost:" + port);
 

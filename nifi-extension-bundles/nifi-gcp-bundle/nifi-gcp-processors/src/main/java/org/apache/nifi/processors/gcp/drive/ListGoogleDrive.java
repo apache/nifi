@@ -56,9 +56,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -150,7 +148,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
             FOLDER_ID,
             RECURSIVE_SEARCH,
@@ -161,7 +159,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             INITIAL_LISTING_TARGET,
             RECORD_WRITER,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS)
-    ));
+    );
 
     private volatile Drive driveService;
 

@@ -63,7 +63,7 @@ import org.apache.nifi.util.NiFiProperties;
  */
 public class NarThreadContextClassLoader extends URLClassLoader {
 
-    private final ClassLoader forward = ClassLoader.getSystemClassLoader();
+    private final ClassLoader forward = getSystemClassLoader();
     private static final List<Class<?>> narSpecificClasses = new ArrayList<>();
 
     static {

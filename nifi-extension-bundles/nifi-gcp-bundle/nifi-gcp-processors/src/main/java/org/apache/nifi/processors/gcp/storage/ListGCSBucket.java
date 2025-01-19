@@ -280,7 +280,9 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         return DESCRIPTORS;
     }
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     @Override
     public Set<Relationship> getRelationships() {

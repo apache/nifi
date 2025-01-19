@@ -104,7 +104,7 @@ public class TestConsumeSlack {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ConsumeSlack.REL_SUCCESS, 1);
 
-        final MockFlowFile outFlowFile1 = testRunner.getFlowFilesForRelationship(ConsumeSlack.REL_SUCCESS).get(0);
+        final MockFlowFile outFlowFile1 = testRunner.getFlowFilesForRelationship(ConsumeSlack.REL_SUCCESS).getFirst();
         final String outputContent = outFlowFile1.getContent();
 
         final Message[] outputMessages = objectMapper.readValue(outputContent, Message[].class);
@@ -128,7 +128,7 @@ public class TestConsumeSlack {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ConsumeSlack.REL_SUCCESS, 1);
 
-        final MockFlowFile outFlowFile1 = testRunner.getFlowFilesForRelationship(ConsumeSlack.REL_SUCCESS).get(0);
+        final MockFlowFile outFlowFile1 = testRunner.getFlowFilesForRelationship(ConsumeSlack.REL_SUCCESS).getFirst();
         final String outputContent = outFlowFile1.getContent();
         final Message[] outputMessages = objectMapper.readValue(outputContent, Message[].class);
         final Message[] expectedMessages = new Message[] {message1, message2, message3, message4};
@@ -235,7 +235,7 @@ public class TestConsumeSlack {
         testRunner.assertAllFlowFilesTransferred(ConsumeSlack.REL_SUCCESS, 1);
 
         // Verify the results
-        final MockFlowFile outFlowFile1 = testRunner.getFlowFilesForRelationship(ConsumeSlack.REL_SUCCESS).get(0);
+        final MockFlowFile outFlowFile1 = testRunner.getFlowFilesForRelationship(ConsumeSlack.REL_SUCCESS).getFirst();
         final String outputContent = outFlowFile1.getContent();
         final Message[] outputMessages = objectMapper.readValue(outputContent, Message[].class);
         final Message[] expectedMessages = new Message[] {message1, message2, replies.get(0), replies.get(1), replies.get(2), message3};
@@ -316,7 +316,7 @@ public class TestConsumeSlack {
 
         // Verify output of first FlowFile
         final List<MockFlowFile> outputFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeSlack.REL_SUCCESS);
-        final String firstOutputContent = outputFlowFiles.get(0).getContent();
+        final String firstOutputContent = outputFlowFiles.getFirst().getContent();
         final Message[] firstOutputMessages = objectMapper.readValue(firstOutputContent, Message[].class);
         final Message[] expectedFirstMessages = new Message[] {message1, message2, replies.get(0), replies.get(1), replies.get(2)};
         assertArrayEquals(expectedFirstMessages, firstOutputMessages);
@@ -339,7 +339,7 @@ public class TestConsumeSlack {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ConsumeSlack.REL_SUCCESS, 1);
 
-        final MockFlowFile outFlowFile1 = testRunner.getFlowFilesForRelationship(ConsumeSlack.REL_SUCCESS).get(0);
+        final MockFlowFile outFlowFile1 = testRunner.getFlowFilesForRelationship(ConsumeSlack.REL_SUCCESS).getFirst();
         final String outputContent = outFlowFile1.getContent();
 
         final Message[] outputMessages = objectMapper.readValue(outputContent, Message[].class);
@@ -426,7 +426,7 @@ public class TestConsumeSlack {
 
         // Verify output of first FlowFile
         final List<MockFlowFile> outputFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeSlack.REL_SUCCESS);
-        final String firstOutputContent = outputFlowFiles.get(0).getContent();
+        final String firstOutputContent = outputFlowFiles.getFirst().getContent();
         final Message[] firstOutputMessages = objectMapper.readValue(firstOutputContent, Message[].class);
         final Message[] expectedFirstMessages = new Message[] {message1, message2};
         assertArrayEquals(expectedFirstMessages, firstOutputMessages);
@@ -651,6 +651,6 @@ public class TestConsumeSlack {
     private enum CursorExpectation {
         EXPECT_CURSOR,
         EXPECT_NO_CURSOR,
-        NO_EXPECTATION;
+        NO_EXPECTATION
     }
 }

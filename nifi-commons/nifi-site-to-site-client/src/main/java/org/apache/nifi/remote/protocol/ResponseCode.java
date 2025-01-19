@@ -58,7 +58,7 @@ public enum ResponseCode {
     private static final ResponseCode[] codeArray = new ResponseCode[256];
 
     static {
-        for (final ResponseCode responseCode : ResponseCode.values()) {
+        for (final ResponseCode responseCode : values()) {
             codeArray[responseCode.getCode()] = responseCode;
         }
     }

@@ -70,6 +70,7 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -223,7 +224,7 @@ public class TestHttpFlowFileServerProtocol {
         assertTrue(serverProtocol.isHandshakeSuccessful());
 
         final FlowFileCodec negotiatedCoded = serverProtocol.negotiateCodec(peer);
-        assertTrue(negotiatedCoded instanceof StandardFlowFileCodec);
+        assertInstanceOf(StandardFlowFileCodec.class, negotiatedCoded);
 
         assertEquals(negotiatedCoded, serverProtocol.getPreNegotiatedCodec());
         assertEquals(1234, serverProtocol.getRequestExpiration());

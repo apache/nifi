@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,7 @@ public class GeohashRecordTest {
         runner.addControllerService("registry", registry);
 
         try (InputStream is = getClass().getResourceAsStream("/record_schema.avsc")) {
-            String raw = IOUtils.toString(is, "UTF-8");
+            String raw = IOUtils.toString(is, StandardCharsets.UTF_8);
             RecordSchema parsed = AvroTypeUtil.createSchema(new Schema.Parser().parse(raw));
             ((MockSchemaRegistry) registry).addSchema("record", parsed);
 
@@ -105,7 +106,7 @@ public class GeohashRecordTest {
 
         assertTransfers("/encode-records-with-illegal-arguments.json", 0, 1, 0, 0, 1);
 
-        MockFlowFile outSuccess = runner.getFlowFilesForRelationship(GeohashRecord.REL_SUCCESS).get(0);
+        MockFlowFile outSuccess = runner.getFlowFilesForRelationship(GeohashRecord.REL_SUCCESS).getFirst();
         byte[] raw = runner.getContentAsByteArray(outSuccess);
         String content = new String(raw);
         ObjectMapper mapper = new ObjectMapper();
@@ -114,7 +115,7 @@ public class GeohashRecordTest {
         assertNotNull(result);
         assertEquals(3, result.size());
 
-        Map<String, Object> element = result.get(0);
+        Map<String, Object> element = result.getFirst();
         String geohash = (String) element.get("geohash");
         assertNotNull(geohash);
     }
@@ -136,8 +137,8 @@ public class GeohashRecordTest {
 
         assertTransfers("/encode-records-with-illegal-arguments.json", 0, 0, 1, 1, 1);
 
-        final MockFlowFile outNotMatched = runner.getFlowFilesForRelationship(GeohashRecord.REL_NOT_MATCHED).get(0);
-        final MockFlowFile outMatched = runner.getFlowFilesForRelationship(GeohashRecord.REL_MATCHED).get(0);
+        final MockFlowFile outNotMatched = runner.getFlowFilesForRelationship(GeohashRecord.REL_NOT_MATCHED).getFirst();
+        final MockFlowFile outMatched = runner.getFlowFilesForRelationship(GeohashRecord.REL_MATCHED).getFirst();
 
         byte[] rawNotMatched = runner.getContentAsByteArray(outNotMatched);
         byte[] rawMatched = runner.getContentAsByteArray(outMatched);
@@ -157,7 +158,7 @@ public class GeohashRecordTest {
             assertNull(geohashNotMatched);
         }
 
-        Map<String, Object> elementMatched = resultMatched.get(0);
+        Map<String, Object> elementMatched = resultMatched.getFirst();
         String geohashMatched = (String) elementMatched.get("geohash");
         assertNotNull(geohashMatched);
     }

@@ -73,6 +73,7 @@ public class RemoteQueuePartition implements QueuePartition {
 
     private final FlowFileRepository flowFileRepo;
     private final ProvenanceEventRepository provRepo;
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final ContentRepository contentRepo;
     private final AsyncLoadBalanceClientRegistry clientRegistry;
 
@@ -215,15 +216,12 @@ public class RemoteQueuePartition implements QueuePartition {
             }
         };
 
-        final TransactionCompleteCallback successCallback = new TransactionCompleteCallback() {
-            @Override
-            public void onTransactionComplete(final List<FlowFileRecord> flowFilesSent, final NodeIdentifier nodeIdentifier) {
-                // We've now completed the transaction. We must now update the repositories and "keep the books", acknowledging the FlowFiles
-                // with the queue so that its size remains accurate.
-                priorityQueue.acknowledge(flowFilesSent);
-                flowFileQueue.onTransfer(flowFilesSent);
-                updateRepositories(flowFilesSent, Collections.emptyList(), nodeIdentifier);
-            }
+        final TransactionCompleteCallback successCallback = (flowFilesSent, nodeIdentifier) -> {
+            // We've now completed the transaction. We must now update the repositories and "keep the books", acknowledging the FlowFiles
+            // with the queue so that its size remains accurate.
+            priorityQueue.acknowledge(flowFilesSent);
+            flowFileQueue.onTransfer(flowFilesSent);
+            updateRepositories(flowFilesSent, Collections.emptyList(), nodeIdentifier);
         };
 
         final BooleanSupplier emptySupplier = priorityQueue::isEmpty;

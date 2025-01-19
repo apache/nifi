@@ -35,7 +35,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -43,9 +42,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.List;
-import java.util.HashSet;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
@@ -251,8 +247,27 @@ public class ConsumeTwitter extends AbstractProcessor {
             .description("FlowFiles containing an array of one or more Tweets")
             .build();
 
-    private List<PropertyDescriptor> descriptors;
-    private Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
+        ENDPOINT,
+        BASE_PATH,
+        BEARER_TOKEN,
+        QUEUE_SIZE,
+        BATCH_SIZE,
+        BACKOFF_ATTEMPTS,
+        BACKOFF_TIME,
+        MAXIMUM_BACKOFF_TIME,
+        CONNECT_TIMEOUT,
+        READ_TIMEOUT,
+        BACKFILL_MINUTES,
+        TWEET_FIELDS,
+        USER_FIELDS,
+        MEDIA_FIELDS,
+        POLL_FIELDS,
+        PLACE_FIELDS,
+        EXPANSIONS
+    );
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     private TweetStreamService tweetStreamService;
 
@@ -261,41 +276,13 @@ public class ConsumeTwitter extends AbstractProcessor {
     private final AtomicBoolean streamStarted = new AtomicBoolean(false);
 
     @Override
-    protected void init(ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ENDPOINT);
-        descriptors.add(BASE_PATH);
-        descriptors.add(BEARER_TOKEN);
-        descriptors.add(QUEUE_SIZE);
-        descriptors.add(BATCH_SIZE);
-        descriptors.add(BACKOFF_ATTEMPTS);
-        descriptors.add(BACKOFF_TIME);
-        descriptors.add(MAXIMUM_BACKOFF_TIME);
-        descriptors.add(CONNECT_TIMEOUT);
-        descriptors.add(READ_TIMEOUT);
-        descriptors.add(BACKFILL_MINUTES);
-        descriptors.add(TWEET_FIELDS);
-        descriptors.add(USER_FIELDS);
-        descriptors.add(MEDIA_FIELDS);
-        descriptors.add(POLL_FIELDS);
-        descriptors.add(PLACE_FIELDS);
-        descriptors.add(EXPANSIONS);
-
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
-    }
-
-    @Override
     public Set<Relationship> getRelationships() {
-        return this.relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return this.descriptors;
+        return DESCRIPTORS;
     }
 
     @OnScheduled

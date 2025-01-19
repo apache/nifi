@@ -78,7 +78,7 @@ public class ProcessorStatusDTO implements Cloneable {
     }
 
     @Schema(description = "The run status of the Processor",
-            allowableValues = "Running, Stopped, Validating, Disabled, Invalid")
+            allowableValues = {"Running", "Stopped", "Validating", "Disabled", "Invalid"})
     public String getRunStatus() {
         return runStatus;
     }

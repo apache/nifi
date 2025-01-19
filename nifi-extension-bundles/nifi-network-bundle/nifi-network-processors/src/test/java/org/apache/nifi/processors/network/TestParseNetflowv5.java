@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.network;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.util.MockFlowFile;
@@ -32,12 +31,12 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestParseNetflowv5 {
-    private static final byte sample1[] = {
+    private static final byte[] sample1 = {
             // Header
             0, 5, 0, 1, 4, -48, 19, 36, 88, 71, -44, 73, 0, 0, 0, 0, 0, 0, 17, -22, 0, 0, 0, 0,
             // Record 1
             10, 0, 0, 2, 10, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 5, 0, 0, 0, 1, 0, 0, 0, 64, 4, -49, 40, -60, 4, -48, 19, 36, 16, -110, 0, 80, 0, 0, 17, 1, 0, 2, 0, 3, 32, 31, 0, 0 };
-    private static final byte sample2[] = {
+    private static final byte[] sample2 = {
             // Header
             0, 5, 0, 3, 4, -48, 19, 36, 88, 71, -44, 73, 0, 0, 0, 0, 0, 0, 17, -22, 0, 0, 0, 0,
             // Record 1
@@ -61,13 +60,13 @@ public class TestParseNetflowv5 {
 
         runner.assertTransferCount(ParseNetflowv5.REL_SUCCESS, 1);
         runner.assertTransferCount(ParseNetflowv5.REL_ORIGINAL, 1);
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseNetflowv5.REL_SUCCESS).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseNetflowv5.REL_SUCCESS).getFirst();
         mff.assertAttributeEquals("netflowv5.record.dPkts", "1");
         mff.assertAttributeEquals("netflowv5.record.dOctets", "64");
     }
 
     @Test
-    public void testSuccessfulParseToAttributesMultipleRecords() throws IOException {
+    public void testSuccessfulParseToAttributesMultipleRecords() {
         final TestRunner runner = TestRunners.newTestRunner(new ParseNetflowv5());
         runner.setProperty(ParseNetflowv5.FIELDS_DESTINATION, ParseNetflowv5.DESTINATION_ATTRIBUTES);
         runner.enqueue(sample2);
@@ -94,7 +93,7 @@ public class TestParseNetflowv5 {
 
         runner.assertTransferCount(ParseNetflowv5.REL_SUCCESS, 1);
         runner.assertTransferCount(ParseNetflowv5.REL_ORIGINAL, 1);
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseNetflowv5.REL_SUCCESS).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseNetflowv5.REL_SUCCESS).getFirst();
 
         byte[] rawJson = mff.toByteArray();
         JsonNode record = new ObjectMapper().readTree(rawJson).get("record");
@@ -137,7 +136,7 @@ public class TestParseNetflowv5 {
     }
 
     @Test
-    public void testReadUDPPort() throws JsonProcessingException, IOException {
+    public void testReadUDPPort() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ParseNetflowv5());
         runner.setProperty(ParseNetflowv5.FIELDS_DESTINATION, ParseNetflowv5.DESTINATION_CONTENT);
         final Map<String, String> attributes = new HashMap<>();
@@ -147,7 +146,7 @@ public class TestParseNetflowv5 {
 
         runner.assertTransferCount(ParseNetflowv5.REL_SUCCESS, 1);
         runner.assertTransferCount(ParseNetflowv5.REL_ORIGINAL, 1);
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseNetflowv5.REL_SUCCESS).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseNetflowv5.REL_SUCCESS).getFirst();
 
         byte[] rawJson = mff.toByteArray();
         JsonNode results = new ObjectMapper().readTree(rawJson);

@@ -41,10 +41,9 @@ import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { isDefinedAndNotNull, NiFiCommon } from 'libs/shared/src';
+import { isDefinedAndNotNull, NiFiCommon, LARGE_DIALOG, MEDIUM_DIALOG } from '@nifi/shared';
 import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { ClusterService } from '../../../../service/cluster.service';
-import { LARGE_DIALOG, MEDIUM_DIALOG } from 'libs/shared/src';
 import { Attribute } from '../../../../state/shared';
 import { ErrorContextKey } from '../../../../state/error';
 

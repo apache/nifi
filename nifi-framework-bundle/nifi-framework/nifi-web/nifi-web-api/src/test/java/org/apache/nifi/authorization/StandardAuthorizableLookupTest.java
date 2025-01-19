@@ -29,7 +29,7 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -52,26 +52,26 @@ public class StandardAuthorizableLookupTest {
         lookup.setControllerFacade(controllerFacade);
 
         Authorizable authorizable = lookup.getAuthorizableFromResource("/processors/id");
-        assertTrue(authorizable instanceof ProcessorNode);
+        assertInstanceOf(ProcessorNode.class, authorizable);
 
         authorizable = lookup.getAuthorizableFromResource("/policies/processors/id");
-        assertTrue(authorizable instanceof AccessPolicyAuthorizable);
-        assertTrue(((AccessPolicyAuthorizable) authorizable).getBaseAuthorizable() instanceof ProcessorNode);
+        assertInstanceOf(AccessPolicyAuthorizable.class, authorizable);
+        assertInstanceOf(ProcessorNode.class, ((AccessPolicyAuthorizable) authorizable).getBaseAuthorizable());
 
         authorizable = lookup.getAuthorizableFromResource("/data/processors/id");
-        assertTrue(authorizable instanceof DataAuthorizable);
-        assertTrue(((DataAuthorizable) authorizable).getBaseAuthorizable() instanceof ProcessorNode);
+        assertInstanceOf(DataAuthorizable.class, authorizable);
+        assertInstanceOf(ProcessorNode.class, ((DataAuthorizable) authorizable).getBaseAuthorizable());
 
         authorizable = lookup.getAuthorizableFromResource("/data-transfer/processors/id");
-        assertTrue(authorizable instanceof DataTransferAuthorizable);
-        assertTrue(((DataTransferAuthorizable) authorizable).getBaseAuthorizable() instanceof ProcessorNode);
+        assertInstanceOf(DataTransferAuthorizable.class, authorizable);
+        assertInstanceOf(ProcessorNode.class, ((DataTransferAuthorizable) authorizable).getBaseAuthorizable());
 
         authorizable = lookup.getAuthorizableFromResource("/provenance-data/processors/id");
-        assertTrue(authorizable instanceof ProvenanceDataAuthorizable);
-        assertTrue(((ProvenanceDataAuthorizable) authorizable).getBaseAuthorizable() instanceof ProcessorNode);
+        assertInstanceOf(ProvenanceDataAuthorizable.class, authorizable);
+        assertInstanceOf(ProcessorNode.class, ((ProvenanceDataAuthorizable) authorizable).getBaseAuthorizable());
 
         authorizable = lookup.getAuthorizableFromResource("/operation/processors/id");
-        assertTrue(authorizable instanceof OperationAuthorizable);
-        assertTrue(((OperationAuthorizable) authorizable).getBaseAuthorizable() instanceof ProcessorNode);
+        assertInstanceOf(OperationAuthorizable.class, authorizable);
+        assertInstanceOf(ProcessorNode.class, ((OperationAuthorizable) authorizable).getBaseAuthorizable());
     }
 }

@@ -55,9 +55,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
@@ -129,7 +126,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             .description("FlowFiles that failed to send to the destination are transferred to this relationship.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             PROP_BROKER_URI,
             PROP_MQTT_VERSION,
             PROP_USERNAME,
@@ -150,12 +147,12 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             PROP_LAST_WILL_TOPIC,
             PROP_LAST_WILL_RETAIN,
             PROP_LAST_WILL_QOS
-    ));
+    );
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
+    );
 
     static final String ATTR_PUBLISH_FAILED_INDEX_SUFFIX = ".mqtt.publish.failed.index";
     private String publishFailedIndexAttributeName;

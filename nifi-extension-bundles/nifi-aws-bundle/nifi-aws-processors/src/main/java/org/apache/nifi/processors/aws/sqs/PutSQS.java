@@ -102,7 +102,7 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final List<PropertyDescriptor> properties = List.of(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
         QUEUE_URL,
         REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -118,7 +118,7 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

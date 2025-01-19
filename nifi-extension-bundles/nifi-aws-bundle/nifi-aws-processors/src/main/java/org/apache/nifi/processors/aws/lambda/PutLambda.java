@@ -98,7 +98,7 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final List<PropertyDescriptor> properties = List.of(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
             AWS_LAMBDA_FUNCTION_NAME,
             AWS_LAMBDA_FUNCTION_QUALIFIER,
             REGION,
@@ -111,7 +111,7 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

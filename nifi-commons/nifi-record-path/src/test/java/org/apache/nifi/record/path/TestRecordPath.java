@@ -67,6 +67,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SuppressWarnings({"SameParameterValue"})
@@ -904,6 +905,98 @@ public class TestRecordPath {
 
             final FieldValue multipleArgumentsFieldValue = evaluateSingleFieldValue("mapOf(\"copy\",/)", record);
             assertEquals(Map.of("copy", record.toString()), multipleArgumentsFieldValue.getValue());
+        }
+
+        @Nested
+        class ArrayOf {
+
+            @Test
+            public void testSimpleArrayOfValues() {
+                final RecordPath recordPath = RecordPath.compile("arrayOf( 'a', 'b', 'c' )");
+                final RecordPathResult result = recordPath.evaluate(record);
+                final Object resultValue = result.getSelectedFields().findFirst().orElseThrow().getValue();
+
+                assertInstanceOf(Object[].class, resultValue);
+                assertArrayEquals(new Object[] {"a", "b", "c"}, (Object[]) resultValue);
+
+            }
+
+            @Test
+            public void testAppendString() {
+                final RecordPath recordPath = RecordPath.compile("arrayOf( /friends[*], 'Junior' )");
+                final RecordPathResult result = recordPath.evaluate(record);
+                final Object resultValue = result.getSelectedFields().findFirst().orElseThrow().getValue();
+
+                assertInstanceOf(Object[].class, resultValue);
+                assertArrayEquals(new Object[] {"John", "Jane", "Jacob", "Judy", "Junior"}, (Object[]) resultValue);
+            }
+
+            @Test
+            public void testAppendSingleRecord() {
+                final RecordPath recordPath = RecordPath.compile("arrayOf( /accounts[*], recordOf('id', '5555', 'balance', '123.45') )");
+                final RecordPathResult result = recordPath.evaluate(record);
+                final Object resultValue = result.getSelectedFields().findFirst().orElseThrow().getValue();
+
+                assertInstanceOf(Object[].class, resultValue);
+                final Object[] values = (Object[]) resultValue;
+                assertEquals(3, values.length);
+
+                assertInstanceOf(Record.class, values[2]);
+                final Record added = (Record) values[2];
+                assertEquals("5555", added.getValue("id"));
+                assertEquals("123.45", added.getValue("balance"));
+            }
+
+            @Test
+            public void testPrependSingleRecord() {
+                final RecordPath recordPath = RecordPath.compile("arrayOf( recordOf('id', '5555', 'balance', '123.45'), /accounts[*] )");
+                final RecordPathResult result = recordPath.evaluate(record);
+                final Object resultValue = result.getSelectedFields().findFirst().orElseThrow().getValue();
+
+                assertInstanceOf(Object[].class, resultValue);
+                final Object[] values = (Object[]) resultValue;
+                assertEquals(3, values.length);
+
+                assertInstanceOf(Record.class, values[0]);
+                final Record added = (Record) values[0];
+                assertEquals("5555", added.getValue("id"));
+                assertEquals("123.45", added.getValue("balance"));
+            }
+
+
+            @Test
+            public void testAppendMultipleValues() {
+                final RecordPath recordPath = RecordPath.compile("arrayOf( /accounts[*], recordOf('id', '5555', 'balance', '123.45'), /accounts[0] )");
+                final RecordPathResult result = recordPath.evaluate(record);
+                final Object resultValue = result.getSelectedFields().findFirst().orElseThrow().getValue();
+
+                assertInstanceOf(Object[].class, resultValue);
+                final Object[] values = (Object[]) resultValue;
+                assertEquals(4, values.length);
+
+                assertInstanceOf(Record.class, values[2]);
+                final Record added = (Record) values[2];
+                assertEquals("5555", added.getValue("id"));
+                assertEquals("123.45", added.getValue("balance"));
+
+                assertSame(values[0], values[3]);
+            }
+
+            @Test
+            public void testWithUnescapeJson() {
+                final RecordPath recordPath = RecordPath.compile("arrayOf( /accounts[*], unescapeJson('{\"id\": 5555, \"balance\": 123.45}', 'true') )");
+                final RecordPathResult result = recordPath.evaluate(record);
+                final Object resultValue = result.getSelectedFields().findFirst().orElseThrow().getValue();
+
+                assertInstanceOf(Object[].class, resultValue);
+                final Object[] values = (Object[]) resultValue;
+                assertEquals(3, values.length);
+
+                assertInstanceOf(Record.class, values[2]);
+                final Record added = (Record) values[2];
+                assertEquals(5555, added.getValue("id"));
+                assertEquals(123.45, added.getValue("balance"));
+            }
         }
 
         @Nested

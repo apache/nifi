@@ -24,9 +24,8 @@ import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { CodemirrorModule } from '@ctrl/ngx-codemirror';
 import { MatButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
-import { NifiTooltipDirective } from '../../../../directives';
 import { Resizable } from '../../../resizable/resizable.component';
-import { MapTableItem } from '../../../../index';
+import { MapTableItem } from '../../../../types';
 
 @Component({
     selector: 'text-editor',
@@ -38,7 +37,6 @@ import { MapTableItem } from '../../../../index';
         CodemirrorModule,
         MatButton,
         MatCheckbox,
-        NifiTooltipDirective,
         ReactiveFormsModule,
         Resizable
     ],

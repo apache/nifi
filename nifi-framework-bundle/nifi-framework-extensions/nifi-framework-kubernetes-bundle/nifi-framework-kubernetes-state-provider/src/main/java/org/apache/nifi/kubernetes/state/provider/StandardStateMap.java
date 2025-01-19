@@ -25,8 +25,6 @@ import org.apache.nifi.components.state.StateMap;
  * Standard implementation of StateMap
  */
 class StandardStateMap implements StateMap {
-    private static final int EMPTY_VERSION = -1;
-
     private final Map<String, String> data;
 
     private final Optional<String> version;

@@ -109,7 +109,7 @@ abstract class ConflictResolvingExternalResourceProviderWorker implements Extern
         LOGGER.debug("Worker starts polling provider for resources");
 
         final Collection<ExternalResourceDescriptor> availableResources;
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(providerClassLoader)) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(providerClassLoader)) {
             availableResources = provider.listResources();
         }
 

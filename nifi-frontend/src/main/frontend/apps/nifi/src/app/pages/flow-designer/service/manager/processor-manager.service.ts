@@ -31,9 +31,8 @@ import {
 } from '../../state/flow/flow.selectors';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ValidationErrorsTip } from '../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
-import { TextTip, NiFiCommon } from '@nifi/shared';
+import { ComponentType, TextTip, NiFiCommon } from '@nifi/shared';
 import { Dimension } from '../../state/shared';
-import { ComponentType } from 'libs/shared/src';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 
 @Injectable({

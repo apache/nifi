@@ -30,6 +30,7 @@ import java.util.List;
  * Parent class for variant nodes (they all have no children)
  */
 public abstract class VariantTypeNode extends BxmlNode {
+    @SuppressWarnings("PMD.UnusedPrivateField")
     private final int length;
 
     public VariantTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {

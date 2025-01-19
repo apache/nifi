@@ -70,7 +70,7 @@ public class TestFlowContentSerializer {
         // make sure we can read the version from the input stream and it should be the current version
         final Integer version = serializer.readDataModelVersion(in);
         assertEquals(serializer.getCurrentDataModelVersion(), version);
-        assertEquals(false, serializer.isProcessGroupVersion(version));
+        assertFalse(serializer.isProcessGroupVersion(version));
 
         // make sure we can deserialize back to FlowContent
         final FlowContent deserializedFlowContent = serializer.deserializeFlowContent(version, in);

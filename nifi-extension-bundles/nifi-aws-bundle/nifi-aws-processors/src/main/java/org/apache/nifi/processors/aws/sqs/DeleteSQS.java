@@ -63,7 +63,7 @@ public class DeleteSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuil
             .defaultValue("${sqs.receipt.handle}")
             .build();
 
-    public static final List<PropertyDescriptor> properties = List.of(
+    public static final List<PropertyDescriptor> PROPERTIES = List.of(
         QUEUE_URL,
         REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -75,7 +75,7 @@ public class DeleteSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuil
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

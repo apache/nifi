@@ -32,10 +32,9 @@ import {
 import { Client } from '../../../../service/client.service';
 import { updateComponent } from '../../state/flow/flow.actions';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
-import { ComponentType } from 'libs/shared/src';
 import { UpdateComponentRequest } from '../../state/flow';
 import { filter, Subject, switchMap, takeUntil } from 'rxjs';
-import { NiFiCommon } from '@nifi/shared';
+import { ComponentType, NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
 
 @Injectable({

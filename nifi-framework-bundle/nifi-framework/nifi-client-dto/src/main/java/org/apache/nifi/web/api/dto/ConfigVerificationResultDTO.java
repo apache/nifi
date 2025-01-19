@@ -24,7 +24,7 @@ public class ConfigVerificationResultDTO {
     private String verificationStepName;
     private String explanation;
 
-    @Schema(description = "The outcome of the verification", allowableValues = "SUCCESSFUL, FAILED, SKIPPED")
+    @Schema(description = "The outcome of the verification", allowableValues = {"SUCCESSFUL", "FAILED", "SKIPPED"})
     public String getOutcome() {
         return outcome;
     }

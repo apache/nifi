@@ -1,0 +1,57 @@
+<!--
+  ~  Licensed to the Apache Software Foundation (ASF) under one or more
+  ~  contributor license agreements.  See the NOTICE file distributed with
+  ~  this work for additional information regarding copyright ownership.
+  ~  The ASF licenses this file to You under the Apache License, Version 2.0
+  ~  (the "License"); you may not use this file except in compliance with
+  ~  the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  -->
+
+<div class="update-attribute flex flex-col h-screen">
+    <div class="p-5 flex-1 flex flex-col">
+        <h3 class="primary-color">Advanced</h3>
+        @if (rulesState(); as rulesState) {
+            @if (rulesState.error && rulesState.rules === null) {
+                <div class="flex flex-1 justify-center items-center">
+                    <i class="fa fa-warning caution-color mr-2"></i>{{ rulesState.error }}
+                </div>
+            } @else if (rulesState.loading) {
+                <div class="h-full flex items-center justify-center">
+                    <mat-spinner color="primary"></mat-spinner>
+                </div>
+            } @else if (rulesState.rules) {
+                @if (evaluationContextState(); as evaluationContextState) {
+                    @if (evaluationContextState.error && evaluationContextState.evaluationContext === null) {
+                        <div class="flex flex-1 justify-center items-center">
+                            <i class="fa fa-warning caution-color mr-2"></i>{{ evaluationContextState.error }}
+                        </div>
+                    } @else if (evaluationContextState.loading) {
+                        <div class="h-full flex items-center justify-center">
+                            <mat-spinner color="primary"></mat-spinner>
+                        </div>
+                    } @else if (evaluationContextState.evaluationContext) {
+                        <div class="flex flex-1">
+                            <rule-listing
+                                [rules]="rulesState.rules"
+                                [newRule]="rulesState.newRule"
+                                [evaluationContext]="evaluationContextState.evaluationContext"
+                                [editable]="editable()"></rule-listing>
+                        </div>
+                    } @else {
+                        <div class="flex flex-1 justify-center items-center">
+                            <i class="fa fa-warning caution-color mr-2"></i>Unable to load advanced rules
+                        </div>
+                    }
+                }
+            }
+        }
+    </div>
+</div>

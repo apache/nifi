@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  */
 public class ProxiedEntityRequestConfig implements RequestConfig {
 
-    private static final String PROXIED_ENTITIES_CHAIN_HEADER = "X-Proxied-Entities-Chain";
+    private static final String PROXIED_ENTITIES_CHAIN_HEADER = "X-ProxiedEntitiesChain";
 
     private final String[] proxiedEntities;
 

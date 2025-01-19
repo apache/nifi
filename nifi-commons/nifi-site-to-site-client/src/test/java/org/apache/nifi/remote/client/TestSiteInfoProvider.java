@@ -25,10 +25,8 @@ import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,7 +46,7 @@ public class TestSiteInfoProvider {
     @Test
     public void testSecure() throws Exception {
 
-        final Set<String> expectedClusterUrl = new LinkedHashSet<>(Arrays.asList(new String[]{"https://node1:8443", "https://node2:8443"}));
+        final Set<String> expectedClusterUrl = Set.of("https://node1:8443", "https://node2:8443");
         final String expectedActiveClusterUrl = "https://node2:8443/nifi-api";
         final SSLContext expectedSslConText = mock(SSLContext.class);
         final HttpProxy expectedHttpProxy = mock(HttpProxy.class);
@@ -130,7 +128,7 @@ public class TestSiteInfoProvider {
     @Test
     public void testPlain() throws Exception {
 
-        final Set<String> expectedClusterUrl = new LinkedHashSet<>(Arrays.asList(new String[]{"http://node1:8443, http://node2:8443"}));
+        final Set<String> expectedClusterUrl = Set.of("http://node1:8443, http://node2:8443");
         final String expectedActiveClusterUrl = "http://node2:8443/nifi-api";
 
         final SiteInfoProvider siteInfoProvider = spy(new SiteInfoProvider());
@@ -168,7 +166,7 @@ public class TestSiteInfoProvider {
     @Test
     public void testConnectException() throws Exception {
 
-        final Set<String> expectedClusterUrl = new LinkedHashSet<>(Arrays.asList(new String[]{"http://node1:8443, http://node2:8443"}));
+        final Set<String> expectedClusterUrl = Set.of("http://node1:8443, http://node2:8443");
 
         final SiteInfoProvider siteInfoProvider = spy(new SiteInfoProvider());
         siteInfoProvider.setClusterUrls(expectedClusterUrl);

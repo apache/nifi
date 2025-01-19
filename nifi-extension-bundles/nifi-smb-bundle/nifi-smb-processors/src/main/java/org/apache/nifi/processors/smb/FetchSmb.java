@@ -35,14 +35,11 @@ import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbException;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.unmodifiableSet;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.processor.util.StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR;
 
@@ -116,12 +113,12 @@ public class FetchSmb extends AbstractProcessor {
                     .description("A FlowFile will be routed here when failed to fetch its content.")
                     .build();
 
-    public static final Set<Relationship> RELATIONSHIPS = unmodifiableSet(new HashSet<>(asList(
+    public static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
-    )));
+    );
 
-    private static final List<PropertyDescriptor> PROPERTIES = asList(
+    private static final List<PropertyDescriptor> PROPERTIES = List.of(
             SMB_CLIENT_PROVIDER_SERVICE,
             REMOTE_FILE,
             COMPLETION_STRATEGY,

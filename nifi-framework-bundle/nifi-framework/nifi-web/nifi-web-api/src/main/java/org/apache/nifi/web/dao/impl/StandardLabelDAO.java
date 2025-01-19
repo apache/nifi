@@ -27,6 +27,8 @@ import org.apache.nifi.web.dao.LabelDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 @Repository
@@ -99,7 +101,9 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
             label.setPosition(new Position(labelDTO.getPosition().getX(), labelDTO.getPosition().getY()));
         }
         if (labelDTO.getStyle() != null) {
-            label.setStyle(labelDTO.getStyle());
+            final Map<String, String> updatedStyles = new HashMap<>(label.getStyle());
+            updatedStyles.putAll(labelDTO.getStyle());
+            label.setStyle(updatedStyles);
         }
         if (labelDTO.getLabel() != null) {
             label.setValue(labelDTO.getLabel());

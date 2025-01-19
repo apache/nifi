@@ -24,6 +24,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
@@ -105,7 +106,7 @@ public class TestRouteText {
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.MATCHES_REGULAR_EXPRESSION);
         runner.setProperty("simple", "[");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         assertThrows(AssertionError.class, () -> {
             runner.run();
         });
@@ -117,16 +118,16 @@ public class TestRouteText {
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.STARTS_WITH);
         runner.setProperty("simple", "start");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -136,16 +137,16 @@ public class TestRouteText {
         runner.setProperty(RouteText.IGNORE_CASE, "false");
         runner.setProperty("simple", "start");
 
-        runner.enqueue("STart middle end\nstart middle end".getBytes("UTF-8"));
+        runner.enqueue("STart middle end\nstart middle end".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("STart middle end\n".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("STart middle end\n".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -155,14 +156,14 @@ public class TestRouteText {
         runner.setProperty(RouteText.IGNORE_CASE, "true");
         runner.setProperty("simple", "start");
 
-        runner.enqueue("start middle end\nSTart middle end".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nSTart middle end".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 0);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end\nSTart middle end".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\nSTart middle end".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -172,16 +173,16 @@ public class TestRouteText {
         runner.setProperty("simple", "end");
 
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -193,7 +194,7 @@ public class TestRouteText {
         runner.setProperty("z", "z");
 
         final String originalText = "start middle end\nnot match";
-        runner.enqueue(originalText.getBytes("UTF-8"));
+        runner.enqueue(originalText.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("t", 1);
@@ -216,7 +217,7 @@ public class TestRouteText {
         runner.setProperty("o", "o");
 
         final String originalText = "1,hello\n2,world\n1,good-bye";
-        runner.enqueue(originalText.getBytes("UTF-8"));
+        runner.enqueue(originalText.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("o", 2);
@@ -251,7 +252,7 @@ public class TestRouteText {
         runner.setProperty("o", "o");
 
         final String originalText = "1,5,hello\n2,5,world\n1,8,good-bye\n1,5,overt";
-        runner.enqueue(originalText.getBytes("UTF-8"));
+        runner.enqueue(originalText.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("o", 3);
@@ -291,7 +292,7 @@ public class TestRouteText {
         runner.setProperty("l", "l");
 
         final String originalText = "1,hello\n2,world\n1,good-bye\n3,ciao";
-        runner.enqueue(originalText.getBytes("UTF-8"));
+        runner.enqueue(originalText.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("l", 2);
@@ -340,16 +341,16 @@ public class TestRouteText {
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.CONTAINS);
         runner.setProperty("simple", "middle");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -359,16 +360,16 @@ public class TestRouteText {
         runner.setProperty(RouteText.IGNORE_CASE, "true");
         runner.setProperty("simple", "miDDlE");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
 
@@ -378,16 +379,16 @@ public class TestRouteText {
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.EQUALS);
         runner.setProperty("simple", "start middle end");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -396,16 +397,16 @@ public class TestRouteText {
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.MATCHES_REGULAR_EXPRESSION);
         runner.setProperty("simple", ".*(mid).*");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -414,16 +415,16 @@ public class TestRouteText {
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.CONTAINS_REGULAR_EXPRESSION);
         runner.setProperty("simple", "(m.d)");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     /* ------------------------------------------------------ */
@@ -436,16 +437,16 @@ public class TestRouteText {
         runner.setProperty("simple", "start");
         runner.setProperty("no", "no match");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("matched", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("matched").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -456,16 +457,16 @@ public class TestRouteText {
         runner.setProperty("simple", "end");
         runner.setProperty("no", "no match");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("matched", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("matched").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -476,16 +477,16 @@ public class TestRouteText {
         runner.setProperty("simple", "start middle end");
         runner.setProperty("no", "no match");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("matched", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("matched").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -496,16 +497,16 @@ public class TestRouteText {
         runner.setProperty("simple", ".*(m.d).*");
         runner.setProperty("no", "no match");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("matched", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("matched").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -516,16 +517,16 @@ public class TestRouteText {
         runner.setProperty("simple", "(m.d)");
         runner.setProperty("no", "no match");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("matched", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("matched").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     /* ------------------------------------------------------ */
@@ -538,16 +539,16 @@ public class TestRouteText {
         runner.setProperty("simple", "start middle");
         runner.setProperty("second", "star");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("matched", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("matched").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -558,16 +559,16 @@ public class TestRouteText {
         runner.setProperty("simple", "middle end");
         runner.setProperty("second", "nd");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("matched", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("matched").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -578,16 +579,16 @@ public class TestRouteText {
         runner.setProperty("simple", "start middle end");
         runner.setProperty("second", "start middle end");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("matched", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("matched").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -598,16 +599,16 @@ public class TestRouteText {
         runner.setProperty("simple", ".*(m.d).*");
         runner.setProperty("second", ".*(t.*m).*");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("matched", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("matched").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -618,16 +619,16 @@ public class TestRouteText {
         runner.setProperty("simple", "(m.d)");
         runner.setProperty("second", "(t.*m)");
 
-        runner.enqueue("start middle end\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("matched", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("matched").get(0);
-        outMatched.assertContentEquals("start middle end\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -636,16 +637,16 @@ public class TestRouteText {
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.STARTS_WITH);
         runner.setProperty("simple", "start");
 
-        runner.enqueue("start middle end\r\nnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\r\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end\r\n".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\r\n".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -654,16 +655,16 @@ public class TestRouteText {
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.STARTS_WITH);
         runner.setProperty("simple", "start");
 
-        runner.enqueue("start middle end\rnot match".getBytes("UTF-8"));
+        runner.enqueue("start middle end\rnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount("simple", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship("simple").get(0);
-        outMatched.assertContentEquals("start middle end\r".getBytes("UTF-8"));
+        outMatched.assertContentEquals("start middle end\r".getBytes(StandardCharsets.UTF_8));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        outUnmatched.assertContentEquals("not match".getBytes("UTF-8"));
+        outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
