@@ -406,6 +406,7 @@ public class C2NifiClientService {
         result.setProcessingNanos(processorStatus.getProcessingNanos());
         result.setActiveThreadCount(processorStatus.getActiveThreadCount());
         result.setTerminatedThreadCount(processorStatus.getTerminatedThreadCount());
+        result.setRunState(processorStatus.getRunStatus().toString());
         return result;
     }
 }
