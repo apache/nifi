@@ -21,7 +21,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.database.dialect.service.api.ColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.StandardColumnDefinition;
@@ -37,8 +36,6 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.db.DatabaseAdapterDescriptor;
-import org.apache.nifi.processors.standard.db.impl.DatabaseAdapterDatabaseDialectService;
-import org.apache.nifi.processors.standard.db.impl.DatabaseDialectServiceDatabaseAdapter;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -226,7 +223,8 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
     }
 
     String getQuery(final ConfigurationContext context, final String tableName, final List<String> columns, final String whereClause) {
-        final DatabaseDialectService databaseDialectService = getDatabaseDialectService(context);
+        final String databaseType = context.getProperty(DB_TYPE).getValue();
+        final DatabaseDialectService databaseDialectService = DatabaseAdapterDescriptor.getDatabaseDialectService(context, DATABASE_DIALECT_SERVICE, databaseType);
 
         final List<ColumnDefinition> columnDefinitions = columns.stream()
                 .map(StandardColumnDefinition::new)
@@ -268,16 +266,5 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
         }
 
         return results;
-    }
-
-    private DatabaseDialectService getDatabaseDialectService(final PropertyContext context) {
-        final DatabaseDialectService databaseDialectService;
-        final String databaseType = context.getProperty(DB_TYPE).getValue();
-        if (DatabaseDialectServiceDatabaseAdapter.NAME.equals(databaseType)) {
-            databaseDialectService = context.getProperty(DATABASE_DIALECT_SERVICE).asControllerService(DatabaseDialectService.class);
-        } else {
-            databaseDialectService = new DatabaseAdapterDatabaseDialectService(databaseType);
-        }
-        return databaseDialectService;
     }
 }

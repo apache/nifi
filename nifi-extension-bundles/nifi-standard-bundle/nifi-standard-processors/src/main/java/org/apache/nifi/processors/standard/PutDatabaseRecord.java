@@ -70,7 +70,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.database.dialect.service.api.ColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.StandardColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
@@ -95,8 +94,6 @@ import org.apache.nifi.processors.standard.db.NameNormalizer;
 import org.apache.nifi.processors.standard.db.NameNormalizerFactory;
 import org.apache.nifi.processors.standard.db.TableSchema;
 import org.apache.nifi.processors.standard.db.TranslationStrategy;
-import org.apache.nifi.processors.standard.db.impl.DatabaseAdapterDatabaseDialectService;
-import org.apache.nifi.processors.standard.db.impl.DatabaseDialectServiceDatabaseAdapter;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
@@ -488,7 +485,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final Collection<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
-        final DatabaseDialectService dialectService = getDatabaseDialectService(validationContext);
+        final String databaseType = validationContext.getProperty(DB_TYPE).getValue();
+        final DatabaseDialectService dialectService = DatabaseAdapterDescriptor.getDatabaseDialectService(validationContext, DATABASE_DIALECT_SERVICE, databaseType);
         final Set<StatementType> supportedStatementTypes = dialectService.getSupportedStatementTypes();
         final String configuredStatementType = validationContext.getProperty(STATEMENT_TYPE).getValue();
         if (INSERT_IGNORE_TYPE.equals(configuredStatementType)) {
@@ -550,7 +548,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        databaseDialectService = getDatabaseDialectService(context);
+        final String databaseType = context.getProperty(DB_TYPE).getValue();
+        databaseDialectService = DatabaseAdapterDescriptor.getDatabaseDialectService(context, DATABASE_DIALECT_SERVICE, databaseType);
 
         final int tableSchemaCacheSize = context.getProperty(TABLE_SCHEMA_CACHE_SIZE).asInteger();
         schemaCache = Caffeine.newBuilder()
@@ -607,19 +606,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
         } finally {
             closeConnection(connection, originalAutoCommit);
         }
-    }
-
-    private DatabaseDialectService getDatabaseDialectService(final PropertyContext context) {
-        final String databaseType = context.getProperty(DB_TYPE).getValue();
-
-        final DatabaseDialectService service;
-        if (DatabaseDialectServiceDatabaseAdapter.NAME.equals(databaseType)) {
-            service = context.getProperty(DATABASE_DIALECT_SERVICE).asControllerService(DatabaseDialectService.class);
-        } else {
-            service = new DatabaseAdapterDatabaseDialectService(databaseType);
-        }
-
-        return service;
     }
 
     private void routeOnException(final ProcessContext context, final ProcessSession session,

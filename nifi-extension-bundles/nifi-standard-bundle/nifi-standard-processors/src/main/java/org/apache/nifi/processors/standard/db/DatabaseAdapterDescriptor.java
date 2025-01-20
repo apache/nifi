@@ -18,7 +18,9 @@ package org.apache.nifi.processors.standard.db;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
+import org.apache.nifi.processors.standard.db.impl.DatabaseAdapterDatabaseDialectService;
 import org.apache.nifi.processors.standard.db.impl.DatabaseDialectServiceDatabaseAdapter;
 
 import java.util.ArrayList;
@@ -74,5 +76,15 @@ public class DatabaseAdapterDescriptor {
     public static DatabaseAdapter getDatabaseAdapter(final String databaseType) {
         Objects.requireNonNull(databaseType, "Database Type required");
         return databaseAdapters.get(databaseType);
+    }
+
+    public static DatabaseDialectService getDatabaseDialectService(final PropertyContext context, final PropertyDescriptor serviceDescriptor, final String databaseType) {
+        final DatabaseDialectService databaseDialectService;
+        if (DatabaseDialectServiceDatabaseAdapter.NAME.equals(databaseType)) {
+            databaseDialectService = context.getProperty(serviceDescriptor).asControllerService(DatabaseDialectService.class);
+        } else {
+            databaseDialectService = new DatabaseAdapterDatabaseDialectService(databaseType);
+        }
+        return databaseDialectService;
     }
 }

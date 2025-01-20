@@ -26,7 +26,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.database.dialect.service.api.ColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.StandardColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
@@ -54,8 +53,6 @@ import org.apache.nifi.processors.standard.db.NameNormalizerFactory;
 import org.apache.nifi.processors.standard.db.TableNotFoundException;
 import org.apache.nifi.processors.standard.db.TableSchema;
 import org.apache.nifi.processors.standard.db.TranslationStrategy;
-import org.apache.nifi.processors.standard.db.impl.DatabaseAdapterDatabaseDialectService;
-import org.apache.nifi.processors.standard.db.impl.DatabaseDialectServiceDatabaseAdapter;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -396,7 +393,10 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 throw new ProcessException("Record Writer must be set if 'Update Field Names' is true");
             }
             final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-            final DatabaseDialectService databaseDialectService = getDatabaseDialectService(context);
+
+            final String databaseType = context.getProperty(DB_TYPE).getValue();
+            final DatabaseDialectService databaseDialectService = DatabaseAdapterDescriptor.getDatabaseDialectService(context, DATABASE_DIALECT_SERVICE, databaseType);
+
             try (final Connection connection = dbcpService.getConnection(flowFile.getAttributes())) {
                 final boolean quoteTableName = context.getProperty(QUOTE_TABLE_IDENTIFIER).asBoolean();
                 final boolean quoteColumnNames = context.getProperty(QUOTE_COLUMN_IDENTIFIERS).asBoolean();
@@ -675,17 +675,6 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         }
 
         return "DBCPService";
-    }
-
-    private DatabaseDialectService getDatabaseDialectService(final PropertyContext context) {
-        final DatabaseDialectService databaseDialectService;
-        final String databaseType = context.getProperty(DB_TYPE).getValue();
-        if (DatabaseDialectServiceDatabaseAdapter.NAME.equals(databaseType)) {
-            databaseDialectService = context.getProperty(DATABASE_DIALECT_SERVICE).asControllerService(DatabaseDialectService.class);
-        } else {
-            databaseDialectService = new DatabaseAdapterDatabaseDialectService(databaseType);
-        }
-        return databaseDialectService;
     }
 
     private TableDefinition getTableDefinition(final TableSchema tableSchema) {

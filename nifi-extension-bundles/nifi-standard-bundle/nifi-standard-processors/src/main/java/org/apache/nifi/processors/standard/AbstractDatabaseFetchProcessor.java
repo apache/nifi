@@ -40,8 +40,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.db.DatabaseAdapterDescriptor;
-import org.apache.nifi.processors.standard.db.impl.DatabaseAdapterDatabaseDialectService;
-import org.apache.nifi.processors.standard.db.impl.DatabaseDialectServiceDatabaseAdapter;
 import org.apache.nifi.processors.standard.db.impl.PhoenixDatabaseAdapter;
 import org.apache.nifi.util.StringUtils;
 
@@ -310,14 +308,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     }
 
     protected DatabaseDialectService getDatabaseDialectService(final PropertyContext context) {
-        final DatabaseDialectService databaseDialectService;
         final String databaseType = context.getProperty(DB_TYPE).getValue();
-        if (DatabaseDialectServiceDatabaseAdapter.NAME.equals(databaseType)) {
-            databaseDialectService = context.getProperty(DATABASE_DIALECT_SERVICE).asControllerService(DatabaseDialectService.class);
-        } else {
-            databaseDialectService = new DatabaseAdapterDatabaseDialectService(databaseType);
-        }
-        return databaseDialectService;
+        return DatabaseAdapterDescriptor.getDatabaseDialectService(context, DATABASE_DIALECT_SERVICE, databaseType);
     }
 
     private QueryStatementRequest getMaxValueStatementRequest(final String tableName, final String maxValueColumnNames, final String derivedTableQuery) {
