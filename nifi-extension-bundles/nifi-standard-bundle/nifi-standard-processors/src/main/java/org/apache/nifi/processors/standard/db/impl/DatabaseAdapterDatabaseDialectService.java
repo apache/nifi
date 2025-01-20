@@ -96,8 +96,7 @@ public class DatabaseAdapterDatabaseDialectService extends AbstractControllerSer
         final String sql;
 
         if (StatementType.ALTER == statementType) {
-            final List<String> statements = databaseAdapter.getAlterTableStatements(tableDefinition.tableName(), columnDescriptions, true, true);
-            sql = statements.getFirst();
+            sql = databaseAdapter.getAlterTableStatement(tableDefinition.tableName(), columnDescriptions, true, true);
         } else if (StatementType.CREATE == statementType) {
             final TableSchema tableSchema = getTableSchema(tableDefinition);
             sql = databaseAdapter.getCreateTableStatement(tableSchema, false, false);

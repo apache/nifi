@@ -128,7 +128,7 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public List<String> getAlterTableStatements(String tableName, List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
+    public String getAlterTableStatement(String tableName, List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
         StringBuilder createTableStatement = new StringBuilder();
 
         List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
@@ -151,7 +151,7 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");
 
-        return List.of(createTableStatement.toString());
+        return createTableStatement.toString();
     }
 
     @Override

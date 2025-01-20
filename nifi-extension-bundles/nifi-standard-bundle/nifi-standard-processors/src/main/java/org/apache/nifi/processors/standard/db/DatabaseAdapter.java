@@ -167,7 +167,7 @@ public interface DatabaseAdapter {
         return createTableStatement.toString();
     }
 
-    default List<String> getAlterTableStatements(String tableName, List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
+    default String getAlterTableStatement(String tableName, List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
         StringBuilder createTableStatement = new StringBuilder();
 
         List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
@@ -189,7 +189,7 @@ public interface DatabaseAdapter {
                 .append(String.join(", ", columnsAndDatatypes))
                 .append(") ");
 
-        return List.of(createTableStatement.toString());
+        return createTableStatement.toString();
     }
 
     /**
