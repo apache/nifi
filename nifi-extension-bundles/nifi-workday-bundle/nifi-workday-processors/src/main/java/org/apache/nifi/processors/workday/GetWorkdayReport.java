@@ -327,7 +327,7 @@ public class GetWorkdayReport extends AbstractProcessor {
                     }
                 }
             } else {
-                getLogger().error("Unsuccessful API call. HTTP status code - {}.", statusCode);
+                getLogger().warn("Workday API request failed: HTTP {}", statusCode);
             }
         } catch (Exception e) {
             session.remove(responseFlowFile);
