@@ -176,7 +176,7 @@ public class JwtService {
                     .audience().add(audience).and()
                     .claim(USERNAME_CLAIM, preferredUsername)
                     .claim(KEY_ID_CLAIM, key.getId())
-                    .claim(GROUPS_CLAIM, groups)
+                    .claim(GROUPS_CLAIM, groups != null ? groups : Collections.EMPTY_LIST)
                     .issuedAt(now.getTime())
                     .expiration(expiration.getTime())
                     .signWith(Keys.hmacShaKeyFor(keyBytes), SIGNATURE_ALGORITHM).compact();
