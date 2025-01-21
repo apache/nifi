@@ -17,7 +17,6 @@
 package org.apache.nifi.database.dialect.service.api;
 
 import java.sql.Types;
-import java.util.Optional;
 
 /**
  * Standard Database Table Column definition
