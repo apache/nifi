@@ -25,14 +25,12 @@ import java.util.Optional;
  * @param columnName Table Column Name
  * @param dataType SQL type from java.sql.Types
  * @param nullable Nullable status corresponding to java.sql.DatabaseMetaData IS_NULLABLE
- * @param defaultValue Default column value may be empty
  * @param primaryKey Primary Key status
  */
 public record StandardColumnDefinition(
         String columnName,
         int dataType,
         Nullable nullable,
-        Optional<String> defaultValue,
         boolean primaryKey
 ) implements ColumnDefinition {
     /**
@@ -41,6 +39,6 @@ public record StandardColumnDefinition(
      * @param columnName Table Column Name
      */
     public StandardColumnDefinition(final String columnName) {
-        this(columnName, Types.VARCHAR, Nullable.UNKNOWN, Optional.empty(), false);
+        this(columnName, Types.VARCHAR, Nullable.UNKNOWN, false);
     }
 }

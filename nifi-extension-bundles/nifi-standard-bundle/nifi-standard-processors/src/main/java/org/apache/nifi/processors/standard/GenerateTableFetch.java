@@ -39,8 +39,6 @@ import org.apache.nifi.database.dialect.service.api.ColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.StandardColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
 import org.apache.nifi.database.dialect.service.api.PageRequest;
-import org.apache.nifi.database.dialect.service.api.QueryClause;
-import org.apache.nifi.database.dialect.service.api.QueryClauseType;
 import org.apache.nifi.database.dialect.service.api.QueryStatementRequest;
 import org.apache.nifi.database.dialect.service.api.StandardPageRequest;
 import org.apache.nifi.database.dialect.service.api.StandardQueryStatementRequest;
@@ -601,7 +599,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 StatementType.SELECT,
                 tableDefinition,
                 Optional.empty(),
-                List.of(new QueryClause(QueryClauseType.WHERE, whereClause)),
+                Optional.of(whereClause),
+                Optional.empty(),
                 Optional.empty()
         );
     }
@@ -621,13 +620,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 .toList();
         final TableDefinition tableDefinition = new TableDefinition(Optional.empty(), Optional.empty(), tableName, maxValueColumns);
 
-        final List<QueryClause> queryClauses = new ArrayList<>();
-        if (orderByClause != null) {
-            final QueryClause queryClause = new QueryClause(QueryClauseType.ORDER_BY, orderByClause);
-            queryClauses.add(queryClause);
-        }
-        final QueryClause whereQueryClause = new QueryClause(QueryClauseType.WHERE, whereClause);
-        queryClauses.add(whereQueryClause);
+        final Optional<String> orderByClauseFound = Optional.ofNullable(orderByClause);
+        final Optional<String> whereClauseFound = Optional.ofNullable(whereClause);
 
         final PageRequest pageRequest;
         if (offset == null) {
@@ -641,7 +635,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 StatementType.SELECT,
                 tableDefinition,
                 Optional.empty(),
-                queryClauses,
+                whereClauseFound,
+                orderByClauseFound,
                 Optional.ofNullable(pageRequest)
         );
     }

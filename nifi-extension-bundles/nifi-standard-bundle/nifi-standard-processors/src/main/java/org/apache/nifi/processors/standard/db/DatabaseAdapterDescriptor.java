@@ -20,7 +20,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
-import org.apache.nifi.processors.standard.db.impl.DatabaseAdapterDatabaseDialectService;
 import org.apache.nifi.processors.standard.db.impl.DatabaseDialectServiceDatabaseAdapter;
 
 import java.util.ArrayList;

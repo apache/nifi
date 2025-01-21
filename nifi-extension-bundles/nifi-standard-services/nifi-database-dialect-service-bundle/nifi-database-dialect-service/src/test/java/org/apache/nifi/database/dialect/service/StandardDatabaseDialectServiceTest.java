@@ -18,8 +18,6 @@ package org.apache.nifi.database.dialect.service;
 
 import org.apache.nifi.database.dialect.service.api.ColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.PageRequest;
-import org.apache.nifi.database.dialect.service.api.QueryClause;
-import org.apache.nifi.database.dialect.service.api.QueryClauseType;
 import org.apache.nifi.database.dialect.service.api.StandardColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.StandardPageRequest;
 import org.apache.nifi.database.dialect.service.api.StandardQueryStatementRequest;
@@ -211,7 +209,9 @@ class StandardDatabaseDialectServiceTest {
     void testSelectStatementTypeDerivedTable() {
         final TableDefinition tableDefinition = getSelectTableDefinition();
         final String derivedTable = "SELECT 1 AS ID";
-        final StatementRequest statementRequest = new StandardQueryStatementRequest(StatementType.SELECT, tableDefinition, Optional.of(derivedTable), List.of(), Optional.empty());
+        final StatementRequest statementRequest = new StandardQueryStatementRequest(
+                StatementType.SELECT, tableDefinition, Optional.of(derivedTable), Optional.empty(), Optional.empty(), Optional.empty()
+        );
 
         final StatementResponse statementResponse = service.getStatement(statementRequest);
 
@@ -228,7 +228,9 @@ class StandardDatabaseDialectServiceTest {
 
         final PageRequest pageRequest = new StandardPageRequest(OFFSET, OptionalLong.of(LIMIT), Optional.empty());
 
-        final StatementRequest statementRequest = new StandardQueryStatementRequest(StatementType.SELECT, tableDefinition, Optional.empty(), List.of(), Optional.of(pageRequest));
+        final StatementRequest statementRequest = new StandardQueryStatementRequest(
+                StatementType.SELECT, tableDefinition, Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(pageRequest)
+        );
 
         final StatementResponse statementResponse = service.getStatement(statementRequest);
 
@@ -244,9 +246,10 @@ class StandardDatabaseDialectServiceTest {
         final TableDefinition tableDefinition = getSelectTableDefinition();
 
         final PageRequest pageRequest = new StandardPageRequest(OFFSET, OptionalLong.of(LIMIT), Optional.of(ID_COLUMN_NAME));
-        final List<QueryClause> queryClauses = List.of(new QueryClause(QueryClauseType.WHERE, LABEL_IS_NOT_NULL));
 
-        final StatementRequest statementRequest = new StandardQueryStatementRequest(StatementType.SELECT, tableDefinition, Optional.empty(), queryClauses, Optional.of(pageRequest));
+        final StatementRequest statementRequest = new StandardQueryStatementRequest(
+                StatementType.SELECT, tableDefinition, Optional.empty(), Optional.of(LABEL_IS_NOT_NULL), Optional.empty(), Optional.of(pageRequest)
+        );
 
         final StatementResponse statementResponse = service.getStatement(statementRequest);
 
@@ -263,8 +266,9 @@ class StandardDatabaseDialectServiceTest {
     void testSelectStatementTypeWhereClause() {
         final TableDefinition tableDefinition = getSelectTableDefinition();
 
-        final List<QueryClause> queryClauses = List.of(new QueryClause(QueryClauseType.WHERE, ZERO_EQUALS_ONE));
-        final StatementRequest statementRequest = new StandardQueryStatementRequest(StatementType.SELECT, tableDefinition, Optional.empty(), queryClauses, Optional.empty());
+        final StatementRequest statementRequest = new StandardQueryStatementRequest(
+                StatementType.SELECT, tableDefinition, Optional.empty(), Optional.of(ZERO_EQUALS_ONE), Optional.empty(), Optional.empty()
+        );
 
         final StatementResponse statementResponse = service.getStatement(statementRequest);
 
@@ -279,11 +283,9 @@ class StandardDatabaseDialectServiceTest {
     void testSelectStatementTypeWhereClauseOrderByClause() {
         final TableDefinition tableDefinition = getSelectTableDefinition();
 
-        final List<QueryClause> queryClauses = List.of(
-                new QueryClause(QueryClauseType.WHERE, ZERO_EQUALS_ONE),
-                new QueryClause(QueryClauseType.ORDER_BY, LABEL_COLUMN_NAME)
+        final StatementRequest statementRequest = new StandardQueryStatementRequest(
+                StatementType.SELECT, tableDefinition, Optional.empty(), Optional.of(ZERO_EQUALS_ONE), Optional.of(LABEL_COLUMN_NAME), Optional.empty()
         );
-        final StatementRequest statementRequest = new StandardQueryStatementRequest(StatementType.SELECT, tableDefinition, Optional.empty(), queryClauses, Optional.empty());
 
         final StatementResponse statementResponse = service.getStatement(statementRequest);
 
@@ -309,14 +311,12 @@ class StandardDatabaseDialectServiceTest {
                         CREATED_COLUMN_NAME,
                         Types.TIMESTAMP,
                         ColumnDefinition.Nullable.NO,
-                        Optional.empty(),
                         false
                 ),
                 new StandardColumnDefinition(
                         LABEL_COLUMN_NAME,
                         Types.VARCHAR,
                         nullable,
-                        Optional.empty(),
                         false
                 )
         );
@@ -330,14 +330,12 @@ class StandardDatabaseDialectServiceTest {
                         ID_COLUMN_NAME,
                         Types.INTEGER,
                         ColumnDefinition.Nullable.NO,
-                        Optional.empty(),
                         true
                 ),
                 new StandardColumnDefinition(
                         LABEL_COLUMN_NAME,
                         Types.VARCHAR,
                         nullable,
-                        Optional.empty(),
                         false
                 )
         );

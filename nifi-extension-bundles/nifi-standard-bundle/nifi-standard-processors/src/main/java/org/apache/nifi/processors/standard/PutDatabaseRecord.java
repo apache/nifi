@@ -1356,7 +1356,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 columnName,
                 dataType,
                 nullable,
-                Optional.empty(),
                 primaryKey
         );
     }

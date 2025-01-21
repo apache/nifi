@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.database.dialect.service.api;
 
-import java.util.Collection;
 import java.util.Optional;
 
 /**
@@ -25,7 +24,9 @@ import java.util.Optional;
 public interface QueryStatementRequest extends StatementRequest {
     Optional<String> derivedTable();
 
-    Collection<QueryClause> queryClauses();
+    Optional<String> whereClause();
+
+    Optional<String> orderByClause();
 
     Optional<PageRequest> pageRequest();
 }

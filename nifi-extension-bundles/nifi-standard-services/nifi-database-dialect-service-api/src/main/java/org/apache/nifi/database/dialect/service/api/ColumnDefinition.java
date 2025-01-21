@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.database.dialect.service.api;
 
-import java.util.Optional;
-
 /**
  * Database Table Column Definition
  */
@@ -27,8 +25,6 @@ public interface ColumnDefinition {
     int dataType();
 
     Nullable nullable();
-
-    Optional<String> defaultValue();
 
     boolean primaryKey();
 

@@ -548,7 +548,9 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 .map(ColumnDefinition.class::cast)
                 .toList();
         final TableDefinition tableDefinition = new TableDefinition(Optional.empty(), Optional.empty(), tableName, columnDefinitions);
-        final QueryStatementRequest statementRequest = new StandardQueryStatementRequest(StatementType.SELECT, tableDefinition, derivedTableQuery, List.of(), Optional.empty());
+        final QueryStatementRequest statementRequest = new StandardQueryStatementRequest(
+                StatementType.SELECT, tableDefinition, derivedTableQuery, Optional.empty(), Optional.empty(), Optional.empty()
+        );
         final StatementResponse statementResponse = databaseDialectService.getStatement(statementRequest);
 
         final StringBuilder query = new StringBuilder();

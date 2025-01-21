@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.database.dialect.service.api;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -26,14 +24,16 @@ import java.util.Optional;
  * @param statementType SQL Statement Type
  * @param tableDefinition Database Table Definition
  * @param derivedTable Derived Table Query or empty when not defined
- * @param queryClauses Collection of Query Clauses can be empty
+ * @param whereClause SQL WHERE clause or empty when not defined
+ * @param orderByClause SQL ORDER BY clause or empty when not defined
  * @param pageRequest Page Request can be empty
  */
 public record StandardQueryStatementRequest(
         StatementType statementType,
         TableDefinition tableDefinition,
         Optional<String> derivedTable,
-        Collection<QueryClause> queryClauses,
+        Optional<String> whereClause,
+        Optional<String> orderByClause,
         Optional<PageRequest> pageRequest
 ) implements QueryStatementRequest {
     /**
@@ -43,6 +43,6 @@ public record StandardQueryStatementRequest(
      * @param tableDefinition Database Table Definition
      */
     public StandardQueryStatementRequest(final StatementType statementType, final TableDefinition tableDefinition) {
-        this(statementType, tableDefinition, Optional.empty(), List.of(), Optional.empty());
+        this(statementType, tableDefinition, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
     }
 }

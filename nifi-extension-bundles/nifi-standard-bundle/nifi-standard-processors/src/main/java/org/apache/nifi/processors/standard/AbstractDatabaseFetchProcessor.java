@@ -23,8 +23,6 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.database.dialect.service.api.ColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.StandardColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
-import org.apache.nifi.database.dialect.service.api.QueryClause;
-import org.apache.nifi.database.dialect.service.api.QueryClauseType;
 import org.apache.nifi.database.dialect.service.api.QueryStatementRequest;
 import org.apache.nifi.database.dialect.service.api.StandardQueryStatementRequest;
 import org.apache.nifi.database.dialect.service.api.StatementResponse;
@@ -215,7 +213,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
     private static final DateTimeFormatter TIME_TYPE_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
-    private static final QueryClause ZERO_RESULT_WHERE_CLAUSE = new QueryClause(QueryClauseType.WHERE, "1 = 0");
+    private static final String ZERO_RESULT_WHERE_CLAUSE = "1 = 0";
 
     // A Map (name to value) of initial maximum-value properties, filled at schedule-time and used at trigger-time
     protected Map<String, String> maxValueProperties;
@@ -323,7 +321,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 StatementType.SELECT,
                 tableDefinition,
                 Optional.ofNullable(derivedTableQuery),
-                List.of(ZERO_RESULT_WHERE_CLAUSE),
+                Optional.of(ZERO_RESULT_WHERE_CLAUSE),
+                Optional.empty(),
                 Optional.empty()
         );
     }

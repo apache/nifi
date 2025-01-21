@@ -14,24 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.db.impl;
+package org.apache.nifi.processors.standard.db;
 
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.database.dialect.service.api.ColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
 import org.apache.nifi.database.dialect.service.api.PageRequest;
-import org.apache.nifi.database.dialect.service.api.QueryClause;
-import org.apache.nifi.database.dialect.service.api.QueryClauseType;
 import org.apache.nifi.database.dialect.service.api.QueryStatementRequest;
 import org.apache.nifi.database.dialect.service.api.StandardStatementResponse;
 import org.apache.nifi.database.dialect.service.api.StatementRequest;
 import org.apache.nifi.database.dialect.service.api.StatementResponse;
 import org.apache.nifi.database.dialect.service.api.StatementType;
 import org.apache.nifi.database.dialect.service.api.TableDefinition;
-import org.apache.nifi.processors.standard.db.ColumnDescription;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
-import org.apache.nifi.processors.standard.db.DatabaseAdapterDescriptor;
-import org.apache.nifi.processors.standard.db.TableSchema;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -43,9 +37,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Transitional implementation of Database Dialect Service bridging to existing Database Adapters
+ * Transitional internal implementation of Database Dialect Service bridging to existing Database Adapters
  */
-public class DatabaseAdapterDatabaseDialectService extends AbstractControllerService implements DatabaseDialectService {
+class DatabaseAdapterDatabaseDialectService extends AbstractControllerService implements DatabaseDialectService {
     private static final char SPACE_SEPARATOR = ' ';
 
     private static final char COMMA_SEPARATOR = ',';
@@ -124,13 +118,6 @@ public class DatabaseAdapterDatabaseDialectService extends AbstractControllerSer
             final String qualifiedTableName = tableDefinition.tableName();
             final Optional<String> derivedTableFound = queryStatementRequest.derivedTable();
 
-            final Optional<QueryClause> whereQueryClause = queryStatementRequest.queryClauses().stream()
-                    .filter(queryClause -> QueryClauseType.WHERE == queryClause.queryClauseType())
-                    .findFirst();
-            final Optional<QueryClause> orderByQueryClause = queryStatementRequest.queryClauses().stream()
-                    .filter(queryClause -> QueryClauseType.ORDER_BY == queryClause.queryClauseType())
-                    .findFirst();
-
             final String selectTableSql;
             if (derivedTableFound.isPresent()) {
                 final String derivedTable = derivedTableFound.get();
@@ -154,8 +141,8 @@ public class DatabaseAdapterDatabaseDialectService extends AbstractControllerSer
                     indexColumnName = null;
                 }
 
-                final String whereSql = whereQueryClause.map(QueryClause::criteria).orElse(null);
-                final String orderBySql = orderByQueryClause.map(QueryClause::criteria).orElse(null);
+                final String whereSql = queryStatementRequest.whereClause().orElse(null);
+                final String orderBySql = queryStatementRequest.orderByClause().orElse(null);
 
                 selectTableSql = databaseAdapter.getSelectStatement(qualifiedTableName, tableColumns, whereSql, orderBySql, limit, offset, indexColumnName);
             }

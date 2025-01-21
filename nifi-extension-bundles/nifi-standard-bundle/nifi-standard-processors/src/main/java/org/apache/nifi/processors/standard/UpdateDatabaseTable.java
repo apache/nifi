@@ -586,7 +586,6 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                                     columnDescription.getColumnName(),
                                     columnDescription.getDataType(),
                                     columnDescription.isNullable() ? ColumnDefinition.Nullable.YES : ColumnDefinition.Nullable.UNKNOWN,
-                                    Optional.empty(),
                                     columnDescription.isRequired()
                             )
                             )
@@ -687,7 +686,6 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                             columnDescription.getColumnName(),
                             columnDescription.getDataType(),
                             columnDescription.isNullable() ? ColumnDefinition.Nullable.YES : ColumnDefinition.Nullable.NO,
-                            Optional.empty(),
                             primaryKeys.contains(columnDescription.getColumnName())
                     )
                 )

@@ -25,8 +25,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.database.dialect.service.api.ColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.StandardColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
-import org.apache.nifi.database.dialect.service.api.QueryClause;
-import org.apache.nifi.database.dialect.service.api.QueryClauseType;
 import org.apache.nifi.database.dialect.service.api.QueryStatementRequest;
 import org.apache.nifi.database.dialect.service.api.StandardQueryStatementRequest;
 import org.apache.nifi.database.dialect.service.api.StatementResponse;
@@ -168,7 +166,7 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
 
         final List<String> tableNames = groupByColumn
                 ? Collections.singletonList(context.getProperty(TABLE_NAME).getValue())
-                : Arrays.stream(context.getProperty(TABLE_NAMES).getValue().split(",")).map(String::trim).collect(Collectors.toList());
+                : Arrays.stream(context.getProperty(TABLE_NAMES).getValue().split(",")).map(String::trim).toList();
 
         final Map<String, List<Parameter>> parameterMap = new HashMap<>();
         for (final String tableName : tableNames) {
@@ -235,7 +233,8 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
                 StatementType.SELECT,
                 tableDefinition,
                 Optional.empty(),
-                List.of(new QueryClause(QueryClauseType.WHERE, whereClause)),
+                Optional.ofNullable(whereClause),
+                Optional.empty(),
                 Optional.empty()
         );
         final StatementResponse statementResponse = databaseDialectService.getStatement(queryStatementRequest);
@@ -248,8 +247,8 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
         try {
             final List<ParameterGroup> parameterGroups = fetchParameters(context);
             final long parameterCount = parameterGroups.stream()
-                    .flatMap(group -> group.getParameters().stream())
-                    .count();
+                    .mapToLong(group -> group.getParameters().size())
+                    .sum();
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                     .verificationStepName("Fetch Parameters")

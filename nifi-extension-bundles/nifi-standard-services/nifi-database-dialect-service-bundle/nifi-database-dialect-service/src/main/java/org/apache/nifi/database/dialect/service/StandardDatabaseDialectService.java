@@ -22,8 +22,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.database.dialect.service.api.ColumnDefinition;
 import org.apache.nifi.database.dialect.service.api.DatabaseDialectService;
 import org.apache.nifi.database.dialect.service.api.PageRequest;
-import org.apache.nifi.database.dialect.service.api.QueryClause;
-import org.apache.nifi.database.dialect.service.api.QueryClauseType;
 import org.apache.nifi.database.dialect.service.api.QueryStatementRequest;
 import org.apache.nifi.database.dialect.service.api.StandardStatementResponse;
 import org.apache.nifi.database.dialect.service.api.StatementRequest;
@@ -215,14 +213,12 @@ public class StandardDatabaseDialectService extends AbstractControllerService im
 
             final Optional<PageRequest> pageRequestFound = queryStatementRequest.pageRequest();
 
-            final Optional<QueryClause> whereQueryClause = queryStatementRequest.queryClauses().stream()
-                    .filter(queryClause -> QueryClauseType.WHERE == queryClause.queryClauseType())
-                    .findFirst();
+            final Optional<String> whereQueryClause = queryStatementRequest.whereClause();
             if (whereQueryClause.isPresent()) {
                 sqlBuilder.append(SPACE_SEPARATOR);
                 sqlBuilder.append(WHERE_KEYWORD);
                 sqlBuilder.append(SPACE_SEPARATOR);
-                sqlBuilder.append(whereQueryClause.get().criteria());
+                sqlBuilder.append(whereQueryClause.get());
 
                 // Add paging with index column specified
                 if (pageRequestFound.isPresent()) {
@@ -231,14 +227,12 @@ public class StandardDatabaseDialectService extends AbstractControllerService im
                 }
             }
 
-            final Optional<QueryClause> orderByQueryClause = queryStatementRequest.queryClauses().stream()
-                    .filter(queryClause -> QueryClauseType.ORDER_BY == queryClause.queryClauseType())
-                    .findFirst();
+            final Optional<String> orderByQueryClause = queryStatementRequest.orderByClause();
             if (orderByQueryClause.isPresent()) {
                 sqlBuilder.append(SPACE_SEPARATOR);
                 sqlBuilder.append(ORDER_BY_KEYWORD);
                 sqlBuilder.append(SPACE_SEPARATOR);
-                sqlBuilder.append(orderByQueryClause.get().criteria());
+                sqlBuilder.append(orderByQueryClause.get());
             }
 
             // Add paging without index column specified
