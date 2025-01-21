@@ -19,6 +19,7 @@ package org.apache.nifi.web.server;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.server.connector.FrameworkServerConnectorFactory;
+import org.apache.nifi.web.server.handler.ContextPathRedirectPatternRule;
 import org.apache.nifi.web.server.handler.HeaderWriterHandler;
 import org.apache.nifi.web.server.log.RequestLogProvider;
 import org.apache.nifi.web.server.log.StandardRequestLogProvider;
@@ -36,6 +37,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -68,7 +70,8 @@ class StandardServerProvider implements ServerProvider {
         server.setHandler(standardHandler);
 
         final RewriteHandler defaultRewriteHandler = new RewriteHandler();
-        final RedirectPatternRule redirectDefault = new RedirectPatternRule(ALL_PATHS_PATTERN, FRONTEND_CONTEXT_PATH);
+        final List<String> allowedContextPaths = properties.getAllowedContextPathsAsList();
+        final RedirectPatternRule redirectDefault = new ContextPathRedirectPatternRule(ALL_PATHS_PATTERN, FRONTEND_CONTEXT_PATH, allowedContextPaths);
         defaultRewriteHandler.addRule(redirectDefault);
         server.setDefaultHandler(defaultRewriteHandler);
 
