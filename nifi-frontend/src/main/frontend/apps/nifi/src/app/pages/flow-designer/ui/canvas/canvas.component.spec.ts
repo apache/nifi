@@ -114,8 +114,17 @@ describe('Canvas', () => {
         });
         it('should not produce a valid CopyResponseEntity if there are no components in the FlowDefinition string', () => {
             const noComponentsFlowString =
-                '{ "flow": {}, "flowContents": { "id": "test", "processors": [], "processGroups": [] } }';
+                '{ "flow": {}, "flowContents": { "identifier": "test", "processors": null, "processGroups": null } }';
             expect(component.toCopyResponseEntity(noComponentsFlowString)).toBeNull();
+        });
+        it('should produce a valid CopyResponseEntity if component arrays are just empty ', () => {
+            const noComponentsFlowString =
+                '{ "flow": {}, "flowContents": { "identifier": "test", "processors": [], "processGroups": [] } }';
+            const parsedObject = component.toCopyResponseEntity(noComponentsFlowString);
+            expect(parsedObject).not.toBeNull();
+            expect(parsedObject?.id).toBe('test');
+            expect(parsedObject?.processGroups).toHaveLength(1);
+            expect(parsedObject?.processGroups![0].processors).toHaveLength(0);
         });
         it('should convert valid FlowDefinition string to CopyResponseObject', () => {
             const parsedObject = component.toCopyResponseEntity(JSON.stringify(validFlowDefinition));

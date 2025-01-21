@@ -766,7 +766,7 @@ export class Canvas implements OnInit, OnDestroy {
             if (isFlowDefinition) {
                 // make sure the flow has some components
                 const flowHasCopiedContent = Object.entries(maybeFlowDefinition.flowContents).some((entry) => {
-                    return supportedKeys.includes(entry[0]) && Array.isArray(entry[1]) && entry[1].length > 0;
+                    return supportedKeys.includes(entry[0]) && Array.isArray(entry[1]);
                 });
                 if (flowHasCopiedContent) {
                     // construct a new CopyResponseEntity from the FlowDefinition
