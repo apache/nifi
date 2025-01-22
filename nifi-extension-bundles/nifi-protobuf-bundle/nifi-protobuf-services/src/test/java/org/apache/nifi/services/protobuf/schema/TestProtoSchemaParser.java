@@ -25,11 +25,14 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Optional;
 
+import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadCircularReferenceTestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto2TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadProto3TestSchema;
 import static org.apache.nifi.services.protobuf.ProtoTestUtil.loadRepeatedProto3TestSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestProtoSchemaParser {
 
@@ -114,5 +117,35 @@ public class TestProtoSchemaParser {
 
         final RecordSchema actual = schemaParser.createSchema("Proto2Message");
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testSchemaParserWithSelfCircularReference() {
+        final ProtoSchemaParser schemaParser = new ProtoSchemaParser(loadCircularReferenceTestSchema());
+        final RecordSchema recordCSchema = schemaParser.createSchema("C");
+
+        final Optional<RecordField> recordCField = recordCSchema.getField("c");
+        assertTrue(recordCField.isPresent());
+        assertEquals(RecordFieldType.RECORD, recordCField.get().getDataType().getFieldType());
+
+        assertEquals(recordCSchema, ((RecordDataType) recordCField.get().getDataType()).getChildSchema());
+    }
+
+    @Test
+    public void testSchemaParserWithMutualCircularReference() {
+        final ProtoSchemaParser schemaParser = new ProtoSchemaParser(loadCircularReferenceTestSchema());
+        final RecordSchema recordASchema = schemaParser.createSchema("A");
+
+        final Optional<RecordField> recordAField = recordASchema.getField("b");
+        assertTrue(recordAField.isPresent());
+        assertEquals(RecordFieldType.RECORD, recordAField.get().getDataType().getFieldType());
+
+        final RecordSchema recordBSchema = ((RecordDataType) recordAField.get().getDataType()).getChildSchema();
+
+        final Optional<RecordField> recordBField = recordBSchema.getField("a");
+        assertTrue(recordBField.isPresent());
+        assertEquals(RecordFieldType.RECORD, recordBField.get().getDataType().getFieldType());
+
+        assertEquals(recordBSchema, ((RecordDataType) recordAField.get().getDataType()).getChildSchema());
     }
 }
