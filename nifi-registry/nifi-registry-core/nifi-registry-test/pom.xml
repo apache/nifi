@@ -62,7 +62,7 @@
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
-            <version>9.1.0</version>
+            <version>9.2.0</version>
             <exclusions>
                 <!-- Exclude unused protobuf-java -->
                 <exclusion>
@@ -79,7 +79,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.4</version>
+            <version>42.7.5</version>
         </dependency>
     </dependencies>
 </project>
