@@ -124,11 +124,11 @@ public class TestProtoSchemaParser {
         final ProtoSchemaParser schemaParser = new ProtoSchemaParser(loadCircularReferenceTestSchema());
         final RecordSchema recordCSchema = schemaParser.createSchema("C");
 
-        final Optional<RecordField> recordCField = recordCSchema.getField("c");
-        assertTrue(recordCField.isPresent());
-        assertEquals(RecordFieldType.RECORD, recordCField.get().getDataType().getFieldType());
+        final Optional<RecordField> parentField = recordCSchema.getField("parent");
+        assertTrue(parentField.isPresent());
+        assertEquals(RecordFieldType.RECORD, parentField.get().getDataType().getFieldType());
 
-        assertEquals(recordCSchema, ((RecordDataType) recordCField.get().getDataType()).getChildSchema());
+        assertEquals(recordCSchema, ((RecordDataType) parentField.get().getDataType()).getChildSchema());
     }
 
     @Test

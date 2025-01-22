@@ -25,5 +25,6 @@ message B {
 }
 
 message C {
-  C c = 1;
+  string value = 1;
+  C parent = 2;
 }

@@ -1,9 +1,10 @@
 
-l
+Œ
 test_circular_reference.proto"
 A
 b (2.BRb"
 B
-a (2.ARa"
-C
-c (2.CRcbproto3
+a (2.ARa"5
+C
+value (	Rvalue
+parent (2.CRparentbproto3
