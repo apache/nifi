@@ -56,6 +56,8 @@ import org.apache.nifi.json.schema.JsonSchema;
 import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
 import org.apache.nifi.json.schema.SchemaVersion;
 import org.apache.nifi.schemaregistry.services.JsonSchemaRegistry;
+import org.apache.nifi.processor.DataUnit;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -125,6 +127,7 @@ public class ValidateJson extends AbstractProcessor {
     protected static final String ERROR_ATTRIBUTE_KEY = "json.validation.errors";
     private static final String SCHEMA_NAME_PROPERTY_NAME = "Schema Name";
     private static final String SCHEMA_CONTENT_PROPERTY_NAME = "JSON Schema";
+    private static final String DEFAULT_MAX_STRING_LENGTH = "20 MB";
 
     public static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
             .name("Schema Access Strategy")
@@ -165,6 +168,16 @@ public class ValidateJson extends AbstractProcessor {
             .dependsOn(SCHEMA_ACCESS_STRATEGY, JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY)
             .build();
 
+
+    public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
+            .name("Max String Length")
+            .displayName("Max String Length")
+            .description("The maximum allowed length of a string value when parsing the JSON document")
+            .required(true)
+            .defaultValue(DEFAULT_MAX_STRING_LENGTH)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(JsonSchemaRegistryComponent.SCHEMA_VERSION)
             .dependsOn(SCHEMA_ACCESS_STRATEGY, JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY)
@@ -175,7 +188,8 @@ public class ValidateJson extends AbstractProcessor {
             SCHEMA_NAME,
             SCHEMA_REGISTRY,
             SCHEMA_CONTENT,
-            SCHEMA_VERSION
+            SCHEMA_VERSION,
+            MAX_STRING_LENGTH
     );
 
     public static final Relationship REL_VALID = new Relationship.Builder()
@@ -199,7 +213,7 @@ public class ValidateJson extends AbstractProcessor {
         REL_FAILURE
     );
 
-    private static final ObjectMapper MAPPER = new ObjectMapper().configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+    private ObjectMapper MAPPER;
 
     private final ConcurrentMap<SchemaVersion, JsonSchemaFactory> schemaFactories =  Arrays.stream(SchemaVersion.values())
             .collect(
@@ -261,6 +275,10 @@ public class ValidateJson extends AbstractProcessor {
                 }
             }
         }
+        final int maxStringLength = context.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
+        final StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
+        MAPPER = new ObjectMapper().configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+        MAPPER.getFactory().setStreamReadConstraints(streamReadConstraints);
     }
 
     @Override
