@@ -174,7 +174,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             DBCP_SERVICE,
             DB_TYPE,
             DATABASE_DIALECT_SERVICE,
@@ -201,7 +201,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     );
 
     public GenerateTableFetch() {
-        propDescriptors = PROPERTIES;
+        propDescriptors = PROPERTY_DESCRIPTORS;
         relationships = RELATIONSHIPS;
     }
 

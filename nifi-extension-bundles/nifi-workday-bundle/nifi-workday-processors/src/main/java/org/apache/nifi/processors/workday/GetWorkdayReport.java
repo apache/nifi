@@ -201,7 +201,7 @@ public class GetWorkdayReport extends AbstractProcessor {
             FAILURE
     );
 
-    protected static final List<PropertyDescriptor> PROPERTIES = List.of(
+    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             REPORT_URL,
             AUTH_TYPE,
             OAUTH2_ACCESS_TOKEN_PROVIDER,
@@ -219,7 +219,7 @@ public class GetWorkdayReport extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
