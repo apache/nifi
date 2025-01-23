@@ -33,7 +33,7 @@ language governing permissions and limitations under the License. -->
     </modules>
 
     <properties>
-        <elasticsearch.client.version>8.17.0</elasticsearch.client.version>
+        <elasticsearch.client.version>8.17.1</elasticsearch.client.version>
     </properties>
 
     <dependencyManagement>
