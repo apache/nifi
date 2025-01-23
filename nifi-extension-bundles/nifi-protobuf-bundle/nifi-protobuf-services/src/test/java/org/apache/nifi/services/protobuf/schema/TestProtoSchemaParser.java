@@ -135,17 +135,17 @@ public class TestProtoSchemaParser {
     public void testSchemaParserWithMutualCircularReference() {
         final ProtoSchemaParser schemaParser = new ProtoSchemaParser(loadCircularReferenceTestSchema());
         final RecordSchema recordASchema = schemaParser.createSchema("A");
+        final Optional<RecordField> bOfA = recordASchema.getField("b");
 
-        final Optional<RecordField> recordAField = recordASchema.getField("b");
-        assertTrue(recordAField.isPresent());
-        assertEquals(RecordFieldType.RECORD, recordAField.get().getDataType().getFieldType());
+        assertTrue(bOfA.isPresent());
+        assertEquals(RecordFieldType.RECORD, bOfA.get().getDataType().getFieldType());
 
-        final RecordSchema recordBSchema = ((RecordDataType) recordAField.get().getDataType()).getChildSchema();
+        final RecordSchema recordBSchema = schemaParser.createSchema("B");
+        final Optional<RecordField> aOfB = recordBSchema.getField("a");
 
-        final Optional<RecordField> recordBField = recordBSchema.getField("a");
-        assertTrue(recordBField.isPresent());
-        assertEquals(RecordFieldType.RECORD, recordBField.get().getDataType().getFieldType());
-
-        assertEquals(recordBSchema, ((RecordDataType) recordAField.get().getDataType()).getChildSchema());
+        assertTrue(aOfB.isPresent());
+        assertEquals(RecordFieldType.RECORD, aOfB.get().getDataType().getFieldType());
+        assertEquals(recordBSchema, ((RecordDataType) bOfA.get().getDataType()).getChildSchema());
+        assertEquals(recordASchema, ((RecordDataType) aOfB.get().getDataType()).getChildSchema());
     }
 }
