@@ -24,6 +24,9 @@ import { ComponentType } from '@nifi/shared';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { CurrentUser } from '../../../../../../../state/current-user';
+import { of } from 'rxjs';
+import { By } from '@angular/platform-browser';
 
 const noPermissionsParameterContextId = '95d509b9-018b-1000-daff-b7957ea7935e';
 const parameterContextId = '95d509b9-018b-1000-daff-b7957ea7934f';
@@ -151,6 +154,23 @@ describe('CreateProcessGroup', () => {
 
         it('verify no parameter context selected', () => {
             expect(component.createProcessGroupForm.get('newProcessGroupParameterContext')?.value).toEqual(null);
+        });
+
+        it('should not display the create parameter context button when currentUser.parameterContextPermissions.canWrite is false', () => {
+            // Mock the currentUser observable to return a user with canWrite set to false
+            component.currentUser$ = of({
+                parameterContextPermissions: {
+                    canWrite: false
+                }
+            } as unknown as CurrentUser);
+
+            fixture.detectChanges();
+
+            // Query for the button element
+            const buttonElement = fixture.debugElement.query(By.css('button[title="Create parameter context"]'));
+
+            // Assert that the button is not present in the DOM
+            expect(buttonElement).toBeNull();
         });
     });
 });

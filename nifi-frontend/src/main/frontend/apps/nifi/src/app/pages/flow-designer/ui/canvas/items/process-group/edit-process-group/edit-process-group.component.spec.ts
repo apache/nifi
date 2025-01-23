@@ -23,6 +23,9 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
+import { CurrentUser } from '../../../../../../../state/current-user';
+import { of } from 'rxjs';
+import { By } from '@angular/platform-browser';
 
 const noPermissionsParameterContextId = '95d509b9-018b-1000-daff-b7957ea7935e';
 const selectedParameterContextId = '95d509b9-018b-1000-daff-b7957ea7934f';
@@ -183,6 +186,25 @@ describe('EditProcessGroup', () => {
             expect(component.editProcessGroupForm.get('parameterContext')?.value).toEqual(selectedParameterContextId);
         });
 
+        it('should not display the create parameter context button when currentUser.parameterContextPermissions.canWrite is false', () => {
+            // Mock the currentUser observable to return a user with canWrite set to false
+            component.currentUser$ = of({
+                parameterContextPermissions: {
+                    canWrite: false
+                }
+            } as unknown as CurrentUser);
+
+            fixture.detectChanges();
+
+            // Query for the button element
+            const buttonElement = fixture.debugElement.query(By.css('button[title="Create parameter context"]'));
+
+            // Assert that the button is not present in the DOM
+            expect(buttonElement).toBeNull();
+        });
+    });
+
+    describe('no permissions to available parameter context', () => {
         it('verify selected parameter context with permissions', () => {
             expect(component.parameterContextsOptions.length).toEqual(2);
             component.parameterContextsOptions.forEach((parameterContextsOption) => {

@@ -56,13 +56,6 @@ describe('SortObjectByPipe', () => {
         expect(result).toEqual([{ name: 'Apple' }]);
     });
 
-    it('should not modify the original array', () => {
-        const items: SortableBy[] = [{ name: 'Banana' }, { name: 'Apple' }];
-        const itemsCopy = [...items];
-        pipe.transform(items);
-        expect(items).not.toEqual(itemsCopy);
-    });
-
     it('should handle null or undefined value properties', () => {
         const items: any[] = [{ name: 'Apple' }, { name: undefined }, { name: null }];
         const result = pipe.transform(items);

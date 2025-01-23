@@ -63,13 +63,17 @@
                         }
                     </mat-select>
                 </mat-form-field>
-                <button
-                    mat-icon-button
-                    class="primary-icon-button mt-1 ml-1"
-                    (click)="openNewParameterContextDialog()"
-                    title="Create parameter context">
-                    <i class="fa fa-plus"></i>
-                </button>
+                @if (currentUser$ | async; as currentUser) {
+                    @if (currentUser.parameterContextPermissions.canWrite) {
+                        <button
+                            mat-icon-button
+                            class="primary-icon-button mt-1 ml-1"
+                            (click)="openNewParameterContextDialog()"
+                            title="Create parameter context">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    }
+                }
             </div>
         }
         @if (flowDefinition) {

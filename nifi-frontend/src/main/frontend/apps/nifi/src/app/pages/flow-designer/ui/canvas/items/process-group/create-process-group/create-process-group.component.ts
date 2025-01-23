@@ -43,6 +43,7 @@ import {
     TextTip
 } from '@nifi/shared';
 import { ParameterContextEntity } from '../../../../../../../state/shared';
+import { selectCurrentUser } from '../../../../../../../state/current-user/current-user.selectors';
 
 @Component({
     selector: 'create-process-group',
@@ -118,6 +119,7 @@ export class CreateProcessGroup extends CloseOnEscapeDialog {
 
     flowNameAttached: string | null = null;
     flowDefinition: File | null = null;
+    currentUser$ = this.store.select(selectCurrentUser);
 
     constructor(
         @Inject(MAT_DIALOG_DATA) private dialogRequest: CreateProcessGroupDialogRequest,
