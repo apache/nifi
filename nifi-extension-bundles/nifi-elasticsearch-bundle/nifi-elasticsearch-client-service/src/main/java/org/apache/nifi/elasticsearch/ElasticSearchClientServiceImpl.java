@@ -164,16 +164,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
         final AuthorizationScheme authorizationScheme = validationContext.getProperty(AUTHORIZATION_SCHEME).asAllowableValue(AuthorizationScheme.class);
 
-        final boolean usernameSet = validationContext.getProperty(USERNAME).isSet();
-        final boolean passwordSet = validationContext.getProperty(PASSWORD).isSet();
-
-        final boolean apiKeyIdSet = validationContext.getProperty(API_KEY_ID).isSet();
-        final boolean apiKeySet = validationContext.getProperty(API_KEY).isSet();
-
         final SSLContextProvider sslContextProvider = validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
-
-        final boolean jwtSharedSecretSet = validationContext.getProperty(JWT_SHARED_SECRET).isSet();
-        final OAuth2AccessTokenProvider oAuth2Provider = validationContext.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
         if (authorizationScheme == AuthorizationScheme.PKI && (sslContextProvider == null)) {
             results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName()).valid(false)
@@ -181,35 +172,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                             AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName(), PROP_SSL_CONTEXT_SERVICE.getDisplayName())
                     ).build()
             );
-        }
-
-        if (authorizationScheme == AuthorizationScheme.JWT) {
-            if (oAuth2Provider == null) {
-                results.add(new ValidationResult.Builder().subject(OAUTH2_ACCESS_TOKEN_PROVIDER.getName()).valid(false)
-                        .explanation(String.format("if '%s' is '%s' then '%s' must be set.",
-                                AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName(), OAUTH2_ACCESS_TOKEN_PROVIDER.getDisplayName())
-                        ).build()
-                );
-            }
-            if (!jwtSharedSecretSet) {
-                results.add(new ValidationResult.Builder().subject(JWT_SHARED_SECRET.getName()).valid(false)
-                        .explanation(String.format("if '%s' is '%s' then '%s' must be set.",
-                                AUTHORIZATION_SCHEME.getDisplayName(), authorizationScheme.getDisplayName(), JWT_SHARED_SECRET.getDisplayName())
-                        ).build()
-                );
-            }
-        }
-
-        if (usernameSet && !passwordSet) {
-            addAuthorizationPropertiesValidationIssue(results, USERNAME, PASSWORD);
-        } else if (passwordSet && !usernameSet) {
-            addAuthorizationPropertiesValidationIssue(results, PASSWORD, USERNAME);
-        }
-
-        if (apiKeyIdSet && !apiKeySet) {
-            addAuthorizationPropertiesValidationIssue(results, API_KEY_ID, API_KEY);
-        } else if (apiKeySet && !apiKeyIdSet) {
-            addAuthorizationPropertiesValidationIssue(results, API_KEY, API_KEY_ID);
         }
 
         final boolean sniffClusterNodes = validationContext.getProperty(SNIFF_CLUSTER_NODES).asBoolean();
@@ -220,13 +182,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         }
 
         return results;
-    }
-
-    private void addAuthorizationPropertiesValidationIssue(final List<ValidationResult> results, final PropertyDescriptor presentProperty, final PropertyDescriptor missingProperty) {
-        results.add(new ValidationResult.Builder().subject(missingProperty.getName()).valid(false)
-                .explanation(String.format("if '%s' is set, then '%s' must be set.", presentProperty.getDisplayName(), missingProperty.getDisplayName()))
-                .build()
-        );
     }
 
     @OnEnabled

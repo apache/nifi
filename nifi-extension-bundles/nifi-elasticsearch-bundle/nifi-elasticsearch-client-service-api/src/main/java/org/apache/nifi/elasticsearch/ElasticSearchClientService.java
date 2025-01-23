@@ -69,9 +69,19 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("OAuth2 Access Token Provider")
             .description("The OAuth2 Access Token Provider used to provide JWTs for Bearer Token Authorization with Elasticsearch.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.JWT)
-            .required(false)
+            .required(true)
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .addValidator(Validator.VALID)
+            .build();
+
+    PropertyDescriptor JWT_SHARED_SECRET = new PropertyDescriptor.Builder()
+            .name("jwt-shared-secret")
+            .displayName("JWT Shared Secret")
+            .description("JWT realm Shared Secret.")
+            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.JWT)
+            .required(true)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     PropertyDescriptor RUN_AS_USER = new PropertyDescriptor.Builder()
@@ -88,7 +98,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("Username")
             .description("The username to use with XPack security.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC)
-            .required(false)
+            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -98,7 +108,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("Password")
             .description("The password to use with XPack security.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC)
-            .required(false)
+            .required(true)
             .sensitive(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -109,7 +119,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("API Key ID")
             .description("Unique identifier of the API key.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY)
-            .required(false)
+            .required(true)
             .sensitive(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -119,17 +129,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .displayName("API Key")
             .description("Encoded API key.")
             .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY)
-            .required(false)
-            .sensitive(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    PropertyDescriptor JWT_SHARED_SECRET = new PropertyDescriptor.Builder()
-            .name("jwt-shared-secret")
-            .displayName("JWT Shared Secret")
-            .description("JWT realm Shared Secret.")
-            .dependsOn(AUTHORIZATION_SCHEME, AuthorizationScheme.JWT)
-            .required(false)
+            .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
