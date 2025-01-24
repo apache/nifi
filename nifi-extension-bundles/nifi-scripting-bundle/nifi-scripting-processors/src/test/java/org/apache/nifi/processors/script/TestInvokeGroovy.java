@@ -243,8 +243,6 @@ public class TestInvokeGroovy extends BaseScriptTest {
 
     /**
      * Tests a script that has a Groovy Processor that implements its own onPrimaryNodeStateChange
-     *
-     * @throws Exception Any error encountered while testing
      */
     @Test
     public void testOnPrimaryNodeStateChange() {
@@ -282,9 +280,5 @@ public class TestInvokeGroovy extends BaseScriptTest {
             super.onPropertyModified(descriptor, oldValue, newValue);
             numTimesModifiedCalled++;
         }
-    }
-
-    private static class OnPrimaryNodeStateChangeMethodWasCalledException extends RuntimeException {
-
     }
 }
