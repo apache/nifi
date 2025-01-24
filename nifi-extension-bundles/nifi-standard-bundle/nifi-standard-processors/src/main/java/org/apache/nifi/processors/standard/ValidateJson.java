@@ -171,7 +171,6 @@ public class ValidateJson extends AbstractProcessor {
 
     public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
             .name("Max String Length")
-            .displayName("Max String Length")
             .description("The maximum allowed length of a string value when parsing the JSON document")
             .required(true)
             .defaultValue(DEFAULT_MAX_STRING_LENGTH)
@@ -213,7 +212,7 @@ public class ValidateJson extends AbstractProcessor {
         REL_FAILURE
     );
 
-    private ObjectMapper MAPPER;
+    private ObjectMapper mapper;
 
     private final ConcurrentMap<SchemaVersion, JsonSchemaFactory> schemaFactories =  Arrays.stream(SchemaVersion.values())
             .collect(
@@ -277,8 +276,8 @@ public class ValidateJson extends AbstractProcessor {
         }
         final int maxStringLength = context.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
         final StreamReadConstraints streamReadConstraints = StreamReadConstraints.builder().maxStringLength(maxStringLength).build();
-        MAPPER = new ObjectMapper().configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-        MAPPER.getFactory().setStreamReadConstraints(streamReadConstraints);
+        mapper = new ObjectMapper().configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+        mapper.getFactory().setStreamReadConstraints(streamReadConstraints);
     }
 
     @Override
@@ -304,7 +303,7 @@ public class ValidateJson extends AbstractProcessor {
         }
 
         try (final InputStream in = session.read(flowFile)) {
-            final JsonNode node = MAPPER.readTree(in);
+            final JsonNode node = mapper.readTree(in);
             final Set<ValidationMessage> errors = schema.validate(node);
 
             if (errors.isEmpty()) {
