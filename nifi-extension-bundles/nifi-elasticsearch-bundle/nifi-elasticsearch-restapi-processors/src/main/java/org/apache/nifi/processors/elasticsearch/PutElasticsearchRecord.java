@@ -33,6 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticsearchException;
+import org.apache.nifi.elasticsearch.ElasticsearchRequestOptions;
 import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -531,7 +532,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     private ResponseDetails indexDocuments(final BulkOperation bundle, final ProcessSession session, final FlowFile input,
                                            final IndexOperationParameters indexOperationParameters, final int batch)
             throws IOException, SchemaNotFoundException, MalformedRecordException {
-        final IndexOperationResponse response = clientService.get().bulk(bundle.getOperationList(), indexOperationParameters.getRequestParameters(), indexOperationParameters.getRequestHeaders());
+        final IndexOperationResponse response = clientService.get().bulk(bundle.getOperationList(), indexOperationParameters.getElasticsearchRequestOptions());
 
         final Map<Integer, Map<String, Object>> errors = findElasticsearchResponseErrors(response);
         if (!errors.isEmpty()) {
@@ -856,8 +857,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         private final RecordPath scriptedUpsertPath;
         private final RecordPath dynamicTypesPath;
 
-        private final Map<String, String> requestHeaders;
-        private final Map<String, String> requestParameters;
+        private final ElasticsearchRequestOptions elasticsearchRequestOptions;
         private final Map<String, RecordPath> bulkHeaderRecordPaths;
 
         private final boolean retainId;
@@ -879,10 +879,8 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             scriptedUpsertPath = compileRecordPathFromProperty(context, SCRIPTED_UPSERT_RECORD_PATH, input);
             dynamicTypesPath = compileRecordPathFromProperty(context, DYNAMIC_TEMPLATES_RECORD_PATH, input);
 
-            requestHeaders = getRequestHeadersFromDynamicProperties(context, input);
-
             final Map<String, String> dynamicProperties = getRequestParametersFromDynamicProperties(context, input);
-            requestParameters = getRequestURLParameters(dynamicProperties);
+            elasticsearchRequestOptions = new ElasticsearchRequestOptions(getRequestURLParameters(dynamicProperties), getRequestHeadersFromDynamicProperties(context, input));
 
             final Map<String, String> bulkHeaderParameterPaths = getBulkHeaderParameters(dynamicProperties);
             bulkHeaderRecordPaths = new HashMap<>(bulkHeaderParameterPaths.size(), 1);
@@ -953,12 +951,8 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             return dynamicTypesPath;
         }
 
-        public Map<String, String> getRequestHeaders() {
-            return requestHeaders;
-        }
-
-        public Map<String, String> getRequestParameters() {
-            return requestParameters;
+        public ElasticsearchRequestOptions getElasticsearchRequestOptions() {
+            return elasticsearchRequestOptions;
         }
 
         public Map<String, RecordPath> getBulkHeaderRecordPaths() {
