@@ -104,7 +104,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
     public void teardown() {
         try {
             client.close();
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
         }
     }

@@ -287,7 +287,7 @@ public class TestSplitAvro {
                         count++;
                         record = reader.read(record, decoder);
                     }
-                } catch (EOFException eof) {
+                } catch (EOFException ignored) {
                     // expected
                 }
                 assertEquals(expectedRecordsPerSplit, count);

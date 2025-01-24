@@ -79,7 +79,7 @@ public class SecureProxyIT extends IntegrationTestBase {
     public void teardown() {
         try {
             registryClient.close();
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
             // do nothing
         }
     }

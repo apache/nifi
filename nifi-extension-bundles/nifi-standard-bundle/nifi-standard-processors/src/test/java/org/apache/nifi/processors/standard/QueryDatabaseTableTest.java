@@ -76,7 +76,7 @@ public class QueryDatabaseTableTest {
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
     }
@@ -85,14 +85,14 @@ public class QueryDatabaseTableTest {
     public static void cleanUpAfterClass() {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             // Do nothing, this is what happens at Derby shutdown
         }
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
         System.clearProperty("derby.stream.error.file");
@@ -134,7 +134,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -276,7 +276,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -316,7 +316,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -356,13 +356,13 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -435,7 +435,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -496,7 +496,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -546,7 +546,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
 
@@ -571,7 +571,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_NO_ROWS");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
 
@@ -597,7 +597,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -653,7 +653,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -757,7 +757,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -802,7 +802,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -852,7 +852,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -915,7 +915,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -963,7 +963,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1009,7 +1009,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1142,13 +1142,13 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
         try {
             stmt.execute("drop table TYPE_LIST");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1286,13 +1286,13 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
         try {
             stmt.execute("drop table TYPE_LIST");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 

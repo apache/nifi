@@ -150,7 +150,7 @@ public class SmbjClientServiceIT {
                     if (s != null) {
                         try {
                             s.close();
-                        } catch (Exception e) {
+                        } catch (Exception ignored) {
                         }
                     }
                 }

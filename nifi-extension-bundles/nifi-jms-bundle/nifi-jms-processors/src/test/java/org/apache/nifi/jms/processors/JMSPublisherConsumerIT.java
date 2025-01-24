@@ -451,7 +451,7 @@ public class JMSPublisherConsumerIT {
                     assertEquals("1", new String(responses.getFirst().getMessageBody()));
                     throw new RuntimeException("intentional to avoid explicit ack");
                 });
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 // expected
             }
 
@@ -480,7 +480,7 @@ public class JMSPublisherConsumerIT {
                         throw new RuntimeException("intentional to avoid explicit ack");
                     });
                 }
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 // ignore
             }
             assertTrue(callbackInvoked.get());
@@ -496,7 +496,7 @@ public class JMSPublisherConsumerIT {
                         acknowledge(response);
                     });
                 }
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 // ignore
             }
         } finally {

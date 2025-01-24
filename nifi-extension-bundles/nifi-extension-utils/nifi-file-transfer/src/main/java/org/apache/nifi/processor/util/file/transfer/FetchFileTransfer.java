@@ -346,7 +346,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
             try {
                 transfer.deleteFile(flowFile, null, filename);
-            } catch (final FileNotFoundException e) {
+            } catch (final FileNotFoundException ignored) {
                 // file doesn't exist -- effectively the same as removing it. Move on.
             } catch (final IOException ioe) {
                 getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to remove the remote file due to {}",

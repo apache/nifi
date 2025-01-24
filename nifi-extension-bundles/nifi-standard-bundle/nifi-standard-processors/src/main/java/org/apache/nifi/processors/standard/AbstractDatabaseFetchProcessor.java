@@ -423,7 +423,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 if (maxValueString != null) {
                     try {
                         maxTimeValue = LocalTime.parse(maxValueString, TIME_TYPE_FORMAT);
-                    } catch (DateTimeParseException pe) {
+                    } catch (DateTimeParseException ignored) {
                         // Shouldn't happen, but just in case, leave the value as null so the new value will be stored
                     }
                 }

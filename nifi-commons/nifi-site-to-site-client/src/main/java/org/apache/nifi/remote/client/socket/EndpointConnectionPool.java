@@ -245,7 +245,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                             peerSelector.penalize(peer, penalizationMillis);
                             try {
                                 peer.close();
-                            } catch (final IOException ioe) {
+                            } catch (final IOException ignored) {
                             }
 
                             continue;
@@ -296,7 +296,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                 if (commsSession != null) {
                     try {
                         commsSession.close();
-                    } catch (final IOException ioe) {
+                    } catch (final IOException ignored) {
                     }
                 }
 
@@ -342,7 +342,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
             } catch (final TransmissionDisabledException e) {
                 // User disabled transmission.... do nothing.
                 logger.debug("{} Transmission Disabled by User", this);
-            } catch (IOException e1) {
+            } catch (IOException ignored) {
             }
         }
 
@@ -352,7 +352,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
             } catch (final TransmissionDisabledException e) {
                 // User disabled transmission.... do nothing.
                 logger.debug("{} Transmission Disabled by User", this);
-            } catch (IOException e1) {
+            } catch (IOException ignored) {
             }
         }
     }

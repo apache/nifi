@@ -51,7 +51,7 @@ public class DiskUtils {
 
             try {
                 Thread.sleep(100L);
-            } catch (final InterruptedException e) {
+            } catch (final InterruptedException ignored) {
             }
         }
         return toDelete;

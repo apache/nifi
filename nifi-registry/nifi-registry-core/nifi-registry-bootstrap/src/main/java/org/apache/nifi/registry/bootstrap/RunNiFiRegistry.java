@@ -698,7 +698,7 @@ public class RunNiFiRegistry {
                         } else {
                             try {
                                 Thread.sleep(2000L);
-                            } catch (final InterruptedException ie) {
+                            } catch (final InterruptedException ignored) {
                             }
                         }
                     }
@@ -970,12 +970,12 @@ public class RunNiFiRegistry {
             if (alive) {
                 try {
                     Thread.sleep(1000L);
-                } catch (final InterruptedException ie) {
+                } catch (final InterruptedException ignored) {
                 }
             } else {
                 try {
                     runtime.removeShutdownHook(shutdownHook);
-                } catch (final IllegalStateException ise) {
+                } catch (final IllegalStateException ignored) {
                     // happens when already shutting down
                 }
 

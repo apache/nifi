@@ -52,7 +52,8 @@ public class FileUtils {
         if (null != closeable) {
             try {
                 closeable.close();
-            } catch (final IOException io) { /*IGNORE*/ }
+            } catch (final IOException ignored) {
+            }
         }
     }
 
@@ -65,8 +66,7 @@ public class FileUtils {
         if (null != lock) {
             try {
                 lock.release();
-            } catch (final IOException io) {
-                /*IGNORE*/
+            } catch (final IOException ignored) {
             }
         }
     }
@@ -376,7 +376,7 @@ public class FileUtils {
     public static void sleepQuietly(final long millis) {
         try {
             Thread.sleep(millis);
-        } catch (final InterruptedException ex) {
+        } catch (final InterruptedException ignored) {
             /* do nothing */
         }
     }

@@ -334,14 +334,14 @@ public class GetFile extends AbstractProcessor {
                     attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateTimeFormatter.format(attrs.lastModifiedTime().toInstant().atZone(ZoneId.systemDefault())));
                     attributes.put(FILE_CREATION_TIME_ATTRIBUTE, dateTimeFormatter.format(attrs.creationTime().toInstant().atZone(ZoneId.systemDefault())));
                     attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateTimeFormatter.format(attrs.lastAccessTime().toInstant().atZone(ZoneId.systemDefault())));
-                } catch (Exception ignore) {
+                } catch (Exception ignored) {
                 } // allow other attributes if these fail
             }
             if (store.supportsFileAttributeView("owner")) {
                 try {
                     FileOwnerAttributeView view = Files.getFileAttributeView(file, FileOwnerAttributeView.class);
                     attributes.put(FILE_OWNER_ATTRIBUTE, view.getOwner().getName());
-                } catch (Exception ignore) {
+                } catch (Exception ignored) {
                 } // allow other attributes if these fail
             }
             if (store.supportsFileAttributeView("posix")) {
@@ -349,10 +349,10 @@ public class GetFile extends AbstractProcessor {
                     PosixFileAttributeView view = Files.getFileAttributeView(file, PosixFileAttributeView.class);
                     attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
                     attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
-                } catch (Exception ignore) {
+                } catch (Exception ignored) {
                 } // allow other attributes if these fail
             }
-        } catch (IOException ioe) {
+        } catch (IOException ignored) {
             // well then this FlowFile gets none of these attributes
         }
 

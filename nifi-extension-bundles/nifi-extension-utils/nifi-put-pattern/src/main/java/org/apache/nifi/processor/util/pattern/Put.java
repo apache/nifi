@@ -101,7 +101,7 @@ public class Put<FC, C extends AutoCloseable> {
                 // Execute the core function.
                 try {
                     putFlowFiles(context, session, functionContext, connection, flowFiles, result);
-                } catch (DiscontinuedException e) {
+                } catch (DiscontinuedException ignored) {
                     // Whether it was an error or semi normal is depends on the implementation and reason why it wanted to discontinue.
                     // So, no logging is needed here.
                 }

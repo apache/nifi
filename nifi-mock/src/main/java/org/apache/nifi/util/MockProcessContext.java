@@ -112,7 +112,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
             properties.putAll(props);
 
             super.addControllerServices(context);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException ignored) {
             // do nothing...the service is being loaded
         }
     }

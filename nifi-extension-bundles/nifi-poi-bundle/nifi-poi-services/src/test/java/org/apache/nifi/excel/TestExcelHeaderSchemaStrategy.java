@@ -68,7 +68,7 @@ public class TestExcelHeaderSchemaStrategy {
             for (Path tmpFile : directoryStream) {
                 Files.deleteIfExists(tmpFile);
             }
-        } catch (Exception ignore) {
+        } catch (Exception ignored) {
         }
     }
 

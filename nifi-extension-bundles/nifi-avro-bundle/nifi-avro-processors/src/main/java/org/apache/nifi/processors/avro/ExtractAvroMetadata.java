@@ -192,7 +192,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
                             while (reader.nextBlock() != null) {
                                 recordCount += reader.getBlockCount();
                             }
-                        } catch (NoSuchElementException e) {
+                        } catch (NoSuchElementException ignored) {
                             // happens at end of file
                         }
                         avroMetadata.put(ITEM_COUNT_ATTR, String.valueOf(recordCount));

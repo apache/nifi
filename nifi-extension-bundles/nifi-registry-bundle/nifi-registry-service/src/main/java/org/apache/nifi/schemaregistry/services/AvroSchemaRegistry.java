@@ -80,7 +80,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
                     final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(descriptor.getName()).build();
                     final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, newValue, schemaId);
                     recordSchemas.put(descriptor.getName(), recordSchema);
-                } catch (final Exception e) {
+                } catch (final Exception ignored) {
                     // not a problem - the service won't be valid and the validation message will indicate what is wrong.
                 }
             }

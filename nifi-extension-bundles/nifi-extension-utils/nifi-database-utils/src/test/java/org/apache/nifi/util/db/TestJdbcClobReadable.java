@@ -110,7 +110,7 @@ public class TestJdbcClobReadable {
 
         try {
             st.executeUpdate(dropTable);
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
             // table may not exist, this is not serious problem.
         }
 

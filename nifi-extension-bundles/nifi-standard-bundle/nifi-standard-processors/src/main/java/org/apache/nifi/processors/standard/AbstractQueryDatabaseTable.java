@@ -372,7 +372,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 if (databaseMetaData != null) {
                     jdbcURL = databaseMetaData.getURL();
                 }
-            } catch (SQLException se) {
+            } catch (SQLException ignored) {
                 // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
             }
 

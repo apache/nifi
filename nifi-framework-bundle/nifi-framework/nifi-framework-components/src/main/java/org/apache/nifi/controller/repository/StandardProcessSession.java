@@ -3357,7 +3357,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             if (currentReadClaimStream != null) {
                 currentReadClaimStream.close();
             }
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
         }
         currentReadClaimStream = null;
         currentReadClaim = null;

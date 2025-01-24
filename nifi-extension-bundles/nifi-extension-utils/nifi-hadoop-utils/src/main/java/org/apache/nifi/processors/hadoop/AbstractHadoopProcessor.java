@@ -209,7 +209,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                 final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
                 builder.add(kerberosUser.getPrincipal());
             }
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException ignored) {
             // the Kerberos controller service is disabled, therefore this part of the isolation key cannot be determined yet
         }
 

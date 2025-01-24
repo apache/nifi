@@ -499,7 +499,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             TableSchema tableSchema = null;
             try {
                 tableSchema = TableSchema.from(conn, catalogName, schemaName, tableName, translateFieldNames, normalizer, null, getLogger());
-            } catch (TableNotFoundException tnfe) {
+            } catch (TableNotFoundException ignored) {
                 // Do nothing, the value will be populated if necessary
             }
 

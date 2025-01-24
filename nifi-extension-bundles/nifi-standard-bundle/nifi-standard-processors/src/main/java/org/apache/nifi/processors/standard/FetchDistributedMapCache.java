@@ -167,7 +167,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
         boolean elPresent = false;
         try {
             elPresent = cacheEntryIdentifier.isExpressionLanguagePresent();
-        } catch (NullPointerException npe) {
+        } catch (NullPointerException ignored) {
             // Unfortunate workaround to a mock framework bug (NIFI-4590)
         }
 

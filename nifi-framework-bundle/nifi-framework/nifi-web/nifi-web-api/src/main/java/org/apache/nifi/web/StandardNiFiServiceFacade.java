@@ -2578,7 +2578,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final RevisionDTO componentReferenceRevision = dtoFactory.createRevisionDTO(revisionManager.getRevision(componentReference.getId()));
                 componentReferenceEntity = entityFactory.createComponentReferenceEntity(componentReference, componentReferenceRevision, componentReferencePermissions);
             }
-        } catch (final ResourceNotFoundException e) {
+        } catch (final ResourceNotFoundException ignored) {
             // component not found for the specified resource
         }
 
@@ -4330,7 +4330,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         if (serviceNodes.add(serviceNode)) {
                             findReferencedControllerServices(serviceNode, serviceNodes, user);
                         }
-                    } catch (ResourceNotFoundException e) {
+                    } catch (ResourceNotFoundException ignored) {
                         // ignore if the resource is not found, if the referenced service was previously deleted, it should not stop this action
                     }
                 }
@@ -4423,7 +4423,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final BulletinEntity controllerServiceBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), controllerServiceAuthorized);
                 controllerServiceBulletinEntities.add(controllerServiceBulletin);
                 controllerBulletinEntities.add(controllerServiceBulletin);
-            } catch (final ResourceNotFoundException e) {
+            } catch (final ResourceNotFoundException ignored) {
                 // controller service missing.. skip
             }
         }
@@ -4441,7 +4441,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final BulletinEntity reportingTaskBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), reportingTaskAuthorizableAuthorized);
                 reportingTaskBulletinEntities.add(reportingTaskBulletin);
                 controllerBulletinEntities.add(reportingTaskBulletin);
-            } catch (final ResourceNotFoundException e) {
+            } catch (final ResourceNotFoundException ignored) {
                 // reporting task missing.. skip
             }
         }
@@ -4459,7 +4459,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final BulletinEntity flowAnalysisRuleBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), flowAnalysisRuleAuthorizableAuthorized);
                 flowAnalysisRuleBulletinEntities.add(flowAnalysisRuleBulletin);
                 controllerBulletinEntities.add(flowAnalysisRuleBulletin);
-            } catch (final ResourceNotFoundException e) {
+            } catch (final ResourceNotFoundException ignored) {
                 // flow analysis rule missing.. skip
             }
         }
@@ -4477,7 +4477,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final BulletinEntity parameterProviderBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), parameterProviderAuthorizableAuthorized);
                 parameterProviderBulletinEntities.add(parameterProviderBulletin);
                 controllerBulletinEntities.add(parameterProviderBulletin);
-            } catch (final ResourceNotFoundException e) {
+            } catch (final ResourceNotFoundException ignored) {
                 // parameter provider missing.. skip
             }
         }
@@ -4495,7 +4495,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final BulletinEntity flowRegistryClient = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), flowRegistryClientkAuthorizableAuthorized);
                 flowRegistryClientBulletinEntities.add(flowRegistryClient);
                 controllerBulletinEntities.add(flowRegistryClient);
-            } catch (final ResourceNotFoundException e) {
+            } catch (final ResourceNotFoundException ignored) {
                 // flow registry client missing.. skip
             }
         }

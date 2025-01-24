@@ -474,7 +474,7 @@ public class PutFile extends AbstractProcessor {
                     }
                 }
                 permissions = permBuilder.toString();
-            } catch (NumberFormatException ignore) {
+            } catch (NumberFormatException ignored) {
             }
         }
 
