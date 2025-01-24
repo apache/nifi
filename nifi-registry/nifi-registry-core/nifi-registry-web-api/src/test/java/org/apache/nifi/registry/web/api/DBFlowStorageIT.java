@@ -157,7 +157,7 @@ public class DBFlowStorageIT extends IntegrationTestBase {
         try {
             client.getFlowSnapshotClient().get(createdF1.getIdentifier(), 1);
             fail("Should have thrown exception");
-        } catch (NiFiRegistryException nre) {
+        } catch (NiFiRegistryException ignored) {
         }
 
         // Versions of f2 should still exist...

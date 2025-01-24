@@ -45,12 +45,12 @@ public class FlowFileAccessOutputStream extends FilterOutputStream {
     public void close() throws IOException {
         try {
             out.flush();
-        } catch (final IOException ioe) {
+        } catch (final IOException ignored) {
         }
 
         try {
             out.close();
-        } catch (final IOException ioe) {
+        } catch (final IOException ignored) {
         }
     }
 

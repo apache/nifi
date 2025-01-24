@@ -225,8 +225,7 @@ public class TestExecuteProcess {
             && (runner.getLogger().getWarnMessages().size() < expectedWarningMessages); i++) {
             try {
                 Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // Ignore
+            } catch (InterruptedException ignored) {
             }
         }
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();

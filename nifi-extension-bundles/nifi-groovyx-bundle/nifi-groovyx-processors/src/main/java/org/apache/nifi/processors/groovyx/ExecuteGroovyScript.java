@@ -180,13 +180,13 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             Method m = null;
             try {
                 m = compiled.getDeclaredMethod(method, ProcessContext.class);
-            } catch (NoSuchMethodException e) {
+            } catch (NoSuchMethodException ignored) {
                 // The method will not be invoked if it does not exist
             }
             if (m == null) {
                 try {
                     m = compiled.getDeclaredMethod(method, Object.class);
-                } catch (NoSuchMethodException e) {
+                } catch (NoSuchMethodException ignored) {
                     // The method will not be invoked if it does not exist
                 }
             }
@@ -392,7 +392,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             try {
                 sql.close();
                 sql = null;
-            } catch (Throwable ei) {
+            } catch (Throwable ignored) {
                 // Nothing to do
             }
         }
@@ -408,7 +408,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 if (!sql.getConnection().getAutoCommit()) {
                     sql.rollback();
                 }
-            } catch (Throwable ei) {
+            } catch (Throwable ignored) {
                 //the rollback error is usually not important, rather it is the DML error that is really important
             }
         }

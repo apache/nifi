@@ -128,7 +128,7 @@ public class FlowFileAccessInputStream extends FilterInputStream {
     public void close() throws IOException {
         try {
             super.close();
-        } catch (final IOException ioe) {
+        } catch (final IOException ignored) {
         }
     }
 

@@ -658,7 +658,7 @@ public class NiFiProperties extends ApplicationProperties {
         Integer port = null;
         try {
             port = Integer.parseInt(getProperty(WEB_HTTP_PORT));
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException ignored) {
         }
         return port;
     }
@@ -667,7 +667,7 @@ public class NiFiProperties extends ApplicationProperties {
         Integer sslPort = null;
         try {
             sslPort = Integer.parseInt(getProperty(WEB_HTTPS_PORT));
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException ignored) {
         }
         return sslPort;
     }
@@ -1858,10 +1858,7 @@ public class NiFiProperties extends ApplicationProperties {
                 if (null != inStream) {
                     try {
                         inStream.close();
-                    } catch (final Exception ex) {
-                        /**
-                         * do nothing *
-                         */
+                    } catch (final Exception ignored) {
                     }
                 }
             }

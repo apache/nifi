@@ -87,7 +87,7 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
     public void teardown() {
         try {
             client.close();
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
         }
     }
@@ -116,7 +116,7 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
         try {
             bucketClient.create(bucket);
             fail("Shouldn't have been able to create a bucket");
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
         }
     }

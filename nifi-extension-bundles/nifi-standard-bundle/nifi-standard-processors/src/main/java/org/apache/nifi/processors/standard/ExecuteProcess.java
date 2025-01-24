@@ -273,8 +273,7 @@ public class ExecuteProcess extends AbstractProcessor {
                     // be used to avoid waiting forever.
                     try {
                         longRunningProcess.get();
-                    } catch (final InterruptedException ie) {
-                        // Ignore
+                    } catch (final InterruptedException ignored) {
                     } catch (final ExecutionException ee) {
                         getLogger().error("Process execution failed", ee.getCause());
                     }
@@ -282,8 +281,7 @@ public class ExecuteProcess extends AbstractProcessor {
                     // wait the allotted amount of time.
                     try {
                         TimeUnit.NANOSECONDS.sleep(batchNanos);
-                    } catch (final InterruptedException ie) {
-                        // Ignore
+                    } catch (final InterruptedException ignored) {
                     }
                 }
 

@@ -495,15 +495,13 @@ public class ControllerServiceResource extends ApplicationResource {
         ControllerServiceState requestControllerServiceState = null;
         try {
             requestControllerServiceState = ControllerServiceState.valueOf(requestUpdateReferenceRequest.getState());
-        } catch (final IllegalArgumentException iae) {
-            // ignore
+        } catch (final IllegalArgumentException ignored) {
         }
 
         ScheduledState requestScheduledState = null;
         try {
             requestScheduledState = ScheduledState.valueOf(requestUpdateReferenceRequest.getState());
-        } catch (final IllegalArgumentException iae) {
-            // ignore
+        } catch (final IllegalArgumentException ignored) {
         }
 
         // ensure an action has been specified
@@ -551,15 +549,13 @@ public class ControllerServiceResource extends ApplicationResource {
                     ScheduledState scheduledState = null;
                     try {
                         scheduledState = ScheduledState.valueOf(updateReferenceRequest.getState());
-                    } catch (final IllegalArgumentException e) {
-                        // ignore
+                    } catch (final IllegalArgumentException ignored) {
                     }
 
                     ControllerServiceState controllerServiceState = null;
                     try {
                         controllerServiceState = ControllerServiceState.valueOf(updateReferenceRequest.getState());
-                    } catch (final IllegalArgumentException iae) {
-                        // ignore
+                    } catch (final IllegalArgumentException ignored) {
                     }
 
                     final Map<String, Revision> referencingRevisions = updateReferenceRequest.getReferencingComponentRevisions().entrySet().stream()

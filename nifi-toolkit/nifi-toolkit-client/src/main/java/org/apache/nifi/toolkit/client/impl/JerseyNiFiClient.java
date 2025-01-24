@@ -317,7 +317,7 @@ public class JerseyNiFiClient implements NiFiClient {
         if (this.client != null) {
             try {
                 this.client.close();
-            } catch (Exception e) {
+            } catch (Exception ignored) {
 
             }
         }

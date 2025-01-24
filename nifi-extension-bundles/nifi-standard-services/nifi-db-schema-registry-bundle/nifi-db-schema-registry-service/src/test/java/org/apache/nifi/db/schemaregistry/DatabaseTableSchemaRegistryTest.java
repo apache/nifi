@@ -107,7 +107,7 @@ public class DatabaseTableSchemaRegistryTest {
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ignore) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
 
@@ -128,14 +128,14 @@ public class DatabaseTableSchemaRegistryTest {
     public static void shutdownDatabase() {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (Exception ignore) {
+        } catch (Exception ignored) {
             // Do nothing, this is what happens at Derby shutdown
         }
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ignore) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
         System.clearProperty("derby.stream.error.file");

@@ -177,7 +177,7 @@ public class SystemDiagnosticsFactory {
                     systemDiagnostics.setOpenFileHandles(openDescriptorCount);
                 }
             }
-        } catch (final Throwable t) {
+        } catch (final Throwable ignored) {
             // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
         }
 

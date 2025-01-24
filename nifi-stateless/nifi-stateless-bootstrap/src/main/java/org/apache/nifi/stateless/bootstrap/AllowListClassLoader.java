@@ -76,7 +76,7 @@ public class AllowListClassLoader extends ClassLoader {
 
                 return found;
             }
-        } catch (final NoClassDefFoundError ncdfe) {
+        } catch (final NoClassDefFoundError ignored) {
             // Allow the code to 'fall through' to the ClassNotFoundException below.
         }
 

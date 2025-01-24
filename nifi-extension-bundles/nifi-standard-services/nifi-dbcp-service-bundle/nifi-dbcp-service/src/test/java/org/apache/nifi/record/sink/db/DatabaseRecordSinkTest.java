@@ -147,7 +147,7 @@ public class DatabaseRecordSinkTest {
         final Statement stmt = con.createStatement();
         try {
             stmt.execute("drop table TESTTABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
         try {
@@ -235,7 +235,7 @@ public class DatabaseRecordSinkTest {
         final Statement stmt = con.createStatement();
         try {
             stmt.execute("drop table TESTTABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
         try {
@@ -269,7 +269,7 @@ public class DatabaseRecordSinkTest {
         final Statement stmt = con.createStatement();
         try {
             stmt.execute("drop table TESTTABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
         try {

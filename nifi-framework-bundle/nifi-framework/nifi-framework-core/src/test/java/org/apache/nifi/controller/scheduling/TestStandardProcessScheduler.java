@@ -441,7 +441,7 @@ public class TestStandardProcessScheduler {
         final Future<?> future = scheduler.enableControllerService(serviceNode);
         try {
             future.get();
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
             // Expected behavior because the FailingService throws Exception when attempting to enable
         }
 

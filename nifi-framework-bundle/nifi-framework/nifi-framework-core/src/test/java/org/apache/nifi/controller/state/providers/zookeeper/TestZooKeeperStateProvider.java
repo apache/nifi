@@ -77,7 +77,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             for (Path zookeeperConfiguration : directoryStream) {
                 Files.deleteIfExists(zookeeperConfiguration);
             }
-        } catch (Exception ignore) {
+        } catch (Exception ignored) {
         }
     }
 

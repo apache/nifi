@@ -293,7 +293,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         } catch (final IOException ioe) {
             try {
                 stop(/* force */true);
-            } catch (final Exception e) {
+            } catch (final Exception ignored) {
             }
 
             throw new LifeCycleStartException("Failed to start Flow Service due to: " + ioe, ioe);

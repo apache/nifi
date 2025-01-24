@@ -149,7 +149,7 @@ public class BootstrapC2OperationRestartHandlerTest {
         public void run() {
             try {
                 sleep(waitBeforeAcknowledgeMs);
-            } catch (InterruptedException ignore) {
+            } catch (InterruptedException ignored) {
             }
             handler.accept(callbackResult, null);
         }

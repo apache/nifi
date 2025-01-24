@@ -758,7 +758,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             if (generatedKeys != null && generatedKeys.next()) {
                 return generatedKeys.getString(1);
             }
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // This is not supported by all vendors. This is a best-effort approach.
         }
 

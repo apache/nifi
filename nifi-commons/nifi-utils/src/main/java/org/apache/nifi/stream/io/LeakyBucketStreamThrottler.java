@@ -53,7 +53,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
             // 2 seconds, it is because the Runnable thread is blocking on a write; in this case,
             // we will just ignore it and return
             executorService.awaitTermination(2, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
         }
     }
 
@@ -246,7 +246,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
                         final Response response = new Response(e);
                         responseQueue.put(response);
                     }
-                } catch (InterruptedException e) {
+                } catch (InterruptedException ignored) {
                 }
             }
         }

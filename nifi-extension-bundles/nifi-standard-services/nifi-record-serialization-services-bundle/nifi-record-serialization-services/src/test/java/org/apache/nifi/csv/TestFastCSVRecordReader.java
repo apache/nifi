@@ -412,7 +412,7 @@ public class TestFastCSVRecordReader {
             try {
                 reader.nextRecord();
                 fail("Should have thrown MalformedRecordException");
-            } catch (MalformedRecordException mre) {
+            } catch (MalformedRecordException ignored) {
                 // Expected behavior
             }
         }

@@ -104,7 +104,7 @@ public class TestStandardFlowFileQueue {
         // just make sure that the flowfiles have time to expire.
         try {
             Thread.sleep(100L);
-        } catch (final InterruptedException ie) {
+        } catch (final InterruptedException ignored) {
         }
 
         final Set<FlowFileRecord> expiredRecords = new HashSet<>(100);
@@ -457,7 +457,7 @@ public class TestStandardFlowFileQueue {
         while (status.getState() != DropFlowFileState.COMPLETE) {
             try {
                 Thread.sleep(100L);
-            } catch (final Exception e) {
+            } catch (final Exception ignored) {
             }
         }
 

@@ -467,7 +467,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                 if (createdFile != null) {
                                     try {
                                         hdfs.delete(createdFile, false);
-                                    } catch (Throwable ignore) {
+                                    } catch (Throwable ignored) {
                                     }
                                 }
                                 throw t;
