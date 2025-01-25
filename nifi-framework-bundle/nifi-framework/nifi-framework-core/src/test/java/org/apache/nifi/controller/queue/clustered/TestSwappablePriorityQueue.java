@@ -27,7 +27,9 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -181,6 +183,38 @@ public class TestSwappablePriorityQueue {
             final FlowFileRecord flowFile = queue.poll(Collections.emptySet(), 0);
             assertEquals(iValue, flowFile.getAttribute("i"));
         }
+    }
+
+    @Test
+    public void testExceptionInPollAllowsReprocessing() {
+        for (int i = 0; i < 3; i++) {
+            final MockFlowFileRecord flowFile = new MockFlowFileRecord(Map.of("i", String.valueOf(i)), i);
+            queue.put(flowFile);
+        }
+
+        assertThrows(RuntimeException.class, () -> {
+            queue.poll(new FlowFileFilter() {
+                private int count = 0;
+
+                @Override
+                public FlowFileFilterResult filter(final FlowFile flowFile) {
+                    if (count == 0) {
+                        count++;
+                        return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+                    }
+                    throw new RuntimeException("Intentional Unit Test Exception");
+                }
+            }, Set.of(), 0L);
+        });
+
+        // Ensure that all FlowFiles are still accessible and are in the proper order.
+        for (int i = 0; i < 3; i++) {
+            final FlowFileRecord flowFile = queue.poll(Set.of(), 0L);
+            assertNotNull(flowFile, "FlowFile was null at iteration " + i);
+            assertEquals(String.valueOf(i), flowFile.getAttribute("i"));
+        }
+
+        assertNull(queue.poll(Set.of(), 0L));
     }
 
     @Test

@@ -637,7 +637,16 @@ public class SwappablePriorityQueue {
                     break; // just stop searching because the rest are all penalized.
                 }
 
-                final FlowFileFilterResult result = filter.filter(flowFile);
+                final FlowFileFilterResult result;
+                try {
+                    result = filter.filter(flowFile);
+                } catch (final Throwable t) {
+                    unselected.add(flowFile);
+                    activeQueue.addAll(unselected);
+                    activeQueue.addAll(selectedFlowFiles);
+                    throw t;
+                }
+
                 if (result.isAccept()) {
                     bytesPulled += flowFile.getSize();
                     flowFilesPulled++;
@@ -653,6 +662,7 @@ public class SwappablePriorityQueue {
             }
 
             this.activeQueue.addAll(unselected);
+
             unacknowledge(flowFilesPulled, bytesPulled);
 
             if (flowFilesExpired > 0) {
