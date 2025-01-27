@@ -85,7 +85,7 @@ export class NfEditor implements OnDestroy {
     @Input() readonly: boolean = false;
 
     @Output() ok: EventEmitter<string | null> = new EventEmitter<string | null>();
-    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
+    @Output() close: EventEmitter<void> = new EventEmitter<void>();
 
     itemSet = false;
     getParametersSet = false;
@@ -245,7 +245,7 @@ export class NfEditor implements OnDestroy {
     }
 
     cancelClicked(): void {
-        this.cancel.next();
+        this.close.next();
     }
 
     ngOnDestroy(): void {

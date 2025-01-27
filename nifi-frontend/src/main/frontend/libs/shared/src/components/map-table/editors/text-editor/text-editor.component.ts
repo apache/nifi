@@ -54,7 +54,7 @@ export class TextEditor {
     @Input() readonly: boolean = false;
 
     @Output() ok: EventEmitter<string | null> = new EventEmitter<string | null>();
-    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
+    @Output() close: EventEmitter<void> = new EventEmitter<void>();
 
     textEditorForm: FormGroup;
     editor!: Editor;
@@ -73,7 +73,7 @@ export class TextEditor {
     }
 
     cancelClicked(): void {
-        this.cancel.next();
+        this.close.next();
     }
 
     okClicked(): void {

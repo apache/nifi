@@ -27,11 +27,11 @@ import { CancelDialogRequest } from '../../../state/shared';
     styleUrls: ['./cancel-dialog.component.scss']
 })
 export class CancelDialog {
-    @Output() cancel: EventEmitter<void> = new EventEmitter<void>();
+    @Output() close: EventEmitter<void> = new EventEmitter<void>();
 
     constructor(@Inject(MAT_DIALOG_DATA) public request: CancelDialogRequest) {}
 
     cancelClicked(): void {
-        this.cancel.next();
+        this.close.next();
     }
 }
