@@ -283,25 +283,25 @@ public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
                 .register(registry));
 
         nameToGaugeMap.put("PROCESSING_PERF_GC_MILLIS", Gauge.build()
-                .name("nifi_processing_gc_duration")
+                .name("nifi_processing_performance_gc_duration")
                 .help("Estimated garbage collection time (in milliseconds) used by this component")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
                 .register(registry));
 
         nameToGaugeMap.put("PROCESSING_PERF_READ_MILLIS", Gauge.build()
-                .name("nifi_processing_content_read_duration")
+                .name("nifi_processing_performance_content_read_duration")
                 .help("Estimated content read time (in milliseconds) used by this component")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
                 .register(registry));
 
         nameToGaugeMap.put("PROCESSING_PERF_WRITE_MILLIS", Gauge.build()
-                .name("nifi_processing_content_write_duration")
+                .name("nifi_processing_performance_content_write_duration")
                 .help("Estimated content write time (in milliseconds) used by this component")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
                 .register(registry));
 
         nameToGaugeMap.put("PROCESSING_PERF_COMMIT_MILLIS", Gauge.build()
-                .name("nifi_processing_session_commit_duration")
+                .name("nifi_processing_performance_session_commit_duration")
                 .help("Estimated session commit time (in milliseconds) used by this component")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
                 .register(registry));
