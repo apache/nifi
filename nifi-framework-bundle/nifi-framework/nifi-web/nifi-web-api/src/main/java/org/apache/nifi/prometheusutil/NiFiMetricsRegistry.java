@@ -277,14 +277,14 @@ public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
                 .register(registry));
 
         nameToGaugeMap.put("PROCESSING_PERF_CPU_MILLIS", Gauge.build()
-                .name("nifi_processing_cpu_duration")
-                .help("Estimated cpu time (in milliseconds) used by this component")
+                .name("nifi_processing_performance_cpu_duration")
+                .help("Estimated CPU time (in milliseconds) used by this component")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
                 .register(registry));
 
         nameToGaugeMap.put("PROCESSING_PERF_GC_MILLIS", Gauge.build()
                 .name("nifi_processing_gc_duration")
-                .help("Estimated gc time (in milliseconds) used by this component")
+                .help("Estimated garbage collection time (in milliseconds) used by this component")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "repo_identifier")
                 .register(registry));
 
