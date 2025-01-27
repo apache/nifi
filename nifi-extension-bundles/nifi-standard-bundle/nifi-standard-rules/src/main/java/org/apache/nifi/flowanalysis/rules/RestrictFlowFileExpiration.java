@@ -88,8 +88,8 @@ public class RestrictFlowFileExpiration extends AbstractFlowAnalysisRule {
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        final long minSize = validationContext.getProperty(MIN_FLOWFILE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS);
-        final long maxSize = validationContext.getProperty(MAX_FLOWFILE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS);
+        final long minSize = validationContext.getProperty(MIN_FLOWFILE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maxSize = validationContext.getProperty(MAX_FLOWFILE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS);
 
         if (minSize > maxSize) {
             results.add(
@@ -108,11 +108,11 @@ public class RestrictFlowFileExpiration extends AbstractFlowAnalysisRule {
         final Collection<ConnectionViolation> violations = new ArrayList<>();
 
         final boolean allowZero = context.getProperty(ALLOW_ZERO).asBoolean();
-        final long minSize = context.getProperty(MIN_FLOWFILE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS);
-        final long maxSize = context.getProperty(MAX_FLOWFILE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS);
+        final long minSize = context.getProperty(MIN_FLOWFILE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maxSize = context.getProperty(MAX_FLOWFILE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS);
 
         pg.getConnections().forEach(connection -> {
-            final long connectionExpiration = FormatUtils.getTimeDuration(connection.getFlowFileExpiration(), TimeUnit.SECONDS);
+            final long connectionExpiration = FormatUtils.getTimeDuration(connection.getFlowFileExpiration(), TimeUnit.MILLISECONDS);
 
             if (connectionExpiration != 0 || !allowZero) {
                 if (connectionExpiration < minSize) {
