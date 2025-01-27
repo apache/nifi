@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>2.2.0</version>
+        <version>2.3.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-registry-web-api</artifactId>
     <packaging>war</packaging>
@@ -114,7 +114,7 @@
                     <dependency>
                         <groupId>org.apache.nifi</groupId>
                         <artifactId>nifi-swagger-integration</artifactId>
-                        <version>2.2.0</version>
+                        <version>2.3.0-SNAPSHOT</version>
                         <exclusions>
                             <exclusion>
                                 <groupId>io.swagger.core.v3</groupId>
@@ -224,17 +224,17 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-framework</artifactId>
-            <version>2.2.0</version>
+            <version>2.3.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-revision-spring-jdbc</artifactId>
-            <version>2.2.0</version>
+            <version>2.3.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-revision-entity-service</artifactId>
-            <version>2.2.0</version>
+            <version>2.3.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -244,30 +244,30 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-properties</artifactId>
-            <version>2.2.0</version>
+            <version>2.3.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- This will be in the lib directory -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-api</artifactId>
-            <version>2.2.0</version>
+            <version>2.3.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- This will be in lib directory -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-provider-api</artifactId>
-            <version>2.2.0</version>
+            <version>2.3.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- This will be in lib directory -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-utils</artifactId>
-            <version>2.2.0</version>
+            <version>2.3.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-cert</artifactId>
-            <version>2.2.0</version>
+            <version>2.3.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -307,13 +307,13 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-test</artifactId>
-            <version>2.2.0</version>
+            <version>2.3.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-client</artifactId>
-            <version>2.2.0</version>
+            <version>2.3.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
