@@ -38,7 +38,7 @@ import {
 import { ComponentType, isDefinedAndNotNull, NiFiCommon, selectCurrentRoute } from '@nifi/shared';
 import { MatAccordion } from '@angular/material/expansion';
 import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, map } from 'rxjs';
+import {combineLatestWith, debounceTime, distinctUntilChanged, map} from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DocumentedType } from '../../../state/shared';
 import {
@@ -82,6 +82,12 @@ export class Documentation implements OnInit, AfterViewInit {
     private isOverviewRoute: boolean = false;
     private scrolledIntoView = false;
 
+    generalExpanded = true;
+    processorsExpanded = false;
+    controllerServicesExpanded = false;
+    reportingTasksExpanded = false;
+    parameterProvidersExpanded = false;
+
     constructor(
         private store: Store<NiFiState>,
         private formBuilder: FormBuilder,
@@ -99,11 +105,28 @@ export class Documentation implements OnInit, AfterViewInit {
                         a?.type === b?.type
                 ),
                 isDefinedAndNotNull(),
-                takeUntilDestroyed()
+                takeUntilDestroyed(),
+                combineLatestWith(this.store.select(selectCurrentRoute))
             )
-            .subscribe((coordinates) => {
+            .subscribe(([coordinates, currentRoute]) => {
                 this.selectedCoordinates = coordinates;
                 this.isOverviewRoute = false;
+
+                // ensure the panel that the defined component is in is expanded
+                switch (currentRoute.url[0].path) {
+                    case ComponentType.Processor:
+                        this.processorsExpanded = true;
+                        break;
+                    case ComponentType.ControllerService:
+                        this.controllerServicesExpanded = true;
+                        break;
+                    case ComponentType.ReportingTask:
+                        this.reportingTasksExpanded = true;
+                        break;
+                    case ComponentType.ParameterProvider:
+                        this.parameterProvidersExpanded = true;
+                        break;
+                }
             });
 
         this.store
@@ -123,6 +146,7 @@ export class Documentation implements OnInit, AfterViewInit {
             .subscribe((isOverviewRoute) => {
                 this.isOverviewRoute = isOverviewRoute;
                 this.selectedCoordinates = null;
+                this.generalExpanded = isOverviewRoute;
             });
 
         this.filterForm = this.formBuilder.group({
@@ -151,7 +175,6 @@ export class Documentation implements OnInit, AfterViewInit {
             });
 
         this.store.dispatch(loadExtensionTypesForDocumentation());
-        this.applyFilter(null);
     }
 
     ngAfterViewInit(): void {

@@ -4575,7 +4575,10 @@ export class FlowEffects {
 
                     dialogRef.componentInstance.changeColor.pipe(take(1)).subscribe((requests) => {
                         requests.forEach((request) => {
-                            const style = { ...request.style } || {};
+                            let style: any = {};
+                            if (request.style) {
+                                style = { ...request.style };
+                            }
                             if (request.type === ComponentType.Processor) {
                                 if (request.color) {
                                     style['background-color'] = request.color;
