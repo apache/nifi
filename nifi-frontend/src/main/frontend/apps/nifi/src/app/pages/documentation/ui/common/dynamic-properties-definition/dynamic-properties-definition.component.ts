@@ -23,7 +23,6 @@ import { MatIconButton } from '@angular/material/button';
 
 @Component({
     selector: 'dynamic-properties-definition',
-    standalone: true,
     imports: [MatAccordion, MatExpansionModule, MatIconButton],
     templateUrl: './dynamic-properties-definition.component.html',
     styleUrl: './dynamic-properties-definition.component.scss'

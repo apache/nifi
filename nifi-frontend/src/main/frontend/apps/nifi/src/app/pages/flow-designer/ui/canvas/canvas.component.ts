@@ -77,7 +77,8 @@ import { snackBarError } from '../../../../state/error/error.actions';
 @Component({
     selector: 'fd-canvas',
     templateUrl: './canvas.component.html',
-    styleUrls: ['./canvas.component.scss']
+    styleUrls: ['./canvas.component.scss'],
+    standalone: false
 })
 export class Canvas implements OnInit, OnDestroy {
     private svg: any;

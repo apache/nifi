@@ -23,7 +23,6 @@ import { ClusterTableFilterContext } from '../cluster-table-filter/cluster-table
 
 @Component({
     selector: 'cluster-table',
-    standalone: true,
     imports: [MatTableModule, MatSortModule],
     template: ''
 })

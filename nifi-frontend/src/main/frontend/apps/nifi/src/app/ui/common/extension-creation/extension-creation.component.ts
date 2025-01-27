@@ -34,7 +34,6 @@ import { matchesCamelCaseSearch } from './filter-predicate/camel-case.search';
 
 @Component({
     selector: 'extension-creation',
-    standalone: true,
     templateUrl: './extension-creation.component.html',
     imports: [
         MatButtonModule,

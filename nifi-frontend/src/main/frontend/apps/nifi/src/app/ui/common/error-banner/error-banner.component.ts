@@ -21,7 +21,6 @@ import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'error-banner',
-    standalone: true,
     imports: [MatButtonModule, NgClass],
     templateUrl: './error-banner.component.html',
     styleUrls: ['./error-banner.component.scss']

@@ -44,7 +44,8 @@ interface TabLink {
 @Component({
     selector: 'cluster',
     templateUrl: './cluster.component.html',
-    styleUrls: ['./cluster.component.scss']
+    styleUrls: ['./cluster.component.scss'],
+    standalone: false
 })
 export class Cluster implements OnInit, OnDestroy {
     private _currentUser!: CurrentUser;

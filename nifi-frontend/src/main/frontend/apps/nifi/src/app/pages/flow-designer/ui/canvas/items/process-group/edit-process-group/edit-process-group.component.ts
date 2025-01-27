@@ -42,7 +42,6 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
 
 @Component({
     selector: 'edit-process-group',
-    standalone: true,
     templateUrl: './edit-process-group.component.html',
     imports: [
         ReactiveFormsModule,

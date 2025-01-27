@@ -35,7 +35,6 @@ import { BulletinsTip } from '../tooltips/bulletins-tip/bulletins-tip.component'
 
 @Component({
     selector: 'parameter-references',
-    standalone: true,
     templateUrl: './parameter-references.component.html',
     imports: [
         MatTreeModule,

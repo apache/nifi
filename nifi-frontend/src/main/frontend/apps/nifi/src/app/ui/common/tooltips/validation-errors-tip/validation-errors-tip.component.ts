@@ -20,7 +20,6 @@ import { ValidationErrorsTipInput } from '../../../../state/shared';
 
 @Component({
     selector: 'validation-errors-tip',
-    standalone: true,
     templateUrl: './validation-errors-tip.component.html',
     imports: [],
     styleUrls: ['./validation-errors-tip.component.scss']

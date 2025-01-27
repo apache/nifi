@@ -22,7 +22,6 @@ import { Attribute } from '../../../state/processor-definition';
 
 @Component({
     selector: 'attributes-definition',
-    standalone: true,
     imports: [MatTableModule],
     templateUrl: './attributes-definition.component.html',
     styleUrl: './attributes-definition.component.scss'

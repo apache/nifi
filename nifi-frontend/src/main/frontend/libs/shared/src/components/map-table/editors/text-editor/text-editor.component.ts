@@ -29,7 +29,6 @@ import { MapTableItem } from '../../../../types';
 
 @Component({
     selector: 'text-editor',
-    standalone: true,
     imports: [
         CommonModule,
         CdkDrag,

@@ -33,7 +33,6 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
 
 @Component({
     selector: 'flowfile-table',
-    standalone: true,
     templateUrl: './flowfile-table.component.html',
     imports: [
         MatTableModule,

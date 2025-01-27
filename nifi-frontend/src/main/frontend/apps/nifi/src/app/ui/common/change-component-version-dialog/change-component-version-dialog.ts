@@ -26,7 +26,6 @@ import { ControllerServiceApi } from '../controller-service/controller-service-a
 
 @Component({
     selector: 'change-component-version-dialog',
-    standalone: true,
     imports: [
         MatDialogModule,
         MatButton,

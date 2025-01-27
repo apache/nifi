@@ -33,7 +33,6 @@ export type SupportedColumns = 'name' | 'uri' | 'transmitting' | 'sent' | 'recei
 
 @Component({
     selector: 'remote-process-group-status-table',
-    standalone: true,
     imports: [
         CommonModule,
         SummaryTableFilterModule,

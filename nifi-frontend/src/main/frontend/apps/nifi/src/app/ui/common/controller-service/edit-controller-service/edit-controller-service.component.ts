@@ -57,7 +57,6 @@ import { ContextErrorBanner } from '../../context-error-banner/context-error-ban
 
 @Component({
     selector: 'edit-controller-service',
-    standalone: true,
     templateUrl: './edit-controller-service.component.html',
     imports: [
         ReactiveFormsModule,

@@ -32,7 +32,6 @@ import { MarkdownComponent } from 'ngx-markdown';
 
 @Component({
     selector: 'additional-details',
-    standalone: true,
     imports: [MatAccordion, MatExpansionModule, MatIconButton, NgxSkeletonLoaderModule, MarkdownComponent],
     templateUrl: './additional-details.component.html',
     styleUrl: './additional-details.component.scss'

@@ -24,7 +24,6 @@ import { PropertyDefinitionComponent } from '../property-definition/property-def
 
 @Component({
     selector: 'properties-definition',
-    standalone: true,
     imports: [MatAccordion, MatExpansionModule, MatButtonModule, PropertyDefinitionComponent],
     templateUrl: './properties-definition.component.html',
     styleUrl: './properties-definition.component.scss'

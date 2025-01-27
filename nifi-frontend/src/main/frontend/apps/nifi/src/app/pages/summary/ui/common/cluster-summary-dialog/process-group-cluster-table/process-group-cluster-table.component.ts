@@ -24,7 +24,6 @@ import { NgClass } from '@angular/common';
 
 @Component({
     selector: 'process-group-cluster-table',
-    standalone: true,
     imports: [MatTableModule, MatSortModule, NgClass],
     templateUrl: './process-group-cluster-table.component.html',
     styleUrl: './process-group-cluster-table.component.scss'

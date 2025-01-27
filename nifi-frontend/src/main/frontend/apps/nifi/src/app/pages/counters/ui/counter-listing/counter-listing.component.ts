@@ -26,7 +26,8 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 @Component({
     selector: 'counter-listing',
     templateUrl: './counter-listing.component.html',
-    styleUrls: ['./counter-listing.component.scss']
+    styleUrls: ['./counter-listing.component.scss'],
+    standalone: false
 })
 export class CounterListing implements OnInit {
     counterListingState$ = this.store.select(selectCounterListingState);

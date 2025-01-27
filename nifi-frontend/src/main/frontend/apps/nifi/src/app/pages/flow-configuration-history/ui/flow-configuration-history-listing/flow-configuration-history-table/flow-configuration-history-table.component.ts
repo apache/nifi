@@ -25,7 +25,6 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'flow-configuration-history-table',
-    standalone: true,
     imports: [MatTableModule, MatSortModule, MatIconButton, MatMenu, MatMenuTrigger, MatMenuItem],
     templateUrl: './flow-configuration-history-table.component.html',
     styleUrls: ['./flow-configuration-history-table.component.scss']

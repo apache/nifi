@@ -39,7 +39,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 
 @Component({
     selector: 'edit-label',
-    standalone: true,
     templateUrl: './edit-label.component.html',
     imports: [
         ReactiveFormsModule,

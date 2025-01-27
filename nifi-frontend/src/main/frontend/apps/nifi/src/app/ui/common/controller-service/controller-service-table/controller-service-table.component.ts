@@ -32,7 +32,6 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
     selector: 'controller-service-table',
-    standalone: true,
     templateUrl: './controller-service-table.component.html',
     imports: [
         MatButtonModule,

@@ -25,7 +25,6 @@ import { logout } from '../../../state/current-user/current-user.actions';
 
 @Component({
     selector: 'page-content',
-    standalone: true,
     templateUrl: './page-content.component.html',
     imports: [RouterLink],
     styleUrls: ['./page-content.component.scss']

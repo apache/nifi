@@ -48,7 +48,6 @@ import { selectEvaluationContextError } from '../../state/evaluation-context/eva
 
 @Component({
     selector: 'rule-listing',
-    standalone: true,
     imports: [
         CommonModule,
         MatSlideToggleModule,

@@ -32,7 +32,6 @@ interface Data {
 
 @Component({
     selector: 'app-violation-details-dialog',
-    standalone: true,
     imports: [CommonModule, MatDialogModule, MatButton],
     templateUrl: './violation-details-dialog.component.html',
     styleUrl: './violation-details-dialog.component.scss'

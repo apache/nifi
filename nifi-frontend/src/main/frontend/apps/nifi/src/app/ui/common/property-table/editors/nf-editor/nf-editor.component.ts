@@ -33,7 +33,6 @@ import { NfPr } from './modes/nfpr';
 
 @Component({
     selector: 'nf-editor',
-    standalone: true,
     templateUrl: './nf-editor.component.html',
     imports: [
         CdkDrag,

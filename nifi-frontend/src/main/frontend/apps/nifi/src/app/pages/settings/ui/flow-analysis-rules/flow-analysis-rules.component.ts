@@ -48,7 +48,8 @@ import { ComponentType } from '@nifi/shared';
 @Component({
     selector: 'flow-analysis-rules',
     templateUrl: './flow-analysis-rules.component.html',
-    styleUrls: ['./flow-analysis-rules.component.scss']
+    styleUrls: ['./flow-analysis-rules.component.scss'],
+    standalone: false
 })
 export class FlowAnalysisRules implements OnInit, OnDestroy {
     flowAnalysisRuleState$ = this.store.select(selectFlowAnalysisRulesState);

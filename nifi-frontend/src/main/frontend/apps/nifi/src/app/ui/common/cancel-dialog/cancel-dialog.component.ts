@@ -22,7 +22,6 @@ import { CancelDialogRequest } from '../../../state/shared';
 
 @Component({
     selector: 'cancel-dialog',
-    standalone: true,
     imports: [MatDialogModule, MatButtonModule],
     templateUrl: './cancel-dialog.component.html',
     styleUrls: ['./cancel-dialog.component.scss']

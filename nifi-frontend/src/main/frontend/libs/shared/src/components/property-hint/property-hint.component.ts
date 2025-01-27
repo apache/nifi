@@ -23,7 +23,6 @@ import { PropertyHintTipInput } from '../../types';
 
 @Component({
     selector: 'property-hint',
-    standalone: true,
     imports: [NgTemplateOutlet, NifiTooltipDirective],
     templateUrl: './property-hint.component.html',
     styleUrl: './property-hint.component.scss'

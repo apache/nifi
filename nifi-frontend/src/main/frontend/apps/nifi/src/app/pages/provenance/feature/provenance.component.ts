@@ -23,7 +23,8 @@ import { loadProvenanceOptions } from '../state/provenance-event-listing/provena
 @Component({
     selector: 'provenance',
     templateUrl: './provenance.component.html',
-    styleUrls: ['./provenance.component.scss']
+    styleUrls: ['./provenance.component.scss'],
+    standalone: false
 })
 export class Provenance implements OnInit {
     constructor(private store: Store<NiFiState>) {}

@@ -33,7 +33,6 @@ import { NodeSnapshot } from '../../../../state/system-diagnostics';
 
 @Component({
     selector: 'cluster-system-listing',
-    standalone: true,
     imports: [NgxSkeletonLoaderModule, ClusterSystemTable, ClusterNodeTable],
     templateUrl: './cluster-system-listing.component.html',
     styleUrl: './cluster-system-listing.component.scss'

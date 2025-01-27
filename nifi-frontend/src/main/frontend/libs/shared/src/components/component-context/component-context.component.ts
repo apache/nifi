@@ -22,7 +22,6 @@ import { CopyDirective } from '../../directives/copy/copy.directive';
 
 @Component({
     selector: 'component-context',
-    standalone: true,
     imports: [ComponentTypeNamePipe, CopyDirective],
     templateUrl: './component-context.component.html',
     styleUrl: './component-context.component.scss'

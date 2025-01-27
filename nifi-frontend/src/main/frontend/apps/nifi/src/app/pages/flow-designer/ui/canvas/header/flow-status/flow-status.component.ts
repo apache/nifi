@@ -34,7 +34,6 @@ import { CanvasUtils } from '../../../../service/canvas-utils.service';
 
 @Component({
     selector: 'flow-status',
-    standalone: true,
     templateUrl: './flow-status.component.html',
     imports: [Search, NifiTooltipDirective, CommonModule],
     styleUrls: ['./flow-status.component.scss']

@@ -37,7 +37,6 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'new-property-dialog',
-    standalone: true,
     imports: [
         MatDialogModule,
         MatButtonModule,

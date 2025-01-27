@@ -55,7 +55,6 @@ interface FilterableColumn {
 
 @Component({
     selector: 'flow-configuration-history-listing',
-    standalone: true,
     imports: [
         CommonModule,
         NgxSkeletonLoaderModule,

@@ -53,7 +53,6 @@ interface Helper {
 
 @Component({
     selector: 'cluster-summary-dialog',
-    standalone: true,
     imports: [
         MatDialogTitle,
         MatDialogContent,

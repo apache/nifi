@@ -39,7 +39,6 @@ interface LocalChange {
 
 @Component({
     selector: 'local-changes-table',
-    standalone: true,
     imports: [
         MatFormField,
         MatInput,

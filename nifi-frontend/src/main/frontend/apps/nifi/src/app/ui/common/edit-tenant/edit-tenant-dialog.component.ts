@@ -45,7 +45,6 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
 
 @Component({
     selector: 'edit-tenant-dialog',
-    standalone: true,
     imports: [
         MatDialogModule,
         MatButtonModule,

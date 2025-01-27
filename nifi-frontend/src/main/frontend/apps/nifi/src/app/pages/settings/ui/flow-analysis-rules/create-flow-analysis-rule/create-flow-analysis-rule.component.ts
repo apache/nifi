@@ -29,7 +29,6 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'create-flow-analysis-rule',
-    standalone: true,
     imports: [ExtensionCreation, AsyncPipe],
     templateUrl: './create-flow-analysis-rule.component.html',
     styleUrls: ['./create-flow-analysis-rule.component.scss']

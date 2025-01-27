@@ -35,7 +35,6 @@ import { CloseOnEscapeDialog, SelectOption } from '@nifi/shared';
 
 @Component({
     selector: 'provenance-search-dialog',
-    standalone: true,
     templateUrl: './provenance-search-dialog.component.html',
     imports: [
         ReactiveFormsModule,

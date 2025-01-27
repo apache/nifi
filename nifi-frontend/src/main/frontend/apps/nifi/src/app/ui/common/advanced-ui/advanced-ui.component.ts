@@ -28,7 +28,6 @@ import { selectDisconnectionAcknowledged } from '../../../state/cluster-summary/
 
 @Component({
     selector: 'advanced-ui',
-    standalone: true,
     templateUrl: './advanced-ui.component.html',
     imports: [Navigation],
     styleUrls: ['./advanced-ui.component.scss']

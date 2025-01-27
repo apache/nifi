@@ -43,7 +43,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'edit-rule',
-    standalone: true,
     imports: [
         CommonModule,
         MatSlideToggleModule,

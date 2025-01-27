@@ -38,7 +38,6 @@ export interface AllowableValueItem extends AllowableValue {
 
 @Component({
     selector: 'combo-editor',
-    standalone: true,
     templateUrl: './combo-editor.component.html',
     imports: [
         CdkDrag,

@@ -35,7 +35,6 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'add-tenant-to-policy-dialog',
-    standalone: true,
     imports: [
         MatDialogModule,
         MatButtonModule,

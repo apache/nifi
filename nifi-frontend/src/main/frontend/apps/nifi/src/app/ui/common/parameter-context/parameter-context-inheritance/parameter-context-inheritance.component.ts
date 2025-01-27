@@ -35,7 +35,6 @@ import { SortObjectByPropertyPipe } from '../../../../../../../../libs/shared/sr
 
 @Component({
     selector: 'parameter-context-inheritance',
-    standalone: true,
     templateUrl: './parameter-context-inheritance.component.html',
     imports: [
         MatButtonModule,

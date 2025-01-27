@@ -21,7 +21,8 @@ import { VersionControlInformation, VersionControlTipInput } from '../../../../s
 @Component({
     selector: 'version-control-tip',
     templateUrl: './version-control-tip.component.html',
-    styleUrls: ['./version-control-tip.component.scss']
+    styleUrls: ['./version-control-tip.component.scss'],
+    standalone: false
 })
 export class VersionControlTip {
     @Input() left = 0;

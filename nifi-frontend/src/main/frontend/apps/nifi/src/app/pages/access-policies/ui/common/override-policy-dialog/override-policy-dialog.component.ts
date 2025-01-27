@@ -24,7 +24,6 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'override-policy-dialog',
-    standalone: true,
     imports: [MatDialogModule, MatButtonModule, FormsModule, ReactiveFormsModule, MatRadioModule],
     templateUrl: './override-policy-dialog.component.html',
     styleUrls: ['./override-policy-dialog.component.scss']

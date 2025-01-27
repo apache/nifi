@@ -24,7 +24,8 @@ import { selectGeneral } from '../../state/general/general.selectors';
 @Component({
     selector: 'general',
     templateUrl: './general.component.html',
-    styleUrls: ['./general.component.scss']
+    styleUrls: ['./general.component.scss'],
+    standalone: false
 })
 export class General implements OnInit, OnDestroy {
     general$ = this.store.select(selectGeneral);

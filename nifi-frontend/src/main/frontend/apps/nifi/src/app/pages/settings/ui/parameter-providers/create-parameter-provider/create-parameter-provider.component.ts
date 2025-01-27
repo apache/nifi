@@ -26,7 +26,6 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'create-parameter-provider',
-    standalone: true,
     imports: [CommonModule, ExtensionCreation],
     templateUrl: './create-parameter-provider.component.html',
     styleUrls: ['./create-parameter-provider.component.scss']

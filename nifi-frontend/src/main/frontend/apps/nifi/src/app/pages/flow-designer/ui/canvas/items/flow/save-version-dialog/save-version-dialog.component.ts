@@ -40,7 +40,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 
 @Component({
     selector: 'save-version-dialog',
-    standalone: true,
     imports: [
         MatDialogTitle,
         ReactiveFormsModule,

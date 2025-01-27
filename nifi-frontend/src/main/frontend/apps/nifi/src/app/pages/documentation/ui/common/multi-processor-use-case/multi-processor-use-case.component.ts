@@ -31,7 +31,6 @@ import { InputRequirementComponent } from '../input-requirement/input-requiremen
 
 @Component({
     selector: 'multi-processor-use-case',
-    standalone: true,
     templateUrl: './multi-processor-use-case.component.html',
     imports: [MatAccordion, MatExpansionModule, MatIconButton, InputRequirementComponent, AsyncPipe, RouterLink],
     styleUrl: './multi-processor-use-case.component.scss'

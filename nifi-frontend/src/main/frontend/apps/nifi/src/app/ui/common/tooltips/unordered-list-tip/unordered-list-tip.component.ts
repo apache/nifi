@@ -20,7 +20,6 @@ import { UnorderedListTipInput } from '../../../../state/shared';
 
 @Component({
     selector: 'unordered-list-tip',
-    standalone: true,
     templateUrl: './unordered-list-tip.component.html',
     imports: [],
     styleUrls: ['./unordered-list-tip.component.scss']

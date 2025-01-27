@@ -41,7 +41,6 @@ import { BreadcrumbEntity } from '../../../../state/shared';
 
 @Component({
     selector: 'flow-analysis-drawer',
-    standalone: true,
     imports: [
         CommonModule,
         MatMenuModule,

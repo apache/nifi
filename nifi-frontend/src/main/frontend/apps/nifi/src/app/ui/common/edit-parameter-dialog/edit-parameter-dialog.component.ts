@@ -41,7 +41,6 @@ import { NifiTooltipDirective, TextTip, CloseOnEscapeDialog, Parameter } from '@
 
 @Component({
     selector: 'edit-parameter-dialog',
-    standalone: true,
     imports: [
         MatDialogModule,
         MatButtonModule,

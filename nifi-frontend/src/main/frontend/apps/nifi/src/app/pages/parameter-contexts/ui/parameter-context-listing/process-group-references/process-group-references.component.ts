@@ -27,7 +27,6 @@ import { BoundProcessGroup } from '../../../../../state/shared';
 
 @Component({
     selector: 'process-group-references',
-    standalone: true,
     templateUrl: './process-group-references.component.html',
     imports: [
         MatTreeModule,

@@ -23,7 +23,8 @@ import { NiFiState } from '../../../state';
 @Component({
     selector: 'flow-designer',
     templateUrl: './flow-designer.component.html',
-    styleUrls: ['./flow-designer.component.scss']
+    styleUrls: ['./flow-designer.component.scss'],
+    standalone: false
 })
 export class FlowDesigner implements OnInit {
     constructor(private store: Store<NiFiState>) {}

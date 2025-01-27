@@ -47,7 +47,6 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
 
 @Component({
     selector: 'create-process-group',
-    standalone: true,
     imports: [
         AsyncPipe,
         MatButtonModule,

@@ -40,7 +40,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'bulletin-board-list',
-    standalone: true,
     imports: [MatFormFieldModule, MatInputModule, MatOptionModule, MatSelectModule, ReactiveFormsModule, RouterLink],
     templateUrl: './bulletin-board-list.component.html',
     styleUrls: ['./bulletin-board-list.component.scss']

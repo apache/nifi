@@ -30,7 +30,6 @@ import { NfEl } from './modes/nfel';
 
 @Component({
     selector: 'ua-editor',
-    standalone: true,
     templateUrl: './ua-editor.component.html',
     imports: [
         CdkDrag,

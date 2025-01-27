@@ -41,7 +41,6 @@ import { selectCurrentUser } from '../../../../state/current-user/current-user.s
 
 @Component({
     selector: 'cluster-node-listing',
-    standalone: true,
     imports: [NgxSkeletonLoaderModule, ClusterNodeTable],
     templateUrl: './cluster-node-listing.component.html',
     styleUrl: './cluster-node-listing.component.scss'

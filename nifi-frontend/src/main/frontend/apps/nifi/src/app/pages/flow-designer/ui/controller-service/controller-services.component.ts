@@ -57,7 +57,8 @@ import { DocumentationRequest } from '../../../../state/documentation';
 @Component({
     selector: 'controller-services',
     templateUrl: './controller-services.component.html',
-    styleUrls: ['./controller-services.component.scss']
+    styleUrls: ['./controller-services.component.scss'],
+    standalone: false
 })
 export class ControllerServices implements OnDestroy {
     serviceState$ = this.store.select(selectControllerServicesState);

@@ -51,7 +51,8 @@ import { navigateToOverview } from '../state/documentation/documentation.actions
 @Component({
     selector: 'documentation',
     templateUrl: './documentation.component.html',
-    styleUrls: ['./documentation.component.scss']
+    styleUrls: ['./documentation.component.scss'],
+    standalone: false
 })
 export class Documentation implements OnInit, AfterViewInit {
     private destroyRef: DestroyRef = inject(DestroyRef);

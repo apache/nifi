@@ -24,7 +24,6 @@ import { RouterLink } from '@angular/router';
 
 @Component({
     selector: 'no-registry-clients-dialog',
-    standalone: true,
     imports: [MatDialogModule, MatButtonModule, RouterLink],
     templateUrl: './no-registry-clients-dialog.component.html',
     styleUrls: ['./no-registry-clients-dialog.component.scss']

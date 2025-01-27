@@ -30,7 +30,6 @@ export interface RelationshipItem {
 
 @Component({
     selector: 'source-processor',
-    standalone: true,
     templateUrl: './source-processor.component.html',
     styleUrls: ['./source-processor.component.scss'],
     imports: [MatCheckboxModule, FormsModule],

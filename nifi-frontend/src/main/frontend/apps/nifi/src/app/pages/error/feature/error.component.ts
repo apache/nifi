@@ -24,7 +24,8 @@ import { resetErrorState } from '../../../state/error/error.actions';
 @Component({
     selector: 'error',
     templateUrl: './error.component.html',
-    styleUrls: ['./error.component.scss']
+    styleUrls: ['./error.component.scss'],
+    standalone: false
 })
 export class Error implements OnDestroy {
     errorDetail$ = this.store.select(selectFullScreenError);

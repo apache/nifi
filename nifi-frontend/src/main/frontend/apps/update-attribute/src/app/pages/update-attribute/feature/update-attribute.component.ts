@@ -40,7 +40,8 @@ import { NfEl } from '../ui/ua-editor/modes/nfel';
 @Component({
     selector: 'update-attribute',
     templateUrl: './update-attribute.component.html',
-    styleUrls: ['./update-attribute.component.scss']
+    styleUrls: ['./update-attribute.component.scss'],
+    standalone: false
 })
 export class UpdateAttribute implements OnDestroy {
     rulesState = this.store.selectSignal(selectRulesState);

@@ -27,7 +27,6 @@ import { AdditionalDetailsComponent } from '../additional-details/additional-det
 
 @Component({
     selector: 'configurable-extension-definition',
-    standalone: true,
     imports: [
         PropertiesDefinitionComponent,
         DynamicPropertiesDefinitionComponent,

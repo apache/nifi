@@ -32,7 +32,6 @@ import { ZoomBehavior } from 'd3';
 
 @Component({
     selector: 'lineage',
-    standalone: true,
     templateUrl: './lineage.component.html',
     imports: [ContextMenu, CdkContextMenuTrigger],
     styleUrls: ['./lineage.component.scss']

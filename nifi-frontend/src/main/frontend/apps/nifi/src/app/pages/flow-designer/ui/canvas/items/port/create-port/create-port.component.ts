@@ -36,7 +36,6 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
 
 @Component({
     selector: 'create-port',
-    standalone: true,
     imports: [
         ReactiveFormsModule,
         MatDialogModule,

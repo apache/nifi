@@ -33,7 +33,6 @@ import { distinctUntilChanged } from 'rxjs';
 
 @Component({
     selector: 'controller-service-definition',
-    standalone: true,
     imports: [NgxSkeletonLoaderModule, ConfigurableExtensionDefinitionComponent],
     templateUrl: './controller-service-definition.component.html',
     styleUrl: './controller-service-definition.component.scss'

@@ -30,7 +30,6 @@ import { TabbedDialog } from '../../../../../ui/common/tabbed-dialog/tabbed-dial
 
 @Component({
     selector: 'flowfile-dialog',
-    standalone: true,
     templateUrl: './flowfile-dialog.component.html',
     styleUrls: ['./flowfile-dialog.component.scss'],
     imports: [

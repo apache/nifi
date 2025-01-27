@@ -23,7 +23,6 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
 
 @Component({
     selector: 'ok-dialog',
-    standalone: true,
     imports: [MatDialogModule, MatButtonModule],
     templateUrl: './ok-dialog.component.html',
     styleUrls: ['./ok-dialog.component.scss']

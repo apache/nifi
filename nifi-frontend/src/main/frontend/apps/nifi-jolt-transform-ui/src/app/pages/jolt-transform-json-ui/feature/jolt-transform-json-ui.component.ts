@@ -67,7 +67,8 @@ const JS_BEAUTIFY_OPTIONS = {
 @Component({
     selector: 'jolt-transform-json-ui',
     templateUrl: './jolt-transform-json-ui.component.html',
-    styleUrls: ['./jolt-transform-json-ui.component.scss']
+    styleUrls: ['./jolt-transform-json-ui.component.scss'],
+    standalone: false
 })
 export class JoltTransformJsonUi implements OnDestroy {
     private processorId$ = this.store.selectSignal(selectProcessorIdFromRoute);
