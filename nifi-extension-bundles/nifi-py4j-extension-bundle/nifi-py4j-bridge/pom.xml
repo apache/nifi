@@ -36,7 +36,7 @@
         <dependency>
             <groupId>net.sf.py4j</groupId>
             <artifactId>py4j</artifactId>
-            <version>0.10.9.8</version>
+            <version>0.10.9.9</version>
         </dependency>
         <!-- While we in general do not want direct dependency on logging implementations
         in this case we do have a coupling to the logback-classic/logback-core libraries

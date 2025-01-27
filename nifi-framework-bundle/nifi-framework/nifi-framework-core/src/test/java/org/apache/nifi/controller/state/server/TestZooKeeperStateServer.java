@@ -84,7 +84,7 @@ public class TestZooKeeperStateServer {
         if (zkServer != null) {
             try {
                 zkServer.shutdown();
-            } catch (final Exception ignore) { }
+            } catch (final Exception ignored) { }
         }
 
         if (tempDir != null) {
@@ -101,7 +101,7 @@ public class TestZooKeeperStateServer {
             files.forEach(p -> {
                 try {
                     if (p != null) Files.deleteIfExists(p);
-                } catch (final IOException ignore) { }
+                } catch (final IOException ignored) { }
             });
         }
     }

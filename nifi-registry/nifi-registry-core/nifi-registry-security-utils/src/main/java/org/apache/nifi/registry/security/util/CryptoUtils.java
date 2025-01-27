@@ -58,7 +58,7 @@ public class CryptoUtils {
         for (String transformation : standardCryptoTransformations) {
             try {
                 return Cipher.getMaxAllowedKeyLength(transformation) < Integer.MAX_VALUE;
-            } catch (final NoSuchAlgorithmException e) {
+            } catch (final NoSuchAlgorithmException ignored) {
                 // Unexpected as we are pulling from a list of transforms that every
                 // java platform is required to support, but try the next one
             }

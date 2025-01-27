@@ -22,7 +22,6 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.db.impl.DerbyDatabaseAdapter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockSessionFactory;
@@ -84,7 +83,7 @@ public class TestGenerateTableFetch {
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
     }
@@ -93,14 +92,14 @@ public class TestGenerateTableFetch {
     public static void cleanUpAfterClass() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (SQLNonTransientConnectionException e) {
+        } catch (SQLNonTransientConnectionException ignored) {
             // Do nothing, this is what happens at Derby shutdown
         }
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
 
@@ -119,7 +118,7 @@ public class TestGenerateTableFetch {
         runner.addControllerService("dbcp", dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(GenerateTableFetch.DBCP_SERVICE, "dbcp");
-        runner.setProperty(DB_TYPE, new DerbyDatabaseAdapter().getName());
+        runner.setProperty(DB_TYPE, "Derby");
     }
 
     @Test
@@ -131,7 +130,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -256,13 +255,13 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -352,7 +351,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -450,7 +449,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -536,7 +535,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -569,7 +568,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -610,7 +609,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -661,7 +660,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE1");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -671,7 +670,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -708,12 +707,12 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE1");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
     }
@@ -726,7 +725,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -761,7 +760,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -819,7 +818,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -865,7 +864,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -945,7 +944,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1014,7 +1013,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1055,7 +1054,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1097,7 +1096,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1133,7 +1132,7 @@ public class TestGenerateTableFetch {
         // Initial Max Value for second table
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1171,7 +1170,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1228,7 +1227,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1343,7 +1342,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1394,7 +1393,7 @@ public class TestGenerateTableFetch {
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
             stmt.execute("drop table TEST_QUERY_DB_TABLE_2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1443,7 +1442,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1529,7 +1528,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1579,7 +1578,7 @@ public class TestGenerateTableFetch {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 

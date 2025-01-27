@@ -77,7 +77,7 @@ public class TestUpdateDatabaseTable {
         dbDir.deleteOnExit();
         try {
             DriverManager.getConnection("jdbc:derby:" + dbDir + ";shutdown=true");
-        } catch (SQLException sqle) {
+        } catch (SQLException ignored) {
             // Ignore, most likely the DB has already been shutdown
         }
     }
@@ -88,19 +88,19 @@ public class TestUpdateDatabaseTable {
 
         try (Statement s = service.getConnection().createStatement()) {
             s.execute("DROP TABLE \"persons\"");
-        } catch (SQLException se) {
+        } catch (SQLException ignored) {
             // Ignore, table probably doesn't exist
         }
 
         try (Statement s = service.getConnection().createStatement()) {
             s.execute("DROP TABLE \"newTable\"");
-        } catch (SQLException se) {
+        } catch (SQLException ignored) {
             // Ignore, table probably doesn't exist
         }
 
         try (Statement s = service.getConnection().createStatement()) {
             s.execute("DROP SCHEMA \"testSchema\"");
-        } catch (SQLException se) {
+        } catch (SQLException ignored) {
             // Ignore, schema probably doesn't exist
         }
     }

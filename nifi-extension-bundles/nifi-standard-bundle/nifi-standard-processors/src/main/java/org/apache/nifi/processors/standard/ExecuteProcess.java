@@ -153,7 +153,7 @@ public class ExecuteProcess extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             COMMAND,
             COMMAND_ARGUMENTS,
             BATCH_DURATION,
@@ -184,7 +184,7 @@ public class ExecuteProcess extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -273,8 +273,7 @@ public class ExecuteProcess extends AbstractProcessor {
                     // be used to avoid waiting forever.
                     try {
                         longRunningProcess.get();
-                    } catch (final InterruptedException ie) {
-                        // Ignore
+                    } catch (final InterruptedException ignored) {
                     } catch (final ExecutionException ee) {
                         getLogger().error("Process execution failed", ee.getCause());
                     }
@@ -282,8 +281,7 @@ public class ExecuteProcess extends AbstractProcessor {
                     // wait the allotted amount of time.
                     try {
                         TimeUnit.NANOSECONDS.sleep(batchNanos);
-                    } catch (final InterruptedException ie) {
-                        // Ignore
+                    } catch (final InterruptedException ignored) {
                     }
                 }
 

@@ -44,22 +44,24 @@
                                     [title]="item.originalEntity.parameter.name">
                                     {{ item.originalEntity.parameter.name }}
                                 </div>
-                                @if (hasDescription(item)) {
-                                    <i
-                                        class="fa fa-info-circle primary-color"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        [tooltipInputData]="getDescription(item)"
-                                        [delayClose]="false"></i>
-                                }
-                                @if (canOverride(item)) {
-                                    <i
-                                        class="fa fa-level-down primary-color"
-                                        nifiTooltip
-                                        [tooltipComponentType]="TextTip"
-                                        tooltipInputData="This parameter is inherited form another Parameter Context."
-                                        [delayClose]="false"></i>
-                                }
+                                <div class="flex gap-x-2 justify-end">
+                                    @if (hasDescription(item)) {
+                                        <i
+                                            class="fa fa-info-circle primary-color"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="getDescription(item)"
+                                            [delayClose]="false"></i>
+                                    }
+                                    @if (canOverride(item)) {
+                                        <i
+                                            class="fa fa-level-down primary-color"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="This parameter is inherited form another Parameter Context."
+                                            [delayClose]="false"></i>
+                                    }
+                                </div>
                             </div>
                         </td>
                     </ng-container>

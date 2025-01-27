@@ -274,6 +274,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
     private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
     private static final String TOTAL_RECORD_COUNT_ATTRIBUTE = "total.record.count";
     private static final int MAX_RECORD_COUNT = 2000;
+    private static final JsonParserFactory jsonParserFactory = new JsonParserFactory();
 
     private volatile SalesforceToRecordSchemaConverter salesForceToRecordSchemaConverter;
     private volatile SalesforceRestClient salesforceRestService;
@@ -306,7 +307,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         salesforceRestService = new SalesforceRestClient(salesforceConfiguration);
     }
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SALESFORCE_INSTANCE_URL,
             API_VERSION,
             QUERY_TYPE,
@@ -332,7 +333,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -508,9 +509,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 STARTING_FIELD_NAME,
                 SchemaApplicationStrategy.SELECTED_PART,
                 CAPTURE_PREDICATE,
-                false,
-                null,
-                new JsonParserFactory()
+                jsonParserFactory
         );
     }
 

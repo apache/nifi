@@ -30,3 +30,10 @@ export const selectUpdateRequest = createSelector(
 );
 
 export const selectParameterSaving = createSelector(selectParameterState, (state: ParameterState) => state.saving);
+
+export const selectSaving = createSelector(selectParameterState, (state: ParameterState) => state.saving);
+
+export const selectParameterContextStatus = createSelector(
+    selectParameterState,
+    (state: ParameterState) => state.status
+);

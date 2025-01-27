@@ -208,7 +208,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                             LOG.error("Connection dropped from {} before any data was transmitted", peerUri);
                             try {
                                 commsSession.close();
-                            } catch (final IOException ioe) {
+                            } catch (final IOException ignored) {
                             }
 
                             return;

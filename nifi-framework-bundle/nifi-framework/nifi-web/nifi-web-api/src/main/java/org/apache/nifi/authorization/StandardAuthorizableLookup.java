@@ -774,7 +774,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
                 try {
                     final BundleCoordinate bundle = BundleUtils.getCompatibleBundle(extensionManager, processor.getType(), processor.getBundle());
                     processors.add(getConfigurableComponent(processor.getType(), new BundleDTO(bundle.getGroup(), bundle.getId(), bundle.getVersion())));
-                } catch (final IllegalStateException e) {
+                } catch (final IllegalStateException ignored) {
                     // no compatible bundles... no additional auth checks necessary... if created, will be ghosted
                 }
             });
@@ -785,7 +785,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
                 try {
                     final BundleCoordinate bundle = BundleUtils.getCompatibleBundle(extensionManager, controllerService.getType(), controllerService.getBundle());
                     controllerServices.add(getConfigurableComponent(controllerService.getType(), new BundleDTO(bundle.getGroup(), bundle.getId(), bundle.getVersion())));
-                } catch (final IllegalStateException e) {
+                } catch (final IllegalStateException ignored) {
                     // no compatible bundles... no additional auth checks necessary... if created, will be ghosted
                 }
             });

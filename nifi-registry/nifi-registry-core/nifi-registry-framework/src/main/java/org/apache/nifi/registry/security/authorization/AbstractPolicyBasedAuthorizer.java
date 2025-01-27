@@ -674,7 +674,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
             if (writer != null) {
                 try {
                     writer.close();
-                } catch (XMLStreamException e) {
+                } catch (XMLStreamException ignored) {
                     // nothing to do here
                 }
             }

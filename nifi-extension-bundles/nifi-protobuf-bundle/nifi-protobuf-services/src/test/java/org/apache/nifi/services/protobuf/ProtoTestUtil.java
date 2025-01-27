@@ -58,6 +58,12 @@ public class ProtoTestUtil {
         return schemaLoader.loadSchema();
     }
 
+    public static Schema loadCircularReferenceTestSchema() {
+        final SchemaLoader schemaLoader = new SchemaLoader(FileSystems.getDefault());
+        schemaLoader.initRoots(Collections.singletonList(Location.get(BASE_TEST_PATH + "test_circular_reference.proto")), Collections.emptyList());
+        return schemaLoader.loadSchema();
+    }
+
     public static InputStream generateInputDataForProto3() throws IOException, Descriptors.DescriptorValidationException {
         DescriptorProtos.FileDescriptorSet descriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(BASE_TEST_PATH + "test_proto3.desc"));
         Descriptors.FileDescriptor fileDescriptor = Descriptors.FileDescriptor.buildFrom(descriptorSet.getFile(0), new Descriptors.FileDescriptor[0]);

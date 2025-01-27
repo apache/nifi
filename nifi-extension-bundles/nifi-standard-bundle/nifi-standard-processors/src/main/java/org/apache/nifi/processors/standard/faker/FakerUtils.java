@@ -69,7 +69,7 @@ public class FakerUtils {
                     try {
                         fakerTypeClass = Class.forName(PACKAGE_PREFIX + '.' + subPackage + "." + className);
                         break;
-                    } catch (ClassNotFoundException cnfe) {
+                    } catch (ClassNotFoundException ignored) {
                         // Ignore, check the other subpackages
                     }
                 }
@@ -77,7 +77,7 @@ public class FakerUtils {
                 if (fakerTypeClass != null) {
                     possibleFakerTypeMap.put(className, fakerTypeClass);
                 }
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 // Ignore, these are the ones we want to filter out
             }
         }
@@ -99,7 +99,7 @@ public class FakerUtils {
                     datatypeFunctionMap.put(allowableValueName, new FakerMethodHolder(allowableValueName, methodObject, method));
                     supportedDataTypes.add(new AllowableValue(allowableValueName, allowableValueDisplayName, allowableValueDisplayName));
                 }
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 // Ignore, this should indicate a Faker method that we're not interested in
             }
         }

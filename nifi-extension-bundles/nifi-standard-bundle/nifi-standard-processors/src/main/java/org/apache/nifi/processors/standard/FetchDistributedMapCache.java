@@ -119,7 +119,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             .defaultValue("UTF-8")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CACHE_ENTRY_IDENTIFIER,
             DISTRIBUTED_CACHE_SERVICE,
             PUT_CACHE_VALUE_IN_ATTRIBUTE,
@@ -151,7 +151,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -167,7 +167,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
         boolean elPresent = false;
         try {
             elPresent = cacheEntryIdentifier.isExpressionLanguagePresent();
-        } catch (NullPointerException npe) {
+        } catch (NullPointerException ignored) {
             // Unfortunate workaround to a mock framework bug (NIFI-4590)
         }
 

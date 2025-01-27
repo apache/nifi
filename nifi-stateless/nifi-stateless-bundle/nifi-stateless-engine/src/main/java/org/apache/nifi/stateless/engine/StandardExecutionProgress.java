@@ -113,7 +113,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
         for (final StatelessProcessSession session : createdSessions) {
             try {
                 session.rollback();
-            } catch (final TerminatedTaskException e) {
+            } catch (final TerminatedTaskException ignored) {
                 // Ignore, as the session may already be terminated, which will result in an Exception.
             }
         }

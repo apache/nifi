@@ -267,7 +267,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         .defaultValue("3 mins")
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             DIRECTORY,
             LISTING_STRATEGY,
             RECURSE,
@@ -292,7 +292,9 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             MAX_LISTING_TIME
     );
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS
+    );
 
     private volatile ScheduledExecutorService monitoringThreadPool;
     private volatile Future<?> monitoringFuture;
@@ -324,7 +326,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -440,7 +442,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                             BasicFileAttributes attrs = view.readAttributes();
                             attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatDateTime(attrs.creationTime().toMillis()));
                             attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatDateTime(attrs.lastAccessTime().toMillis()));
-                        } catch (Exception ignore) {
+                        } catch (Exception ignored) {
                         } // allow other attributes if these fail
                     }
                 });
@@ -450,7 +452,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                         try {
                             FileOwnerAttributeView view = Files.getFileAttributeView(filePath, FileOwnerAttributeView.class);
                             attributes.put(FILE_OWNER_ATTRIBUTE, view.getOwner().getName());
-                        } catch (Exception ignore) {
+                        } catch (Exception ignored) {
                         } // allow other attributes if these fail
                     }
                 });
@@ -461,7 +463,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                             PosixFileAttributeView view = Files.getFileAttributeView(filePath, PosixFileAttributeView.class);
                             attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
                             attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
-                        } catch (Exception ignore) {
+                        } catch (Exception ignored) {
                         } // allow other attributes if these fail
                     }
                 });

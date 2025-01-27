@@ -217,7 +217,7 @@ public abstract class CompressableRecordReader implements RecordReader {
             while ((record = nextRecord()) != null) {
                 lastRecord = record;
             }
-        } catch (final EOFException eof) {
+        } catch (final EOFException ignored) {
             // This can happen if we stop NIFi while the record is being written.
             // This is OK, we just ignore this record. The session will not have been
             // committed, so we can just process the FlowFile again.

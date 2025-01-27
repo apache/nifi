@@ -113,7 +113,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
     static final String SCHEMA_FINGERPRINT_ATTR = "schema.fingerprint";
     static final String ITEM_COUNT_ATTR = "item.count";
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             FINGERPRINT_ALGORITHM,
             METADATA_KEYS,
             COUNT_ITEMS
@@ -131,7 +131,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -192,7 +192,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
                             while (reader.nextBlock() != null) {
                                 recordCount += reader.getBlockCount();
                             }
-                        } catch (NoSuchElementException e) {
+                        } catch (NoSuchElementException ignored) {
                             // happens at end of file
                         }
                         avroMetadata.put(ITEM_COUNT_ATTR, String.valueOf(recordCount));

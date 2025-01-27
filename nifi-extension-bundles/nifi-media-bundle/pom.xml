@@ -25,7 +25,7 @@
 
     <properties>
         <poi.version>5.4.0</poi.version>
-        <mime4j.version>0.8.11</mime4j.version>
+        <mime4j.version>0.8.12</mime4j.version>
     </properties>
 
     <modules>

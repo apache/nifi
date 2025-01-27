@@ -171,7 +171,7 @@ public class PutDatabaseRecordTest {
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ignore) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
     }
@@ -180,14 +180,14 @@ public class PutDatabaseRecordTest {
     public static void shutdownDatabase() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (Exception ignore) {
+        } catch (Exception ignored) {
             // Do nothing, this is what happens at Derby shutdown
         }
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ignore) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
         System.clearProperty("derby.stream.error.file");
@@ -1848,7 +1848,7 @@ public class PutDatabaseRecordTest {
         final Statement stmt = conn.createStatement();
         try {
             stmt.execute("DROP TABLE TEMP");
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
             // Do nothing, table may not exist
         }
         stmt.execute("CREATE TABLE TEMP (id integer primary key, name long varchar)");
@@ -1893,7 +1893,7 @@ public class PutDatabaseRecordTest {
         final Statement stmt = conn.createStatement();
         try {
             stmt.execute("DROP TABLE TEMP");
-        } catch (final Exception e) {
+        } catch (final Exception ignored) {
             // Do nothing, table may not exist
         }
         stmt.execute("CREATE TABLE TEMP (id integer primary key, code integer, name long varchar)");
@@ -2341,7 +2341,7 @@ public class PutDatabaseRecordTest {
              final Statement stmt = conn.createStatement()) {
             stmt.execute("drop table PERSONS");
             stmt.execute(createPersons);
-        } catch (SQLException ignore) {
+        } catch (SQLException ignored) {
             // Do nothing, may not have existed
         }
     }
@@ -2365,7 +2365,7 @@ public class PutDatabaseRecordTest {
         final Statement stmt = conn.createStatement();
         try {
             stmt.execute("drop table " + tableName);
-        } catch (SQLException ignore) {
+        } catch (SQLException ignored) {
             // Do nothing, may not have existed
         }
         try (conn; stmt) {

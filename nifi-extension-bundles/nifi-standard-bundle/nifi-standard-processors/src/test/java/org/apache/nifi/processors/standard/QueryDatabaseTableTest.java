@@ -17,22 +17,14 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.avro.file.DataFileStream;
-import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
-import org.apache.nifi.processors.standard.db.impl.GenericDatabaseAdapter;
-import org.apache.nifi.processors.standard.db.impl.MSSQLDatabaseAdapter;
-import org.apache.nifi.processors.standard.db.impl.MySQLDatabaseAdapter;
-import org.apache.nifi.processors.standard.db.impl.OracleDatabaseAdapter;
-import org.apache.nifi.processors.standard.db.impl.PhoenixDatabaseAdapter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -52,17 +44,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -75,8 +63,6 @@ public class QueryDatabaseTableTest {
     MockQueryDatabaseTable processor;
     protected TestRunner runner;
     private final static String DB_LOCATION = "target/db_qdt";
-    private DatabaseAdapter dbAdapter;
-    private HashMap<String, DatabaseAdapter> origDbAdapters;
     private final static String TABLE_NAME_KEY = "tableName";
     private final static String MAX_ROWS_KEY = "maxRows";
 
@@ -90,7 +76,7 @@ public class QueryDatabaseTableTest {
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
     }
@@ -99,21 +85,17 @@ public class QueryDatabaseTableTest {
     public static void cleanUpAfterClass() {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             // Do nothing, this is what happens at Derby shutdown
         }
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
         System.clearProperty("derby.stream.error.file");
-    }
-
-    public DatabaseAdapter createDatabaseAdapter() {
-        return new GenericDatabaseAdapter();
     }
 
     public void createDbcpControllerService() throws InitializationException {
@@ -125,120 +107,26 @@ public class QueryDatabaseTableTest {
 
     @BeforeEach
     public void setup() throws InitializationException, IOException {
-        origDbAdapters = new HashMap<>(QueryDatabaseTable.dbAdapters);
-        dbAdapter = createDatabaseAdapter();
-        QueryDatabaseTable.dbAdapters.put(dbAdapter.getName(), dbAdapter);
         processor = new MockQueryDatabaseTable();
         runner = TestRunners.newTestRunner(processor);
         createDbcpControllerService();
         runner.setProperty(QueryDatabaseTable.DBCP_SERVICE, "dbcp");
-        runner.setProperty(QueryDatabaseTable.DB_TYPE, dbAdapter.getName());
+        runner.setProperty(QueryDatabaseTable.DB_TYPE, getDatabaseType());
         runner.getStateManager().clear(Scope.CLUSTER);
+    }
+
+    public String getDatabaseType() {
+        return "Generic";
     }
 
     @AfterEach
     public void teardown() throws IOException {
         runner.getStateManager().clear(Scope.CLUSTER);
         runner = null;
-        QueryDatabaseTable.dbAdapters.clear();
-        QueryDatabaseTable.dbAdapters.putAll(origDbAdapters);
     }
 
     @Test
-    public void testGetQuery() throws Exception {
-        String query = processor.getQuery(dbAdapter, "myTable", null, null, null, null);
-        assertEquals("SELECT * FROM myTable", query);
-        query = processor.getQuery(dbAdapter, "myTable", "col1,col2", null, null, null);
-        assertEquals("SELECT col1,col2 FROM myTable", query);
-
-        query = processor.getQuery(dbAdapter, "myTable", null, Collections.singletonList("id"), null, null);
-        assertEquals("SELECT * FROM myTable", query);
-
-        Map<String, String> maxValues = new HashMap<>();
-        maxValues.put("id", "509");
-        StateManager stateManager = runner.getStateManager();
-        stateManager.setState(maxValues, Scope.CLUSTER);
-        processor.putColumnType(processor.getStateKey("mytable", "id", dbAdapter), Types.INTEGER);
-        query = processor.getQuery(dbAdapter, "myTable", null, Collections.singletonList("id"), null, stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM myTable WHERE id > 509", query);
-
-        maxValues.put("date_created", "2016-03-07 12:34:56");
-        stateManager.setState(maxValues, Scope.CLUSTER);
-        processor.putColumnType(processor.getStateKey("mytable", "date_created", dbAdapter), Types.TIMESTAMP);
-        query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED"), null, stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= '2016-03-07 12:34:56'", query);
-
-        // Double quotes can be used to escape column and table names with most ANSI compatible database engines.
-        maxValues.put("mytable@!@date-created", "2016-03-07 12:34:56");
-        stateManager.setState(maxValues, Scope.CLUSTER);
-        processor.putColumnType(processor.getStateKey("\"myTable\"", "\"DATE-CREATED\"", dbAdapter), Types.TIMESTAMP);
-        query = processor.getQuery(dbAdapter, "\"myTable\"", null, Arrays.asList("id", "\"DATE-CREATED\""), null, stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM \"myTable\" WHERE id > 509 AND \"DATE-CREATED\" >= '2016-03-07 12:34:56'", query);
-
-        // Back-ticks can be used to escape MySQL column and table names.
-        dbAdapter = new MySQLDatabaseAdapter();
-        processor.putColumnType(processor.getStateKey("`myTable`", "`DATE-CREATED`", dbAdapter), Types.TIMESTAMP);
-        query = processor.getQuery(dbAdapter, "`myTable`", null, Arrays.asList("id", "`DATE-CREATED`"), null, stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM `myTable` WHERE id > 509 AND `DATE-CREATED` >= '2016-03-07 12:34:56'", query);
-
-        // Square brackets can be used to escape Microsoft SQL Server column and table names.
-        dbAdapter = new MSSQLDatabaseAdapter();
-        processor.putColumnType(processor.getStateKey("[myTable]", "[DATE-CREATED]", dbAdapter), Types.TIMESTAMP);
-        query = processor.getQuery(dbAdapter, "[myTable]", null, Arrays.asList("id", "[DATE-CREATED]"), null, stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM [myTable] WHERE id > 509 AND [DATE-CREATED] >= '2016-03-07 12:34:56'", query);
-
-        // Test Oracle strategy
-        dbAdapter = new OracleDatabaseAdapter();
-        query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED"), "type = \"CUSTOMER\"", stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= timestamp '2016-03-07 12:34:56' AND (type = \"CUSTOMER\")", query);
-
-        // Test time.
-        processor.putColumnType("mytable" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "time_created", Types.TIME);
-        maxValues.clear();
-        maxValues.put("id", "509");
-        maxValues.put("time_created", "12:34:57");
-        maxValues.put("date_created", "2016-03-07 12:34:56");
-        stateManager = runner.getStateManager();
-        stateManager.clear(Scope.CLUSTER);
-        stateManager.setState(maxValues, Scope.CLUSTER);
-        query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED", "TIME_CREATED"), "type = \"CUSTOMER\"", stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= timestamp '2016-03-07 12:34:56' AND TIME_CREATED >= timestamp '12:34:57' AND (type = \"CUSTOMER\")", query);
-        dbAdapter = new GenericDatabaseAdapter();
-        query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED", "TIME_CREATED"), "type = \"CUSTOMER\"", stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= '2016-03-07 12:34:56' AND TIME_CREATED >= '12:34:57' AND (type = \"CUSTOMER\")", query);
-    }
-
-    @Test
-    public void testGetQueryUsingPhoenixAdapter() throws Exception {
-        Map<String, String> maxValues = new HashMap<>();
-        StateManager stateManager = runner.getStateManager();
-        processor.putColumnType("mytable" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "id", Types.INTEGER);
-        processor.putColumnType("mytable" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "time_created", Types.TIME);
-        processor.putColumnType("mytable" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "date_created", Types.TIMESTAMP);
-
-        maxValues.put("id", "509");
-        maxValues.put("time_created", "12:34:57");
-        maxValues.put("date_created", "2016-03-07 12:34:56");
-        stateManager.setState(maxValues, Scope.CLUSTER);
-
-        dbAdapter = new PhoenixDatabaseAdapter();
-        String query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED", "TIME_CREATED"), "type = \"CUSTOMER\"", stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= timestamp '2016-03-07 12:34:56' AND TIME_CREATED >= time '12:34:57' AND (type = \"CUSTOMER\")", query);
-        // Cover the other path
-        dbAdapter = new GenericDatabaseAdapter();
-        query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED", "TIME_CREATED"), "type = \"CUSTOMER\"", stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= '2016-03-07 12:34:56' AND TIME_CREATED >= '12:34:57' AND (type = \"CUSTOMER\")", query);
-    }
-
-    @Test
-    public void testGetQueryNoTable() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            processor.getQuery(dbAdapter, null, null, null, null, null);
-        });
-    }
-
-    @Test
-    public void testAddedRows() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testAddedRows() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -246,7 +134,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -388,7 +276,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -428,7 +316,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -468,13 +356,13 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -547,7 +435,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -608,7 +496,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -658,7 +546,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
 
@@ -676,38 +564,6 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testWithRuntimeException() throws SQLException {
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
-            // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
-
-        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
-        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (1, 1, 1)");
-
-        runner.setIncomingConnection(false);
-        runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_NULL_INT");
-        runner.setProperty(AbstractDatabaseFetchProcessor.MAX_VALUE_COLUMN_NAMES, "id");
-
-        QueryDatabaseTable.dbAdapters.put(dbAdapter.getName(), new GenericDatabaseAdapter() {
-            @Override
-            public String getName() {
-                throw new DataFileWriter.AppendWriteException(null);
-            }
-        });
-        runner.run();
-
-        assertTrue(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).isEmpty());
-    }
-
-    @Test
     public void testWithSqlException() throws SQLException {
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -715,7 +571,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_NO_ROWS");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
         }
 
@@ -741,7 +597,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -797,7 +653,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -901,7 +757,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -946,7 +802,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -996,7 +852,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1059,7 +915,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1107,7 +963,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1153,7 +1009,7 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1286,13 +1142,13 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
         try {
             stmt.execute("drop table TYPE_LIST");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1430,13 +1286,13 @@ public class QueryDatabaseTableTest {
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
         try {
             stmt.execute("drop table TYPE_LIST");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
         }
 
@@ -1460,51 +1316,6 @@ public class QueryDatabaseTableTest {
         assertThrows(AssertionError.class, () -> {
             runner.run();
         });
-    }
-
-    @Test
-    public void testWithExceptionAfterSomeRowsProcessed() throws SQLException {
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
-            // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
-
-        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (1, NULL, 1)");
-        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (2, 1, 1)");
-
-        runner.setIncomingConnection(false);
-        runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_NULL_INT");
-        runner.setProperty(AbstractDatabaseFetchProcessor.MAX_VALUE_COLUMN_NAMES, "id");
-
-        // Override adapter with one that fails after the first row is processed
-        QueryDatabaseTable.dbAdapters.put(dbAdapter.getName(), new GenericDatabaseAdapter() {
-            boolean fail = false;
-            @Override
-            public String getName() {
-                if (!fail) {
-                    fail = true;
-                    return super.getName();
-                }
-                throw new DataFileWriter.AppendWriteException(null);
-            }
-        });
-        runner.run();
-        assertTrue(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).isEmpty());
-        // State should not have been updated
-        runner.getStateManager().assertStateNotSet("test_null_int@!@id", Scope.CLUSTER);
-
-        // Restore original (working) adapter and run again
-        QueryDatabaseTable.dbAdapters.put(dbAdapter.getName(), dbAdapter);
-        runner.run();
-        assertFalse(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).isEmpty());
-        runner.getStateManager().assertStateEquals("test_null_int@!@id", "2", Scope.CLUSTER);
     }
 
     private long getNumberOfRecordsFromStream(InputStream in) throws IOException {

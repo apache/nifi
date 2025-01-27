@@ -17,12 +17,13 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SortObjectByPropertyPipe } from './sort-by-property.pipe';
 import { JoinPipe } from './join.pipe';
 import { SortPipe } from './sort.pipe';
 
 @NgModule({
-    declarations: [SortPipe, JoinPipe],
-    exports: [SortPipe, JoinPipe],
+    declarations: [SortPipe, SortObjectByPropertyPipe, JoinPipe],
+    exports: [SortPipe, SortObjectByPropertyPipe, JoinPipe],
     imports: [CommonModule]
 })
 export class PipesModule {}

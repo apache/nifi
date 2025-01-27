@@ -461,7 +461,7 @@ public class TestLengthDelimitedJournal {
                 if (count.getAndIncrement() == 1) {
                     try {
                         Thread.sleep(1000L);
-                    } catch (final InterruptedException ie) {
+                    } catch (final InterruptedException ignored) {
                     }
                 }
 
@@ -505,7 +505,7 @@ public class TestLengthDelimitedJournal {
                 if (count.getAndIncrement() == 0) { // it is only important that we sleep the first time. If we sleep every time, it just slows the test down.
                     try {
                         Thread.sleep(3000L);
-                    } catch (InterruptedException ignore) {
+                    } catch (InterruptedException ignored) {
                     }
                 }
 
@@ -524,7 +524,7 @@ public class TestLengthDelimitedJournal {
             final Thread t1 = new Thread(() -> {
                 try {
                     journal.update(Collections.singleton(firstRecord), key -> null);
-                } catch (final IOException ignore) {
+                } catch (final IOException ignored) {
                 }
             });
 
@@ -532,7 +532,7 @@ public class TestLengthDelimitedJournal {
             final Thread t2 = new Thread(() -> {
                 try {
                     journal.update(Collections.singleton(secondRecord), key -> firstRecord);
-                } catch (final IOException ignore) {
+                } catch (final IOException ignored) {
                 }
             });
 

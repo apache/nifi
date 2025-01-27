@@ -29,19 +29,25 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
 import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.services.protobuf.FieldType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * Creates a {@link RecordSchema} for the provided proto schema.
  */
 public class ProtoSchemaParser {
+
+    private final Map<String, RecordSchema> parsedRecordSchemas = new HashMap<>();
 
     private final Schema schema;
 
@@ -57,13 +63,22 @@ public class ProtoSchemaParser {
     public RecordSchema createSchema(String messageTypeName) {
         final MessageType messageType = (MessageType) schema.getType(messageTypeName);
         Objects.requireNonNull(messageType, String.format("Message type with name [%s] not found in the provided proto files", messageTypeName));
-        List<RecordField> recordFields = new ArrayList<>();
 
-        recordFields.addAll(processFields(messageType.getDeclaredFields()));
-        recordFields.addAll(processFields(messageType.getExtensionFields()));
-        recordFields.addAll(processOneOfFields(messageType));
+        if (parsedRecordSchemas.containsKey(messageTypeName)) {
+            return parsedRecordSchemas.get(messageTypeName);
+        } else {
+            final SchemaIdentifier identifier = new StandardSchemaIdentifier.Builder().name(messageTypeName).build();
+            final SimpleRecordSchema recordSchema = new SimpleRecordSchema(identifier);
+            parsedRecordSchemas.put(messageTypeName, recordSchema);
 
-        return new SimpleRecordSchema(recordFields);
+            List<RecordField> recordFields = new ArrayList<>();
+            recordFields.addAll(processFields(messageType.getDeclaredFields()));
+            recordFields.addAll(processFields(messageType.getExtensionFields()));
+            recordFields.addAll(processOneOfFields(messageType));
+
+            recordSchema.setFields(recordFields);
+            return recordSchema;
+        }
     }
 
     /**

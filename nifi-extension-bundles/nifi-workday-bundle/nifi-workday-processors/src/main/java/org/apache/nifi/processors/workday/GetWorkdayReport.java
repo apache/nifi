@@ -201,7 +201,7 @@ public class GetWorkdayReport extends AbstractProcessor {
             FAILURE
     );
 
-    protected static final List<PropertyDescriptor> PROPERTIES = List.of(
+    protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             REPORT_URL,
             AUTH_TYPE,
             OAUTH2_ACCESS_TOKEN_PROVIDER,
@@ -219,7 +219,7 @@ public class GetWorkdayReport extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -309,7 +309,8 @@ public class GetWorkdayReport extends AbstractProcessor {
         throws IOException, SchemaNotFoundException, MalformedRecordException {
         FlowFile responseFlowFile = null;
         try {
-            if (isSuccess(httpResponseEntity.statusCode())) {
+            final int statusCode = httpResponseEntity.statusCode();
+            if (isSuccess(statusCode)) {
                 responseFlowFile = flowfile == null ? session.create() : session.create(flowfile);
                 InputStream responseBodyStream = httpResponseEntity.body();
                 if (recordReaderFactoryReference.get() != null) {
@@ -325,6 +326,8 @@ public class GetWorkdayReport extends AbstractProcessor {
                         responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), mimeType.get());
                     }
                 }
+            } else {
+                getLogger().warn("Workday API request failed: HTTP {}", statusCode);
             }
         } catch (Exception e) {
             session.remove(responseFlowFile);

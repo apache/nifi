@@ -62,7 +62,7 @@ public class TestListDatabaseTables {
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
     }
@@ -71,14 +71,14 @@ public class TestListDatabaseTables {
     public static void cleanUpAfterClass() throws Exception {
         try {
             DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (SQLNonTransientConnectionException e) {
+        } catch (SQLNonTransientConnectionException ignored) {
             // Do nothing, this is what happens at Derby shutdown
         }
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         try {
             FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
+        } catch (IOException ignored) {
             // Do nothing, may not have existed
         }
         System.clearProperty("derby.stream.error.file");
@@ -106,7 +106,7 @@ public class TestListDatabaseTables {
         try {
             stmt.execute("drop table TEST_TABLE1");
             stmt.execute("drop table TEST_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Do nothing, may not have existed
         }
 
@@ -132,7 +132,7 @@ public class TestListDatabaseTables {
         try {
             stmt.execute("drop table TEST_TABLE1");
             stmt.execute("drop table TEST_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Do nothing, may not have existed
         }
 
@@ -159,7 +159,7 @@ public class TestListDatabaseTables {
         try {
             stmt.execute("drop table TEST_TABLE1");
             stmt.execute("drop table TEST_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Do nothing, may not have existed
         }
 
@@ -192,7 +192,7 @@ public class TestListDatabaseTables {
         try {
             stmt.execute("drop table TEST_TABLE1");
             stmt.execute("drop table TEST_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Do nothing, may not have existed
         }
 
@@ -229,7 +229,7 @@ public class TestListDatabaseTables {
         try {
             stmt.execute("drop table TEST_TABLE1");
             stmt.execute("drop table TEST_TABLE2");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // Do nothing, may not have existed
         }
 

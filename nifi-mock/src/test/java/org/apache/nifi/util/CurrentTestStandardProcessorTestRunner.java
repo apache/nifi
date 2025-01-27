@@ -60,7 +60,7 @@ public class CurrentTestStandardProcessorTestRunner {
                     // increment counter
                     ++counter;
                 }
-            } catch (InterruptedException e) {
+            } catch (InterruptedException ignored) {
             }
 
         }

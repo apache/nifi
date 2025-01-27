@@ -601,7 +601,7 @@ public class FTPTransfer implements FileTransfer {
         } else if (numPattern.matcher(perms).matches()) {
             try {
                 number = Integer.parseInt(perms, 8);
-            } catch (NumberFormatException ignore) {
+            } catch (NumberFormatException ignored) {
             }
         }
         return number;

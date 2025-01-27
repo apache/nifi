@@ -55,7 +55,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -210,7 +209,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         AUTHORIZATION_SERVER_URL,
         CLIENT_AUTHENTICATION_STRATEGY,
         GRANT_TYPE,
@@ -226,7 +225,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         SSL_CONTEXT,
         HTTP_PROTOCOL_STRATEGY,
         ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS)
-    ));
+    );
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
 
@@ -252,36 +251,12 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
-        authorizationServerUrl = context.getProperty(AUTHORIZATION_SERVER_URL).evaluateAttributeExpressions().getValue();
-
-        httpClient = createHttpClient(context);
-
-        clientAuthenticationStrategy = ClientAuthenticationStrategy.valueOf(context.getProperty(CLIENT_AUTHENTICATION_STRATEGY).getValue());
-        grantType = context.getProperty(GRANT_TYPE).getValue();
-        username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        password = context.getProperty(PASSWORD).getValue();
-        clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
-        clientSecret = context.getProperty(CLIENT_SECRET).getValue();
-        scope = context.getProperty(SCOPE).getValue();
-        resource = context.getProperty(RESOURCE).getValue();
-        audience = context.getProperty(AUDIENCE).getValue();
-
-        if (context.getProperty(REFRESH_TOKEN).isSet()) {
-            String refreshToken = context.getProperty(REFRESH_TOKEN).evaluateAttributeExpressions().getValue();
-
-            AccessToken accessDetailsWithRefreshTokenOnly = new AccessToken();
-            accessDetailsWithRefreshTokenOnly.setRefreshToken(refreshToken);
-            accessDetailsWithRefreshTokenOnly.setExpiresIn(-1);
-
-            this.accessDetails = accessDetailsWithRefreshTokenOnly;
-        }
-
-        refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
+        getProperties(context);
     }
 
     @OnDisabled
@@ -362,6 +337,34 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         }
 
         return accessDetails;
+    }
+
+    private void getProperties(ConfigurationContext context) {
+        authorizationServerUrl = context.getProperty(AUTHORIZATION_SERVER_URL).evaluateAttributeExpressions().getValue();
+
+        httpClient = createHttpClient(context);
+
+        clientAuthenticationStrategy = ClientAuthenticationStrategy.valueOf(context.getProperty(CLIENT_AUTHENTICATION_STRATEGY).getValue());
+        grantType = context.getProperty(GRANT_TYPE).getValue();
+        username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+        password = context.getProperty(PASSWORD).getValue();
+        clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
+        clientSecret = context.getProperty(CLIENT_SECRET).getValue();
+        scope = context.getProperty(SCOPE).getValue();
+        resource = context.getProperty(RESOURCE).getValue();
+        audience = context.getProperty(AUDIENCE).getValue();
+
+        if (context.getProperty(REFRESH_TOKEN).isSet()) {
+            String refreshToken = context.getProperty(REFRESH_TOKEN).evaluateAttributeExpressions().getValue();
+
+            AccessToken accessDetailsWithRefreshTokenOnly = new AccessToken();
+            accessDetailsWithRefreshTokenOnly.setRefreshToken(refreshToken);
+            accessDetailsWithRefreshTokenOnly.setExpiresIn(-1);
+
+            this.accessDetails = accessDetailsWithRefreshTokenOnly;
+        }
+
+        refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
     }
 
     private boolean isRefreshRequired() {
@@ -458,6 +461,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
     @Override
     public List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
+        getProperties(context);
+
         ConfigVerificationResult.Builder builder = new ConfigVerificationResult.Builder()
                 .verificationStepName("Can acquire token");
 

@@ -1281,7 +1281,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 try {
                     LogRepositoryFactory.removeRepository(processor.getIdentifier());
                     extensionManager.removeInstanceClassLoader(id);
-                } catch (Throwable t) {
+                } catch (Throwable ignored) {
                 }
             }
             writeLock.unlock();
@@ -2632,7 +2632,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (removed) {
                 try {
                     extensionManager.removeInstanceClassLoader(service.getIdentifier());
-                } catch (Throwable t) {
+                } catch (Throwable ignored) {
                 }
             }
             writeLock.unlock();

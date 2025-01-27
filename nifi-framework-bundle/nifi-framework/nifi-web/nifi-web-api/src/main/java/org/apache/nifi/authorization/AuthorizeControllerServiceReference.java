@@ -63,7 +63,7 @@ public final class AuthorizeControllerServiceReference {
                         if (authorizeTransitiveServices) {
                             authorizeControllerServiceReferences(currentServiceAuthorizable, authorizer, lookup, authorizeTransitiveServices);
                         }
-                    } catch (ResourceNotFoundException e) {
+                    } catch (ResourceNotFoundException ignored) {
                         // ignore if the resource is not found, if the referenced service was previously deleted, it should not stop this action
                     }
                 }
@@ -107,7 +107,7 @@ public final class AuthorizeControllerServiceReference {
                             try {
                                 final Authorizable currentServiceAuthorizable = lookup.getControllerService(currentValue).getAuthorizable();
                                 currentServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                            } catch (ResourceNotFoundException e) {
+                            } catch (ResourceNotFoundException ignored) {
                                 // ignore if the resource is not found, if currentValue was previously deleted, it should not stop assignment of proposedValue
                             }
                         }

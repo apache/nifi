@@ -648,7 +648,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 if (updatedEntity != null) {
                     entities.add(updatedEntity);
                 }
-            } catch (final ResourceNotFoundException rnfe) {
+            } catch (final ResourceNotFoundException ignored) {
                 // Component was removed. Just continue on without adding anything to the entities.
                 // We do this because the intent is to get updated versions of the entities with current
                 // Revisions so that we can change the states of the components. If the component was removed,

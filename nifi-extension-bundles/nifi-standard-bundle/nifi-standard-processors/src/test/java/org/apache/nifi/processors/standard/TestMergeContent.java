@@ -1034,7 +1034,7 @@ public class TestMergeContent {
             try {
                 Thread.sleep(3000L);
                 break;
-            } catch (final InterruptedException ignore) {
+            } catch (final InterruptedException ignored) {
             }
         }
         runner.run(1);

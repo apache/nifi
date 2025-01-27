@@ -180,7 +180,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .defaultValue("false")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CONNECTION_POOL,
             SQL_STATEMENT,
             SUPPORT_TRANSACTIONS,
@@ -221,7 +221,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -758,7 +758,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             if (generatedKeys != null && generatedKeys.next()) {
                 return generatedKeys.getString(1);
             }
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
             // This is not supported by all vendors. This is a best-effort approach.
         }
 

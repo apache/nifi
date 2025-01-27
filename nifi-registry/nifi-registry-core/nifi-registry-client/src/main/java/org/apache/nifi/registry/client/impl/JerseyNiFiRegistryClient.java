@@ -246,7 +246,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
         if (this.client != null) {
             try {
                 this.client.close();
-            } catch (Exception e) {
+            } catch (Exception ignored) {
 
             }
         }

@@ -174,7 +174,7 @@ public class ListenHTTPServlet extends HttpServlet {
             if (sessionFactory == null) {
                 try {
                     Thread.sleep(10);
-                } catch (final InterruptedException e) {
+                } catch (final InterruptedException ignored) {
                 }
             }
         } while (sessionFactory == null);
@@ -232,7 +232,7 @@ public class ListenHTTPServlet extends HttpServlet {
             if (destinationVersion != null) {
                 try {
                     protocolVersion = Integer.valueOf(destinationVersion);
-                } catch (final NumberFormatException e) {
+                } catch (final NumberFormatException ignored) {
                     // Value was invalid. Treat as if the header were missing.
                 }
             }

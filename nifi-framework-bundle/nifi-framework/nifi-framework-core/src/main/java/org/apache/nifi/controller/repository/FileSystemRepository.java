@@ -616,7 +616,7 @@ public class FileSystemRepository implements ContentRepository {
 
         try {
             return new FileInputStream(resolvedPath.toFile());
-        } catch (final FileNotFoundException fnfe) {
+        } catch (final FileNotFoundException ignored) {
             // If this occurs, we will also check the archive directory.
         }
 

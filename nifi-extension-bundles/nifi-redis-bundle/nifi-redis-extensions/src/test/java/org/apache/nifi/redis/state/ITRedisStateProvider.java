@@ -73,7 +73,7 @@ public class ITRedisStateProvider {
         if (provider != null) {
             try {
                 provider.clear(componentId);
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
             provider.disable();
             provider.shutdown();

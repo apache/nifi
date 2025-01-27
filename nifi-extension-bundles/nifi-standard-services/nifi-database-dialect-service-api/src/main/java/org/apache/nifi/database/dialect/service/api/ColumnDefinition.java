@@ -14,17 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.yaml;
+package org.apache.nifi.database.dialect.service.api;
 
-import com.fasterxml.jackson.core.StreamReadConstraints;
-import org.apache.nifi.json.JsonRecordSource;
-import org.apache.nifi.json.StartingFieldStrategy;
+/**
+ * Database Table Column Definition
+ */
+public interface ColumnDefinition {
+    String columnName();
 
-import java.io.IOException;
-import java.io.InputStream;
+    int dataType();
 
-public class YamlRecordSource extends JsonRecordSource {
-   public YamlRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName, StreamReadConstraints streamReadConstraints) throws IOException {
-       super(in, strategy, startingFieldName, new YamlParserFactory(), streamReadConstraints);
-   }
+    Nullable nullable();
+
+    boolean primaryKey();
+
+    enum Nullable {
+        YES,
+
+        NO,
+
+        UNKNOWN
+    }
 }

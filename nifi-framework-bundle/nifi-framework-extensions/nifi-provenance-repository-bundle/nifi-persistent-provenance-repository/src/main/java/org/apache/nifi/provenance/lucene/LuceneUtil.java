@@ -229,7 +229,7 @@ public class LuceneUtil {
             decoder.reset();
             CharBuffer cbuf = decoder.decode(bbuf);
             return cbuf.toString();
-        } catch (CharacterCodingException shouldNotHappen) { }
+        } catch (CharacterCodingException ignored) { }
 
         // if we get here, something bad has happened
         return null;

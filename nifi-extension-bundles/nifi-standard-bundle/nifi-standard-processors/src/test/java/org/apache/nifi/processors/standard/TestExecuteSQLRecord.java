@@ -192,7 +192,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -242,7 +242,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -299,7 +299,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 varchar(50), constraint my_pk primary key (id))");
@@ -342,7 +342,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -396,7 +396,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -433,7 +433,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, image blob(1K), words clob(1K), "
@@ -488,7 +488,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -520,7 +520,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NO_ROWS");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NO_ROWS (id integer)");
@@ -646,7 +646,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -679,7 +679,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -713,7 +713,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
@@ -744,7 +744,7 @@ public class TestExecuteSQLRecord {
 
         try {
             stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException sqle) {
+        } catch (final SQLException ignored) {
         }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");

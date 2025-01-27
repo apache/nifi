@@ -125,7 +125,7 @@ public class CLIMain {
                     final ParsedLine parsedLine = reader.getParsedLine();
                     final String[] parsedArgs = parsedLine.words().toArray(new String[parsedLine.words().size()]);
                     commandProcessor.process(parsedArgs);
-                } catch (UserInterruptException e) {
+                } catch (UserInterruptException ignored) {
                     // Ignore
                 } catch (EndOfFileException e) {
                     return;

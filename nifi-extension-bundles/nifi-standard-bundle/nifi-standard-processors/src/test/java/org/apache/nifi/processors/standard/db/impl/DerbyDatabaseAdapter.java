@@ -146,7 +146,7 @@ public class DerbyDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public List<String> getAlterTableStatements(final String tableName, final List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
+    public String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
         List<String> alterTableStatements = new ArrayList<>();
 
         List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
@@ -170,7 +170,15 @@ public class DerbyDatabaseAdapter implements DatabaseAdapter {
                     .append(" ADD COLUMN ")
                     .append(columnAndDataType).toString());
         }
-        return alterTableStatements;
+
+        final String sql;
+        if (alterTableStatements.size() == 1) {
+            sql = alterTableStatements.getFirst();
+        } else {
+            throw new UnsupportedOperationException("Apache Derby does not support adding more than one column when altering tables");
+        }
+
+        return sql;
     }
 
     @Override

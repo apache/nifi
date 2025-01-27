@@ -80,7 +80,7 @@ public class ShutdownHook extends Thread {
             } else {
                 try {
                     Thread.sleep(1000L);
-                } catch (final InterruptedException ie) {
+                } catch (final InterruptedException ignored) {
                 }
             }
         }

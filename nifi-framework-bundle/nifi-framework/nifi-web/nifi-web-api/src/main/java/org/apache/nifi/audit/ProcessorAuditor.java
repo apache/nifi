@@ -218,7 +218,7 @@ public class ProcessorAuditor extends NiFiAuditor {
                                 newValue = newReference.get();
                                 oldValue = oldReference.get();
 
-                            } catch (Exception ignore) { //Not valid XML, so treat as String, no change
+                            } catch (Exception ignored) { //Not valid XML, so treat as String, no change
                             }
                         }
                     }

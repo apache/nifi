@@ -104,13 +104,7 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String unwrapIdentifier(String identifier) {
-        // Remove double quotes and square brackets.
-        return identifier == null ? null : identifier.replaceAll("[\"\\[\\]]", "");
-    }
-
-    @Override
-    public List<String> getAlterTableStatements(final String tableName, final List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
+    public String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd, final boolean quoteTableName, final boolean quoteColumnNames) {
         List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
         for (ColumnDescription column : columnsToAdd) {
             String dataType = getSQLForDataType(column.getDataType());
@@ -124,12 +118,12 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
         }
 
         StringBuilder alterTableStatement = new StringBuilder();
-        return List.of(alterTableStatement.append("ALTER TABLE ")
+        return alterTableStatement.append("ALTER TABLE ")
                 .append(quoteTableName ? getTableQuoteString() : "")
                 .append(tableName)
                 .append(quoteTableName ? getTableQuoteString() : "")
                 .append(" ")
                 .append(String.join(", ", columnsAndDatatypes))
-                .toString());
+                .toString();
     }
 }
