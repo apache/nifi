@@ -26,8 +26,6 @@ import org.apache.nifi.security.krb.KerberosUser;
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import java.io.IOException;
-import java.security.AccessControlContext;
-import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Objects;
@@ -90,8 +88,7 @@ public class SecurityUtil {
                 kerberosUser.login();
             }
             return kerberosUser.doAs((PrivilegedExceptionAction<UserGroupInformation>) () -> {
-                AccessControlContext context = AccessController.getContext();
-                Subject subject = Subject.getSubject(context);
+                Subject subject = Subject.current();
                 Validate.notEmpty(
                         subject.getPrincipals(KerberosPrincipal.class).stream().filter(p -> p.getName().startsWith(kerberosUser.getPrincipal())).collect(Collectors.toSet()),
                         "No Subject was found matching the given principal");
