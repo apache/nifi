@@ -16,3 +16,4 @@
 org.apache.nifi.flowanalysis.rules.DisallowComponentType
 org.apache.nifi.flowanalysis.rules.RestrictBackpressureSettings
 org.apache.nifi.flowanalysis.rules.RestrictFlowFileExpiration
+org.apache.nifi.flowanalysis.rules.RestrictLoadBalancing
