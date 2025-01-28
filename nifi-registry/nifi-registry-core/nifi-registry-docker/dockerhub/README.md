@@ -149,6 +149,7 @@ user with administrative privileges.
       -e NIFI_REGISTRY_SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM=RS256 \
       -e NIFI_REGISTRY_SECURITY_USER_OIDC_ADDITIONAL_SCOPES=profile \
       -e NIFI_REGISTRY_SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER=preferred_username \
+      -e NIFI_REGISTRY_SECURITY_USER_OIDC_CLAIM_GROUPS=groups \
       -d \
       apache/nifi-registry:latest
 
