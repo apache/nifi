@@ -21,8 +21,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -48,9 +46,12 @@ public class CSVRecordSource implements RecordSource<CSVRecordAndFieldNames> {
             throw new ProcessException(e);
         }
 
-        final CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables).builder().setHeader().setSkipHeaderRecord(true).setTrim(true).build();
-        final CSVParser csvParser = new CSVParser(reader, csvFormat);
-        fieldNames = Collections.unmodifiableList(new ArrayList<>(csvParser.getHeaderMap().keySet()));
+        final CSVFormat csvFormat = CSVUtils.createCSVFormat(context, variables).builder().setHeader().setSkipHeaderRecord(true).setTrim(true).get();
+        final CSVParser csvParser = CSVParser.builder()
+                .setReader(reader)
+                .setFormat(csvFormat)
+                .get();
+        fieldNames = List.copyOf(csvParser.getHeaderMap().keySet());
 
         csvRecordIterator = csvParser.iterator();
     }

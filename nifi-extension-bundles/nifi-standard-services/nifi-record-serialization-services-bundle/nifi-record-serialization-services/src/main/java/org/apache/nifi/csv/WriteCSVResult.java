@@ -60,7 +60,7 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
         this.timestampFormat = timestampFormat;
         this.includeHeaderLine = includeHeaderLine;
 
-        final CSVFormat formatWithHeader = csvFormat.builder().setSkipHeaderRecord(true).build();
+        final CSVFormat formatWithHeader = csvFormat.builder().setSkipHeaderRecord(true).get();
         final OutputStreamWriter streamWriter = new OutputStreamWriter(out, charSet);
         printer = new CSVPrinter(streamWriter, formatWithHeader);
 

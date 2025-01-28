@@ -52,8 +52,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCSVRecordReader {
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
-    private final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').build();
-    private final CSVFormat RFC4180WithTrim = CSVFormat.RFC4180.builder().setTrim(true).build();
+    private final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').get();
+    private final CSVFormat RFC4180WithTrim = CSVFormat.RFC4180.builder().setTrim(true).get();
 
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
@@ -807,7 +807,7 @@ public class TestCSVRecordReader {
             .setTrim(true)
             .setQuote('"')
             .setDuplicateHeaderMode(DuplicateHeaderMode.DISALLOW)
-            .build();
+            .get();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> createReader(bais, schema, disallowDuplicateHeadersFormat));
@@ -848,7 +848,7 @@ public class TestCSVRecordReader {
         }
 
         // confirm duplicate headers cause an exception when requested
-        final CSVFormat disallowDuplicateHeadersFormat = RFC4180WithTrim.builder().setDuplicateHeaderMode(DuplicateHeaderMode.DISALLOW).build();
+        final CSVFormat disallowDuplicateHeadersFormat = RFC4180WithTrim.builder().setDuplicateHeaderMode(DuplicateHeaderMode.DISALLOW).get();
         try (final InputStream bais = new ByteArrayInputStream(inputData)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> createReader(bais, schema, disallowDuplicateHeadersFormat, false));
             assertTrue(iae.getMessage().startsWith("The header contains a duplicate name"));
@@ -860,7 +860,7 @@ public class TestCSVRecordReader {
 
         char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
-        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').setDelimiter(delimiter).build();
+        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').setDelimiter(delimiter).get();
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 
@@ -884,7 +884,7 @@ public class TestCSVRecordReader {
     @Test
     public void testMultipleRecordsEscapedWithChar() throws IOException {
 
-        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setTrim(true).setQuote('"').setDelimiter(',').setEscape('\\').build();
+        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setTrim(true).setQuote('"').setDelimiter(',').setEscape('\\').get();
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 
@@ -900,7 +900,7 @@ public class TestCSVRecordReader {
     @Test
     public void testMultipleRecordsEscapedWithNull() throws IOException, MalformedRecordException {
 
-        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').setDelimiter(',').setEscape(null).build();
+        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').setDelimiter(',').setEscape(null).get();
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 
@@ -945,7 +945,7 @@ public class TestCSVRecordReader {
 
     @Test
     public void testQuote() throws IOException, MalformedRecordException {
-        final CSVFormat format = CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').build();
+        final CSVFormat format = CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').get();
         final String text = "\"name\"\n\"\"\"\"\"\"\"\"\n\"\"\"\"\"\"\"\"";
 
         final List<RecordField> fields = new ArrayList<>();
@@ -968,7 +968,7 @@ public class TestCSVRecordReader {
 
     @Test
     public void testQuote_withoutDoubleQuoteTrimming() throws IOException, MalformedRecordException {
-        final CSVFormat format = CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').build();
+        final CSVFormat format = CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').get();
         final String text = "\"name\"\n\"\"\"\"\"\"\"\"\n\"\"\"\"\"\"\"\"";
 
         final List<RecordField> fields = new ArrayList<>();
